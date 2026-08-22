@@ -2,13 +2,13 @@
 
 module Phronomy
   module Agent
-    module ContextParts
+    module Selection
       module Selectors
         class RecentFirstSelector
           def order(request:, units:)
             candidates = request.candidates.to_h { |candidate| [candidate.candidate_id, candidate] }
-            Array(units).sort_by do |unit|
-              required_rank = (unit.requirement == :optional) ? 1 : 0
+            Array(units).reject { |unit| unit.constraint.forbidden? }.sort_by do |unit|
+              required_rank = unit.constraint.required? ? 0 : 1
               current_rank = current_execution_unit?(request, unit, candidates) ? 0 : 1
               [required_rank, current_rank, -unit.priority, -unit.sequence_range.last]
             end.freeze

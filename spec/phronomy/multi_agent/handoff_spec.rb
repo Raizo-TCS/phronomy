@@ -2,243 +2,196 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::MultiAgent::Handoff do
-  let(:target_klass) do
-    Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-117", version: 1
-      def self.name
-        "Phronomy::Agent::BillingAgent"
+RSpec.describe Phronomy::MultiAgent::HandoffPolicy do
+  it "defines the four initial Handoff policy categories" do
+    expect(described_class::CATEGORIES).to eq(
+      %i[current_request history knowledge tool_exchanges]
+    )
+  end
+
+  it "builds required, forbidden and selectable rules" do
+    policy = described_class.define do
+      required :current_request
+      selectable :history, default: :include
+      forbidden :knowledge
+      selectable :tool_exchanges, default: :exclude
+    end
+
+    expect(policy.required?(:current_request)).to be(true)
+    expect(policy.default_include?(:history)).to be(true)
+    expect(policy.forbidden?(:knowledge)).to be(true)
+    expect(policy.default_include?(:tool_exchanges)).to be(false)
+  end
+
+  it "requires all initial categories to be declared" do
+    expect do
+      described_class.define do
+        required :current_request
       end
-    end
+    end.to raise_error(ArgumentError, /missing/)
   end
 
-  let(:target_agent) { target_klass.new }
-  subject(:handoff) { described_class.new(target_agent: target_agent) }
-
-  describe "#initialize" do
-    it "stores the target agent" do
-      expect(handoff.target_agent).to equal(target_agent)
-    end
-
-    it "derives tool_name from the last segment of the class name" do
-      expect(handoff.tool_name).to match(/\Atransfer_to_billing_agent_[0-9a-f]{8}\z/)
-    end
-
-    it "generates a default description" do
-      expect(handoff.description).to include("BillingAgent")
-    end
-
-    it "accepts an explicit description" do
-      h = described_class.new(target_agent: target_agent, description: "Go to billing")
-      expect(h.description).to eq("Go to billing")
-    end
-  end
-
-  describe "#sentinel" do
-    it "starts with the SENTINEL_PREFIX" do
-      expect(handoff.sentinel).to start_with(Phronomy::MultiAgent::Handoff::SENTINEL_PREFIX)
-    end
-
-    it "embeds the target agent class name" do
-      expect(handoff.sentinel).to include("Phronomy::Agent::BillingAgent")
-    end
-  end
-
-  describe "#to_tool_class" do
-    subject(:tool_class) { handoff.to_tool_class }
-
-    it "returns a subclass of Phronomy::Agent::Context::Capability::Base" do
-      expect(tool_class.ancestors).to include(Phronomy::Agent::Context::Capability::Base)
-    end
-
-    it "sets the tool_name on the returned class" do
-      expect(tool_class.tool_name).to match(/\Atransfer_to_billing_agent_[0-9a-f]{8}\z/)
-    end
-
-    it "executes and returns the sentinel string" do
-      tool_instance = tool_class.new
-      expect(tool_instance.execute).to eq(handoff.sentinel)
-    end
-  end
-
-  # Regression test for issue #41:
-  # Two Handoff instances targeting the same agent class must have distinct
-  # tool_names so the LLM can address each target independently.
-  describe "tool_name uniqueness across instances (issue #41)" do
-    it "assigns different tool_names to two Handoffs for the same class" do
-      agent_a = target_klass.new
-      agent_b = target_klass.new
-
-      handoff_a = described_class.new(target_agent: agent_a)
-      handoff_b = described_class.new(target_agent: agent_b)
-
-      expect(handoff_a.tool_name).not_to eq(handoff_b.tool_name)
-    end
-
-    it "assigns different tool_names even when two classes share the same simple name" do
-      # Simulate Accounts::BillingAgent vs Payments::BillingAgent — both
-      # have the same last segment "BillingAgent".
-      klass_accounts = Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-118", version: 1
-        def self.name = "Accounts::BillingAgent"
-      end
-      klass_payments = Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-119", version: 1
-        def self.name = "Payments::BillingAgent"
-      end
-
-      h1 = described_class.new(target_agent: klass_accounts.new)
-      h2 = described_class.new(target_agent: klass_payments.new)
-
-      expect(h1.tool_name).not_to eq(h2.tool_name)
-    end
+  it "uses the conservative default for persistent Knowledge" do
+    policy = described_class.default
+    expect(policy.required?(:current_request)).to be(true)
+    expect(policy.default_include?(:history)).to be(true)
+    expect(policy.selectable?(:knowledge)).to be(true)
+    expect(policy.default_include?(:knowledge)).to be(false)
+    expect(policy.default_include?(:tool_exchanges)).to be(true)
   end
 end
 
-RSpec.describe Phronomy::Agent::Runner do
-  let(:entry_klass) do
+RSpec.describe Phronomy::MultiAgent::Handoff do
+  let(:source_klass) do
     Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-120", version: 1
+      agent_definition id: "handoff-source", version: 1
       model "stub-model"
-      provider :openai
-      instructions "Entry agent."
     end
   end
 
   let(:target_klass) do
     Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-121", version: 1
+      agent_definition id: "handoff-target", version: 1
       model "stub-model"
-      provider :openai
-      instructions "Target agent."
     end
   end
 
-  let(:entry) { entry_klass.new }
+  let(:source) { source_klass.new }
   let(:target) { target_klass.new }
 
-  describe "#initialize" do
-    it "raises ArgumentError when agents is empty" do
-      expect { described_class.new(agents: []) }.to raise_error(ArgumentError, /at least one agent/i)
-    end
-
-    it "stores the agents array" do
-      runner = described_class.new(agents: [entry])
-      expect(runner.agents).to eq([entry])
-    end
-
-    it "registers handoff tools on the source agent" do
-      described_class.new(agents: [entry, target], routes: {entry => [target]})
-      expect(entry._handoff_tools.size).to eq(1)
-    end
+  subject(:handoff) do
+    described_class.new(
+      source_agent: source,
+      target_agent: target,
+      description: "Transfer billing responsibility"
+    )
   end
 
-  describe "#invoke" do
-    let(:ok_result) { {output: "OK", messages: [], usage: Phronomy::TokenUsage.zero} }
+  it "represents one explicit Source to Target edge" do
+    expect(handoff.source_agent).to equal(source)
+    expect(handoff.target_agent).to equal(target)
+    expect(handoff.policy).to equal(Phronomy::MultiAgent::HandoffPolicy.default)
+    expect(handoff.description).to eq("Transfer billing responsibility")
+  end
 
-    context "when no handoff is triggered" do
-      it "returns the entry agent result with :agent key" do
-        allow(entry).to receive(:invoke).and_return(ok_result)
-        runner = described_class.new(agents: [entry])
-        result = runner.invoke("hello")
-        expect(result[:agent]).to equal(entry)
-        expect(result[:output]).to eq("OK")
-      end
-    end
-
-    context "when a handoff is triggered once" do
-      it "routes to the target agent and returns its result" do
-        runner = described_class.new(agents: [entry, target], routes: {entry => [target]})
-        sentinel = runner.instance_variable_get(:@sentinel_map).keys.first
-        tool_msg = double("tool_msg", role: :tool, content: sentinel)
-
-        entry_result = {output: "Transferring.", messages: [tool_msg], usage: Phronomy::TokenUsage.zero}
-        target_result = {output: "I can help.", messages: [], usage: Phronomy::TokenUsage.zero}
-
-        allow(entry).to receive(:invoke).and_return(entry_result)
-        allow(target).to receive(:invoke).and_return(target_result)
-
-        result = runner.invoke("I need help.")
-        expect(result[:agent]).to equal(target)
-        expect(result[:output]).to eq("I can help.")
-      end
-    end
-
-    context "when MAX_HANDOFFS is exceeded" do
-      it "raises Phronomy::HandoffError" do
-        runner = described_class.new(
-          agents: [entry, target],
-          routes: {entry => [target], target => [entry]}
-        )
-        sentinel_map = runner.instance_variable_get(:@sentinel_map)
-        sentinel1 = sentinel_map.keys.find { |k| k.include?(target_klass.name.to_s.split("::").last.to_s) } ||
-          sentinel_map.keys.first
-        sentinel2 = sentinel_map.keys.find { |k| k.include?(entry_klass.name.to_s.split("::").last.to_s) } ||
-          sentinel_map.keys.last
-
-        msg1 = double("msg1", role: :tool, content: sentinel1)
-        msg2 = double("msg2", role: :tool, content: sentinel2)
-
-        allow(entry).to receive(:invoke).and_return(
-          {output: "x", messages: [msg1], usage: Phronomy::TokenUsage.zero}
-        )
-        allow(target).to receive(:invoke).and_return(
-          {output: "y", messages: [msg2], usage: Phronomy::TokenUsage.zero}
-        )
-
-        stub_const("Phronomy::Agent::Runner::MAX_HANDOFFS", 1)
-        expect { runner.invoke("ping") }.to raise_error(Phronomy::HandoffError, /exceeded/i)
-      end
-    end
+  it "does not expose routing encoding as public Handoff semantics" do
+    expect(handoff).not_to respond_to(:tool_name)
+    expect(handoff).not_to respond_to(:sentinel)
+    expect(handoff).not_to respond_to(:to_tool_class)
+    expect(described_class.const_defined?(:SENTINEL_PREFIX, false)).to be(false)
   end
 end
 
-RSpec.describe "Phronomy::MultiAgent::Handoff sentinel uniqueness" do
-  let(:target) do
+RSpec.describe Phronomy::MultiAgent::HandoffCapabilityFactory do
+  let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-122", version: 1
+      agent_definition id: "handoff-capability-agent", version: 1
       model "stub-model"
-      provider :openai
-    end.new
-  end
-
-  it "generates a different sentinel for each Handoff instance pointing at the same target" do
-    h1 = Phronomy::MultiAgent::Handoff.new(target_agent: target)
-    h2 = Phronomy::MultiAgent::Handoff.new(target_agent: target)
-    expect(h1.sentinel).not_to eq(h2.sentinel)
-  end
-
-  it "includes the target class name in the sentinel" do
-    handoff = Phronomy::MultiAgent::Handoff.new(target_agent: target)
-    expect(handoff.sentinel).to include(target.class.name.to_s)
-  end
-end
-
-RSpec.describe "Phronomy::Agent::Base#_add_handoff_tool" do
-  let(:klass) do
-    Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-123", version: 1
-      model "stub-model"
-      provider :openai
     end
   end
 
-  subject(:agent) { klass.new }
+  it "creates a cooperative private capability without making its Tool name the Handoff identity" do
+    source = agent_class.new
+    target = agent_class.new
+    edge = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target
+    )
 
-  it "returns self for method chaining" do
-    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base)
-    expect(agent._add_handoff_tool(tool_class)).to equal(agent)
+    binding = described_class.build(edge)
+    expect(binding.handoff).to equal(edge)
+    expect(binding.tool_class.execution_mode).to eq(:cooperative)
+    expect(described_class.lookup(binding.tool_name)).to equal(binding)
+    expect(edge).not_to respond_to(:tool_name)
+  end
+end
+
+RSpec.describe Phronomy::Agent::AgentInvocation do
+  ToolCall = Struct.new(:id, :name, :arguments)
+
+  let(:agent_class) do
+    Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "handoff-invocation-agent", version: 1
+      model "stub-model"
+    end
   end
 
-  it "accumulates multiple handoff tools" do
-    t1 = Class.new(Phronomy::Agent::Context::Capability::Base)
-    t2 = Class.new(Phronomy::Agent::Context::Capability::Base)
-    agent._add_handoff_tool(t1)
-    agent._add_handoff_tool(t2)
-    expect(agent._handoff_tools).to contain_exactly(t1, t2)
+  def build_binding(source, target)
+    edge = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      policy: Phronomy::MultiAgent::HandoffPolicy.define do
+        required :current_request
+        selectable :history, default: :include
+        selectable :knowledge, default: :exclude
+        selectable :tool_exchanges, default: :include
+      end
+    )
+    Phronomy::MultiAgent::HandoffCapabilityFactory.build(edge)
   end
 
-  it "returns empty array by default" do
-    expect(agent._handoff_tools).to eq([])
+  it "turns one intercepted Handoff capability into a typed HandoffRequest" do
+    source = agent_class.new
+    target = agent_class.new
+    binding = build_binding(source, target)
+    invocation = described_class.new(
+      agent: source,
+      input: "hello",
+      config: {phronomy_handoff_bindings: [binding]}
+    )
+
+    invocation.accept_tool_calls!([
+      ToolCall.new(
+        "call-1",
+        binding.tool_name,
+        {"responsibility" => "Continue the billing investigation", "include_history" => false}
+      )
+    ], llm_call_id: "llm-1")
+
+    expect(invocation.handoff_requested?).to be(true)
+    expect(invocation.pending_tool_calls).to be_empty
+    expect(invocation.handoff_request.handoff).to equal(binding.handoff)
+    expect(invocation.handoff_request.responsibility).to eq("Continue the billing investigation")
+    expect(invocation.handoff_request.selection_intent[:history]).to be(false)
+  end
+
+  it "rejects a Handoff mixed with an ordinary Tool Call" do
+    source = agent_class.new
+    target = agent_class.new
+    binding = build_binding(source, target)
+    invocation = described_class.new(
+      agent: source,
+      input: "hello",
+      config: {phronomy_handoff_bindings: [binding]}
+    )
+
+    invocation.accept_tool_calls!([
+      ToolCall.new("handoff", binding.tool_name, {"responsibility" => "Continue"}),
+      ToolCall.new("normal", "ordinary_tool", {})
+    ], llm_call_id: "llm-1")
+
+    expect(invocation.handoff_requested?).to be(false)
+    expect(invocation.handoff_failed?).to be(true)
+    expect(invocation.error).to be_a(Phronomy::HandoffError)
+  end
+end
+
+RSpec.describe Phronomy::MultiAgent::Coordinator do
+  let(:agent_class) do
+    Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "handoff-coordination-agent", version: 1
+      model "stub-model"
+    end
+  end
+
+  it "rejects duplicate Source to Target edges" do
+    source = agent_class.new
+    target = agent_class.new
+    first = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+    second = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+
+    expect do
+      described_class.new(main_agent: source, handoffs: [first, second])
+    end.to raise_error(ArgumentError, /duplicate/)
   end
 end

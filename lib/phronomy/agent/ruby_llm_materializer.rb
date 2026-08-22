@@ -8,9 +8,10 @@ module Phronomy
         :model_config, :manifest, :manifest_ref
       )
 
-      def initialize(agent:, persistence:)
+      def initialize(agent:, persistence:, additional_tools: [])
         @agent = agent
         @persistence = persistence
+        @additional_tools = Array(additional_tools).freeze
       end
 
       def materialize(manifest:, manifest_ref:)
@@ -95,10 +96,25 @@ module Phronomy
       end
 
       def verify_tool_definitions!(manifest)
-        tool_set = ToolDefinitionSet.build(@agent)
-        return tool_set unless manifest.tool_definitions_ref
+        return ToolDefinitionSet.build(
+          @agent,
+          additional_tools: @additional_tools
+        ) unless manifest.tool_definitions_ref
 
         expected = @persistence.contents.fetch(manifest.tool_definitions_ref)
+        expected_definitions = Phronomy::CanonicalJSON.load(expected)
+        additional = @additional_tools
+        if additional.empty? && defined?(Phronomy::MultiAgent::HandoffCapabilityFactory)
+          ordinary_names = ToolDefinitionSet.build(@agent).definitions
+            .map { |definition| definition.fetch("name") }
+          additional = Array(expected_definitions).filter_map do |definition|
+            name = definition.fetch("name")
+            next if ordinary_names.include?(name)
+            Phronomy::MultiAgent::HandoffCapabilityFactory.lookup(name)&.tool_class
+          end
+        end
+
+        tool_set = ToolDefinitionSet.build(@agent, additional_tools: additional)
         actual = Phronomy::CanonicalJSON.dump(tool_set.definitions)
         unless expected == actual
           raise Phronomy::ConfigurationError,
@@ -153,9 +169,6 @@ module Phronomy
           model_id: payload["model_id"]
         )
 
-        # RubyLLM normalizes Hash content during Message initialization. A
-        # canonical message may legitimately contain structured assistant
-        # content, so restore the captured logical value after construction.
         message.content = payload["content"] if payload.key?("content")
         message
       end

@@ -4,8 +4,6 @@
     "type": "class",
     "public_instance_methods": [
       "__replace_root",
-      "_add_handoff_tool",
-      "_handoff_tools",
       "add_input_filter",
       "add_knowledge",
       "add_output_filter",
@@ -152,12 +150,48 @@
     "public_class_methods": []
   },
   {
+    "name": "Phronomy::MultiAgent::Handoff",
+    "type": "class",
+    "public_instance_methods": [
+      "description",
+      "policy",
+      "source_agent",
+      "target_agent"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::MultiAgent::HandoffPolicy",
+    "type": "class",
+    "public_instance_methods": [
+      "default_include?",
+      "forbidden?",
+      "required?",
+      "rule",
+      "selectable?",
+      "selectable_categories",
+      "to_h"
+    ],
+    "public_class_methods": [
+      "default",
+      "define"
+    ]
+  },
+  {
+    "name": "Phronomy::MultiAgent::Runner",
+    "type": "class",
+    "public_instance_methods": [
+      "handoffs",
+      "invoke",
+      "main_agent"
+    ],
+    "public_class_methods": []
+  },
+  {
     "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [
       "__replace_root",
-      "_add_handoff_tool",
-      "_handoff_tools",
       "add_input_filter",
       "add_knowledge",
       "add_output_filter",

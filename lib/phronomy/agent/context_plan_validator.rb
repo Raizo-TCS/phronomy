@@ -26,97 +26,28 @@ module Phronomy
           request: request,
           units: units
         )
-        unit_index = units.to_h { |unit| [unit.unit_id, unit] }
-        unknown = plan.selected_unit_ids.reject { |unit_id| unit_index.key?(unit_id) }
-        raise ArgumentError, "ContextPlan contains unknown units: #{unknown.inspect}" unless unknown.empty?
-
-        selected_units = plan.selected_unit_ids.map { |unit_id| unit_index.fetch(unit_id) }
-        required = units.reject { |unit| unit.requirement == :optional }.map(&:unit_id)
-        missing_required = required - plan.selected_unit_ids
-        unless missing_required.empty?
-          raise Phronomy::ContextBudgetExceededError,
-            "ContextPlan omitted required units: #{missing_required.inspect}"
-        end
-
-        candidate_index = request.candidates.to_h { |candidate| [candidate.candidate_id, candidate] }
-        selected_candidates = selected_units.flat_map(&:candidate_ids).uniq.map do |candidate_id|
-          candidate_index.fetch(candidate_id)
-        end
-        validate_tool_dependencies!(request.candidates, selected_candidates)
+        validated = Selection::Validator.new.validate!(
+          candidates: request.candidates,
+          units: units,
+          selected_unit_ids: plan.selected_unit_ids
+        )
         validate_derived_contents!(request, plan)
 
         ValidatedContextPlan.new(
           plan: plan,
-          units: units,
-          selected_units: selected_units,
-          selected_candidates: selected_candidates
+          units: validated.units,
+          selected_units: validated.selected_units,
+          selected_candidates: validated.selected_candidates
         )
+      rescue Selection::ValidationError => error
+        if error.code == :missing_required
+          raise Phronomy::ContextBudgetExceededError,
+            "ContextPlan omitted required units: #{error.unit_ids.inspect}"
+        end
+        raise ArgumentError, error.message
       end
 
       private
-
-      def validate_tool_dependencies!(all_candidates, selected_candidates)
-        selected_ids = selected_candidates.to_h { |candidate| [candidate.candidate_id, true] }
-        validate_canonical_tool_dependencies!(all_candidates, selected_ids)
-      end
-
-      def validate_canonical_tool_dependencies!(all_candidates, selected_ids)
-        assistants = Array(all_candidates).select { |candidate| candidate.category == :assistant_message }
-        tool_messages = Array(all_candidates).select { |candidate| candidate.category == :tool_message }
-          .group_by(&:tool_call_id)
-        assistant_by_tool_call_id = {}
-
-        tool_messages.each do |tool_call_id, messages|
-          if messages.length > 1
-            raise ArgumentError, "duplicate Tool message in Context candidates: #{tool_call_id}"
-          end
-        end
-
-        assistants.each do |assistant|
-          canonical_tool_call_ids(assistant).each do |tool_call_id|
-            if assistant_by_tool_call_id.key?(tool_call_id)
-              raise ArgumentError,
-                "duplicate assistant Tool Call id in Context candidates: #{tool_call_id}"
-            end
-            assistant_by_tool_call_id[tool_call_id] = assistant
-          end
-        end
-
-        assistants.each do |assistant|
-          next unless selected_ids[assistant.candidate_id]
-
-          canonical_tool_call_ids(assistant).each do |tool_call_id|
-            messages = tool_messages.fetch(tool_call_id, [])
-            if messages.empty?
-              raise ArgumentError,
-                "ContextPlan selected assistant Tool Call without a Tool message: #{tool_call_id}"
-            end
-            missing = messages.reject { |message| selected_ids[message.candidate_id] }
-            unless missing.empty?
-              raise ArgumentError,
-                "ContextPlan split assistant/Tool message dependency: #{tool_call_id}"
-            end
-          end
-        end
-
-        tool_messages.each do |tool_call_id, messages|
-          messages.each do |message|
-            next unless selected_ids[message.candidate_id]
-
-            assistant = assistant_by_tool_call_id[tool_call_id]
-            unless assistant && selected_ids[assistant.candidate_id]
-              raise ArgumentError,
-                "ContextPlan selected orphan Tool message: #{tool_call_id}"
-            end
-          end
-        end
-      end
-
-      def canonical_tool_call_ids(candidate)
-        Array(candidate.metadata["tool_call_ids"] || candidate.metadata[:tool_call_ids])
-          .compact
-          .map(&:to_s)
-      end
 
       def validate_derived_contents!(request, plan)
         known = request.candidates.to_h { |candidate| [candidate.candidate_id, true] }

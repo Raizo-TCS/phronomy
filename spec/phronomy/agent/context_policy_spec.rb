@@ -19,7 +19,7 @@ RSpec.describe "Context Policy selection" do
     when :knowledge then :user
     else :assistant
     end
-    Phronomy::Agent::ContextCandidate.new(
+    Phronomy::Agent::Selection::Candidate.new(
       candidate_id: id,
       source_kind: source_kind,
       category: category,
@@ -31,7 +31,7 @@ RSpec.describe "Context Policy selection" do
       llm_call_id: llm_call_id,
       tool_call_id: tool_call_id,
       sequence: sequence,
-      requirement: :optional,
+      constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :context_policy),
       priority: (source_kind == :working) ? 100 : 0,
       metadata: {
         "estimated_tokens" => tokens,
@@ -43,9 +43,9 @@ RSpec.describe "Context Policy selection" do
 
   def parts
     {
-      unit_builder: Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder.new,
+      unit_builder: Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder.new,
       required_context_resolver: Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver.new,
-      recent_first_selector: Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector.new,
+      recent_first_selector: Phronomy::Agent::Selection::Selectors::RecentFirstSelector.new,
       token_budget_packer: Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker.new
     }
   end
@@ -137,7 +137,7 @@ RSpec.describe "Context Policy selection" do
     expect(units.first.candidate_ids).to contain_exactly("assistant", "result")
   end
 
-  it "treats Knowledge as an ordinary optional selection unit" do
+  it "treats Knowledge as an ordinary selectable unit" do
     candidates = [
       candidate(id: "knowledge", category: :knowledge, sequence: 1, tokens: 100),
       candidate(id: "recent", category: :assistant_message, sequence: 2, tokens: 5)
@@ -171,6 +171,7 @@ RSpec.describe "Context Policy selection" do
     )
 
     expect(validated.selected_candidates.map(&:candidate_id)).to contain_exactly("assistant", "result")
-    expect(validated.selected_units.first.requirement).to eq(:protocol_required)
+    expect(validated.selected_units.first.constraint.required?).to be(true)
+    expect(validated.selected_units.first.constraint.origin).to eq(:framework_protocol)
   end
 end

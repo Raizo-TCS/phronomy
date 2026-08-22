@@ -2,13 +2,6 @@
 
 module Phronomy
   module Agent
-    # Builds FSMSession instances for AgentInvocation objects.
-    #
-    # Offloaded/provider work returns through explicit Agent-internal events.
-    # Entry actions start operations and return synchronously.
-    # Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.
-    #
-    # @api private
     class AgentInvocationSessionBuilder
       AUTO_STATE_SET = {
         idle: true,
@@ -24,7 +17,7 @@ module Phronomy
       DECLARED_STATES = %i[
         idle filtering_input building_context calling_llm starting_tools
         evaluating_tools waiting_for_tools dispatching_tools
-        recording_tool_results suspended output_filtering completed blocked failed
+        recording_tool_results suspended output_filtering handed_off completed blocked failed
       ].freeze
 
       WAIT_STATES = %i[suspended].freeze
@@ -57,11 +50,7 @@ module Phronomy
           event_listener: on_event,
           mode: mode
         )
-        build_session(
-          agent_invocation: invocation,
-          runtime: runtime,
-          mode: mode
-        )
+        build_session(agent_invocation: invocation, runtime: runtime, mode: mode)
       end
 
       def self.build_for_resume(
@@ -88,9 +77,7 @@ module Phronomy
       )
         agent = agent_invocation.agent
         actions = build_entry_actions(agent, runtime, mode: mode)
-        phase_machine = Agent::PhaseMachineBuilder.new(
-          entry_actions: actions
-        ).build
+        phase_machine = Agent::PhaseMachineBuilder.new(entry_actions: actions).build
         iterations = agent.class.max_iterations || 10
 
         Phronomy::FSMSession.new(
@@ -113,17 +100,14 @@ module Phronomy
 
       def self.external_events
         tool_transitions = TOOL_EVENTS.to_h do |event_name|
-          [
-            event_name,
-            [{from: :waiting_for_tools, to: :evaluating_tools, guard: nil}]
-          ]
+          [event_name, [{from: :waiting_for_tools, to: :evaluating_tools, guard: nil}]]
         end
 
         tool_transitions.merge(
           llm_completed: [
-            {from: :calling_llm, to: :starting_tools, guard: ->(ctx) {
-              ctx.tool_call_pending?
-            }},
+            {from: :calling_llm, to: :failed, guard: ->(ctx) { ctx.handoff_failed? }},
+            {from: :calling_llm, to: :handed_off, guard: ->(ctx) { ctx.handoff_requested? }},
+            {from: :calling_llm, to: :starting_tools, guard: ->(ctx) { ctx.tool_call_pending? }},
             {from: :calling_llm, to: :output_filtering, guard: nil}
           ],
           llm_failed: [
@@ -155,26 +139,14 @@ module Phronomy
         end
 
         {
-          filtering_input: [
-            method(:filtering_input_action).curry.call(agent)
-          ],
-          building_context: [
-            method(:building_context_action).curry.call(agent)
-          ],
+          filtering_input: [method(:filtering_input_action).curry.call(agent)],
+          building_context: [method(:building_context_action).curry.call(agent)],
           calling_llm: [calling_action],
-          starting_tools: [
-            method(:starting_tools_action).curry.call(runtime)
-          ],
-          dispatching_tools: [
-            method(:dispatching_tools_action).curry.call(runtime)
-          ],
-          recording_tool_results: [
-            method(:recording_tool_results_action)
-          ],
+          starting_tools: [method(:starting_tools_action).curry.call(runtime)],
+          dispatching_tools: [method(:dispatching_tools_action).curry.call(runtime)],
+          recording_tool_results: [method(:recording_tool_results_action)],
           suspended: [method(:suspended_action)],
-          output_filtering: [
-            method(:output_filtering_action).curry.call(agent)
-          ],
+          output_filtering: [method(:output_filtering_action).curry.call(agent)],
           failed: [method(:failed_action)]
         }
       end
@@ -200,9 +172,6 @@ module Phronomy
       end
       private_class_method :building_context_action
 
-      # RubyLLM >= 1.15 adds the complete assistant Message to chat.messages
-      # before before_tool_call is fired. Capture that Message at the control
-      # boundary instead of trying to recover it after the exception unwinds.
       def self.install_tool_interceptors(chat, invocation = nil)
         unless chat.respond_to?(:before_tool_call)
           raise Phronomy::ConfigurationError,
@@ -231,11 +200,7 @@ module Phronomy
         end
 
         message_tool_calls = assistant_message.tool_calls
-        tool_calls = if message_tool_calls.respond_to?(:values)
-          message_tool_calls.values
-        else
-          Array(message_tool_calls)
-        end
+        tool_calls = message_tool_calls.respond_to?(:values) ? message_tool_calls.values : Array(message_tool_calls)
         tool_calls = Array(fallback_tool_calls) if tool_calls.empty?
 
         ToolCallIntercepted.new(
@@ -248,23 +213,13 @@ module Phronomy
       private_class_method :build_tool_interception
 
       def self.calling_llm_action(agent, runtime, invocation)
-        prepare_and_start_llm_call(
-          agent,
-          runtime,
-          invocation,
-          streaming: false
-        )
+        prepare_and_start_llm_call(agent, runtime, invocation, streaming: false)
         invocation
       end
       private_class_method :calling_llm_action
 
       def self.calling_llm_stream_action(agent, runtime, invocation)
-        prepare_and_start_llm_call(
-          agent,
-          runtime,
-          invocation,
-          streaming: true
-        )
+        prepare_and_start_llm_call(agent, runtime, invocation, streaming: true)
         invocation
       end
       private_class_method :calling_llm_stream_action
@@ -280,25 +235,15 @@ module Phronomy
               post_preparation_failure(runtime, invocation, error, streaming: streaming)
             else
               start_provider_call(
-                agent,
-                runtime,
-                invocation,
-                activation,
-                projection,
-                streaming: streaming,
-                replace_messages: true
+                agent, runtime, invocation, activation, projection,
+                streaming: streaming, replace_messages: true
               )
             end
           end
         else
           start_provider_call(
-            agent,
-            runtime,
-            invocation,
-            activation,
-            activation.runtime_projection,
-            streaming: streaming,
-            replace_messages: false
+            agent, runtime, invocation, activation, activation.runtime_projection,
+            streaming: streaming, replace_messages: false
           )
         end
       end
@@ -314,11 +259,7 @@ module Phronomy
         replace_messages:
       )
         call_started = false
-        agent.send(
-          :check_cancellation!,
-          invocation.config,
-          "invocation cancelled before LLM call"
-        )
+        agent.send(:check_cancellation!, invocation.config, "invocation cancelled before LLM call")
         if replace_messages
           invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
           agent.send(
@@ -342,17 +283,8 @@ module Phronomy
             message,
             config: invocation.config
           ) do |chunk|
-            agent.send(
-              :check_cancellation!,
-              invocation.config,
-              "invocation cancelled during streaming"
-            )
-            post_to_invocation!(
-              runtime,
-              invocation.id,
-              :llm_stream_chunk,
-              {content: chunk.content}
-            )
+            agent.send(:check_cancellation!, invocation.config, "invocation cancelled during streaming")
+            post_to_invocation!(runtime, invocation.id, :llm_stream_chunk, {content: chunk.content})
           end
         else
           Phronomy.configuration.llm_adapter.complete_async(
@@ -362,11 +294,8 @@ module Phronomy
           )
         end
         observe_manifest_call(
-          operation,
-          activation,
-          invocation,
-          runtime: runtime,
-          streaming: streaming
+          operation, activation, invocation,
+          runtime: runtime, streaming: streaming
         )
       rescue => error
         if call_started
@@ -387,13 +316,7 @@ module Phronomy
             error: error,
             streaming: streaming
           )
-          post_llm_result(
-            runtime,
-            invocation,
-            response,
-            error,
-            streaming: streaming
-          )
+          post_llm_result(runtime, invocation, response, error, streaming: streaming)
         end
       end
       private_class_method :observe_manifest_call
@@ -413,11 +336,7 @@ module Phronomy
       private_class_method :post_preparation_failure
 
       def self.post_llm_result(runtime, invocation, response, error, streaming:)
-        result = LLMOperationResult.new(
-          response: response,
-          error: error,
-          streaming: streaming
-        )
+        result = LLMOperationResult.new(response: response, error: error, streaming: streaming)
         event_type = if error && !error.is_a?(ToolCallIntercepted)
           :llm_failed
         else
@@ -429,17 +348,12 @@ module Phronomy
 
       def self.post_to_invocation!(runtime, invocation_id, event_type, payload)
         accepted = runtime.event_loop.post_to_session(
-          Phronomy::Event.new(
-            type: event_type,
-            target_id: invocation_id,
-            payload: payload
-          )
+          Phronomy::Event.new(type: event_type, target_id: invocation_id, payload: payload)
         )
         return if accepted
 
         Phronomy.configuration.logger&.warn(
-          "[Phronomy] Dropped late #{event_type.inspect} for " \
-          "AgentInvocation #{invocation_id}"
+          "[Phronomy] Dropped late #{event_type.inspect} for AgentInvocation #{invocation_id}"
         )
       end
       private_class_method :post_to_invocation!
@@ -469,10 +383,7 @@ module Phronomy
         invocation.tool_invocations = children
 
         children.reject(&:terminal?).each do |child|
-          session = ToolInvocationSessionBuilder.build(
-            tool_invocation: child,
-            runtime: runtime
-          )
+          session = ToolInvocationSessionBuilder.build(tool_invocation: child, runtime: runtime)
           register_child_session(runtime, child, session)
         end
         invocation
@@ -480,25 +391,21 @@ module Phronomy
       private_class_method :starting_tools_action
 
       def self.dispatching_tools_action(runtime, invocation)
-        invocation.tool_invocations
-          .select(&:authorized?)
-          .each do |child|
-            session = ToolInvocationSessionBuilder.build_for_resume(
-              tool_invocation: child,
-              resume_event: :dispatch,
-              resume_phase: :authorized,
-              runtime: runtime
-            )
-            register_child_session(runtime, child, session)
-          end
+        invocation.tool_invocations.select(&:authorized?).each do |child|
+          session = ToolInvocationSessionBuilder.build_for_resume(
+            tool_invocation: child,
+            resume_event: :dispatch,
+            resume_phase: :authorized,
+            runtime: runtime
+          )
+          register_child_session(runtime, child, session)
+        end
         invocation
       end
       private_class_method :dispatching_tools_action
 
       def self.register_child_session(runtime, child, session)
-        completion = Phronomy::Task.deferred(
-          name: "tool-session:#{child.id}"
-        )
+        completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
         completion.on_complete do |_result, error|
           next unless error
 
@@ -526,18 +433,12 @@ module Phronomy
       private_class_method :suspended_action
 
       def self.failed_action(invocation)
-        raise(
-          invocation.error ||
-          Phronomy::ToolError.new("Agent invocation failed")
-        )
+        raise(invocation.error || Phronomy::ToolError.new("Agent invocation failed"))
       end
       private_class_method :failed_action
 
       def self.output_filtering_action(agent, invocation)
-        invocation.output = agent.send(
-          :run_output_filters!,
-          invocation.output
-        )
+        invocation.output = agent.send(:run_output_filters!, invocation.output)
         invocation
       rescue Phronomy::FilterBlockError => error
         invocation.output_blocked = true

@@ -3,9 +3,10 @@
 module Phronomy
   module Agent
     class ContextAssembler
-      ASSEMBLY_POLICY_VERSION = 6
+      ASSEMBLY_POLICY_VERSION = 7
       SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
       BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
+      HANDOFF_CONTEXT_ORIGIN = "handoff_context"
       EARLY_CONTEXT_CATEGORIES = %i[
         instruction structured_state knowledge memory summary
       ].freeze
@@ -29,17 +30,37 @@ module Phronomy
       def build_initial(input:, agent_root:, execution:, config: {}, patch: LLMInputPatch.empty)
         projection = journal_projection(agent_root)
         model_cfg = effective_model_config(config, patch)
-        tool_set = ToolDefinitionSet.build(@agent)
+        tool_set = ToolDefinitionSet.build(
+          @agent,
+          additional_tools: handoff_tool_classes(config)
+        )
         system_text = build_system_text(input)
         hook_candidates = normalize_candidates(patch.segment_candidates)
         input_ref = execution.metadata.fetch("current_input_ref")
         current_input = @persistence.contents.fetch_text(input_ref)
         excluded = [execution.metadata["current_input_record_id"]].compact
+        handoff_context = config[:phronomy_handoff_context]
 
         base_segments = []
         unless system_text.to_s.empty?
           base_segments << text_segment(:instruction, :system, system_text)
         end
+        if handoff_context
+          base_segments << text_segment(
+            :handoff_responsibility,
+            :user,
+            handoff_context.responsibility,
+            metadata: {
+              SEGMENT_ORIGIN_METADATA_KEY => HANDOFF_CONTEXT_ORIGIN
+            }
+          )
+        end
+
+        current_input_metadata = {
+          "source_agent_id" => agent_root.agent_id,
+          "source_execution_id" => execution.execution_id,
+          "handoff_policy_category" => "current_request"
+        }
 
         assemble(
           agent_root: agent_root,
@@ -55,8 +76,20 @@ module Phronomy
           excluded_record_ids: excluded,
           base_segments: base_segments,
           hook_candidates: hook_candidates,
-          current_input_segment: segment(:current_input, :user, input_ref, :ask_argument),
-          mandatory_values: [system_text, current_input, tool_set.definitions]
+          inbound_handoff_context: handoff_context,
+          current_input_segment: segment(
+            :current_input,
+            :user,
+            input_ref,
+            :ask_argument,
+            metadata: current_input_metadata
+          ),
+          mandatory_values: [
+            system_text,
+            handoff_context&.responsibility,
+            current_input,
+            tool_set.definitions
+          ].compact
         )
       end
 
@@ -70,11 +103,13 @@ module Phronomy
         projection = journal_projection(agent_root)
         model_cfg = effective_model_config(config, patch)
         hook_candidates = normalize_candidates(patch.segment_candidates)
-        system_segments = base_manifest.segments.select do |segment|
-          segment.role == :system && !before_llm_input_segment?(segment)
+        base_context_segments = base_manifest.segments.select do |segment|
+          (segment.role == :system && !before_llm_input_segment?(segment)) ||
+            segment.category.to_sym == :handoff_responsibility
         end
         tool_definitions = base_manifest.tool_definitions_ref ?
           fetch_json(base_manifest.tool_definitions_ref) : []
+        handoff_context = config[:phronomy_handoff_context]
 
         assemble(
           agent_root: agent_root,
@@ -88,10 +123,11 @@ module Phronomy
           prior_records: projection.context_records,
           working_records: execution.working_records,
           excluded_record_ids: [],
-          base_segments: system_segments.map { |existing| segment_hash(existing) },
+          base_segments: base_context_segments.map { |existing| segment_hash(existing) },
           hook_candidates: hook_candidates,
+          inbound_handoff_context: handoff_context,
           current_input_segment: nil,
-          mandatory_values: system_segments.map { |segment| fetch_content(segment.content_ref) } +
+          mandatory_values: base_context_segments.map { |value| fetch_content(value.content_ref) } +
             [tool_definitions]
         )
       end
@@ -120,6 +156,7 @@ module Phronomy
         excluded_record_ids:,
         base_segments:,
         hook_candidates:,
+        inbound_handoff_context:,
         current_input_segment:,
         mandatory_values:
       )
@@ -138,6 +175,11 @@ module Phronomy
           agent_root: agent_root,
           execution: execution,
           call_sequence: call_sequence
+        )
+        candidates = merge_handoff_candidates(
+          candidates,
+          inbound_handoff_context,
+          execution: execution
         )
 
         token_budget = TokenBudgetResolver.new(agent: @agent).resolve(model_config)
@@ -166,9 +208,23 @@ module Phronomy
         selected_candidates = validated.selected_candidates.sort_by do |candidate|
           [candidate.sequence || 0, candidate.candidate_id]
         end
+        unit_by_candidate = validated.selected_units.each_with_object({}) do |unit, result|
+          unit.candidate_ids.each { |candidate_id| result[candidate_id] = unit }
+        end
+
         segments = Array(base_segments).dup
-        append_selected_candidates(segments, selected_candidates, before_history: true)
-        append_selected_candidates(segments, selected_candidates, before_history: false)
+        append_selected_candidates(
+          segments,
+          selected_candidates,
+          unit_by_candidate: unit_by_candidate,
+          before_history: true
+        )
+        append_selected_candidates(
+          segments,
+          selected_candidates,
+          unit_by_candidate: unit_by_candidate,
+          before_history: false
+        )
         segments << current_input_segment if current_input_segment
 
         ContextParts::Validators::FinalBudgetValidator.new(
@@ -191,11 +247,15 @@ module Phronomy
 
       def context_parts
         {
-          unit_builder: ContextParts::UnitBuilders::DependencyAwareUnitBuilder.new,
+          unit_builder: Selection::UnitBuilders::DependencyAwareUnitBuilder.new,
           required_context_resolver: ContextParts::Requirements::RequiredContextResolver.new,
-          recent_first_selector: ContextParts::Selectors::RecentFirstSelector.new,
+          recent_first_selector: Selection::Selectors::RecentFirstSelector.new,
           token_budget_packer: ContextParts::Budget::TokenBudgetPacker.new
         }.freeze
+      end
+
+      def handoff_tool_classes(config)
+        Array(config[:phronomy_handoff_bindings]).map(&:tool_class).freeze
       end
 
       def estimate_values(values)
@@ -271,7 +331,7 @@ module Phronomy
             ),
             "source_kind" => "hook"
           )
-          ContextCandidate.new(
+          Selection::Candidate.new(
             candidate_id: "hook:#{execution.execution_id}:#{call_sequence}:#{index}",
             source_kind: :hook,
             category: hook.fetch(:category),
@@ -283,7 +343,7 @@ module Phronomy
             llm_call_id: nil,
             tool_call_id: nil,
             sequence: next_sequence + index + 1,
-            requirement: :optional,
+            constraint: Selection::Constraint.selectable(origin: :context_policy),
             priority: 0,
             metadata: metadata
           )
@@ -293,12 +353,60 @@ module Phronomy
           .freeze
       end
 
-      def append_selected_candidates(segments, candidates, before_history:)
+      def merge_handoff_candidates(candidates, handoff_context, execution:)
+        return Array(candidates).freeze unless handoff_context
+
+        unless handoff_context.is_a?(Phronomy::MultiAgent::HandoffContext)
+          raise ArgumentError, "phronomy_handoff_context must be a HandoffContext"
+        end
+
+        next_sequence = Array(candidates).filter_map(&:sequence).max.to_i
+        transferred = handoff_context.items.each_with_index.map do |item, index|
+          content_ref = if item.content_format == :json
+            @persistence.contents.put_json(item.content)
+          else
+            @persistence.contents.put_text(item.content.to_s)
+          end
+          metadata = item.metadata.merge(
+            SEGMENT_ORIGIN_METADATA_KEY => HANDOFF_CONTEXT_ORIGIN,
+            "estimated_tokens" => Phronomy::LlmContextWindow::TokenEstimator.estimate(
+              fetch_content(content_ref)
+            ),
+            "source_kind" => "handoff",
+            "handoff_policy_category" => item.policy_category.to_s,
+            "handoff_provenance" => item.provenance.to_h
+          )
+
+          Selection::Candidate.new(
+            candidate_id: "handoff:#{execution.execution_id}:#{index}:#{item.provenance.origin_record_id || item.provenance.origin_tool_call_id || index}",
+            source_kind: :handoff,
+            category: item.candidate_category,
+            role: item.role,
+            content_ref: content_ref,
+            record_id: nil,
+            agent_id: item.provenance.origin_agent_id,
+            execution_id: execution.execution_id,
+            llm_call_id: item.provenance.origin_llm_call_id,
+            tool_call_id: item.tool_call_id,
+            sequence: next_sequence + index + 1,
+            constraint: Selection::Constraint.selectable(origin: :handoff_context),
+            priority: 50,
+            metadata: metadata
+          )
+        end
+
+        (Array(candidates) + transferred)
+          .sort_by { |candidate| [candidate.sequence || 0, candidate.candidate_id] }
+          .freeze
+      end
+
+      def append_selected_candidates(segments, candidates, unit_by_candidate:, before_history:)
         candidates.each do |candidate|
           early = EARLY_CONTEXT_CATEGORIES.include?(candidate.category)
           next unless early == before_history
 
-          segments << segment_from_candidate(candidate)
+          unit = unit_by_candidate[candidate.candidate_id]
+          segments << segment_from_candidate(candidate, unit: unit)
         end
       end
 
@@ -317,14 +425,20 @@ module Phronomy
         segment.metadata[SEGMENT_ORIGIN_METADATA_KEY] == BEFORE_LLM_INPUT_ORIGIN
       end
 
-      def segment_from_candidate(candidate)
+      def segment_from_candidate(candidate, unit:)
         metadata = candidate.metadata.reject do |key, _value|
           %w[estimated_tokens source_kind source_sequence].include?(key.to_s)
         end
         metadata = metadata.merge(
           "journal_record_id" => candidate.record_id,
           "journal_sequence" => candidate.metadata["source_sequence"],
-          "llm_call_id" => candidate.llm_call_id
+          "source_agent_id" => candidate.agent_id,
+          "source_execution_id" => candidate.execution_id,
+          "llm_call_id" => candidate.llm_call_id,
+          "selection_candidate_id" => candidate.candidate_id,
+          "selection_unit_id" => unit&.unit_id,
+          "selection_unit_kind" => unit&.kind&.to_s,
+          "handoff_policy_category" => handoff_policy_category(candidate, unit)&.to_s
         ).compact
         segment(
           candidate.category,
@@ -334,6 +448,20 @@ module Phronomy
           tool_call_id: candidate.tool_call_id,
           metadata: metadata
         )
+      end
+
+      def handoff_policy_category(candidate, unit)
+        explicit = candidate.metadata["handoff_policy_category"] ||
+          candidate.metadata[:handoff_policy_category]
+        return explicit.to_sym if explicit
+        return :tool_exchanges if unit&.kind == :tool_exchange
+        return :knowledge if candidate.category == :knowledge
+
+        case candidate.category
+        when :external_message, :assistant_message, :tool_message,
+             :memory, :summary, :structured_state
+          :history
+        end
       end
 
       def segment_hash(existing)

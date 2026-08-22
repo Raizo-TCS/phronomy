@@ -30,16 +30,20 @@ jobs:
             label: Agent::ContextAssembler
           - subject: Phronomy::Agent::ContextPolicies::Default
             label: ContextPolicies::Default
-          - subject: Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder
+          - subject: Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder
             label: DependencyAwareUnitBuilder
           - subject: Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver
             label: RequiredContextResolver
-          - subject: Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector
+          - subject: Phronomy::Agent::Selection::Selectors::RecentFirstSelector
             label: RecentFirstSelector
           - subject: Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker
             label: TokenBudgetPacker
           - subject: Phronomy::Agent::ContextPlanValidator
             label: ContextPlanValidator
+          - subject: Phronomy::MultiAgent::HandoffPolicy
+            label: MultiAgent::HandoffPolicy
+          - subject: Phronomy::MultiAgent::HandoffProjection
+            label: MultiAgent::HandoffProjection
           - subject: Phronomy::VectorStore::InMemory
             label: VectorStore::InMemory
 

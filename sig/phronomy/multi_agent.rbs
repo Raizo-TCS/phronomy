@@ -1,0 +1,39 @@
+module Phronomy
+  module MultiAgent
+    class Handoff
+      attr_reader source_agent: ::Phronomy::Agent::Base
+      attr_reader target_agent: ::Phronomy::Agent::Base
+      attr_reader policy: HandoffPolicy
+      attr_reader description: String
+
+      def initialize: (source_agent: ::Phronomy::Agent::Base, target_agent: ::Phronomy::Agent::Base, ?policy: HandoffPolicy, ?description: String?) -> void
+    end
+
+    class HandoffPolicy
+      CATEGORIES: Array[Symbol]
+      MODES: Array[Symbol]
+      DEFAULTS: Array[Symbol]
+
+      def self.define: () { () -> void } -> HandoffPolicy
+      def self.default: () -> HandoffPolicy
+
+      def rule: (Symbol | String) -> untyped
+      def required?: (Symbol | String) -> bool
+      def forbidden?: (Symbol | String) -> bool
+      def selectable?: (Symbol | String) -> bool
+      def default_include?: (Symbol | String) -> bool
+      def selectable_categories: () -> Array[Symbol]
+      def to_h: () -> Hash[String, Hash[String, String]]
+    end
+
+    class Runner
+      MAX_HANDOFFS: Integer
+
+      attr_reader main_agent: ::Phronomy::Agent::Base
+      attr_reader handoffs: Array[Handoff]
+
+      def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[Handoff]) -> void
+      def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
+    end
+  end
+end

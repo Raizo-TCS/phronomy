@@ -19,6 +19,9 @@ module Phronomy
   class ConfigurationError < Error
   end
 
+  class HandoffError < Error
+  end
+
   class TransportError < Error
   end
 

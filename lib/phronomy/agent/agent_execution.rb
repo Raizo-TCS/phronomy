@@ -7,12 +7,13 @@ module Phronomy
   module Agent
     class AgentExecution
       ACTIVE_STATUSES = %i[preparing active suspended].freeze
-      TERMINAL_STATUSES = %i[completed failed cancelled rejected blocked].freeze
+      TERMINAL_STATUSES = %i[completed handed_off failed cancelled rejected blocked].freeze
       TRANSITIONS = {
         preparing: %i[preparing active failed cancelled blocked],
-        active: %i[active suspended completed failed cancelled rejected blocked],
+        active: %i[active suspended completed handed_off failed cancelled rejected blocked],
         suspended: %i[suspended active failed cancelled],
         completed: %i[completed],
+        handed_off: %i[handed_off],
         failed: %i[failed],
         cancelled: %i[cancelled],
         rejected: %i[rejected],
@@ -84,10 +85,6 @@ module Phronomy
         self.class.new(**values)
       end
 
-      # Returns the canonical durable representation of this execution.
-      # Nested JournalRecord and LLMCallRecord values are recursively encoded.
-      #
-      # @return [Hash{String => Object}]
       # @api public
       def to_h
         ATTRIBUTES.to_h do |name|
@@ -98,13 +95,6 @@ module Phronomy
         end
       end
 
-      # Restores an execution from its canonical durable representation.
-      # String and Symbol top-level keys are accepted. Nested working Journal
-      # records and LLM Call records are restored through their public codecs so
-      # storage backends do not need to know their constructor details.
-      #
-      # @param hash [Hash]
-      # @return [AgentExecution]
       # @api public
       def self.from_h(hash)
         attributes = ATTRIBUTES.to_h do |name|

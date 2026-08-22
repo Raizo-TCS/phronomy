@@ -3,15 +3,20 @@
 require "spec_helper"
 
 RSpec.describe "framework-owned short Tool execution modes" do
-  it "marks Handoff's sentinel Tool cooperative" do
-    target = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "handoff-mode-target", version: 1
+  it "marks Framework-generated Handoff capabilities cooperative" do
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "handoff-mode-agent", version: 1
       model "test"
-    end.new
+    end
+    source = agent_class.new
+    target = agent_class.new
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target
+    )
+    binding = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff)
 
-    tool_class = Phronomy::MultiAgent::Handoff.new(target_agent: target).to_tool_class
-
-    expect(tool_class.execution_mode).to eq(:cooperative)
+    expect(binding.tool_class.execution_mode).to eq(:cooperative)
   end
 
   it "marks TeamCoordinator queue-management Tools cooperative" do

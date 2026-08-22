@@ -4,12 +4,6 @@ require "state_machines"
 
 module Phronomy
   module Agent
-    # Compiles AgentInvocation phase topology.
-    #
-    # Async completion is represented by explicit FSM events. This builder does
-    # not await Tasks or register Task callbacks.
-    #
-    # @api private
     class PhaseMachineBuilder
       TOOL_EVENTS = %i[
         tool_authorized
@@ -43,6 +37,7 @@ module Phronomy
             state :recording_tool_results
             state :suspended
             state :output_filtering
+            state :handed_off
             state :completed
             state :blocked
             state :failed
@@ -80,6 +75,10 @@ module Phronomy
             end
 
             event :llm_completed do
+              transition calling_llm: :failed,
+                if: ->(machine) { machine.context&.handoff_failed? }
+              transition calling_llm: :handed_off,
+                if: ->(machine) { machine.context&.handoff_requested? }
               transition calling_llm: :starting_tools,
                 if: ->(machine) { machine.context&.tool_call_pending? }
               transition calling_llm: :output_filtering

@@ -7,10 +7,10 @@ RSpec.describe Phronomy::Agent::RubyLLMMaterializer do
   let(:agent) do
     agent_class = Class.new do
       def self.tools = []
+      def self.tool_aliases = {}
     end
     Object.new.tap do |value|
       value.define_singleton_method(:class) { agent_class }
-      value.define_singleton_method(:_handoff_tools) { [] }
     end
   end
   let(:materializer) { described_class.new(agent: agent, persistence: persistence) }

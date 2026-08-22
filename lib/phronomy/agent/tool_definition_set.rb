@@ -5,8 +5,8 @@ module Phronomy
     class ToolDefinitionSet
       attr_reader :runtime_tools, :definitions
 
-      def self.build(agent)
-        runtime_tools = (agent.class.tools + agent.send(:_handoff_tools)).freeze
+      def self.build(agent, additional_tools: [])
+        runtime_tools = (agent.class.tools + Array(additional_tools)).freeze
         definitions = runtime_tools.map do |tool_class|
           prepared = agent.send(:prepare_tool_class, tool_class)
           tool = prepared.is_a?(Class) ? prepared.new : prepared

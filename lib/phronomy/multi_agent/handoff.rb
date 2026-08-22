@@ -4,60 +4,41 @@ require "securerandom"
 
 module Phronomy
   module MultiAgent
-    # Represents a transfer edge from one agent to another.
-    # Creates an anonymous Phronomy::Agent::Context::Capability::Base subclass that the source agent
-    # exposes to the LLM as a +transfer_to_<name>+ function.
-    # The tool's execute method returns a sentinel string that Runner uses to
-    # detect which target agent to route to next.
-    #
-    # @example
-    #   billing = BillingAgent.new
-    #   handoff = Phronomy::MultiAgent::Handoff.new(target_agent: billing)
-    #   tool_class = handoff.to_tool_class
+    # Application-defined semantic edge for transferring active responsibility
+    # from one live Agent instance to another.
     class Handoff
-      # Prefix embedded in tool results so Runner can detect handoffs.
-      SENTINEL_PREFIX = "__PHRONOMY_HANDOFF__"
+      attr_reader :source_agent, :target_agent, :policy, :description
 
-      attr_reader :target_agent, :tool_name, :description
-
-      # @param target_agent [Phronomy::Agent::Base] the agent to hand off to
-      # @param description  [String, nil] overrides the auto-generated tool description
       # @api public
-      def initialize(target_agent:, description: nil)
-        @target_agent = target_agent
-        klass_name = target_agent.class.name&.split("::")&.last || "Agent"
-        # Use a UUID so that two handoffs targeting the same class remain distinct.
-        @uuid = SecureRandom.uuid
-        @tool_name = "transfer_to_#{snake_case(klass_name)}_#{@uuid.delete("-")[0, 8]}"
-        @description = description || "Transfer the conversation to #{klass_name}."
-      end
-
-      # Builds an anonymous Phronomy::Agent::Context::Capability::Base subclass for this handoff.
-      # @return [Class<Phronomy::Agent::Context::Capability::Base>]
-      # @api public
-      def to_tool_class
-        sentinel_value = sentinel
-        tn = tool_name
-        desc = description
-        Class.new(Phronomy::Agent::Context::Capability::Base) do
-          tool_name tn
-          description desc
-          execution_mode :cooperative
-          define_method(:execute) { sentinel_value }
+      def initialize(source_agent:, target_agent:, policy: HandoffPolicy.default, description: nil)
+        unless source_agent.is_a?(Phronomy::Agent::Base) &&
+            target_agent.is_a?(Phronomy::Agent::Base)
+          raise ArgumentError, "source_agent and target_agent must be Agent::Base instances"
         end
-      end
+        if source_agent.equal?(target_agent)
+          raise ArgumentError, "Handoff source_agent and target_agent must be different instances"
+        end
+        unless policy.is_a?(HandoffPolicy)
+          raise ArgumentError, "policy must be a Phronomy::MultiAgent::HandoffPolicy"
+        end
 
-      # The sentinel string embedded in the tool result.
-      # @return [String]
-      # @api public
-      def sentinel
-        "#{SENTINEL_PREFIX}:#{target_agent.class.name}:#{@uuid}"
+        @source_agent = source_agent
+        @target_agent = target_agent
+        @policy = policy
+        @description = (description || default_description).to_s.freeze
+        @transport_key = SecureRandom.hex(8).freeze
+        freeze
       end
 
       private
 
-      def snake_case(klass_name)
-        klass_name.gsub(/([A-Z])/) { "_#{$1}" }.downcase.delete_prefix("_")
+      def transport_key
+        @transport_key
+      end
+
+      def default_description
+        target_name = target_agent.class.name || "target Agent"
+        "Transfer active responsibility to #{target_name}."
       end
     end
   end
