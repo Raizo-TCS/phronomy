@@ -484,6 +484,35 @@ RSpec.describe Phronomy::Agent::SharedState do
   # ---------------------------------------------------------------------------
 
   describe "tool injection" do
+    it "explicitly preserves the wrapped definition for framework-owned Runtime instrumentation" do
+      researcher = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "shared-state-researcher", version: 4
+      end
+      original_tools = researcher.tools.dup
+      coordinator = Class.new(described_class).new
+      store = Phronomy::Agent::SharedState::KnowledgeStore.new
+
+      instrumented = coordinator.send(
+        :build_instrumented_researcher,
+        researcher,
+        store,
+        1
+      )
+
+      expect(instrumented).not_to equal(researcher)
+      expect(instrumented.agent_definition).to eq(
+        id: "shared-state-researcher",
+        version: 4
+      )
+      expect(researcher.agent_definition).to eq(
+        id: "shared-state-researcher",
+        version: 4
+      )
+      expect(researcher.tools).to eq(original_tools)
+      expect(instrumented.tools.map(&:tool_name))
+        .to include("read_store", "write_finding")
+    end
+
     it "researcher agents receive read_store and write_finding tools" do
       received_tool_names = []
 

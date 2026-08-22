@@ -13,16 +13,19 @@ required_files=(
   lib/phronomy/agent/base.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
+  lib/phronomy/agent/shared_state.rb
   spec/phronomy/agent/base_spec.rb
   spec/phronomy/agent_spec.rb
   spec/phronomy/agent/before_llm_input_spec.rb
   spec/phronomy/agent/agent_execution_codec_spec.rb
+  spec/phronomy/agent/shared_state_spec.rb
   docs/migrations/0.22.md
   docs/features.md
   lib/phronomy/multi_agent/coordinator.rb
   spec/phronomy/multi_agent/handoff_spec.rb
   spec/phronomy/multi_agent/handoff_projection_spec.rb
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb
+  spec/phronomy/multi_agent/runner_spec.rb
   spec/integration/multi_agent_handoff_spec.rb
   spec/integration/multi_agent_handoff_followup_spec.rb
   docs/decisions/016-semantic-multi-agent-handoff.md
@@ -35,6 +38,7 @@ syntax_files=(
   lib/phronomy/agent/base.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
+  lib/phronomy/agent/shared_state.rb
   lib/phronomy/agent/concerns/before_llm_input.rb
   lib/phronomy/testing/persistence_contract/an_agent_repository.rb
   lib/phronomy/testing/persistence_contract/an_execution_repository.rb
@@ -44,6 +48,7 @@ syntax_files=(
   spec/phronomy/agent_spec.rb
   spec/phronomy/agent/before_llm_input_spec.rb
   spec/phronomy/agent/agent_execution_codec_spec.rb
+  spec/phronomy/agent/shared_state_spec.rb
   spec/phronomy/agent/journal_projection_spec.rb
   spec/phronomy/agent/stateful_followup_regression_spec.rb
   spec/phronomy/persistence/in_memory_spec.rb
@@ -55,6 +60,7 @@ syntax_files=(
   spec/phronomy/multi_agent/handoff_spec.rb
   spec/phronomy/multi_agent/handoff_projection_spec.rb
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb
+  spec/phronomy/multi_agent/runner_spec.rb
   spec/integration/multi_agent_handoff_spec.rb
   spec/integration/multi_agent_handoff_followup_spec.rb
 )
@@ -90,6 +96,7 @@ bundle exec rspec \
   spec/phronomy/agent_spec.rb \
   spec/phronomy/agent/before_llm_input_spec.rb \
   spec/phronomy/agent/agent_execution_codec_spec.rb \
+  spec/phronomy/agent/shared_state_spec.rb \
   spec/phronomy/agent/journal_projection_spec.rb \
   spec/phronomy/agent/stateful_followup_regression_spec.rb \
   spec/phronomy/persistence/in_memory_spec.rb \
@@ -101,6 +108,7 @@ bundle exec rspec \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
+  spec/phronomy/multi_agent/runner_spec.rb \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb
 

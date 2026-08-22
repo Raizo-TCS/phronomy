@@ -168,8 +168,16 @@ module Phronomy
         definitions[read_tool] = nil
         definitions[write_tool] = nil
 
-        # Forward the parent definition so the anonymous instrumented subclass can
-        # create its AgentRoot without a stable class name of its own.
+        # SharedState instrumentation is a private, transient Runtime wrapper around
+        # the configured researcher definition. The injected read_store/write_finding
+        # capabilities are framework-owned coordination mechanics; this wrapper is
+        # not an application-authored derived Agent definition.
+        #
+        # CG-04 deliberately forbids *implicit* definition inheritance by arbitrary
+        # subclasses. Preserve the wrapped researcher's lineage/revision explicitly
+        # here so the anonymous Runtime wrapper does not invent another durable
+        # semantic definition solely because the framework injected coordination
+        # capabilities.
         parent_def = researcher_class.agent_definition
         Class.new(researcher_class) do
           agent_definition id: parent_def.fetch(:id), version: parent_def.fetch(:version)
