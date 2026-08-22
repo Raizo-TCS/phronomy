@@ -151,6 +151,33 @@ as RubyLLM::Chat, messages and the mutable Agent instance are not exposed.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#agent_definition_version-instance_method" title="#agent_definition_version (instance method)">#<strong>agent_definition_version</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute agent_definition_version.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#agent_id-instance_method" title="#agent_id (instance method)">#<strong>agent_id</strong>  &#x21d2; Object </a>
     
 
@@ -225,33 +252,6 @@ as RubyLLM::Chat, messages and the mutable Agent instance are not exposed.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the value of attribute config.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#definition_version-instance_method" title="#definition_version (instance method)">#<strong>definition_version</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute definition_version.</p></div></span>
   
 </li>
 
@@ -398,6 +398,63 @@ as RubyLLM::Chat, messages and the mutable Agent instance are not exposed.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_definition_id'>agent_definition_id</span>
   <span class='ivar'>@agent_definition_id</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="agent_definition_version-instance_method">
+  
+    #<strong>agent_definition_version</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute agent_definition_version</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current value of agent_definition_version</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+7
+8
+9</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_build_context.rb', line 7</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_agent_definition_version'>agent_definition_version</span>
+  <span class='ivar'>@agent_definition_version</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -575,70 +632,13 @@ as RubyLLM::Chat, messages and the mutable Agent instance are not exposed.</p>
 </table>
 </div>
     
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="definition_version-instance_method">
-  
-    #<strong>definition_version</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute definition_version</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the current value of definition_version</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-7
-8
-9</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_build_context.rb', line 7</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_definition_version'>definition_version</span>
-  <span class='ivar'>@definition_version</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
   </div>
 
 
 </div>
 
       <div id="footer">
-  Generated on Sat Aug 22 13:29:31 2026 by
+  Generated on Sat Aug 22 15:58:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
