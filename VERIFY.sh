@@ -10,6 +10,9 @@ if [[ -e phronomy-0.16.0.gem ]]; then
 fi
 
 required_files=(
+  docs/decisions/README.md
+  docs/decisions/017-design-authority-and-adr-governance.md
+  spec/phronomy/architecture_governance_spec.rb
   lib/phronomy/agent/base.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
@@ -35,6 +38,7 @@ for path in "${required_files[@]}"; do
 done
 
 syntax_files=(
+  spec/phronomy/architecture_governance_spec.rb
   lib/phronomy/agent/base.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
@@ -67,6 +71,9 @@ syntax_files=(
 for path in "${syntax_files[@]}"; do
   ruby -c "$path" >/dev/null
 done
+
+echo "== ACS-01 architecture governance =="
+bundle exec rspec spec/phronomy/architecture_governance_spec.rb
 
 echo "== CG-04 canonical vocabulary guards =="
 legacy_source="$(
@@ -141,4 +148,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: CG-04 + existing CG-05 validation completed"
+echo "OK: ACS-01 + existing CG-04/CG-05 regression validation completed"
