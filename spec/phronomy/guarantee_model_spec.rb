@@ -58,7 +58,10 @@ RSpec.describe "Durability guarantee and failure-model architecture contract (AC
     )
     expect(adr).to include("`X0` is **not a failure class**")
     expect(adr).to include(
-      "F0 means failure is known; it must not be confused with F1"
+      "F0 and F1 describe different dimensions and may apply to the same scenario."
+    )
+    expect(adr).to include(
+      "F1 may simultaneously apply when the underlying durable or"
     )
   end
 
@@ -99,7 +102,10 @@ RSpec.describe "Durability guarantee and failure-model architecture contract (AC
       "018-durability-guarantees-and-failure-model"
     )
     expect(contributing).to include(
-      "F0 known operation failure is not F1 outcome uncertainty"
+      "F0 operation failure and F1 outcome uncertainty are distinct dimensions"
+    )
+    expect(contributing).to include(
+      "may co-occur; an F0 result does not prove durable/external outcome certainty"
     )
     expect(contributing).to include(
       "optimistic conflict detection is not cross-process execution exclusion"

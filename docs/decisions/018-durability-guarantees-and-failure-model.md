@@ -244,8 +244,11 @@ The operation starts but does not reach its contract-defined normal
 completion. Exceptions, explicit errors, rejection, cancellation and timeout
 are possible concrete mechanisms.
 
-F0 means failure is known; it must not be confused with F1, where the outcome
-itself is unknown.
+F0 and F1 describe different dimensions and may apply to the same scenario.
+F0 means the Phronomy operation did not reach contract-defined normal
+completion. F1 may simultaneously apply when the underlying durable or
+external outcome cannot be determined. Do not infer outcome certainty merely
+from an F0 result.
 
 #### F1 — Outcome Uncertainty
 

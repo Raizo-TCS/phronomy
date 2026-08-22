@@ -177,7 +177,8 @@ Do not write a bare claim such as "durable", "recoverable", "safe", or
 
 In particular:
 
-- F0 known operation failure is not F1 outcome uncertainty.
+- F0 operation failure and F1 outcome uncertainty are distinct dimensions and
+  may co-occur; an F0 result does not prove durable/external outcome certainty.
 - durable-transition atomicity is not commit-outcome certainty.
 - optimistic conflict detection is not cross-process execution exclusion.
 - process/runtime loss (F4) does not imply confirmed durable state was lost.
