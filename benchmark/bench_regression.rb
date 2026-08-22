@@ -112,7 +112,7 @@ stub_agent_class = Class.new(Phronomy::Agent::Base) do
   end
 end
 
-orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator)
+orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 }
 orchestrator = orchestrator_class.new
 
 PARALLEL_ITERATIONS = 200
