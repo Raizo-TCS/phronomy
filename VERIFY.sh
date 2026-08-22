@@ -14,6 +14,7 @@ required_files=(
   spec/phronomy/multi_agent/handoff_spec.rb
   spec/phronomy/multi_agent/handoff_projection_spec.rb
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb
+  spec/phronomy/multi_agent/runner_spec.rb
   spec/integration/multi_agent_handoff_spec.rb
   spec/integration/multi_agent_handoff_followup_spec.rb
   docs/migrations/0.22.md
@@ -32,6 +33,7 @@ for path in \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
+  spec/phronomy/multi_agent/runner_spec.rb \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb; do
   ruby -c "$path" >/dev/null
@@ -43,6 +45,7 @@ bundle exec rspec \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
+  spec/phronomy/multi_agent/runner_spec.rb \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb
 

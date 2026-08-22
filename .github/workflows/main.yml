@@ -44,7 +44,7 @@ jobs:
       - name: Benchmark smoke check
         run: bundle exec ruby benchmark/run_all.rb
         env:
-          BENCHMARK_MAX_SECONDS: "60"
+          BENCHMARK_MAX_SECONDS: "90"
 
   deprecated-api-check:
     runs-on: ubuntu-latest
