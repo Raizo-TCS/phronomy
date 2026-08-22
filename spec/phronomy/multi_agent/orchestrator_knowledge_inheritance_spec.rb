@@ -36,7 +36,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
     [agent_class, received]
   end
 
-  def build_orchestrator(klass = Class.new(Phronomy::MultiAgent::Orchestrator))
+  def build_orchestrator(klass = Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 })
     agent = klass.new
     agent.add_knowledge(
       "Customer tier: enterprise",
@@ -99,7 +99,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
 
     it "inherits only currently active Knowledge" do
       child_class, received = knowledge_capturing_agent
-      orchestrator = Class.new(Phronomy::MultiAgent::Orchestrator).new(
+      orchestrator = Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 }.new(
         knowledge: ["obsolete knowledge"]
       )
       orchestrator.clear_knowledge!
@@ -212,6 +212,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
     it "inherits parent Knowledge through the prepared dispatch tool" do
       child_class, received = knowledge_capturing_agent
       orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator) do
+        agent_definition id: "orchestrator", version: 1
         subagent :worker, child_class
       end
       orchestrator = build_orchestrator(orchestrator_class)
@@ -229,6 +230,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
     it "supports disabling Knowledge inheritance for a declared subagent" do
       child_class, received = knowledge_capturing_agent
       orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator) do
+        agent_definition id: "orchestrator", version: 1
         subagent :worker, child_class, inherit_knowledge: false
       end
       orchestrator = build_orchestrator(orchestrator_class)

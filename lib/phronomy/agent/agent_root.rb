@@ -8,19 +8,19 @@ module Phronomy
       LIFECYCLE_STATUSES = %i[idle active suspended closed invalidated].freeze
 
       ATTRIBUTES = %i[
-        agent_id agent_definition_id definition_version agent_revision
+        agent_id agent_definition_id agent_definition_version agent_revision
         context_revision journal_position lifecycle_status transcript_generation
         created_at updated_at metadata
       ].freeze
 
       attr_reader(*ATTRIBUTES)
 
-      def self.create(agent_id:, agent_definition_id:, definition_version:, metadata: {})
+      def self.create(agent_id:, agent_definition_id:, agent_definition_version:, metadata: {})
         now = Time.now.utc.iso8601(6)
         new(
           agent_id: agent_id,
           agent_definition_id: agent_definition_id,
-          definition_version: definition_version,
+          agent_definition_version: agent_definition_version,
           agent_revision: 0,
           context_revision: 0,
           journal_position: 0,

@@ -17,7 +17,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
   it "deep-copies hook config" do
     config = {nested: {value: 1}}
     context = Phronomy::Agent::LLMInputBuildContext.new(
-      agent_id: "a", agent_definition_id: "d", definition_version: 1,
+      agent_id: "a", agent_definition_id: "d", agent_definition_version: 1,
       config: config, call_sequence: 1
     )
     config[:nested][:value] = 2

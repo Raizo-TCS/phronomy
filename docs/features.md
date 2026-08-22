@@ -31,6 +31,16 @@ for production deployments.
 | **Tracing** — Pluggable span-based observability | Stable |
 | **Error Taxonomy** — Provider errors translated to Phronomy transport/authentication/rate-limit/context errors | Beta |
 
+Agent definition lineage is separate from Agent instance identity. A named
+concrete Agent may declare `agent_definition version: N`; when `id:` is omitted,
+its fully-qualified Ruby class name is the stable `agent_definition_id`.
+Applications may keep a lineage independent of Ruby constant naming with an
+explicit `id:`. Concrete subclasses declare their own definition revision
+rather than implicitly inheriting the parent revision. The Stable
+`before_llm_input` context exposes the semantic revision as
+`agent_definition_version`.
+
+
 ## Knowledge and integration
 
 | Feature | Stability |

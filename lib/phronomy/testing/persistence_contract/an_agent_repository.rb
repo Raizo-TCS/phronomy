@@ -8,7 +8,7 @@ RSpec.shared_examples "an Agent repository" do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "contract-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
   end
 
@@ -62,7 +62,7 @@ RSpec.shared_examples "an Agent repository" do
     other = Phronomy::Agent::AgentRoot.create(
       agent_id: "other-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     ).with(agent_revision: 1)
 
     expect do

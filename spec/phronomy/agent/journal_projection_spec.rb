@@ -8,7 +8,7 @@ RSpec.describe Phronomy::Agent::JournalProjection do
     root = Phronomy::Agent::AgentRoot.create(
       agent_id: "agent-1",
       agent_definition_id: "test-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
     old_ref = persistence.contents.put_text("old")
     current_ref = persistence.contents.put_text("current")
@@ -53,7 +53,7 @@ RSpec.describe Phronomy::Agent::JournalProjection do
     root = Phronomy::Agent::AgentRoot.create(
       agent_id: "agent-1",
       agent_definition_id: "test-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
     assistant_ref = persistence.contents.put_json(
       "role" => "assistant", "content" => "checking", "tool_calls" => []
@@ -108,7 +108,7 @@ RSpec.describe Phronomy::Agent::JournalProjection do
     root = Phronomy::Agent::AgentRoot.new(
       agent_id: "test-agent",
       agent_definition_id: "test",
-      definition_version: 1,
+      agent_definition_version: 1,
       agent_revision: 0,
       context_revision: 0,
       journal_position: 0,

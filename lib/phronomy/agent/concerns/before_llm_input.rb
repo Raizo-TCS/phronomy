@@ -36,7 +36,7 @@ module Phronomy
           context = LLMInputBuildContext.new(
             agent_id: agent_id,
             agent_definition_id: definition.fetch(:id),
-            definition_version: definition.fetch(:version),
+            agent_definition_version: definition.fetch(:version),
             config: config,
             call_sequence: call_sequence
           )

@@ -218,24 +218,38 @@ module Phronomy
         end
 
         # Defines or reads the stable Agent definition identity.
-        # Subclass with no explicit declaration inherits the parent's definition.
+        #
+        # A named concrete Agent may omit +id:+. In that case its fully-qualified
+        # Ruby class name is the stable definition lineage ID. Applications may
+        # supply an explicit +id:+ when the lineage must remain independent of Ruby
+        # constant naming.
+        #
+        # Definition identity/revision is deliberately not inherited by subclasses;
+        # ordinary Agent behavior/configuration inheritance is unaffected.
+        #
+        # @param id [String, nil] explicit stable definition lineage ID
+        # @param version [Integer, nil] semantic Agent definition revision
+        # @return [Hash{Symbol => Object}]
+        # @api public
         def agent_definition(id: nil, version: nil)
-          if id || version
-            raise ArgumentError, "agent_definition requires id: and version:" unless id && version
-            @agent_definition = {id: id.to_s.freeze, version: Integer(version)}.freeze
+          if !id.nil? || !version.nil?
+            raise ArgumentError, "agent_definition requires version:" if version.nil?
+
+            definition_id = id || name
+            unless definition_id
+              raise Phronomy::ConfigurationError,
+                "anonymous Agent class must declare agent_definition id: ..., version: ..."
+            end
+
+            @agent_definition = {
+              id: definition_id.to_s.freeze,
+              version: Integer(version)
+            }.freeze
           end
           return @agent_definition if @agent_definition
 
-          klass = superclass
-          while klass.respond_to?(:agent_definition, true) &&
-              klass < Phronomy::Agent::Base
-            defn = klass.instance_variable_get(:@agent_definition)
-            return defn if defn
-            klass = klass.superclass
-          end
-
           raise Phronomy::ConfigurationError,
-            "#{name || self} must declare agent_definition id: ..., version: ..."
+            "#{name || self} must declare agent_definition version: ..."
         end
 
         def create(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {})
@@ -422,13 +436,21 @@ module Phronomy
 
       def validate_loaded_definition!(loaded)
         definition = self.class.agent_definition
-        return if loaded.agent_definition_id == definition.fetch(:id) &&
-          loaded.definition_version == definition.fetch(:version)
+        return if current_definition_compatible?(loaded, definition)
 
         raise Phronomy::ConfigurationError,
           "Agent definition mismatch for #{@agent_id}: stored " \
-          "#{loaded.agent_definition_id}@#{loaded.definition_version}, runtime " \
+          "#{loaded.agent_definition_id}@#{loaded.agent_definition_version}, runtime " \
           "#{definition.fetch(:id)}@#{definition.fetch(:version)}"
+      end
+
+      # Current definition compatibility policy is exact-match. Keep this policy
+      # separate from definition identity resolution so a future explicit
+      # definition-migration mechanism can replace the policy without redefining
+      # agent_definition_id / agent_definition_version.
+      def current_definition_compatible?(loaded, runtime_definition)
+        loaded.agent_definition_id == runtime_definition.fetch(:id) &&
+          loaded.agent_definition_version == runtime_definition.fetch(:version)
       end
 
       def create_agent_root!(context:, knowledge:, metadata:)
@@ -436,7 +458,7 @@ module Phronomy
         root = Agent::AgentRoot.create(
           agent_id: agent_id,
           agent_definition_id: definition.fetch(:id),
-          definition_version: definition.fetch(:version),
+          agent_definition_version: definition.fetch(:version),
           metadata: metadata
         )
         persistence.transaction do |tx|

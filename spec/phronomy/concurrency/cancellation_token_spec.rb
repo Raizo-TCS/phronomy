@@ -176,7 +176,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
   end
 
   describe "Agent::Orchestrator#dispatch_parallel integration" do
-    let(:orchestrator_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
+    let(:orchestrator_class) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
     def token_capturing_agent

@@ -52,7 +52,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
   end
 
   describe "#dispatch_parallel" do
-    let(:orchestrator_class) { Class.new(described_class) }
+    let(:orchestrator_class) { Class.new(described_class) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
     it "returns results in the same order as the input tasks" do
@@ -344,7 +344,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
   end
 
   describe "#fan_out" do
-    let(:orchestrator_class) { Class.new(described_class) }
+    let(:orchestrator_class) { Class.new(described_class) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
     it "runs the same agent against every input and returns results in order" do
@@ -556,7 +556,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
   end
 
   describe "config and thread_id propagation (issue #132)" do
-    let(:orchestrator_class) { Class.new(described_class) }
+    let(:orchestrator_class) { Class.new(described_class) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
     it "#dispatch_parallel forwards thread_id to every sub-agent invocation" do
@@ -653,7 +653,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
     end
 
-    let(:orchestrator_class) { Class.new(described_class) }
+    let(:orchestrator_class) { Class.new(described_class) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
     it "raises Phronomy::TimeoutError when a worker exceeds the timeout" do

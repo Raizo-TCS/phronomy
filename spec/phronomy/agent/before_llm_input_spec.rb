@@ -27,11 +27,14 @@ RSpec.describe "before_llm_input hook" do
       ctx = described_class.new(
         agent_id: agent.agent_id,
         agent_definition_id: "hook-base-agent",
-        definition_version: 1,
+        agent_definition_version: 1,
         config: config,
         call_sequence: 1
       )
       expect(ctx.agent_id).to eq(agent.agent_id)
+      expect(ctx.agent_definition_id).to eq("hook-base-agent")
+      expect(ctx.agent_definition_version).to eq(1)
+      expect(ctx).not_to respond_to(:definition_version)
       expect(ctx.config).to eq(config)
       expect(ctx.call_sequence).to eq(1)
     end
@@ -40,7 +43,7 @@ RSpec.describe "before_llm_input hook" do
       ctx = described_class.new(
         agent_id: agent.agent_id,
         agent_definition_id: "hook-base-agent",
-        definition_version: 1,
+        agent_definition_version: 1,
         config: config,
         call_sequence: 2
       )

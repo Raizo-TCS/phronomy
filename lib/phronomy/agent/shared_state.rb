@@ -168,7 +168,13 @@ module Phronomy
         definitions[read_tool] = nil
         definitions[write_tool] = nil
 
-        Class.new(researcher_class) { tools(definitions) }
+        # Forward the parent definition so the anonymous instrumented subclass can
+        # create its AgentRoot without a stable class name of its own.
+        parent_def = researcher_class.agent_definition
+        Class.new(researcher_class) do
+          agent_definition id: parent_def.fetch(:id), version: parent_def.fetch(:version)
+          tools(definitions)
+        end
       end
 
       def build_prompt(

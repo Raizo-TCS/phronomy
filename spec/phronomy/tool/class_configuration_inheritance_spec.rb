@@ -216,6 +216,7 @@ RSpec.describe "Tool class configuration inheritance" do
       end
 
       orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator) do
+        agent_definition id: "orchestrator", version: 1
         subagent :worker, child_agent
       end
       orchestrator = orchestrator_class.new
