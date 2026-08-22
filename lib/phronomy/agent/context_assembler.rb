@@ -454,6 +454,7 @@ module Phronomy
         explicit = candidate.metadata["handoff_policy_category"] ||
           candidate.metadata[:handoff_policy_category]
         return explicit.to_sym if explicit
+        return :current_request if candidate.category == :external_message && candidate.source_kind == :working
         return :tool_exchanges if unit&.kind == :tool_exchange
         return :knowledge if candidate.category == :knowledge
 

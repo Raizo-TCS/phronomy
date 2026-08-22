@@ -15,6 +15,7 @@ required_files=(
   spec/phronomy/multi_agent/handoff_projection_spec.rb
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb
   spec/integration/multi_agent_handoff_spec.rb
+  spec/integration/multi_agent_handoff_followup_spec.rb
   docs/migrations/0.22.md
   docs/decisions/016-semantic-multi-agent-handoff.md
 )
@@ -23,11 +24,14 @@ for path in "${required_files[@]}"; do
 done
 
 for path in \
+  lib/phronomy/agent/context_assembler.rb \
+  lib/phronomy/agent/selection/unit_builders/dependency_aware_unit_builder.rb \
   lib/phronomy/multi_agent/coordinator.rb \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
-  spec/integration/multi_agent_handoff_spec.rb; do
+  spec/integration/multi_agent_handoff_spec.rb \
+  spec/integration/multi_agent_handoff_followup_spec.rb; do
   ruby -c "$path" >/dev/null
 done
 
@@ -36,7 +40,8 @@ bundle exec rspec \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
-  spec/integration/multi_agent_handoff_spec.rb
+  spec/integration/multi_agent_handoff_spec.rb \
+  spec/integration/multi_agent_handoff_followup_spec.rb
 
 echo "== API snapshot =="
 bundle exec ruby scripts/api_snapshot.rb
