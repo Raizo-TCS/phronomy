@@ -15,8 +15,8 @@ RSpec.describe "Context Policy selection" do
     tokens: 5
   )
     role = case category
+    when :external_message, :knowledge then :user
     when :tool_message then :tool
-    when :knowledge then :user
     else :assistant
     end
     Phronomy::Agent::Selection::Candidate.new(
@@ -173,5 +173,57 @@ RSpec.describe "Context Policy selection" do
     expect(validated.selected_candidates.map(&:candidate_id)).to contain_exactly("assistant", "result")
     expect(validated.selected_units.first.constraint.required?).to be(true)
     expect(validated.selected_units.first.constraint.origin).to eq(:framework_protocol)
+  end
+
+  it "requires the current user request together with the latest current Tool exchange" do
+    candidates = [
+      candidate(id: "current", category: :external_message, sequence: 1,
+        source_kind: :working, tokens: 10),
+      candidate(id: "old", category: :assistant_message, sequence: 2,
+        source_kind: :working, tokens: 80),
+      candidate(id: "assistant", category: :assistant_message, sequence: 3,
+        source_kind: :working, llm_call_id: "llm-2", tool_call_ids: ["call"], tokens: 10),
+      candidate(id: "result", category: :tool_message, sequence: 4,
+        source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10)
+    ]
+    context_request = request(candidates, context_window: 50, mandatory: 5)
+
+    plan = Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
+    validated = Phronomy::Agent::ContextPlanValidator.new.validate!(
+      request: context_request,
+      plan: plan
+    )
+
+    expect(validated.selected_candidates.map(&:candidate_id))
+      .to contain_exactly("current", "assistant", "result")
+
+    current_unit = validated.selected_units.find do |unit|
+      unit.candidate_ids.include?("current")
+    end
+    tool_unit = validated.selected_units.find { |unit| unit.kind == :tool_exchange }
+
+    expect(current_unit.constraint.required?).to be(true)
+    expect(current_unit.constraint.origin).to eq(:framework_protocol)
+    expect(tool_unit.constraint.required?).to be(true)
+    expect(tool_unit.constraint.origin).to eq(:framework_protocol)
+  end
+
+  it "raises instead of dropping the current user request when required follow-up Context does not fit" do
+    candidates = [
+      candidate(id: "current", category: :external_message, sequence: 1,
+        source_kind: :working, tokens: 20),
+      candidate(id: "assistant", category: :assistant_message, sequence: 2,
+        source_kind: :working, llm_call_id: "llm-2", tool_call_ids: ["call"], tokens: 10),
+      candidate(id: "result", category: :tool_message, sequence: 3,
+        source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10)
+    ]
+    context_request = request(candidates, context_window: 35, mandatory: 5)
+
+    expect do
+      Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
+    end.to raise_error(
+      Phronomy::ContextBudgetExceededError,
+      /Required Context/
+    )
   end
 end

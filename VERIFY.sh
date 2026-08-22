@@ -25,8 +25,10 @@ done
 
 for path in \
   lib/phronomy/agent/context_assembler.rb \
+  lib/phronomy/agent/context_parts/requirements/required_context_resolver.rb \
   lib/phronomy/agent/selection/unit_builders/dependency_aware_unit_builder.rb \
   lib/phronomy/multi_agent/coordinator.rb \
+  spec/phronomy/agent/context_policy_spec.rb \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
@@ -37,6 +39,7 @@ done
 
 echo "== CG-05 focused specs =="
 bundle exec rspec \
+  spec/phronomy/agent/context_policy_spec.rb \
   spec/phronomy/multi_agent/handoff_spec.rb \
   spec/phronomy/multi_agent/handoff_projection_spec.rb \
   spec/phronomy/multi_agent/handoff_architecture_regression_spec.rb \
