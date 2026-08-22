@@ -114,16 +114,47 @@ OffloadPool work is supplied through `CancellationToken`.
 
 ---
 
-## Architecture Decision Records
+## Architecture Authority and Decision Records
 
-Key design decisions are documented as ADRs in
-[docs/decisions/](docs/decisions/). Read these before making significant changes
-to the threading model, persistence/context authority, or public API shape.
+Phronomy has **no universal artifact priority**. Different artifacts answer
+different questions. The normative repository rule is
+[`017-design-authority-and-adr-governance`](docs/decisions/017-design-authority-and-adr-governance.md);
+the complete ADR status/supersession index is
+[`docs/decisions/README.md`](docs/decisions/README.md).
+
+Use these authority boundaries:
+
+- Accepted, non-superseded ADRs define architecture intent.
+- Source/runtime behavior defines current implementation reality; it does not
+  silently amend an ADR.
+- Public API and extension-SPI contracts are composite: runtime behavior,
+  `@api` classification, formal API documentation, and explicit
+  compatibility/contract tests all participate.
+- RBS does not create a contract. It types a contract already established by
+  those sources.
+- Ordinary implementation tests are regression evidence. Only tests explicitly
+  maintained as architecture guards or compatibility/contract tests have that
+  stronger role.
+- Historical, Archived, and Superseded material is non-normative for current
+  architecture.
+
+When architecture intent, public contract, and implementation reality disagree,
+treat the discrepancy as an **architecture inconsistency**. Do not choose a
+winner merely because one artifact is newer. Record the conflict and resolve it
+explicitly according to the process in the ADR index.
+
+ADR references should use a file link or the canonical filename key. This is
+required for the two legacy `011` decisions because bare `ADR-011` is
+ambiguous. Do not renumber historical ADRs to repair that legacy collision.
 
 For Agent Context work, ADR-012 and ADR-013 define the current Journal,
 Manifest, Context Policy and persistent Knowledge model. ADR-010 defines the
 EventLoop/FSMSession, Task, and OffloadPool execution boundary. ADR-015 defines
 the Tool public façade, extension-SPI boundary, and RBS ownership rules.
+
+Legacy `spec/design/*` files must not be assumed to be normative merely because
+they remain in the repository. Their final CURRENT/HISTORICAL/ARCHIVED
+migration is a separate documentation-lifecycle change.
 
 ---
 
