@@ -17,3 +17,4 @@ Gemfile.lock
 
 # Integration test evidence ledger (local quality record — not for OSS repo)
 spec/integration/evidence.csv
+*.gem
