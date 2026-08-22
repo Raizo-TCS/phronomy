@@ -75,8 +75,6 @@ module Phronomy
         when :external_message, :assistant_message, :tool_message,
              :memory, :summary, :structured_state
           :history
-        else
-          nil
         end
       end
 
@@ -102,7 +100,7 @@ module Phronomy
         bytes = persistence.contents.fetch(segment.content_ref)
         category = segment.category.to_sym
         format = JSON_CATEGORIES.include?(category) ? :json : :text
-        content = format == :json ? Phronomy::CanonicalJSON.load(bytes) : bytes.to_s
+        content = (format == :json) ? Phronomy::CanonicalJSON.load(bytes) : bytes.to_s
         metadata = segment.metadata.to_h.transform_keys(&:to_s)
         provenance = provenance_for(
           metadata,
@@ -119,12 +117,10 @@ module Phronomy
           content_format: format,
           tool_call_id: segment.tool_call_id,
           provenance: provenance,
-          metadata: metadata.reject do |key, _|
-            %w[
-              selection_candidate_id selection_unit_id selection_unit_kind
-              handoff_policy_category handoff_provenance
-            ].include?(key)
-          end
+          metadata: metadata.except(
+            "selection_candidate_id", "selection_unit_id", "selection_unit_kind",
+            "handoff_policy_category", "handoff_provenance"
+          )
         )
       end
 

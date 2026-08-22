@@ -12,6 +12,45 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Semantic Multi-Agent Handoff and shared Selection
+
+#### Added
+
+- `Phronomy::MultiAgent::HandoffPolicy` with required, forbidden, and selectable
+  transfer rules for current request, history, Knowledge, and Tool exchanges.
+- `Phronomy::MultiAgent::Runner.new(main_agent:, handoffs:)` as the public
+  semantic Handoff coordinator.
+- Typed private Handoff request/context/provenance values, explicit
+  `AgentExecution` `:handed_off` terminal semantics, and Runtime/EventLoop-owned
+  active-Agent coordination.
+- Shared `Phronomy::Agent::Selection::Candidate`, `Unit`, `Constraint`, and
+  validation machinery for Context and Handoff selection.
+- ADR-016 and the 0.22 migration guide for the semantic Handoff clean break.
+
+#### Changed
+
+- Handoff is now an explicit Source-to-Target responsibility transfer rather
+  than sentinel Tool-result routing. Generated Handoff Tool names are private
+  transport details only.
+- Handoff Context is projected from the effective Source Manifest, materialized
+  immutably with provenance, and may cross Agents backed by different Persistence
+  adapters without adopting Source material into Target Journal/Knowledge.
+- Target Context Policy remains the final per-LLM-call selection authority;
+  transferred material enters Target assembly as selectable Context candidates.
+- The active Target persists across user turns and Runner-facade recreation while
+  the same main Agent instance and Runtime remain alive. Runtime/process reset
+  intentionally does not restore active-Agent continuation.
+- Context assembly policy version is now `7` for the shared Selection and
+  Handoff-Context contract.
+
+#### Removed
+
+- `Phronomy::Agent::Runner`, the `agents:` / `routes:` Runner API, sentinel-map
+  routing, and Agent-owned `_add_handoff_tool` / `_handoff_tools` mutation.
+- `Phronomy::Agent::ContextCandidate` and
+  `Phronomy::Agent::ContextSelectionUnit`; internal callers use the shared
+  `Agent::Selection` model without compatibility aliases.
+
 ### Unified Persistence and durable-state ownership
 
 #### Added
@@ -133,8 +172,8 @@ Release history for 0.14.0 and earlier is archived in
   returns a completion handle immediately.
 - `Tool#call_async` for ordinary cooperative Tools no longer consumes a
   OffloadPool worker. `:offloaded` remains the worker-pool route.
-- Framework-owned short in-memory Tools (handoff sentinels, TeamCoordinator
-  queue controls, and SharedState store access) explicitly declare
+- Framework-owned short in-memory Tools (TeamCoordinator queue controls and
+  SharedState store access) explicitly declare
   `execution_mode :cooperative` instead of using the blocking-I/O default.
 - MultiAgent fan-out uses a FanOut FSMSession rather than per-child OS Threads.
 - `TimerQueue` is driven by EventLoop and owns no Thread.
@@ -172,7 +211,7 @@ Release history for 0.14.0 and earlier is archived in
   transcript/Knowledge lifecycle semantics.
 - Active Context tests, integration fixtures, benchmarks, mutation subjects,
   design documents, and API snapshots now describe the canonical
-  Journal -> ContextCandidate -> Context Policy -> Manifest architecture.
+  Journal -> Selection::Candidate -> Context Policy -> Manifest architecture.
 
 #### Removed
 

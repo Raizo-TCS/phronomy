@@ -361,7 +361,7 @@ module Phronomy
         args = tool_call.respond_to?(:arguments) ? tool_call.arguments : {}
         args = (args || {}).to_h.transform_keys(&:to_sym)
         selection = handoff.policy.selectable_categories.each_with_object({}) do |category, result|
-          key = "include_#{category}".to_sym
+          key = :"include_#{category}"
           result[category] = args[key] if args.key?(key)
         end
         Phronomy::MultiAgent::HandoffRequest.new(

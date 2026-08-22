@@ -25,7 +25,7 @@ module Phronomy
           elsif default
             raise ArgumentError, "default is valid only for selectable Handoff rules"
           end
-          super(category: category, mode: mode, default: default)
+          super
           freeze
         end
       end

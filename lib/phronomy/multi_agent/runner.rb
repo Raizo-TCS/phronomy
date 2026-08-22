@@ -67,7 +67,7 @@ module Phronomy
 
       def public_result(result, agent)
         result.reject { |key, _| key.to_s.start_with?("_phronomy_") }
-          .reject { |key, _| key == :handoff_request }
+          .except(:handoff_request)
           .merge(agent: agent)
       end
     end

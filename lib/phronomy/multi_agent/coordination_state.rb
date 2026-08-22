@@ -10,10 +10,7 @@ module Phronomy
         if active_handoff_context && !active_handoff_context.is_a?(HandoffContext)
           raise ArgumentError, "active_handoff_context must be a HandoffContext"
         end
-        super(
-          active_agent: active_agent,
-          active_handoff_context: active_handoff_context
-        )
+        super
         freeze
       end
     end

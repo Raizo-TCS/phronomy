@@ -18,7 +18,7 @@ module Phronomy
 
         ATTACH_MUTEX.synchronize do
           existing = main_agent.instance_variable_get(:@_phronomy_multi_agent_coordinator)
-          if existing && existing.runtime_current?
+          if existing&.runtime_current?
             existing.assert_compatible!(normalized)
             return existing
           end
@@ -127,11 +127,6 @@ module Phronomy
         end.select { |_key, values| values.length > 1 }
         unless duplicates.empty?
           raise ArgumentError, "duplicate Source → Target Handoff edges are not allowed"
-        end
-
-        known = [@main_agent] + @handoffs.flat_map { |h| [h.source_agent, h.target_agent] }
-        unless known.include?(@main_agent)
-          raise ArgumentError, "main_agent is not part of the Handoff graph"
         end
       end
 

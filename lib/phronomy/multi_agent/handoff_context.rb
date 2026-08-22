@@ -69,11 +69,11 @@ module Phronomy
             candidate_category: values.fetch(:candidate_category).to_sym,
             policy_category: values.fetch(:policy_category).to_sym,
             role: values[:role]&.to_sym,
-            content: Immutable.copy(values.fetch(:content)),
+            content: Phronomy::Agent::Immutable.copy(values.fetch(:content)),
             content_format: format,
             tool_call_id: values[:tool_call_id]&.to_s&.freeze,
             provenance: provenance,
-            metadata: Immutable.copy(values[:metadata] || {})
+            metadata: Phronomy::Agent::Immutable.copy(values[:metadata] || {})
           ))
           freeze
         end

@@ -32,9 +32,7 @@ module Phronomy
 
       private
 
-      def transport_key
-        @transport_key
-      end
+      attr_reader :transport_key
 
       def default_description
         target_name = target_agent.class.name || "target Agent"

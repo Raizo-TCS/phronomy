@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require "digest"
-require "set"
-
 module Phronomy
   module Agent
     module Selection

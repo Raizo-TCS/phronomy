@@ -25,11 +25,29 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
     expect(Phronomy::Agent::Selection::Unit).to be_a(Class)
   end
 
+  it "does not restore the removed Agent::Runner public surface" do
+    expect(File).not_to exist(File.join(root, "lib/phronomy/agent/runner.rb"))
+    expect(Phronomy::Agent.const_defined?(:Runner, false)).to be(false)
+    expect(Phronomy::MultiAgent::Runner).to be_a(Class)
+  end
+
   it "keeps Handoff control out of ordinary Tool results" do
     request = File.read(File.join(root, "lib/phronomy/multi_agent/handoff_request.rb"))
     coordinator = File.read(File.join(root, "lib/phronomy/multi_agent/execution_coordinator.rb"))
     expect(request).to include("HandoffRequest")
     expect(coordinator).to include(":handed_off")
     expect(coordinator).not_to include("sentinel_map")
+  end
+
+  it "does not leave removed CG-05 production identifiers in lib" do
+    production = Dir[File.join(root, "lib/**/*.rb")].sort.to_h do |path|
+      [path.sub("#{root}/", ""), File.read(path)]
+    end
+    expect(production.values.join("\n")).not_to include("SENTINEL_PREFIX")
+    expect(production.values.join("\n")).not_to include("def _add_handoff_tool")
+    expect(production.values.join("\n")).not_to include("def _handoff_tools")
+    expect(production.keys).not_to include("lib/phronomy/agent/context_candidate.rb")
+    expect(production.keys).not_to include("lib/phronomy/agent/context_selection_unit.rb")
+    expect(production.keys).not_to include("lib/phronomy/agent/runner.rb")
   end
 end

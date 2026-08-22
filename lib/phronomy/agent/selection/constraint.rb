@@ -3,12 +3,12 @@
 module Phronomy
   module Agent
     module Selection
-      Constraint = Data.define(:mode, :origin, :reason) do
-        MODES = %i[required selectable forbidden].freeze
+      CONSTRAINT_MODES = %i[required selectable forbidden].freeze
 
+      Constraint = Data.define(:mode, :origin, :reason) do
         def initialize(mode:, origin:, reason: nil)
           normalized_mode = mode.to_sym
-          unless MODES.include?(normalized_mode)
+          unless CONSTRAINT_MODES.include?(normalized_mode)
             raise ArgumentError, "unknown Selection constraint mode: #{mode.inspect}"
           end
 

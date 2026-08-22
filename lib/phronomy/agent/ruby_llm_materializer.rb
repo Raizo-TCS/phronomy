@@ -96,10 +96,12 @@ module Phronomy
       end
 
       def verify_tool_definitions!(manifest)
-        return ToolDefinitionSet.build(
-          @agent,
-          additional_tools: @additional_tools
-        ) unless manifest.tool_definitions_ref
+        unless manifest.tool_definitions_ref
+          return ToolDefinitionSet.build(
+            @agent,
+            additional_tools: @additional_tools
+          )
+        end
 
         expected = @persistence.contents.fetch(manifest.tool_definitions_ref)
         expected_definitions = Phronomy::CanonicalJSON.load(expected)

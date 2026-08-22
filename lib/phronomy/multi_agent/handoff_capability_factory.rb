@@ -33,7 +33,7 @@ module Phronomy
             desc: "The concrete responsibility the target Agent must continue."
 
           policy.selectable_categories.each do |category|
-            param "include_#{category}".to_sym,
+            param :"include_#{category}",
               type: :boolean,
               required: false,
               desc: "Whether to transfer selectable #{category} Context."

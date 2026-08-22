@@ -1,12 +1,13 @@
 /.bundle/
 /.yardoc
 /_yardoc/
-/coverage/
+coverage/
 /doc/
 /pkg/
 /spec/reports/
 /tmp/
 /vendor/bundle/
+/*.gem
 
 # Library projects should not commit Gemfile.lock — it pins default-gem
 # versions to the developer's local Ruby patch level and breaks CI.
@@ -17,4 +18,3 @@ Gemfile.lock
 
 # Integration test evidence ledger (local quality record — not for OSS repo)
 spec/integration/evidence.csv
-*.gem
