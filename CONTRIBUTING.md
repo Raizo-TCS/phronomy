@@ -156,6 +156,41 @@ Legacy `spec/design/*` files must not be assumed to be normative merely because
 they remain in the repository. Their final CURRENT/HISTORICAL/ARCHIVED
 migration is a separate documentation-lifecycle change.
 
+### Durability, recovery, and failure vocabulary
+
+Architecture-sensitive durability, concurrency, recovery, cancellation, and
+external-effect changes must use
+[`018-durability-guarantees-and-failure-model`](docs/decisions/018-durability-guarantees-and-failure-model.md).
+
+Do not write a bare claim such as "durable", "recoverable", "safe", or
+"exactly once". State:
+
+1. the guarantee subject;
+2. the exact guarantee property (for example durable-state restart
+   readability, execution resumption, stale durable-transition conflict
+   detection, or duplicate external-side-effect prevention);
+3. the component/contract that provides it;
+4. the applicable F0-F4 failure class(es);
+5. whether X0 External Effect Boundary is crossed; and
+6. whether the architecture result is YES, CONDITIONAL, or NO, including the
+   condition for every CONDITIONAL guarantee.
+
+In particular:
+
+- F0 known operation failure is not F1 outcome uncertainty.
+- durable-transition atomicity is not commit-outcome certainty.
+- optimistic conflict detection is not cross-process execution exclusion.
+- process/runtime loss (F4) does not imply confirmed durable state was lost.
+- X0 external side effects are not automatically atomic with Persistence.
+- semantic IDs do not by themselves provide duplicate prevention.
+- arbitrary external exactly-once execution is not an unconditional Phronomy
+  guarantee.
+
+Fault-injection and recovery tests should state which failure class/boundary
+they exercise and must not imply stronger guarantees than the test proves.
+F0-F4/X0 are architecture/test vocabulary, not a required public exception
+hierarchy.
+
 ---
 
 ## Mutation Testing

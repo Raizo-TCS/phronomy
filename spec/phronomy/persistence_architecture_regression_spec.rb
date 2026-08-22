@@ -148,4 +148,29 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(Phronomy::Agent::Base).not_to respond_to(:approve)
     expect(Phronomy::Agent::Base).not_to respond_to(:approve_async)
   end
+
+  it "keeps durable-transition atomicity separate from F1 commit-outcome certainty" do
+    persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
+
+    expect(persistence).to include(
+      "all durable repositories can participate in one atomic"
+    )
+    expect(persistence).to include(
+      "Storage failures whose commit outcome is fundamentally"
+    )
+    expect(persistence).to match(
+      /commit outcome is fundamentally.*Phronomy does not claim.*exactly-once semantics/m
+    )
+  end
+
+  it "does not equate optimistic conflict detection with distributed exclusion" do
+    persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
+
+    expect(persistence).to include(
+      "compare-and-swap conflict detection"
+    )
+    expect(persistence).to match(
+      /does not\s+#\s+mean cross-process Workflow admission or distributed locking/m
+    )
+  end
 end

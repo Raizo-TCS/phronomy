@@ -12,7 +12,12 @@ fi
 required_files=(
   docs/decisions/README.md
   docs/decisions/017-design-authority-and-adr-governance.md
+  docs/decisions/018-durability-guarantees-and-failure-model.md
   spec/phronomy/architecture_governance_spec.rb
+  spec/phronomy/guarantee_model_spec.rb
+  spec/phronomy/fault_injection_spec.rb
+  spec/phronomy/fault_injection_advanced_spec.rb
+  spec/phronomy/persistence_architecture_regression_spec.rb
   lib/phronomy/agent/base.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
@@ -39,6 +44,10 @@ done
 
 syntax_files=(
   spec/phronomy/architecture_governance_spec.rb
+  spec/phronomy/guarantee_model_spec.rb
+  spec/phronomy/fault_injection_spec.rb
+  spec/phronomy/fault_injection_advanced_spec.rb
+  spec/phronomy/persistence_architecture_regression_spec.rb
   lib/phronomy/agent/base.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
@@ -74,6 +83,13 @@ done
 
 echo "== ACS-01 architecture governance =="
 bundle exec rspec spec/phronomy/architecture_governance_spec.rb
+
+echo "== ACS-18 guarantee / failure taxonomy =="
+bundle exec rspec \
+  spec/phronomy/guarantee_model_spec.rb \
+  spec/phronomy/fault_injection_spec.rb \
+  spec/phronomy/fault_injection_advanced_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb
 
 echo "== CG-04 canonical vocabulary guards =="
 legacy_source="$(
@@ -148,4 +164,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
