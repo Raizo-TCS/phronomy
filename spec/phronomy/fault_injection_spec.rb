@@ -11,6 +11,33 @@ require "spec_helper"
 #   3. dispatch_parallel with on_error: :skip returns nil for failing tasks
 #   4. EventLoop drops unknown-target events with a warning (no crash)
 # ---------------------------------------------------------------------------
+#
+# ACS-18 failure-model mapping:
+#
+#   F0 Operation Failure
+#     - sections 1-3 directly exercise known operation failures/rejections.
+#
+#   F3 Asynchronous Lifecycle Mismatch
+#     - section 4 is F3 evidence for stale/unknown-target result isolation.
+#       It proves that an unowned completion is not applied/crashed through;
+#       it is not a complete F3 generation/recovery test.
+#
+#   F1 Outcome Uncertainty
+#     - intentionally NOT covered here. Observing an error is not evidence
+#       that a durable/external outcome is known.
+#
+#   F2 Concurrency Conflict
+#     - covered by ownership/Persistence conflict suites rather than this file.
+#
+#   F4 Execution-Environment Loss
+#     - intentionally NOT covered here; process-loss recovery belongs to the
+#       durable recovery reconciliation work.
+#
+#   X0 External Effect Boundary
+#     - no exactly-once/duplicate-prevention guarantee is established here.
+#
+# See ADR-018 for the canonical failure and guarantee vocabulary.
+# ---------------------------------------------------------------------------
 RSpec.describe "Fault injection (Issue #213)" do
   # -------------------------------------------------------------------------
   # 1. Error translation at retry boundary (Issue #204 regression guard)

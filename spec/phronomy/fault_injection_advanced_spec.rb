@@ -6,6 +6,19 @@ require "spec_helper"
 # primary fault_injection specs. Context-specific behavior in this file is
 # expressed through the current before_llm_input / Manifest-first contracts;
 # the removed build_context path is not part of this suite.
+#
+# ACS-18 failure-model mapping:
+#
+# - VectorStore/hook/filter/callback failures are F0 Operation Failure cases.
+# - "Tool failure is not replayed by Phronomy" is F0 evidence at an X0-capable
+#   integration boundary. The test guards against blind framework replay; it
+#   does NOT establish duplicate prevention or exactly-once external effects.
+# - orderly EventLoop :stopping rejection is lifecycle-shutdown evidence, not
+#   F4 Execution-Environment Loss recovery coverage.
+# - F1 Outcome Uncertainty is deliberately not inferred from any exception in
+#   this file.
+#
+# See ADR-018 for the canonical failure and guarantee vocabulary.
 RSpec.describe "Fault injection advanced (Issue #241)" do
   let(:fake_tokens) do
     double(
