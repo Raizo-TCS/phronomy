@@ -104,10 +104,13 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Carries all per-invocation context values through the call stack.</p>
+    <p>Carries per-invocation control, policy, and tracing context through the call stack.</p>
 <p><code>InvocationContext</code> is a plain struct-like value carrier that replaces
 ad-hoc <code>Thread.current[...]</code> propagation.
 Pass it explicitly wherever context needs to cross a method boundary.</p>
+<p>Generic conversation/session identity is deliberately not part of this
+object. Use purpose-specific domain identifiers and application tracing
+metadata instead.</p>
 
   </div>
 </div>
@@ -120,7 +123,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
         <h5 class="example_title"><div class='inline'><p>Build a context for a new agent invocation</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>InvocationContext</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>conv-123</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+  <span class='label'>task_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>request-123</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
   <span class='label'>cancellation_token:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Concurrency/CancellationToken.html#timeout_after-class_method" title="Phronomy::Concurrency::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
 <span class='rparen'>)</span>
 <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span></code></pre>
@@ -273,61 +276,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#session_id-instance_method" title="#session_id (instance method)">#<strong>session_id</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#task_id-instance_method" title="#task_id (instance method)">#<strong>task_id</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#thread_id-instance_method" title="#thread_id (instance method)">#<strong>thread_id</strong>  &#x21d2; Object </a>
     
 
     
@@ -462,7 +411,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Convenience: returns the cancellation token or a new never-cancelled token.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -484,7 +433,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the cancellation token to use for an invocation, taking both the explicit cancellation_token and deadline into account.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -492,7 +441,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
     
 
     
@@ -530,7 +479,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns a new <code>InvocationContext</code> with the given attributes merged in.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -545,7 +494,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
+    #<strong>initialize</strong>(user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
   
 
   
@@ -558,154 +507,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>thread_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>session_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>user_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cancellation_token</span>
-      
-      
-        <span class='type'>(<tt>CancellationToken</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>deadline</span>
-      
-      
-        <span class='type'>(<tt>Deadline</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>tracer_span</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>token_budget</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>approval_policy</span>
-      
-      
-        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>redaction_policy</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>task_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>parent_task_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-</ul>
-
 
 </div><table class="source_code">
   <tr>
@@ -713,6 +515,13 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
+28
+29
+30
+31
+32
+33
+34
 35
 36
 37
@@ -726,25 +535,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
 45
 46
 47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59</pre>
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
-  <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>session_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>user_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>deadline:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -755,8 +551,6 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   <span class='label'>task_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>parent_task_id:</span> <span class='kw'>nil</span>
 <span class='rparen'>)</span>
-  <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-  <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_session_id'>session_id</span>
   <span class='ivar'>@user_id</span> <span class='op'>=</span> <span class='id identifier rubyid_user_id'>user_id</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span>
@@ -803,12 +597,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_policy</span>
@@ -844,12 +638,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='ivar'>@cancellation_token</span>
@@ -885,12 +679,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline'>deadline</span>
   <span class='ivar'>@deadline</span>
@@ -926,12 +720,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span>
   <span class='ivar'>@parent_task_id</span>
@@ -967,56 +761,15 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
   <span class='ivar'>@redaction_policy</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="session_id-instance_method">
-  
-    #<strong>session_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-19
-20
-21</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_session_id'>session_id</span>
-  <span class='ivar'>@session_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1049,56 +802,15 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_id'>task_id</span>
   <span class='ivar'>@task_id</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="thread_id-instance_method">
-  
-    #<strong>thread_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-19
-20
-21</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-  <span class='ivar'>@thread_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1131,12 +843,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
   <span class='ivar'>@token_budget</span>
@@ -1172,12 +884,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
   <span class='ivar'>@tracer_span</span>
@@ -1213,12 +925,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-19
-20
-21</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_user_id'>user_id</span>
   <span class='ivar'>@user_id</span>
@@ -1250,7 +962,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Convenience: returns the cancellation token or a new never-cancelled token.</p>
+
 
   </div>
 </div>
@@ -1263,12 +975,12 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
       <pre class="lines">
 
 
-81
-82
-83</pre>
+66
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_cancellation_token'>effective_cancellation_token</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -1293,8 +1005,7 @@ Pass it explicitly wherever context needs to cross a method boundary.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns the cancellation token to use for an invocation, taking both the
-explicit cancellation_token and deadline into account.</p>
+
 
   </div>
 </div>
@@ -1307,17 +1018,17 @@ explicit cancellation_token and deadline into account.</p>
       <pre class="lines">
 
 
-88
-89
-90
-91
-92
-93
-94
-95</pre>
+71
+72
+73
+74
+75
+76
+77
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
   <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
@@ -1347,7 +1058,7 @@ explicit cancellation_token and deadline into account.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns a new <code>InvocationContext</code> with the given attributes merged in.</p>
+
 
   </div>
 </div>
@@ -1360,29 +1071,25 @@ explicit cancellation_token and deadline into account.</p>
       <pre class="lines">
 
 
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77</pre>
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_overrides'>overrides</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>thread_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:thread_id</span><span class='comma'>,</span> <span class='ivar'>@thread_id</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>session_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:session_id</span><span class='comma'>,</span> <span class='ivar'>@session_id</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>user_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:user_id</span><span class='comma'>,</span> <span class='ivar'>@user_id</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:cancellation_token</span><span class='comma'>,</span> <span class='ivar'>@cancellation_token</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>deadline:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:deadline</span><span class='comma'>,</span> <span class='ivar'>@deadline</span><span class='rparen'>)</span><span class='comma'>,</span>
@@ -1404,7 +1111,7 @@ explicit cancellation_token and deadline into account.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 08:31:56 2026 by
+  Generated on Sun Aug 23 10:27:39 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
