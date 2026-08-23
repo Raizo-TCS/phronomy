@@ -5,6 +5,7 @@
 **Related**:
 - [ADR-014](014-unified-persistence-durable-state.md)
 - [ADR-021](021-generic-agent-invocation-identity-removal.md)
+- [ADR-023](023-fsm-session-incarnation-identity-and-routing.md)
 
 ---
 
@@ -129,10 +130,26 @@ CG-03b
   session-local Runtime routing binding
   stale-session completion rejection
   duplicate AgentInvocation/ToolInvocation session fields cleanup
-  status: pending; integrated with ACS-10/ACS-11 foundation
+  status: identity/routing slice implemented by ADR-023; final closure remains
+          coupled to ACS-11 result-authority reconciliation
 ```
 
-CG-03 remains open until CG-03b is complete.
+CG-03 remains open through the joint ACS-10/ACS-11 Runtime foundation. ADR-023
+implements the concrete-session identity/routing slice; ACS-11 must still remove
+broader worker-side live-state mutation before the stale-result authority
+criterion is considered fully reconciled.
+
+## CG-03b routing foundation implementation
+
+The Runtime now binds Agent/Tool/Multi-Agent asynchronous completion through a
+session-local `FSMSession::EventSink`. Rebuilt sessions receive fresh sinks and
+IDs; old sinks are never rebound to a new `execution_id` incarnation.
+
+`AgentInvocation` therefore has no independent `id`/`session_id`.
+`ToolInvocation#id` remains the semantic Tool lifecycle identity and is no
+longer reused as an FSMSession ID. Workflow uses a private FSMSession-owned
+identity reservation only because its existing pre-load admission still uses the
+future FSMSession ID; opaque Workflow admission ownership is explicitly ACS-13.
 
 ## Explicit non-goals
 

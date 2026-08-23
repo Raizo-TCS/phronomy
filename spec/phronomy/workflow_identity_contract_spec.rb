@@ -148,10 +148,13 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
     end.to raise_error(ArgumentError, /workflow_instance_id.*reserved/)
   end
 
-  it "leaves the shared FSMSession graph identity protocol outside CG-01" do
+  it "uses the reconciled Runtime metadata protocol without making Workflow identity an FSMSession constructor key" do
     parameters = Phronomy::FSMSession.instance_method(:initialize).parameters
 
-    expect(parameters).to include([:key, :graph_thread_id])
+    expect(parameters).not_to include([:key, :id])
+    expect(parameters).not_to include([:key, :graph_thread_id])
+    expect(parameters).to include([:key, :context_metadata])
+    expect(parameters).to include([:key, :identity_reservation])
     expect(parameters).not_to include([:key, :workflow_instance_id])
   end
 

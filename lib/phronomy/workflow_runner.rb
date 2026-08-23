@@ -8,7 +8,7 @@ module Phronomy
   # WorkflowRunner separates three identities:
   # - application session_id remains caller/tracing metadata;
   # - workflow_instance_id identifies durable Workflow state;
-  # - fsm_session_id identifies one Runtime FSMSession execution.
+  # - fsm_session_id identifies one concrete Runtime FSMSession incarnation.
   #
   # Workflow persistence is synchronous at the repository contract but is always
   # invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.
@@ -22,6 +22,7 @@ module Phronomy
       :context,
       :workflow_instance_id,
       :fsm_session_id,
+      :fsm_identity_reservation,
       :recursion_limit,
       :repository,
       :persist,
@@ -174,7 +175,8 @@ module Phronomy
       result_task = Phronomy::Task.deferred(name: "workflow:preparing")
       explicit_workflow_instance_id = !config[:workflow_instance_id].nil?
       workflow_instance_id = (config[:workflow_instance_id] || SecureRandom.uuid).to_s
-      fsm_session_id = SecureRandom.uuid
+      fsm_identity_reservation = Phronomy::FSMSession.reserve_identity
+      fsm_session_id = fsm_identity_reservation.fsm_session_id
       recursion_limit = config.fetch(
         :recursion_limit,
         Phronomy.configuration.recursion_limit
@@ -204,6 +206,7 @@ module Phronomy
               input,
               workflow_instance_id: workflow_instance_id,
               fsm_session_id: fsm_session_id,
+              fsm_identity_reservation: fsm_identity_reservation,
               recursion_limit: recursion_limit,
               repository: repository,
               persist: true,
@@ -229,6 +232,7 @@ module Phronomy
           input,
           workflow_instance_id: workflow_instance_id,
           fsm_session_id: fsm_session_id,
+          fsm_identity_reservation: fsm_identity_reservation,
           recursion_limit: recursion_limit,
           repository: repository,
           persist: false,
@@ -257,7 +261,8 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
       workflow_instance_id = state.workflow_instance_id.to_s
-      fsm_session_id = SecureRandom.uuid
+      fsm_identity_reservation = Phronomy::FSMSession.reserve_identity
+      fsm_session_id = fsm_identity_reservation.fsm_session_id
       repository = configured_repository
       result_task = Phronomy::Task.deferred(name: "workflow-resume:#{workflow_instance_id}")
 
@@ -285,6 +290,7 @@ module Phronomy
               context: context,
               workflow_instance_id: workflow_instance_id,
               fsm_session_id: fsm_session_id,
+              fsm_identity_reservation: fsm_identity_reservation,
               recursion_limit: Phronomy.configuration.recursion_limit,
               repository: repository,
               persist: true,
@@ -312,6 +318,7 @@ module Phronomy
           context: context,
           workflow_instance_id: workflow_instance_id,
           fsm_session_id: fsm_session_id,
+          fsm_identity_reservation: fsm_identity_reservation,
           recursion_limit: Phronomy.configuration.recursion_limit,
           repository: nil,
           persist: false,
@@ -341,6 +348,7 @@ module Phronomy
       input,
       workflow_instance_id:,
       fsm_session_id:,
+      fsm_identity_reservation:,
       recursion_limit:,
       repository:,
       persist:,
@@ -363,6 +371,7 @@ module Phronomy
         context: context,
         workflow_instance_id: workflow_instance_id,
         fsm_session_id: fsm_session_id,
+        fsm_identity_reservation: fsm_identity_reservation,
         recursion_limit: recursion_limit,
         repository: repository,
         persist: persist,
@@ -547,9 +556,11 @@ module Phronomy
       stable_observer: nil
     )
       Phronomy::FSMSession.new(
-        id: execution.fsm_session_id,
-        graph_thread_id: execution.workflow_instance_id,
+        identity_reservation: execution.fsm_identity_reservation,
         context: execution.context,
+        context_metadata: {
+          workflow_instance_id: execution.workflow_instance_id
+        },
         entry_point: @entry_point,
         entry_actions: @entry_actions,
         auto_state_set: @auto_state_set,

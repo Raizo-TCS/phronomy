@@ -110,6 +110,12 @@ Release history for 0.14.0 and earlier is archived in
 - Legacy embedded suspended approval hashes remain readable by deriving the
   logical parent from their enclosing Agent execution; historical
   content-addressed audit bodies are not rewritten.
+- Agent, Tool, and Multi-Agent concrete `FSMSession` instances no longer reuse
+  domain/context IDs as EventLoop routing targets. Async callbacks use
+  session-local event sinks, and Provider completion is routed to the owning
+  FSMSession before updating Activation LLM-result state. Workflow retains its
+  pre-load admission ordering through a private single-use FSMSession identity
+  reservation; opaque Workflow admission ownership remains ACS-13 work.
 - OutputParser `parse` is classified as the public subclass extension point that
   concrete parsers implement.
 

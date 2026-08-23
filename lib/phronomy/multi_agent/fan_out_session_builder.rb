@@ -16,14 +16,15 @@ module Phronomy
         cancellation_token: nil,
         runtime: Phronomy::Runtime.instance
       )
-        result = Phronomy::Task.deferred(name: "fan-out:#{invocation.id}")
+        result = Phronomy::Task.deferred(name: "fan-out")
 
         if cancellation_token&.cancelled?
           result.fail(Phronomy::CancellationError.new("fan-out cancelled"))
           return result
         end
 
-        source = Phronomy::Task.deferred(name: "fan-out-source:#{invocation.id}")
+        session = build(invocation: invocation, runtime: runtime)
+        source = Phronomy::Task.deferred(name: "fan-out-source:#{session.id}")
         source.on_complete do |context, error|
           if error
             result.fail(error)
@@ -34,27 +35,18 @@ module Phronomy
           end
         end
 
-        session = build(invocation: invocation, runtime: runtime)
         runtime.event_loop.register(session, completion: source)
-
         if timeout
           runtime.timer_queue.schedule(seconds: timeout) do
-            runtime.event_loop.post_to_session(
-              Phronomy::Event.new(
-                type: :timeout,
-                target_id: invocation.id,
-                payload: {message: "dispatch_parallel timed out after #{timeout}s"}
-              )
+            session.event_sink.post(
+              :timeout,
+              {message: "dispatch_parallel timed out after #{timeout}s"}
             )
           end
         end
-
         cancellation_token&.on_cancel do
-          runtime.event_loop.post_to_session(
-            Phronomy::Event.new(type: :cancel, target_id: invocation.id, payload: nil)
-          )
+          session.event_sink.post(:cancel, nil)
         end
-
         result
       rescue => error
         result ||= Phronomy::Task.deferred(name: "fan-out:registration")
@@ -63,7 +55,8 @@ module Phronomy
       end
 
       def self.build(invocation:, runtime:)
-        phase_machine = build_phase_machine(runtime)
+        event_sink = Phronomy::FSMSession::EventSink.new(event_loop: runtime.event_loop)
+        phase_machine = build_phase_machine(runtime, event_sink)
         external_events = {
           child_completed: [{from: :running, to: :running, guard: nil}],
           driver_failed: [{from: :running, to: :failed, guard: nil}],
@@ -72,8 +65,8 @@ module Phronomy
         }
 
         Phronomy::FSMSession.new(
-          id: invocation.id,
           context: invocation,
+          event_sink: event_sink,
           entry_point: :idle,
           entry_actions: {},
           auto_state_set: AUTO_STATE_SET,
@@ -87,7 +80,7 @@ module Phronomy
       end
       private_class_method :build
 
-      def self.build_phase_machine(runtime)
+      def self.build_phase_machine(runtime, event_sink)
         Class.new do
           attr_accessor :context, :current_event
 
@@ -114,7 +107,7 @@ module Phronomy
             event(:cancel) { transition running: :cancelled }
 
             after_transition to: :running do |machine|
-              machine.context.start_available!(runtime)
+              machine.context.start_available!(runtime, event_sink: event_sink)
             end
           end
         end

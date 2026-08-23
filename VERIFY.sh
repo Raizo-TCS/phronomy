@@ -17,6 +17,7 @@ required_files=(
   docs/decisions/020-canonical-workflow-instance-identity.md
   docs/decisions/021-generic-agent-invocation-identity-removal.md
   docs/decisions/022-agent-execution-parent-identity-and-runtime-routing-boundary.md
+  docs/decisions/023-fsm-session-incarnation-identity-and-routing.md
   lib/phronomy/workflow.rb
   lib/phronomy/workflow_context.rb
   lib/phronomy/workflow_runner.rb
@@ -37,6 +38,7 @@ required_files=(
   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb
+  spec/phronomy/fsm_session_identity_contract_spec.rb
   lib/phronomy/agent/tool_invocation.rb
   lib/phronomy/agent/tool_approval_request.rb
   lib/phronomy/agent/approval_evaluation_request.rb
@@ -109,6 +111,7 @@ syntax_files=(
   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb
+  spec/phronomy/fsm_session_identity_contract_spec.rb
   lib/phronomy/agent/tool_invocation.rb
   lib/phronomy/agent/tool_approval_request.rb
   lib/phronomy/agent/approval_evaluation_request.rb
@@ -275,6 +278,60 @@ if [[ -n "$legacy_correlation_source" ]]; then
   exit 1
 fi
 
+echo "== CG-03b / ACS-10 FSMSession routing foundation =="
+bundle exec rspec \
+  spec/phronomy/fsm_session_identity_contract_spec.rb \
+  spec/phronomy/workflow/fsm_session_spec.rb \
+  spec/phronomy/workflow/transition_action_spec.rb \
+  spec/phronomy/workflow/live_signal_spec.rb \
+  spec/phronomy/workflow_identity_contract_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb \
+  spec/phronomy/lifecycle_invariants_spec.rb \
+  spec/phronomy/event_loop_queue_observability_spec.rb \
+  spec/phronomy/architecture_regression_spec.rb \
+  spec/phronomy/generic_invocation_identity_contract_spec.rb \
+  spec/phronomy/agent/agent_invocation_spec.rb \
+  spec/phronomy/agent/agent_invocation_session_builder_spec.rb \
+  spec/phronomy/agent/tool_invocation_session_builder_spec.rb \
+  spec/phronomy/agent/tool_invocation_spec.rb \
+  spec/phronomy/agent/tool_call_async_compatibility_spec.rb \
+  spec/phronomy/agent/approval_parent_identity_contract_spec.rb \
+  spec/phronomy/agent/suspend_resume_spec.rb \
+  spec/phronomy/multi_agent/orchestrator_spec.rb
+
+if grep -RIn 'parent_agent_invocation_id\|parent_fsm_session_id' \
+    lib/phronomy --include='*.rb'; then
+  echo "FAIL: long-lived Agent/Tool parent Runtime routing field remains" >&2
+  exit 1
+fi
+
+legacy_runtime_identity="$(
+  grep -RInE 'graph_thread_id|payload: [{]session_id:' \
+    lib/phronomy --include='*.rb' || true
+)"
+if [[ -n "$legacy_runtime_identity" ]]; then
+  echo "FAIL: active Runtime source still contains legacy generic routing bridge:" >&2
+  printf '%s\n' "$legacy_runtime_identity" >&2
+  exit 1
+fi
+
+python3 - <<'PY'
+import pathlib, re
+for rel in [
+    "lib/phronomy/agent/agent_invocation_session_builder.rb",
+    "lib/phronomy/agent/tool_invocation_session_builder.rb",
+    "lib/phronomy/multi_agent/fan_out_session_builder.rb",
+]:
+    text = pathlib.Path(rel).read_text()
+    if re.search(r"FSMSession\.new\(.*?\bid\s*:", text, re.S):
+        raise SystemExit(f"FAIL: {rel} still injects a domain/context ID as FSMSession id")
+workflow = pathlib.Path("lib/phronomy/workflow_runner.rb").read_text()
+if "Phronomy::FSMSession.reserve_identity" not in workflow:
+    raise SystemExit("FAIL: Workflow no longer uses the FSMSession-owned pre-load identity reservation")
+if "owner_fsm_session_id" not in workflow:
+    raise SystemExit("FAIL: this slice unexpectedly pulled ACS-13 Workflow admission-owner redesign forward")
+PY
+
 echo "== CG-03a Agent execution parent identity =="
 bundle exec rbs -I sig validate
 bundle exec rspec \
@@ -356,4 +413,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

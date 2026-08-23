@@ -207,14 +207,14 @@ RSpec.describe "Workflow transition actions" do
   it "applies transition and entry results using the FSM context protocol" do
     duck_context_class = Class.new do
       attr_reader :value
-      attr_accessor :thread_id, :phase
+      attr_accessor :workflow_instance_id, :phase
 
       def initialize(value)
         @value = value
       end
 
-      def set_graph_metadata(thread_id:, phase: nil)
-        @thread_id = thread_id
+      def set_graph_metadata(workflow_instance_id: nil, phase: nil)
+        @workflow_instance_id = workflow_instance_id if workflow_instance_id
         @phase = phase if phase
         self
       end

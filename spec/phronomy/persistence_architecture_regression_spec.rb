@@ -126,16 +126,20 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(method_source).to match(/if error.*post_preparation_failure.*else.*start_provider_call/m)
   end
 
-  it "keeps Workflow Runtime identity distinct from durable and application identities" do
+  it "keeps Workflow Runtime identity distinct while deferring admission-owner separation to ACS-13" do
     runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
     event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
+    fsm = File.read(File.join(root, "lib/phronomy/engine/fsm_session.rb"))
 
     expect(runner).to include("workflow_instance_id")
     expect(runner).to include("fsm_session_id")
-    expect(runner).to include("graph_thread_id: execution.workflow_instance_id")
+    expect(runner).to include("Phronomy::FSMSession.reserve_identity")
+    expect(runner).to include("identity_reservation:")
+    expect(runner).not_to include("graph_thread_id:")
     expect(event_loop).to include("owner_fsm_session_id")
     expect(event_loop).to include("@workflow_admissions")
     expect(event_loop).not_to include("owner_session_id")
+    expect(fsm).to include("SecureRandom.uuid.to_s.freeze")
   end
 
   it "uses the existing Persistence::InMemory Monitor as the durable in-memory transaction owner" do

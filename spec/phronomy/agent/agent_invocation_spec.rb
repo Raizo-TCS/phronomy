@@ -45,7 +45,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   def tool_event(type, child)
     Phronomy::Event.new(
       type: type,
-      target_id: invocation.id,
+      target_id: "fsm-test",
       payload: {tool_invocation_id: child.id}
     )
   end
@@ -88,16 +88,15 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   # ---------------------------------------------------------------------------
 
   describe "constructor" do
-    it "keeps execution parent separate from the temporary Runtime id" do
+    it "belongs to execution_id without an independent Runtime identity" do
       inv = described_class.new(
         agent: agent,
         input: "hi",
         config: {},
-        execution_id: "execution-1",
-        id: "runtime-route-1"
+        execution_id: "execution-1"
       )
       expect(inv.execution_id).to eq("execution-1")
-      expect(inv.id).to eq("runtime-route-1")
+      expect(inv).not_to respond_to(:id, :session_id)
     end
 
     it "derives approval_policy from invocation_context when available" do
@@ -123,13 +122,13 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
 
   describe "#handle_fsm_event" do
     it "ignores non-tool events" do
-      event = Phronomy::Event.new(type: :finished, target_id: invocation.id, payload: {})
+      event = Phronomy::Event.new(type: :finished, target_id: "fsm-test", payload: {})
       expect(invocation.handle_fsm_event(event)).to be false
     end
 
     it "returns true even when tool_invocation_id is unknown" do
       event = Phronomy::Event.new(
-        type: :tool_completed, target_id: invocation.id,
+        type: :tool_completed, target_id: "fsm-test",
         payload: {tool_invocation_id: "unknown-id"}
       )
       expect(invocation.handle_fsm_event(event)).to be true
@@ -160,7 +159,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       )
       event = Phronomy::Event.new(
         type: :llm_stream_chunk,
-        target_id: inv.id,
+        target_id: "fsm-test",
         payload: {content: "hello"}
       )
 
@@ -171,14 +170,10 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   end
 
   describe "#set_graph_metadata" do
-    it "keeps the shared Runtime graph bridge separate from application identity" do
-      invocation.set_graph_metadata(
-        thread_id: "fsm-route-1",
-        phase: :calling_llm
-      )
-      expect(invocation.instance_variable_get(:@session_id))
-        .to eq("fsm-route-1")
-      expect(invocation).not_to respond_to(:thread_id)
+    it "tracks FSM phase without duplicating FSMSession identity" do
+      invocation.set_graph_metadata(phase: :calling_llm)
+      expect(invocation.phase).to eq(:calling_llm)
+      expect(invocation).not_to respond_to(:id, :session_id, :thread_id)
     end
   end
 

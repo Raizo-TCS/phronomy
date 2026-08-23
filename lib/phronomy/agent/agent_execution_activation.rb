@@ -126,7 +126,7 @@ module Phronomy
 
       # Canonical runtime recording is independent of Application callback health.
       # Once an event is observed it is appended even after a listener has failed.
-      def record_event(event)
+      def record_event(event, event_sink: nil)
         listener = @mutex.synchronize do
           @runtime_events << event
           @callback_failure ? nil : @application_listener
@@ -142,24 +142,18 @@ module Phronomy
           @callback_failure ||= failure
           @application_listener = nil
         end
-        notify_callback_failure(failure)
+        notify_callback_failure(failure, event_sink)
       end
 
       private
 
-      def notify_callback_failure(failure)
-        invocation = @mutex.synchronize { @invocation }
-        if invocation
-          accepted = Phronomy::Runtime.instance.event_loop.post_to_session(
-            Phronomy::Event.new(
-              type: :application_callback_failed,
-              target_id: invocation.id,
-              payload: {failure: failure}
-            )
-          )
+      def notify_callback_failure(failure, event_sink)
+        if event_sink
+          accepted = event_sink.post(:application_callback_failed, {failure: failure})
           unless accepted
             Phronomy.configuration.logger&.warn(
-              "[Phronomy] Callback failure recorded but could not notify FSM: execution_id=#{@execution_id}"
+              "[Phronomy] Callback failure recorded but could not notify " \
+              "FSMSession #{event_sink.fsm_session_id}: execution_id=#{@execution_id}"
             )
           end
         end

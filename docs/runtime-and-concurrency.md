@@ -11,6 +11,8 @@ Durable-state ownership is defined by
 [ADR-014](decisions/014-unified-persistence-durable-state.md).
 Canonical Workflow instance identity is defined by
 [ADR-020](decisions/020-canonical-workflow-instance-identity.md).
+Concrete FSMSession incarnation identity and session-local Runtime routing are
+defined by [ADR-023](decisions/023-fsm-session-incarnation-identity-and-routing.md).
 
 ## Runtime model
 
@@ -83,9 +85,11 @@ durable Workflow admission is a separate owner map:
 workflow_instance_id -> owner_fsm_session_id
 ```
 
-`owner_fsm_session_id` above describes the current Runtime implementation only;
-it is not a Workflow domain identity. Admission-owner representation is a
-separate reconciliation concern and is not decided by CG-01.
+`owner_fsm_session_id` above remains the current transitional Runtime
+implementation. It is not a Workflow domain identity. CG-03b/ACS-10 now obtains
+that value through a single-use FSMSession-owned identity reservation rather than
+arbitrary caller/domain ID injection. Separating Workflow admission ownership
+from the future concrete FSMSession is ACS-13 and remains intentionally pending.
 
 The owner is acquired before `workflow_states.load(workflow_instance_id)` and remains held
 until the halted/terminal `workflow_states.save(...)` completes. The admission map

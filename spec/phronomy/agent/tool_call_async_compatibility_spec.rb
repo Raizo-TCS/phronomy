@@ -8,7 +8,6 @@ RSpec.describe "Tool#call_async compatibility" do
   def build_ready_invocation(tool:, arguments:, config: {})
     invocation = Phronomy::Agent::ToolInvocation.new(
       execution_id: "execution-1",
-      parent_agent_invocation_id: "parent-agent",
       agent: instance_double(Phronomy::Agent::Base),
       tool: tool,
       tool_call: ToolCallStub.new("call-1", tool.name, arguments),
