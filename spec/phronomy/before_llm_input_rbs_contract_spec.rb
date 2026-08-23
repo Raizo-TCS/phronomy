@@ -61,6 +61,15 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
       ]
     )
 
+    # Scope RBS checks to LLMInputBuildContext itself. In particular,
+    # Agent::Base also has an agent_id reader, so whole-file matching could
+    # otherwise hide an accidental loss of LLMInputBuildContext#agent_id.
+    build_context_section = agent_rbs
+      .split("class LLMInputBuildContext", 2)
+      .fetch(1)
+      .split(/^\s*end\b/, 2)
+      .first
+
     %w[
       agent_id
       agent_definition_id
@@ -68,7 +77,7 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
       config
       call_sequence
     ].each do |reader|
-      expect(agent_rbs).to match(
+      expect(build_context_section).to match(
         /attr_reader\s+#{Regexp.escape(reader)}:/
       )
     end
@@ -80,12 +89,6 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
       :persistence,
       :event_loop
     )
-    # Check only within the LLMInputBuildContext class block, not the whole file.
-    build_context_section = agent_rbs
-      .split("class LLMInputBuildContext", 2)
-      .fetch(1)
-      .split(/^\s*end\b/, 2)
-      .first
     expect(build_context_section).not_to match(/attr_reader\s+agent:/)
     expect(build_context_section).not_to match(/attr_reader\s+chat:/)
     expect(build_context_section).not_to match(/attr_reader\s+persistence:/)

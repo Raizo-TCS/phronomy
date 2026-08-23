@@ -173,4 +173,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
