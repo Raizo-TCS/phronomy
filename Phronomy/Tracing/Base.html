@@ -112,8 +112,16 @@ Then assign your tracer in the Phronomy configuration:</p>
 <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span> <span class='op'>=</span> <span class='const'>MyTracer</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span>
 </code></pre>
-<p>The tracer is then automatically used by Chain and Agent components
-via the #trace helper.</p>
+<p>The configured tracer instance may be shared by independent Phronomy
+operations. Phronomy does not serialize calls to that instance; #trace,
+#start_span, and #finish_span may therefore be entered concurrently.
+Custom tracer implementations must not assume exclusive single-operation use
+and must protect mutable shared state they own.</p>
+<p>This contract does not guarantee a particular OS thread, EventLoop,
+OffloadPool worker, or async-context affinity. It also does not promise
+that every LLM, Tool, Workflow, or child-Agent operation automatically
+creates a distinct span. Automatic coverage and correlation semantics are
+separate architecture concerns.</p>
 
   </div>
 </div>
@@ -318,12 +326,12 @@ via the #trace helper.</p>
       <pre class="lines">
 
 
-54
-55
-56</pre>
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/base.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/base.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_finish_span'>finish_span</span><span class='lparen'>(</span><span class='id identifier rubyid_span'>span</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#finish_span is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -412,12 +420,12 @@ via the #trace helper.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/base.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/base.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start_span'>start_span</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_attributes'>attributes</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#start_span is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -532,18 +540,18 @@ Calls #finish_span with the output on success or with the error on failure.</p>
       <pre class="lines">
 
 
-27
-28
-29
-30
-31
-32
-33
-34
-35</pre>
+36
+37
+38
+39
+40
+41
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/base.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/base.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_span'>span</span> <span class='op'>=</span> <span class='id identifier rubyid_start_span'>start_span</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='rparen'>)</span>
@@ -564,7 +572,7 @@ Calls #finish_span with the output on success or with the error on failure.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 01:42:39 2026 by
+  Generated on Sun Aug 23 02:37:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
