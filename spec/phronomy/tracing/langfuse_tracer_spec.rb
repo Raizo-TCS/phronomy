@@ -139,11 +139,13 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
       expect(body["usage"]["output"]).to eq(10)
       expect(body["usage"]["total"]).to eq(30)
     end
-    it "swallows network errors silently" do
+    it "warns and does not re-raise network ingestion errors" do
       stub_request(:post, "#{host}/api/public/ingestion").to_raise(SocketError)
 
       span = tracer.start_span("net_error_op")
-      expect { tracer.finish_span(span, output: "ok") }.not_to raise_error
+      expect {
+        tracer.finish_span(span, output: "ok")
+      }.to output(/\[Phronomy::LangfuseTracer\] Ingestion failed: SocketError/).to_stderr
     end
   end
 
@@ -211,9 +213,46 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
       span2 = tracer.start_span("op2")
       tracer.finish_span(span2, output: "out2")
 
-      # Currently fails: Net::HTTP.new is called twice (once per ingest).
-      # After the fix, the connection is cached and Net::HTTP.new is called once.
       expect(http_new_count).to eq(1)
+    end
+
+    it "serializes concurrent access to one cached Net::HTTP connection" do
+      state_mutex = Mutex.new
+      active_requests = 0
+      max_active_requests = 0
+
+      fake_http = Object.new
+      fake_http.define_singleton_method(:request) do |_request|
+        state_mutex.synchronize do
+          active_requests += 1
+          max_active_requests = [max_active_requests, active_requests].max
+        end
+        sleep 0.05
+        Object.new
+      ensure
+        state_mutex.synchronize { active_requests -= 1 }
+      end
+
+      allow(tracer).to receive(:build_http).and_return(fake_http)
+
+      gate = Queue.new
+      spans = [
+        tracer.start_span("concurrent-1"),
+        tracer.start_span("concurrent-2")
+      ]
+      threads = spans.map do |span|
+        Thread.new do
+          gate.pop
+          tracer.finish_span(span, output: "ok")
+        end
+      end
+
+      2.times { gate << true }
+      threads.each(&:value)
+
+      expect(max_active_requests).to eq(1)
+    ensure
+      threads&.each { |thread| thread.join(1) }
     end
   end
 end

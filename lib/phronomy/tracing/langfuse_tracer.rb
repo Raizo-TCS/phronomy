@@ -13,8 +13,8 @@ module Phronomy
     # (+POST /api/public/ingestion+).  No external gem is required — only
     # Ruby standard-library network primitives are used.
     #
-    # Ingestion errors are silently swallowed so that a Langfuse outage never
-    # breaks the application.
+    # Ingestion failures are reported as warnings and are not re-raised, so a
+    # Langfuse outage does not fail the traced application operation.
     #
     # @example Configure globally
     #   Phronomy.configure do |c|
@@ -37,6 +37,7 @@ module Phronomy
         @secret_key = secret_key
         @host = host.chomp("/")
         @http = nil
+        @http_mutex = Mutex.new
       end
 
       # Returns a plain Hash that records the span start state.
@@ -91,16 +92,23 @@ module Phronomy
         req["Authorization"] = "Basic #{Base64.strict_encode64("#{@public_key}:#{@secret_key}")}"
         req.body = JSON.generate({batch: events})
 
-        @http ||= build_http(uri)
-        @http.request(req)
-      rescue IOError, Errno::ECONNRESET, Errno::EPIPE => e
-        # Connection was reset; drop the cached connection and warn.
-        @http = nil
-        warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
-        nil
-      rescue => e
-        warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
-        nil
+        # Net::HTTP persistent connections are mutable and are not used
+        # concurrently through one configured LangfuseTracer instance. This
+        # protects the adapter's own shared connection cache; it does not
+        # serialize Phronomy tracing calls or impose serialization on custom
+        # Tracing::Base implementations.
+        @http_mutex.synchronize do
+          @http ||= build_http(uri)
+          @http.request(req)
+        rescue IOError, Errno::ECONNRESET, Errno::EPIPE => e
+          # Connection was reset; drop the cached connection and warn.
+          @http = nil
+          warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
+          nil
+        rescue => e
+          warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
+          nil
+        end
       end
 
       def build_http(uri)
