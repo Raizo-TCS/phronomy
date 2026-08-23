@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-# Guardrail classes have been removed. Blocking filters are now implemented
-# directly as Phronomy::Filter::Base subclasses that call block!.
-# This file tests the equivalent behaviour via Filter::Base.
+# Blocking-filter contract for Phronomy::Filter::Base.
+# Current Filters may transform or reject values; rejection uses
+# Phronomy::FilterBlockError through Filter::Base#block!.
 
 RSpec.describe Phronomy::Filter::Base do
   let(:blocking_filter) do

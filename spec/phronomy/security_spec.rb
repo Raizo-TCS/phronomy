@@ -166,9 +166,9 @@ RSpec.describe "Security specs (Issue #214)" do
   end
 
   # -------------------------------------------------------------------------
-  # Section 3: Input guardrail acts as a gate before LLM call (Issue #248)
+  # Section 3: Input filter acts as a gate before LLM call (Issue #248)
   # -------------------------------------------------------------------------
-  describe "input guardrail LLM gate" do
+  describe "input filter LLM gate" do
     let(:rejecting_guardrail) do
       Class.new(Phronomy::Filter::Base) do
         def call(input, **_ctx)
@@ -178,14 +178,14 @@ RSpec.describe "Security specs (Issue #214)" do
       end.new
     end
 
-    it "does not call the LLM when input guardrail rejects" do
+    it "does not call the LLM when input filter rejects" do
       agent = Class.new(Phronomy::Agent::Base) {
         agent_definition id: "test-agent-207", version: 1
         model "test-model"
       }.new
       agent.add_input_filter(rejecting_guardrail)
 
-      # RubyLLM.chat must never be called when the guardrail fires before it.
+      # RubyLLM.chat must never be called when the filter fires before it.
       expect(RubyLLM).not_to receive(:chat)
 
       expect { agent.invoke("DROP TABLE users; --") }
@@ -212,9 +212,9 @@ RSpec.describe "Security specs (Issue #214)" do
   end
 
   # -------------------------------------------------------------------------
-  # Section 4: Output guardrail intercepts harmful LLM output (Issue #248)
+  # Section 4: Output filter intercepts harmful LLM output (Issue #248)
   # -------------------------------------------------------------------------
-  describe "output guardrail intercept" do
+  describe "output filter intercept" do
     let(:secret_filter_guardrail) do
       Class.new(Phronomy::Filter::Base) do
         def call(output, **_ctx)
@@ -224,7 +224,7 @@ RSpec.describe "Security specs (Issue #214)" do
       end.new
     end
 
-    it "raises FilterBlockError with the guardrail reason, not the raw LLM output" do
+    it "raises FilterBlockError with the filter reason, not the raw LLM output" do
       raw_llm_output = "Here is your key: sk-abcdefghijklmnopqrstuvwxyz123456789"
 
       agent = Class.new(Phronomy::Agent::Base) {
@@ -257,7 +257,7 @@ RSpec.describe "Security specs (Issue #214)" do
       end
 
       expect(error).not_to be_nil
-      # The error must carry the guardrail reason, NOT the raw LLM output.
+      # The error must carry the filter reason, NOT the raw LLM output.
       expect(error.message).to eq("response contains a secret API key")
       expect(error.message).not_to include("sk-abcdefghijklmnopqrstuvwxyz")
     end
@@ -320,7 +320,7 @@ RSpec.describe "Security specs (Issue #214)" do
     it "does not include any portion of the user input in the agent span" do
       sensitive_input = "my SSN is 123-45-6789"
 
-      # Guardrail rejects the input so we never need a real LLM.
+      # Filter rejects the input so we never need a real LLM.
       reject_all = Class.new(Phronomy::Filter::Base) do
         def call(_input, **_ctx)
           block!("always blocked")

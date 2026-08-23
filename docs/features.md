@@ -18,7 +18,7 @@ for production deployments.
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
-| **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, guardrails, and conversation context | Stable |
+| **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, and conversation context | Stable |
 | **Tool authoring façade** — `Phronomy::Tool::Base` is the public authoring name for the existing Capability base class; the legacy namespace remains compatible | Beta |
 | **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by the active instance/session between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
 | **LLMAdapter SPI** — `Phronomy::LLMAdapter::Base#complete` / `#stream` define the Beta call-adapter extension boundary; Phronomy owns async/offload wrapping | Beta |

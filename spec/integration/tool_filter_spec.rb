@@ -4,9 +4,9 @@ require_relative "spec_helper"
 require_relative "support/factors"
 require_relative "support/llm_stub"
 
-# Group 2: Tool / Guardrail
+# Group 2: Tool / Filter
 # Pairwise factors: agent_class × agent_tools × tool_on_error × tool_requires_approval
-#                   × tool_param_enum × tool_name_override × agent_guardrails
+#                   × tool_param_enum × tool_name_override × agent_filters
 # Feasible cases: 31
 # Infeasible (3): R-enum — tool_param_enum != none with agent_tools = none
 #
@@ -17,14 +17,14 @@ require_relative "support/llm_stub"
 #   - requires_approval?: verified via tool instance (no LLM needed)
 #   - All other cases: agent.invoke smoke test — expect String output
 
-RSpec.describe "Group 2: Tool / Guardrail", :integration do
+RSpec.describe "Group 2: Tool / Filter", :integration do
   after { LLMStub.deactivate }
 
-  # Helper: build an agent with optional guardrails attached
-  def build_agent(agent_label, tools:, guardrails: [])
+  # Helper: build an agent with optional filters attached
+  def build_agent(agent_label, tools:, filters: [])
     klass = IntegrationFactors.agent_class(agent_label, tools: tools)
     agent = klass.new
-    IntegrationFactors.apply_guardrails(agent, guardrails)
+    IntegrationFactors.apply_filters(agent, filters)
     agent
   end
 
@@ -37,7 +37,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-001: base, no tools, raise, false, none, nil, none — minimal smoke test
   # -------------------------------------------------------------------------
-  describe "TC-001: base; no tools; no guardrails — smoke test" do
+  describe "TC-001: base; no tools; no filters — smoke test" do
     let(:agent) { build_agent("base", tools: []) }
 
     before { @llm = LLMStub.activate(responses: ["Hello!"]) }
@@ -53,7 +53,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # TC-002: base, splat_single, suppress, requires_approval=true,
   #         valid_enum, explicit_name, input_only
   # -------------------------------------------------------------------------
-  describe "TC-002: base; single tool (suppress, requires_approval, explicit_name, valid_enum); input guardrail" do
+  describe "TC-002: base; single tool (suppress, requires_approval, explicit_name, valid_enum); input filter" do
     let(:tool_class) do
       Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "city_info"
@@ -70,7 +70,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
     end
     let(:agent) do
       build_agent("base", tools: [tool_class],
-        guardrails: IntegrationFactors.guardrails("input_only"))
+        filters: IntegrationFactors.filters("input_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["Tokyo is a great destination."]) }
@@ -89,10 +89,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # TC-003: base, splat_multi, raise, requires_approval=true,
   #         invalid_enum, nil, output_only
   # -------------------------------------------------------------------------
-  describe "TC-003: base; multi tools; invalid enum triggers ToolError (direct); output guardrail" do
+  describe "TC-003: base; multi tools; invalid enum triggers ToolError (direct); output filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-        guardrails: IntegrationFactors.guardrails("output_only"))
+        filters: IntegrationFactors.filters("output_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["The weather in Paris is sunny."]) }
@@ -103,24 +103,24 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       }.to raise_error(Phronomy::ToolError)
     end
 
-    it "agent with output_only (passing) guardrail returns output for a normal query" do
+    it "agent with output_only (passing) filter returns output for a normal query" do
       result = agent.invoke("What is the weather in Paris?")
       expect(result[:output]).to be_a(String)
     end
   end
 
   # -------------------------------------------------------------------------
-  # TC-004: base, hash_alias, raise, false, valid_enum, explicit, both guardrails
+  # TC-004: base, hash_alias, raise, false, valid_enum, explicit, both filters
   # -------------------------------------------------------------------------
-  describe "TC-004: base; hash-aliased tool; valid enum; both (passing) guardrails" do
+  describe "TC-004: base; hash-aliased tool; valid enum; both (passing) filters" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-        guardrails: IntegrationFactors.guardrails("both"))
+        filters: IntegrationFactors.filters("both"))
     end
 
     before { @llm = LLMStub.activate(responses: ["7"]) }
 
-    it "agent with both passing guardrails and aliased calculator returns output" do
+    it "agent with both passing filters and aliased calculator returns output" do
       result = agent.invoke("Add 3 and 4. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -130,10 +130,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # TC-005: base, hash_no_alias, raise, false, invalid_enum, explicit,
   #         blocking_input — LLM never called
   # -------------------------------------------------------------------------
-  describe "TC-005: base; hash_no_alias tool; blocking_input guardrail fires before LLM" do
+  describe "TC-005: base; hash_no_alias tool; blocking_input filter fires before LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-        guardrails: IntegrationFactors.guardrails("blocking_input"))
+        filters: IntegrationFactors.filters("blocking_input"))
     end
 
     it "raises FilterBlockError before the LLM is called" do
@@ -145,15 +145,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # TC-007: react, no tools, raise, requires_approval=true, none,
   #         explicit (no effect), blocking_output
   # -------------------------------------------------------------------------
-  describe "TC-007: react; no tools; blocking_output guardrail fires after LLM" do
+  describe "TC-007: react; no tools; blocking_output filter fires after LLM" do
     let(:agent) do
       build_agent("react", tools: [],
-        guardrails: IntegrationFactors.guardrails("blocking_output"))
+        filters: IntegrationFactors.filters("blocking_output"))
     end
 
     before { @llm = LLMStub.activate(responses: ["I am an AI assistant."]) }
 
-    it "raises FilterBlockError after the LLM call (output guardrail)" do
+    it "raises FilterBlockError after the LLM call (output filter)" do
       expect { agent.invoke("Describe yourself briefly.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
@@ -161,10 +161,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-008: react, splat_single, raise, false, invalid_enum, nil, input_only
   # -------------------------------------------------------------------------
-  describe "TC-008: react; single enum tool; invalid_enum raises ToolError (direct); input guardrail" do
+  describe "TC-008: react; single enum tool; invalid_enum raises ToolError (direct); input filter" do
     let(:agent) do
       build_agent("react", tools: [enum_tool_class],
-        guardrails: IntegrationFactors.guardrails("input_only"))
+        filters: IntegrationFactors.filters("input_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["London is the capital of England."]) }
@@ -175,7 +175,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       }.to raise_error(Phronomy::ToolError)
     end
 
-    it "agent with passing input guardrail invokes without raising" do
+    it "agent with passing input filter invokes without raising" do
       result = agent.invoke("Tell me about London.")
       expect(result[:output]).to be_a(String)
     end
@@ -184,19 +184,19 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-009: react, splat_multi, suppress, false, none, explicit, output_only
   # -------------------------------------------------------------------------
-  describe "TC-009: react; multi tools (one suppress); passing output guardrail" do
+  describe "TC-009: react; multi tools (one suppress); passing output filter" do
     let(:agent) do
       klass = IntegrationFactors.agent_class(
         "react", tools: [suppress_tool, weather_tool_class]
       )
       a = klass.new
-      IntegrationFactors.apply_guardrails(a, IntegrationFactors.guardrails("output_only"))
+      IntegrationFactors.apply_filters(a, IntegrationFactors.filters("output_only"))
       a
     end
 
     before { @llm = LLMStub.activate(responses: ["The weather in Tokyo is sunny and warm."]) }
 
-    it "agent continues even when error tool returns empty; output guardrail passes" do
+    it "agent continues even when error tool returns empty; output filter passes" do
       result = agent.invoke("What is the weather in Tokyo?")
       expect(result[:output]).to be_a(String)
     end
@@ -218,7 +218,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
     let(:agent) do
       klass = IntegrationFactors.agent_class("react", tools: {tool_class => "calc_alias"})
       a = klass.new
-      IntegrationFactors.apply_guardrails(a, IntegrationFactors.guardrails("blocking_input"))
+      IntegrationFactors.apply_filters(a, IntegrationFactors.filters("blocking_input"))
       a
     end
 
@@ -235,7 +235,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # TC-011: react, hash_no_alias, suppress, requires_approval=true,
   #         valid_enum, nil, none
   # -------------------------------------------------------------------------
-  describe "TC-011: react; hash_no_alias enum tool; requires_approval=true; no guardrails" do
+  describe "TC-011: react; hash_no_alias enum tool; requires_approval=true; no filters" do
     let(:tool_class) do
       parent_desc = IntegrationFactors::EnumCitySelectorTool.description
       Class.new(IntegrationFactors::EnumCitySelectorTool) do
@@ -261,14 +261,14 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-012: react, no tools, suppress, requires_approval=true, none, nil, both
   # -------------------------------------------------------------------------
-  describe "TC-012: react; no tools; both (passing) guardrails" do
+  describe "TC-012: react; no tools; both (passing) filters" do
     let(:agent) do
-      build_agent("react", tools: [], guardrails: IntegrationFactors.guardrails("both"))
+      build_agent("react", tools: [], filters: IntegrationFactors.filters("both"))
     end
 
     before { @llm = LLMStub.activate(responses: ["OK"]) }
 
-    it "both passing guardrails allow invocation to succeed" do
+    it "both passing filters allow invocation to succeed" do
       result = agent.invoke("Say 'OK'.")
       expect(result[:output]).to be_a(String)
     end
@@ -277,14 +277,14 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-014: base, no tools, raise, false, none, nil, input_only
   # -------------------------------------------------------------------------
-  describe "TC-014: base; no tools; input_only (passing) guardrail" do
+  describe "TC-014: base; no tools; input_only (passing) filter" do
     let(:agent) do
-      build_agent("base", tools: [], guardrails: IntegrationFactors.guardrails("input_only"))
+      build_agent("base", tools: [], filters: IntegrationFactors.filters("input_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["Yes"]) }
 
-    it "input guardrail passes and agent returns output" do
+    it "input filter passes and agent returns output" do
       result = agent.invoke("Say 'Yes'.")
       expect(result[:output]).to be_a(String)
     end
@@ -293,7 +293,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-016: base, splat_single, raise, false, none, nil, none — baseline tool
   # -------------------------------------------------------------------------
-  describe "TC-016: base; single tool (splat); no guardrails — baseline" do
+  describe "TC-016: base; single tool (splat); no filters — baseline" do
     let(:agent) { build_agent("base", tools: IntegrationFactors.tools("splat_single")) }
 
     before { @llm = LLMStub.activate(responses: ["30"]) }
@@ -307,27 +307,27 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-017: base, splat_single, raise, false, none, nil, output_only
   # -------------------------------------------------------------------------
-  describe "TC-017: base; single tool; output_only (passing) guardrail" do
+  describe "TC-017: base; single tool; output_only (passing) filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_single"),
-        guardrails: IntegrationFactors.guardrails("output_only"))
+        filters: IntegrationFactors.filters("output_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["12"]) }
 
-    it "output guardrail passes and agent returns output" do
+    it "output filter passes and agent returns output" do
       result = agent.invoke("Add 5 and 7. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
   end
 
   # -------------------------------------------------------------------------
-  # TC-018: base, splat_single, raise, false, invalid_enum, nil, both guardrails
+  # TC-018: base, splat_single, raise, false, invalid_enum, nil, both filters
   # -------------------------------------------------------------------------
-  describe "TC-018: base; single enum tool; invalid_enum raises ToolError (direct); both passing guardrails" do
+  describe "TC-018: base; single enum tool; invalid_enum raises ToolError (direct); both passing filters" do
     let(:agent) do
       build_agent("base", tools: [enum_tool_class],
-        guardrails: IntegrationFactors.guardrails("both"))
+        filters: IntegrationFactors.filters("both"))
     end
 
     before { @llm = LLMStub.activate(responses: ["London is the capital of England."]) }
@@ -338,7 +338,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       }.to raise_error(Phronomy::ToolError)
     end
 
-    it "agent with both passing guardrails invokes normally" do
+    it "agent with both passing filters invokes normally" do
       result = agent.invoke("Tell me about London.")
       expect(result[:output]).to be_a(String)
     end
@@ -347,10 +347,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-019: base, splat_single, raise, false, none, nil, blocking_input — NO LLM
   # -------------------------------------------------------------------------
-  describe "TC-019: base; single tool; blocking_input guardrail fires before LLM" do
+  describe "TC-019: base; single tool; blocking_input filter fires before LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_single"),
-        guardrails: IntegrationFactors.guardrails("blocking_input"))
+        filters: IntegrationFactors.filters("blocking_input"))
     end
 
     it "raises FilterBlockError before LLM" do
@@ -361,10 +361,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-020: base, splat_single, raise, false, valid_enum, nil, blocking_output
   # -------------------------------------------------------------------------
-  describe "TC-020: base; single enum tool; valid_enum; blocking_output guardrail" do
+  describe "TC-020: base; single enum tool; valid_enum; blocking_output filter" do
     let(:agent) do
       build_agent("base", tools: [enum_tool_class],
-        guardrails: IntegrationFactors.guardrails("blocking_output"))
+        filters: IntegrationFactors.filters("blocking_output"))
     end
 
     before { @llm = LLMStub.activate(responses: ["Tokyo is the capital of Japan."]) }
@@ -377,7 +377,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-021: base, splat_multi, raise, false, valid_enum, nil, none
   # -------------------------------------------------------------------------
-  describe "TC-021: base; multi tools; valid enum tool included; no guardrails" do
+  describe "TC-021: base; multi tools; valid enum tool included; no filters" do
     let(:agent) { build_agent("base", tools: [calc_tool_class, enum_tool_class]) }
 
     before { @llm = LLMStub.activate(responses: ["5"]) }
@@ -391,15 +391,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-022: base, splat_multi, raise, false, none, nil, input_only
   # -------------------------------------------------------------------------
-  describe "TC-022: base; multi tools; input_only (passing) guardrail" do
+  describe "TC-022: base; multi tools; input_only (passing) filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-        guardrails: IntegrationFactors.guardrails("input_only"))
+        filters: IntegrationFactors.filters("input_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["13"]) }
 
-    it "input guardrail passes and agent returns output" do
+    it "input filter passes and agent returns output" do
       result = agent.invoke("What is 6 + 7? Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -408,15 +408,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-023: base, splat_multi, raise, false, none, nil, both
   # -------------------------------------------------------------------------
-  describe "TC-023: base; multi tools; both (passing) guardrails" do
+  describe "TC-023: base; multi tools; both (passing) filters" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-        guardrails: IntegrationFactors.guardrails("both"))
+        filters: IntegrationFactors.filters("both"))
     end
 
     before { @llm = LLMStub.activate(responses: ["Sunny in London."]) }
 
-    it "both passing guardrails allow invocation to succeed" do
+    it "both passing filters allow invocation to succeed" do
       result = agent.invoke("What is the weather in London?")
       expect(result[:output]).to be_a(String)
     end
@@ -425,10 +425,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-024: base, splat_multi, raise, false, none, nil, blocking_input — NO LLM
   # -------------------------------------------------------------------------
-  describe "TC-024: base; multi tools; blocking_input guardrail fires before LLM" do
+  describe "TC-024: base; multi tools; blocking_input filter fires before LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-        guardrails: IntegrationFactors.guardrails("blocking_input"))
+        filters: IntegrationFactors.filters("blocking_input"))
     end
 
     it "raises FilterBlockError before LLM" do
@@ -439,10 +439,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-025: base, splat_multi, raise, false, none, nil, blocking_output
   # -------------------------------------------------------------------------
-  describe "TC-025: base; multi tools; blocking_output guardrail fires after LLM" do
+  describe "TC-025: base; multi tools; blocking_output filter fires after LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-        guardrails: IntegrationFactors.guardrails("blocking_output"))
+        filters: IntegrationFactors.filters("blocking_output"))
     end
 
     before { @llm = LLMStub.activate(responses: ["The answer is 10."]) }
@@ -455,7 +455,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-026: base, hash_alias, raise, false, invalid_enum, nil, none
   # -------------------------------------------------------------------------
-  describe "TC-026: base; hash-aliased enum tool; invalid_enum raises ToolError (direct); no guardrails" do
+  describe "TC-026: base; hash-aliased enum tool; invalid_enum raises ToolError (direct); no filters" do
     let(:agent) { build_agent("base", tools: {enum_tool_class => "city_lookup"}) }
 
     before { @llm = LLMStub.activate(responses: ["Paris is a wonderful city."]) }
@@ -475,15 +475,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-027: base, hash_alias, raise, false, none, nil, input_only
   # -------------------------------------------------------------------------
-  describe "TC-027: base; hash-aliased calc tool; input_only (passing) guardrail" do
+  describe "TC-027: base; hash-aliased calc tool; input_only (passing) filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-        guardrails: IntegrationFactors.guardrails("input_only"))
+        filters: IntegrationFactors.filters("input_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["12"]) }
 
-    it "input guardrail passes and aliased-tool agent returns output" do
+    it "input filter passes and aliased-tool agent returns output" do
       result = agent.invoke("Add 3 and 9. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -492,15 +492,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-028: base, hash_alias, raise, false, none, nil, output_only
   # -------------------------------------------------------------------------
-  describe "TC-028: base; hash-aliased calc tool; output_only (passing) guardrail" do
+  describe "TC-028: base; hash-aliased calc tool; output_only (passing) filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-        guardrails: IntegrationFactors.guardrails("output_only"))
+        filters: IntegrationFactors.filters("output_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["12"]) }
 
-    it "output guardrail passes and aliased-tool agent returns output" do
+    it "output filter passes and aliased-tool agent returns output" do
       result = agent.invoke("Add 4 and 8. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -509,10 +509,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-029: base, hash_alias, raise, false, none, nil, blocking_output
   # -------------------------------------------------------------------------
-  describe "TC-029: base; hash-aliased calc tool; blocking_output guardrail" do
+  describe "TC-029: base; hash-aliased calc tool; blocking_output filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-        guardrails: IntegrationFactors.guardrails("blocking_output"))
+        filters: IntegrationFactors.filters("blocking_output"))
     end
 
     before { @llm = LLMStub.activate(responses: ["2"]) }
@@ -525,15 +525,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-030: base, hash_no_alias, raise, false, none, nil, input_only
   # -------------------------------------------------------------------------
-  describe "TC-030: base; hash_no_alias tool; input_only (passing) guardrail" do
+  describe "TC-030: base; hash_no_alias tool; input_only (passing) filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-        guardrails: IntegrationFactors.guardrails("input_only"))
+        filters: IntegrationFactors.filters("input_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["15"]) }
 
-    it "input guardrail passes and nil-alias tool agent returns output" do
+    it "input filter passes and nil-alias tool agent returns output" do
       result = agent.invoke("Add 6 and 9. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -542,15 +542,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-031: base, hash_no_alias, raise, false, none, nil, output_only
   # -------------------------------------------------------------------------
-  describe "TC-031: base; hash_no_alias tool; output_only (passing) guardrail" do
+  describe "TC-031: base; hash_no_alias tool; output_only (passing) filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-        guardrails: IntegrationFactors.guardrails("output_only"))
+        filters: IntegrationFactors.filters("output_only"))
     end
 
     before { @llm = LLMStub.activate(responses: ["10"]) }
 
-    it "output guardrail passes and nil-alias tool agent returns output" do
+    it "output filter passes and nil-alias tool agent returns output" do
       result = agent.invoke("Add 2 and 8. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -559,15 +559,15 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-032: base, hash_no_alias, raise, false, none, nil, both
   # -------------------------------------------------------------------------
-  describe "TC-032: base; hash_no_alias tool; both (passing) guardrails" do
+  describe "TC-032: base; hash_no_alias tool; both (passing) filters" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-        guardrails: IntegrationFactors.guardrails("both"))
+        filters: IntegrationFactors.filters("both"))
     end
 
     before { @llm = LLMStub.activate(responses: ["10"]) }
 
-    it "both passing guardrails allow invocation to succeed" do
+    it "both passing filters allow invocation to succeed" do
       result = agent.invoke("Add 7 and 3. Return only the number.")
       expect(result[:output]).to be_a(String)
     end
@@ -576,10 +576,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-033: base, hash_no_alias, raise, false, none, nil, blocking_output
   # -------------------------------------------------------------------------
-  describe "TC-033: base; hash_no_alias tool; blocking_output guardrail" do
+  describe "TC-033: base; hash_no_alias tool; blocking_output filter" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-        guardrails: IntegrationFactors.guardrails("blocking_output"))
+        filters: IntegrationFactors.filters("blocking_output"))
     end
 
     before { @llm = LLMStub.activate(responses: ["4"]) }
@@ -592,7 +592,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   # TC-034: base, no tools, raise, false, none, explicit (no effect), none
   # -------------------------------------------------------------------------
-  describe "TC-034: base; no tools; explicit tool_name_override has no effect; no guardrails" do
+  describe "TC-034: base; no tools; explicit tool_name_override has no effect; no filters" do
     let(:agent) { build_agent("base", tools: []) }
 
     before { @llm = LLMStub.activate(responses: ["Done."]) }
