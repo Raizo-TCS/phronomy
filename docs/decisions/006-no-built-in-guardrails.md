@@ -2,7 +2,8 @@
 
 ## Status
 
-Amended (see Amendment section below)
+Superseded by
+[ADR-019: Filter Contract and Security Boundaries](019-filter-contract-and-security-boundaries.md).
 
 ## Context
 

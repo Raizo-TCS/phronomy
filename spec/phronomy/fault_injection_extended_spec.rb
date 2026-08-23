@@ -6,7 +6,7 @@ require "spec_helper"
 # Extended fault injection tests (Issue #230)
 #
 # Verifies additional failure scenarios:
-#   1. Output guardrail fault isolation
+#   1. Output filter fault isolation
 #   2. Tool execute fault isolation
 #   3. Tool approval handler denial
 #   4. Knowledge source (RAG) loader raises
@@ -15,46 +15,46 @@ require "spec_helper"
 # ---------------------------------------------------------------------------
 RSpec.describe "Fault injection (Issue #230 — extended)" do
   # -------------------------------------------------------------------------
-  # 1. Output guardrail fault isolation
+  # 1. Output filter fault isolation
   # -------------------------------------------------------------------------
-  describe "Output guardrail fault isolation" do
-    let(:always_reject_guardrail) do
+  describe "Output filter fault isolation" do
+    let(:always_reject_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(output, **_ctx)
-          block!("Guardrail always rejects: #{output}")
+          block!("Filter always rejects: #{output}")
           output
         end
       end.new
     end
 
-    let(:exploding_guardrail) do
+    let(:exploding_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(_output, **_ctx)
-          raise "guardrail itself exploded"
+          raise "filter itself exploded"
         end
       end.new
     end
 
-    it "raises FilterBlockError when output guardrail rejects" do
-      expect { always_reject_guardrail.call("some output") }.to raise_error(Phronomy::FilterBlockError)
+    it "raises FilterBlockError when output filter rejects" do
+      expect { always_reject_filter.call("some output") }.to raise_error(Phronomy::FilterBlockError)
     end
 
     it "includes the rejection reason in FilterBlockError message" do
-      expect { always_reject_guardrail.call("test") }
+      expect { always_reject_filter.call("test") }
         .to raise_error(Phronomy::FilterBlockError, /always rejects/)
     end
 
-    it "propagates unexpected exceptions from guardrail#check unchanged" do
-      expect { exploding_guardrail.call("test") }
-        .to raise_error(RuntimeError, "guardrail itself exploded")
+    it "propagates unexpected exceptions from filter#check unchanged" do
+      expect { exploding_filter.call("test") }
+        .to raise_error(RuntimeError, "filter itself exploded")
     end
 
-    it "passes the guardrail for valid output" do
-      passing_guardrail = Class.new(Phronomy::Filter::Base) do
+    it "passes the filter for valid output" do
+      passing_filter = Class.new(Phronomy::Filter::Base) do
         def call(value, **_ctx) = value
       end.new
 
-      expect { passing_guardrail.call("fine output") }.not_to raise_error
+      expect { passing_filter.call("fine output") }.not_to raise_error
     end
   end
 

@@ -149,9 +149,9 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Factor: agent_guardrails (now: agent_filters)
+  # Factor: agent_filters (now: agent_filters)
   # ---------------------------------------------------------------------------
-  def self.guardrails(label)
+  def self.filters(label)
     case label
     when "none" then []
     when "input_only" then [PassingInputFilter.new]
@@ -159,11 +159,11 @@ module IntegrationFactors
     when "both" then [PassingInputFilter.new, PassingOutputFilter.new]
     when "blocking_input" then [BlockingInputFilter.new]
     when "blocking_output" then [BlockingOutputFilter.new]
-    else raise ArgumentError, "Unknown agent_guardrails label: #{label}"
+    else raise ArgumentError, "Unknown agent_filters label: #{label}"
     end
   end
 
-  def self.apply_guardrails(agent, list)
+  def self.apply_filters(agent, list)
     list.each do |g|
       if g.is_a?(PassingInputFilter) || g.is_a?(BlockingInputFilter)
         agent.add_input_filter(g)

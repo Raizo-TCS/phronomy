@@ -1,3 +1,16 @@
+> **ARCHIVED / non-normative**
+>
+> This file preserves the removed Guardrail architecture as historical
+> implementation design. The current public policy-interception abstraction is
+> `Phronomy::Filter::Base`; normative architecture is
+> [ADR-019](../../docs/decisions/019-filter-contract-and-security-boundaries.md).
+> Do not use the `Guardrail::*`, `GuardrailError`, or `*_guardrail` APIs below
+> as current contracts.
+>
+> The final documentation-lifecycle migration will move this historical body
+> to `docs/archive/design/archived/09_guardrails.md`. The body below is
+> intentionally preserved rather than rewritten into current Filter design.
+
 # Phronomy — Guardrail System
 
 ## 1. Overview

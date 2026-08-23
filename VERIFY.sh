@@ -13,7 +13,11 @@ required_files=(
   docs/decisions/README.md
   docs/decisions/017-design-authority-and-adr-governance.md
   docs/decisions/018-durability-guarantees-and-failure-model.md
+  docs/decisions/019-filter-contract-and-security-boundaries.md
   spec/phronomy/architecture_governance_spec.rb
+  spec/phronomy/filter_architecture_regression_spec.rb
+  spec/phronomy/filter_blocking_spec.rb
+  spec/integration/tool_filter_spec.rb
   spec/phronomy/guarantee_model_spec.rb
   spec/phronomy/before_llm_input_rbs_contract_spec.rb
   spec/phronomy/fault_injection_spec.rb
@@ -47,6 +51,13 @@ syntax_files=(
   spec/phronomy/architecture_governance_spec.rb
   spec/phronomy/guarantee_model_spec.rb
   spec/phronomy/before_llm_input_rbs_contract_spec.rb
+  spec/phronomy/filter_architecture_regression_spec.rb
+  spec/phronomy/filter_blocking_spec.rb
+  spec/phronomy/security_spec.rb
+  spec/phronomy/fault_injection_extended_spec.rb
+  spec/integration/tool_filter_spec.rb
+  spec/integration/support/factors.rb
+  spec/integration/streaming_spec.rb
   spec/phronomy/fault_injection_spec.rb
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
@@ -85,6 +96,17 @@ done
 
 echo "== ACS-01 architecture governance =="
 bundle exec rspec spec/phronomy/architecture_governance_spec.rb
+
+echo "== ACS-03 Filter authority / terminology cleanup =="
+bundle exec rspec \
+  spec/phronomy/filter_architecture_regression_spec.rb \
+  spec/phronomy/filter_spec.rb \
+  spec/phronomy/filter_blocking_spec.rb \
+  spec/phronomy/prompt_injection_defenses_spec.rb \
+  spec/phronomy/security_spec.rb \
+  spec/phronomy/fault_injection_extended_spec.rb \
+  spec/phronomy/fault_injection_advanced_spec.rb \
+  spec/integration/tool_filter_spec.rb
 
 echo "== ACS-18 guarantee / failure taxonomy =="
 bundle exec rspec \
@@ -173,4 +195,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

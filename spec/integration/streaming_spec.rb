@@ -6,7 +6,7 @@ require_relative "support/llm_stub"
 
 # Group 9: Agent Token-Level Streaming
 # Pairwise factors: agent_class × agent_streaming_mode × stream_event_types_expected
-#                   × stream_guardrail_interaction × agent_tools
+#                   × stream_filter_interaction × agent_tools
 # Generated stubs: 20 cases
 #
 # Infeasible cases (skipped):
@@ -44,10 +44,10 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   before { skip("streaming stub not implemented") }
 
   # ---------------------------------------------------------------------------
-  # TC-001: Base + with_block + none guardrail + no tools
+  # TC-001: Base + with_block + none filter + no tools
   #         Expect: at least one :done event; output non-empty
   # ---------------------------------------------------------------------------
-  describe "TC-001: Base + with_block + no guardrails + no tools — baseline :done event" do
+  describe "TC-001: Base + with_block + no filters + no tools — baseline :done event" do
     it "emits a :done event with non-empty output" do
       klass = build_streaming_agent(klass_label: "base")
       events = []
@@ -82,10 +82,10 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-003: Base + with_block + blocking_input guardrail
+  # TC-003: Base + with_block + blocking_input filter
   #         Expect: :error event emitted, then FilterBlockError raised
   # ---------------------------------------------------------------------------
-  describe "TC-003: Base + with_block + blocking_input guardrail — :error event then raises" do
+  describe "TC-003: Base + with_block + blocking_input filter — :error event then raises" do
     it "emits an :error event before raising FilterBlockError" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
@@ -157,7 +157,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-010: Base + no_block + no guardrail + multi tools — fallback
+  # TC-010: Base + no_block + no filter + multi tools — fallback
   # ---------------------------------------------------------------------------
   describe "TC-010: Base + no_block + multi tools — invoke fallback" do
     it "returns a Hash with :output" do
@@ -230,7 +230,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
 
   # ---------------------------------------------------------------------------
   # TC-016 / TC-017 combined: :token events structure validation
-  # Base + with_block, no guardrail, single tool — at least token or done
+  # Base + with_block, no filter, single tool — at least token or done
   # ---------------------------------------------------------------------------
   describe "TC-016/TC-017: :token events have String :content payload" do
     it "every :token event has a String or nil content payload" do
