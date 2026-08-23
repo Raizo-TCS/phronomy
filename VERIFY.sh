@@ -16,6 +16,7 @@ required_files=(
   docs/decisions/019-filter-contract-and-security-boundaries.md
   docs/decisions/020-canonical-workflow-instance-identity.md
   docs/decisions/021-generic-agent-invocation-identity-removal.md
+  docs/decisions/022-agent-execution-parent-identity-and-runtime-routing-boundary.md
   lib/phronomy/workflow.rb
   lib/phronomy/workflow_context.rb
   lib/phronomy/workflow_runner.rb
@@ -35,6 +36,11 @@ required_files=(
   spec/phronomy/generic_invocation_identity_contract_spec.rb
   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
+  spec/phronomy/agent/approval_parent_identity_contract_spec.rb
+  lib/phronomy/agent/tool_invocation.rb
+  lib/phronomy/agent/tool_approval_request.rb
+  lib/phronomy/agent/approval_evaluation_request.rb
+  sig/phronomy/agent.rbs
   docs/persistence-backends.md
   spec/phronomy/invocation_context_spec.rb
   spec/phronomy/agent/async_event_contract_spec.rb
@@ -102,6 +108,10 @@ syntax_files=(
   spec/phronomy/generic_invocation_identity_contract_spec.rb
   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
+  spec/phronomy/agent/approval_parent_identity_contract_spec.rb
+  lib/phronomy/agent/tool_invocation.rb
+  lib/phronomy/agent/tool_approval_request.rb
+  lib/phronomy/agent/approval_evaluation_request.rb
   spec/phronomy/invocation_context_spec.rb
   spec/phronomy/trace_context_task_tree_spec.rb
   spec/phronomy/agent/async_event_contract_spec.rb
@@ -265,6 +275,42 @@ if [[ -n "$legacy_correlation_source" ]]; then
   exit 1
 fi
 
+echo "== CG-03a Agent execution parent identity =="
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/agent/approval_parent_identity_contract_spec.rb \
+  spec/phronomy/agent/tool_invocation_spec.rb \
+  spec/phronomy/agent/tool_call_async_compatibility_spec.rb \
+  spec/phronomy/agent/agent_invocation_spec.rb \
+  spec/phronomy/agent/agent_invocation_session_builder_spec.rb \
+  spec/phronomy/agent/suspend_resume_spec.rb \
+  spec/integration/approval_resume_spec.rb \
+  spec/phronomy/agent/agent_execution_codec_spec.rb \
+  spec/phronomy/api_compatibility_spec.rb
+
+legacy_approval_public="$(
+  grep -RInE 'agent_invocation_id'     lib/phronomy/agent/tool_approval_request.rb     lib/phronomy/agent/approval_evaluation_request.rb     sig/phronomy/agent.rbs || true
+)"
+if [[ -n "$legacy_approval_public" ]]; then
+  echo "FAIL: public approval contract still contains agent_invocation_id:" >&2
+  printf '%s\n' "$legacy_approval_public" >&2
+  exit 1
+fi
+
+legacy_agent_invocation_identity="$(
+  grep -RInE '(^|[^[:alnum:]_])agent_invocation_id([^[:alnum:]_]|$)'     lib/phronomy sig/phronomy --include='*.rb' --include='*.rbs' || true
+)"
+legacy_agent_invocation_identity="$(
+  printf '%s\n' "$legacy_agent_invocation_identity" |
+    grep -v 'lib/phronomy/agent/base.rb' |
+    grep -v 'lib/phronomy/agent/agent_execution.rb' || true
+)"
+if [[ -n "$legacy_agent_invocation_identity" ]]; then
+  echo "FAIL: active source/RBS reintroduced agent_invocation_id domain identity:" >&2
+  printf '%s\n' "$legacy_agent_invocation_identity" >&2
+  exit 1
+fi
+
 echo "== CG-01 Workflow identity =="
 bundle exec rbs -I sig validate
 bundle exec rspec \
@@ -310,4 +356,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

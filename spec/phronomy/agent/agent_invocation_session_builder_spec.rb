@@ -16,28 +16,28 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       session = described_class.build(
         agent: agent,
         input: "hello",
-        config: {}
+        config: {execution_id: "execution-1"}
       )
       expect(session).to be_a(Phronomy::FSMSession)
     end
 
     it "uses a UUID for the current Runtime session" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {}
+        agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
     it "does not require application generic identity to build a session" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {user_id: "u1"}
+        agent: agent, input: "hi", config: {execution_id: "execution-1", user_id: "u1"}
       )
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
     it "sets :suspended as the wait_state (Human approval suspends AgentInvocation)" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {}
+        agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       wait_states = session.instance_variable_get(:@wait_state_names)
       expect(wait_states).to include(:suspended)
@@ -45,7 +45,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
 
     it "registers ToolInvocation events and :resume as external events" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {}
+        agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       ext = session.instance_variable_get(:@external_events)
       expect(ext.keys).to include(:tool_authorized, :tool_completed, :tool_failed,
@@ -55,7 +55,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     it "accepts mode: :stream and on_event" do
       on_event = ->(e) {}
       session = described_class.build(
-        agent: agent, input: "hi", config: {},
+        agent: agent, input: "hi", config: {execution_id: "execution-1"},
         mode: :stream, on_event: on_event
       )
       expect(session).to be_a(Phronomy::FSMSession)
@@ -65,7 +65,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       policy = ->(_req) { :allow }
       listener = ->(_req) {}
       session = described_class.build(
-        agent: agent, input: "hi", config: {},
+        agent: agent, input: "hi", config: {execution_id: "execution-1"},
         approval_policy: policy, approval_listener: listener
       )
       expect(session).to be_a(Phronomy::FSMSession)
@@ -73,7 +73,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
 
     it "includes all expected entry action states" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {}
+        agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       declared = session.instance_variable_get(:@declared_states)
       expect(declared).to include(:calling_llm, :waiting_for_tools, :suspended)

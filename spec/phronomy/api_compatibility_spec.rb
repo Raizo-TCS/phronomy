@@ -87,4 +87,26 @@ RSpec.describe "Public API compatibility gate (Issue #210)" do
       end
     end
   end
+
+  # ToolApprovalRequest and ApprovalEvaluationRequest are @api public,
+  # but they intentionally use targeted compatibility checks instead of the
+  # reflective API snapshot. The classes also contain framework-facing Ruby-
+  # public methods whose YARD contract is private/internal; snapshotting the
+  # whole classes would accidentally promote those methods into compatibility
+  # promises.
+  describe "Phronomy::Agent approval request identity" do
+    it "keeps ToolApprovalRequest execution_id as the public logical parent" do
+      methods = Phronomy::Agent::ToolApprovalRequest.public_instance_methods
+
+      expect(methods).to include(:execution_id)
+      expect(methods).not_to include(:agent_invocation_id)
+    end
+
+    it "keeps ApprovalEvaluationRequest execution_id as the public logical parent" do
+      methods = Phronomy::Agent::ApprovalEvaluationRequest.public_instance_methods
+
+      expect(methods).to include(:execution_id)
+      expect(methods).not_to include(:agent_invocation_id)
+    end
+  end
 end

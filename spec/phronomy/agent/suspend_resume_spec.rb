@@ -84,10 +84,18 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       expect(result[:execution_id]).not_to be_empty
     end
 
-    it "returns an :approval_request with an id" do
+    it "returns an approval request owned by the Agent execution" do
       result = agent.invoke("run tool")
-      expect(result[:approval_request]).not_to be_nil
-      expect(result[:approval_request].id).to be_a(String)
+      request = result.fetch(:approval_request)
+      expect(request.id).to be_a(String)
+      expect(request.execution_id).to eq(result.fetch(:execution_id))
+      expect(request).not_to respond_to(:agent_invocation_id)
+      expect(request.to_h).not_to have_key(:agent_invocation_id)
+
+      durable = agent.persistence.executions.load(result.fetch(:execution_id))
+      expect(durable.approval_request["execution_id"])
+        .to eq(result.fetch(:execution_id))
+      expect(durable.approval_request).not_to have_key("agent_invocation_id")
     end
 
     it "has a suspended execution in persistence" do

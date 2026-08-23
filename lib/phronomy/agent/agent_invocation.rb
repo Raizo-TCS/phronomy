@@ -5,6 +5,8 @@ require "securerandom"
 module Phronomy
   module Agent
     class AgentInvocation
+      # execution_id is the logical Agent execution parent. `id` and
+      # Runtime session metadata remain temporary routing internals until CG-03b.
       TOOL_EVENT_TYPES = %i[
         tool_authorized
         tool_approval_required
@@ -31,6 +33,7 @@ module Phronomy
         :error
 
       attr_reader :id,
+        :execution_id,
         :agent,
         :config,
         :approval_policy,
@@ -52,12 +55,15 @@ module Phronomy
         approval_listener: nil,
         event_listener: nil,
         mode: nil,
+        execution_id: nil,
         id: nil
       )
         @agent = agent
         @input = input
         @config = config
-        @id = (id || config[:agent_invocation_id] || SecureRandom.uuid).to_s
+        @id = (id || SecureRandom.uuid).to_s
+        resolved_execution_id = execution_id || config[:execution_id]
+        @execution_id = resolved_execution_id&.to_s&.freeze
         invocation_context = config[:invocation_context]
         invocation_policy = if invocation_context&.respond_to?(:approval_policy)
           invocation_context.approval_policy

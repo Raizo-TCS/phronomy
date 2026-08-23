@@ -104,6 +104,12 @@ Release history for 0.14.0 and earlier is archived in
 - The canonical `JournalRecord` representation no longer contains
   `correlation_id`; legacy durable Hashes containing the removed key remain
   readable without an eager data rewrite.
+- Tool approval notification/policy parent identity now uses canonical Agent
+  `execution_id` instead of `agent_invocation_id`; new suspended-execution
+  approval data uses the same parent identity.
+- Legacy embedded suspended approval hashes remain readable by deriving the
+  logical parent from their enclosing Agent execution; historical
+  content-addressed audit bodies are not rewritten.
 - OutputParser `parse` is classified as the public subclass extension point that
   concrete parsers implement.
 

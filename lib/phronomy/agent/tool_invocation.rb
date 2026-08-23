@@ -5,6 +5,9 @@ require "securerandom"
 module Phronomy
   module Agent
     class ToolInvocation
+      # execution_id is the logical parent. parent_agent_invocation_id is only
+      # the temporary parent-FSMSession routing carrier until CG-03b; it is not
+      # application-facing or durable identity.
       AuthorizationOutcome = Struct.new(:decision, :facts, :reason, :error, :cancelled)
       ExecutionOutcome = Struct.new(:result, :error, :cancelled)
 
@@ -14,6 +17,7 @@ module Phronomy
       TERMINAL_STATES = %i[completed rejected failed cancelled].freeze
 
       attr_reader :id,
+        :execution_id,
         :parent_agent_invocation_id,
         :agent,
         :tool,
@@ -35,8 +39,9 @@ module Phronomy
         :origin,
         :metadata
 
-      def self.missing(parent_agent_invocation_id:, agent:, tool_call:, config: {})
+      def self.missing(execution_id:, parent_agent_invocation_id:, agent:, tool_call:, config: {})
         new(
+          execution_id: execution_id,
           parent_agent_invocation_id: parent_agent_invocation_id,
           agent: agent,
           tool: nil,
@@ -46,6 +51,7 @@ module Phronomy
       end
 
       def initialize(
+        execution_id:,
         parent_agent_invocation_id:,
         agent:,
         tool:,
@@ -55,7 +61,12 @@ module Phronomy
         approval_context: {},
         id: SecureRandom.uuid
       )
+        if execution_id.nil? || execution_id.to_s.empty?
+          raise ArgumentError, "ToolInvocation requires execution_id"
+        end
+
         @id = id.to_s
+        @execution_id = execution_id.to_s.freeze
         @parent_agent_invocation_id = parent_agent_invocation_id.to_s
         @agent = agent
         @tool = tool
@@ -356,7 +367,7 @@ module Phronomy
       def build_request(facts:, default_decision:)
         ApprovalEvaluationRequest.new(
           agent: @agent,
-          agent_invocation_id: @parent_agent_invocation_id,
+          execution_id: @execution_id,
           tool: @tool,
           tool_name: @tool_name,
           tool_schema: tool_schema,

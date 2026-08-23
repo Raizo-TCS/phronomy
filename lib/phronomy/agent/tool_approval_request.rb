@@ -74,12 +74,12 @@ module Phronomy
         end
       end
 
-      attr_reader :id, :agent_invocation_id, :items, :created_at
+      attr_reader :id, :execution_id, :items, :created_at
 
       def self.build(agent_invocation)
         pending = agent_invocation.tool_invocations.select(&:awaiting_approval?)
         new(
-          agent_invocation_id: agent_invocation.id,
+          execution_id: agent_invocation.execution_id,
           items: pending.map { |invocation| build_item(invocation) }
         )
       end
@@ -98,11 +98,14 @@ module Phronomy
       end
       private_class_method :build_item
 
-      def initialize(agent_invocation_id:, items:, id: SecureRandom.uuid, created_at: Time.now.utc)
+      def initialize(execution_id:, items:, id: SecureRandom.uuid, created_at: Time.now.utc)
         raise ArgumentError, "ToolApprovalRequest requires at least one item" if items.empty?
+        if execution_id.nil? || execution_id.to_s.empty?
+          raise ArgumentError, "ToolApprovalRequest requires execution_id"
+        end
 
         @id = id.to_s.freeze
-        @agent_invocation_id = agent_invocation_id.to_s.freeze
+        @execution_id = execution_id.to_s.freeze
         @items = items.dup.freeze
         @created_at = created_at
         freeze
@@ -111,7 +114,7 @@ module Phronomy
       def to_h
         {
           id: @id,
-          agent_invocation_id: @agent_invocation_id,
+          execution_id: @execution_id,
           items: @items.map(&:to_h),
           created_at: @created_at.iso8601
         }

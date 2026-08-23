@@ -614,12 +614,14 @@ module Phronomy
 
       def _reject_removed_generic_identity_keys!(config)
         removed_key = [
-          :thread_id, "thread_id", :session_id, "session_id"
+          :thread_id, "thread_id",
+          :session_id, "session_id",
+          :agent_invocation_id, "agent_invocation_id"
         ].find { |key| config.key?(key) }
         return unless removed_key
 
         raise ArgumentError,
-          "Agent generic identity #{removed_key.inspect} was removed; " \
+          "Agent identity #{removed_key.inspect} was removed; " \
           "use purpose-specific domain identifiers or application tracing metadata"
       end
 
@@ -669,12 +671,12 @@ module Phronomy
         end
       end
 
-      def _report_stream_callback_error(callback_error, event:, invocation_id:,
+      def _report_stream_callback_error(callback_error, event:, execution_id:,
         callback_error_policy:)
         lines = [
           "[Phronomy] Stream callback failed",
           "event=#{event.type.inspect}",
-          "agent_invocation_id=#{invocation_id || "unknown"}",
+          "execution_id=#{execution_id || "unknown"}",
           "policy=#{callback_error_policy.inspect}",
           "error=#{callback_error.class}: #{callback_error.message}"
         ]
