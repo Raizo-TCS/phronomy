@@ -137,18 +137,6 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Factor: thread_id
-  # ---------------------------------------------------------------------------
-  def self.thread_id(label)
-    case label
-    when "nil" then nil
-    when "present" then "thread-001"
-    when "different_threads" then ["thread-001", "thread-002"]
-    else raise ArgumentError, "Unknown thread_id label: #{label}"
-    end
-  end
-
-  # ---------------------------------------------------------------------------
   # Factor: agent_filters (now: agent_filters)
   # ---------------------------------------------------------------------------
   def self.filters(label)

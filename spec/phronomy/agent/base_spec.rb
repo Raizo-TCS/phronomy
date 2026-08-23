@@ -259,19 +259,18 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     expect(config[:invocation_context]).to be(ic)
   end
 
-  it "derives thread_id from InvocationContext when not explicitly supplied" do
-    ic = Phronomy::InvocationContext.new(thread_id: "ic-thread")
+  it "propagates InvocationContext without a generic identity" do
+    ic = Phronomy::InvocationContext.new(task_id: "trace-task")
     config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
-    # InvocationContext must be stored in config; thread_id routing is tested via FSM
     expect(config[:invocation_context]).to be(ic)
+    expect(config).not_to have_key(:thread_id)
+    expect(config).not_to have_key(:session_id)
   end
 
-  it "explicit thread_id takes precedence over ic.thread_id" do
-    ic = Phronomy::InvocationContext.new(thread_id: "ic-thread")
-    config = capture_config(agent) { agent.invoke("hi", thread_id: "explicit", invocation_context: ic) }
-    # invocation pipeline will be called with thread_id: "explicit"
-    # The captured config should still contain the ic
-    expect(config[:invocation_context]).to be(ic)
+  it "rejects the removed Agent thread_id keyword" do
+    expect {
+      agent.invoke("hi", thread_id: "legacy")
+    }.to raise_error(ArgumentError, /thread_id/)
   end
 
   it "derives cancellation_token from InvocationContext.cancellation_token" do

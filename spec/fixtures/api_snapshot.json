@@ -57,6 +57,25 @@
     ]
   },
   {
+    "name": "Phronomy::InvocationContext",
+    "type": "class",
+    "public_instance_methods": [
+      "approval_policy",
+      "cancellation_token",
+      "deadline",
+      "effective_cancellation_token",
+      "effective_timeout_token",
+      "merge",
+      "parent_task_id",
+      "redaction_policy",
+      "task_id",
+      "token_budget",
+      "tracer_span",
+      "user_id"
+    ],
+    "public_class_methods": []
+  },
+  {
     "name": "Phronomy::Agent::Context::Capability::Base",
     "type": "class",
     "public_instance_methods": [

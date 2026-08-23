@@ -56,7 +56,6 @@ RSpec.describe "Agent logical-state ownership" do
     prepared = coordinator.send(
       :prepare,
       "hello",
-      thread_id: "thread-1",
       config: {}
     )
     activation = Phronomy::Agent::AgentExecutionActivation.new(
@@ -89,7 +88,6 @@ RSpec.describe "Agent logical-state ownership" do
     prepared = coordinator.send(
       :prepare,
       "hello",
-      thread_id: "thread-1",
       config: {}
     )
     activation = Phronomy::Agent::AgentExecutionActivation.new(
@@ -121,7 +119,6 @@ RSpec.describe "Agent logical-state ownership" do
     prepared = coordinator.send(
       :prepare,
       "hello",
-      thread_id: "thread-1",
       config: {}
     )
     activation = Phronomy::Agent::AgentExecutionActivation.new(
@@ -171,7 +168,6 @@ RSpec.describe "Agent logical-state ownership" do
     prepared = coordinator.send(
       :prepare,
       "hello",
-      thread_id: "thread-1",
       config: {}
     )
     activation = Phronomy::Agent::AgentExecutionActivation.new(

@@ -5,21 +5,17 @@ module Phronomy
     module AsyncEventApi
       def invoke(
         input,
-        thread_id: nil,
         config: {},
         invocation_context: nil,
         on_event: nil,
         &block
       )
         listener = resolve_event_listener(on_event, block)
-        if invocation_context
-          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
-        end
+        config = _prepare_invocation_config(config, invocation_context)
         _check_event_loop_reentrancy(:invoke, :invoke_async)
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           result = invoke_async(
             input,
-            thread_id: thread_id,
             config: config,
             on_event: listener
           ).wait_result
@@ -29,7 +25,6 @@ module Phronomy
 
       def invoke_async(
         input,
-        thread_id: nil,
         config: {},
         invocation_context: nil,
         on_tool_approval_required: nil,
@@ -37,13 +32,10 @@ module Phronomy
         &block
       )
         listener = resolve_event_listener(on_event, block)
-        if invocation_context
-          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
-        end
+        config = _prepare_invocation_config(config, invocation_context)
         approval = _approval_configuration_snapshot(on_tool_approval_required)
         execution_coordinator_for(config).start(
           input,
-          thread_id: thread_id,
           config: config,
           mode: :invoke,
           approval_policy: approval[:policy],
@@ -54,7 +46,6 @@ module Phronomy
 
       def stream(
         input,
-        thread_id: nil,
         config: {},
         invocation_context: nil,
         on_tool_approval_required: nil,
@@ -63,14 +54,11 @@ module Phronomy
       )
         listener = resolve_event_listener(on_event, block)
         raise ArgumentError, "stream requires on_event: or a block" unless listener
-        if invocation_context
-          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
-        end
+        config = _prepare_invocation_config(config, invocation_context)
         _check_event_loop_reentrancy(:stream, :stream_async)
         trace("agent.stream", input: input, **_build_caller_meta(config)) do |_span|
           result = stream_async(
             input,
-            thread_id: thread_id,
             config: config,
             on_tool_approval_required: on_tool_approval_required,
             on_event: listener
@@ -81,7 +69,6 @@ module Phronomy
 
       def stream_async(
         input,
-        thread_id: nil,
         config: {},
         invocation_context: nil,
         on_tool_approval_required: nil,
@@ -90,13 +77,10 @@ module Phronomy
       )
         listener = resolve_event_listener(on_event, block)
         raise ArgumentError, "stream_async requires on_event: or a block" unless listener
-        if invocation_context
-          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
-        end
+        config = _prepare_invocation_config(config, invocation_context)
         approval = _approval_configuration_snapshot(on_tool_approval_required)
         execution_coordinator_for(config).start(
           input,
-          thread_id: thread_id,
           config: config,
           mode: :stream,
           approval_policy: approval[:policy],
@@ -116,6 +100,7 @@ module Phronomy
       end
 
       def approve_async(execution_id, approval_request_id:, approved: true, config: {})
+        _reject_removed_generic_identity_keys!(config)
         live = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
         coordinator = live&.coordinator || execution_coordinator_for(config)
         coordinator.resume(

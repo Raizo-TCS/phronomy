@@ -95,13 +95,13 @@ puts "=== bench_agent_invoke ==="
 Benchmark.bm(50) do |x|
   x.report("Agent#invoke — minimal (no tools), #{AGENT_INVOKE_ITERATIONS} iters") do
     AGENT_INVOKE_ITERATIONS.times do
-      BENCH_AGENT_MINIMAL.invoke("ping", thread_id: "bench-#{rand(1_000_000)}")
+      BENCH_AGENT_MINIMAL.invoke("ping")
     end
   end
 
   x.report("Agent#invoke — tool-aware, #{AGENT_INVOKE_ITERATIONS} iters") do
     AGENT_INVOKE_ITERATIONS.times do
-      BENCH_AGENT_TOOLS.invoke("ping", thread_id: "bench-#{rand(1_000_000)}")
+      BENCH_AGENT_TOOLS.invoke("ping")
     end
   end
 end

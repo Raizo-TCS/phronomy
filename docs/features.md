@@ -68,7 +68,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | **CancellationToken** — Cooperative cancellation with explicit `cancel!`, lazy monotonic deadlines, and callback registration | Experimental |
 | **Tool `execution_mode`** — `:cooperative` for short EventLoop-safe work; `:offloaded` for synchronous work that must stay off EventLoop | Experimental |
 | **OffloadPool sizing** — `offload_pool_size` / `offload_queue_size`; named pools available for application-owned isolation | Beta |
-| **InvocationContext** — Explicit correlation/cancellation/deadline context for Agent and Workflow invocations | Beta |
+| **InvocationContext** — Explicit cancellation/deadline/policy/tracing context for Agent and Workflow invocations | Beta |
 | **Metrics** — OffloadPool active/queue/abandoned metrics plus EventLoop queue/lag metrics | Beta |
 | **Runtime lifecycle** — Runtime-owned EventLoop and terminal `Runtime#shutdown` | Beta |
 

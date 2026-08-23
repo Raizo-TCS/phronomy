@@ -1,40 +1,31 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Carries all per-invocation context values through the call stack.
+  # Carries per-invocation control, policy, and tracing context through the call stack.
   #
   # +InvocationContext+ is a plain struct-like value carrier that replaces
   # ad-hoc +Thread.current[...]+ propagation.
   # Pass it explicitly wherever context needs to cross a method boundary.
   #
+  # Generic conversation/session identity is deliberately not part of this
+  # object. Use purpose-specific domain identifiers and application tracing
+  # metadata instead.
+  #
   # @example Build a context for a new agent invocation
   #   ctx = Phronomy::InvocationContext.new(
-  #     thread_id: "conv-123",
+  #     task_id: "request-123",
   #     cancellation_token: Phronomy::Concurrency::CancellationToken.timeout_after(30)
   #   )
   #   agent.invoke("Hello", invocation_context: ctx)
   #
   # @api public
   class InvocationContext
-    attr_reader :thread_id, :session_id, :user_id, :cancellation_token,
-      :deadline, :tracer_span, :token_budget, :approval_policy,
-      :redaction_policy, :task_id, :parent_task_id
+    attr_reader :user_id, :cancellation_token, :deadline, :tracer_span,
+      :token_budget, :approval_policy, :redaction_policy, :task_id,
+      :parent_task_id
 
-    # @param thread_id [String, nil]
-    # @param session_id [String, nil]
-    # @param user_id [String, nil]
-    # @param cancellation_token [CancellationToken, nil]
-    # @param deadline [Deadline, nil]
-    # @param tracer_span [Object, nil]
-    # @param token_budget [Integer, nil]
-    # @param approval_policy [#call, nil]
-    # @param redaction_policy [Object, nil]
-    # @param task_id [String, nil]
-    # @param parent_task_id [String, nil]
     # @api public
     def initialize(
-      thread_id: nil,
-      session_id: nil,
       user_id: nil,
       cancellation_token: nil,
       deadline: nil,
@@ -45,8 +36,6 @@ module Phronomy
       task_id: nil,
       parent_task_id: nil
     )
-      @thread_id = thread_id
-      @session_id = session_id
       @user_id = user_id
       @cancellation_token = cancellation_token
       @deadline = deadline
@@ -58,12 +47,9 @@ module Phronomy
       @parent_task_id = parent_task_id
     end
 
-    # Returns a new +InvocationContext+ with the given attributes merged in.
     # @api private
     def merge(**overrides)
       InvocationContext.new(
-        thread_id: overrides.fetch(:thread_id, @thread_id),
-        session_id: overrides.fetch(:session_id, @session_id),
         user_id: overrides.fetch(:user_id, @user_id),
         cancellation_token: overrides.fetch(:cancellation_token, @cancellation_token),
         deadline: overrides.fetch(:deadline, @deadline),
@@ -76,14 +62,11 @@ module Phronomy
       )
     end
 
-    # Convenience: returns the cancellation token or a new never-cancelled token.
     # @api private
     def effective_cancellation_token
       @cancellation_token || Phronomy::Concurrency::CancellationToken.new
     end
 
-    # Returns the cancellation token to use for an invocation, taking both the
-    # explicit cancellation_token and deadline into account.
     # @api private
     def effective_timeout_token
       return @cancellation_token if @cancellation_token

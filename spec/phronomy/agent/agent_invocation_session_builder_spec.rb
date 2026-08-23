@@ -16,21 +16,21 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       session = described_class.build(
         agent: agent,
         input: "hello",
-        config: {thread_id: "t-1"}
+        config: {}
       )
       expect(session).to be_a(Phronomy::FSMSession)
     end
 
-    it "uses agent_invocation_id (UUID) as session id, independent of thread_id" do
+    it "uses a UUID for the current Runtime session" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {thread_id: "my-id"}
+        agent: agent, input: "hi", config: {}
       )
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
-    it "generates a UUID when thread_id is not provided" do
+    it "does not require application generic identity to build a session" do
       session = described_class.build(
-        agent: agent, input: "hi", config: {}
+        agent: agent, input: "hi", config: {user_id: "u1"}
       )
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end

@@ -2,8 +2,8 @@
 
 # Trace context task tree (Issue #277).
 #
-# Verifies that InvocationContext carries task_id and parent_task_id
-# attributes that allow tracers to construct a parent-child span tree.
+# InvocationContext keeps purpose-specific tracing task IDs without carrying
+# generic conversation/session identity.
 RSpec.describe "Trace context task tree (Issue #277)" do
   describe "InvocationContext task tree attributes" do
     it "accepts task_id and parent_task_id at construction" do
@@ -27,28 +27,33 @@ RSpec.describe "Trace context task tree (Issue #277)" do
 
       expect(child.task_id).to eq("child-1")
       expect(child.parent_task_id).to eq("root")
-      # Other attributes are preserved
-      expect(child.thread_id).to be_nil
     end
 
-    it "preserves existing task_id when merge does not override it" do
+    it "preserves task_id when merge changes unrelated metadata" do
       ctx = Phronomy::InvocationContext.new(task_id: "task-xyz")
-      merged = ctx.merge(thread_id: "t-1")
+      merged = ctx.merge(user_id: "u-1")
 
       expect(merged.task_id).to eq("task-xyz")
+      expect(merged.user_id).to eq("u-1")
     end
 
     it "allows overriding parent_task_id independently" do
-      ctx = Phronomy::InvocationContext.new(task_id: "t1", parent_task_id: "p0")
+      ctx = Phronomy::InvocationContext.new(
+        task_id: "t1",
+        parent_task_id: "p0"
+      )
       merged = ctx.merge(parent_task_id: "p1")
 
       expect(merged.task_id).to eq("t1")
       expect(merged.parent_task_id).to eq("p1")
     end
 
-    it "supports building a parent → child chain with distinct task_ids" do
+    it "builds a parent → child tracing chain with distinct task_ids" do
       root = Phronomy::InvocationContext.new(task_id: "root")
-      child = root.merge(task_id: "child", parent_task_id: root.task_id)
+      child = root.merge(
+        task_id: "child",
+        parent_task_id: root.task_id
+      )
 
       expect(child.parent_task_id).to eq(root.task_id)
     end

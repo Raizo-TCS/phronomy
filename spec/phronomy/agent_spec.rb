@@ -215,8 +215,10 @@ RSpec.describe Phronomy::Agent::Base do
         expect(agent.agent_root.journal_position).to be > 0
       end
 
-      it "does not raise when invoked with a thread_id" do
-        expect { agent.invoke("Hello", thread_id: "t1") }.not_to raise_error
+      it "rejects the removed generic thread_id keyword" do
+        expect {
+          agent.invoke("Hello", thread_id: "t1")
+        }.to raise_error(ArgumentError, /thread_id/)
       end
     end
 

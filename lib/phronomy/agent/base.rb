@@ -596,18 +596,31 @@ module Phronomy
 
       private
 
-      def _apply_invocation_context(thread_id, config, ic)
-        effective_thread_id = thread_id || ic.thread_id
-        effective_config = config.merge(invocation_context: ic)
-        if effective_config[:cancellation_token].nil?
-          if (tok = ic.effective_timeout_token)
+      def _prepare_invocation_config(config, invocation_context)
+        _reject_removed_generic_identity_keys!(config)
+        effective_config = invocation_context ?
+          config.merge(invocation_context: invocation_context) : config
+
+        if invocation_context && effective_config[:cancellation_token].nil?
+          if (tok = invocation_context.effective_timeout_token)
             effective_config = effective_config.merge(
               cancellation_token: tok,
-              phronomy_timeout_deadline: ic.deadline
+              phronomy_timeout_deadline: invocation_context.deadline
             )
           end
         end
-        [effective_thread_id, effective_config]
+        effective_config
+      end
+
+      def _reject_removed_generic_identity_keys!(config)
+        removed_key = [
+          :thread_id, "thread_id", :session_id, "session_id"
+        ].find { |key| config.key?(key) }
+        return unless removed_key
+
+        raise ArgumentError,
+          "Agent generic identity #{removed_key.inspect} was removed; " \
+          "use purpose-specific domain identifiers or application tracing metadata"
       end
 
       def _check_event_loop_reentrancy(sync_method, async_method)
@@ -716,7 +729,6 @@ module Phronomy
       def _build_caller_meta(config)
         meta = {}
         meta[:user_id] = config[:user_id] if config[:user_id]
-        meta[:session_id] = config[:session_id] if config[:session_id]
         if (ic = config[:invocation_context])
           meta[:task_id] = ic.task_id if ic.task_id
           meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id

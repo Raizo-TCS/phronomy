@@ -134,13 +134,13 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     let(:success_agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-93", version: 1
-        define_method(:invoke) do |_input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
+        define_method(:invoke) do |_input, config: {}, invocation_context: nil, on_event: nil|
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+        define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
           t = Phronomy::Task.new(name: "stub-async")
           Thread.new do
-            t.complete(invoke(input, thread_id: thread_id, config: config,
+            t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
           rescue => e
             t.fail(e)
@@ -183,14 +183,14 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       received_tokens = []
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-94", version: 1
-        define_method(:invoke) do |_input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
+        define_method(:invoke) do |_input, config: {}, invocation_context: nil, on_event: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+        define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
           t = Phronomy::Task.new(name: "stub-async")
           Thread.new do
-            t.complete(invoke(input, thread_id: thread_id, config: config,
+            t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
           rescue => e
             t.fail(e)
@@ -221,14 +221,14 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
 
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-95", version: 1
-        define_method(:invoke) do |_input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
+        define_method(:invoke) do |_input, config: {}, invocation_context: nil, on_event: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+        define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
           t = Phronomy::Task.new(name: "stub-async")
           Thread.new do
-            t.complete(invoke(input, thread_id: thread_id, config: config,
+            t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
           rescue => e
             t.fail(e)

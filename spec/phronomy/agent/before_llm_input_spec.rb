@@ -21,7 +21,7 @@ RSpec.describe "before_llm_input hook" do
 
   describe Phronomy::Agent::LLMInputBuildContext do
     let(:agent) { HookBaseAgent.new }
-    let(:config) { {thread_id: "t1"} }
+    let(:config) { {user_id: "u1"} }
 
     it "exposes agent_id, config, and call_sequence" do
       ctx = described_class.new(
@@ -98,7 +98,7 @@ RSpec.describe "before_llm_input hook" do
   end
 
   describe "#run_before_llm_input_hooks" do
-    let(:config) { {thread_id: "t1"} }
+    let(:config) { {user_id: "u1"} }
 
     it "returns LLMInputPatch.empty when no hooks are registered" do
       agent = HookBaseAgent.new

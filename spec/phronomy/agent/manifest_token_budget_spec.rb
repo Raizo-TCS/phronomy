@@ -102,10 +102,13 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
       input: "hello",
       agent_root: root,
       execution: execution,
-      config: {thread_id: "x" * 20_000}
+      config: {}
     )
 
     model_config = persistence.contents.fetch_json(manifest.model_config_ref)
-    expect(model_config.fetch("thread_id").length).to eq(20_000)
+    # Provider metadata keys (model, temperature, etc.) are stored in
+    # model_config and are not counted as context segments or prompt tokens.
+    expect(model_config).to have_key("model")
+    expect(model_config).not_to have_key("thread_id")
   end
 end

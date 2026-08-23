@@ -6,7 +6,7 @@ module Phronomy
   module MultiAgent
     # Mutable FSM context for one fan-out operation.
     class FanOutInvocation
-      Child = Data.define(:index, :agent, :input, :config, :thread_id)
+      Child = Data.define(:index, :agent, :input, :config)
 
       attr_reader :id, :phase, :results
 
@@ -19,13 +19,15 @@ module Phronomy
         @pending = children.dup
         @active = {}
         @results = Array.new(children.length)
-        @child_errors = Array.new(children.length)  # indexed by input order
-        @fatal_error = nil   # driver_failed / timeout / cancel
+        @child_errors = Array.new(children.length)
+        @fatal_error = nil
         @cancelled = false
         @timed_out = false
         @session_id = nil
       end
 
+      # Shared FSMSession Runtime metadata bridge. This is not application
+      # invocation identity and remains outside CG-02a.
       def set_graph_metadata(thread_id: nil, phase: nil)
         @session_id = thread_id if thread_id
         @phase = phase
@@ -41,9 +43,6 @@ module Phronomy
           if child_error
             if @on_error == :raise
               @child_errors[index] = child_error
-              # Signal cancellation so other children can stop early, but continue
-              # waiting for all active children to respond so we can return the
-              # first error in INPUT ORDER (not arrival order).
               cancel_active_children! unless @child_errors.any?(&:itself)
             end
           else
@@ -76,19 +75,23 @@ module Phronomy
           child_config = build_child_config(child.config)
           handle = child.agent.invoke_async(
             child.input,
-            config: child_config,
-            thread_id: child.thread_id
+            config: child_config
           )
-          @active[child.index] = {handle: handle, token: child_config[:cancellation_token]}
-          # [child.index].each creates a block parameter with a unique binding
-          # per iteration, avoiding the while-loop variable capture problem.
+          @active[child.index] = {
+            handle: handle,
+            token: child_config[:cancellation_token]
+          }
           [child.index].each do |captured_index|
             handle.on_complete do |result, error|
               runtime.event_loop.post_to_session(
                 Phronomy::Event.new(
                   type: :child_completed,
                   target_id: @id,
-                  payload: {index: captured_index, result: result, error: error}
+                  payload: {
+                    index: captured_index,
+                    result: result,
+                    error: error
+                  }
                 )
               )
             end
@@ -114,7 +117,11 @@ module Phronomy
 
       def failed?
         return true if @fatal_error
-        @on_error == :raise && @pending.empty? && @active.empty? && @child_errors.any?(&:itself)
+
+        @on_error == :raise &&
+          @pending.empty? &&
+          @active.empty? &&
+          @child_errors.any?(&:itself)
       end
 
       def error
