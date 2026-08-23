@@ -53,7 +53,7 @@ resolved explicitly.
 | [`003-event-loop-singleton`](003-event-loop-singleton.md) | Accepted | Yes | Current until explicitly superseded/refined. |
 | [`004-invoke-timeout-is-not-cancellation`](004-invoke-timeout-is-not-cancellation.md) | Superseded | No | Superseded by [`011-delegate-transport-policy-to-adapters`](011-delegate-transport-policy-to-adapters.md). |
 | [`005-static-knowledge-class-level-cache`](005-static-knowledge-class-level-cache.md) | Superseded | No | Superseded by [`013-journal-backed-knowledge-as-context-candidates`](013-journal-backed-knowledge-as-context-candidates.md). |
-| [`006-no-built-in-guardrails`](006-no-built-in-guardrails.md) | Amended | Yes | Current policy intent; legacy Guardrail terminology is subject to separate reconciliation. |
+| [`006-no-built-in-guardrails`](006-no-built-in-guardrails.md) | Superseded | No | Superseded by [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md); historical minimal-built-in/Guardrail rationale retained. |
 | [`007-mcp-is-beta-stability`](007-mcp-is-beta-stability.md) | Accepted | Yes | Current. |
 | [`008-orchestrator-uses-os-threads`](008-orchestrator-uses-os-threads.md) | Superseded | No | Superseded by [`010-cooperative-first-concurrency`](010-cooperative-first-concurrency.md). |
 | [`009-state-store-abstraction`](009-state-store-abstraction.md) | Superseded | No | Superseded by [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md). |
@@ -67,6 +67,7 @@ resolved explicitly.
 | [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Accepted | Yes | Current Handoff intent; implementation reconciliation may remain open without changing this status silently. |
 | [`017-design-authority-and-adr-governance`](017-design-authority-and-adr-governance.md) | Accepted | Yes | Repository-wide architecture authority and ADR governance. |
 | [`018-durability-guarantees-and-failure-model`](018-durability-guarantees-and-failure-model.md) | Accepted | Yes | Repository-wide durability/concurrency/external-effect guarantee vocabulary and F0-F4/X0 failure model. |
+| [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block contract, bounded PromptInjectionFilter baseline, and security/isolation negative boundaries; supersedes ADR-006. |
 
 ## Legacy duplicate `011`
 
