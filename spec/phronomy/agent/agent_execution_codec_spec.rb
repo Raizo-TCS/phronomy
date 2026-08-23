@@ -60,7 +60,7 @@ RSpec.describe "durable Agent domain codecs" do
       created_at: "2026-08-16T00:00:00.000000Z",
       updated_at: "2026-08-16T00:00:02.000000Z",
       terminal_reason: nil,
-      metadata: {"thread_id" => "thread-1"}
+      metadata: {"fixture" => "codec-test"}
     )
   end
 

@@ -58,7 +58,7 @@ Release history for 0.14.0 and earlier is archived in
 - `Persistence#workflow_states` with optimistic revision checks for durable Workflow snapshots.
 - Runtime-local Agent Activation ownership; live `AgentExecutionActivation` values are no longer Persistence repositories.
 - `Agent::Base.live_for_execution(execution_id)` for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.
-- Owner-aware Workflow admission keyed by durable `thread_id` and owned by a per-execution internal `fsm_session_id`.
+- Owner-aware Workflow admission keyed by durable `workflow_instance_id`; the admission-owner representation remains Runtime-internal and is reconciled separately.
 - ADR-014 and the 0.19 migration guide for the unified durable-state architecture.
 
 #### Changed
@@ -67,8 +67,8 @@ Release history for 0.14.0 and earlier is archived in
 - `Phronomy.configuration.persistence` is the global durable backend for Workflows and for Agent `new`/`create` calls that do not explicitly inject another Persistence instance.
 - Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.
 - Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Approval remains an Agent-instance operation; callers with only an `execution_id` resolve the live owner with `Agent::Base.live_for_execution` (or the expected concrete Agent class) before calling `agent.approve` / `agent.approve_async`.
-- Workflow durable I/O runs outside EventLoop through OffloadPool, while `thread_id` admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.
-- Workflow `thread_id`, Runtime `fsm_session_id`, and application `session_id` now have distinct responsibilities.
+- Workflow durable I/O runs outside EventLoop through OffloadPool, while `workflow_instance_id` admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.
+- Workflow `workflow_instance_id` is distinct from one concrete Runtime FSMSession identity; generic application `session_id` is not a Phronomy core domain identity.
 
 #### Removed
 
@@ -98,6 +98,12 @@ Release history for 0.14.0 and earlier is archived in
   return `Task`.
 - `InvocationContext` construction is classified consistently with its documented
   Beta application API.
+- Generic Agent invocation identity is removed: `InvocationContext` no longer
+  exposes `thread_id` / `session_id`, Agent invocation APIs no longer accept
+  `thread_id:`, and no replacement generic correlation identity is introduced.
+- The canonical `JournalRecord` representation no longer contains
+  `correlation_id`; legacy durable Hashes containing the removed key remain
+  readable without an eager data rewrite.
 - OutputParser `parse` is classified as the public subclass extension point that
   concrete parsers implement.
 

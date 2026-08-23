@@ -13,7 +13,7 @@ module Phronomy
     class JournalRecord
       ATTRIBUTES = %i[
         record_id agent_id sequence execution_id llm_call_id kind channel role content_ref
-        parent_id causation_id correlation_id visibility context_generation
+        parent_id causation_id visibility context_generation
         context_candidate occurred_at metadata
       ].freeze
 
@@ -31,7 +31,6 @@ module Phronomy
         content_ref: nil,
         parent_id: nil,
         causation_id: nil,
-        correlation_id: nil,
         visibility: :agent,
         context_generation: 0,
         context_candidate: false,
@@ -57,6 +56,8 @@ module Phronomy
       end
 
       def self.from_h(hash)
+        # Decode only current canonical attributes. This intentionally lets
+        # legacy durable Hashes carry removed correlation_id without restoring it.
         new(**ATTRIBUTES.to_h do |name|
           key = hash.key?(name.to_s) ? name.to_s : name
           [name, hash[key]]

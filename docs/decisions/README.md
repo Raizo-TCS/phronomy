@@ -69,7 +69,7 @@ resolved explicitly.
 | [`018-durability-guarantees-and-failure-model`](018-durability-guarantees-and-failure-model.md) | Accepted | Yes | Repository-wide durability/concurrency/external-effect guarantee vocabulary and F0-F4/X0 failure model. |
 | [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block contract, bounded PromptInjectionFilter baseline, and security/isolation negative boundaries; supersedes ADR-006. |
 | [`020-canonical-workflow-instance-identity`](020-canonical-workflow-instance-identity.md) | Accepted | Yes | Canonical logical/durable Workflow identity and CG-01 clean-break migration. |
-| [`021-generic-agent-invocation-identity-removal`](021-generic-agent-invocation-identity-removal.md) | Accepted | Yes | Removes generic Agent/InvocationContext identity; CG-02a public/non-durable slice is reconciled, while durable Journal `correlation_id` canonical cleanup remains tracked as CG-02b. |
+| [`021-generic-agent-invocation-identity-removal`](021-generic-agent-invocation-identity-removal.md) | Accepted | Yes | Removes generic Agent/InvocationContext identity and canonical Journal `correlation_id`; CG-02 is closed, with targeted legacy durable-key read compatibility and no eager rewrite. |
 
 ## Legacy duplicate `011`
 
