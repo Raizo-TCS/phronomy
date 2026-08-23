@@ -156,6 +156,12 @@ exposes <code>thread_id</code> / <code>session_id</code>, Agent invocation APIs 
 <li>The canonical <code>JournalRecord</code> representation no longer contains
 <code>correlation_id</code>; legacy durable Hashes containing the removed key remain
 readable without an eager data rewrite.</li>
+<li>Tool approval notification/policy parent identity now uses canonical Agent
+<code>execution_id</code> instead of <code>agent_invocation_id</code>; new suspended-execution
+approval data uses the same parent identity.</li>
+<li>Legacy embedded suspended approval hashes remain readable by deriving the
+logical parent from their enclosing Agent execution; historical
+content-addressed audit bodies are not rewritten.</li>
 <li>OutputParser <code>parse</code> is classified as the public subclass extension point that
 concrete parsers implement.</li>
 </ul>
@@ -544,7 +550,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug 23 11:56:17 2026 by
+  Generated on Sun Aug 23 13:54:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
