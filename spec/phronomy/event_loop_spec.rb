@@ -131,7 +131,7 @@ RSpec.describe Phronomy::EventLoop do
       expect(result.phase).to eq(:__end__)
     end
 
-    it "is isolated per thread_id (multiple sequential invocations)" do
+    it "is isolated per workflow_instance_id (multiple sequential invocations)" do
       app = build_linear_app(ctx_class)
 
       r1 = app.invoke({value: 10})

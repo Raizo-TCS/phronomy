@@ -130,8 +130,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
     event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
 
+    expect(runner).to include("workflow_instance_id")
     expect(runner).to include("fsm_session_id")
-    expect(runner).to include("graph_thread_id: execution.thread_id")
+    expect(runner).to include("graph_thread_id: execution.workflow_instance_id")
     expect(event_loop).to include("owner_fsm_session_id")
     expect(event_loop).to include("@workflow_admissions")
     expect(event_loop).not_to include("owner_session_id")

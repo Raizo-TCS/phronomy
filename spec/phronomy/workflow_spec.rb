@@ -229,7 +229,7 @@ RSpec.describe Phronomy::Workflow do
     end
 
     it "saves the final context snapshot after invoke" do
-      app.invoke({counter: 0}, config: {thread_id: "t1"})
+      app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
       record = persistence.workflow_states.load("t1")
 
       expect(record).not_to be_nil
@@ -239,8 +239,8 @@ RSpec.describe Phronomy::Workflow do
     end
 
     it "loads stored fields as the initial context on re-invocation" do
-      app.invoke({counter: 0}, config: {thread_id: "t1"})
-      app.invoke({}, config: {thread_id: "t1"})
+      app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
+      app.invoke({}, config: {workflow_instance_id: "t1"})
       record = persistence.workflow_states.load("t1")
 
       expect(record[:snapshot][:fields][:counter]).to eq(2)
@@ -248,14 +248,14 @@ RSpec.describe Phronomy::Workflow do
     end
 
     it "uses input to override stored fields on re-invocation" do
-      app.invoke({counter: 10}, config: {thread_id: "t1"})
-      app.invoke({counter: 0}, config: {thread_id: "t1"})
+      app.invoke({counter: 10}, config: {workflow_instance_id: "t1"})
+      app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
       record = persistence.workflow_states.load("t1")
 
       expect(record[:snapshot][:fields][:counter]).to eq(1)
     end
 
-    it "does not save state when no explicit thread_id is given" do
+    it "does not save state when no explicit workflow_instance_id is given" do
       app.invoke({counter: 0})
       expect(persistence.workflow_states.load("t1")).to be_nil
     end
@@ -269,7 +269,7 @@ RSpec.describe Phronomy::Workflow do
         transition from: :step, to: :__finish__
       end
 
-      global_app.invoke({counter: 4}, config: {thread_id: "global"})
+      global_app.invoke({counter: 4}, config: {workflow_instance_id: "global"})
       record = persistence.workflow_states.load("global")
       expect(record[:snapshot][:fields][:counter]).to eq(5)
     ensure
@@ -280,7 +280,7 @@ RSpec.describe Phronomy::Workflow do
       other = Phronomy::Persistence::InMemory.new
       app.invoke(
         {counter: 5},
-        config: {thread_id: "fixed", persistence: other}
+        config: {workflow_instance_id: "fixed", persistence: other}
       )
 
       expect(persistence.workflow_states.load("fixed")).not_to be_nil
@@ -312,7 +312,7 @@ RSpec.describe Phronomy::Workflow do
     end
 
     it "resumes a halted workflow using durable state and saves the final snapshot" do
-      halted = wait_app.invoke({}, config: {thread_id: "persist-resume"})
+      halted = wait_app.invoke({}, config: {workflow_instance_id: "persist-resume"})
       expect(halted.phase).to eq(:waiting)
 
       final = wait_app.send_event(state: halted, event: :approve)
@@ -324,7 +324,7 @@ RSpec.describe Phronomy::Workflow do
     end
 
     it "merges explicit input when resuming with persistence" do
-      halted = wait_app.invoke({}, config: {thread_id: "persist-input"})
+      halted = wait_app.invoke({}, config: {workflow_instance_id: "persist-input"})
       final = wait_app.send_event(state: halted, event: :approve, input: {value: "override"})
       expect(final.value).to eq("override:done")
     end
@@ -340,12 +340,12 @@ RSpec.describe Phronomy::Workflow do
         transition from: :done_step, to: :__finish__
       end
 
-      halted = resume_app.invoke({}, config: {thread_id: "resume-alias"})
+      halted = resume_app.invoke({}, config: {workflow_instance_id: "resume-alias"})
       final = resume_app.resume(state: halted)
       expect(final.value).to eq("ready:finished")
     end
 
-    it "resumes when no durable snapshot exists yet for the thread_id" do
+    it "resumes when no durable snapshot exists yet for the workflow_instance_id" do
       no_persist = Phronomy::Workflow.define(wait_ctx) do
         initial :prepare
         state :prepare, action: ->(s) { s }
@@ -356,7 +356,7 @@ RSpec.describe Phronomy::Workflow do
         transition from: :finish_step, to: :__finish__
       end
 
-      halted = no_persist.invoke({}, config: {thread_id: "no-prior-record"})
+      halted = no_persist.invoke({}, config: {workflow_instance_id: "no-prior-record"})
       final = wait_app.send_event(state: halted, event: :approve)
       expect(final.phase).to eq(:__end__)
     end
@@ -379,7 +379,7 @@ RSpec.describe Phronomy::Workflow do
         transition from: :finish_step, to: :__finish__
       end
 
-      halted = array_app.invoke({}, config: {thread_id: "normalize-resume"})
+      halted = array_app.invoke({}, config: {workflow_instance_id: "normalize-resume"})
       final = array_app.send_event(state: halted, event: :approve)
       expect(final.status).to eq(:done)
     end

@@ -47,7 +47,7 @@ RSpec.describe "event-driven Workflow actions" do
 
         op.on_complete do |value, error|
           workflow.signal(
-            thread_id: context.thread_id,
+            workflow_instance_id: context.workflow_instance_id,
             event: error ? :generation_failed : :generation_completed,
             payload: {
               request_id: request_id,
@@ -69,7 +69,7 @@ RSpec.describe "event-driven Workflow actions" do
 
     task = workflow.invoke_async(
       {request_id: "request-1"},
-      config: {thread_id: "workflow-1"}
+      config: {workflow_instance_id: "workflow-1"}
     )
     Timeout.timeout(1) { entered.pop }
 
@@ -135,20 +135,20 @@ RSpec.describe "event-driven Workflow actions" do
 
     task = workflow.invoke_async(
       {request_id: "current"},
-      config: {thread_id: "workflow-stale"}
+      config: {workflow_instance_id: "workflow-stale"}
     )
     Timeout.timeout(1) { entered.pop }
 
     expect(
       workflow.signal(
-        thread_id: "workflow-stale",
+        workflow_instance_id: "workflow-stale",
         event: :generation_completed,
         payload: {request_id: "old", answer: "stale"}
       )
     ).to be(true)
 
     Phronomy::Runtime.instance.event_loop.post_to_workflow(
-      thread_id: "workflow-stale",
+      workflow_instance_id: "workflow-stale",
       event: :probe,
       payload: nil
     )
@@ -156,7 +156,7 @@ RSpec.describe "event-driven Workflow actions" do
     expect(task).not_to be_done
 
     workflow.signal(
-      thread_id: "workflow-stale",
+      workflow_instance_id: "workflow-stale",
       event: :generation_completed,
       payload: {request_id: "current", answer: "fresh"}
     )

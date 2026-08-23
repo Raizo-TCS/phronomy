@@ -17,15 +17,15 @@ RSpec.shared_examples "a workflow state repository" do
     workflow_contract_value(record, :revision)
   end
 
-  it "returns nil for an unknown thread_id" do
+  it "returns nil for an unknown workflow_instance_id" do
     expect(repository.load("missing-#{SecureRandom.uuid}")).to be_nil
   end
 
   it "uses optimistic revisions for save" do
-    thread_id = "t1-#{SecureRandom.uuid}"
+    workflow_instance_id = "t1-#{SecureRandom.uuid}"
     expect(
       repository.save(
-        thread_id,
+        workflow_instance_id,
         expected_revision: nil,
         snapshot: {fields: {value: 1}, phase: "pause"}
       )
@@ -33,7 +33,7 @@ RSpec.shared_examples "a workflow state repository" do
 
     expect(
       repository.save(
-        thread_id,
+        workflow_instance_id,
         expected_revision: 1,
         snapshot: {fields: {value: 2}, phase: "__end__"}
       )
@@ -41,16 +41,16 @@ RSpec.shared_examples "a workflow state repository" do
   end
 
   it "rejects a stale expected_revision" do
-    thread_id = "t1-#{SecureRandom.uuid}"
+    workflow_instance_id = "t1-#{SecureRandom.uuid}"
     repository.save(
-      thread_id,
+      workflow_instance_id,
       expected_revision: nil,
       snapshot: {fields: {value: 1}, phase: "pause"}
     )
 
     expect do
       repository.save(
-        thread_id,
+        workflow_instance_id,
         expected_revision: nil,
         snapshot: {fields: {value: 2}, phase: "__end__"}
       )
@@ -58,14 +58,14 @@ RSpec.shared_examples "a workflow state repository" do
   end
 
   it "returns a snapshot representation accepted by WorkflowRunner" do
-    thread_id = "t1-#{SecureRandom.uuid}"
+    workflow_instance_id = "t1-#{SecureRandom.uuid}"
     repository.save(
-      thread_id,
+      workflow_instance_id,
       expected_revision: nil,
       snapshot: {fields: {value: 1}, phase: "pause"}
     )
 
-    record = repository.load(thread_id)
+    record = repository.load(workflow_instance_id)
     snapshot = workflow_contract_snapshot(record)
     fields = workflow_contract_value(snapshot, :fields)
 
@@ -75,14 +75,14 @@ RSpec.shared_examples "a workflow state repository" do
   end
 
   it "isolates stored snapshots from caller mutation" do
-    thread_id = "t1-#{SecureRandom.uuid}"
+    workflow_instance_id = "t1-#{SecureRandom.uuid}"
     repository.save(
-      thread_id,
+      workflow_instance_id,
       expected_revision: nil,
       snapshot: {fields: {values: [1]}, phase: "pause"}
     )
 
-    loaded = repository.load(thread_id)
+    loaded = repository.load(workflow_instance_id)
     snapshot = workflow_contract_snapshot(loaded)
     fields = workflow_contract_value(snapshot, :fields)
     values = workflow_contract_value(fields, :values)
@@ -93,7 +93,7 @@ RSpec.shared_examples "a workflow state repository" do
       nil
     end
 
-    reloaded = repository.load(thread_id)
+    reloaded = repository.load(workflow_instance_id)
     reloaded_fields = workflow_contract_value(
       workflow_contract_snapshot(reloaded),
       :fields
@@ -102,18 +102,18 @@ RSpec.shared_examples "a workflow state repository" do
   end
 
   it "deletes only at the expected revision" do
-    thread_id = "t1-#{SecureRandom.uuid}"
+    workflow_instance_id = "t1-#{SecureRandom.uuid}"
     repository.save(
-      thread_id,
+      workflow_instance_id,
       expected_revision: nil,
       snapshot: {fields: {}, phase: "pause"}
     )
 
     expect do
-      repository.delete(thread_id, expected_revision: 99)
+      repository.delete(workflow_instance_id, expected_revision: 99)
     end.to raise_error(Phronomy::Persistence::ConflictError)
 
-    repository.delete(thread_id, expected_revision: 1)
-    expect(repository.load(thread_id)).to be_nil
+    repository.delete(workflow_instance_id, expected_revision: 1)
+    expect(repository.load(workflow_instance_id)).to be_nil
   end
 end

@@ -75,7 +75,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
 
     result = workflow.stream(
       {},
-      config: {thread_id: "stream-state"}
+      config: {workflow_instance_id: "stream-state"}
     ) { |_event| }
 
     expect(result.value).to eq(11)

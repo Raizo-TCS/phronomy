@@ -108,13 +108,13 @@ RSpec.describe "Workflow transition actions" do
 
     task = workflow.invoke_async(
       {},
-      config: {thread_id: "transition-arity"}
+      config: {workflow_instance_id: "transition-arity"}
     )
     Timeout.timeout(1) { entered.pop }
 
     expect(
       workflow.signal(
-        thread_id: "transition-arity",
+        workflow_instance_id: "transition-arity",
         event: :advance,
         payload: {value: 42}
       )
@@ -178,14 +178,14 @@ RSpec.describe "Workflow transition actions" do
         to: :__finish__,
         action: ->(context, event) {
           owner_fsm_session_id = Phronomy::Runtime.instance.event_loop
-            .workflow_admission_owner(context.thread_id)
+            .workflow_admission_owner(context.workflow_instance_id)
           context.merge(
             event_type: event.type,
             event_payload: event.payload,
             event_target_id: event.target_id,
             event_target_matches:
               event.target_id == owner_fsm_session_id &&
-                event.target_id != context.thread_id
+                event.target_id != context.workflow_instance_id
           )
         }
       )
@@ -194,7 +194,7 @@ RSpec.describe "Workflow transition actions" do
     result = invoke_bounded(
       workflow,
       {},
-      config: {thread_id: "auto-transition-event"}
+      config: {workflow_instance_id: "auto-transition-event"}
     )
 
     expect(result.event_type).to eq(:state_completed)
@@ -269,7 +269,7 @@ RSpec.describe "Workflow transition actions" do
     halted = invoke_bounded(
       workflow,
       {},
-      config: {thread_id: "transition-resume"}
+      config: {workflow_instance_id: "transition-resume"}
     )
     expect(halted.halted?).to be(true)
 
@@ -302,11 +302,11 @@ RSpec.describe "Workflow transition actions" do
         on: :start,
         to: :processing,
         action: ->(context) {
-          thread_id = context.thread_id
+          workflow_instance_id = context.workflow_instance_id
           op = Phronomy::Runtime.instance.offload.submit(on_full: :raise) { "async-result" }
           op.on_complete do |value, error|
             workflow.signal(
-              thread_id: thread_id,
+              workflow_instance_id: workflow_instance_id,
               event: :work_completed,
               payload: {value: value, error: error}
             )
@@ -329,13 +329,13 @@ RSpec.describe "Workflow transition actions" do
 
     task = workflow.invoke_async(
       {},
-      config: {thread_id: "transition-async"}
+      config: {workflow_instance_id: "transition-async"}
     )
     Timeout.timeout(1) { entered.pop }
 
     expect(
       workflow.signal(
-        thread_id: "transition-async",
+        workflow_instance_id: "transition-async",
         event: :start
       )
     ).to be(true)
@@ -435,25 +435,25 @@ RSpec.describe "Workflow transition actions" do
 
     task = workflow.invoke_async(
       {},
-      config: {thread_id: "transition-selection-reset"}
+      config: {workflow_instance_id: "transition-selection-reset"}
     )
     Timeout.timeout(1) { entered.pop }
 
     expect(
       workflow.signal(
-        thread_id: "transition-selection-reset",
+        workflow_instance_id: "transition-selection-reset",
         event: :mark
       )
     ).to be(true)
     expect(
       workflow.signal(
-        thread_id: "transition-selection-reset",
+        workflow_instance_id: "transition-selection-reset",
         event: :ignored
       )
     ).to be(true)
     expect(
       workflow.signal(
-        thread_id: "transition-selection-reset",
+        workflow_instance_id: "transition-selection-reset",
         event: :finish
       )
     ).to be(true)

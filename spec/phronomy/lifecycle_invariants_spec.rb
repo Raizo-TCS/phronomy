@@ -76,7 +76,7 @@ RSpec.describe "Lifecycle invariants" do
   def build_test_execution(ctx, recursion_limit:)
     Phronomy::WorkflowRunner::Execution.new(
       context: ctx,
-      thread_id: "test-thread",
+      workflow_instance_id: "test-thread",
       fsm_session_id: SecureRandom.uuid,
       recursion_limit: recursion_limit,
       repository: nil,
@@ -93,12 +93,12 @@ RSpec.describe "Lifecycle invariants" do
 
   # Drive a FSMSession forward using a FakeLoop until @done or no
   # :state_completed event is pending.
-  def drain_session(session, fake, thread_id:, max_steps: 20)
+  def drain_session(session, fake, workflow_instance_id:, max_steps: 20)
     max_steps.times do
       break if session.instance_variable_get(:@done)
       ev = fake.events.last
       break unless ev&.type == :state_completed
-      session.handle(Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil))
+      session.handle(Phronomy::Event.new(type: :state_completed, target_id: workflow_instance_id, payload: nil))
     end
   end
 
@@ -126,12 +126,12 @@ RSpec.describe "Lifecycle invariants" do
     it "does not post a second :finished event when handle is called after completion" do
       runner = runner_from(app)
       ctx = simple_ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "lc-double-1")
+      ctx.set_graph_metadata(workflow_instance_id: "lc-double-1")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_session(runner, ctx, fake_runtime)
         session.start
-        drain_session(session, fake, thread_id: "lc-double-1")
+        drain_session(session, fake, workflow_instance_id: "lc-double-1")
 
         expect(session.instance_variable_get(:@done)).to be(true)
         finished_count_before = fake.events.count { |e| e.type == :finished }
@@ -154,12 +154,12 @@ RSpec.describe "Lifecycle invariants" do
 
       runner = runner_from(wait_app)
       ctx = simple_ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "lc-double-2")
+      ctx.set_graph_metadata(workflow_instance_id: "lc-double-2")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_session(runner, ctx, fake_runtime)
         session.start
-        drain_session(session, fake, thread_id: "lc-double-2")
+        drain_session(session, fake, workflow_instance_id: "lc-double-2")
 
         expect(session.instance_variable_get(:@done)).to be(true)
         expect(fake.events.any? { |e| e.type == :halted }).to be(true)
@@ -190,7 +190,7 @@ RSpec.describe "Lifecycle invariants" do
     it "posts :error when an undeclared event is fired at a running FSMSession" do
       runner = runner_from(wait_app)
       ctx = simple_ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "lc-unknown-1", phase: :awaiting)
+      ctx.set_graph_metadata(workflow_instance_id: "lc-unknown-1", phase: :awaiting)
 
       with_fake_loop do |fake, fake_runtime|
         session = build_session(runner, ctx, fake_runtime,
@@ -212,7 +212,7 @@ RSpec.describe "Lifecycle invariants" do
     it "sets @done = true after posting :error for an unknown event" do
       runner = runner_from(wait_app)
       ctx = simple_ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "lc-unknown-2", phase: :awaiting)
+      ctx.set_graph_metadata(workflow_instance_id: "lc-unknown-2", phase: :awaiting)
 
       with_fake_loop do |fake, fake_runtime|
         session = build_session(runner, ctx, fake_runtime,
@@ -236,7 +236,7 @@ RSpec.describe "Lifecycle invariants" do
         transition from: :prepare, to: :awaiting
         transition from: :awaiting, on: :approve, to: :__finish__
       end
-      halted = app.invoke({value: 0}, config: {thread_id: "lc-unknown-3"})
+      halted = app.invoke({value: 0}, config: {workflow_instance_id: "lc-unknown-3"})
       expect(halted.halted?).to be(true)
 
       expect do

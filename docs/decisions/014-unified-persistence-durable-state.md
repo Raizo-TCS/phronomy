@@ -1,8 +1,9 @@
 # ADR 014: Unified Persistence for Durable State
 
-**Status**: Accepted  
-**Date**: 2026-08-14  
+**Status**: Accepted
+**Date**: 2026-08-14
 **Supersedes**: ADR-009
+**Partially superseded by**: [ADR-020](020-canonical-workflow-instance-identity.md) for Workflow identity terminology only
 
 ---
 

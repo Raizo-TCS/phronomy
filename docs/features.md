@@ -58,7 +58,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | Feature | Stability |
 |---|---|
 | **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions | Beta |
-| **Workflow durable admission** — Durable `thread_id` ownership is held by a Runtime-only `fsm_session_id` from load through terminal save | Beta |
+| **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from load through terminal save; admission-owner representation remains Runtime-internal and is reconciled separately | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
 | **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
 | **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |

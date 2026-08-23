@@ -30,9 +30,9 @@ module Phronomy
   end
 
   interface _WorkflowStateRepository
-    def load: (String thread_id) -> Hash[untyped, untyped]?
-    def save: (String thread_id, expected_revision: Integer?, snapshot: Hash[untyped, untyped]) -> untyped
-    def delete: (String thread_id, expected_revision: Integer) -> untyped
+    def load: (String workflow_instance_id) -> Hash[untyped, untyped]?
+    def save: (String workflow_instance_id, expected_revision: Integer?, snapshot: Hash[untyped, untyped]) -> untyped
+    def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
   end
 
   interface _PersistenceTransactionView

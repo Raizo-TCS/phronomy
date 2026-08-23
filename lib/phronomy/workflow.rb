@@ -43,16 +43,16 @@ module Phronomy
 
     # Sends an event to an active Workflow execution without blocking.
     #
-    # +thread_id+ is the logical/durable Workflow identity. EventLoop resolves it
+    # +workflow_instance_id+ is the logical/durable Workflow identity. EventLoop resolves it
     # to the currently owning Runtime-only fsm_session_id. InvocationContext's
     # application session_id is unrelated to this routing.
     #
     # @return [Boolean] true when admitted; false when the Workflow is not live
     #   or Runtime shutdown has begun
     # @api public
-    def signal(thread_id:, event:, payload: nil)
+    def signal(workflow_instance_id:, event:, payload: nil)
       @runner.signal(
-        thread_id: thread_id,
+        workflow_instance_id: workflow_instance_id,
         event: event,
         payload: payload
       )
@@ -62,9 +62,6 @@ module Phronomy
 
     def _apply_invocation_context(config, invocation_context)
       effective = config.merge(invocation_context: invocation_context)
-      if effective[:thread_id].nil? && invocation_context.thread_id
-        effective = effective.merge(thread_id: invocation_context.thread_id)
-      end
       if effective[:cancellation_token].nil?
         token = invocation_context.effective_timeout_token
         effective = effective.merge(cancellation_token: token) if token

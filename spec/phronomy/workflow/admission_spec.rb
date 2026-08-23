@@ -15,7 +15,7 @@ RSpec.describe "Workflow durable admission" do
     nil
   end
 
-  it "keeps application session_id, durable thread_id, and fsm_session_id distinct" do
+  it "keeps application session_id, durable workflow_instance_id, and fsm_session_id distinct" do
     workflow = Phronomy::Workflow.define(WorkflowAdmissionContext) do
       initial :waiting
       state :waiting
@@ -26,7 +26,7 @@ RSpec.describe "Workflow durable admission" do
 
     task = workflow.invoke_async(
       {value: 1},
-      config: {thread_id: "workflow-42", session_id: "rails-session-7"}
+      config: {workflow_instance_id: "workflow-42", session_id: "rails-session-7"}
     )
     event_loop = Phronomy::Runtime.instance.event_loop
     first_fsm_session_id = event_loop.workflow_admission_owner("workflow-42")
@@ -35,18 +35,18 @@ RSpec.describe "Workflow durable admission" do
     expect(first_fsm_session_id).not_to eq("workflow-42")
     expect(first_fsm_session_id).not_to eq("rails-session-7")
 
-    expect(workflow.signal(thread_id: "workflow-42", event: :finish)).to be(true)
-    expect(task.wait_result.thread_id).to eq("workflow-42")
+    expect(workflow.signal(workflow_instance_id: "workflow-42", event: :finish)).to be(true)
+    expect(task.wait_result.workflow_instance_id).to eq("workflow-42")
 
     second_task = workflow.invoke_async(
       {value: 2},
-      config: {thread_id: "workflow-42", session_id: "rails-session-7"}
+      config: {workflow_instance_id: "workflow-42", session_id: "rails-session-7"}
     )
     second_fsm_session_id = event_loop.workflow_admission_owner("workflow-42")
 
     expect(second_fsm_session_id).to be_a(String)
     expect(second_fsm_session_id).not_to eq(first_fsm_session_id)
-    expect(workflow.signal(thread_id: "workflow-42", event: :finish)).to be(true)
+    expect(workflow.signal(workflow_instance_id: "workflow-42", event: :finish)).to be(true)
     second_task.wait_result
   end
 
@@ -81,23 +81,23 @@ RSpec.describe "Workflow durable admission" do
     first_save = true
 
     blocking_repository = Object.new
-    blocking_repository.define_singleton_method(:load) do |thread_id|
-      repository.load(thread_id)
+    blocking_repository.define_singleton_method(:load) do |workflow_instance_id|
+      repository.load(workflow_instance_id)
     end
-    blocking_repository.define_singleton_method(:save) do |thread_id, expected_revision:, snapshot:|
+    blocking_repository.define_singleton_method(:save) do |workflow_instance_id, expected_revision:, snapshot:|
       if first_save
         first_save = false
         save_entered << true
         allow_save.pop
       end
       repository.save(
-        thread_id,
+        workflow_instance_id,
         expected_revision: expected_revision,
         snapshot: snapshot
       )
     end
-    blocking_repository.define_singleton_method(:delete) do |thread_id, expected_revision:|
-      repository.delete(thread_id, expected_revision: expected_revision)
+    blocking_repository.define_singleton_method(:delete) do |workflow_instance_id, expected_revision:|
+      repository.delete(workflow_instance_id, expected_revision: expected_revision)
     end
     allow(persistence).to receive(:workflow_states).and_return(blocking_repository)
 
@@ -110,13 +110,13 @@ RSpec.describe "Workflow durable admission" do
       transition from: :done, to: :__finish__
     end
 
-    first = workflow.invoke_async({value: 0}, config: {thread_id: "shared"})
+    first = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "shared"})
     save_entered.pop
 
     expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("shared"))
       .not_to be_nil
 
-    competitor = workflow.invoke_async({}, config: {thread_id: "shared"})
+    competitor = workflow.invoke_async({}, config: {workflow_instance_id: "shared"})
     expect { competitor.wait_result }
       .to raise_error(Phronomy::Error, /already owned/)
 

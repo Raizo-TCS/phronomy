@@ -39,7 +39,7 @@ workflow = Phronomy::Workflow.define(ImportContext) do
 
     operation.on_complete do |record_count, error|
       workflow.signal(
-        thread_id: context.thread_id,
+        workflow_instance_id: context.workflow_instance_id,
         event: error ? :import_failed : :import_completed,
         payload: {
           record_count: record_count,

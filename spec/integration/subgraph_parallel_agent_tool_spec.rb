@@ -97,13 +97,13 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
 
   def signal_subworkflow_completion(
     parent_workflow:,
-    parent_thread_id:,
+    parent_workflow_instance_id:,
     request_id:,
     task:
   )
     task.on_complete do |result, error|
       parent_workflow.signal(
-        thread_id: parent_thread_id,
+        workflow_instance_id: parent_workflow_instance_id,
         event: error ? :subworkflow_failed : :subworkflow_completed,
         payload: {
           request_id: request_id,
@@ -170,7 +170,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
 
         completion_mapper.call(
           parent_workflow: parent_workflow,
-          parent_thread_id: next_state.thread_id,
+          parent_workflow_instance_id: next_state.workflow_instance_id,
           request_id: request_id,
           task: task
         )
@@ -231,7 +231,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
 
         completion_mapper.call(
           parent_workflow: parent_workflow,
-          parent_thread_id: next_state.thread_id,
+          parent_workflow_instance_id: next_state.workflow_instance_id,
           request_id: request_id,
           task: task
         )

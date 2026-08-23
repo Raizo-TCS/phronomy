@@ -9,6 +9,8 @@ the bounded `OffloadPool`.
 For the design rationale, see [ADR-010](decisions/010-cooperative-first-concurrency.md).
 Durable-state ownership is defined by
 [ADR-014](decisions/014-unified-persistence-durable-state.md).
+Canonical Workflow instance identity is defined by
+[ADR-020](decisions/020-canonical-workflow-instance-identity.md).
 
 ## Runtime model
 
@@ -66,7 +68,7 @@ Workflow execution keeps three identities separate:
 session_id
   application session/correlation identity
 
-thread_id
+workflow_instance_id
   durable Workflow identity and Persistence#workflow_states key
 
 fsm_session_id
@@ -78,10 +80,14 @@ durable Workflow ownership. EventLoop registers active FSMs by `fsm_session_id`;
 durable Workflow admission is a separate owner map:
 
 ```text
-thread_id -> owner_fsm_session_id
+workflow_instance_id -> owner_fsm_session_id
 ```
 
-The owner is acquired before `workflow_states.load(thread_id)` and remains held
+`owner_fsm_session_id` above describes the current Runtime implementation only;
+it is not a Workflow domain identity. Admission-owner representation is a
+separate reconciliation concern and is not decided by CG-01.
+
+The owner is acquired before `workflow_states.load(workflow_instance_id)` and remains held
 until the halted/terminal `workflow_states.save(...)` completes. The admission map
 is process-local. Cross-process duplicate execution requires application-level
 distributed coordination; optimistic revisions detect stale terminal commits but

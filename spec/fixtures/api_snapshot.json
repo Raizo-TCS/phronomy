@@ -119,7 +119,7 @@
       "merge",
       "phase",
       "set_graph_metadata",
-      "thread_id",
+      "workflow_instance_id",
       "to_h"
     ]
   },

@@ -97,7 +97,7 @@ RSpec.describe "Group 7: Workflow", :integration do
           transition from: :pause_before_second, on: :resume, to: :second
         end
         events = []
-        state = app.stream({}, config: {thread_id: "tc-002"}) { |e| events << e }
+        state = app.stream({}, config: {workflow_instance_id: "tc-002"}) { |e| events << e }
         expect(state.halted?).to be(true)
         expect(state.phase).to eq(:pause_before_second)
         expect(state.log).to include("first")
@@ -131,7 +131,7 @@ RSpec.describe "Group 7: Workflow", :integration do
           transition from: :end_node, to: :__finish__
           transition from: :pause_after_start, on: :resume, to: :end_node
         end
-        state = app.invoke({}, config: {thread_id: "tc-004", recursion_limit: 50})
+        state = app.invoke({}, config: {workflow_instance_id: "tc-004", recursion_limit: 50})
         expect(state.halted?).to be(true)
         expect(state.value).to eq("started")
         final = app.resume(state: state)
@@ -160,7 +160,7 @@ RSpec.describe "Group 7: Workflow", :integration do
           transition from: :router, guard: ->(s) { s.data[:path] == "high" }, to: :high
           transition from: :router, to: :low
         end
-        state = app.invoke({}, config: {thread_id: "tc-007"})
+        state = app.invoke({}, config: {workflow_instance_id: "tc-007"})
         expect(state.halted?).to be(true)
         expect(state.data[:routed]).to be(true)
         expect(state.data[:result]).to eq("high_result")
@@ -257,7 +257,7 @@ RSpec.describe "Group 7: Workflow", :integration do
           transition from: :pause_before_n3, on: :resume, to: :n3
         end
         events = []
-        state = app.stream({}, config: {thread_id: "tc-011"}) { |e| events << e }
+        state = app.stream({}, config: {workflow_instance_id: "tc-011"}) { |e| events << e }
         expect(state.halted?).to be(true)
         expect(state.phase).to eq(:pause_before_n3)
         expect(state.value).to eq("n2")
@@ -358,7 +358,7 @@ RSpec.describe "Group 7: Workflow", :integration do
           transition from: :first, to: :second
           transition from: :second, to: :__finish__
         end
-        state = app.invoke({}, config: {thread_id: "tc-016"})
+        state = app.invoke({}, config: {workflow_instance_id: "tc-016"})
         expect(state.value).to eq("second")
         expect(state.step).to eq(2)
 

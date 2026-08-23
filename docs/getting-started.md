@@ -237,16 +237,16 @@ workflow = Phronomy::Workflow.define(
   transition from: :finalize, to: :__finish__
 end
 
-state = workflow.invoke({draft: ""}, config: {thread_id: "doc-1"})
+state = workflow.invoke({draft: ""}, config: {workflow_instance_id: "doc-1"})
 final = workflow.send_event(state: state, event: :approve)
 puts final.approved
 ```
 
-`Persistence#workflow_states` is the durable Workflow repository. `thread_id`
+`Persistence#workflow_states` is the durable Workflow repository. `workflow_instance_id`
 identifies the durable Workflow state and remains stable across resume. Each
 concrete Runtime execution receives a separate internal `fsm_session_id`; the
 application-level `session_id` remains ordinary caller/tracing metadata. Phronomy
-holds owner-aware admission for `thread_id` from durable load through terminal
+holds owner-aware admission for `workflow_instance_id` from durable load through terminal
 save so another local invocation cannot start from a stale snapshot while the
 current owner is still committing.
 
@@ -275,7 +275,7 @@ class AnswerContext
 
   field :question, type: :replace, default: ""
   field :answer,   type: :replace, default: nil
-  field :thread_id, type: :replace, default: nil
+  # workflow_instance_id is framework-owned metadata; do not declare it as a field.
 end
 
 class ResearchAgent < Phronomy::Agent::Base
@@ -293,13 +293,13 @@ workflow = Phronomy::Workflow.define(AnswerContext) do
   state :done
 
   entry :asking, ->(ctx) {
-    thread_id = ctx.thread_id
+    workflow_instance_id = ctx.workflow_instance_id
 
     my_agent.invoke_async(ctx.question) do |event|
       next unless event.type == :done
 
       workflow.signal(
-        thread_id: thread_id,
+        workflow_instance_id: workflow_instance_id,
         event: :answer_ready,
         payload: {answer: event.payload[:output]}
       )

@@ -7,7 +7,7 @@ module Phronomy
   #
   # WorkflowRunner separates three identities:
   # - application session_id remains caller/tracing metadata;
-  # - thread_id identifies durable Workflow state;
+  # - workflow_instance_id identifies durable Workflow state;
   # - fsm_session_id identifies one Runtime FSMSession execution.
   #
   # Workflow persistence is synchronous at the repository contract but is always
@@ -20,7 +20,7 @@ module Phronomy
 
     Execution = Data.define(
       :context,
-      :thread_id,
+      :workflow_instance_id,
       :fsm_session_id,
       :recursion_limit,
       :repository,
@@ -33,7 +33,7 @@ module Phronomy
       :result_task,
       :result,
       :error,
-      :thread_id,
+      :workflow_instance_id,
       :fsm_session_id
     )
 
@@ -100,9 +100,9 @@ module Phronomy
       ensure_blocking_call_allowed!(:send_event, :signal)
       current_phase = state.phase.to_sym
       event_name = resolve_resume_event(current_phase, event)
-      thread_id = state.thread_id
-      unless thread_id
-        raise ArgumentError, "Halted WorkflowContext has no thread_id"
+      workflow_instance_id = state.workflow_instance_id
+      unless workflow_instance_id
+        raise ArgumentError, "Halted WorkflowContext has no workflow_instance_id"
       end
 
       start_resume_execution(
@@ -114,10 +114,10 @@ module Phronomy
     end
 
     # Posts an application-defined event to the currently live Workflow owner.
-    # thread_id is resolved to its Runtime-only fsm_session_id by EventLoop; the
+    # workflow_instance_id is resolved to its Runtime-only fsm_session_id by EventLoop; the
     # application session_id is deliberately unrelated to this routing.
-    def signal(thread_id:, event:, payload: nil)
-      raise ArgumentError, "thread_id is required" if thread_id.nil?
+    def signal(workflow_instance_id:, event:, payload: nil)
+      raise ArgumentError, "workflow_instance_id is required" if workflow_instance_id.nil?
 
       event_name = event.to_sym
       unless @external_events.key?(event_name)
@@ -127,7 +127,7 @@ module Phronomy
       end
 
       Phronomy::Runtime.instance.event_loop.post_to_workflow(
-        thread_id: thread_id,
+        workflow_instance_id: workflow_instance_id,
         event: event_name,
         payload: payload
       )
@@ -137,7 +137,7 @@ module Phronomy
     def deliver_persistence_on_event_loop(command)
       event_loop = Phronomy::Runtime.instance.event_loop
       event_loop.release_workflow(
-        command.thread_id,
+        command.workflow_instance_id,
         owner_fsm_session_id: command.fsm_session_id
       )
       if command.error
@@ -149,6 +149,16 @@ module Phronomy
 
     private
 
+    # CG-01 is a clean break. Reject the removed Workflow config key instead of
+    # silently generating a new Workflow identity and branching durable history.
+    # This is a migration error path, not a compatibility alias.
+    def reject_legacy_workflow_identity_key!(config)
+      return unless config.key?(:thread_id) || config.key?("thread_id")
+
+      raise ArgumentError,
+        "Workflow config key :thread_id was removed; use :workflow_instance_id"
+    end
+
     def ensure_blocking_call_allowed!(method_name, async_alternative)
       return unless Phronomy::Runtime.instance.event_loop.current?
 
@@ -158,32 +168,33 @@ module Phronomy
     end
 
     def start_new_execution(input, config, stable_observer: nil)
+      reject_legacy_workflow_identity_key!(config)
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
       result_task = Phronomy::Task.deferred(name: "workflow:preparing")
-      explicit_thread_id = !config[:thread_id].nil?
-      thread_id = (config[:thread_id] || SecureRandom.uuid).to_s
+      explicit_workflow_instance_id = !config[:workflow_instance_id].nil?
+      workflow_instance_id = (config[:workflow_instance_id] || SecureRandom.uuid).to_s
       fsm_session_id = SecureRandom.uuid
       recursion_limit = config.fetch(
         :recursion_limit,
         Phronomy.configuration.recursion_limit
       )
       repository = configured_repository
-      persist = explicit_thread_id && !repository.nil?
+      persist = explicit_workflow_instance_id && !repository.nil?
 
       event_loop.admit_workflow(
-        thread_id,
+        workflow_instance_id,
         owner_fsm_session_id: fsm_session_id
       )
 
       if persist
         load_operation = runtime.offload.submit(on_full: :raise) do
-          repository.load(thread_id)
+          repository.load(workflow_instance_id)
         end
         load_operation.on_complete do |record, error|
           if error
             release_and_fail(
-              event_loop, result_task, thread_id, fsm_session_id, error
+              event_loop, result_task, workflow_instance_id, fsm_session_id, error
             )
             next
           end
@@ -191,7 +202,7 @@ module Phronomy
           begin
             execution = build_new_execution(
               input,
-              thread_id: thread_id,
+              workflow_instance_id: workflow_instance_id,
               fsm_session_id: fsm_session_id,
               recursion_limit: recursion_limit,
               repository: repository,
@@ -207,7 +218,7 @@ module Phronomy
             release_and_fail(
               event_loop,
               result_task,
-              thread_id,
+              workflow_instance_id,
               fsm_session_id,
               preparation_error
             )
@@ -216,7 +227,7 @@ module Phronomy
       else
         execution = build_new_execution(
           input,
-          thread_id: thread_id,
+          workflow_instance_id: workflow_instance_id,
           fsm_session_id: fsm_session_id,
           recursion_limit: recursion_limit,
           repository: repository,
@@ -232,9 +243,9 @@ module Phronomy
       result_task
     rescue => error
       if defined?(event_loop) && event_loop &&
-          defined?(thread_id) && defined?(fsm_session_id)
+          defined?(workflow_instance_id) && defined?(fsm_session_id)
         event_loop.release_workflow(
-          thread_id,
+          workflow_instance_id,
           owner_fsm_session_id: fsm_session_id
         )
       end
@@ -245,24 +256,24 @@ module Phronomy
     def start_resume_execution(state, input:, event_name:, current_phase:)
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
-      thread_id = state.thread_id.to_s
+      workflow_instance_id = state.workflow_instance_id.to_s
       fsm_session_id = SecureRandom.uuid
       repository = configured_repository
-      result_task = Phronomy::Task.deferred(name: "workflow-resume:#{thread_id}")
+      result_task = Phronomy::Task.deferred(name: "workflow-resume:#{workflow_instance_id}")
 
       event_loop.admit_workflow(
-        thread_id,
+        workflow_instance_id,
         owner_fsm_session_id: fsm_session_id
       )
 
       if repository
         load_operation = runtime.offload.submit(on_full: :raise) do
-          repository.load(thread_id)
+          repository.load(workflow_instance_id)
         end
         load_operation.on_complete do |record, error|
           if error
             release_and_fail(
-              event_loop, result_task, thread_id, fsm_session_id, error
+              event_loop, result_task, workflow_instance_id, fsm_session_id, error
             )
             next
           end
@@ -272,7 +283,7 @@ module Phronomy
             context = input ? state.merge(input) : state
             execution = Execution.new(
               context: context,
-              thread_id: thread_id,
+              workflow_instance_id: workflow_instance_id,
               fsm_session_id: fsm_session_id,
               recursion_limit: Phronomy.configuration.recursion_limit,
               repository: repository,
@@ -289,7 +300,7 @@ module Phronomy
             release_and_fail(
               event_loop,
               result_task,
-              thread_id,
+              workflow_instance_id,
               fsm_session_id,
               preparation_error
             )
@@ -299,7 +310,7 @@ module Phronomy
         context = input ? state.merge(input) : state
         execution = Execution.new(
           context: context,
-          thread_id: thread_id,
+          workflow_instance_id: workflow_instance_id,
           fsm_session_id: fsm_session_id,
           recursion_limit: Phronomy.configuration.recursion_limit,
           repository: nil,
@@ -316,9 +327,9 @@ module Phronomy
       result_task
     rescue => error
       if defined?(event_loop) && event_loop &&
-          defined?(thread_id) && defined?(fsm_session_id)
+          defined?(workflow_instance_id) && defined?(fsm_session_id)
         event_loop.release_workflow(
-          thread_id,
+          workflow_instance_id,
           owner_fsm_session_id: fsm_session_id
         )
       end
@@ -328,7 +339,7 @@ module Phronomy
 
     def build_new_execution(
       input,
-      thread_id:,
+      workflow_instance_id:,
       fsm_session_id:,
       recursion_limit:,
       repository:,
@@ -346,11 +357,11 @@ module Phronomy
       end
 
       context = @state_class.new(**initial_fields)
-      context.set_graph_metadata(thread_id: thread_id)
+      context.set_graph_metadata(workflow_instance_id: workflow_instance_id)
 
       Execution.new(
         context: context,
-        thread_id: thread_id,
+        workflow_instance_id: workflow_instance_id,
         fsm_session_id: fsm_session_id,
         recursion_limit: recursion_limit,
         repository: repository,
@@ -368,7 +379,7 @@ module Phronomy
 
       raise Phronomy::Persistence::ConflictError,
         "Workflow state changed since the supplied halted context for " \
-        "thread_id #{state.thread_id.inspect}; explicit reload/reconciliation is required"
+        "workflow_instance_id #{state.workflow_instance_id.inspect}; explicit reload/reconciliation is required"
     end
 
     def normalize_snapshot(snapshot)
@@ -438,7 +449,7 @@ module Phronomy
       result_task
     rescue => error
       Phronomy::Runtime.instance.event_loop.release_workflow(
-        execution.thread_id,
+        execution.workflow_instance_id,
         owner_fsm_session_id: execution.fsm_session_id
       )
       fail_task(result_task, error)
@@ -450,7 +461,7 @@ module Phronomy
       event_loop = Phronomy::Runtime.instance.event_loop
       if error
         event_loop.release_workflow(
-          execution.thread_id,
+          execution.workflow_instance_id,
           owner_fsm_session_id: execution.fsm_session_id
         )
         fail_task(result_task, error)
@@ -459,7 +470,7 @@ module Phronomy
 
       unless execution.repository && execution.persist
         event_loop.release_workflow(
-          execution.thread_id,
+          execution.workflow_instance_id,
           owner_fsm_session_id: execution.fsm_session_id
         )
         complete_task(result_task, result)
@@ -470,7 +481,7 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       operation = runtime.offload.submit(on_full: :raise) do
         execution.repository.save(
-          execution.thread_id,
+          execution.workflow_instance_id,
           expected_revision: execution.expected_revision,
           snapshot: snapshot
         )
@@ -481,7 +492,7 @@ module Phronomy
           result_task,
           result,
           persistence_error,
-          execution.thread_id,
+          execution.workflow_instance_id,
           execution.fsm_session_id
         )
         posted = event_loop.post(
@@ -495,7 +506,7 @@ module Phronomy
       end
     rescue => persistence_start_error
       event_loop.release_workflow(
-        execution.thread_id,
+        execution.workflow_instance_id,
         owner_fsm_session_id: execution.fsm_session_id
       )
       fail_task(result_task, persistence_start_error)
@@ -503,7 +514,7 @@ module Phronomy
 
     def settle_persistence_without_event_loop(command, event_loop)
       event_loop.release_workflow(
-        command.thread_id,
+        command.workflow_instance_id,
         owner_fsm_session_id: command.fsm_session_id
       )
       command.error ?
@@ -513,9 +524,9 @@ module Phronomy
       fail_task(command.result_task, error)
     end
 
-    def release_and_fail(event_loop, result_task, thread_id, fsm_session_id, error)
+    def release_and_fail(event_loop, result_task, workflow_instance_id, fsm_session_id, error)
       event_loop.release_workflow(
-        thread_id,
+        workflow_instance_id,
         owner_fsm_session_id: fsm_session_id
       )
       fail_task(result_task, error)
@@ -537,7 +548,7 @@ module Phronomy
     )
       Phronomy::FSMSession.new(
         id: execution.fsm_session_id,
-        graph_thread_id: execution.thread_id,
+        graph_thread_id: execution.workflow_instance_id,
         context: execution.context,
         entry_point: @entry_point,
         entry_actions: @entry_actions,

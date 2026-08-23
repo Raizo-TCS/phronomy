@@ -212,9 +212,9 @@ module Phronomy
       class WorkflowStates
         def initialize(owner) = @owner = owner
 
-        def load(thread_id)
+        def load(workflow_instance_id)
           @owner.synchronize do
-            record = @owner.workflow_state_data[thread_id.to_s]
+            record = @owner.workflow_state_data[workflow_instance_id.to_s]
             next nil unless record
 
             {
@@ -224,9 +224,9 @@ module Phronomy
           end
         end
 
-        def save(thread_id, expected_revision:, snapshot:)
+        def save(workflow_instance_id, expected_revision:, snapshot:)
           @owner.synchronize do
-            key = thread_id.to_s
+            key = workflow_instance_id.to_s
             current = @owner.workflow_state_data[key]
             actual_revision = current&.fetch(:revision)
             unless actual_revision == expected_revision
@@ -244,9 +244,9 @@ module Phronomy
           end
         end
 
-        def delete(thread_id, expected_revision:)
+        def delete(workflow_instance_id, expected_revision:)
           @owner.synchronize do
-            key = thread_id.to_s
+            key = workflow_instance_id.to_s
             current = @owner.workflow_state_data[key]
             actual_revision = current&.fetch(:revision)
             unless actual_revision == expected_revision
