@@ -169,7 +169,7 @@ RSpec.describe "Security specs (Issue #214)" do
   # Section 3: Input filter acts as a gate before LLM call (Issue #248)
   # -------------------------------------------------------------------------
   describe "input filter LLM gate" do
-    let(:rejecting_guardrail) do
+    let(:rejecting_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(input, **_ctx)
           block!("blocked input") if input.to_s.include?("DROP TABLE")
@@ -183,7 +183,7 @@ RSpec.describe "Security specs (Issue #214)" do
         agent_definition id: "test-agent-207", version: 1
         model "test-model"
       }.new
-      agent.add_input_filter(rejecting_guardrail)
+      agent.add_input_filter(rejecting_filter)
 
       # RubyLLM.chat must never be called when the filter fires before it.
       expect(RubyLLM).not_to receive(:chat)
@@ -197,7 +197,7 @@ RSpec.describe "Security specs (Issue #214)" do
         agent_definition id: "test-agent-208", version: 1
         model "test-model"
       }.new
-      agent.add_input_filter(rejecting_guardrail)
+      agent.add_input_filter(rejecting_filter)
 
       error = nil
       begin
@@ -215,7 +215,7 @@ RSpec.describe "Security specs (Issue #214)" do
   # Section 4: Output filter intercepts harmful LLM output (Issue #248)
   # -------------------------------------------------------------------------
   describe "output filter intercept" do
-    let(:secret_filter_guardrail) do
+    let(:secret_output_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(output, **_ctx)
           block!("response contains a secret API key") if output.to_s.match?(/sk-[A-Za-z0-9]{20,}/)
@@ -231,7 +231,7 @@ RSpec.describe "Security specs (Issue #214)" do
         agent_definition id: "test-agent-209", version: 1
         model "test-model"
       }.new
-      agent.add_output_filter(secret_filter_guardrail)
+      agent.add_output_filter(secret_output_filter)
 
       chat_double = double("Chat")
       response = double("response",

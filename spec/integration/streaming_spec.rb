@@ -6,7 +6,7 @@ require_relative "support/llm_stub"
 
 # Group 9: Agent Token-Level Streaming
 # Pairwise factors: agent_class × agent_streaming_mode × stream_event_types_expected
-#                   × stream_guardrail_interaction × agent_tools
+#                   × stream_filter_interaction × agent_tools
 # Generated stubs: 20 cases
 #
 # Infeasible cases (skipped):

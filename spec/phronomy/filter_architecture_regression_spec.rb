@@ -86,6 +86,21 @@ RSpec.describe "Filter architecture regression contract (ACS-03)" do
     )
     expect(legacy_spec_names).to be_empty
 
+    # Scope is the ACS-03 terminology-cleaned active specs only.
+    # Historical ADR/design files retain Guardrail wording as decision evidence.
+    terminology_files = %w[
+      spec/phronomy/filter_blocking_spec.rb
+      spec/phronomy/security_spec.rb
+      spec/phronomy/fault_injection_extended_spec.rb
+      spec/phronomy/fault_injection_advanced_spec.rb
+      spec/integration/tool_filter_spec.rb
+      spec/integration/support/factors.rb
+      spec/integration/streaming_spec.rb
+    ]
+    terminology_files.each do |relative_path|
+      expect(File.read(File.join(root, relative_path))).not_to match(/guardrail/i)
+    end
+
     features = File.read(File.join(root, "docs/features.md"))
     expect(features).not_to match(/\bguardrails?\b/i)
     expect(features).to include(

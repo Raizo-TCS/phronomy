@@ -71,7 +71,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   describe "Output filter raises during streaming" do
-    let(:exploding_guardrail) do
+    let(:exploding_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(_output, **_ctx)
           raise "filter exploded during streaming"
@@ -80,7 +80,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "propagates the filter exception unchanged" do
-      expect { exploding_guardrail.call("partial stream output") }
+      expect { exploding_filter.call("partial stream output") }
         .to raise_error(RuntimeError, "filter exploded during streaming")
     end
   end
@@ -172,7 +172,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
   end
 
-  describe "before_llm_input raises with output_guardrail also registered" do
+  describe "before_llm_input raises with output_filter also registered" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-302", version: 1

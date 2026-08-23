@@ -18,7 +18,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
   # 1. Output filter fault isolation
   # -------------------------------------------------------------------------
   describe "Output filter fault isolation" do
-    let(:always_reject_guardrail) do
+    let(:always_reject_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(output, **_ctx)
           block!("Filter always rejects: #{output}")
@@ -27,7 +27,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
       end.new
     end
 
-    let(:exploding_guardrail) do
+    let(:exploding_filter) do
       Class.new(Phronomy::Filter::Base) do
         def call(_output, **_ctx)
           raise "filter itself exploded"
@@ -36,25 +36,25 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
     end
 
     it "raises FilterBlockError when output filter rejects" do
-      expect { always_reject_guardrail.call("some output") }.to raise_error(Phronomy::FilterBlockError)
+      expect { always_reject_filter.call("some output") }.to raise_error(Phronomy::FilterBlockError)
     end
 
     it "includes the rejection reason in FilterBlockError message" do
-      expect { always_reject_guardrail.call("test") }
+      expect { always_reject_filter.call("test") }
         .to raise_error(Phronomy::FilterBlockError, /always rejects/)
     end
 
     it "propagates unexpected exceptions from filter#check unchanged" do
-      expect { exploding_guardrail.call("test") }
+      expect { exploding_filter.call("test") }
         .to raise_error(RuntimeError, "filter itself exploded")
     end
 
     it "passes the filter for valid output" do
-      passing_guardrail = Class.new(Phronomy::Filter::Base) do
+      passing_filter = Class.new(Phronomy::Filter::Base) do
         def call(value, **_ctx) = value
       end.new
 
-      expect { passing_guardrail.call("fine output") }.not_to raise_error
+      expect { passing_filter.call("fine output") }.not_to raise_error
     end
   end
 
