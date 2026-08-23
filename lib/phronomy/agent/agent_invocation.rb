@@ -1,12 +1,10 @@
 # frozen_string_literal: true
 
-require "securerandom"
-
 module Phronomy
   module Agent
     class AgentInvocation
-      # execution_id is the logical Agent execution parent. `id` and
-      # Runtime session metadata remain temporary routing internals until CG-03b.
+      # execution_id is the logical Agent execution parent. Concrete Runtime
+      # routing identity belongs only to the owning FSMSession incarnation.
       TOOL_EVENT_TYPES = %i[
         tool_authorized
         tool_approval_required
@@ -32,15 +30,13 @@ module Phronomy
         :rejected,
         :error
 
-      attr_reader :id,
-        :execution_id,
+      attr_reader :execution_id,
         :agent,
         :config,
         :approval_policy,
         :approval_listener,
         :pending_tool_calls,
         :tool_invocations,
-        :session_id,
         :phase,
         :mode,
         :current_llm_call_id,
@@ -55,13 +51,11 @@ module Phronomy
         approval_listener: nil,
         event_listener: nil,
         mode: nil,
-        execution_id: nil,
-        id: nil
+        execution_id: nil
       )
         @agent = agent
         @input = input
         @config = config
-        @id = (id || SecureRandom.uuid).to_s
         resolved_execution_id = execution_id || config[:execution_id]
         @execution_id = resolved_execution_id&.to_s&.freeze
         invocation_context = config[:invocation_context]
@@ -88,7 +82,6 @@ module Phronomy
         @approval_resume_in_progress = false
         @pending_approval_resolution_ids = []
         @error = nil
-        @session_id = nil
         @phase = nil
         @current_llm_call_id = nil
         @tool_batch_llm_call_id = nil
@@ -99,8 +92,7 @@ module Phronomy
         @mode == :stream
       end
 
-      def set_graph_metadata(thread_id: nil, phase: nil)
-        @session_id = thread_id if thread_id
+      def set_graph_metadata(phase: nil)
         @phase = phase
       end
 
@@ -383,6 +375,15 @@ module Phronomy
           raise Phronomy::Error, "Expected LLMOperationResult, got #{result.class}"
         end
 
+        activation = @config[:phronomy_activation]
+        if activation && @current_llm_call_id
+          activation.record_llm_result(
+            response: canonical_response_for_llm_result(result),
+            error: result.error,
+            streaming: result.streaming
+          )
+        end
+
         if event.type == :llm_failed
           @current_llm_call_id = nil
           @error = result.error || Phronomy::Error.new("LLM operation failed without an error")
@@ -401,6 +402,14 @@ module Phronomy
           end
         else
           apply_llm_response!(result.response)
+        end
+      end
+
+      def canonical_response_for_llm_result(result)
+        if result.error.is_a?(ToolCallIntercepted)
+          result.error.assistant_outcome || ProviderCallOutcome.capture(result.response)
+        else
+          ProviderCallOutcome.capture(result.response)
         end
       end
 

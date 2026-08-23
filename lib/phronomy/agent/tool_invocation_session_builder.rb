@@ -40,18 +40,28 @@ module Phronomy
         ]
       }.freeze
 
-      def self.build(tool_invocation:, runtime: Phronomy::Runtime.instance)
-        build_session(tool_invocation: tool_invocation, runtime: runtime)
+      def self.build(
+        tool_invocation:,
+        parent_event_sink:,
+        runtime: Phronomy::Runtime.instance
+      )
+        build_session(
+          tool_invocation: tool_invocation,
+          parent_event_sink: parent_event_sink,
+          runtime: runtime
+        )
       end
 
       def self.build_for_resume(
         tool_invocation:,
+        parent_event_sink:,
         resume_event:,
         resume_phase:,
         runtime: Phronomy::Runtime.instance
       )
         build_session(
           tool_invocation: tool_invocation,
+          parent_event_sink: parent_event_sink,
           runtime: runtime,
           resume_event: resume_event,
           resume_phase: resume_phase
@@ -60,16 +70,18 @@ module Phronomy
 
       def self.build_session(
         tool_invocation:,
+        parent_event_sink:,
         runtime:,
         resume_event: nil,
         resume_phase: nil
       )
-        actions = build_entry_actions(runtime)
+        event_sink = Phronomy::FSMSession::EventSink.new(event_loop: runtime.event_loop)
+        actions = build_entry_actions(runtime, event_sink, parent_event_sink)
         phase_machine = build_phase_machine(actions)
 
         Phronomy::FSMSession.new(
-          id: tool_invocation.id,
           context: tool_invocation,
+          event_sink: event_sink,
           entry_point: :idle,
           phase_machine_class: phase_machine,
           entry_actions: {},
@@ -85,18 +97,18 @@ module Phronomy
       end
       private_class_method :build_session
 
-      def self.build_entry_actions(runtime)
+      def self.build_entry_actions(runtime, event_sink, parent_event_sink)
         {
           validating: [method(:validating_action)],
-          authorizing: [method(:authorizing_action).curry.call(runtime)],
-          awaiting_approval: [method(:awaiting_approval_action).curry.call(runtime)],
-          authorized: [method(:authorized_action).curry.call(runtime)],
+          authorizing: [method(:authorizing_action).curry.call(runtime, event_sink)],
+          awaiting_approval: [method(:awaiting_approval_action).curry.call(parent_event_sink)],
+          authorized: [method(:authorized_action).curry.call(parent_event_sink)],
           queued: [method(:queued_action)],
-          running: [method(:running_action).curry.call(runtime)],
-          completed: [method(:completed_action).curry.call(runtime)],
-          failed: [method(:failed_action).curry.call(runtime)],
-          rejected: [method(:rejected_action).curry.call(runtime)],
-          cancelled: [method(:cancelled_action).curry.call(runtime)]
+          running: [method(:running_action).curry.call(runtime, event_sink)],
+          completed: [method(:completed_action).curry.call(parent_event_sink)],
+          failed: [method(:failed_action).curry.call(parent_event_sink)],
+          rejected: [method(:rejected_action).curry.call(parent_event_sink)],
+          cancelled: [method(:cancelled_action).curry.call(parent_event_sink)]
         }
       end
       private_class_method :build_entry_actions
@@ -183,24 +195,24 @@ module Phronomy
       end
       private_class_method :validating_action
 
-      def self.authorizing_action(runtime, invocation)
+      def self.authorizing_action(runtime, event_sink, invocation)
         invocation.start_authorization(runtime: runtime) do |outcome|
-          post_to_invocation(runtime, invocation.id, :authorization_completed, outcome)
+          post_to_session(event_sink, :authorization_completed, outcome)
         end
         invocation
       end
       private_class_method :authorizing_action
 
-      def self.awaiting_approval_action(runtime, invocation)
+      def self.awaiting_approval_action(parent_event_sink, invocation)
         invocation.mark_awaiting_approval!
-        notify_parent(runtime, invocation, :tool_approval_required)
+        notify_parent(parent_event_sink, invocation, :tool_approval_required)
         invocation
       end
       private_class_method :awaiting_approval_action
 
-      def self.authorized_action(runtime, invocation)
+      def self.authorized_action(parent_event_sink, invocation)
         invocation.mark_authorized!
-        notify_parent(runtime, invocation, :tool_authorized)
+        notify_parent(parent_event_sink, invocation, :tool_authorized)
         invocation
       end
       private_class_method :authorized_action
@@ -210,61 +222,53 @@ module Phronomy
       end
       private_class_method :queued_action
 
-      def self.running_action(runtime, invocation)
+      def self.running_action(runtime, event_sink, invocation)
         invocation.start_execution(runtime: runtime) do |outcome|
-          post_to_invocation(runtime, invocation.id, :execution_completed, outcome)
+          post_to_session(event_sink, :execution_completed, outcome)
         end
         invocation.mark_running!
         invocation
       end
       private_class_method :running_action
 
-      def self.completed_action(runtime, invocation)
-        notify_parent(runtime, invocation, :tool_completed)
+      def self.completed_action(parent_event_sink, invocation)
+        notify_parent(parent_event_sink, invocation, :tool_completed)
         invocation
       end
       private_class_method :completed_action
 
-      def self.failed_action(runtime, invocation)
-        notify_parent(runtime, invocation, :tool_failed)
+      def self.failed_action(parent_event_sink, invocation)
+        notify_parent(parent_event_sink, invocation, :tool_failed)
         invocation
       end
       private_class_method :failed_action
 
-      def self.rejected_action(runtime, invocation)
+      def self.rejected_action(parent_event_sink, invocation)
         invocation.mark_rejected!
-        notify_parent(runtime, invocation, :tool_rejected)
+        notify_parent(parent_event_sink, invocation, :tool_rejected)
         invocation
       end
       private_class_method :rejected_action
 
-      def self.cancelled_action(runtime, invocation)
+      def self.cancelled_action(parent_event_sink, invocation)
         invocation.mark_cancelled!
-        notify_parent(runtime, invocation, :tool_cancelled)
+        notify_parent(parent_event_sink, invocation, :tool_cancelled)
         invocation
       end
       private_class_method :cancelled_action
 
-      def self.post_to_invocation(runtime, id, event_type, payload)
-        accepted = runtime.event_loop.post_to_session(
-          Phronomy::Event.new(type: event_type, target_id: id, payload: payload)
-        )
-        return if accepted
+      def self.post_to_session(event_sink, event_type, payload)
+        return if event_sink.post(event_type, payload)
 
         Phronomy.configuration.logger&.warn(
-          "[Phronomy] Dropped #{event_type.inspect} for ToolInvocation #{id}"
+          "[Phronomy] Dropped #{event_type.inspect} for " \
+          "FSMSession #{event_sink.fsm_session_id}"
         )
       end
-      private_class_method :post_to_invocation
+      private_class_method :post_to_session
 
-      def self.notify_parent(runtime, invocation, event_type)
-        runtime.event_loop.post_to_session(
-          Phronomy::Event.new(
-            type: event_type,
-            target_id: invocation.parent_agent_invocation_id,
-            payload: {tool_invocation_id: invocation.id}
-          )
-        )
+      def self.notify_parent(parent_event_sink, invocation, event_type)
+        parent_event_sink.post(event_type, {tool_invocation_id: invocation.id})
       end
       private_class_method :notify_parent
     end

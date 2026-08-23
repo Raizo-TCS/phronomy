@@ -50,25 +50,21 @@ RSpec.describe "CG-03a Agent execution parent identity" do
     expect(updated.execution_id).to eq("execution-1")
   end
 
-  it "keeps AgentInvocation logical parent separate from its temporary Runtime id" do
+  it "keeps AgentInvocation as a live execution context without its own ID" do
     invocation = Phronomy::Agent::AgentInvocation.new(
       agent: Object.new,
       input: "hello",
       config: {},
-      execution_id: "execution-1",
-      id: "temporary-runtime-route"
+      execution_id: "execution-1"
     )
 
     expect(invocation.execution_id).to eq("execution-1")
-    expect(invocation.id).to eq("temporary-runtime-route")
-    expect(invocation.execution_id).not_to eq(invocation.id)
-    expect(invocation).not_to respond_to(:agent_invocation_id)
+    expect(invocation).not_to respond_to(:id, :session_id, :agent_invocation_id)
   end
 
-  it "gives ToolInvocation an execution parent distinct from its temporary parent route" do
+  it "gives ToolInvocation an execution parent without storing Runtime routing" do
     invocation = Phronomy::Agent::ToolInvocation.new(
       execution_id: "execution-1",
-      parent_agent_invocation_id: "temporary-parent-route",
       agent: Object.new,
       tool: nil,
       tool_call: Struct.new(:id, :name, :arguments).new(
@@ -79,7 +75,9 @@ RSpec.describe "CG-03a Agent execution parent identity" do
 
     expect(invocation.execution_id).to eq("execution-1")
     expect(invocation.id).not_to eq(invocation.execution_id)
-    expect(invocation).not_to respond_to(:agent_invocation_id)
+    expect(invocation).not_to respond_to(
+      :parent_agent_invocation_id, :session_id, :agent_invocation_id
+    )
   end
 
   it "rejects legacy agent_invocation_id through public Agent config" do

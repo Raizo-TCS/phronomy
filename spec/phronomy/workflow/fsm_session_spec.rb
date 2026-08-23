@@ -57,10 +57,12 @@ RSpec.describe Phronomy::FSMSession do
   # ---------------------------------------------------------------------------
 
   def build_test_execution(ctx, recursion_limit:)
+    fsm_identity_reservation = Phronomy::FSMSession.reserve_identity
     Phronomy::WorkflowRunner::Execution.new(
       context: ctx,
       workflow_instance_id: "test-thread",
-      fsm_session_id: SecureRandom.uuid,
+      fsm_session_id: fsm_identity_reservation.fsm_session_id,
+      fsm_identity_reservation: fsm_identity_reservation,
       recursion_limit: recursion_limit,
       repository: nil,
       persist: false,
@@ -85,6 +87,24 @@ RSpec.describe Phronomy::FSMSession do
       resume_event: resume_event,
       resume_phase: resume_phase,
       runtime: fake_runtime || Phronomy::Runtime.instance)
+  end
+
+  it "uses a fresh FSMSession identity reservation for each Workflow incarnation" do
+    app = Phronomy::Workflow.define(ctx_class) do
+      initial :waiting
+      wait_state :waiting
+    end
+    runner = runner_from(app)
+    ctx = ctx_class.new(value: 0)
+    ctx.set_graph_metadata(workflow_instance_id: "identity-test")
+
+    with_fake_loop do |_fake, fake_runtime|
+      first = build_wait_session(ctx, runner: runner, fake_runtime: fake_runtime)
+      second = build_wait_session(ctx, runner: runner, fake_runtime: fake_runtime)
+      expect(first.id).to match(/\A[0-9a-f-]{36}\z/)
+      expect(second.id).to match(/\A[0-9a-f-]{36}\z/)
+      expect(second.id).not_to eq(first.id)
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -129,6 +149,8 @@ RSpec.describe Phronomy::FSMSession do
         finish_event = events.find { |e| e.type == :finished }
         expect(finish_event).not_to be_nil
         expect(finish_event.target_id).to eq(Phronomy::EventLoop::SYSTEM_CHANNEL_ID)
+        expect(finish_event.payload[:fsm_session_id]).to eq(session.id)
+        expect(finish_event.payload).not_to have_key(:session_id)
         expect(finish_event.payload[:result].value).to eq(1)
       end
     end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module Phronomy
   # Event-driven execution wrapper for a single FSM session.
   #
@@ -7,12 +9,73 @@ module Phronomy
   # FSMSession owns FSM execution only; it does not own external Task handles,
   # activity tokens, callback correlation, or domain-specific stale-event policy.
   class FSMSession
+    # Runtime-only reservation used when infrastructure must allocate the future
+    # concrete FSMSession identity before the session object can be constructed.
+    # Workflow uses this only to preserve its current pre-load admission ordering
+    # until ACS-13 separates admission ownership from FSMSession identity.
+    class IdentityReservation
+      attr_reader :fsm_session_id
+
+      def initialize
+        @fsm_session_id = SecureRandom.uuid.to_s.freeze
+        @claimed = false
+        @mutex = Mutex.new
+      end
+
+      def claim!
+        @mutex.synchronize do
+          raise Phronomy::Error, "FSMSession identity reservation already claimed" if @claimed
+
+          @claimed = true
+          @fsm_session_id
+        end
+      end
+    end
+    private_constant :IdentityReservation
+
+    # Runtime-only event target bound to exactly one concrete FSMSession
+    # incarnation. Rebuilt sessions receive different sinks and IDs.
+    class EventSink
+      attr_reader :fsm_session_id
+
+      def initialize(event_loop:)
+        @event_loop = event_loop
+        @fsm_session_id = nil
+      end
+
+      def bind!(fsm_session_id)
+        raise Phronomy::Error, "FSMSession EventSink is already bound" if @fsm_session_id
+
+        @fsm_session_id = fsm_session_id.to_s.freeze
+        self
+      end
+
+      def post(type, payload = nil)
+        raise Phronomy::Error, "FSMSession EventSink is not bound" unless @fsm_session_id
+
+        event = Phronomy::Event.new(
+          type: type,
+          target_id: @fsm_session_id,
+          payload: payload
+        )
+        if @event_loop.respond_to?(:post_to_session)
+          @event_loop.post_to_session(event)
+        else
+          @event_loop.post(event)
+        end
+      end
+    end
+
     FINISH = WorkflowRunner::FINISH
 
-    attr_reader :id, :context
+    attr_reader :id, :context, :event_sink
+
+    # @api private
+    def self.reserve_identity
+      IdentityReservation.new
+    end
 
     def initialize(
-      id:,
       context:,
       entry_point:,
       entry_actions:,
@@ -26,10 +89,22 @@ module Phronomy
       resume_event: nil,
       resume_phase: nil,
       stable_observer: nil,
-      graph_thread_id: nil
+      context_metadata: {},
+      event_sink: nil,
+      identity_reservation: nil
     )
-      @id = id
-      @graph_thread_id = graph_thread_id || id
+      @id = if identity_reservation
+        unless identity_reservation.is_a?(IdentityReservation)
+          raise ArgumentError,
+            "identity_reservation must come from FSMSession.reserve_identity"
+        end
+        identity_reservation.send(:claim!).to_s.freeze
+      else
+        SecureRandom.uuid.to_s.freeze
+      end
+      @event_sink = event_sink || EventSink.new(event_loop: event_loop)
+      @event_sink.bind!(@id)
+      @context_metadata = context_metadata.dup.freeze
       @ctx = context
       @context = context
       @entry_point = entry_point
@@ -110,6 +185,7 @@ module Phronomy
       if _fsm_context?(result)
         @ctx = result
         @context = result
+        apply_context_metadata!
       end
     end
 
@@ -122,6 +198,7 @@ module Phronomy
       if _fsm_context?(result)
         @ctx = result
         @context = result
+        apply_context_metadata!
         @tracker.context = @ctx
         true
       else
@@ -143,6 +220,7 @@ module Phronomy
 
       @ctx = @tracker.context
       @context = @ctx
+      apply_context_metadata!
       @current_state = @tracker.phase.to_sym
       @step += 1
       advance_or_halt
@@ -219,7 +297,7 @@ module Phronomy
       return if @done
 
       @done = true
-      @ctx.set_graph_metadata(thread_id: @graph_thread_id, phase: :__end__)
+      apply_context_metadata!(phase: :__end__)
       post_terminal_event(:finished, @ctx)
     end
 
@@ -227,7 +305,7 @@ module Phronomy
       return if @done
 
       @done = true
-      @ctx.set_graph_metadata(thread_id: @graph_thread_id, phase: @current_state)
+      apply_context_metadata!(phase: @current_state)
       post_terminal_event(:halted, @ctx)
     end
 
@@ -243,7 +321,7 @@ module Phronomy
         Phronomy::Event.new(
           type: type,
           target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-          payload: {session_id: @id, result: result}
+          payload: {fsm_session_id: @id, result: result}
         )
       )
       return if accepted
@@ -252,6 +330,14 @@ module Phronomy
         "[Phronomy::FSMSession] EventLoop rejected terminal event " \
           "#{type.inspect} for #{@id}"
       )
+    end
+
+    def apply_context_metadata!(phase: nil)
+      return unless @ctx.respond_to?(:set_graph_metadata)
+
+      metadata = @context_metadata
+      metadata = metadata.merge(phase: phase) unless phase.nil?
+      @ctx.set_graph_metadata(**metadata)
     end
 
     def fire_event!(tracker, event_name, from_state)

@@ -5,9 +5,8 @@ require "securerandom"
 module Phronomy
   module Agent
     class ToolInvocation
-      # execution_id is the logical parent. parent_agent_invocation_id is only
-      # the temporary parent-FSMSession routing carrier until CG-03b; it is not
-      # application-facing or durable identity.
+      # execution_id is the logical AgentExecution parent. Runtime routing
+      # belongs to concrete FSMSession event sinks and is not stored here.
       AuthorizationOutcome = Struct.new(:decision, :facts, :reason, :error, :cancelled)
       ExecutionOutcome = Struct.new(:result, :error, :cancelled)
 
@@ -18,7 +17,6 @@ module Phronomy
 
       attr_reader :id,
         :execution_id,
-        :parent_agent_invocation_id,
         :agent,
         :tool,
         :tool_name,
@@ -31,7 +29,6 @@ module Phronomy
         :result,
         :error,
         :status,
-        :session_id,
         :phase,
         :config,
         :approval_policy,
@@ -39,10 +36,9 @@ module Phronomy
         :origin,
         :metadata
 
-      def self.missing(execution_id:, parent_agent_invocation_id:, agent:, tool_call:, config: {})
+      def self.missing(execution_id:, agent:, tool_call:, config: {})
         new(
           execution_id: execution_id,
-          parent_agent_invocation_id: parent_agent_invocation_id,
           agent: agent,
           tool: nil,
           tool_call: tool_call,
@@ -52,7 +48,6 @@ module Phronomy
 
       def initialize(
         execution_id:,
-        parent_agent_invocation_id:,
         agent:,
         tool:,
         tool_call:,
@@ -67,7 +62,6 @@ module Phronomy
 
         @id = id.to_s
         @execution_id = execution_id.to_s.freeze
-        @parent_agent_invocation_id = parent_agent_invocation_id.to_s
         @agent = agent
         @tool = tool
         @tool_name = tool_call.name.to_s
@@ -89,12 +83,10 @@ module Phronomy
         @error = nil
         @approval_consumed = false
         @status = :created
-        @session_id = nil
         @phase = nil
       end
 
-      def set_graph_metadata(thread_id: nil, phase: nil)
-        @session_id = thread_id if thread_id
+      def set_graph_metadata(phase: nil)
         @phase = phase
       end
 

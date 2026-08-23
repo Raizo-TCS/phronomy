@@ -414,7 +414,9 @@ module Phronomy
           approval_policy: approval_policy,
           approval_listener: approval_listener,
           mode: mode,
-          on_event: ->(event) { activation.record_event(event) },
+          on_event: ->(event, event_sink) {
+            activation.record_event(event, event_sink: event_sink)
+          },
           runtime: runtime
         )
         activation.invocation = session.context
@@ -1088,6 +1090,9 @@ module Phronomy
           agent_invocation: invocation,
           resume_event: :resume,
           resume_phase: :suspended,
+          on_event: ->(event, event_sink) {
+            activation.record_event(event, event_sink: event_sink)
+          },
           runtime: runtime
         )
         activation.session = parent_session
@@ -1105,6 +1110,7 @@ module Phronomy
           child_session = if child.awaiting_approval?
             Agent::ToolInvocationSessionBuilder.build_for_resume(
               tool_invocation: child,
+              parent_event_sink: parent_session.event_sink,
               resume_event: approved ? :approve : :reject,
               resume_phase: :awaiting_approval,
               runtime: runtime
@@ -1112,28 +1118,23 @@ module Phronomy
           elsif !approved && child.authorized?
             Agent::ToolInvocationSessionBuilder.build_for_resume(
               tool_invocation: child,
+              parent_event_sink: parent_session.event_sink,
               resume_event: :cancel,
               resume_phase: :authorized,
               runtime: runtime
             )
           end
-          register_child(event_loop, runtime, child, child_session) if child_session
+          register_child(event_loop, child, child_session, parent_session.event_sink) if child_session
         end
       end
 
-      def register_child(event_loop, runtime, child, session)
+      def register_child(event_loop, child, session, parent_event_sink)
         completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
         completion.on_complete do |_result, error|
           next unless error
 
           child.mark_framework_failed!(error)
-          runtime.event_loop.post_to_session(
-            Phronomy::Event.new(
-              type: :tool_failed,
-              target_id: child.parent_agent_invocation_id,
-              payload: {tool_invocation_id: child.id}
-            )
-          )
+          parent_event_sink.post(:tool_failed, {tool_invocation_id: child.id})
         end
         event_loop.register(session, completion: completion)
       end

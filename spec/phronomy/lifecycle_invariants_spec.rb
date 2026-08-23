@@ -51,7 +51,7 @@ RSpec.describe "Lifecycle invariants" do
           Phronomy::Event.new(
             type: :finished,
             target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-            payload: {session_id: session_id, result: "done"}
+            payload: {fsm_session_id: session_id, result: "done"}
           )
         )
       end
@@ -74,10 +74,12 @@ RSpec.describe "Lifecycle invariants" do
   end
 
   def build_test_execution(ctx, recursion_limit:)
+    fsm_identity_reservation = Phronomy::FSMSession.reserve_identity
     Phronomy::WorkflowRunner::Execution.new(
       context: ctx,
       workflow_instance_id: "test-thread",
-      fsm_session_id: SecureRandom.uuid,
+      fsm_session_id: fsm_identity_reservation.fsm_session_id,
+      fsm_identity_reservation: fsm_identity_reservation,
       recursion_limit: recursion_limit,
       repository: nil,
       persist: false,
@@ -356,7 +358,7 @@ RSpec.describe "Lifecycle invariants" do
             Phronomy::Event.new(
               type: :finished,
               target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-              payload: {session_id: session_id, result: "done"}
+              payload: {fsm_session_id: session_id, result: "done"}
             )
           )
         end

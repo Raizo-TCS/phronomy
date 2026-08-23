@@ -77,6 +77,25 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(source).not_to include("class PendingOperation")
   end
 
+  it "keeps FSMSession identity owned by FSMSession and out of Agent/Tool contexts" do
+    fsm = File.read(
+      File.expand_path("../../lib/phronomy/engine/fsm_session.rb", __dir__)
+    )
+    agent = File.read(
+      File.expand_path("../../lib/phronomy/agent/agent_invocation.rb", __dir__)
+    )
+    tool = File.read(
+      File.expand_path("../../lib/phronomy/agent/tool_invocation.rb", __dir__)
+    )
+
+    expect(fsm).to include("SecureRandom.uuid.to_s.freeze")
+    expect(fsm).to include("fsm_session_id")
+    expect(agent).not_to include("attr_reader :id")
+    expect(agent).not_to include(":session_id")
+    expect(tool).not_to include("parent_agent_invocation_id")
+    expect(tool).not_to include(":session_id")
+  end
+
   it "keeps synchronous VectorStore async convenience on OffloadPool" do
     source = File.read(
       File.expand_path("../../lib/phronomy/vector_store/async_backend.rb", __dir__)

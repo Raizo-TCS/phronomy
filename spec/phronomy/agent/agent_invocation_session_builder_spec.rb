@@ -21,11 +21,19 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       expect(session).to be_a(Phronomy::FSMSession)
     end
 
-    it "uses a UUID for the current Runtime session" do
-      session = described_class.build(
+    it "lets each FSMSession own a fresh UUID identity" do
+      first = described_class.build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
-      expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
+      second = described_class.build_for_resume(
+        agent_invocation: first.context,
+        resume_event: :resume,
+        resume_phase: :suspended
+      )
+      expect(first.id).to match(/\A[0-9a-f-]{36}\z/)
+      expect(second.id).to match(/\A[0-9a-f-]{36}\z/)
+      expect(second.id).not_to eq(first.id)
+      expect(first.context).not_to respond_to(:id, :session_id)
     end
 
     it "does not require application generic identity to build a session" do
@@ -53,7 +61,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     end
 
     it "accepts mode: :stream and on_event" do
-      on_event = ->(e) {}
+      on_event = ->(_event, _event_sink) {}
       session = described_class.build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"},
         mode: :stream, on_event: on_event
@@ -95,15 +103,18 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
         .and_return(first_session, second_session)
       allow(described_class).to receive(:register_child_session)
 
-      result = described_class.send(:dispatching_tools_action, runtime, invocation)
+      parent_event_sink = double("parent-event-sink")
+      result = described_class.send(
+        :dispatching_tools_action, runtime, parent_event_sink, invocation
+      )
 
       expect(result).to be(invocation)
       expect(Phronomy::Agent::ToolInvocationSessionBuilder)
         .to have_received(:build_for_resume).twice
       expect(described_class).to have_received(:register_child_session)
-        .with(runtime, first, first_session)
+        .with(runtime, first, first_session, parent_event_sink)
       expect(described_class).to have_received(:register_child_session)
-        .with(runtime, second, second_session)
+        .with(runtime, second, second_session, parent_event_sink)
     end
   end
 end

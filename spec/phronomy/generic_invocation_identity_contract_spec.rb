@@ -58,16 +58,15 @@ RSpec.describe "CG-02 generic invocation identity removal" do
     expect(ctx.parent_task_id).to eq("parent")
   end
 
-  it "removes AgentInvocation generic thread_id but keeps Runtime bridge" do
+  it "removes generic Runtime identity copies from AgentInvocation" do
     methods = Phronomy::Agent::AgentInvocation.public_instance_methods(false)
-    expect(methods).not_to include(:thread_id)
+    expect(methods).not_to include(:id, :thread_id, :session_id)
 
-    expect(methods).to include(:session_id)
-    expect(
-      Phronomy::Agent::AgentInvocation
-        .instance_method(:set_graph_metadata)
-        .parameters
-    ).to include([:key, :thread_id])
+    parameters = Phronomy::Agent::AgentInvocation
+      .instance_method(:set_graph_metadata)
+      .parameters
+    expect(parameters).not_to include([:key, :thread_id])
+    expect(parameters).to include([:key, :phase])
   end
 
   it "removes generic identity from MultiAgent public/child contracts" do

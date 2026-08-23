@@ -1,17 +1,14 @@
 # frozen_string_literal: true
 
-require "securerandom"
-
 module Phronomy
   module MultiAgent
     # Mutable FSM context for one fan-out operation.
     class FanOutInvocation
       Child = Data.define(:index, :agent, :input, :config)
 
-      attr_reader :id, :phase, :results
+      attr_reader :phase, :results
 
       def initialize(children:, max_concurrency:, on_error:)
-        @id = SecureRandom.uuid.to_s
         @phase = nil
         @children = children
         @max_concurrency = max_concurrency || children.length
@@ -23,13 +20,9 @@ module Phronomy
         @fatal_error = nil
         @cancelled = false
         @timed_out = false
-        @session_id = nil
       end
 
-      # Shared FSMSession Runtime metadata bridge. This is not application
-      # invocation identity and remains outside CG-02a.
-      def set_graph_metadata(thread_id: nil, phase: nil)
-        @session_id = thread_id if thread_id
+      def set_graph_metadata(phase: nil)
         @phase = phase
       end
 
@@ -68,7 +61,7 @@ module Phronomy
         end
       end
 
-      def start_available!(runtime)
+      def start_available!(runtime, event_sink:)
         return self if @fatal_error
 
         while @active.length < @max_concurrency && (child = @pending.shift)
@@ -83,16 +76,13 @@ module Phronomy
           }
           [child.index].each do |captured_index|
             handle.on_complete do |result, error|
-              runtime.event_loop.post_to_session(
-                Phronomy::Event.new(
-                  type: :child_completed,
-                  target_id: @id,
-                  payload: {
-                    index: captured_index,
-                    result: result,
-                    error: error
-                  }
-                )
+              event_sink.post(
+                :child_completed,
+                {
+                  index: captured_index,
+                  result: result,
+                  error: error
+                }
               )
             end
           end
@@ -101,13 +91,7 @@ module Phronomy
       rescue => caught
         @fatal_error ||= caught
         cancel_active_children!
-        runtime.event_loop.post_to_session(
-          Phronomy::Event.new(
-            type: :driver_failed,
-            target_id: @id,
-            payload: {error: caught}
-          )
-        )
+        event_sink.post(:driver_failed, {error: caught})
         self
       end
 

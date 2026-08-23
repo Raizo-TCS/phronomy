@@ -20,7 +20,7 @@ RSpec.describe Phronomy::EventLoop, "queue observability" do
         Phronomy::Event.new(
           type: :finished,
           target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-          payload: {session_id: id, result: :finished}
+          payload: {fsm_session_id: id, result: :finished}
         )
       )
     end

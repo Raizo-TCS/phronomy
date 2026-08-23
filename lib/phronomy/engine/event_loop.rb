@@ -28,7 +28,7 @@ module Phronomy
 
       @fsms = {}
       @waiting = {}
-      @admitted_session_ids = Set.new
+      @admitted_fsm_session_ids = Set.new
       @workflow_admissions = {}
 
       @lifecycle_mutex = Mutex.new
@@ -88,17 +88,17 @@ module Phronomy
 
       @lifecycle_mutex.synchronize do
         ensure_accepting_registrations!
-        if @admitted_session_ids.include?(fsm_session.id)
+        if @admitted_fsm_session_ids.include?(fsm_session.id)
           raise Phronomy::Error,
             "FSMSession #{fsm_session.id.inspect} is already registered"
         end
 
-        @admitted_session_ids.add(fsm_session.id)
+        @admitted_fsm_session_ids.add(fsm_session.id)
         @outstanding_sessions += 1
         begin
           queued_depth = enqueue([event, monotonic_nanoseconds])
         rescue
-          @admitted_session_ids.delete(fsm_session.id)
+          @admitted_fsm_session_ids.delete(fsm_session.id)
           @outstanding_sessions -= 1
           @idle_cond.broadcast if runtime_idle_locked?
           raise
@@ -114,16 +114,16 @@ module Phronomy
       accepted = @lifecycle_mutex.synchronize do
         next false unless accepting_events?
 
-        terminal_session_id = nil
+        terminal_fsm_session_id = nil
         if terminal_management_event?(event)
-          terminal_session_id = event.payload.fetch(:session_id)
-          @admitted_session_ids.delete(terminal_session_id)
+          terminal_fsm_session_id = event.payload.fetch(:fsm_session_id)
+          @admitted_fsm_session_ids.delete(terminal_fsm_session_id)
         end
 
         begin
           queued_depth = enqueue([event, monotonic_nanoseconds])
         rescue
-          @admitted_session_ids.add(terminal_session_id) if terminal_session_id
+          @admitted_fsm_session_ids.add(terminal_fsm_session_id) if terminal_fsm_session_id
           raise
         end
         true
@@ -142,7 +142,7 @@ module Phronomy
       queued_depth = nil
       accepted = @lifecycle_mutex.synchronize do
         next false unless accepting_events?
-        next false unless @admitted_session_ids.include?(event.target_id)
+        next false unless @admitted_fsm_session_ids.include?(event.target_id)
 
         queued_depth = enqueue([event, monotonic_nanoseconds])
         true
@@ -204,7 +204,7 @@ module Phronomy
 
         owner = @workflow_admissions[workflow_instance_id.to_s]
         next false unless owner
-        next false unless @admitted_session_ids.include?(owner)
+        next false unless @admitted_fsm_session_ids.include?(owner)
 
         posted_event = Phronomy::Event.new(
           type: event.to_sym,
@@ -228,8 +228,8 @@ module Phronomy
       false
     end
 
-    def admitted_session?(session_id)
-      @lifecycle_mutex.synchronize { @admitted_session_ids.include?(session_id) }
+    def admitted_fsm_session?(fsm_session_id)
+      @lifecycle_mutex.synchronize { @admitted_fsm_session_ids.include?(fsm_session_id) }
     end
 
     def current?
@@ -352,9 +352,9 @@ module Phronomy
     def dispatch_management(event)
       case event.type
       when :finished, :halted, :error
-        session_id = event.payload.fetch(:session_id)
-        session = @fsms.delete(session_id)
-        waiter = @waiting.delete(session_id)
+        fsm_session_id = event.payload.fetch(:fsm_session_id)
+        session = @fsms.delete(fsm_session_id)
+        waiter = @waiting.delete(fsm_session_id)
         # decrement before waking caller so wait_until_idle sees the control-plane
         # session count immediately; Workflow durable admission may intentionally
         # keep Runtime non-idle until its terminal save completes.
@@ -379,7 +379,7 @@ module Phronomy
       event.target_id == SYSTEM_CHANNEL_ID &&
         TERMINAL_MANAGEMENT_EVENTS.include?(event.type) &&
         event.payload.is_a?(Hash) &&
-        event.payload.key?(:session_id)
+        event.payload.key?(:fsm_session_id)
     end
 
     def begin_stopping_if_idle
@@ -407,7 +407,7 @@ module Phronomy
       @waiting.clear
       @fsms.clear
       @lifecycle_mutex.synchronize do
-        @admitted_session_ids.clear
+        @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
         @outstanding_sessions = 0
         @idle_cond.broadcast
@@ -427,7 +427,7 @@ module Phronomy
     def notify_unexpected_dispatcher_failure(error)
       @lifecycle_mutex.synchronize do
         @state = :failed
-        @admitted_session_ids.clear
+        @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
         @idle_cond.broadcast
       end
@@ -467,7 +467,7 @@ module Phronomy
     def finalize_terminated(status)
       @lifecycle_mutex.synchronize do
         @state = :terminated
-        @admitted_session_ids.clear
+        @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
         @thread = nil unless @thread&.alive?
         @idle_cond.broadcast

@@ -43,7 +43,6 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
   subject(:invocation) do
     described_class.new(
       execution_id: "execution-1",
-      parent_agent_invocation_id: "agent-1",
       agent: agent,
       tool: tool,
       tool_call: tool_call,
@@ -72,7 +71,6 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     end
     invocation = described_class.new(
       execution_id: "execution-1",
-      parent_agent_invocation_id: "agent-1",
       agent: agent,
       tool: tool,
       tool_call: tool_call,
@@ -106,7 +104,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:name, :arguments).new("send_message", {"recipients" => [], "body" => "hi"})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: tool,
+        agent: agent, tool: tool,
         tool_call: stub, config: {}
       )
       expect(inv.instance_variable_get(:@tool_call_id)).to be_nil
@@ -116,7 +114,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name).new("call-2", "send_message")
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: tool,
+        agent: agent, tool: tool,
         tool_call: stub, config: {}
       )
       expect(inv.instance_variable_get(:@raw_arguments)).to eq({})
@@ -133,7 +131,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "basic", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: basic_tool,
+        agent: agent, tool: basic_tool,
         tool_call: stub, config: {}
       )
       expect(inv.instance_variable_get(:@origin)).to eq(:local)
@@ -142,7 +140,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     it "defaults approval_context to empty hash when nil" do
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: tool,
+        agent: agent, tool: tool,
         tool_call: tool_call, config: {}, approval_context: nil
       )
       expect(inv.instance_variable_get(:@approval_context)).to eq({})
@@ -163,7 +161,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "err_tool", {"count" => "not_an_int"})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: err_tool,
+        agent: agent, tool: err_tool,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -183,7 +181,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "raise_tool", {"count" => "bad"})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: raise_tool,
+        agent: agent, tool: raise_tool,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -263,7 +261,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "mcp_tool", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: mcp_tool,
+        agent: agent, tool: mcp_tool,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -275,7 +273,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       bad_policy = ->(_req) { :invalid }
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: tool,
+        agent: agent, tool: tool,
         tool_call: tool_call, config: {}, approval_policy: bad_policy
       )
       inv.validate!
@@ -295,7 +293,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "plain", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: plain_tool,
+        agent: agent, tool: plain_tool,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -315,7 +313,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "bad_facts", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: bad_facts_tool,
+        agent: agent, tool: bad_facts_tool,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -336,7 +334,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "req", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: req_true,
+        agent: agent, tool: req_true,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -356,7 +354,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "noq", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: req_false,
+        agent: agent, tool: req_false,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -376,7 +374,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "bad_callable", {})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: bad_callable,
+        agent: agent, tool: bad_callable,
         tool_call: stub, config: {}
       )
       inv.validate!
@@ -459,7 +457,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       stub = Struct.new(:id, :name, :arguments).new("c", "ecomplete", {"count" => "bad"})
       inv = described_class.new(
         execution_id: "execution-1",
-        parent_agent_invocation_id: "a", agent: agent, tool: err_tool,
+        agent: agent, tool: err_tool,
         tool_call: stub, config: {}
       )
       inv.validate!

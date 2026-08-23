@@ -57,20 +57,10 @@ module Phronomy
       phase != :__end__
     end
 
-    # Workflow identity is explicit domain metadata. The shared FSMSession still
-    # delivers its existing Runtime-internal graph identity as `thread_id:` in
-    # CG-01. Map that internal bridge onto the canonical Workflow identity without
-    # exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.
-    def set_graph_metadata(
-      workflow_instance_id: nil,
-      phase: nil,
-      **runtime_metadata
-    )
-      effective_workflow_instance_id =
-        workflow_instance_id || runtime_metadata[:thread_id]
-      unless effective_workflow_instance_id.nil?
-        @workflow_instance_id = effective_workflow_instance_id
-      end
+    # Workflow identity is explicit domain metadata. FSMSession supplies this
+    # metadata without a generic thread/session identity bridge.
+    def set_graph_metadata(workflow_instance_id: nil, phase: nil)
+      @workflow_instance_id = workflow_instance_id unless workflow_instance_id.nil?
       @phase = phase unless phase.nil?
       self
     end
