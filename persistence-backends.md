@@ -286,9 +286,9 @@ outside the transaction is not sufficient.
 Required surface:
 
 ```ruby
-def load(thread_id)
-def save(thread_id, expected_revision:, snapshot:)
-def delete(thread_id, expected_revision:)
+def load(workflow_instance_id)
+def save(workflow_instance_id, expected_revision:, snapshot:)
+def delete(workflow_instance_id, expected_revision:)
 ```
 
 `load` returns `nil` when no row exists. Otherwise it returns a Hash containing a

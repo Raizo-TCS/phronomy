@@ -157,7 +157,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#admit_workflow-instance_method" title="#admit_workflow (instance method)">#<strong>admit_workflow</strong>(thread_id, owner_fsm_session_id:)  &#x21d2; Object </a>
+      <a href="#admit_workflow-instance_method" title="#admit_workflow (instance method)">#<strong>admit_workflow</strong>(workflow_instance_id, owner_fsm_session_id:)  &#x21d2; Object </a>
     
 
     
@@ -171,7 +171,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Reserves one logical Workflow thread for one concrete FSMSession execution.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Reserves one logical Workflow instance for one concrete FSMSession execution.</p></div></span>
   
 </li>
 
@@ -423,7 +423,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#post_to_workflow-instance_method" title="#post_to_workflow (instance method)">#<strong>post_to_workflow</strong>(thread_id:, event:, payload: nil)  &#x21d2; Object </a>
+      <a href="#post_to_workflow-instance_method" title="#post_to_workflow (instance method)">#<strong>post_to_workflow</strong>(workflow_instance_id:, event:, payload: nil)  &#x21d2; Object </a>
     
 
     
@@ -489,7 +489,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#release_workflow-instance_method" title="#release_workflow (instance method)">#<strong>release_workflow</strong>(thread_id, owner_fsm_session_id:)  &#x21d2; Object </a>
+      <a href="#release_workflow-instance_method" title="#release_workflow (instance method)">#<strong>release_workflow</strong>(workflow_instance_id, owner_fsm_session_id:)  &#x21d2; Object </a>
     
 
     
@@ -645,7 +645,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#workflow_admission_owner-instance_method" title="#workflow_admission_owner (instance method)">#<strong>workflow_admission_owner</strong>(thread_id)  &#x21d2; Object </a>
+      <a href="#workflow_admission_owner-instance_method" title="#workflow_admission_owner (instance method)">#<strong>workflow_admission_owner</strong>(workflow_instance_id)  &#x21d2; Object </a>
     
 
     
@@ -772,7 +772,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
       <div class="method_details first">
   <h3 class="signature first" id="admit_workflow-instance_method">
   
-    #<strong>admit_workflow</strong>(thread_id, owner_fsm_session_id:)  &#x21d2; <tt>Object</tt> 
+    #<strong>admit_workflow</strong>(workflow_instance_id, owner_fsm_session_id:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -780,8 +780,8 @@ lifecycle progression happens by short event dispatches on this thread.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Reserves one logical Workflow thread for one concrete FSMSession execution.
-thread_id is durable Workflow identity; owner_fsm_session_id is the
+    <p>Reserves one logical Workflow instance for one concrete FSMSession execution.
+workflow_instance_id is durable Workflow identity; owner_fsm_session_id is the
 Runtime-only identity of the invocation/resume that currently owns it.</p>
 
   </div>
@@ -830,10 +830,10 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 159</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_admit_workflow'>admit_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>owner_fsm_session_id:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_admit_workflow'>admit_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span> <span class='label'>owner_fsm_session_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='id identifier rubyid_owner_fsm_session_id'>owner_fsm_session_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>thread_id must not be empty</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>workflow_instance_id must not be empty</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>owner_fsm_session_id must not be empty</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_owner'>owner</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
 
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -841,7 +841,7 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
     <span class='id identifier rubyid_current_owner'>current_owner</span> <span class='op'>=</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_current_owner'>current_owner</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow thread </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is already owned by </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow instance </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is already owned by </span><span class='tstring_end'>&quot;</span></span> \
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FSMSession </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_current_owner'>current_owner</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
     <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_owner'>owner</span>
@@ -1306,7 +1306,7 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
       <div class="method_details ">
   <h3 class="signature " id="post_to_workflow-instance_method">
   
-    #<strong>post_to_workflow</strong>(thread_id:, event:, payload: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>post_to_workflow</strong>(workflow_instance_id:, event:, payload: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1355,13 +1355,13 @@ enqueues the event atomically with that ownership check.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 199</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_post_to_workflow'>post_to_workflow</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_post_to_workflow'>post_to_workflow</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_posted_event'>posted_event</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_accepted'>accepted</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepting_events?'>accepting_events?</span>
 
-    <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_owner'>owner</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
 
@@ -1514,7 +1514,7 @@ enqueues the event atomically with that ownership check.</p>
       <div class="method_details ">
   <h3 class="signature " id="release_workflow-instance_method">
   
-    #<strong>release_workflow</strong>(thread_id, owner_fsm_session_id:)  &#x21d2; <tt>Object</tt> 
+    #<strong>release_workflow</strong>(workflow_instance_id, owner_fsm_session_id:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1552,8 +1552,8 @@ reservation during cleanup.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 181</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_release_workflow'>release_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>owner_fsm_session_id:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_release_workflow'>release_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span> <span class='label'>owner_fsm_session_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='id identifier rubyid_owner_fsm_session_id'>owner_fsm_session_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='id identifier rubyid_owner'>owner</span>
@@ -1865,7 +1865,7 @@ Assumes sessions have already been drained before this call.</p>
       <div class="method_details ">
   <h3 class="signature " id="workflow_admission_owner-instance_method">
   
-    #<strong>workflow_admission_owner</strong>(thread_id)  &#x21d2; <tt>Object</tt> 
+    #<strong>workflow_admission_owner</strong>(workflow_instance_id)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1884,8 +1884,8 @@ Assumes sessions have already been drained before this call.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 193</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_workflow_admission_owner'>workflow_admission_owner</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_workflow_admission_owner'>workflow_admission_owner</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1897,7 +1897,7 @@ Assumes sessions have already been drained before this call.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 02:37:51 2026 by
+  Generated on Sun Aug 23 08:31:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

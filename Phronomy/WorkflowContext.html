@@ -122,7 +122,7 @@ discard a stale/unrelated event without firing a transition.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#thread_id-instance_method" title="#thread_id (instance method)">#<strong>thread_id</strong>  &#x21d2; Object </a>
+      <a href="#workflow_instance_id-instance_method" title="#workflow_instance_id (instance method)">#<strong>workflow_instance_id</strong>  &#x21d2; Object </a>
     
 
     
@@ -141,7 +141,7 @@ discard a stale/unrelated event without firing a transition.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute thread_id.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute workflow_instance_id.</p></div></span>
   
 </li>
 
@@ -282,7 +282,7 @@ discard a stale/unrelated event without firing a transition.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(thread_id: nil, phase: nil)  &#x21d2; Object </a>
+      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(workflow_instance_id: nil, phase: nil, **runtime_metadata)  &#x21d2; Object </a>
     
 
     
@@ -296,7 +296,7 @@ discard a stale/unrelated event without firing a transition.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Workflow identity is explicit domain metadata.</p></div></span>
   
 </li>
 
@@ -334,9 +334,9 @@ discard a stale/unrelated event without firing a transition.</p>
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="thread_id-instance_method">
+  <h3 class="signature first" id="workflow_instance_id-instance_method">
   
-    #<strong>thread_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+    #<strong>workflow_instance_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
 
   
@@ -344,7 +344,7 @@ discard a stale/unrelated event without firing a transition.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the value of attribute thread_id.</p>
+    <p>Returns the value of attribute workflow_instance_id.</p>
 
   </div>
 </div>
@@ -357,15 +357,15 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 50</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-  <span class='ivar'>@thread_id</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span>
+  <span class='ivar'>@workflow_instance_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -454,12 +454,12 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_halted?'>halted?</span>
   <span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='symbol'>:__end__</span>
@@ -484,31 +484,31 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77
 78
 79
-80</pre>
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attrs'>attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -529,7 +529,7 @@ discard a stale/unrelated event without firing a transition.</p>
       <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_default'>default</span><span class='rparen'>)</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@workflow_instance_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='symbol'>:__end__</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -561,25 +561,6 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
 102
 103
 104
@@ -592,10 +573,29 @@ discard a stale/unrelated event without firing a transition.</p>
 111
 112
 113
-114</pre>
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 83</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -624,7 +624,7 @@ discard a stale/unrelated event without firing a transition.</p>
 
   <span class='id identifier rubyid_new_context'>new_context</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_new_attrs'>new_attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new_context'>new_context</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span>
-    <span class='label'>thread_id:</span> <span class='ivar'>@thread_id</span><span class='comma'>,</span>
+    <span class='label'>workflow_instance_id:</span> <span class='ivar'>@workflow_instance_id</span><span class='comma'>,</span>
     <span class='label'>phase:</span> <span class='ivar'>@phase</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_new_context'>new_context</span>
@@ -649,12 +649,12 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
-45
-46
-47</pre>
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span> <span class='op'>||</span> <span class='symbol'>:__end__</span>
@@ -667,29 +667,57 @@ discard a stale/unrelated event without firing a transition.</p>
       <div class="method_details ">
   <h3 class="signature " id="set_graph_metadata-instance_method">
   
-    #<strong>set_graph_metadata</strong>(thread_id: nil, phase: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>set_graph_metadata</strong>(workflow_instance_id: nil, phase: nil, **runtime_metadata)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Workflow identity is explicit domain metadata. The shared FSMSession still
+delivers its existing Runtime-internal graph identity as <code>thread_id:</code> in
+CG-01. Map that internal bridge onto the canonical Workflow identity without
+exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-53
-54
-55
-56
-57</pre>
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 64</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>unless</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span>
+  <span class='label'>workflow_instance_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>phase:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='op'>**</span><span class='id identifier rubyid_runtime_metadata'>runtime_metadata</span>
+<span class='rparen'>)</span>
+  <span class='id identifier rubyid_effective_workflow_instance_id'>effective_workflow_instance_id</span> <span class='op'>=</span>
+    <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span> <span class='op'>||</span> <span class='id identifier rubyid_runtime_metadata'>runtime_metadata</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_effective_workflow_instance_id'>effective_workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+    <span class='ivar'>@workflow_instance_id</span> <span class='op'>=</span> <span class='id identifier rubyid_effective_workflow_instance_id'>effective_workflow_instance_id</span>
+  <span class='kw'>end</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='id identifier rubyid_phase'>phase</span> <span class='kw'>unless</span> <span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
@@ -713,14 +741,14 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
-116
-117
-118
-119
-120</pre>
+135
+136
+137
+138
+139</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 135</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
@@ -737,7 +765,7 @@ discard a stale/unrelated event without firing a transition.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 02:37:49 2026 by
+  Generated on Sun Aug 23 08:31:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
