@@ -12,8 +12,17 @@ module Phronomy
     #     c.tracer = MyTracer.new
     #   end
     #
-    # The tracer is then automatically used by Chain and Agent components
-    # via the #trace helper.
+    # The configured tracer instance may be shared by independent Phronomy
+    # operations. Phronomy does not serialize calls to that instance; #trace,
+    # #start_span, and #finish_span may therefore be entered concurrently.
+    # Custom tracer implementations must not assume exclusive single-operation use
+    # and must protect mutable shared state they own.
+    #
+    # This contract does not guarantee a particular OS thread, EventLoop,
+    # OffloadPool worker, or async-context affinity. It also does not promise
+    # that every LLM, Tool, Workflow, or child-Agent operation automatically
+    # creates a distinct span. Automatic coverage and correlation semantics are
+    # separate architecture concerns.
     class Base
       # Wraps a block in a span. Yields the span to the block.
       # Calls #finish_span with the output on success or with the error on failure.
