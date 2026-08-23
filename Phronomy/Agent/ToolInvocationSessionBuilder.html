@@ -186,7 +186,7 @@ Async completion is represented only by explicit FSM events.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#build-class_method" title="build (class method)">.<strong>build</strong>(tool_invocation:, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
+      <a href="#build-class_method" title="build (class method)">.<strong>build</strong>(tool_invocation:, parent_event_sink:, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
     
 
     
@@ -208,7 +208,7 @@ Async completion is represented only by explicit FSM events.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#build_for_resume-class_method" title="build_for_resume (class method)">.<strong>build_for_resume</strong>(tool_invocation:, resume_event:, resume_phase:, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
+      <a href="#build_for_resume-class_method" title="build_for_resume (class method)">.<strong>build_for_resume</strong>(tool_invocation:, parent_event_sink:, resume_event:, resume_phase:, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
     
 
     
@@ -240,7 +240,7 @@ Async completion is represented only by explicit FSM events.</p>
       <div class="method_details first">
   <h3 class="signature first" id="build-class_method">
   
-    .<strong>build</strong>(tool_invocation:, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
+    .<strong>build</strong>(tool_invocation:, parent_event_sink:, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -254,13 +254,29 @@ Async completion is represented only by explicit FSM events.</p>
 
 43
 44
-45</pre>
+45
+46
+47
+48
+49
+50
+51
+52
+53</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 43</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span><span class='label'>tool_invocation:</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span><span class='label'>tool_invocation:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span>
+  <span class='label'>tool_invocation:</span><span class='comma'>,</span>
+  <span class='label'>parent_event_sink:</span><span class='comma'>,</span>
+  <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+<span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span>
+    <span class='label'>tool_invocation:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='comma'>,</span>
+    <span class='label'>parent_event_sink:</span> <span class='id identifier rubyid_parent_event_sink'>parent_event_sink</span><span class='comma'>,</span>
+    <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -270,7 +286,7 @@ Async completion is represented only by explicit FSM events.</p>
       <div class="method_details ">
   <h3 class="signature " id="build_for_resume-class_method">
   
-    .<strong>build_for_resume</strong>(tool_invocation:, resume_event:, resume_phase:, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
+    .<strong>build_for_resume</strong>(tool_invocation:, parent_event_sink:, resume_event:, resume_phase:, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -282,31 +298,35 @@ Async completion is represented only by explicit FSM events.</p>
       <pre class="lines">
 
 
-47
-48
-49
-50
-51
-52
-53
-54
 55
 56
 57
 58
-59</pre>
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build_for_resume'>build_for_resume</span><span class='lparen'>(</span>
   <span class='label'>tool_invocation:</span><span class='comma'>,</span>
+  <span class='label'>parent_event_sink:</span><span class='comma'>,</span>
   <span class='label'>resume_event:</span><span class='comma'>,</span>
   <span class='label'>resume_phase:</span><span class='comma'>,</span>
   <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
 <span class='rparen'>)</span>
   <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span>
     <span class='label'>tool_invocation:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='comma'>,</span>
+    <span class='label'>parent_event_sink:</span> <span class='id identifier rubyid_parent_event_sink'>parent_event_sink</span><span class='comma'>,</span>
     <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span>
     <span class='label'>resume_event:</span> <span class='id identifier rubyid_resume_event'>resume_event</span><span class='comma'>,</span>
     <span class='label'>resume_phase:</span> <span class='id identifier rubyid_resume_phase'>resume_phase</span>
@@ -322,7 +342,7 @@ Async completion is represented only by explicit FSM events.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 13:54:33 2026 by
+  Generated on Sun Aug 23 15:52:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -282,7 +282,7 @@ discard a stale/unrelated event without firing a transition.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(workflow_instance_id: nil, phase: nil, **runtime_metadata)  &#x21d2; Object </a>
+      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(workflow_instance_id: nil, phase: nil)  &#x21d2; Object </a>
     
 
     
@@ -484,6 +484,16 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
 78
 79
 80
@@ -495,20 +505,10 @@ discard a stale/unrelated event without firing a transition.</p>
 86
 87
 88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99</pre>
+89</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attrs'>attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -561,6 +561,16 @@ discard a stale/unrelated event without firing a transition.</p>
       <pre class="lines">
 
 
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
 102
 103
 104
@@ -582,20 +592,10 @@ discard a stale/unrelated event without firing a transition.</p>
 120
 121
 122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133</pre>
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -667,7 +667,7 @@ discard a stale/unrelated event without firing a transition.</p>
       <div class="method_details ">
   <h3 class="signature " id="set_graph_metadata-instance_method">
   
-    #<strong>set_graph_metadata</strong>(workflow_instance_id: nil, phase: nil, **runtime_metadata)  &#x21d2; <tt>Object</tt> 
+    #<strong>set_graph_metadata</strong>(workflow_instance_id: nil, phase: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -675,10 +675,8 @@ discard a stale/unrelated event without firing a transition.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Workflow identity is explicit domain metadata. The shared FSMSession still
-delivers its existing Runtime-internal graph identity as <code>thread_id:</code> in
-CG-01. Map that internal bridge onto the canonical Workflow identity without
-exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.</p>
+    <p>Workflow identity is explicit domain metadata. FSMSession supplies this
+metadata without a generic thread/session identity bridge.</p>
 
   </div>
 </div>
@@ -691,33 +689,17 @@ exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.</p>
       <pre class="lines">
 
 
+62
+63
 64
 65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76</pre>
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 62</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span>
-  <span class='label'>workflow_instance_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>phase:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='op'>**</span><span class='id identifier rubyid_runtime_metadata'>runtime_metadata</span>
-<span class='rparen'>)</span>
-  <span class='id identifier rubyid_effective_workflow_instance_id'>effective_workflow_instance_id</span> <span class='op'>=</span>
-    <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span> <span class='op'>||</span> <span class='id identifier rubyid_runtime_metadata'>runtime_metadata</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
-  <span class='kw'>unless</span> <span class='id identifier rubyid_effective_workflow_instance_id'>effective_workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
-    <span class='ivar'>@workflow_instance_id</span> <span class='op'>=</span> <span class='id identifier rubyid_effective_workflow_instance_id'>effective_workflow_instance_id</span>
-  <span class='kw'>end</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@workflow_instance_id</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span> <span class='kw'>unless</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='id identifier rubyid_phase'>phase</span> <span class='kw'>unless</span> <span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
@@ -741,14 +723,14 @@ exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.</p>
       <pre class="lines">
 
 
-135
-136
-137
-138
-139</pre>
+125
+126
+127
+128
+129</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 135</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 125</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
@@ -765,7 +747,7 @@ exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 13:54:29 2026 by
+  Generated on Sun Aug 23 15:52:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

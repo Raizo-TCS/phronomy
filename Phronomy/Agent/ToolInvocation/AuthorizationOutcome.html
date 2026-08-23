@@ -106,9 +106,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>execution_id is the logical parent. parent_agent_invocation_id is only
-the temporary parent-FSMSession routing carrier until CG-03b; it is not
-application-facing or durable identity.</p>
+    <p>execution_id is the logical AgentExecution parent. Runtime routing
+belongs to concrete FSMSession event sinks and is not stored here.</p>
 
   </div>
 </div>
@@ -299,12 +298,12 @@ application-facing or durable identity.</p>
       <pre class="lines">
 
 
+10
 11
-12
-13</pre>
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled'>cancelled</span>
   <span class='ivar'>@cancelled</span>
@@ -356,12 +355,12 @@ application-facing or durable identity.</p>
       <pre class="lines">
 
 
+10
 11
-12
-13</pre>
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decision'>decision</span>
   <span class='ivar'>@decision</span>
@@ -413,12 +412,12 @@ application-facing or durable identity.</p>
       <pre class="lines">
 
 
+10
 11
-12
-13</pre>
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -470,12 +469,12 @@ application-facing or durable identity.</p>
       <pre class="lines">
 
 
+10
 11
-12
-13</pre>
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_facts'>facts</span>
   <span class='ivar'>@facts</span>
@@ -527,12 +526,12 @@ application-facing or durable identity.</p>
       <pre class="lines">
 
 
+10
 11
-12
-13</pre>
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reason'>reason</span>
   <span class='ivar'>@reason</span>
@@ -548,7 +547,7 @@ application-facing or durable identity.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 13:54:30 2026 by
+  Generated on Sun Aug 23 15:52:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

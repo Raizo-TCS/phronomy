@@ -496,33 +496,6 @@
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#parent_agent_invocation_id-instance_method" title="#parent_agent_invocation_id (instance method)">#<strong>parent_agent_invocation_id</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute parent_agent_invocation_id.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#phase-instance_method" title="#phase (instance method)">#<strong>phase</strong>  &#x21d2; Object </a>
     
 
@@ -597,33 +570,6 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the value of attribute result.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#session_id-instance_method" title="#session_id (instance method)">#<strong>session_id</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute session_id.</p></div></span>
   
 </li>
 
@@ -752,7 +698,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#missing-class_method" title="missing (class method)">.<strong>missing</strong>(execution_id:, parent_agent_invocation_id:, agent:, tool_call:, config: {})  &#x21d2; Object </a>
+      <a href="#missing-class_method" title="missing (class method)">.<strong>missing</strong>(execution_id:, agent:, tool_call:, config: {})  &#x21d2; Object </a>
     
 
     
@@ -982,7 +928,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(execution_id:, parent_agent_invocation_id:, agent:, tool:, tool_call:, config:, approval_policy: nil, approval_context: {}, id: SecureRandom.uuid)  &#x21d2; ToolInvocation </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(execution_id:, agent:, tool:, tool_call:, config:, approval_policy: nil, approval_context: {}, id: SecureRandom.uuid)  &#x21d2; ToolInvocation </a>
     
 
     
@@ -1204,7 +1150,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(thread_id: nil, phase: nil)  &#x21d2; Object </a>
+      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(phase: nil)  &#x21d2; Object </a>
     
 
     
@@ -1387,7 +1333,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(execution_id:, parent_agent_invocation_id:, agent:, tool:, tool_call:, config:, approval_policy: nil, approval_context: {}, id: SecureRandom.uuid)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ToolInvocation (class)">ToolInvocation</a></span></tt> 
+    #<strong>initialize</strong>(execution_id:, agent:, tool:, tool_call:, config:, approval_policy: nil, approval_context: {}, id: SecureRandom.uuid)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ToolInvocation (class)">ToolInvocation</a></span></tt> 
   
 
   
@@ -1408,6 +1354,10 @@
       <pre class="lines">
 
 
+49
+50
+51
+52
 53
 54
 55
@@ -1442,21 +1392,13 @@
 84
 85
 86
-87
-88
-89
-90
-91
-92
-93
-94</pre>
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>execution_id:</span><span class='comma'>,</span>
-  <span class='label'>parent_agent_invocation_id:</span><span class='comma'>,</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
   <span class='label'>tool:</span><span class='comma'>,</span>
   <span class='label'>tool_call:</span><span class='comma'>,</span>
@@ -1471,7 +1413,6 @@
 
   <span class='ivar'>@id</span> <span class='op'>=</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='ivar'>@execution_id</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
-  <span class='ivar'>@parent_agent_invocation_id</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@tool</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span>
   <span class='ivar'>@tool_name</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -1493,7 +1434,6 @@
   <span class='ivar'>@error</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@approval_consumed</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:created</span>
-  <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1532,12 +1472,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@agent</span>
@@ -1573,12 +1513,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_context'>approval_context</span>
   <span class='ivar'>@approval_context</span>
@@ -1614,12 +1554,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_policy</span>
@@ -1655,12 +1595,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_arguments'>arguments</span>
   <span class='ivar'>@arguments</span>
@@ -1696,12 +1636,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_authorization_reason'>authorization_reason</span>
   <span class='ivar'>@authorization_reason</span>
@@ -1737,12 +1677,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_config'>config</span>
   <span class='ivar'>@config</span>
@@ -1778,12 +1718,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -1819,12 +1759,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_id'>execution_id</span>
   <span class='ivar'>@execution_id</span>
@@ -1860,12 +1800,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_facts'>facts</span>
   <span class='ivar'>@facts</span>
@@ -1901,12 +1841,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_final_decision'>final_decision</span>
   <span class='ivar'>@final_decision</span>
@@ -1942,12 +1882,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@id</span>
@@ -1983,12 +1923,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_metadata'>metadata</span>
   <span class='ivar'>@metadata</span>
@@ -2024,56 +1964,15 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_origin'>origin</span>
   <span class='ivar'>@origin</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="parent_agent_invocation_id-instance_method">
-  
-    #<strong>parent_agent_invocation_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute parent_agent_invocation_id.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-19
-20
-21</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span>
-  <span class='ivar'>@parent_agent_invocation_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2106,12 +2005,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span>
@@ -2147,12 +2046,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_raw_arguments'>raw_arguments</span>
   <span class='ivar'>@raw_arguments</span>
@@ -2188,56 +2087,15 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_result'>result</span>
   <span class='ivar'>@result</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="session_id-instance_method">
-  
-    #<strong>session_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute session_id.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-19
-20
-21</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_session_id'>session_id</span>
-  <span class='ivar'>@session_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2270,12 +2128,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_status'>status</span>
   <span class='ivar'>@status</span>
@@ -2311,12 +2169,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool'>tool</span>
   <span class='ivar'>@tool</span>
@@ -2352,12 +2210,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call_id'>tool_call_id</span>
   <span class='ivar'>@tool_call_id</span>
@@ -2393,12 +2251,12 @@
       <pre class="lines">
 
 
+18
 19
-20
-21</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_name'>tool_name</span>
   <span class='ivar'>@tool_name</span>
@@ -2418,7 +2276,7 @@
       <div class="method_details first">
   <h3 class="signature first" id="missing-class_method">
   
-    .<strong>missing</strong>(execution_id:, parent_agent_invocation_id:, agent:, tool_call:, config: {})  &#x21d2; <tt>Object</tt> 
+    .<strong>missing</strong>(execution_id:, agent:, tool_call:, config: {})  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -2430,24 +2288,22 @@
       <pre class="lines">
 
 
+39
+40
+41
 42
 43
 44
 45
 46
-47
-48
-49
-50
-51</pre>
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 39</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_missing'>missing</span><span class='lparen'>(</span><span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>parent_agent_invocation_id:</span><span class='comma'>,</span> <span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>tool_call:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_missing'>missing</span><span class='lparen'>(</span><span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>tool_call:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
     <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-    <span class='label'>parent_agent_invocation_id:</span> <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span><span class='comma'>,</span>
     <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span>
     <span class='label'>tool:</span> <span class='kw'>nil</span><span class='comma'>,</span>
     <span class='label'>tool_call:</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='comma'>,</span>
@@ -2502,10 +2358,10 @@
       <pre class="lines">
 
 
-257</pre>
+249</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 257</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 249</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_authorized?'>authorized?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:authorized</span></pre>
     </td>
@@ -2550,10 +2406,10 @@
       <pre class="lines">
 
 
-256</pre>
+248</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 256</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 248</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_awaiting_approval?'>awaiting_approval?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:awaiting_approval</span></pre>
     </td>
@@ -2598,10 +2454,10 @@
       <pre class="lines">
 
 
-254</pre>
+246</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 254</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 246</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:cancelled</span></pre>
     </td>
@@ -2646,12 +2502,12 @@
       <pre class="lines">
 
 
-262
-263
-264</pre>
+254
+255
+256</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 262</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 254</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatchable?'>dispatchable?</span>
   <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:queued</span> <span class='op'>&amp;&amp;</span> <span class='lparen'>(</span><span class='ivar'>@final_decision</span> <span class='op'>==</span> <span class='symbol'>:allow</span> <span class='op'>||</span> <span class='ivar'>@approval_consumed</span><span class='rparen'>)</span>
@@ -2676,12 +2532,12 @@
       <pre class="lines">
 
 
-270
-271
-272</pre>
+262
+263
+264</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 270</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 262</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_display_arguments'>display_arguments</span>
   <span class='id identifier rubyid_redact_for_display'>redact_for_display</span><span class='lparen'>(</span><span class='ivar'>@arguments</span> <span class='op'>||</span> <span class='ivar'>@raw_arguments</span><span class='rparen'>)</span>
@@ -2706,12 +2562,12 @@
       <pre class="lines">
 
 
-274
-275
-276</pre>
+266
+267
+268</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 274</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 266</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_display_facts'>display_facts</span>
   <span class='id identifier rubyid_redact_value'>redact_value</span><span class='lparen'>(</span><span class='ivar'>@facts</span><span class='comma'>,</span> <span class='id identifier rubyid_sensitive_argument_values'>sensitive_argument_values</span><span class='rparen'>)</span>
@@ -2758,10 +2614,10 @@
       <pre class="lines">
 
 
-258</pre>
+250</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 258</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 250</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_completed?'>execution_completed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:completed</span></pre>
     </td>
@@ -2806,10 +2662,10 @@
       <pre class="lines">
 
 
-253</pre>
+245</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 253</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 245</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_failed?'>failed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:failed</span></pre>
     </td>
@@ -2832,6 +2688,14 @@
       <pre class="lines">
 
 
+93
+94
+95
+96
+97
+98
+99
+100
 101
 102
 103
@@ -2844,18 +2708,10 @@
 110
 111
 112
-113
-114
-115
-116
-117
-118
-119
-120
-121</pre>
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 101</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>
@@ -2898,14 +2754,14 @@
       <pre class="lines">
 
 
-228
-229
-230
-231
-232</pre>
+220
+221
+222
+223
+224</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 228</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 220</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_authorized!'>mark_authorized!</span>
   <span class='ivar'>@approval_consumed</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:awaiting_approval</span>
@@ -2932,11 +2788,11 @@
       <pre class="lines">
 
 
-225
-226</pre>
+217
+218</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 225</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 217</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_awaiting_approval!'>mark_awaiting_approval!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:awaiting_approval</span>
 <span class='kw'>self</span><span class='rparen'>)</span></pre>
@@ -2960,11 +2816,11 @@
       <pre class="lines">
 
 
-244
-245</pre>
+236
+237</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 244</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 236</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_cancelled!'>mark_cancelled!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:cancelled</span>
 <span class='kw'>self</span><span class='rparen'>)</span></pre>
@@ -2988,12 +2844,12 @@
       <pre class="lines">
 
 
-247
-248
-249</pre>
+239
+240
+241</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 247</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 239</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_framework_failed!'>mark_framework_failed!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
 <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:failed</span>
@@ -3018,11 +2874,11 @@
       <pre class="lines">
 
 
-234
-235</pre>
+226
+227</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 234</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 226</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_queued!'>mark_queued!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:queued</span>
 <span class='kw'>self</span><span class='rparen'>)</span></pre>
@@ -3046,12 +2902,12 @@
       <pre class="lines">
 
 
-240
-241
-242</pre>
+232
+233
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 240</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 232</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_rejected!'>mark_rejected!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@final_decision</span> <span class='op'>=</span> <span class='symbol'>:reject</span>
 <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:rejected</span>
@@ -3076,11 +2932,11 @@
       <pre class="lines">
 
 
-237
-238</pre>
+229
+230</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 237</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 229</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_running!'>mark_running!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:running</span>
 <span class='kw'>self</span><span class='rparen'>)</span></pre>
@@ -3126,10 +2982,10 @@
       <pre class="lines">
 
 
-259</pre>
+251</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 259</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 251</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_preflight_settled?'>preflight_settled?</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#PREFLIGHT_SETTLED_STATES-constant" title="Phronomy::Agent::ToolInvocation::PREFLIGHT_SETTLED_STATES (constant)">PREFLIGHT_SETTLED_STATES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span></pre>
     </td>
@@ -3174,10 +3030,10 @@
       <pre class="lines">
 
 
-255</pre>
+247</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 255</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 247</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_rejected?'>rejected?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:rejected</span></pre>
     </td>
@@ -3188,7 +3044,7 @@
       <div class="method_details ">
   <h3 class="signature " id="set_graph_metadata-instance_method">
   
-    #<strong>set_graph_metadata</strong>(thread_id: nil, phase: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>set_graph_metadata</strong>(phase: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -3200,16 +3056,14 @@
       <pre class="lines">
 
 
-96
-97
-98
-99</pre>
+89
+90
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 89</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='id identifier rubyid_phase'>phase</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -3242,6 +3096,14 @@ the callback. No Task is created.</p>
       <pre class="lines">
 
 
+148
+149
+150
+151
+152
+153
+154
+155
 156
 157
 158
@@ -3258,18 +3120,10 @@ the callback. No Task is created.</p>
 169
 170
 171
-172
-173
-174
-175
-176
-177
-178
-179
-180</pre>
+172</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 156</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start_authorization'>start_authorization</span><span class='lparen'>(</span><span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>start_authorization requires a callback</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
@@ -3335,6 +3189,14 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
       <pre class="lines">
 
 
+186
+187
+188
+189
+190
+191
+192
+193
 194
 195
 196
@@ -3356,18 +3218,10 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
 212
 213
 214
-215
-216
-217
-218
-219
-220
-221
-222
-223</pre>
+215</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 194</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 186</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start_execution'>start_execution</span><span class='lparen'>(</span><span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>start_execution requires a callback</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
@@ -3441,10 +3295,10 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
       <pre class="lines">
 
 
-260</pre>
+252</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 260</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 252</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_terminal?'>terminal?</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#TERMINAL_STATES-constant" title="Phronomy::Agent::ToolInvocation::TERMINAL_STATES (constant)">TERMINAL_STATES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span></pre>
     </td>
@@ -3467,12 +3321,12 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
       <pre class="lines">
 
 
-266
-267
-268</pre>
+258
+259
+260</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 266</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 258</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_schema'>tool_schema</span>
   <span class='ivar'>@tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:params_schema</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_params_schema'>params_schema</span> <span class='op'>:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -3497,6 +3351,14 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
       <pre class="lines">
 
 
+115
+116
+117
+118
+119
+120
+121
+122
 123
 124
 125
@@ -3518,18 +3380,10 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
 141
 142
 143
-144
-145
-146
-147
-148
-149
-150
-151
-152</pre>
+144</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 123</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate!'>validate!</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id identifier rubyid_terminal?'>terminal?</span>
@@ -3603,10 +3457,10 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
       <pre class="lines">
 
 
-252</pre>
+244</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 252</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 244</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validation_completed?'>validation_completed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:completed</span></pre>
     </td>
@@ -3651,10 +3505,10 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
       <pre class="lines">
 
 
-251</pre>
+243</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 251</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 243</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validation_passed?'>validation_passed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:valid</span></pre>
     </td>
@@ -3667,7 +3521,7 @@ the explicit :execution_completed FSM event posted by the session builder.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 13:54:30 2026 by
+  Generated on Sun Aug 23 15:52:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

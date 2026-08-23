@@ -179,7 +179,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#admitted_session%3F-instance_method" title="#admitted_session? (instance method)">#<strong>admitted_session?</strong>(session_id)  &#x21d2; Boolean </a>
+      <a href="#admitted_fsm_session%3F-instance_method" title="#admitted_fsm_session? (instance method)">#<strong>admitted_fsm_session?</strong>(fsm_session_id)  &#x21d2; Boolean </a>
     
 
     
@@ -738,7 +738,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
 
   <span class='ivar'>@fsms</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@waiting</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='ivar'>@admitted_session_ids</span> <span class='op'>=</span> <span class='const'>Set</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@admitted_fsm_session_ids</span> <span class='op'>=</span> <span class='const'>Set</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@workflow_admissions</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
 
   <span class='ivar'>@lifecycle_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -854,9 +854,9 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="admitted_session?-instance_method">
+  <h3 class="signature " id="admitted_fsm_session?-instance_method">
   
-    #<strong>admitted_session?</strong>(session_id)  &#x21d2; <tt>Boolean</tt> 
+    #<strong>admitted_fsm_session?</strong>(fsm_session_id)  &#x21d2; <tt>Boolean</tt> 
   
 
   
@@ -897,8 +897,8 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 231</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_admitted_session?'>admitted_session?</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_admitted_fsm_session?'>admitted_fsm_session?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1219,16 +1219,16 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
   <span class='id identifier rubyid_accepted'>accepted</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepting_events?'>accepting_events?</span>
 
-    <span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='id identifier rubyid_terminal_fsm_session_id'>terminal_fsm_session_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_terminal_management_event?'>terminal_management_event?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:session_id</span><span class='rparen'>)</span>
-      <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_terminal_fsm_session_id'>terminal_fsm_session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:fsm_session_id</span><span class='rparen'>)</span>
+      <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_fsm_session_id'>terminal_fsm_session_id</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
 
     <span class='kw'>begin</span>
       <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span><span class='rparen'>)</span>
     <span class='kw'>rescue</span>
-      <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span>
+      <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_fsm_session_id'>terminal_fsm_session_id</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_terminal_fsm_session_id'>terminal_fsm_session_id</span>
       <span class='id identifier rubyid_raise'>raise</span>
     <span class='kw'>end</span>
     <span class='kw'>true</span>
@@ -1288,7 +1288,7 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
   <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_accepted'>accepted</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepting_events?'>accepting_events?</span>
-    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_target_id'>target_id</span><span class='rparen'>)</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_target_id'>target_id</span><span class='rparen'>)</span>
 
     <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span><span class='rparen'>)</span>
     <span class='kw'>true</span>
@@ -1363,7 +1363,7 @@ enqueues the event atomically with that ownership check.</p>
 
     <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_owner'>owner</span>
-    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
 
     <span class='id identifier rubyid_posted_event'>posted_event</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
       <span class='label'>type:</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
@@ -1486,17 +1486,17 @@ enqueues the event atomically with that ownership check.</p>
 
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_ensure_accepting_registrations!'>ensure_accepting_registrations!</span>
-    <span class='kw'>if</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+    <span class='kw'>if</span> <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FSMSession </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is already registered</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
 
-    <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+    <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
     <span class='ivar'>@outstanding_sessions</span> <span class='op'>+=</span> <span class='int'>1</span>
     <span class='kw'>begin</span>
       <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span><span class='rparen'>)</span>
     <span class='kw'>rescue</span>
-      <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+      <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
       <span class='ivar'>@outstanding_sessions</span> <span class='op'>-=</span> <span class='int'>1</span>
       <span class='ivar'>@idle_cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_runtime_idle_locked?'>runtime_idle_locked?</span>
       <span class='id identifier rubyid_raise'>raise</span>
@@ -1897,7 +1897,7 @@ Assumes sessions have already been drained before this call.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 13:54:30 2026 by
+  Generated on Sun Aug 23 15:52:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

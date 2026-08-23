@@ -162,6 +162,12 @@ approval data uses the same parent identity.</li>
 <li>Legacy embedded suspended approval hashes remain readable by deriving the
 logical parent from their enclosing Agent execution; historical
 content-addressed audit bodies are not rewritten.</li>
+<li>Agent, Tool, and Multi-Agent concrete <code>FSMSession</code> instances no longer reuse
+domain/context IDs as EventLoop routing targets. Async callbacks use
+session-local event sinks, and Provider completion is routed to the owning
+FSMSession before updating Activation LLM-result state. Workflow retains its
+pre-load admission ordering through a private single-use FSMSession identity
+reservation; opaque Workflow admission ownership remains ACS-13 work.</li>
 <li>OutputParser <code>parse</code> is classified as the public subclass extension point that
 concrete parsers implement.</li>
 </ul>
@@ -550,7 +556,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug 23 13:54:28 2026 by
+  Generated on Sun Aug 23 15:52:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
