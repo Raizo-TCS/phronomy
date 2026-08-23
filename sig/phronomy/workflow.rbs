@@ -2,7 +2,7 @@ module Phronomy
   module WorkflowContext
     def phase: () -> Symbol
     def halted?: () -> bool
-    def thread_id: () -> String?
+    def workflow_instance_id: () -> String?
     def merge: (Hash[Symbol, untyped] updates) -> self
     def to_h: () -> Hash[Symbol, untyped]
   end
@@ -15,7 +15,7 @@ module Phronomy
     def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) { (untyped) -> void } -> untyped
     def resume: (state: untyped, ?input: untyped) -> untyped
     def send_event: (state: untyped, event: Symbol, ?input: untyped) -> untyped
-    def signal: (thread_id: String, event: Symbol, ?payload: untyped) -> bool
+    def signal: (workflow_instance_id: String, event: Symbol, ?payload: untyped) -> bool
 
     class Builder
       def initial: (Symbol state_name) -> untyped

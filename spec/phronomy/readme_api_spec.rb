@@ -108,7 +108,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
         transition from: :run, to: :__finish__
       end
 
-      result = app.invoke({}, config: {thread_id: "readme-test-#{rand(9999)}"})
+      result = app.invoke({}, config: {workflow_instance_id: "readme-test-#{rand(9999)}"})
       expect(result.step_ran).to eq(true)
     end
   end

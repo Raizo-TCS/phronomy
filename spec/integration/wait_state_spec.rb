@@ -42,7 +42,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-001: wait_state halts with correct halted? and phase" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc001"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc001"})
     expect(halted.value).to eq("start:a")
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
@@ -53,7 +53,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-002: send_event raises ArgumentError for unknown event" do
     app = build_wait_state_workflow(resume_event: :proceed)
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc002"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc002"})
     expect(halted.halted?).to be(true)
     expect do
       app.send_event(state: halted, event: :unknown_event, input: {value: "overridden"})
@@ -65,7 +65,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-003: wait_state resume with input — both phase assertions" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc003"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc003"})
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
     final = app.resume(state: halted, input: {value: "updated"})
@@ -79,7 +79,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-004: wait_state + resume_generic (no input) — phase :__end__ after completion" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc004"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc004"})
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
     final = app.resume(state: halted)
@@ -93,7 +93,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-005: wait_state + send_event — phase :awaiting_node_b then :__end__" do
     app = build_wait_state_workflow(resume_event: :proceed)
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc005"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc005"})
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
     final = app.send_event(state: halted, event: :proceed)
@@ -107,7 +107,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-006: wait_state + resume_generic with input — halted phase and merged value" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc006"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc006"})
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
     final = app.resume(state: halted, input: {value: "replaced"})
@@ -120,7 +120,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-007: wait_state halted — halted? and phase verified; wrong send_event raises ArgumentError" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc007"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc007"})
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
     expect do
@@ -133,7 +133,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-008: wait_state — halts before node_b" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "start"}, config: {thread_id: "tc008"})
+    halted = app.invoke({value: "start"}, config: {workflow_instance_id: "tc008"})
     expect(halted.halted?).to be(true)
     expect(halted.phase).to eq(:awaiting_node_b)
     expect(halted.value).to eq("start:a")
@@ -144,7 +144,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-009: send_event(:resume) resumes wait_state halt" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "x"}, config: {thread_id: "tc009"})
+    halted = app.invoke({value: "x"}, config: {workflow_instance_id: "tc009"})
     expect(halted.halted?).to be(true)
     final = app.send_event(state: halted, event: :resume)
     expect(final.halted?).to be(false)
@@ -157,7 +157,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-010: send_event(:resume) with input resumes wait_state halt" do
     app = build_wait_state_workflow
-    halted = app.invoke({value: "y"}, config: {thread_id: "tc010"})
+    halted = app.invoke({value: "y"}, config: {workflow_instance_id: "tc010"})
     expect(halted.halted?).to be(true)
     final = app.send_event(state: halted, event: :resume, input: {value: "replaced"})
     expect(final.phase).to eq(:__end__)
@@ -169,7 +169,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # ---------------------------------------------------------------------------
   it "TC-011: send_event(:resume) resumes wait_state (named proceed event)" do
     app = build_wait_state_workflow(resume_event: :proceed)
-    halted = app.invoke({value: "z"}, config: {thread_id: "tc011"})
+    halted = app.invoke({value: "z"}, config: {workflow_instance_id: "tc011"})
     expect(halted.halted?).to be(true)
     final = app.send_event(state: halted, event: :resume)
     expect(final.phase).to eq(:__end__)

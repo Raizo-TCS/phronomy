@@ -100,29 +100,29 @@ RSpec.describe Phronomy::WorkflowContext do
 
     it "does not include internal workflow metadata" do
       s = TestState.new(value: 1)
-      s.set_graph_metadata(thread_id: "t1", phase: :awaiting_foo)
-      expect(s.to_h.keys).not_to include(:thread_id, :phase)
+      s.set_graph_metadata(workflow_instance_id: "t1", phase: :awaiting_foo)
+      expect(s.to_h.keys).not_to include(:workflow_instance_id, :phase)
     end
   end
 
   describe "#set_graph_metadata" do
-    it "stores thread_id" do
+    it "stores workflow_instance_id" do
       s = TestState.new
-      s.set_graph_metadata(thread_id: "abc")
-      expect(s.thread_id).to eq("abc")
+      s.set_graph_metadata(workflow_instance_id: "abc")
+      expect(s.workflow_instance_id).to eq("abc")
     end
 
     it "stores phase" do
       s = TestState.new
-      s.set_graph_metadata(thread_id: "t", phase: :awaiting_foo)
+      s.set_graph_metadata(workflow_instance_id: "t", phase: :awaiting_foo)
       expect(s.phase).to eq(:awaiting_foo)
     end
 
-    it "nil thread_id is ignored" do
+    it "nil workflow_instance_id is ignored" do
       s = TestState.new
-      s.set_graph_metadata(thread_id: "t")
-      s.set_graph_metadata(thread_id: nil)
-      expect(s.thread_id).to eq("t")
+      s.set_graph_metadata(workflow_instance_id: "t")
+      s.set_graph_metadata(workflow_instance_id: nil)
+      expect(s.workflow_instance_id).to eq("t")
     end
 
     it "nil phase is ignored" do
@@ -164,11 +164,11 @@ RSpec.describe Phronomy::WorkflowContext do
   end
 
   describe "#merge preserves internal workflow metadata" do
-    it "carries thread_id and phase through merge" do
+    it "carries workflow_instance_id and phase through merge" do
       s = TestState.new(value: 1)
-      s.set_graph_metadata(thread_id: "t1", phase: :awaiting_send)
+      s.set_graph_metadata(workflow_instance_id: "t1", phase: :awaiting_send)
       s2 = s.merge(value: 99)
-      expect(s2.thread_id).to eq("t1")
+      expect(s2.workflow_instance_id).to eq("t1")
       expect(s2.phase).to eq(:awaiting_send)
     end
   end

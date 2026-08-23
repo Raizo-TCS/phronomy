@@ -27,7 +27,7 @@ RSpec.describe "Cooperative scheduler fairness (Issue #269)" do
       end
 
       # invoke via the loop to trigger at least one dispatch
-      result = app.invoke({}, config: {thread_id: "lag-test-#{SecureRandom.hex(4)}"})
+      result = app.invoke({}, config: {workflow_instance_id: "lag-test-#{SecureRandom.hex(4)}"})
       expect(result.done).to be(true)
 
       # Lag may be very small (nanoseconds) in a test but must be >= 0
@@ -85,7 +85,7 @@ RSpec.describe "Cooperative scheduler fairness (Issue #269)" do
         state :step, action: ->(state) { state.merge(done: true) }
         transition from: :step, to: :__finish__
       end
-      app.invoke({}, config: {thread_id: "starv-test-#{SecureRandom.hex(4)}"})
+      app.invoke({}, config: {workflow_instance_id: "starv-test-#{SecureRandom.hex(4)}"})
     ensure
       Phronomy.configure do |c|
         c.event_loop_starvation_threshold_seconds = nil

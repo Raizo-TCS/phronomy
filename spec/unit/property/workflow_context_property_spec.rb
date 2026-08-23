@@ -69,17 +69,17 @@ RSpec.describe "WorkflowContext property-based tests" do
     end
   end
 
-  # P5: graph metadata (thread_id) is preserved through any merge.
-  it "thread_id metadata is preserved after merge" do
+  # P5: graph metadata (workflow_instance_id) is preserved through any merge.
+  it "workflow_instance_id metadata is preserved after merge" do
     property_of {
       n = integer(500)
       tid = "tid-" + sized(4) { string(:lower) }
       [n, tid]
     }.check do |(n, tid)|
       ctx = ctx_class.new
-      ctx.set_graph_metadata(thread_id: tid)
+      ctx.set_graph_metadata(workflow_instance_id: tid)
       merged = ctx.merge(value: n)
-      expect(merged.thread_id).to eq(tid)
+      expect(merged.workflow_instance_id).to eq(tid)
     end
   end
 

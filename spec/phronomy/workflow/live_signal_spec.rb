@@ -39,13 +39,13 @@ RSpec.describe Phronomy::Workflow, "#signal" do
 
     task = workflow.invoke_async(
       {},
-      config: {thread_id: "live-workflow"}
+      config: {workflow_instance_id: "live-workflow"}
     )
     Timeout.timeout(1) { entered.pop }
 
     expect(
       workflow.signal(
-        thread_id: "live-workflow",
+        workflow_instance_id: "live-workflow",
         event: :complete,
         payload: {value: 42}
       )
@@ -94,21 +94,21 @@ RSpec.describe Phronomy::Workflow, "#signal" do
 
     task = workflow.invoke_async(
       {request_id: "current"},
-      config: {thread_id: "guarded-workflow"}
+      config: {workflow_instance_id: "guarded-workflow"}
     )
     Timeout.timeout(1) { entered.pop }
 
     workflow.signal(
-      thread_id: "guarded-workflow",
+      workflow_instance_id: "guarded-workflow",
       event: :complete,
       payload: {request_id: "stale"}
     )
     # :probe is FIFO after the stale event; when probe is consumed by the
     # context the guard-mismatch dispatch is guaranteed complete.
     # post_to_workflow bypasses signal's event-name guard intentionally while
-    # still resolving thread_id to the current owner_fsm_session_id atomically.
+    # still resolving workflow_instance_id to the current owner_fsm_session_id atomically.
     Phronomy::Runtime.instance.event_loop.post_to_workflow(
-      thread_id: "guarded-workflow",
+      workflow_instance_id: "guarded-workflow",
       event: :probe,
       payload: nil
     )
@@ -116,7 +116,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
     expect(task).not_to be_done
 
     workflow.signal(
-      thread_id: "guarded-workflow",
+      workflow_instance_id: "guarded-workflow",
       event: :complete,
       payload: {request_id: "current"}
     )
@@ -136,12 +136,12 @@ RSpec.describe Phronomy::Workflow, "#signal" do
 
     task = workflow.invoke_async(
       {},
-      config: {thread_id: "finished-workflow"}
+      config: {workflow_instance_id: "finished-workflow"}
     )
     Timeout.timeout(1) { entered.pop }
     expect(
       workflow.signal(
-        thread_id: "finished-workflow",
+        workflow_instance_id: "finished-workflow",
         event: :complete,
         payload: {value: 1}
       )
@@ -150,14 +150,14 @@ RSpec.describe Phronomy::Workflow, "#signal" do
 
     expect(
       workflow.signal(
-        thread_id: "finished-workflow",
+        workflow_instance_id: "finished-workflow",
         event: :complete,
         payload: {value: 2}
       )
     ).to be(false)
   end
 
-  it "rejects a nil thread_id" do
+  it "rejects a nil workflow_instance_id" do
     workflow = Phronomy::Workflow.define(context_class) do
       initial :waiting
       state :waiting
@@ -166,11 +166,11 @@ RSpec.describe Phronomy::Workflow, "#signal" do
 
     expect {
       workflow.signal(
-        thread_id: nil,
+        workflow_instance_id: nil,
         event: :complete,
         payload: nil
       )
-    }.to raise_error(ArgumentError, /thread_id/)
+    }.to raise_error(ArgumentError, /workflow_instance_id/)
   end
 
   it "rejects undeclared event names before EventLoop admission" do
@@ -182,7 +182,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
 
     expect {
       workflow.signal(
-        thread_id: "x",
+        workflow_instance_id: "x",
         event: :unknown,
         payload: nil
       )

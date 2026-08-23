@@ -153,13 +153,13 @@ module Phronomy
       true
     end
 
-    # Reserves one logical Workflow thread for one concrete FSMSession execution.
-    # thread_id is durable Workflow identity; owner_fsm_session_id is the
+    # Reserves one logical Workflow instance for one concrete FSMSession execution.
+    # workflow_instance_id is durable Workflow identity; owner_fsm_session_id is the
     # Runtime-only identity of the invocation/resume that currently owns it.
-    def admit_workflow(thread_id, owner_fsm_session_id:)
-      key = thread_id.to_s
+    def admit_workflow(workflow_instance_id, owner_fsm_session_id:)
+      key = workflow_instance_id.to_s
       owner = owner_fsm_session_id.to_s
-      raise ArgumentError, "thread_id must not be empty" if key.empty?
+      raise ArgumentError, "workflow_instance_id must not be empty" if key.empty?
       raise ArgumentError, "owner_fsm_session_id must not be empty" if owner.empty?
 
       @lifecycle_mutex.synchronize do
@@ -167,7 +167,7 @@ module Phronomy
         current_owner = @workflow_admissions[key]
         if current_owner
           raise Phronomy::Error,
-            "Workflow thread #{key.inspect} is already owned by " \
+            "Workflow instance #{key.inspect} is already owned by " \
             "FSMSession #{current_owner.inspect}"
         end
         @workflow_admissions[key] = owner
@@ -178,8 +178,8 @@ module Phronomy
     # Releases a Workflow reservation only when the caller is its current owner.
     # A failed competing admission can therefore never release another session's
     # reservation during cleanup.
-    def release_workflow(thread_id, owner_fsm_session_id:)
-      key = thread_id.to_s
+    def release_workflow(workflow_instance_id, owner_fsm_session_id:)
+      key = workflow_instance_id.to_s
       owner = owner_fsm_session_id.to_s
       @lifecycle_mutex.synchronize do
         next false unless @workflow_admissions[key] == owner
@@ -190,19 +190,19 @@ module Phronomy
       end
     end
 
-    def workflow_admission_owner(thread_id)
-      @lifecycle_mutex.synchronize { @workflow_admissions[thread_id.to_s] }
+    def workflow_admission_owner(workflow_instance_id)
+      @lifecycle_mutex.synchronize { @workflow_admissions[workflow_instance_id.to_s] }
     end
 
     # Resolves durable Workflow identity to the currently owning FSMSession and
     # enqueues the event atomically with that ownership check.
-    def post_to_workflow(thread_id:, event:, payload: nil)
+    def post_to_workflow(workflow_instance_id:, event:, payload: nil)
       queued_depth = nil
       posted_event = nil
       accepted = @lifecycle_mutex.synchronize do
         next false unless accepting_events?
 
-        owner = @workflow_admissions[thread_id.to_s]
+        owner = @workflow_admissions[workflow_instance_id.to_s]
         next false unless owner
         next false unless @admitted_session_ids.include?(owner)
 

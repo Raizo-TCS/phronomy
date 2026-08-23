@@ -169,7 +169,7 @@ module Phronomy
                     agent_event.payload[:output]
                   )
                   workflow.signal(
-                    thread_id: next_state.thread_id,
+                    workflow_instance_id: next_state.workflow_instance_id,
                     event: :draft_completed,
                     payload: {
                       request_id: request_id,
@@ -186,7 +186,7 @@ module Phronomy
                   )
                 rescue => error
                   workflow.signal(
-                    thread_id: next_state.thread_id,
+                    workflow_instance_id: next_state.workflow_instance_id,
                     event: :draft_failed,
                     payload: {
                       request_id: request_id,
@@ -196,7 +196,7 @@ module Phronomy
                 end
               when :error, :timeout, :cancelled
                 workflow.signal(
-                  thread_id: next_state.thread_id,
+                  workflow_instance_id: next_state.workflow_instance_id,
                   event: :draft_failed,
                   payload: {
                     request_id: request_id,
@@ -209,7 +209,7 @@ module Phronomy
                 )
               when :approval_required
                 workflow.signal(
-                  thread_id: next_state.thread_id,
+                  workflow_instance_id: next_state.workflow_instance_id,
                   event: :draft_failed,
                   payload: {
                     request_id: request_id,
@@ -244,7 +244,7 @@ module Phronomy
                     agent_event.payload[:output]
                   )
                   workflow.signal(
-                    thread_id: next_state.thread_id,
+                    workflow_instance_id: next_state.workflow_instance_id,
                     event: :review_completed,
                     payload: {
                       request_id: request_id,
@@ -258,7 +258,7 @@ module Phronomy
                   )
                 rescue => error
                   workflow.signal(
-                    thread_id: next_state.thread_id,
+                    workflow_instance_id: next_state.workflow_instance_id,
                     event: :review_failed,
                     payload: {
                       request_id: request_id,
@@ -268,7 +268,7 @@ module Phronomy
                 end
               when :error, :timeout, :cancelled
                 workflow.signal(
-                  thread_id: next_state.thread_id,
+                  workflow_instance_id: next_state.workflow_instance_id,
                   event: :review_failed,
                   payload: {
                     request_id: request_id,
@@ -281,7 +281,7 @@ module Phronomy
                 )
               when :approval_required
                 workflow.signal(
-                  thread_id: next_state.thread_id,
+                  workflow_instance_id: next_state.workflow_instance_id,
                   event: :review_failed,
                   payload: {
                     request_id: request_id,

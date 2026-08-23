@@ -62,12 +62,13 @@ resolved explicitly.
 | [`011-delegate-transport-policy-to-adapters`](011-delegate-transport-policy-to-adapters.md) | Accepted | Yes | Legacy duplicate numeric prefix; use the full canonical key. |
 | [`012-canonical-execution-log-and-context-policy`](012-canonical-execution-log-and-context-policy.md) | Accepted | Yes | Current Journal / Manifest / Context authority. |
 | [`013-journal-backed-knowledge-as-context-candidates`](013-journal-backed-knowledge-as-context-candidates.md) | Accepted | Yes | Current persistent Knowledge authority. |
-| [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md) | Accepted | Yes | Current intent until coherent successor decisions are accepted; known implementation reconciliation is handled explicitly rather than by silent rewrite. |
+| [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md) | Accepted | Yes | Current except Workflow identity terminology, which is superseded by [`020-canonical-workflow-instance-identity`](020-canonical-workflow-instance-identity.md); admission-owner and terminal-save reconciliation remain separate work. |
 | [`015-tool-public-facade-and-rbs-boundary`](015-tool-public-facade-and-rbs-boundary.md) | Accepted | Yes | Current Tool façade / extension-SPI / RBS boundary. |
 | [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Accepted | Yes | Current Handoff intent; implementation reconciliation may remain open without changing this status silently. |
 | [`017-design-authority-and-adr-governance`](017-design-authority-and-adr-governance.md) | Accepted | Yes | Repository-wide architecture authority and ADR governance. |
 | [`018-durability-guarantees-and-failure-model`](018-durability-guarantees-and-failure-model.md) | Accepted | Yes | Repository-wide durability/concurrency/external-effect guarantee vocabulary and F0-F4/X0 failure model. |
 | [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block contract, bounded PromptInjectionFilter baseline, and security/isolation negative boundaries; supersedes ADR-006. |
+| [`020-canonical-workflow-instance-identity`](020-canonical-workflow-instance-identity.md) | Accepted | Yes | Canonical logical/durable Workflow identity and CG-01 clean-break migration. |
 
 ## Legacy duplicate `011`
 

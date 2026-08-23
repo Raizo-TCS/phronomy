@@ -19,6 +19,13 @@ module Phronomy
 
     module ClassMethods
       def field(name, type: :replace, default: nil)
+        # workflow_instance_id is framework-owned metadata; do not declare it as a field.
+        if name.to_sym == :workflow_instance_id
+          raise ArgumentError,
+            "WorkflowContext field :workflow_instance_id is reserved for " \
+            "framework-owned Workflow identity metadata. " \
+            "Use a different field name for application state."
+        end
         if default.is_a?(Array) || default.is_a?(Hash)
           raise ArgumentError,
             "Mutable default for field #{name.inspect} must be wrapped in a Proc " \
@@ -40,7 +47,7 @@ module Phronomy
       end
     end
 
-    attr_reader :thread_id
+    attr_reader :workflow_instance_id
 
     def phase
       @phase || :__end__
@@ -50,8 +57,20 @@ module Phronomy
       phase != :__end__
     end
 
-    def set_graph_metadata(thread_id: nil, phase: nil)
-      @thread_id = thread_id unless thread_id.nil?
+    # Workflow identity is explicit domain metadata. The shared FSMSession still
+    # delivers its existing Runtime-internal graph identity as `thread_id:` in
+    # CG-01. Map that internal bridge onto the canonical Workflow identity without
+    # exposing a WorkflowContext#thread_id accessor or legacy Workflow API alias.
+    def set_graph_metadata(
+      workflow_instance_id: nil,
+      phase: nil,
+      **runtime_metadata
+    )
+      effective_workflow_instance_id =
+        workflow_instance_id || runtime_metadata[:thread_id]
+      unless effective_workflow_instance_id.nil?
+        @workflow_instance_id = effective_workflow_instance_id
+      end
       @phase = phase unless phase.nil?
       self
     end
@@ -75,7 +94,7 @@ module Phronomy
           attrs.fetch(name, default)
         )
       end
-      @thread_id = nil
+      @workflow_instance_id = nil
       @phase = :__end__
     end
 
@@ -107,7 +126,7 @@ module Phronomy
 
       new_context = self.class.new(**new_attrs)
       new_context.set_graph_metadata(
-        thread_id: @thread_id,
+        workflow_instance_id: @workflow_instance_id,
         phase: @phase
       )
       new_context

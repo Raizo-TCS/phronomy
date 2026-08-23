@@ -14,6 +14,19 @@ required_files=(
   docs/decisions/017-design-authority-and-adr-governance.md
   docs/decisions/018-durability-guarantees-and-failure-model.md
   docs/decisions/019-filter-contract-and-security-boundaries.md
+  docs/decisions/020-canonical-workflow-instance-identity.md
+  lib/phronomy/workflow.rb
+  lib/phronomy/workflow_context.rb
+  lib/phronomy/workflow_runner.rb
+  lib/phronomy/engine/event_loop.rb
+  lib/phronomy/persistence/in_memory.rb
+  lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
+  spec/phronomy/workflow_identity_contract_spec.rb
+  spec/phronomy/workflow/admission_spec.rb
+  spec/phronomy/workflow/live_signal_spec.rb
+  lib/phronomy/generator_verifier.rb
+  spec/phronomy/generator_verifier_spec.rb
+  spec/integration/subgraph_parallel_agent_tool_spec.rb
   lib/phronomy/tracing/base.rb
   lib/phronomy/tracing/langfuse_tracer.rb
   spec/phronomy/tracing/extension_contract_spec.rb
@@ -55,6 +68,21 @@ done
 
 syntax_files=(
   spec/phronomy/architecture_governance_spec.rb
+  lib/phronomy/workflow.rb
+  lib/phronomy/workflow_context.rb
+  lib/phronomy/workflow_runner.rb
+  lib/phronomy/engine/event_loop.rb
+  lib/phronomy/persistence/in_memory.rb
+  lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
+  spec/phronomy/workflow_identity_contract_spec.rb
+  spec/phronomy/workflow_spec.rb
+  spec/phronomy/workflow_context_spec.rb
+  spec/phronomy/workflow/admission_spec.rb
+  spec/phronomy/workflow/live_signal_spec.rb
+  spec/phronomy/workflow/fsm_session_spec.rb
+  lib/phronomy/generator_verifier.rb
+  spec/phronomy/generator_verifier_spec.rb
+  spec/integration/subgraph_parallel_agent_tool_spec.rb
   spec/phronomy/guarantee_model_spec.rb
   spec/phronomy/before_llm_input_rbs_contract_spec.rb
   lib/phronomy/tracing/base.rb
@@ -185,6 +213,22 @@ bundle exec rspec \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb
 
+echo "== CG-01 Workflow identity =="
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/workflow_identity_contract_spec.rb \
+  spec/phronomy/workflow_spec.rb \
+  spec/phronomy/workflow_context_spec.rb \
+  spec/phronomy/workflow/admission_spec.rb \
+  spec/phronomy/workflow/live_signal_spec.rb \
+  spec/phronomy/workflow/fsm_session_spec.rb \
+  spec/phronomy/generator_verifier_spec.rb \
+  spec/integration/subgraph_parallel_agent_tool_spec.rb \
+  spec/phronomy/persistence/backend_contract_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb \
+  spec/integration/wait_state_spec.rb \
+  spec/integration/graph_spec.rb
+
 echo "== API snapshot =="
 bundle exec ruby scripts/api_snapshot.rb
 
@@ -214,4 +258,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

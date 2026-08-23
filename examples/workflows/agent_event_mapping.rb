@@ -54,7 +54,7 @@ workflow = Phronomy::Workflow.define(GenerationContext) do
       next unless workflow_event
 
       workflow.signal(
-        thread_id: context.thread_id,
+        workflow_instance_id: context.workflow_instance_id,
         event: workflow_event,
         payload: {
           generation_request_id: request_id,
@@ -95,7 +95,7 @@ result = workflow.invoke(
     prompt: "What is Run-to-Completion?",
     generation_request_id: SecureRandom.uuid
   },
-  config: {thread_id: SecureRandom.uuid}
+  config: {workflow_instance_id: SecureRandom.uuid}
 )
 
 puts(result.answer || result.error_message)

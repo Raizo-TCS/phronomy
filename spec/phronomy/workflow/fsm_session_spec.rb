@@ -59,7 +59,7 @@ RSpec.describe Phronomy::FSMSession do
   def build_test_execution(ctx, recursion_limit:)
     Phronomy::WorkflowRunner::Execution.new(
       context: ctx,
-      thread_id: "test-thread",
+      workflow_instance_id: "test-thread",
       fsm_session_id: SecureRandom.uuid,
       recursion_limit: recursion_limit,
       repository: nil,
@@ -104,7 +104,7 @@ RSpec.describe Phronomy::FSMSession do
     it "posts :finished event with the final context after start" do
       runner = runner_from(app)
       ctx = ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "t1")
+      ctx.set_graph_metadata(workflow_instance_id: "t1")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_linear_session(ctx, runner: runner, fake_runtime: fake_runtime)
@@ -153,7 +153,7 @@ RSpec.describe Phronomy::FSMSession do
     it "posts :halted with the context at the wait state" do
       runner = runner_from(app)
       ctx = ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "t2")
+      ctx.set_graph_metadata(workflow_instance_id: "t2")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_wait_session(ctx, runner: runner, fake_runtime: fake_runtime)
@@ -195,7 +195,7 @@ RSpec.describe Phronomy::FSMSession do
       runner = runner_from(app)
       # Simulate a context that has already passed through :prepare (value += 10).
       ctx = ctx_class.new(value: 10)
-      ctx.set_graph_metadata(thread_id: "t3", phase: :awaiting)
+      ctx.set_graph_metadata(workflow_instance_id: "t3", phase: :awaiting)
 
       with_fake_loop do |fake, fake_runtime|
         session = build_resume_session(ctx, runner: runner, fake_runtime: fake_runtime,
@@ -235,7 +235,7 @@ RSpec.describe Phronomy::FSMSession do
     it "posts :error with a RecursionLimitError when the limit is reached" do
       runner = runner_from(cycling_app)
       ctx = ctx_class.new(value: 0)
-      ctx.set_graph_metadata(thread_id: "t4")
+      ctx.set_graph_metadata(workflow_instance_id: "t4")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_linear_session(ctx, runner: runner, recursion_limit: 3, fake_runtime: fake_runtime)
@@ -288,7 +288,7 @@ RSpec.describe Phronomy::FSMSession do
 
       runner = runner_from(app)
       ctx = ctx_class_merge.new(value: 0, tag: "before")
-      ctx.set_graph_metadata(thread_id: "t-merge-fresh")
+      ctx.set_graph_metadata(workflow_instance_id: "t-merge-fresh")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_linear_session(ctx, runner: runner, recursion_limit: 25, fake_runtime: fake_runtime)
@@ -319,7 +319,7 @@ RSpec.describe Phronomy::FSMSession do
 
       runner = runner_from(app)
       ctx = ctx_class_merge.new(value: 0, tag: "original")
-      ctx.set_graph_metadata(thread_id: "t-merge-trans")
+      ctx.set_graph_metadata(workflow_instance_id: "t-merge-trans")
 
       with_fake_loop do |fake, fake_runtime|
         session = build_linear_session(ctx, runner: runner, recursion_limit: 25, fake_runtime: fake_runtime)
