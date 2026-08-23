@@ -15,6 +15,7 @@ required_files=(
   docs/decisions/018-durability-guarantees-and-failure-model.md
   spec/phronomy/architecture_governance_spec.rb
   spec/phronomy/guarantee_model_spec.rb
+  spec/phronomy/before_llm_input_rbs_contract_spec.rb
   spec/phronomy/fault_injection_spec.rb
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
@@ -45,6 +46,7 @@ done
 syntax_files=(
   spec/phronomy/architecture_governance_spec.rb
   spec/phronomy/guarantee_model_spec.rb
+  spec/phronomy/before_llm_input_rbs_contract_spec.rb
   spec/phronomy/fault_injection_spec.rb
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
@@ -90,6 +92,13 @@ bundle exec rspec \
   spec/phronomy/fault_injection_spec.rb \
   spec/phronomy/fault_injection_advanced_spec.rb \
   spec/phronomy/persistence_architecture_regression_spec.rb
+
+echo "== ACS-07 before_llm_input Stable typed contract =="
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/before_llm_input_rbs_contract_spec.rb \
+  spec/phronomy/agent/before_llm_input_spec.rb \
+  spec/phronomy/public_api_spec.rb
 
 echo "== CG-04 canonical vocabulary guards =="
 legacy_source="$(
@@ -164,4 +173,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

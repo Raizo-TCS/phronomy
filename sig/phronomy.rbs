@@ -48,6 +48,7 @@ module Phronomy
 
   class Configuration
     attr_accessor llm_adapter: LLMAdapter::Base
+    attr_accessor before_llm_input: Agent::_BeforeLLMInputHook?
   end
 
   def self.configuration: () -> Configuration

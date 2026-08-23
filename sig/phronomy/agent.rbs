@@ -1,5 +1,36 @@
 module Phronomy
   module Agent
+    # Callable contract for all three Stable before_llm_input registration
+    # tiers. This is a typed representation of the existing runtime contract;
+    # it does not define hook execution placement inside Runtime/Persistence.
+    interface _BeforeLLMInputHook
+      def call: (LLMInputBuildContext context) -> LLMInputPatch?
+    end
+
+    # Current Stable before_llm_input patch value. These two readers represent
+    # the current v1 capability, not a permanent ceiling on future Phronomy-
+    # owned input customization representations.
+    class LLMInputPatch
+      attr_reader model_config_patch: Hash[untyped, untyped]?
+      attr_reader segment_candidates: Array[untyped]?
+
+      def initialize: (?model_config_patch: Hash[untyped, untyped]?, ?segment_candidates: Array[untyped]?) -> void
+      def self.empty: () -> LLMInputPatch
+    end
+
+    # Immutable metadata supplied to before_llm_input. The Stable surface is
+    # metadata-only: it intentionally contains no live Agent, RubyLLM::Chat,
+    # Persistence, EventLoop, or other Runtime-private object.
+    class LLMInputBuildContext
+      attr_reader agent_id: String
+      attr_reader agent_definition_id: String
+      attr_reader agent_definition_version: Integer
+      attr_reader config: Hash[untyped, untyped]
+      attr_reader call_sequence: Integer
+
+      def initialize: (agent_id: String, agent_definition_id: String, agent_definition_version: Integer, ?config: Hash[untyped, untyped], call_sequence: Integer) -> void
+    end
+
     class Base
       def self.model: (?String name) -> String?
       def self.instructions: (?untyped text) { (untyped) -> untyped } -> untyped
@@ -14,12 +45,14 @@ module Phronomy
       def self.context_window: (?Integer value) -> Integer?
       def self.agent_definition: () -> Hash[Symbol, untyped]
                                | (version: Integer, ?id: String?) -> Hash[Symbol, untyped]
+      def self.before_llm_input: (?_BeforeLLMInputHook callable) ?{ (LLMInputBuildContext context) -> LLMInputPatch? } -> _BeforeLLMInputHook?
       def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped]) -> instance
       def self.load: (String agent_id, persistence: Persistence) -> instance
       def self.live_for_execution: (String execution_id) -> instance
 
       attr_reader agent_id: String
       attr_reader persistence: Persistence
+      attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       def invoke: (untyped input, **untyped) -> Hash[Symbol, untyped]
       def invoke_async: (untyped input, **untyped) -> Task[Hash[Symbol, untyped]]
