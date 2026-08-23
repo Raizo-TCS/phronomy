@@ -50,7 +50,6 @@ module Phronomy
 
             source = agent.invoke_async(
               input,
-              thread_id: ctx[:thread_id] || parent_ic&.thread_id,
               config: task_config
             )
             result_task = Phronomy::Task.deferred(
@@ -151,7 +150,6 @@ module Phronomy
         agent:,
         inputs:,
         config: {},
-        thread_id: nil,
         max_concurrency: nil,
         on_error: :raise,
         timeout: nil,
@@ -161,7 +159,7 @@ module Phronomy
       )
         dispatch_parallel(
           *inputs.map do |input|
-            {agent: agent, input: input, config: config, thread_id: thread_id}
+            {agent: agent, input: input, config: config}
           end,
           max_concurrency: max_concurrency,
           on_error: on_error,
@@ -176,7 +174,6 @@ module Phronomy
         agent:,
         inputs:,
         config: {},
-        thread_id: nil,
         max_concurrency: nil,
         on_error: :raise,
         timeout: nil,
@@ -186,7 +183,7 @@ module Phronomy
       )
         dispatch_parallel_async(
           *inputs.map do |input|
-            {agent: agent, input: input, config: config, thread_id: thread_id}
+            {agent: agent, input: input, config: config}
           end,
           max_concurrency: max_concurrency,
           on_error: on_error,
@@ -201,7 +198,6 @@ module Phronomy
         agent_class,
         input,
         config: nil,
-        thread_id: nil,
         inherit_knowledge: true
       )
         if Phronomy::Runtime.in_event_loop_context?
@@ -213,8 +209,7 @@ module Phronomy
           inherit_knowledge: inherit_knowledge
         ).invoke_async(
           input,
-          config: config || {},
-          thread_id: thread_id
+          config: config || {}
         ).wait_result
       end
 
@@ -233,11 +228,8 @@ module Phronomy
         captured_context = {}
         captured_context[:knowledge] = active_knowledge_snapshot if inherits_knowledge
         if invocation
-          captured_context.merge!(
-            thread_id: invocation.thread_id,
-            config: invocation.config,
-            invocation_context: invocation.config[:invocation_context]
-          )
+          captured_context[:config] = invocation.config
+          captured_context[:invocation_context] = invocation.config[:invocation_context]
         end
         captured_context.freeze
 
@@ -291,6 +283,12 @@ module Phronomy
           raise ArgumentError, "fan-out task must be a Hash" unless task.is_a?(Hash)
           raise ArgumentError, "fan-out task requires :agent" unless task[:agent]
           raise ArgumentError, "fan-out task requires :input" unless task.key?(:input)
+          if task.key?(:thread_id) || task.key?("thread_id")
+            raise ArgumentError,
+              "fan-out task generic thread_id was removed; " \
+              "use purpose-specific domain identifiers or application tracing metadata"
+          end
+          _reject_removed_generic_identity_keys!(task.fetch(:config, {}))
         end
       end
 
@@ -324,8 +322,7 @@ module Phronomy
             index: index,
             agent: child_agent,
             input: task.fetch(:input),
-            config: task_config,
-            thread_id: task[:thread_id] || invocation_context&.thread_id
+            config: task_config
           )
         end
       end

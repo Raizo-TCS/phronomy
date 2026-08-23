@@ -89,17 +89,17 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
     expect(persistence.workflow_states.load("legacy-workflow")).to be_nil
   end
 
-  it "does not derive Workflow identity from InvocationContext#thread_id" do
+  it "does not derive Workflow identity from InvocationContext attributes" do
+    # CG-02a removed thread_id from InvocationContext; verify that Workflow
+    # identity is auto-generated and not taken from any InvocationContext field.
     invocation_context = Phronomy::InvocationContext.new(
-      thread_id: "application-correlation"
+      user_id: "app-user-xyz"
     )
 
     result = workflow.invoke({}, invocation_context: invocation_context)
 
-    expect(result.workflow_instance_id).not_to eq("application-correlation")
-    expect(
-      persistence.workflow_states.load("application-correlation")
-    ).to be_nil
+    expect(result.workflow_instance_id).not_to eq("app-user-xyz")
+    expect(result.workflow_instance_id).to match(/\A[0-9a-f-]{36}\z/)
   end
 
   it "renames the Workflow Persistence SPI parameter without creating a new durable key format" do

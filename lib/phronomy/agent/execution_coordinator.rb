@@ -14,13 +14,14 @@ module Phronomy
       end
 
       def start(
-        input, thread_id: nil, config: {}, mode: :invoke,
+        input, config: {}, mode: :invoke,
         approval_policy: nil, approval_listener: nil, on_event: nil
       )
+        @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = Phronomy::Task.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
         runtime = Phronomy::Runtime.instance
         preparation = runtime.offload.submit(on_full: :raise) do
-          prepare(input, thread_id: thread_id, config: config)
+          prepare(input, config: config)
         end
         preparation.on_complete do |prepared, error|
           if error
@@ -52,6 +53,7 @@ module Phronomy
         approved:,
         config: {}
       )
+        @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = Phronomy::Task.deferred(
           name: "agent-approval-resume:#{execution_id}"
         )
@@ -191,17 +193,14 @@ module Phronomy
         projection
       end
 
-      def prepare(input, thread_id:, config:)
+      def prepare(input, config:)
         raw_message = @agent.send(:extract_message, input)
-        execution, active_root = admit_execution(
-          raw_message,
-          thread_id: thread_id
-        )
+        execution, active_root = admit_execution(raw_message)
         @agent.__replace_root(active_root)
         current_execution = execution
 
         begin
-          effective_config = thread_id ? config.merge(thread_id: thread_id) : config
+          effective_config = config
           @agent.send(
             :check_cancellation!,
             effective_config,
@@ -227,7 +226,6 @@ module Phronomy
               channel: :external,
               role: :user,
               content_ref: filtered_ref,
-              correlation_id: thread_id,
               context_generation: active_root.transcript_generation,
               context_candidate: true
             )
@@ -288,7 +286,7 @@ module Phronomy
         end
       end
 
-      def admit_execution(raw_message, thread_id:)
+      def admit_execution(raw_message)
         root = @agent.agent_root
         raise Phronomy::Error, "agent is closed: #{@agent.agent_id}" if root.lifecycle_status == :closed
 
@@ -301,7 +299,6 @@ module Phronomy
             channel: :external,
             role: :user,
             content_ref: input_ref,
-            correlation_id: thread_id,
             context_generation: root.transcript_generation,
             context_candidate: false
           )
@@ -310,7 +307,6 @@ module Phronomy
             agent_root: root,
             input_record: input_record,
             metadata: {
-              "thread_id" => thread_id,
               "current_input_ref" => input_ref,
               "context_policy" => policy_descriptor.to_h
             }.compact

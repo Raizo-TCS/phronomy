@@ -270,8 +270,8 @@ RSpec.describe "Agent async event contract" do
     expect(task.wait_result[:output]).to eq("answer")
   end
 
-  it "invoke_async passes invocation_context: through to config" do
-    ic = Phronomy::InvocationContext.new(thread_id: "ctx-thread")
+  it "invoke_async passes tracing InvocationContext without generic identity" do
+    ic = Phronomy::InvocationContext.new(task_id: "ctx-task")
     captured_config = nil
     allow(Phronomy::Agent::AgentInvocationSessionBuilder)
       .to receive(:build)
@@ -287,14 +287,13 @@ RSpec.describe "Agent async event contract" do
     ).wait_result
     expect(result[:output]).to eq("answer")
     expect(events).to eq([:done])
-    expect(captured_config).to include(
-      invocation_context: ic,
-      thread_id: "ctx-thread"
-    )
+    expect(captured_config).to include(invocation_context: ic)
+    expect(captured_config).not_to have_key(:thread_id)
+    expect(captured_config).not_to have_key(:session_id)
   end
 
-  it "stream_async passes invocation_context: through to config" do
-    ic = Phronomy::InvocationContext.new(thread_id: "ctx-stream")
+  it "stream_async passes tracing InvocationContext through" do
+    ic = Phronomy::InvocationContext.new(task_id: "ctx-stream")
     events = []
     SymmetricAsyncEventAgent.new.stream_async(
       "hello",
@@ -304,8 +303,8 @@ RSpec.describe "Agent async event contract" do
     expect(events).to include(:done)
   end
 
-  it "stream passes invocation_context: through to config" do
-    ic = Phronomy::InvocationContext.new(thread_id: "ctx-stream-sync")
+  it "stream passes tracing InvocationContext through" do
+    ic = Phronomy::InvocationContext.new(task_id: "ctx-stream-sync")
     events = []
     SymmetricAsyncEventAgent.new.stream(
       "hello",

@@ -26,8 +26,6 @@ end
 
 module Phronomy
   class InvocationContext
-    attr_reader thread_id: String?
-    attr_reader session_id: String?
     attr_reader user_id: String?
     attr_reader cancellation_token: Concurrency::CancellationToken?
     attr_reader deadline: untyped
@@ -38,6 +36,6 @@ module Phronomy
     attr_reader task_id: String?
     attr_reader parent_task_id: String?
 
-    def initialize: (?thread_id: String?, ?session_id: String?, ?user_id: String?, ?cancellation_token: Concurrency::CancellationToken?, ?deadline: untyped, ?tracer_span: untyped, ?token_budget: Integer?, ?approval_policy: untyped, ?redaction_policy: untyped, ?task_id: String?, ?parent_task_id: String?) -> void
+    def initialize: (?user_id: String?, ?cancellation_token: Concurrency::CancellationToken?, ?deadline: untyped, ?tracer_span: untyped, ?token_budget: Integer?, ?approval_policy: untyped, ?redaction_policy: untyped, ?task_id: String?, ?parent_task_id: String?) -> void
   end
 end

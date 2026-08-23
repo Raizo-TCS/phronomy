@@ -166,9 +166,14 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   end
 
   describe "#set_graph_metadata" do
-    it "sets session_id from thread_id" do
-      invocation.set_graph_metadata(thread_id: "thr-1", phase: :calling_llm)
-      expect(invocation.instance_variable_get(:@session_id)).to eq("thr-1")
+    it "keeps the shared Runtime graph bridge separate from application identity" do
+      invocation.set_graph_metadata(
+        thread_id: "fsm-route-1",
+        phase: :calling_llm
+      )
+      expect(invocation.instance_variable_get(:@session_id))
+        .to eq("fsm-route-1")
+      expect(invocation).not_to respond_to(:thread_id)
     end
   end
 

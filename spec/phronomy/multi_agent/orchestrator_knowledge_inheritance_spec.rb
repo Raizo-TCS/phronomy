@@ -8,7 +8,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
     agent_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "orchestrator-knowledge-capture", version: 1
 
-      define_method(:invoke) do |input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
+      define_method(:invoke) do |input, config: {}, invocation_context: nil, on_event: nil|
         knowledge = journal_projection.context_records.filter_map do |record|
           next unless record.kind == :knowledge
 
@@ -21,10 +21,10 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
         {output: "ok", messages: []}
       end
 
-      define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+      define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
         t = Phronomy::Task.new(name: "knowledge-capture")
         Thread.new do
-          t.complete(invoke(input, thread_id: thread_id, config: config,
+          t.complete(invoke(input, config: config,
             invocation_context: invocation_context, on_event: on_event))
         rescue => e
           t.fail(e)

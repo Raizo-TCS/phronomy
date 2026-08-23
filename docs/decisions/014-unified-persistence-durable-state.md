@@ -3,7 +3,9 @@
 **Status**: Accepted
 **Date**: 2026-08-14
 **Supersedes**: ADR-009
-**Partially superseded by**: [ADR-020](020-canonical-workflow-instance-identity.md) for Workflow identity terminology only
+**Partially superseded by**:
+- [ADR-020](020-canonical-workflow-instance-identity.md) for Workflow identity terminology only
+- [ADR-021](021-generic-agent-invocation-identity-removal.md) for `InvocationContext` generic session/correlation semantics and Agent-side generic invocation identity
 
 ---
 

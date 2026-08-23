@@ -33,7 +33,6 @@ module Phronomy
       attr_reader :id,
         :agent,
         :config,
-        :thread_id,
         :approval_policy,
         :approval_listener,
         :pending_tool_calls,
@@ -58,7 +57,6 @@ module Phronomy
         @agent = agent
         @input = input
         @config = config
-        @thread_id = config[:thread_id]
         @id = (id || config[:agent_invocation_id] || SecureRandom.uuid).to_s
         invocation_context = config[:invocation_context]
         invocation_policy = if invocation_context&.respond_to?(:approval_policy)
@@ -236,7 +234,7 @@ module Phronomy
         context = @config[:invocation_context]
         return {} unless context
 
-        %i[thread_id session_id user_id token_budget task_id parent_task_id].each_with_object({}) do |name, result|
+        %i[user_id token_budget task_id parent_task_id].each_with_object({}) do |name, result|
           result[name] = context.public_send(name) if context.respond_to?(name)
         end
       end

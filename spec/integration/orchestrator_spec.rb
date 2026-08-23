@@ -277,9 +277,9 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         end
       end
 
-      orch.fan_out(agent: agent, inputs: %w[x y], config: {thread_id: "t99"})
+      orch.fan_out(agent: agent, inputs: %w[x y], config: {user_id: "u99"})
 
-      expect(configs).to all(eq({thread_id: "t99"}))
+      expect(configs).to all(eq({user_id: "u99"}))
     end
   end
 
