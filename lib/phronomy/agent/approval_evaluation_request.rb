@@ -11,7 +11,7 @@ module Phronomy
     # @api public
     class ApprovalEvaluationRequest
       attr_reader :agent,
-        :agent_invocation_id,
+        :execution_id,
         :tool,
         :tool_name,
         :tool_schema,
@@ -28,7 +28,7 @@ module Phronomy
 
       def initialize(
         agent:,
-        agent_invocation_id:,
+        execution_id:,
         tool:,
         tool_name:,
         tool_schema:,
@@ -41,8 +41,12 @@ module Phronomy
         metadata: {},
         default_decision: nil
       )
+        if execution_id.nil? || execution_id.to_s.empty?
+          raise ArgumentError, "ApprovalEvaluationRequest requires execution_id"
+        end
+
         @agent = agent
-        @agent_invocation_id = agent_invocation_id
+        @execution_id = execution_id.to_s.freeze
         @tool = tool
         @tool_name = tool_name.to_s.freeze
         @tool_schema = immutable_copy(tool_schema)
@@ -62,7 +66,7 @@ module Phronomy
       def with(facts: @facts, default_decision: @default_decision)
         self.class.new(
           agent: @agent,
-          agent_invocation_id: @agent_invocation_id,
+          execution_id: @execution_id,
           tool: @tool,
           tool_name: @tool_name,
           tool_schema: @tool_schema,

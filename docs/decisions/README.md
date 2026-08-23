@@ -70,6 +70,7 @@ resolved explicitly.
 | [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block contract, bounded PromptInjectionFilter baseline, and security/isolation negative boundaries; supersedes ADR-006. |
 | [`020-canonical-workflow-instance-identity`](020-canonical-workflow-instance-identity.md) | Accepted | Yes | Canonical logical/durable Workflow identity and CG-01 clean-break migration. |
 | [`021-generic-agent-invocation-identity-removal`](021-generic-agent-invocation-identity-removal.md) | Accepted | Yes | Removes generic Agent/InvocationContext identity and canonical Journal `correlation_id`; CG-02 is closed, with targeted legacy durable-key read compatibility and no eager rewrite. |
+| [`022-agent-execution-parent-identity-and-runtime-routing-boundary`](022-agent-execution-parent-identity-and-runtime-routing-boundary.md) | Accepted | Yes | Canonicalizes Agent-owned Tool/approval logical parent as `execution_id`; CG-03a is reconciled while FSMSession/routing CG-03b remains in the ACS-10/ACS-11 foundation. |
 
 ## Legacy duplicate `011`
 

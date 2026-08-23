@@ -108,9 +108,28 @@ module Phronomy
         attributes[:llm_calls] = attributes.fetch(:llm_calls).map do |call|
           call.is_a?(LLMCallRecord) ? call : LLMCallRecord.from_h(call)
         end
+        attributes[:approval_request] = normalize_legacy_approval_request(
+          attributes[:approval_request],
+          execution_id: attributes.fetch(:execution_id)
+        )
 
         new(**attributes)
       end
+
+      def self.normalize_legacy_approval_request(request, execution_id:)
+        return request unless request
+        has_legacy_parent =
+          request.key?("agent_invocation_id") || request.key?(:agent_invocation_id)
+        return request unless has_legacy_parent
+
+        normalized = request.each_with_object({}) do |(key, value), result|
+          result[key.to_s] = value
+        end
+        normalized.delete("agent_invocation_id")
+        normalized["execution_id"] = execution_id.to_s
+        normalized
+      end
+      private_class_method :normalize_legacy_approval_request
     end
   end
 end

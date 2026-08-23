@@ -1195,7 +1195,7 @@ module Phronomy
               type: event_type,
               payload: result || {error: execution_error}
             ),
-            invocation_id: nil,
+            execution_id: result&.fetch(:execution_id, nil),
             callback_error_policy: policy
           )
           if policy == :fail_task && execution_error.nil?

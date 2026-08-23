@@ -15,14 +15,11 @@ require_relative "support/llm_stub"
 #   All LLM interactions are stubbed via LLMStub.  No real LM Studio
 #   connection is required.
 #
-# NOTE: Updated for 0.15.0 Invocation architecture.
-#   - result[:execution_id] replaces result[:session_id]
-#   - result[:approval_request] carries the ToolApprovalRequest
-#   - agent.approve(agent_invocation_id, approval_request_id:, approved:)
-#     replaces agent.approve(session_id, approved:)
-#   - AgentInvocationRegistry replaces SuspendedSessionRegistry
-#   - tool_approval_policy replaces on_approval_required inline decision
-#   - on_tool_approval_required is for notification only (no decision)
+# Current approval identity contract:
+#   - result[:execution_id] is the canonical Agent execution identity
+#   - ToolApprovalRequest#execution_id is the same logical parent
+#   - agent.approve(execution_id, approval_request_id:, approved:) resumes it
+#   - tool_approval_policy decides authorization; notification is separate
 
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
@@ -58,10 +55,12 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       expect(result[:execution_id]).not_to be_empty
     end
 
-    it "invoke returns an :approval_request with a non-empty id" do
+    it "invoke returns an approval request bound to the execution" do
       result = agent.invoke("Please use the approval tool")
-      expect(result[:approval_request]).not_to be_nil
-      expect(result[:approval_request].id).to be_a(String)
+      request = result.fetch(:approval_request)
+      expect(request.id).to be_a(String)
+      expect(request.execution_id).to eq(result.fetch(:execution_id))
+      expect(request).not_to respond_to(:agent_invocation_id)
     end
 
     it "approve with approved: true returns output from the LLM" do

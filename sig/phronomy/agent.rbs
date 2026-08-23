@@ -31,6 +31,50 @@ module Phronomy
       def initialize: (agent_id: String, agent_definition_id: String, agent_definition_version: Integer, ?config: Hash[untyped, untyped], call_sequence: Integer) -> void
     end
 
+    # Application-facing notification for a suspended Tool batch.
+    class ToolApprovalRequest
+      class Item
+        attr_reader tool_invocation_id: String
+        attr_reader tool_call_id: String?
+        attr_reader tool_name: String
+        attr_reader arguments: Hash[untyped, untyped]
+        attr_reader facts: Hash[untyped, untyped]
+        attr_reader reason: String?
+        attr_reader origin: Symbol
+        attr_reader metadata: Hash[untyped, untyped]
+
+        def initialize: (tool_invocation_id: String, tool_call_id: String?, tool_name: String, arguments: Hash[untyped, untyped], facts: Hash[untyped, untyped], reason: String?, origin: Symbol, metadata: Hash[untyped, untyped]) -> void
+        def to_h: () -> Hash[Symbol, untyped]
+      end
+
+      attr_reader id: String
+      attr_reader execution_id: String
+      attr_reader items: Array[Item]
+      attr_reader created_at: untyped
+
+      def initialize: (execution_id: String, items: Array[Item], ?id: String, ?created_at: untyped) -> void
+      def to_h: () -> Hash[Symbol, untyped]
+    end
+
+    # Application policy input for one Tool authorization decision.
+    class ApprovalEvaluationRequest
+      attr_reader agent: Base
+      attr_reader execution_id: String
+      attr_reader tool: untyped
+      attr_reader tool_name: String
+      attr_reader tool_schema: Hash[untyped, untyped]
+      attr_reader tool_invocation_id: String
+      attr_reader tool_call_id: String?
+      attr_reader arguments: Hash[untyped, untyped]
+      attr_reader facts: Hash[untyped, untyped]
+      attr_reader invocation_context: Hash[untyped, untyped]
+      attr_reader origin: Symbol
+      attr_reader metadata: Hash[untyped, untyped]
+      attr_reader default_decision: Symbol?
+
+      def initialize: (agent: Base, execution_id: String, tool: untyped, tool_name: String, tool_schema: Hash[untyped, untyped], tool_invocation_id: String, tool_call_id: String?, arguments: Hash[untyped, untyped], ?facts: Hash[untyped, untyped], ?invocation_context: Hash[untyped, untyped], ?origin: Symbol, ?metadata: Hash[untyped, untyped], ?default_decision: Symbol?) -> void
+    end
+
     class Base
       def self.model: (?String name) -> String?
       def self.instructions: (?untyped text) { (untyped) -> untyped } -> untyped

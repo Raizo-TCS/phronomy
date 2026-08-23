@@ -42,6 +42,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
 
   subject(:invocation) do
     described_class.new(
+      execution_id: "execution-1",
       parent_agent_invocation_id: "agent-1",
       agent: agent,
       tool: tool,
@@ -70,6 +71,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end
     end
     invocation = described_class.new(
+      execution_id: "execution-1",
       parent_agent_invocation_id: "agent-1",
       agent: agent,
       tool: tool,
@@ -103,6 +105,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     it "accepts a tool_call without :id method" do
       stub = Struct.new(:name, :arguments).new("send_message", {"recipients" => [], "body" => "hi"})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: tool,
         tool_call: stub, config: {}
       )
@@ -112,6 +115,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     it "accepts a tool_call without :arguments method" do
       stub = Struct.new(:id, :name).new("call-2", "send_message")
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: tool,
         tool_call: stub, config: {}
       )
@@ -128,6 +132,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "basic", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: basic_tool,
         tool_call: stub, config: {}
       )
@@ -136,6 +141,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
 
     it "defaults approval_context to empty hash when nil" do
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: tool,
         tool_call: tool_call, config: {}, approval_context: nil
       )
@@ -156,6 +162,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "err_tool", {"count" => "not_an_int"})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: err_tool,
         tool_call: stub, config: {}
       )
@@ -175,6 +182,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "raise_tool", {"count" => "bad"})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: raise_tool,
         tool_call: stub, config: {}
       )
@@ -254,6 +262,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "mcp_tool", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: mcp_tool,
         tool_call: stub, config: {}
       )
@@ -265,6 +274,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     it "raises ConfigurationError when policy returns invalid decision" do
       bad_policy = ->(_req) { :invalid }
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: tool,
         tool_call: tool_call, config: {}, approval_policy: bad_policy
       )
@@ -284,6 +294,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "plain", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: plain_tool,
         tool_call: stub, config: {}
       )
@@ -303,6 +314,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "bad_facts", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: bad_facts_tool,
         tool_call: stub, config: {}
       )
@@ -323,6 +335,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "req", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: req_true,
         tool_call: stub, config: {}
       )
@@ -342,6 +355,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "noq", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: req_false,
         tool_call: stub, config: {}
       )
@@ -361,6 +375,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "bad_callable", {})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: bad_callable,
         tool_call: stub, config: {}
       )
@@ -443,6 +458,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       end.new
       stub = Struct.new(:id, :name, :arguments).new("c", "ecomplete", {"count" => "bad"})
       inv = described_class.new(
+        execution_id: "execution-1",
         parent_agent_invocation_id: "a", agent: agent, tool: err_tool,
         tool_call: stub, config: {}
       )

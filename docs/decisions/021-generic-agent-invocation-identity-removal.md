@@ -87,7 +87,8 @@ This decision does not:
 - change FSMSession identity ownership;
 - rename the shared Runtime `set_graph_metadata(thread_id:)` bridge;
 - remove Runtime-only `AgentInvocation#session_id`;
-- migrate `agent_invocation_id` parent references to `execution_id`;
+- migrate `agent_invocation_id` parent references to `execution_id`
+  (subsequently decided by [ADR-022](022-agent-execution-parent-identity-and-runtime-routing-boundary.md));
 - redesign Tool / Approval Runtime routing;
 - remove `AgentExecutionActivation`;
 - implement EventLoop single-writer ownership;

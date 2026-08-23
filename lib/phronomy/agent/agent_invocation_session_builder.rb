@@ -48,7 +48,8 @@ module Phronomy
           approval_policy: approval_policy,
           approval_listener: approval_listener,
           event_listener: on_event,
-          mode: mode
+          mode: mode,
+          execution_id: config.fetch(:execution_id)
         )
         build_session(agent_invocation: invocation, runtime: runtime, mode: mode)
       end
@@ -363,6 +364,7 @@ module Phronomy
           tool = invocation.chat.tools[tool_call.name.to_sym]
           if tool
             ToolInvocation.new(
+              execution_id: invocation.execution_id,
               parent_agent_invocation_id: invocation.id,
               agent: invocation.agent,
               tool: tool,
@@ -373,6 +375,7 @@ module Phronomy
             )
           else
             ToolInvocation.missing(
+              execution_id: invocation.execution_id,
               parent_agent_invocation_id: invocation.id,
               agent: invocation.agent,
               tool_call: tool_call,

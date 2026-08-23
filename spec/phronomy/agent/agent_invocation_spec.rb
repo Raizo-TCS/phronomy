@@ -88,11 +88,16 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   # ---------------------------------------------------------------------------
 
   describe "constructor" do
-    it "uses id from config when provided" do
+    it "keeps execution parent separate from the temporary Runtime id" do
       inv = described_class.new(
-        agent: agent, input: "hi", config: {agent_invocation_id: "custom-id"}
+        agent: agent,
+        input: "hi",
+        config: {},
+        execution_id: "execution-1",
+        id: "runtime-route-1"
       )
-      expect(inv.id).to eq("custom-id")
+      expect(inv.execution_id).to eq("execution-1")
+      expect(inv.id).to eq("runtime-route-1")
     end
 
     it "derives approval_policy from invocation_context when available" do
