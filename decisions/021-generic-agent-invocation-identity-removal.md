@@ -71,13 +71,14 @@ CG-02b
   remove correlation_id from the new canonical Journal representation
   accept/ignore the legacy key during backward read
   no eager durable rewrite
-  status: pending
+  status: reconciled by the CG-02b change
 ```
 
-Until CG-02b lands, `JournalRecord#correlation_id` remains an implementation
-inconsistency relative to this target decision. It must not be treated as a
-new generic core identity, and new generic Agent invocation correlation must
-not be written into it.
+`JournalRecord.from_h` intentionally reconstructs only current canonical
+attributes. A legacy durable Hash may therefore contain `correlation_id`; the
+removed key is accepted and ignored rather than restored as domain identity.
+This compatibility rule avoids an eager rewrite of existing Journal data and
+does not define a general unknown-field or schema-versioning policy.
 
 ## Explicit non-goals
 
@@ -113,4 +114,5 @@ sets and compatibility gates.
 - Applications that used Agent `thread_id` / `InvocationContext#session_id`
   must move correlation into application tracing/observability metadata or use
   the actual purpose-specific domain identifier.
-- Durable Journal cleanup requires the separate CG-02b compatibility slice.
+- Legacy durable Journal data retains targeted backward-read compatibility;
+  broader codec/schema versioning policy remains a separate persistence decision.

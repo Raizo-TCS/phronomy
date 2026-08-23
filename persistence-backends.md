@@ -414,6 +414,17 @@ Phronomy::Agent::AgentExecution.from_h(hash)
 String and Symbol top-level keys are accepted by these new execution/call codecs,
 which permits adapters to use parsed JSON without reimplementing constructors.
 
+The current canonical `JournalRecord` Hash does not contain `correlation_id`.
+Legacy durable Journal Hashes that still contain that key may be passed to
+`JournalRecord.from_h`; the legacy key is accepted and ignored. Backends must not
+synthesize or populate `correlation_id` for new canonical Journal records, and
+they are not required to eagerly rewrite existing durable rows solely to remove
+the old physical value.
+
+This is a targeted migration rule for the removed generic identity field. It does
+not establish a general unknown-field or long-term codec/schema-versioning
+policy.
+
 The canonical Hash representation is the Phronomy/domain boundary. A backend is
 free to map that representation to normalized SQL columns, JSON, or another
 storage format internally.
