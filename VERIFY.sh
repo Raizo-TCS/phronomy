@@ -26,12 +26,16 @@ required_files=(
   lib/phronomy/invocation_context.rb
   lib/phronomy/agent/async_event_api.rb
   lib/phronomy/agent/execution_coordinator.rb
+  lib/phronomy/agent/journal_record.rb
   lib/phronomy/agent/context_assembler.rb
   lib/phronomy/agent/agent_invocation.rb
   lib/phronomy/multi_agent/orchestrator.rb
   lib/phronomy/multi_agent/fan_out_invocation.rb
   sig/phronomy/runtime.rbs
   spec/phronomy/generic_invocation_identity_contract_spec.rb
+  spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
+  spec/phronomy/agent/journal_record_llm_call_id_spec.rb
+  docs/persistence-backends.md
   spec/phronomy/invocation_context_spec.rb
   spec/phronomy/agent/async_event_contract_spec.rb
   spec/phronomy/workflow/admission_spec.rb
@@ -90,11 +94,14 @@ syntax_files=(
   lib/phronomy/invocation_context.rb
   lib/phronomy/agent/async_event_api.rb
   lib/phronomy/agent/execution_coordinator.rb
+  lib/phronomy/agent/journal_record.rb
   lib/phronomy/agent/context_assembler.rb
   lib/phronomy/agent/agent_invocation.rb
   lib/phronomy/multi_agent/orchestrator.rb
   lib/phronomy/multi_agent/fan_out_invocation.rb
   spec/phronomy/generic_invocation_identity_contract_spec.rb
+  spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
+  spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/invocation_context_spec.rb
   spec/phronomy/trace_context_task_tree_spec.rb
   spec/phronomy/agent/async_event_contract_spec.rb
@@ -245,9 +252,18 @@ bundle exec rspec \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb
 
-echo "== CG-02a generic invocation identity =="
+echo "== CG-02 generic invocation identity / durable Journal compatibility =="
 bundle exec rbs -I sig validate
-bundle exec rspec   spec/phronomy/generic_invocation_identity_contract_spec.rb   spec/phronomy/invocation_context_spec.rb   spec/phronomy/trace_context_task_tree_spec.rb   spec/phronomy/agent/base_spec.rb   spec/phronomy/agent_spec.rb   spec/phronomy/agent/async_event_contract_spec.rb   spec/phronomy/agent/before_llm_input_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/agent/agent_invocation_spec.rb   spec/phronomy/agent/agent_invocation_session_builder_spec.rb   spec/phronomy/concurrency/cancellation_token_spec.rb   spec/phronomy/fault_injection_spec.rb   spec/phronomy/multi_agent/orchestrator_spec.rb   spec/phronomy/multi_agent/team_coordinator_spec.rb   spec/phronomy/multi_agent/orchestrator_knowledge_inheritance_spec.rb   spec/integration/orchestrator_spec.rb   spec/phronomy/api_compatibility_spec.rb
+bundle exec rspec   spec/phronomy/generic_invocation_identity_contract_spec.rb   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb   spec/phronomy/agent/journal_record_llm_call_id_spec.rb   spec/phronomy/agent/agent_execution_codec_spec.rb   spec/phronomy/invocation_context_spec.rb   spec/phronomy/trace_context_task_tree_spec.rb   spec/phronomy/agent/base_spec.rb   spec/phronomy/agent_spec.rb   spec/phronomy/agent/async_event_contract_spec.rb   spec/phronomy/agent/before_llm_input_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/agent/agent_invocation_spec.rb   spec/phronomy/agent/agent_invocation_session_builder_spec.rb   spec/phronomy/concurrency/cancellation_token_spec.rb   spec/phronomy/fault_injection_spec.rb   spec/phronomy/multi_agent/orchestrator_spec.rb   spec/phronomy/multi_agent/team_coordinator_spec.rb   spec/phronomy/multi_agent/orchestrator_knowledge_inheritance_spec.rb   spec/integration/orchestrator_spec.rb   spec/phronomy/api_compatibility_spec.rb
+
+legacy_correlation_source="$(
+  grep -RInE '(^|[^[:alnum:]_])correlation_id:' lib/phronomy     --include='*.rb' || true
+)"
+if [[ -n "$legacy_correlation_source" ]]; then
+  echo "FAIL: active source still writes generic correlation_id:" >&2
+  printf '%s\n' "$legacy_correlation_source" >&2
+  exit 1
+fi
 
 echo "== CG-01 Workflow identity =="
 bundle exec rbs -I sig validate
@@ -294,4 +310,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: CG-02a + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

@@ -3,7 +3,7 @@
 require "spec_helper"
 require "json"
 
-RSpec.describe "CG-02a generic invocation identity removal" do
+RSpec.describe "CG-02 generic invocation identity removal" do
   let(:root) { File.expand_path("../..", __dir__) }
 
   it "removes generic InvocationContext identities without replacements" do
@@ -97,7 +97,7 @@ RSpec.describe "CG-02a generic invocation identity removal" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     expect(source).not_to include('"thread_id" => thread_id')
-    expect(source).not_to include("correlation_id: thread_id")
+    expect(source).not_to include("correlation_id:")
   end
 
   it "does not propagate legacy duck-typed generic IDs into approval context" do
@@ -168,8 +168,8 @@ RSpec.describe "CG-02a generic invocation identity removal" do
     expect(methods).not_to include("thread_id", "session_id")
   end
 
-  it "leaves durable Journal correlation schema removal for CG-02b" do
+  it "removes generic correlation from the canonical Journal model" do
     expect(Phronomy::Agent::JournalRecord::ATTRIBUTES)
-      .to include(:correlation_id)
+      .not_to include(:correlation_id)
   end
 end

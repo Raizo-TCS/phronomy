@@ -545,7 +545,6 @@ module Phronomy
             kind: :approval_required,
             channel: :approval,
             content_ref: request_ref,
-            correlation_id: request.id.to_s,
             context_generation: root.transcript_generation,
             context_candidate: false
           )
@@ -911,7 +910,6 @@ module Phronomy
             kind: :approval_decided,
             channel: :approval,
             content_ref: decision_ref,
-            correlation_id: request_id.to_s,
             context_generation: current_root.transcript_generation,
             context_candidate: false
           )
