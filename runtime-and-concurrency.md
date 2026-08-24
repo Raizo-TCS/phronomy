@@ -9,8 +9,10 @@ the bounded `OffloadPool`.
 For the design rationale, see [ADR-010](decisions/010-cooperative-first-concurrency.md).
 Durable-state ownership is defined by
 [ADR-014](decisions/014-unified-persistence-durable-state.md), with live Agent
-Runtime ownership refined by
-[ADR-024](decisions/024-event-loop-single-writer-agent-runtime.md).
+Runtime execution-state ownership refined by
+[ADR-024](decisions/024-event-loop-single-writer-agent-runtime.md) and process-local
+Agent identity/admission ownership defined by
+[ADR-025](decisions/025-process-local-agent-ownership-and-runtime-admission.md).
 Canonical Workflow instance identity is defined by
 [ADR-020](decisions/020-canonical-workflow-instance-identity.md).
 Concrete FSMSession incarnation identity and session-local Runtime routing are
@@ -20,12 +22,16 @@ defined by [ADR-023](decisions/023-fsm-session-incarnation-identity-and-routing.
 
 ```text
 Runtime
+├─ Agent ownership registry
+│  └─ agent_id -> one mutable live Agent instance
 ├─ EventLoop (one control-plane operating-system Thread)
 │  ├─ FSMSession
 │  │  ├─ Agent
 │  │  ├─ Workflow
 │  │  ├─ ToolInvocation
 │  │  └─ MultiAgent fan-out
+│  ├─ Agent top-level admission
+│  │  └─ agent_id -> one nonterminal logical Execution admission
 │  └─ Agent execution directory
 │     └─ execution_id -> immutable live-state record
 ├─ OffloadPool (bounded operating-system Threads)
@@ -74,6 +80,57 @@ the halted/terminal boundary.
 
 Content-addressed `Persistence#contents` values are immutable. Fetching a known
 content reference is value materialization rather than mutable state refresh.
+
+## Process-local Agent identity ownership and admission
+
+`agent_id` identifies one logical Agent, not a reusable lookup key for independent
+mutable objects. One Runtime therefore publishes at most one mutable live Agent
+instance for a given `agent_id`. The Runtime-owned registry is an authority, not a
+cache, and reserves the identity before create/load materialization.
+
+The application-facing identity operations are distinct:
+
+```text
+new / create
+  create a new Agent; existing live or durable identity is an error
+
+load(agent_id, persistence:)
+  live -> exact same Ruby object, with no Persistence reload
+  durable-only -> hydrate and publish once
+  missing -> Persistence::NotFoundError
+
+get(agent_id)
+  live Runtime lookup only; missing -> nil
+```
+
+A live Agent is strongly owned for the Runtime lifetime even while idle and
+across sequential Executions. Execution completion does not evict it. Clean
+Runtime shutdown detaches old Agent objects so they cannot remain mutable beside
+a later Runtime owner. `purge!` is the explicit earlier destruction boundary: it
+invalidates the old object, deletes durable state, releases the process-local
+identity, and allows a later new Agent to reuse the textual ID.
+
+Live Agent ownership and top-level Execution admission are separate lifetimes.
+For one live Agent, EventLoop admits at most one nonterminal top-level Execution.
+Admission is acquired **before** the initial Offload/Persistence operation:
+
+```text
+invoke
+  -> EventLoop Agent admission
+  -> Offload/Persistence executions.create_active
+  -> EventLoop live execution state
+```
+
+`preparing`, `active`, and `suspended` all retain the slot. A competing request is
+rejected with `AgentBusyError`; core does not promise automatic queueing. A
+known-successful durable terminal transition releases the slot. A known
+pre-durable failure may release it; an uncertain durable outcome remains
+fail-closed/recovery-required.
+
+`Persistence#executions.create_active`, optimistic revision, Journal position, and
+watermark checks remain required durable defenses. They do not become the
+primary same-process live ownership/admission mechanism and do not provide
+cross-process exclusion.
 
 ## EventLoop single-writer and Offload result application
 

@@ -67,6 +67,32 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Process_local_Agent_ownership_and_Runtime_admission__ACS_12_">Process-local Agent ownership and Runtime admission (ACS-12)</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li>ADR-025 defining one mutable live Agent owner per <code>agent_id</code> per Runtime and
+EventLoop-owned same-process top-level execution admission.</li>
+<li><code>Agent::Base.get(agent_id)</code> for process-local live-owner lookup without
+Persistence I/O.</li>
+<li><code>AgentAlreadyExistsError</code> for create/new identity conflicts and
+<code>AgentPurgedError</code> for stale references after successful purge.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li>Repeated <code>Agent.load(agent_id, persistence:)</code> returns the exact existing live
+Agent object; a durable-only Agent is hydrated once, and a missing durable
+Agent remains a strict <code>Persistence::NotFoundError</code>.</li>
+<li><code>new</code> / <code>create</code> mean creation only and reject an identity that is already
+live or already durable instead of materializing a second mutable owner.</li>
+<li>EventLoop acquires the same-Agent top-level execution slot before initial
+Offload/Persistence work. Suspension retains that slot; known durable terminal
+completion releases it; uncertain durable outcomes remain fail-closed.</li>
+<li>Persistence <code>executions.create_active</code> / atomic admission remains the durable
+second line of integrity defense rather than the primary same-process lock.</li>
+<li>Runtime-lifetime Agent ownership is released on clean Runtime shutdown.
+Successful <code>purge!</code> is the explicit earlier destruction boundary and makes
+the stale Agent object permanently unusable before the identity can be reused.</li>
+</ul>
 <h3 id="EventLoop_single_writer_Agent_Runtime__ACS_11_">EventLoop single-writer Agent Runtime (ACS-11)</h3>
 <h4 id="Added">Added</h4>
 <ul>
@@ -591,7 +617,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Aug 24 05:08:23 2026 by
+  Generated on Mon Aug 24 09:54:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

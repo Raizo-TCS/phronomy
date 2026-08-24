@@ -23,9 +23,12 @@ Phronomy::Persistence synchronous Backend SPI
 Database / durable storage
 ```
 
-Persistence does not own live execution state. In particular, a backend must not
-persist or reconstruct the following as part of this SPI:
+Persistence does not own live Agent identity, top-level Runtime admission, or
+live execution state. In particular, a backend must not persist or reconstruct
+the following as part of this SPI:
 
+- Runtime Agent ownership-registry entries;
+- EventLoop Agent top-level admission entries;
 - EventLoop Agent execution-directory entries;
 - `AgentInvocation`;
 - `FSMSession`;
@@ -96,8 +99,9 @@ failure rather than pretending the outcome is known.
 
 ### `atomic_admission`
 
-This capability refers to **Agent execution admission**, not Workflow distributed
-locking.
+This capability is a **durable Agent execution integrity defense**. It is not the
+primary same-process Agent ownership/admission mechanism and it is not Workflow
+distributed locking.
 
 For one Agent, `executions.create_active` must atomically guarantee both:
 
@@ -110,9 +114,15 @@ no active/suspended execution already exists for agent_id
 A conflict with an existing active/suspended execution raises
 `Phronomy::AgentBusyError`.
 
-Workflow admission remains Runtime/process-local. Cross-process Workflow
-lease/fencing is an application/distributed-coordination concern and is not part
-of this Backend SPI.
+Within one process, Runtime/EventLoop admission is acquired before the initial
+Persistence operation and is the primary competing-execution exclusion
+mechanism. `atomic_admission` remains required as the durable second line of
+defense against stale paths, durable conflicts, and unsupported cross-process
+races. It must not be removed merely because Runtime admission exists.
+
+Workflow admission remains Runtime/process-local. Cross-process Agent or
+Workflow ownership/lease/fencing is a separate distributed-coordination concern
+and is not part of this Backend SPI.
 
 ### `optimistic_revision`
 
@@ -137,8 +147,10 @@ identity, duplicate-ID, or compare-and-swap conflicts.
 
 ### `Phronomy::AgentBusyError`
 
-An Agent already has an active or suspended execution and another execution
-cannot be admitted.
+A durable nonterminal Agent execution already exists and another durable
+execution record cannot be established. Phronomy also uses the same public error
+for a competing process-local top-level request rejected by Runtime/EventLoop
+before the backend is called.
 
 ### `Phronomy::Persistence::SerializationError`
 
@@ -202,6 +214,11 @@ def delete(agent_id)
 - returns `Phronomy::Agent::AgentRoot`, not a raw database Hash;
 - raises `NotFoundError` when missing.
 
+These repository operations are durable-storage primitives. The higher-level
+`Agent::Base.load` API first consults Runtime's process-local live ownership
+registry and does not call the repository when the requested Agent is already
+live.
+
 `save` atomically checks:
 
 ```text
@@ -257,8 +274,11 @@ def delete_for_agent(agent_id)
 def assert_idle!(agent_id)
 ```
 
-`create_active` performs atomic Agent admission. A duplicate `execution_id`
-raises `ConflictError`; an already busy Agent raises `AgentBusyError`.
+`create_active` performs atomic **durable** Agent execution admission. A duplicate
+`execution_id` raises `ConflictError`; an already busy Agent raises
+`AgentBusyError`. Runtime/EventLoop has already acquired the process-local
+logical execution slot on the normal Phronomy path before this repository method
+runs.
 
 `load` returns `Phronomy::Agent::AgentExecution`, not a raw database Hash, and
 raises `NotFoundError` when missing.
@@ -278,8 +298,10 @@ A failed precondition raises `ConflictError`.
 `assert_idle!` is used inside transactions before Agent context/Knowledge changes
 and destructive operations. It must raise `AgentBusyError` if an active/suspended
 execution exists. A SQL implementation must make this check part of a consistency
-boundary that cannot race with Agent execution admission; a best-effort SELECT
-outside the transaction is not sufficient.
+boundary that cannot race with durable Agent execution admission; a best-effort
+SELECT outside the transaction is not sufficient. Process-local Runtime
+admission is an additional upstream coordination layer, not a replacement for
+this durable check.
 
 ## Workflow states repository
 
@@ -478,10 +500,12 @@ require wrappers only; the authoritative shared-example implementations live
 under `lib/phronomy/testing/persistence_contract/` so the core suite and external
 backends cannot drift through copied definitions.
 
-The generic suite verifies repository behavior, CAS semantics, admission,
-mutation isolation, and whole-backend transaction behavior. Database-specific
-concurrency/locking mechanisms remain backend integration-test concerns; the SPI
-specifies outcomes rather than a particular SQL locking strategy.
+The generic suite verifies repository behavior, CAS semantics, durable execution
+admission, mutation isolation, and whole-backend transaction behavior. Runtime
+same-process ownership/admission is tested separately because it is not a
+Persistence Backend SPI responsibility. Database-specific concurrency/locking
+mechanisms remain backend integration-test concerns; the SPI specifies outcomes
+rather than a particular SQL locking strategy.
 
 ## SQL implementation guidance
 
@@ -492,25 +516,8 @@ may use combinations of:
 - conditional `UPDATE ... WHERE revision = ?`;
 - row locks;
 - serializable/repeatable-read isolation where appropriate;
-- partial unique indexes for active Agent execution admission;
+- partial unique indexes for durable active Agent execution admission;
 - transaction-scoped checks for Agent revision + Journal head.
 
 Backend-specific database exceptions should be translated to the Phronomy error
 contract where their meaning is known.
-
-## Explicit non-goals
-
-This Backend SPI does not provide:
-
-- durable reconstruction of a lost live Agent execution;
-- serialization of Runtime objects;
-- cross-process Workflow execution exclusion;
-- exactly-once external Tool side effects;
-- automatic conflict reload/merge;
-- a generic serializer registry for arbitrary Workflow field classes;
-- an async Persistence API.
-
-For the architectural reasons behind these boundaries, see
-[ADR-014: Unified Persistence for Durable State](decisions/014-unified-persistence-durable-state.md),
-[ADR-024: EventLoop Single-Writer Agent Runtime](decisions/024-event-loop-single-writer-agent-runtime.md),
-and [Runtime and concurrency](runtime-and-concurrency.md).

@@ -158,6 +158,28 @@ happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#admit_agent_execution-instance_method" title="#admit_agent_execution (instance method)">#<strong>admit_agent_execution</strong>(agent_id, owner_token:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Reserves the one top-level logical execution slot for agent_id before any Persistence execution admission is attempted.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#admit_workflow-instance_method" title="#admit_workflow (instance method)">#<strong>admit_workflow</strong>(workflow_instance_id, owner_fsm_session_id:)  &#x21d2; Object </a>
     
 
@@ -195,6 +217,28 @@ happens by short event dispatches on this thread.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#agent_execution_admitted%3F-instance_method" title="#agent_execution_admitted? (instance method)">#<strong>agent_execution_admitted?</strong>(agent_id)  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Process-local read-only admission check used by destructive Agent lifecycle operations.</p></div></span>
   
 </li>
 
@@ -283,6 +327,28 @@ happens by short event dispatches on this thread.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#bind_agent_execution_admission-instance_method" title="#bind_agent_execution_admission (instance method)">#<strong>bind_agent_execution_admission</strong>(agent_id, owner_token:, execution_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Binds a successful durable AgentExecution identity to the earlier process-local admission.</p></div></span>
   
 </li>
 
@@ -414,6 +480,50 @@ happens by short event dispatches on this thread.</p>
   
   
   
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#mark_agent_admission_recovery_required-instance_method" title="#mark_agent_admission_recovery_required (instance method)">#<strong>mark_agent_admission_recovery_required</strong>(agent_id, owner_token:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#mark_agent_execution_admission-instance_method" title="#mark_agent_execution_admission (instance method)">#<strong>mark_agent_execution_admission</strong>(agent_id, execution_id:, state:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -593,6 +703,28 @@ happens by short event dispatches on this thread.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#release_agent_execution_admission-instance_method" title="#release_agent_execution_admission (instance method)">#<strong>release_agent_execution_admission</strong>(agent_id, owner_token: nil, execution_id: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Owner-aware release.</p></div></span>
   
 </li>
 
@@ -828,13 +960,6 @@ happens by short event dispatches on this thread.</p>
       <pre class="lines">
 
 
-42
-43
-44
-45
-46
-47
-48
 49
 50
 51
@@ -857,10 +982,18 @@ happens by short event dispatches on this thread.</p>
 68
 69
 70
-71</pre>
+71
+72
+73
+74
+75
+76
+77
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>runtime:</span><span class='rparen'>)</span>
   <span class='ivar'>@runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span>
@@ -874,6 +1007,7 @@ happens by short event dispatches on this thread.</p>
   <span class='ivar'>@waiting</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@admitted_fsm_session_ids</span> <span class='op'>=</span> <span class='const'>Set</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@workflow_admissions</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@agent_admissions</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@agent_executions</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
 
   <span class='ivar'>@lifecycle_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -905,7 +1039,100 @@ happens by short event dispatches on this thread.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="admit_workflow-instance_method">
+  <h3 class="signature first" id="admit_agent_execution-instance_method">
+  
+    #<strong>admit_agent_execution</strong>(agent_id, owner_token:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Reserves the one top-level logical execution slot for agent_id before any
+Persistence execution admission is attempted.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 195</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_admit_agent_execution'>admit_agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent_id must not be empty</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>owner_token is required</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_owner_token'>owner_token</span>
+
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ensure_accepting_registrations!'>ensure_accepting_registrations!</span>
+    <span class='kw'>if</span> <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> already has a nonterminal top-level execution</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@agent_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentAdmission</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::EventLoop#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>agent_id:</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
+      <span class='label'>owner_token:</span> <span class='id identifier rubyid_owner_token'>owner_token</span><span class='comma'>,</span>
+      <span class='label'>execution_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+      <span class='label'>state:</span> <span class='symbol'>:admitting</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="admit_workflow-instance_method">
   
     #<strong>admit_workflow</strong>(workflow_instance_id, owner_fsm_session_id:)  &#x21d2; <tt>Object</tt> 
   
@@ -943,27 +1170,27 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
       <pre class="lines">
 
 
-283
-284
-285
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300</pre>
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 421</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_admit_workflow'>admit_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span> <span class='label'>owner_fsm_session_id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -1025,15 +1252,68 @@ Runtime-only identity of the invocation/resume that currently owns it.</p>
       <pre class="lines">
 
 
-349
-350
-351</pre>
+487
+488
+489</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 349</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 487</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_admitted_fsm_session?'>admitted_fsm_session?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@admitted_fsm_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="agent_execution_admitted?-instance_method">
+  
+    #<strong>agent_execution_admitted?</strong>(agent_id)  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Process-local read-only admission check used by destructive Agent lifecycle
+operations. The mutable admission map itself remains EventLoop-owned.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+188
+189
+190</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 188</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_admitted?'>agent_execution_admitted?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1065,23 +1345,23 @@ crosses this boundary; external callers receive only routing/ownership data.</p>
       <pre class="lines">
 
 
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193</pre>
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 180</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 318</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_owner'>agent_execution_owner</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -1131,13 +1411,13 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-198
-199
-200
-201</pre>
+336
+337
+338
+339</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 198</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 336</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_state'>agent_execution_state</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1163,15 +1443,15 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-81
-82
-83
-84
-85
-86</pre>
+89
+90
+91
+92
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1199,21 +1479,99 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-361
-362
-363
-364
-365
-366</pre>
+499
+500
+501
+502
+503
+504</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 361</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 499</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_draining'>begin_draining</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:draining</span> <span class='kw'>if</span> <span class='ivar'>@state</span> <span class='op'>==</span> <span class='symbol'>:running</span>
   <span class='kw'>end</span>
   <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="bind_agent_execution_admission-instance_method">
+  
+    #<strong>bind_agent_execution_admission</strong>(agent_id, owner_token:, execution_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Binds a successful durable AgentExecution identity to the earlier
+process-local admission.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 220</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_bind_agent_execution_admission'>bind_agent_execution_admission</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_execution_key'>execution_key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> has no Runtime admission</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stale Agent admission bind for </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@agent_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentAdmission</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::EventLoop#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>agent_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>owner_token:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='comma'>,</span>
+      <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution_key'>execution_key</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
+      <span class='label'>state:</span> <span class='symbol'>:executing</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1257,12 +1615,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-353
-354
-355</pre>
+491
+492
+493</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 353</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 491</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current?'>current?</span>
   <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='ivar'>@thread</span><span class='rparen'>)</span>
@@ -1300,13 +1658,13 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-275
-276
-277
-278</pre>
+413
+414
+415
+416</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 275</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 413</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fsm_session_state'>fsm_session_state</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1354,12 +1712,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-368
-369
-370</pre>
+506
+507
+508</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 368</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 506</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_runtime_idle_locked?'>runtime_idle_locked?</span> <span class='rbrace'>}</span>
@@ -1397,39 +1755,39 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229
-230
-231
-232
-233</pre>
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 204</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 342</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_install_agent_execution'>install_agent_execution</span><span class='lparen'>(</span>
   <span class='label'>execution_id:</span><span class='comma'>,</span>
@@ -1481,15 +1839,181 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-73
-74
-75</pre>
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@last_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="mark_agent_admission_recovery_required-instance_method">
+  
+    #<strong>mark_agent_admission_recovery_required</strong>(agent_id, owner_token:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 270</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_agent_admission_recovery_required'>mark_agent_admission_recovery_required</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> has no Runtime admission</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stale Agent admission recovery update for </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@agent_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentAdmission</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::EventLoop#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>agent_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>owner_token:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='comma'>,</span>
+      <span class='label'>execution_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+      <span class='label'>state:</span> <span class='symbol'>:recovery_required</span>
+    <span class='rparen'>)</span>
+    <span class='ivar'>@idle_cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_runtime_idle_locked?'>runtime_idle_locked?</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="mark_agent_execution_admission-instance_method">
+  
+    #<strong>mark_agent_execution_admission</strong>(agent_id, execution_id:, state:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 242</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_agent_execution_admission'>mark_agent_execution_admission</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>state:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_execution_key'>execution_key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_next_state'>next_state</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
+  <span class='kw'>unless</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>executing</span><span class='words_sep'> </span><span class='tstring_content'>suspended</span><span class='words_sep'> </span><span class='tstring_content'>resuming</span><span class='words_sep'> </span><span class='tstring_content'>terminalizing</span><span class='words_sep'> </span><span class='tstring_content'>recovery_required</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_next_state'>next_state</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unsupported Agent admission state: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_next_state'>next_state</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> has no Runtime admission</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>==</span> <span class='id identifier rubyid_execution_key'>execution_key</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stale Agent admission state update for </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@agent_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentAdmission</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::EventLoop#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>agent_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>owner_token:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='comma'>,</span>
+      <span class='label'>execution_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+      <span class='label'>state:</span> <span class='id identifier rubyid_next_state'>next_state</span>
+    <span class='rparen'>)</span>
+    <span class='ivar'>@idle_cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_runtime_idle_locked?'>runtime_idle_locked?</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1511,12 +2035,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-77
-78
-79</pre>
+85
+86
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@max_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -1541,12 +2065,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-92
-93
-94</pre>
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 100</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_queue_depth'>max_queue_depth</span>
   <span class='ivar'>@queue_metrics_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@max_queue_depth</span> <span class='rbrace'>}</span>
@@ -1571,14 +2095,6 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-134
-135
-136
-137
-138
-139
-140
-141
 142
 143
 144
@@ -1594,10 +2110,18 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
 154
 155
 156
-157</pre>
+157
+158
+159
+160
+161
+162
+163
+164
+165</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 134</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 142</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1643,14 +2167,6 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-159
-160
-161
-162
-163
-164
-165
-166
 167
 168
 169
@@ -1660,10 +2176,18 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
 173
 174
 175
-176</pre>
+176
+177
+178
+179
+180
+181
+182
+183
+184</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 159</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 167</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post_to_session'>post_to_session</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_target_id'>target_id</span> <span class='op'>==</span> <span class='const'><span class='object_link'><a href="#SYSTEM_CHANNEL_ID-constant" title="Phronomy::EventLoop::SYSTEM_CHANNEL_ID (constant)">SYSTEM_CHANNEL_ID</a></span></span>
@@ -1703,32 +2227,32 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331
-332
-333
-334
-335
-336
-337
-338
-339
-340</pre>
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 318</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 456</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post_to_workflow'>post_to_workflow</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1773,12 +2297,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-88
-89
-90</pre>
+96
+97
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue_metrics_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@queue_depth</span> <span class='rbrace'>}</span>
@@ -1803,14 +2327,6 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-96
-97
-98
-99
-100
-101
-102
-103
 104
 105
 106
@@ -1839,10 +2355,18 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
 129
 130
 131
-132</pre>
+132
+133
+134
+135
+136
+137
+138
+139
+140</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_current?'>current?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_completion'>completion</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='rparen'>)</span>
@@ -1914,20 +2438,100 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-267
-268
-269
-270
-271
-272</pre>
+405
+406
+407
+408
+409
+410</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 267</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 405</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release_agent_execution'>release_agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='ivar'>@agent_executions</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="release_agent_execution_admission-instance_method">
+  
+    #<strong>release_agent_execution_admission</strong>(agent_id, owner_token: nil, execution_id: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Owner-aware release. Pre-durable failures release by owner_token; durable
+terminal outcomes release by execution_id.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 294</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_release_agent_execution_admission'>release_agent_execution_admission</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
+  <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@agent_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span>
+
+    <span class='id identifier rubyid_authoritative'>authoritative</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_execution_id'>execution_id</span>
+      <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>==</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='kw'>elsif</span> <span class='id identifier rubyid_owner_token'>owner_token</span>
+      <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner_token'>owner_token</span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='kw'>false</span>
+    <span class='kw'>end</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_authoritative'>authoritative</span>
+
+    <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+    <span class='ivar'>@idle_cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_runtime_idle_locked?'>runtime_idle_locked?</span>
+    <span class='kw'>true</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1950,20 +2554,20 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-302
-303
-304
-305
-306
-307
-308
-309
-310
-311
-312</pre>
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 302</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 440</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release_workflow'>release_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span> <span class='label'>owner_fsm_session_id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -2009,38 +2613,38 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-236
-237
-238
-239
-240
-241
-242
-243
-244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260
-261
-262
-263
-264</pre>
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 236</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 374</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_replace_agent_execution'>replace_agent_execution</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -2091,12 +2695,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-407
-408
-409</pre>
+545
+546
+547</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 407</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 545</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
@@ -2121,12 +2725,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-357
-358
-359</pre>
+495
+496
+497</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 357</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 495</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
@@ -2151,32 +2755,32 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-383
-384
-385
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396
-397
-398
-399
-400
-401
-402
-403
-404
-405</pre>
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 383</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 521</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -2247,12 +2851,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-411
-412
-413</pre>
+549
+550
+551</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 411</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 549</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_alive?'>thread_alive?</span>
   <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>||</span> <span class='kw'>false</span>
@@ -2277,19 +2881,19 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-372
-373
-374
-375
-376
-377
-378
-379
-380
-381</pre>
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 372</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 510</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -2321,15 +2925,15 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-342
-343
-344
-345
-346
-347</pre>
+480
+481
+482
+483
+484
+485</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 342</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 480</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wake'>wake</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='const'>WAKE</span><span class='rparen'>)</span>
@@ -2357,12 +2961,12 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-314
-315
-316</pre>
+452
+453
+454</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 314</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 452</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_workflow_admission_owner'>workflow_admission_owner</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@workflow_admissions</span><span class='lbracket'>[</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -2377,7 +2981,7 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 24 05:08:24 2026 by
+  Generated on Mon Aug 24 09:54:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

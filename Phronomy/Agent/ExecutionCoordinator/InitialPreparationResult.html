@@ -124,6 +124,33 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#admission_outcome-instance_method" title="#admission_outcome (instance method)">#<strong>admission_outcome</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute admission_outcome.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#appended_records-instance_method" title="#appended_records (instance method)">#<strong>appended_records</strong>  &#x21d2; Object </a>
     
 
@@ -323,7 +350,64 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="appended_records-instance_method">
+  <h3 class="signature first" id="admission_outcome-instance_method">
+  
+    #<strong>admission_outcome</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute admission_outcome</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current value of admission_outcome</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+53
+54
+55</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_admission_outcome'>admission_outcome</span>
+  <span class='ivar'>@admission_outcome</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="appended_records-instance_method">
   
     #<strong>appended_records</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
@@ -362,12 +446,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_appended_records'>appended_records</span>
   <span class='ivar'>@appended_records</span>
@@ -419,12 +503,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_config'>config</span>
   <span class='ivar'>@config</span>
@@ -476,12 +560,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -533,12 +617,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution'>execution</span>
   <span class='ivar'>@execution</span>
@@ -590,12 +674,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_filtered_input'>filtered_input</span>
   <span class='ivar'>@filtered_input</span>
@@ -647,12 +731,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span>
   <span class='ivar'>@root</span>
@@ -704,12 +788,12 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
       <pre class="lines">
 
 
-52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_projection'>runtime_projection</span>
   <span class='ivar'>@runtime_projection</span>
@@ -725,7 +809,7 @@ mutated by a worker; these values are validated and applied on EventLoop.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 24 05:08:26 2026 by
+  Generated on Mon Aug 24 09:54:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

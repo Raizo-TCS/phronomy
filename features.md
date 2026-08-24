@@ -18,7 +18,7 @@ for production deployments.
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
-| **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, and conversation context | Stable |
+| **Agent** — Stateful ReAct-style agents with stable `agent_id`, one mutable live owner per Runtime, persistence-backed execution state, canonical history, and conversation context | Stable |
 | **Tool authoring façade** — `Phronomy::Tool::Base` is the public authoring name for the existing Capability base class; the legacy namespace remains compatible | Beta |
 | **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by Runtime/session authority between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
 | **LLMAdapter SPI** — `Phronomy::LLMAdapter::Base#complete` / `#stream` define the Beta call-adapter extension boundary; Phronomy owns async/offload wrapping | Beta |
@@ -58,6 +58,7 @@ rather than implicitly inheriting the parent revision. The Stable
 |---|---|
 | **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions; single writer for Phronomy-managed live Agent execution state | Beta |
 | **Agent execution result authority** — Session-local routing plus current FSM state and purpose-specific semantic IDs (`llm_call_id`, `tool_invocation_id`) reject stale async results | Beta |
+| **Agent live ownership/admission** — Runtime owns one mutable live Agent per `agent_id`; EventLoop rejects competing same-Agent top-level executions while suspension retains the logical execution slot; Persistence admission remains durable defense | Beta |
 | **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from load through terminal save; admission-owner representation remains Runtime-internal and is reconciled separately | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
 | **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
