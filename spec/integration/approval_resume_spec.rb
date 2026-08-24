@@ -13,6 +13,12 @@ require_relative "support/llm_stub"
 # - An accepted approve_async Task is distinct but observes the same logical
 #   execution's terminal outcome.
 # - Invalid approval fails only that approval Task.
+#
+# Existing pairwise approval-policy/tool-count coverage is intentionally kept:
+#   no_policy / approved / single
+#   no_policy / denied   / multiple
+#   policy_allow / approved / multiple
+#   policy_reject / denied / single
 
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
@@ -97,9 +103,10 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
   end
 
-  describe "no policy; denied" do
-    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "should_not_run") }
-    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
+  describe "no policy; denied; multiple approval tools" do
+    let(:tool_class_a) { IntegrationFactors.approval_tool(result_value: "first_tool_result") }
+    let(:tool_class_b) { IntegrationFactors.second_approval_tool(result_value: "second_tool_result") }
+    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class_a, tool_class_b) }
     let(:agent) { agent_class.new }
 
     before do
@@ -108,13 +115,16 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       ])
     end
 
-    it "returns the same rejected terminal outcome to both Tasks" do
+    it "returns the same rejected terminal outcome to the original and approval Tasks" do
       approvals = Queue.new
       original = agent.invoke_async(
         "Try the protected tool",
         on_tool_approval_required: ->(request) { approvals << request }
       )
       request = approvals.pop
+
+      expect(original).not_to be_done
+
       approval = agent.approve_async(
         request.execution_id,
         approval_request_id: request.id,
@@ -126,9 +136,10 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
   end
 
-  describe "policy allow" do
-    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "approved_result") }
-    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
+  describe "policy allow; approved; multiple approval tools" do
+    let(:tool_class_a) { IntegrationFactors.approval_tool(result_value: "approved_result_a") }
+    let(:tool_class_b) { IntegrationFactors.second_approval_tool(result_value: "approved_result_b") }
+    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class_a, tool_class_b) }
     let(:agent) { agent_class.new }
 
     before do
@@ -139,7 +150,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       ])
     end
 
-    it "does not produce a suspension notification and completes normally" do
+    it "does not suspend and does not produce an approval notification" do
       approvals = []
       result = agent.invoke(
         "Use the approval tool",
@@ -147,8 +158,35 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       )
 
       expect(approvals).to be_empty
-      expect(result[:output]).to be_a(String)
       expect(result[:suspended]).to be_falsy
+      expect(result[:output]).to be_a(String)
+      expect(result[:output]).not_to be_empty
+    end
+  end
+
+  describe "policy reject; denied; single approval tool" do
+    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "should_not_appear") }
+    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
+    let(:agent) { agent_class.new }
+
+    before do
+      agent.tool_approval_policy { :reject }
+      @llm = LLMStub.activate(responses: [
+        LLMStub.tool_call_response("approval_required_tool", {query: "deny test"})
+      ])
+    end
+
+    it "rejects before suspension and returns no text output" do
+      approvals = []
+      result = agent.invoke(
+        "Use the approval tool please",
+        on_tool_approval_required: ->(request) { approvals << request }
+      )
+
+      expect(approvals).to be_empty
+      expect(result[:rejected]).to be true
+      expect(result[:suspended]).to be_falsy
+      expect(result[:output]).to be_nil
     end
   end
 
