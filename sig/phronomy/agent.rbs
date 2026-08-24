@@ -94,6 +94,7 @@ module Phronomy
       def self.before_llm_input: (?_BeforeLLMInputHook callable) ?{ (LLMInputBuildContext context) -> LLMInputPatch? } -> _BeforeLLMInputHook?
       def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped]) -> instance
       def self.load: (String agent_id, persistence: Persistence) -> instance
+      def self.get: (String agent_id) -> instance?
       def self.live_for_execution: (String execution_id) -> instance
 
       attr_reader agent_id: String

@@ -22,9 +22,25 @@ RSpec.describe "Agent logical-state ownership" do
     nil
   end
 
-  it "hydrates a loaded Agent once and then serves Journal projection from local state" do
+  it "returns the existing live Agent without reloading its durable state" do
     agent.add_knowledge("known fact")
     agent_id = agent.agent_id
+
+    expect(persistence.agents).not_to receive(:load)
+    expect(persistence.journals).not_to receive(:read)
+    loaded = agent_class.load(agent_id, persistence: persistence)
+
+    expect(loaded).to equal(agent)
+    records = loaded.journal_projection.context_records
+    expect(records.map { |record|
+      persistence.contents.fetch_text(record.content_ref)
+    }).to include("known fact")
+  end
+
+  it "hydrates once in a fresh Runtime and then keeps the live instance authoritative" do
+    agent.add_knowledge("known fact")
+    agent_id = agent.agent_id
+    Phronomy.reset_runtime!
 
     expect(persistence.agents).to receive(:load).once.and_call_original
     expect(persistence.journals).to receive(:read).once.and_call_original
@@ -32,7 +48,9 @@ RSpec.describe "Agent logical-state ownership" do
 
     expect(persistence.agents).not_to receive(:load)
     expect(persistence.journals).not_to receive(:read)
+    again = agent_class.load(agent_id, persistence: persistence)
 
+    expect(again).to equal(loaded)
     records = loaded.journal_projection.context_records
     expect(records.map { |record|
       persistence.contents.fetch_text(record.content_ref)

@@ -19,6 +19,7 @@ required_files=(
   docs/decisions/022-agent-execution-parent-identity-and-runtime-routing-boundary.md
   docs/decisions/023-fsm-session-incarnation-identity-and-routing.md
   docs/decisions/024-event-loop-single-writer-agent-runtime.md
+  docs/decisions/025-process-local-agent-ownership-and-runtime-admission.md
   lib/phronomy/workflow.rb
   lib/phronomy/workflow_context.rb
   lib/phronomy/workflow_runner.rb
@@ -68,6 +69,9 @@ required_files=(
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
   lib/phronomy/agent/base.rb
+  lib/phronomy/agent_already_exists_error.rb
+  lib/phronomy/agent_purged_error.rb
+  lib/phronomy/engine/runtime/agent_ownership_registry.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
   lib/phronomy/agent/shared_state.rb
@@ -88,6 +92,8 @@ required_files=(
   docs/decisions/016-semantic-multi-agent-handoff.md
   spec/phronomy/agent/event_loop_single_writer_spec.rb
   spec/phronomy/agent/tool_authorization_snapshot_boundary_spec.rb
+  spec/phronomy/agent/same_process_ownership_spec.rb
+  spec/phronomy/agent/runtime_admission_spec.rb
 )
 for path in "${required_files[@]}"; do
   [[ -f "$path" ]] || { echo "FAIL: missing $path" >&2; exit 1; }
@@ -125,6 +131,8 @@ syntax_files=(
   spec/phronomy/agent/agent_invocation_spec.rb
   spec/phronomy/agent/agent_invocation_session_builder_spec.rb
   spec/phronomy/agent/tool_authorization_snapshot_boundary_spec.rb
+  spec/phronomy/agent/same_process_ownership_spec.rb
+  spec/phronomy/agent/runtime_admission_spec.rb
   spec/phronomy/concurrency/cancellation_token_spec.rb
   spec/phronomy/fault_injection_spec.rb
   spec/phronomy/multi_agent/team_coordinator_spec.rb
@@ -156,6 +164,9 @@ syntax_files=(
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
   lib/phronomy/agent/base.rb
+  lib/phronomy/agent_already_exists_error.rb
+  lib/phronomy/agent_purged_error.rb
+  lib/phronomy/engine/runtime/agent_ownership_registry.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/llm_input_build_context.rb
   lib/phronomy/agent/shared_state.rb
@@ -300,6 +311,22 @@ if grep -RInE 'AgentExecutionActivation|ActivationRegistry|__agent_activations|p
   exit 1
 fi
 
+echo "== ACS-12 process-local Agent ownership / Runtime admission =="
+ruby -c lib/phronomy/engine/runtime/agent_ownership_registry.rb >/dev/null
+ruby -c lib/phronomy/agent/base.rb >/dev/null
+ruby -c lib/phronomy/agent/execution_coordinator.rb >/dev/null
+ruby -c lib/phronomy/engine/event_loop.rb >/dev/null
+ruby -c spec/phronomy/agent/same_process_ownership_spec.rb >/dev/null
+ruby -c spec/phronomy/agent/runtime_admission_spec.rb >/dev/null
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/agent/same_process_ownership_spec.rb \
+  spec/phronomy/agent/runtime_admission_spec.rb \
+  spec/phronomy/agent/persistence_logical_state_ownership_spec.rb \
+  spec/phronomy/agent/base_spec.rb \
+  spec/phronomy/api_compatibility_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb
+
 echo "== CG-03b / ACS-10 FSMSession routing foundation =="
 bundle exec rspec \
   spec/phronomy/fsm_session_identity_contract_spec.rb \
@@ -435,4 +462,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

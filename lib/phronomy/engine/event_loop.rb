@@ -39,6 +39,13 @@ module Phronomy
     AgentExecutionOwner = Data.define(:execution_id, :agent, :coordinator, :status)
     private_constant :AgentExecutionOwner
 
+    # EventLoop-owned process-local top-level execution admission. This is
+    # separate from AgentExecutionState because admission begins before the
+    # durable AgentExecution exists. owner_token is coordination-only and is
+    # never a semantic result-authority identifier.
+    AgentAdmission = Data.define(:agent_id, :owner_token, :execution_id, :state)
+    private_constant :AgentAdmission
+
     def initialize(runtime:)
       @runtime = runtime
       @queue = Phronomy::Concurrency::AsyncQueue.new
@@ -51,6 +58,7 @@ module Phronomy
       @waiting = {}
       @admitted_fsm_session_ids = Set.new
       @workflow_admissions = {}
+      @agent_admissions = {}
       @agent_executions = {}
 
       @lifecycle_mutex = Mutex.new
@@ -173,6 +181,136 @@ module Phronomy
 
       check_queue_backlog(queued_depth, event)
       true
+    end
+
+    # Process-local read-only admission check used by destructive Agent lifecycle
+    # operations. The mutable admission map itself remains EventLoop-owned.
+    def agent_execution_admitted?(agent_id)
+      @lifecycle_mutex.synchronize { @agent_admissions.key?(agent_id.to_s) }
+    end
+
+    # Reserves the one top-level logical execution slot for agent_id before any
+    # Persistence execution admission is attempted.
+    # @api private
+    def admit_agent_execution(agent_id, owner_token:)
+      assert_event_loop_thread!
+      key = agent_id.to_s
+      raise ArgumentError, "agent_id must not be empty" if key.empty?
+      raise ArgumentError, "owner_token is required" unless owner_token
+
+      @lifecycle_mutex.synchronize do
+        ensure_accepting_registrations!
+        if @agent_admissions.key?(key)
+          raise Phronomy::AgentBusyError,
+            "Agent #{key.inspect} already has a nonterminal top-level execution"
+        end
+        @agent_admissions[key] = AgentAdmission.new(
+          agent_id: key.freeze,
+          owner_token: owner_token,
+          execution_id: nil,
+          state: :admitting
+        )
+      end
+      true
+    end
+
+    # Binds a successful durable AgentExecution identity to the earlier
+    # process-local admission.
+    # @api private
+    def bind_agent_execution_admission(agent_id, owner_token:, execution_id:)
+      assert_event_loop_thread!
+      key = agent_id.to_s
+      execution_key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        current = @agent_admissions.fetch(key) do
+          raise Phronomy::Error, "Agent #{key.inspect} has no Runtime admission"
+        end
+        unless current.owner_token.equal?(owner_token) && current.execution_id.nil?
+          raise Phronomy::Error, "stale Agent admission bind for #{key.inspect}"
+        end
+        @agent_admissions[key] = AgentAdmission.new(
+          agent_id: current.agent_id,
+          owner_token: current.owner_token,
+          execution_id: execution_key.freeze,
+          state: :executing
+        )
+      end
+      true
+    end
+
+    # @api private
+    def mark_agent_execution_admission(agent_id, execution_id:, state:)
+      assert_event_loop_thread!
+      key = agent_id.to_s
+      execution_key = execution_id.to_s
+      next_state = state.to_sym
+      unless %i[executing suspended resuming terminalizing recovery_required].include?(next_state)
+        raise ArgumentError, "unsupported Agent admission state: #{next_state.inspect}"
+      end
+
+      @lifecycle_mutex.synchronize do
+        current = @agent_admissions.fetch(key) do
+          raise Phronomy::Error, "Agent #{key.inspect} has no Runtime admission"
+        end
+        unless current.execution_id.to_s == execution_key
+          raise Phronomy::Error, "stale Agent admission state update for #{key.inspect}"
+        end
+        @agent_admissions[key] = AgentAdmission.new(
+          agent_id: current.agent_id,
+          owner_token: current.owner_token,
+          execution_id: current.execution_id,
+          state: next_state
+        )
+        @idle_cond.broadcast if runtime_idle_locked?
+      end
+      true
+    end
+
+    # @api private
+    def mark_agent_admission_recovery_required(agent_id, owner_token:)
+      assert_event_loop_thread!
+      key = agent_id.to_s
+      @lifecycle_mutex.synchronize do
+        current = @agent_admissions.fetch(key) do
+          raise Phronomy::Error, "Agent #{key.inspect} has no Runtime admission"
+        end
+        unless current.owner_token.equal?(owner_token)
+          raise Phronomy::Error, "stale Agent admission recovery update for #{key.inspect}"
+        end
+        @agent_admissions[key] = AgentAdmission.new(
+          agent_id: current.agent_id,
+          owner_token: current.owner_token,
+          execution_id: current.execution_id,
+          state: :recovery_required
+        )
+        @idle_cond.broadcast if runtime_idle_locked?
+      end
+      true
+    end
+
+    # Owner-aware release. Pre-durable failures release by owner_token; durable
+    # terminal outcomes release by execution_id.
+    # @api private
+    def release_agent_execution_admission(agent_id, owner_token: nil, execution_id: nil)
+      assert_event_loop_thread!
+      key = agent_id.to_s
+      @lifecycle_mutex.synchronize do
+        current = @agent_admissions[key]
+        next false unless current
+
+        authoritative = if execution_id
+          current.execution_id.to_s == execution_id.to_s
+        elsif owner_token
+          current.owner_token.equal?(owner_token)
+        else
+          false
+        end
+        next false unless authoritative
+
+        @agent_admissions.delete(key)
+        @idle_cond.broadcast if runtime_idle_locked?
+        true
+      end
     end
 
     # Process-local read-only owner lookup. Mutable Agent execution state never
@@ -522,6 +660,7 @@ module Phronomy
       @lifecycle_mutex.synchronize do
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
+        @agent_admissions.clear
         @agent_executions.clear
         @outstanding_sessions = 0
         @idle_cond.broadcast
@@ -543,6 +682,7 @@ module Phronomy
         @state = :failed
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
+        @agent_admissions.clear
         @agent_executions.clear
         @idle_cond.broadcast
       end
@@ -575,7 +715,15 @@ module Phronomy
     end
 
     def runtime_idle_locked?
-      @outstanding_sessions.zero? && @workflow_admissions.empty?
+      @outstanding_sessions.zero? &&
+        @workflow_admissions.empty? &&
+        !agent_admission_transition_in_progress_locked?
+    end
+
+    def agent_admission_transition_in_progress_locked?
+      @agent_admissions.values.any? do |admission|
+        %i[admitting executing resuming terminalizing].include?(admission.state)
+      end
     end
 
     def join_until(deadline)
@@ -591,6 +739,7 @@ module Phronomy
         @state = :terminated
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
+        @agent_admissions.clear
         @agent_executions.clear
         @thread = nil unless @thread&.alive?
         @idle_cond.broadcast

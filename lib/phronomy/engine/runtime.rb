@@ -3,6 +3,7 @@
 require_relative "runtime/timer_queue"
 require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
+require_relative "runtime/agent_ownership_registry"
 
 module Phronomy
   class Runtime
@@ -63,6 +64,7 @@ module Phronomy
         timer_queue_provider: -> { timer_queue }
       )
       @multi_agent_admissions = Phronomy::MultiAgent::AdmissionRegistry.new
+      @agent_ownership_registry = AgentOwnershipRegistry.new(runtime: self)
       @lifecycle_mutex = Mutex.new
       @shutdown_mutex = Mutex.new
       @state = :running
@@ -105,6 +107,52 @@ module Phronomy
     def __agent_execution_owner(execution_id)
       loop_instance = @lifecycle_mutex.synchronize { @event_loop }
       loop_instance&.agent_execution_owner(execution_id)
+    end
+
+    # @api private
+    def __create_agent(agent_id, expected_class:, &block)
+      @agent_ownership_registry.create(agent_id, expected_class: expected_class, &block)
+    end
+
+    # @api private
+    def __load_agent(agent_id, expected_class:, &block)
+      @agent_ownership_registry.load(agent_id, expected_class: expected_class, &block)
+    end
+
+    # @api private
+    def __get_agent(agent_id, expected_class:)
+      @agent_ownership_registry.get(agent_id, expected_class: expected_class)
+    end
+
+    # @api private
+    def __agent_owned?(agent)
+      @agent_ownership_registry.owned?(agent)
+    end
+
+    # @api private
+    def __begin_agent_purge(agent)
+      @agent_ownership_registry.begin_purge(agent)
+    end
+
+    # @api private
+    def __complete_agent_purge(agent, token)
+      @agent_ownership_registry.complete_purge(agent, token)
+    end
+
+    # @api private
+    def __abort_agent_purge(agent, token)
+      @agent_ownership_registry.abort_purge(agent, token)
+    end
+
+    # @api private
+    def __leave_agent_purge_uncertain(agent, token)
+      @agent_ownership_registry.leave_purge_uncertain(agent, token)
+    end
+
+    # @api private
+    def __agent_execution_admitted?(agent_id)
+      loop_instance = @lifecycle_mutex.synchronize { @event_loop }
+      loop_instance&.agent_execution_admitted?(agent_id) || false
     end
 
     # @api private
@@ -177,8 +225,10 @@ module Phronomy
           @event_loop
         end
         loop_instance&.begin_draining
+        @agent_ownership_registry.begin_draining
 
         admission_idle = @multi_agent_admissions.wait_until_idle(drain_deadline)
+        agent_ownership_stable = @agent_ownership_registry.wait_until_stable(drain_deadline)
         loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
 
         @lifecycle_mutex.synchronize do
@@ -193,7 +243,7 @@ module Phronomy
         end
 
         subsystem_error = shutdown_pools_and_timer
-        cleanup_complete = admission_idle && loop_idle &&
+        cleanup_complete = admission_idle && agent_ownership_stable && loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           subsystem_error.nil?
@@ -204,6 +254,8 @@ module Phronomy
         else
           :terminated
         end
+
+        @agent_ownership_registry.shutdown! if cleanup_complete
 
         result = ShutdownResult.new(
           runtime_outcome: runtime_outcome,

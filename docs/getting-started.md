@@ -100,7 +100,7 @@ result = agent.invoke("What is my name?")
 puts result[:output]
 ```
 
-Load the same Agent again when the same Persistence backend is available:
+Resolve the same logical Agent when the same Persistence backend is available:
 
 ```ruby
 agent = ResearchAgent.load(
@@ -111,9 +111,24 @@ agent = ResearchAgent.load(
 agent.invoke("Continue our previous discussion.")
 ```
 
-`load` is the hydration boundary. While that Agent instance is live, the
-Agent owns its current AgentRoot/Journal view and Runtime EventLoop owns active
-Agent execution state as the single live-state writer.
+A Runtime has at most one mutable live Agent object for an `agent_id`. If the
+Agent is already live, repeated `load` returns that exact Ruby object and does
+not reload Persistence. If it is not live, `load` hydrates the durable Agent
+once. Loading an ID that does not exist durably raises
+`Persistence::NotFoundError`.
+
+Use `get` when only a process-local lookup is wanted:
+
+```ruby
+live = ResearchAgent.get("research-session-42")
+```
+
+`get` never reads Persistence and returns `nil` when this Runtime has no live
+owner. `new` and `create` are creation operations, not get-or-load operations;
+they raise `AgentAlreadyExistsError` if the requested identity already exists.
+
+While the Agent is live, it owns its current AgentRoot/Journal view and
+Runtime/EventLoop owns process-local identity/admission/execution authority.
 Phronomy persists snapshots at defined durability boundaries but does not reload
 mutable Agent/Execution/Journal state before every LLM or Tool step. A conflicting
 external durable write is surfaced as `Persistence::ConflictError` rather than
@@ -128,8 +143,10 @@ agent.clear_knowledge!
 agent.reset_context!
 ```
 
-`purge!` is different: it permanently removes the Agent and persisted execution
-history from the configured Persistence backend.
+`purge!` is different: it explicitly destroys the logical Agent and removes its
+persisted execution history from the configured Persistence backend. After a
+successful purge the old Ruby object is permanently unusable; the textual
+`agent_id` may then be used to create a new logical Agent.
 
 ## Sync and async Agent APIs
 

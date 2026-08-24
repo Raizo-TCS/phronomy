@@ -79,6 +79,7 @@ RSpec.describe Phronomy::Agent::Base do
       event_loop = double("event_loop", current?: true)
       runtime = double("runtime", event_loop: event_loop)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
+      allow(runtime).to receive(:__create_agent).and_yield(runtime)
 
       expect do
         agent.approve(

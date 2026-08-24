@@ -162,8 +162,34 @@ module Phronomy
           )
         end
 
+        # Resolves one existing logical Agent. A live process-local owner wins
+        # without a Persistence reload; otherwise the durable Agent is hydrated.
         def load(agent_id, persistence:)
-          new(agent_id: agent_id, persistence: persistence, load_existing: true)
+          raise ArgumentError, "persistence is required" unless persistence
+
+          key = agent_id.to_s
+          raise ArgumentError, "agent_id must not be empty" if key.empty?
+          runtime = Phronomy::Runtime.instance
+          agent = runtime.__load_agent(key, expected_class: self) do |owner_runtime|
+            __construct_owned_agent(
+              owner_runtime,
+              key,
+              agent_id: key,
+              persistence: persistence,
+              load_existing: true
+            )
+          end
+          unless agent.persistence.equal?(persistence)
+            raise Phronomy::ConfigurationError,
+              "Agent #{key.inspect} is already live with a different Persistence instance"
+          end
+          agent
+        end
+
+        # Returns only the process-local live Agent owner. Does not access
+        # Persistence and returns nil when this Runtime has no live owner.
+        def get(agent_id)
+          Phronomy::Runtime.instance.__get_agent(agent_id, expected_class: self)
         end
 
         # Resolves the live Agent instance that currently owns execution_id in
@@ -184,53 +210,84 @@ module Phronomy
 
           agent
         end
+
+        private
+
+        def __construct_owned_agent(owner_runtime, reserved_agent_id, *args, **kwargs, &block)
+          instance = allocate
+          instance.send(:__prepare_runtime_owner!, owner_runtime, reserved_agent_id)
+          instance.send(:initialize, *args, **kwargs, &block)
+          instance
+        end
       end
 
       attr_reader :agent_id, :persistence
 
       def initialize(
-        agent_id: SecureRandom.uuid,
+        agent_id: nil,
         context: nil,
         knowledge: [],
         persistence: nil,
         metadata: {},
         load_existing: false
       )
-        @persistence = persistence ||
-          Phronomy.configuration.persistence ||
-          Phronomy::Persistence::InMemory.new
-        @agent_id = agent_id.to_s.freeze
-
-        if load_existing
-          root = records = nil
-          @persistence.transaction do |tx|
-            root = tx.agents.load(@agent_id)
-            records = tx.journals.read(
-              @agent_id,
-              limit: root.journal_position
-            )
-          end
-          validate_loaded_definition!(root)
-          @root = root
-          @_phronomy_journal_records = Array(records).dup.freeze
+        reserved_agent_id = @_phronomy_reserved_agent_id
+        effective_agent_id = if agent_id.nil?
+          reserved_agent_id || SecureRandom.uuid.to_s
         else
-          @root = create_agent_root!(
+          agent_id.to_s
+        end
+        raise ArgumentError, "agent_id must not be empty" if effective_agent_id.empty?
+
+        if @_phronomy_runtime_owner_state == :constructing
+          unless reserved_agent_id == effective_agent_id
+            raise Phronomy::Error,
+              "Agent initializer changed reserved identity from " \
+              "#{reserved_agent_id.inspect} to #{effective_agent_id.inspect}"
+          end
+          initialize_owned_state(
+            agent_id: effective_agent_id,
             context: context,
             knowledge: knowledge,
-            metadata: metadata
+            persistence: persistence,
+            metadata: metadata,
+            load_existing: load_existing
           )
-          @_phronomy_journal_records = @persistence.journals.read(
-            @agent_id,
-            limit: @root.journal_position
-          ).dup.freeze
+          return
+        end
+
+        if load_existing
+          raise ArgumentError,
+            "load_existing: is an internal hydration option; use .load(agent_id, persistence:)"
+        end
+
+        runtime = Phronomy::Runtime.instance
+        begin
+          runtime.__create_agent(effective_agent_id, expected_class: self.class) do |owner_runtime|
+            __prepare_runtime_owner!(owner_runtime, effective_agent_id)
+            initialize_owned_state(
+              agent_id: effective_agent_id,
+              context: context,
+              knowledge: knowledge,
+              persistence: persistence,
+              metadata: metadata,
+              load_existing: false
+            )
+            self
+          end
+        rescue Phronomy::Persistence::ConflictError => error
+          raise Phronomy::AgentAlreadyExistsError,
+            "Agent #{effective_agent_id.inspect} already exists durably: #{error.message}"
         end
       end
 
       def agent_root
+        __assert_agent_accessible!
         @root
       end
 
       def journal_projection
+        __assert_agent_accessible!
         Agent::JournalProjection.new(
           agent_root: @root,
           records: _journal_records_snapshot
@@ -261,6 +318,7 @@ module Phronomy
       end
 
       def add_knowledge(content, metadata: {})
+        __assert_live_agent!
         current = agent_root
         next_root = nil
         appended = nil
@@ -313,16 +371,118 @@ module Phronomy
       end
 
       def purge!
-        persistence.transaction do |tx|
-          tx.executions.assert_idle!(agent_id)
-          tx.journals.delete(agent_id)
-          tx.executions.delete_for_agent(agent_id)
-          tx.agents.delete(agent_id)
+        return true if @_phronomy_runtime_owner_state == :purged
+
+        __assert_live_agent!
+        runtime = @_phronomy_runtime_owner
+        token = runtime.__begin_agent_purge(self)
+        if runtime.__agent_execution_admitted?(agent_id)
+          runtime.__abort_agent_purge(self, token)
+          raise Phronomy::AgentBusyError,
+            "Agent #{agent_id.inspect} has a nonterminal top-level execution"
+        end
+
+        begin
+          persistence.transaction do |tx|
+            tx.executions.assert_idle!(agent_id)
+            tx.journals.delete(agent_id)
+            tx.executions.delete_for_agent(agent_id)
+            tx.agents.delete(agent_id)
+          end
+        rescue Phronomy::AgentBusyError,
+          Phronomy::Persistence::ConflictError,
+          Phronomy::Persistence::NotFoundError,
+          Phronomy::Persistence::SerializationError,
+          ArgumentError
+          runtime.__abort_agent_purge(self, token)
+          raise
+        rescue
+          # Without F1 reconciliation support we cannot infer that a failed
+          # durable delete did not commit. Keep the identity fail-closed.
+          runtime.__leave_agent_purge_uncertain(self, token)
+          raise
+        end
+
+        runtime.__complete_agent_purge(self, token)
+        true
+      end
+
+      # Runtime ownership lifecycle hooks. These are internal coordination
+      # methods; application code must use new/create/load/get/purge!.
+      private
+
+      # @api private
+      def __prepare_runtime_owner!(runtime, reserved_agent_id)
+        @_phronomy_runtime_owner = runtime
+        @_phronomy_runtime_owner_state = :constructing
+        @_phronomy_reserved_agent_id = reserved_agent_id.to_s.freeze
+        self
+      end
+
+      # @api private
+      def __bind_runtime_owner!(runtime)
+        unless @_phronomy_runtime_owner.equal?(runtime) &&
+            @_phronomy_runtime_owner_state == :constructing
+          raise Phronomy::Error, "Agent Runtime ownership construction state is invalid"
+        end
+        @_phronomy_runtime_owner_state = :live
+        remove_instance_variable(:@_phronomy_reserved_agent_id) if
+          instance_variable_defined?(:@_phronomy_reserved_agent_id)
+        self
+      end
+
+      # @api private
+      def __mark_purging!(runtime)
+        unless @_phronomy_runtime_owner.equal?(runtime) &&
+            @_phronomy_runtime_owner_state == :live
+          raise Phronomy::Error, "Agent Runtime ownership purge state is invalid"
+        end
+        @_phronomy_runtime_owner_state = :purging
+        self
+      end
+
+      # @api private
+      def __restore_live_after_purge_abort!(runtime)
+        unless @_phronomy_runtime_owner.equal?(runtime) &&
+            @_phronomy_runtime_owner_state == :purging
+          raise Phronomy::Error, "Agent Runtime ownership purge rollback state is invalid"
+        end
+        @_phronomy_runtime_owner_state = :live
+        self
+      end
+
+      # @api private
+      def __mark_ownership_recovery_required!(runtime)
+        unless @_phronomy_runtime_owner.equal?(runtime) &&
+            %i[constructing purging].include?(@_phronomy_runtime_owner_state)
+          raise Phronomy::Error, "Agent Runtime ownership recovery state is invalid"
+        end
+        @_phronomy_runtime_owner_state = :recovery_required
+        self
+      end
+
+      # @api private
+      def __mark_purged!(runtime)
+        unless @_phronomy_runtime_owner.equal?(runtime) &&
+            @_phronomy_runtime_owner_state == :purging
+          raise Phronomy::Error, "Agent Runtime ownership purge completion state is invalid"
         end
         @root = nil
         @_phronomy_journal_records = [].freeze
-        true
+        @_phronomy_runtime_owner_state = :purged
+        self
       end
+
+      # @api private
+      def __release_runtime_owner!(runtime)
+        return self if @_phronomy_runtime_owner_state == :purged
+        return self unless @_phronomy_runtime_owner.equal?(runtime)
+
+        @_phronomy_runtime_owner_state = :released
+        self
+      end
+
+      public
 
       # Internal EventLoop apply hook used only after a successful durable
       # operation result has been validated by ExecutionCoordinator.
@@ -331,6 +491,44 @@ module Phronomy
       end
 
       private
+
+      def initialize_owned_state(
+        agent_id:,
+        context:,
+        knowledge:,
+        persistence:,
+        metadata:,
+        load_existing:
+      )
+        @persistence = persistence ||
+          Phronomy.configuration.persistence ||
+          Phronomy::Persistence::InMemory.new
+        @agent_id = agent_id.to_s.freeze
+
+        if load_existing
+          root = records = nil
+          @persistence.transaction do |tx|
+            root = tx.agents.load(@agent_id)
+            records = tx.journals.read(
+              @agent_id,
+              limit: root.journal_position
+            )
+          end
+          validate_loaded_definition!(root)
+          @root = root
+          @_phronomy_journal_records = Array(records).dup.freeze
+        else
+          @root = create_agent_root!(
+            context: context,
+            knowledge: knowledge,
+            metadata: metadata
+          )
+          @_phronomy_journal_records = @persistence.journals.read(
+            @agent_id,
+            limit: @root.journal_position
+          ).dup.freeze
+        end
+      end
 
       def validate_loaded_definition!(loaded)
         definition = self.class.agent_definition
@@ -423,6 +621,7 @@ module Phronomy
       end
 
       def mutate_context!(kind, context_affecting: true)
+        __assert_live_agent!
         current = agent_root
         next_root = nil
         appended = nil
@@ -476,6 +675,7 @@ module Phronomy
       public
 
       def tool_approval_policy(&block)
+        __assert_live_agent!
         raise ArgumentError, "tool_approval_policy requires a block" unless block
 
         _approval_configuration_mutex.synchronize { @tool_approval_policy = block }
@@ -483,6 +683,7 @@ module Phronomy
       end
 
       def on_tool_approval_required(&block)
+        __assert_live_agent!
         raise ArgumentError, "on_tool_approval_required requires a block" unless block
 
         _approval_configuration_mutex.synchronize { @tool_approval_listener = block }
@@ -491,7 +692,37 @@ module Phronomy
 
       private
 
+      def __assert_agent_accessible!
+        case @_phronomy_runtime_owner_state
+        when :constructing, :live
+          true
+        when :purged
+          raise Phronomy::AgentPurgedError, "Agent #{agent_id.inspect} has been purged"
+        when :purging
+          raise Phronomy::Error, "Agent #{agent_id.inspect} is being purged"
+        when :recovery_required
+          raise Phronomy::Error,
+            "Agent #{agent_id.inspect} ownership requires durable recovery/reconciliation"
+        else
+          raise Phronomy::RuntimeShutdownError,
+            "Agent #{agent_id.inspect} is detached from its Runtime"
+        end
+      end
+
+      def __assert_live_agent!
+        __assert_agent_accessible!
+        return true if @_phronomy_runtime_owner_state == :constructing
+
+        runtime = @_phronomy_runtime_owner
+        unless runtime&.__agent_owned?(self)
+          raise Phronomy::RuntimeShutdownError,
+            "Agent #{agent_id.inspect} is no longer the live owner in its Runtime"
+        end
+        true
+      end
+
       def _prepare_invocation_config(config, invocation_context)
+        __assert_live_agent!
         _reject_removed_generic_identity_keys!(config)
         effective_config = invocation_context ?
           config.merge(invocation_context: invocation_context) : config
