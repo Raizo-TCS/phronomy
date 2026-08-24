@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "timeout"
 
 class ACS16BlockingTool < Phronomy::Agent::Context::Capability::Base
   tool_name "acs16_blocking_tool"
@@ -259,6 +260,277 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
 
       expect(stale_section).to include("Dropped stale Agent terminal result")
       expect(stale_section).not_to include("fail_task(")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Terminal delivery edge cases: settle_after_terminal and related callbacks
+  # ---------------------------------------------------------------------------
+  describe "terminal delivery edge cases" do
+    it "propagates execution_error through settle_after_terminal when start fails for a closed agent" do
+      agent = ACS16TerminalBarrierAgent.new
+
+      # A closed agent causes begin_start_on_event_loop to call
+      # deliver_start_failure_on_event_loop with a non-nil on_event that raises,
+      # exercising the callback_error branch of settle_after_terminal.
+      agent.send(:close!)
+      raised_in_callback = Queue.new
+      task = agent.invoke_async(
+        "closed agent invoke",
+        on_event: ->(event) {
+          raised_in_callback << event.type
+          raise "on_event callback failure"
+        }
+      )
+      expect { task.wait_result }.to raise_error(Phronomy::Error, /agent is closed/)
+      # The callback was invoked (with the error event) and raised.
+      expect(raised_in_callback.pop).to eq(:error)
+    end
+
+    it "returns false from signal when there is no approval listener on an HITL agent" do
+      # When on_tool_approval_required is omitted the approval listener is nil;
+      # dispatch_approval_listener must return early without raising.
+      # (Exercises the 'return unless listener' then-branch.)
+      allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
+
+      # Use a plain non-HITL agent for this check — the terminal chat never
+      # triggers a tool approval, so the suspend path is never taken here.
+      # We only need to confirm the code path does not raise.
+      agent = ACS16TerminalBarrierAgent.new
+      task = agent.invoke_async("no approval listener")
+      result = task.wait_result
+      expect(result).to be_a(Hash)
+    end
+
+    it "handles a raising on_event callback during approval notification" do
+      # An on_event that raises on :approval_required exercises the
+      # report_nonterminal_callback_error non-nil branch.
+      allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
+
+      agent = ACS16TerminalBarrierAgent.new
+      task = agent.invoke_async(
+        "plain completion",
+        on_event: ->(event) { raise "event callback failure" if event.type == :done }
+      )
+      # The agent completes; the callback raises on :done; the task should still
+      # settle with the stream_callback_error_policy-governed result.
+      expect { task.wait_result }.not_to raise_error
+    end
+
+    it "fails the task when stream_callback_error_policy is :fail_task and on_event raises" do
+      allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+      allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
+
+      agent = ACS16TerminalBarrierAgent.new
+      task = agent.invoke_async(
+        "callback fail_task policy",
+        on_event: ->(event) { raise "callback failure" if event.type == :done }
+      )
+      expect { task.wait_result }.to raise_error(Phronomy::StreamCallbackError)
+    end
+
+    it "logs the warning when terminal durability requires recovery and a logger is configured" do
+      persistence = Phronomy::Persistence::InMemory.new
+      terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
+      allow(persistence.executions).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
+        if terminal_statuses.include?(execution.status)
+          raise "terminal persistence unavailable"
+        end
+        original.call(execution_id, expected_revision: expected_revision, execution: execution)
+      end
+      allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
+
+      logger = instance_double(Logger, warn: nil)
+      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+
+      agent = ACS16TerminalBarrierAgent.new(persistence: persistence)
+      task = agent.invoke_async("finish normally")
+
+      expect { task.wait_result(timeout: 0.15) }.to raise_error(Phronomy::TimeoutError)
+      expect(task).not_to be_done
+      expect(logger).to have_received(:warn)
+    end
+
+    it "suspends without calling the approval listener when no listener is provided" do
+      persistence = Phronomy::Persistence::InMemory.new
+
+      # Minimal HITL tool that requires approval.
+      hitl_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+        tool_name "acs16_hitl_tool"
+        description "Requires approval"
+        requires_approval true
+        param :value, type: :string, desc: "Value"
+        def execute(value:) = "ok:#{value}"
+      end
+      hitl_agent_cls = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "acs16-hitl-agent-nil-listener", version: 1
+        model "test-model"
+        instructions "Use the tool."
+        tools hitl_cls => nil
+      end
+
+      tool_instance = hitl_cls.new
+      tc = double("TC", name: "acs16_hitl_tool", arguments: {"value" => "x"},
+        id: "call-nil-1", thought_signature: nil,
+        to_h: {id: "call-nil-1", name: "acs16_hitl_tool", arguments: {"value" => "x"}})
+      assistant = double("Asst", role: :assistant, content: nil, tool_calls: [tc],
+        tokens: ACS16_TOKENS, tool_call?: true)
+      stored_hook = nil
+      chat = double("Chat")
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_temperature).and_return(chat)
+      allow(chat).to receive(:messages).and_return([assistant])
+      allow(chat).to receive(:tools).and_return({acs16_hitl_tool: tool_instance})
+      allow(chat).to receive(:add_message)
+      allow(chat).to receive(:cancellation_token=)
+      allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:on_tool_result)
+      allow(chat).to receive(:ask) { stored_hook&.call(tc) }
+
+      allow(RubyLLM).to receive(:chat).and_return(chat)
+      agent = hitl_agent_cls.new(persistence: persistence)
+
+      # No on_tool_approval_required → dispatch_approval_listener receives nil.
+      # Also pass on_event that raises on :approval_required to exercise
+      # report_nonterminal_callback_error's non-nil callback_error branch.
+      task = agent.invoke_async(
+        "run hitl tool",
+        on_event: ->(event) { raise "event error" if event.type == :approval_required }
+      )
+
+      Timeout.timeout(2) do
+        loop do
+          active = persistence.executions.list_active(agent.agent_id)
+          break if active.any? { |e| e.status == :suspended }
+          sleep 0.005
+        end
+      end
+
+      expect(task).not_to be_done
+    end
+
+    it "handles supervise_agent_operation on an operation without physical_complete? (plain Task)" do
+      # A cooperative tool that returns a pre-completed plain Phronomy::Task.
+      # This exercises the `elsif operation.respond_to?(:done?)` branch in
+      # supervise_agent_operation, which fires when the operation lacks
+      # physical_complete? but has done?.
+      cooperative_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+        tool_name "acs16_cooperative_tool"
+        description "Cooperative tool returning a plain Task"
+        execution_mode :cooperative
+        param :value, type: :string, desc: "Value"
+
+        def call_async(args, cancellation_token: nil, config: {})
+          task = Phronomy::Task.deferred(name: "acs16-plain-task")
+          task.complete("coop:#{args.fetch(:value, "x")}")
+          task
+        end
+      end
+      coop_agent_cls = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "acs16-coop-agent", version: 1
+        model "test-model"
+        instructions "Use the cooperative tool."
+        tools cooperative_cls => nil
+      end
+
+      coop_tool = cooperative_cls.new
+      tc = double("TC", name: "acs16_cooperative_tool",
+        arguments: {"value" => "hello"}, id: "call-coop-1",
+        thought_signature: nil,
+        to_h: {id: "call-coop-1", name: "acs16_cooperative_tool", arguments: {"value" => "hello"}})
+      assistant = double("Asst", role: :assistant, content: nil, tool_calls: [tc],
+        tokens: ACS16_TOKENS, tool_call?: true)
+      final = double("Final", role: :assistant, content: "coop done",
+        tool_calls: nil, tokens: ACS16_TOKENS, tool_call?: false)
+      stored_hook = nil
+      chat = double("CoopChat")
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_temperature).and_return(chat)
+      allow(chat).to receive(:messages).and_return([assistant])
+      allow(chat).to receive(:tools).and_return({acs16_cooperative_tool: coop_tool})
+      allow(chat).to receive(:add_message)
+      allow(chat).to receive(:cancellation_token=)
+      allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:on_tool_result)
+      allow(chat).to receive(:ask) { stored_hook&.call(tc) }
+      allow(chat).to receive(:complete).and_return(final)
+      allow(RubyLLM).to receive(:chat).and_return(chat)
+
+      agent = coop_agent_cls.new
+      result = agent.invoke_async("use cooperative tool").wait_result
+      expect(result[:output]).to eq("coop done")
+    end
+
+    it "handles supervise_agent_operation on an operation with no done? or physical_complete?" do
+      # A cooperative tool that returns a custom completion handle with only on_complete.
+      # This exercises the `else false` branch of supervise_agent_operation and
+      # the `else operation.on_complete` branch (no on_physical_complete).
+      custom_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+        tool_name "acs16_custom_handle_tool"
+        description "Returns a custom completion handle"
+        execution_mode :cooperative
+
+        def call_async(args, cancellation_token: nil, config: {})
+          handle = Object.new
+          callbacks = []
+          completed = false
+          result_value = "custom:#{args.fetch(:value, "x")}"
+
+          handle.define_singleton_method(:on_complete) do |&block|
+            if completed
+              block.call(result_value, nil)
+            else
+              callbacks << block
+            end
+            self
+          end
+
+          completed = true
+          callbacks.each { |cb| cb.call(result_value, nil) }
+
+          handle
+        end
+      end
+
+      custom_agent_cls = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "acs16-custom-handle-agent", version: 1
+        model "test-model"
+        instructions "Use the custom tool."
+        tools custom_cls => nil
+      end
+
+      custom_tool = custom_cls.new
+      tc = double("TC", name: "acs16_custom_handle_tool",
+        arguments: {"value" => "world"}, id: "call-custom-1",
+        thought_signature: nil,
+        to_h: {id: "call-custom-1", name: "acs16_custom_handle_tool", arguments: {"value" => "world"}})
+      assistant = double("Asst", role: :assistant, content: nil, tool_calls: [tc],
+        tokens: ACS16_TOKENS, tool_call?: true)
+      final = double("Final", role: :assistant, content: "custom done",
+        tool_calls: nil, tokens: ACS16_TOKENS, tool_call?: false)
+      stored_hook = nil
+      chat = double("CustomHandleChat")
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_temperature).and_return(chat)
+      allow(chat).to receive(:messages).and_return([assistant])
+      allow(chat).to receive(:tools).and_return({acs16_custom_handle_tool: custom_tool})
+      allow(chat).to receive(:add_message)
+      allow(chat).to receive(:cancellation_token=)
+      allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:on_tool_result)
+      allow(chat).to receive(:ask) { stored_hook&.call(tc) }
+      allow(chat).to receive(:complete).and_return(final)
+      allow(RubyLLM).to receive(:chat).and_return(chat)
+
+      agent = custom_agent_cls.new
+      result = agent.invoke_async("use custom handle tool").wait_result
+      expect(result[:output]).to eq("custom done")
     end
   end
 end

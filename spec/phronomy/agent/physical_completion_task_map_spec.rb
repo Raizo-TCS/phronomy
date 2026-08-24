@@ -60,4 +60,40 @@ RSpec.describe Phronomy::Concurrency::PhysicalCompletionTask do
     mapping_release << true if defined?(mapping_release) && mapping_release.empty?
     pool&.shutdown(drain_timeout: 1)
   end
+
+  it "raises ArgumentError when on_physical_complete is called without a block" do
+    task = described_class.deferred(name: "test")
+    expect { task.on_physical_complete }.to raise_error(ArgumentError, /requires a block/)
+  end
+
+  it "delivers on_physical_complete immediately when the task is already physically complete" do
+    task = described_class.deferred(name: "test")
+    task.mark_physical_complete!
+    delivered = false
+    task.on_physical_complete { delivered = true }
+    expect(delivered).to be true
+  end
+
+  it "raises ArgumentError when map is called without a block" do
+    task = described_class.deferred(name: "test")
+    expect { task.map }.to raise_error(ArgumentError, /requires a block/)
+  end
+
+  it "tolerates a raising on_physical_complete callback when no logger is configured" do
+    task = described_class.deferred(name: "test")
+    task.on_physical_complete { raise "callback failure" }
+    # Should not propagate the error; fires the else branch of logger&.error
+    expect { task.mark_physical_complete! }.not_to raise_error
+  end
+
+  it "logs a raising on_physical_complete callback when a logger is configured" do
+    logger = instance_double(Logger, error: nil)
+    allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+
+    task = described_class.deferred(name: "test")
+    task.on_physical_complete { raise "callback failure" }
+    task.mark_physical_complete!
+
+    expect(logger).to have_received(:error)
+  end
 end

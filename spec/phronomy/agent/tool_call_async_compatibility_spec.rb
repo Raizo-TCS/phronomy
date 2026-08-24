@@ -112,4 +112,45 @@ RSpec.describe "Tool#call_async compatibility" do
     expect(outcome.result).to eq("ok:custom")
     expect(outcome.error).to be_nil
   end
+
+  it "returns an error outcome immediately when start_execution is called before authorization" do
+    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_name "unauth_tool"
+      description "Unauthorized tool"
+      param :value, type: :string, desc: "Value"
+      def execute(value:) = value
+    end
+    tool = tool_class.new
+    # Build an invocation that has been validated but NOT authorized or queued.
+    invocation = Phronomy::Agent::ToolInvocation.new(
+      execution_id: "exec-unauth",
+      agent: instance_double(Phronomy::Agent::Base),
+      tool: tool,
+      tool_call: ToolCallStub.new("call-u", tool.name, {"value" => "x"}),
+      config: {}
+    )
+    invocation.validate!
+    runtime = instance_double(Phronomy::Runtime)
+
+    outcome = nil
+    invocation.start_execution(runtime: runtime) { |value| outcome = value }
+
+    expect(outcome.error).to be_a(Phronomy::ToolError)
+  end
+
+  it "raises when start_execution is called without a block" do
+    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_name "nocallback_tool"
+      description "Tool without callback"
+      param :value, type: :string, desc: "Value"
+      def execute(value:) = value
+    end
+    invocation = build_ready_invocation(tool: tool_class.new, arguments: {"value" => "x"})
+    runtime = instance_double(Phronomy::Runtime)
+    event_loop_dbl = instance_double(Phronomy::EventLoop)
+    allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
+    allow(event_loop_dbl).to receive(:supervise_agent_operation)
+    # start_execution without a block — the internal callback guard fires.
+    expect { invocation.start_execution(runtime: runtime) }.to raise_error(StandardError)
+  end
 end
