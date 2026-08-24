@@ -146,7 +146,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       expect(agent.persistence.executions.list_active(agent.agent_id)).to be_empty
     end
 
-    it "raises ExecutionRehydrationRequiredError for an execution with no live Activation" do
+    it "raises ExecutionRehydrationRequiredError for an execution with no live execution owner" do
       expect {
         agent.approve("nonexistent-exec", approval_request_id: "none")
       }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)

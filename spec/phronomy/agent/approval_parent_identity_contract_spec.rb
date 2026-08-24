@@ -33,9 +33,10 @@ RSpec.describe "CG-03a Agent execution parent identity" do
 
   it "uses execution_id on approval policy input without a compatibility alias" do
     request = Phronomy::Agent::ApprovalEvaluationRequest.new(
-      agent: Object.new,
+      agent_id: "agent-1",
+      agent_definition_id: "lookup-agent",
+      agent_definition_version: 2,
       execution_id: "execution-1",
-      tool: Object.new,
       tool_name: "lookup",
       tool_schema: {},
       tool_invocation_id: "tool-invocation-1",
@@ -43,11 +44,17 @@ RSpec.describe "CG-03a Agent execution parent identity" do
       arguments: {query: "example"}
     )
 
+    expect(request.agent_id).to eq("agent-1")
+    expect(request.agent_definition_id).to eq("lookup-agent")
+    expect(request.agent_definition_version).to eq(2)
     expect(request.execution_id).to eq("execution-1")
     expect(request).not_to respond_to(:agent_invocation_id)
+    expect(request).not_to respond_to(:agent)
+    expect(request).not_to respond_to(:tool)
 
     updated = request.with(facts: {checked: true})
     expect(updated.execution_id).to eq("execution-1")
+    expect(updated.agent_id).to eq("agent-1")
   end
 
   it "keeps AgentInvocation as a live execution context without its own ID" do

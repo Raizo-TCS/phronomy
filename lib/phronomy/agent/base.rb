@@ -40,17 +40,6 @@ module Phronomy
       private_constant :APPROVAL_CONFIGURATION_INIT_MUTEX
 
       class << self
-        # Sets or reads the LLM model identifier for this agent.
-        # When called without an argument, returns the stored model or the
-        # global default from {Phronomy.configuration}.
-        #
-        # @param name [String, nil] model identifier (e.g. "gpt-4o", "claude-3-5-sonnet")
-        # @return [String, nil] the model name when used as a reader
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     model "gpt-4o"
-        #   end
-        # @api public
         def model(name = nil)
           if name
             @model = name
@@ -59,22 +48,6 @@ module Phronomy
           end
         end
 
-        # Sets or reads the system instructions for this agent.
-        # Accepts a String, a {Phronomy::Agent::Context::Instruction::PromptTemplate}, or a block (Proc).
-        # When used as a reader (no argument, no block), returns the stored value.
-        #
-        # @param text [String, Phronomy::Agent::Context::Instruction::PromptTemplate, nil]
-        # @yield optionally provide instructions as a block
-        # @return [String, Phronomy::Agent::Context::Instruction::PromptTemplate, Proc, nil]
-        # @example String instructions
-        #   class MyAgent < Phronomy::Agent::Base
-        #     instructions "You are a helpful assistant."
-        #   end
-        # @example Block instructions
-        #   class MyAgent < Phronomy::Agent::Base
-        #     instructions { |input| "Answer in #{input[:lang]}." }
-        #   end
-        # @api public
         def instructions(text = nil, &block)
           if text || block_given?
             @instructions = text || block
@@ -84,19 +57,6 @@ module Phronomy
           end
         end
 
-        # Registers tool classes for this agent.
-        #
-        # The setter accepts one Hash mapping each Tool class to an explicit alias
-        # name (String) or nil (use the Tool's own name). Calling without an
-        # argument returns the registered Tool classes.
-        #
-        # @example
-        #   tools(
-        #     Weather::SearchTool => "weather_search",
-        #     Places::SearchTool  => "places_search",
-        #     CurrentTimeTool     => nil
-        #   )
-        # @api public
         def tools(definitions = nil)
           if definitions.nil?
             return @tools if instance_variable_defined?(:@tools)
@@ -113,11 +73,6 @@ module Phronomy
             .reject { |_, value| value.nil? }
         end
 
-        # Returns the alias map registered via .tools.
-        # Merges parent class aliases so subclasses inherit their parent's mappings.
-        # Subclass-specific aliases take precedence over parent aliases.
-        # @return [Hash{Class => String}]
-        # @api public
         def tool_aliases
           own = @tool_aliases || {}
           if superclass.respond_to?(:tool_aliases)
@@ -127,18 +82,6 @@ module Phronomy
           end
         end
 
-        # Sets or reads the LLM provider for this agent.
-        # Required when using a model not registered in RubyLLM's model registry
-        # (e.g. locally-hosted models via LM Studio or Ollama).
-        #
-        # @param name [Symbol, nil] e.g. +:openai+, +:anthropic+, +:ollama+
-        # @return [Symbol, nil]
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     model "openai/gpt-oss-20b"
-        #     provider :openai
-        #   end
-        # @api public
         def provider(name = nil)
           if name
             @provider = name
@@ -148,16 +91,6 @@ module Phronomy
           end
         end
 
-        # Sets or reads the sampling temperature sent to the LLM.
-        # When nil, the provider's default is used.
-        #
-        # @param val [Float, nil] temperature (0.0 to 2.0 depending on provider)
-        # @return [Float, nil]
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     temperature 0.2
-        #   end
-        # @api public
         def temperature(val = nil)
           if val
             @temperature = val
@@ -166,16 +99,6 @@ module Phronomy
           end
         end
 
-        # Sets or reads the maximum number of LLM call cycles for ReAct agents.
-        # Each tool call and follow-up counts as one iteration. Defaults to 10.
-        #
-        # @param val [Integer, nil]
-        # @return [Integer]
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     max_iterations 5
-        #   end
-        # @api public
         def max_iterations(val = nil)
           if val
             @max_iterations = val
@@ -184,10 +107,6 @@ module Phronomy
           end
         end
 
-        # When enabled, attaches Anthropic prompt-cache markers to the system
-        # message so that the fixed instructions are served from cache on
-        # subsequent turns, reducing input-token costs.
-        # @api public
         def cache_instructions(enabled = nil)
           if enabled.nil?
             @cache_instructions
@@ -196,9 +115,6 @@ module Phronomy
           end
         end
 
-        # Tokens to reserve for the model's output.
-        # When nil, the model's max_output_tokens from the registry is used.
-        # @api public
         def max_output_tokens(val = nil)
           if val.nil?
             @max_output_tokens
@@ -207,8 +123,6 @@ module Phronomy
           end
         end
 
-        # Overrides the context window size used for token budget calculations.
-        # @api public
         def context_window(val = nil)
           if val.nil?
             @context_window
@@ -217,20 +131,6 @@ module Phronomy
           end
         end
 
-        # Defines or reads the stable Agent definition identity.
-        #
-        # A named concrete Agent may omit +id:+. In that case its fully-qualified
-        # Ruby class name is the stable definition lineage ID. Applications may
-        # supply an explicit +id:+ when the lineage must remain independent of Ruby
-        # constant naming.
-        #
-        # Definition identity/revision is deliberately not inherited by subclasses;
-        # ordinary Agent behavior/configuration inheritance is unaffected.
-        #
-        # @param id [String, nil] explicit stable definition lineage ID
-        # @param version [Integer, nil] semantic Agent definition revision
-        # @return [Hash{Symbol => Object}]
-        # @api public
         def agent_definition(id: nil, version: nil)
           if !id.nil? || !version.nil?
             raise ArgumentError, "agent_definition requires version:" if version.nil?
@@ -267,18 +167,19 @@ module Phronomy
         end
 
         # Resolves the live Agent instance that currently owns execution_id in
-        # this process. This is a Runtime-local lookup, not durable rehydration.
+        # this process. The Runtime returns only a read-only ownership view;
+        # mutable Agent execution state remains EventLoop-owned.
         def live_for_execution(execution_id)
-          activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
-          unless activation
+          owner = Phronomy::Runtime.instance.__agent_execution_owner(execution_id)
+          unless owner
             raise Phronomy::ExecutionRehydrationRequiredError,
-              "no live activation for #{execution_id}; durable rehydration is required"
+              "no live execution owner for #{execution_id}; durable rehydration is required"
           end
 
-          agent = activation.agent
+          agent = owner.agent
           unless agent.is_a?(self)
             raise ArgumentError,
-              "live activation #{execution_id} belongs to #{agent.class}, not #{self}"
+              "live execution #{execution_id} belongs to #{agent.class}, not #{self}"
           end
 
           agent
@@ -350,8 +251,6 @@ module Phronomy
         end
       end
 
-      # Logically clears all persistent Knowledge registered before this point.
-      # Raw Journal records remain append-only and are not deleted.
       def clear_knowledge!
         mutate_context!(:knowledge_cleared) do |root|
           root.with(
@@ -361,8 +260,6 @@ module Phronomy
         end
       end
 
-      # Appends persistent Knowledge to the Agent Journal. The live Agent owns the
-      # current logical root/Journal view; Persistence is advanced optimistically.
       def add_knowledge(content, metadata: {})
         current = agent_root
         next_root = nil
@@ -427,7 +324,8 @@ module Phronomy
         true
       end
 
-      # Internal hook used after a successful Persistence transaction.
+      # Internal EventLoop apply hook used only after a successful durable
+      # operation result has been validated by ExecutionCoordinator.
       def __replace_root(root)
         @root = root
       end
@@ -444,10 +342,6 @@ module Phronomy
           "#{definition.fetch(:id)}@#{definition.fetch(:version)}"
       end
 
-      # Current definition compatibility policy is exact-match. Keep this policy
-      # separate from definition identity resolution so a future explicit
-      # definition-migration mechanism can replace the policy without redefining
-      # agent_definition_id / agent_definition_version.
       def current_definition_compatible?(loaded, runtime_definition)
         loaded.agent_definition_id == runtime_definition.fetch(:id) &&
           loaded.agent_definition_version == runtime_definition.fetch(:version)
@@ -563,7 +457,8 @@ module Phronomy
       end
 
       def yield_context_revision(current, proposed)
-        (proposed.context_revision == current.context_revision) ? current.context_revision + 1 : proposed.context_revision
+        (proposed.context_revision == current.context_revision) ?
+          current.context_revision + 1 : proposed.context_revision
       end
 
       def _journal_records_snapshot
@@ -851,10 +746,6 @@ module Phronomy
             }
           end
 
-          # Base#call_async ultimately executes #call, so the synchronous wrapper
-          # above already applies filters for ordinary Tools. Agent-backed Tools
-          # override #call_async and bypass #call; only those custom async Tools
-          # need an asynchronous result-filter wrapper here.
           if custom_async_call
             define_method(:call_async) do |args, **kwargs|
               source = super(args, **kwargs)

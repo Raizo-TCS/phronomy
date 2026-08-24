@@ -18,6 +18,7 @@ required_files=(
   docs/decisions/021-generic-agent-invocation-identity-removal.md
   docs/decisions/022-agent-execution-parent-identity-and-runtime-routing-boundary.md
   docs/decisions/023-fsm-session-incarnation-identity-and-routing.md
+  docs/decisions/024-event-loop-single-writer-agent-runtime.md
   lib/phronomy/workflow.rb
   lib/phronomy/workflow_context.rb
   lib/phronomy/workflow_runner.rb
@@ -85,6 +86,8 @@ required_files=(
   spec/integration/multi_agent_handoff_spec.rb
   spec/integration/multi_agent_handoff_followup_spec.rb
   docs/decisions/016-semantic-multi-agent-handoff.md
+  spec/phronomy/agent/event_loop_single_writer_spec.rb
+  spec/phronomy/agent/tool_authorization_snapshot_boundary_spec.rb
 )
 for path in "${required_files[@]}"; do
   [[ -f "$path" ]] || { echo "FAIL: missing $path" >&2; exit 1; }
@@ -121,6 +124,7 @@ syntax_files=(
   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb
   spec/phronomy/agent/agent_invocation_spec.rb
   spec/phronomy/agent/agent_invocation_session_builder_spec.rb
+  spec/phronomy/agent/tool_authorization_snapshot_boundary_spec.rb
   spec/phronomy/concurrency/cancellation_token_spec.rb
   spec/phronomy/fault_injection_spec.rb
   spec/phronomy/multi_agent/team_coordinator_spec.rb
@@ -275,6 +279,24 @@ legacy_correlation_source="$(
 if [[ -n "$legacy_correlation_source" ]]; then
   echo "FAIL: active source still writes generic correlation_id:" >&2
   printf '%s\n' "$legacy_correlation_source" >&2
+  exit 1
+fi
+
+echo "== ACS-11 EventLoop single-writer Agent runtime =="
+ruby -c lib/phronomy/agent/execution_coordinator.rb >/dev/null
+ruby -c lib/phronomy/agent/agent_invocation.rb >/dev/null
+ruby -c lib/phronomy/agent/agent_invocation_session_builder.rb >/dev/null
+ruby -c lib/phronomy/agent/phase_machine_builder.rb >/dev/null
+ruby -c lib/phronomy/agent/tool_invocation.rb >/dev/null
+ruby -c lib/phronomy/agent/approval_evaluation_request.rb >/dev/null
+ruby -c lib/phronomy/engine/event_loop.rb >/dev/null
+ruby -c spec/phronomy/agent/event_loop_single_writer_spec.rb >/dev/null
+ruby -c spec/phronomy/agent/tool_authorization_snapshot_boundary_spec.rb >/dev/null
+bundle exec rbs -I sig validate
+bundle exec rspec   spec/phronomy/agent/event_loop_single_writer_spec.rb   spec/phronomy/agent/tool_authorization_snapshot_boundary_spec.rb   spec/phronomy/agent/tool_invocation_spec.rb   spec/phronomy/agent/approval_parent_identity_contract_spec.rb   spec/phronomy/api_compatibility_spec.rb   spec/phronomy/agent/approve_async_spec.rb   spec/phronomy/agent/canonical_execution_log_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/persistence_architecture_regression_spec.rb   spec/phronomy/fsm_session_identity_contract_spec.rb
+
+if grep -RInE 'AgentExecutionActivation|ActivationRegistry|__agent_activations|phronomy_activation'     lib/phronomy --include='*.rb'; then
+  echo "FAIL: ACS-11 removed Activation model remains in active production source" >&2
   exit 1
 fi
 

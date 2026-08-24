@@ -115,14 +115,16 @@ RSpec.describe Phronomy::Agent::Base do
       expect(task.wait_result[:output]).to eq("resumed")
     end
 
-    it "resumes the same live Agent and Activation that owned the suspension" do
+    it "resumes the same live Agent owner without exposing mutable Runtime state" do
       result = invoke_and_suspend
       execution_id = result[:execution_id]
       request_id = result[:approval_request].id
-      activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
+      owner = Phronomy::Runtime.instance.__agent_execution_owner(execution_id)
 
-      expect(activation.agent).to be(agent)
-      expect(activation.invocation.agent).to be(agent)
+      expect(owner.agent).to be(agent)
+      expect(owner.status).to eq(:suspended)
+      expect(owner).not_to respond_to(:invocation)
+      expect(owner).not_to respond_to(:execution)
 
       allow(tool_instance).to receive(:call).and_return("done")
       agent.approve_async(
@@ -147,11 +149,30 @@ RSpec.describe Phronomy::Agent::Base do
       expect(task.wait_result[:output]).to eq("resumed")
     end
 
-    it "returns a failed Task requiring durable rehydration when execution_id has no live Activation" do
+    it "returns a failed Task requiring durable rehydration when execution_id has no live owner" do
       task = agent.approve_async("nonexistent-exec", approval_request_id: "none")
       expect(task).to be_a(Phronomy::Task)
       expect { task.wait_result }
         .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+    end
+
+    it "does not route approval through another Agent instance's live coordinator" do
+      result = invoke_and_suspend
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+      other = HITLAgentForApproveAsync.new
+
+      task = other.approve_async(
+        execution_id,
+        approval_request_id: request_id
+      )
+
+      expect { task.wait_result }.to raise_error(
+        ArgumentError,
+        /not a suspended execution of this agent/
+      )
+      expect(Phronomy::Runtime.instance.__agent_execution_owner(execution_id).status)
+        .to eq(:suspended)
     end
   end
 
@@ -172,12 +193,12 @@ RSpec.describe Phronomy::Agent::Base do
     it "returns the same live owner Agent through Agent::Base" do
       result = invoke_and_suspend
       execution_id = result[:execution_id]
-      activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
+      owner = Phronomy::Runtime.instance.__agent_execution_owner(execution_id)
 
       resolved = Phronomy::Agent::Base.live_for_execution(execution_id)
 
       expect(resolved).to be(agent)
-      expect(resolved).to be(activation.agent)
+      expect(resolved).to be(owner.agent)
     end
 
     it "returns the same live owner Agent through its concrete Agent class" do
@@ -199,7 +220,7 @@ RSpec.describe Phronomy::Agent::Base do
       expect(HITLAgentForApproveAsync.live_for_execution(execution_id)).to be(agent)
     end
 
-    it "raises ExecutionRehydrationRequiredError when no live Activation exists" do
+    it "raises ExecutionRehydrationRequiredError when no live owner exists" do
       expect do
         Phronomy::Agent::Base.live_for_execution("missing-execution")
       end.to raise_error(Phronomy::ExecutionRehydrationRequiredError)

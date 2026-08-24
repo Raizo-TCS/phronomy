@@ -83,4 +83,63 @@ RSpec.describe Phronomy::Task do
     }.not_to raise_error
     expect(task.wait_result).to eq(:ok)
   end
+
+  it "registers itself with a parent Task" do
+    parent = described_class.deferred(name: "parent")
+    child = described_class.deferred(name: "child", parent: parent)
+
+    expect(child.parent).to be(parent)
+  end
+
+  it "cancel! propagates to child Tasks" do
+    parent = described_class.deferred(name: "parent")
+    child = described_class.deferred(name: "child", parent: parent)
+
+    parent.cancel!
+
+    expect(parent.status).to eq(:cancelled)
+    expect(child.status).to eq(:cancelled)
+  end
+
+  it "map raises ArgumentError when called without a block" do
+    task = described_class.deferred
+    expect { task.map }.to raise_error(ArgumentError, /map requires a block/)
+  end
+
+  it "on_complete raises ArgumentError when called without a block" do
+    task = described_class.deferred
+    expect { task.on_complete }.to raise_error(ArgumentError, /on_complete requires a block/)
+  end
+
+  it "map propagates failures from the source Task" do
+    source = described_class.deferred
+    mapped = source.map { |v| v * 2 }
+    error = RuntimeError.new("source failure")
+
+    source.fail(error)
+
+    expect { mapped.wait_result }.to raise_error(error)
+  end
+
+  it "map wraps block errors as Task failure" do
+    source = described_class.deferred
+    mapped = source.map { |_| raise "transform error" }
+
+    source.complete(1)
+
+    expect { mapped.wait_result }.to raise_error(RuntimeError, "transform error")
+  end
+
+  it "settle! is idempotent — second settlement attempt is a no-op" do
+    task = described_class.deferred
+    task.complete(:first)
+    task.complete(:second)
+
+    expect(task.wait_result).to eq(:first)
+  end
+
+  it "fail raises ArgumentError when called without an error object" do
+    task = described_class.deferred
+    expect { task.send(:fail, nil) }.to raise_error(ArgumentError, /error is required/)
+  end
 end

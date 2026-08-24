@@ -12,6 +12,42 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### EventLoop single-writer Agent Runtime (ACS-11)
+
+#### Added
+
+- ADR-024 defining EventLoop as the single writer of Phronomy-managed live
+  Agent execution state and operation-specific Offload command/result apply.
+- Runtime read-only Agent execution-owner lookup for approval/live-owner
+  routing without exposing mutable execution internals.
+- Provider result authority using current FSMSession/FSM state plus semantic
+  `llm_call_id`; stale Provider results are consumed without advancing the FSM.
+
+#### Changed
+
+- Agent initial preparation, follow-up Manifest preparation, approval resume,
+  and terminal durable commits now return values from OffloadPool and apply
+  committed live-state advances only on EventLoop.
+- AgentInvocation owns FSM-local uncommitted Provider/Tool/runtime facts.
+- Tool authorization captures Agent identity and Tool description data before
+  worker execution; the authorization worker receives no live Agent, Tool, or
+  ToolInvocation reference. Application-owned approval/facts/requirement
+  callables remain explicit behavior handles.
+- `ApprovalEvaluationRequest` is value-only: Agent identity is exposed as
+  `agent_id`, `agent_definition_id`, and `agent_definition_version`; Tool
+  identity/description is exposed through `tool_name` / `tool_schema`.
+- Tool authorization/execution outcomes carry semantic `tool_invocation_id`
+  and are applied by the Tool FSMSession.
+
+#### Removed
+
+- `AgentExecutionActivation`, `Agent::ActivationRegistry`,
+  `Runtime#__agent_activations`, and the `phronomy_activation` config bridge.
+- Live-object accessors `ApprovalEvaluationRequest#agent` and
+  `ApprovalEvaluationRequest#tool`; approval policies use value identity and
+  Tool-description fields instead.
+
+
 ### Semantic Multi-Agent Handoff and shared Selection
 
 #### Added
@@ -56,24 +92,24 @@ Release history for 0.14.0 and earlier is archived in
 #### Added
 
 - `Persistence#workflow_states` with optimistic revision checks for durable Workflow snapshots.
-- Runtime-local Agent Activation ownership; live `AgentExecutionActivation` values are no longer Persistence repositories.
+- Runtime-local Agent execution ownership outside Persistence; ACS-11 now places the mutable live-state authority on EventLoop.
 - `Agent::Base.live_for_execution(execution_id)` for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.
 - Owner-aware Workflow admission keyed by durable `workflow_instance_id`; the admission-owner representation remains Runtime-internal and is reconciled separately.
 - ADR-014 and the 0.19 migration guide for the unified durable-state architecture.
 
 #### Changed
 
-- Live Agent instances now remain the authoritative logical-state owners after hydration. Context Policy and follow-up Manifest preparation use the Agent-local root, Journal view, and Activation state instead of reloading mutable Agent state for freshness.
+- Live Agent instances remain authoritative for AgentRoot/Journal state after hydration, while EventLoop owns active execution-state mutation. Context Policy and follow-up Manifest preparation use those local views instead of reloading mutable Agent state for freshness.
 - `Phronomy.configuration.persistence` is the global durable backend for Workflows and for Agent `new`/`create` calls that do not explicitly inject another Persistence instance.
 - Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.
-- Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Approval remains an Agent-instance operation; callers with only an `execution_id` resolve the live owner with `Agent::Base.live_for_execution` (or the expected concrete Agent class) before calling `agent.approve` / `agent.approve_async`.
+- Approval suspension/resume preserves the same process-local Agent/AgentInvocation owner. Approval remains an Agent-instance operation; callers with only an `execution_id` resolve the EventLoop-backed live owner with `Agent::Base.live_for_execution` (or the expected concrete Agent class) before calling `agent.approve` / `agent.approve_async`.
 - Workflow durable I/O runs outside EventLoop through OffloadPool, while `workflow_instance_id` admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.
 - Workflow `workflow_instance_id` is distinct from one concrete Runtime FSMSession identity; generic application `session_id` is not a Phronomy core domain identity.
 
 #### Removed
 
 - `Phronomy::StateStore`, `StateStore::InMemory`, `Workflow.define(..., state_store:)`, `Configuration#state_store`, and per-invocation `config[:state_store]`.
-- `Persistence#activations`; ActivationRegistry is transient Runtime state.
+- `Persistence#activations`; live Agent execution state is Runtime-only. The transitional ActivationRegistry is subsequently removed by ACS-11.
 - Class-level `Agent::Base.approve` / `Agent::Base.approve_async` routing APIs and their caller-supplied `persistence:` argument; approval execution now goes through the resolved live Agent instance.
 
 ### Public API façade and typed contracts
@@ -113,9 +149,10 @@ Release history for 0.14.0 and earlier is archived in
 - Agent, Tool, and Multi-Agent concrete `FSMSession` instances no longer reuse
   domain/context IDs as EventLoop routing targets. Async callbacks use
   session-local event sinks, and Provider completion is routed to the owning
-  FSMSession before updating Activation LLM-result state. Workflow retains its
-  pre-load admission ordering through a private single-use FSMSession identity
-  reservation; opaque Workflow admission ownership remains ACS-13 work.
+  FSMSession before EventLoop validates/applies `llm_call_id`-bound result
+  state. Workflow retains its pre-load admission ordering through a private
+  single-use FSMSession identity reservation; opaque Workflow admission
+  ownership remains ACS-13 work.
 - OutputParser `parse` is classified as the public subclass extension point that
   concrete parsers implement.
 

@@ -101,8 +101,12 @@ module Phronomy
 
       def approve_async(execution_id, approval_request_id:, approved: true, config: {})
         _reject_removed_generic_identity_keys!(config)
-        live = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
-        coordinator = live&.coordinator || execution_coordinator_for(config)
+        owner = Phronomy::Runtime.instance.__agent_execution_owner(execution_id)
+        coordinator = if owner&.agent&.equal?(self)
+          owner.coordinator
+        else
+          execution_coordinator_for(config)
+        end
         coordinator.resume(
           execution_id,
           approval_request_id: approval_request_id,

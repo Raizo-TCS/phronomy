@@ -82,11 +82,6 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     expect(invocation.tool_batch_rejected?).to be(true)
   end
 
-  # ---------------------------------------------------------------------------
-  # Branch coverage: constructor, handle_fsm_event, approval_context,
-  # set_graph_metadata, merge_config!
-  # ---------------------------------------------------------------------------
-
   describe "constructor" do
     it "belongs to execution_id without an independent Runtime identity" do
       inv = described_class.new(
@@ -149,7 +144,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       expect(invocation.instance_variable_get(:@rejected)).to be true
     end
 
-    it "consumes llm_stream_chunk without requesting an FSM transition" do
+    it "consumes an authoritative llm_stream_chunk without requesting an FSM transition" do
       received = []
       inv = described_class.new(
         agent: agent,
@@ -157,15 +152,38 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
         config: {},
         event_listener: ->(event) { received << event }
       )
+      projection = Struct.new(:manifest_ref).new("manifest-1")
+      inv.begin_llm_call!(projection, llm_call_id: "llm-1")
       event = Phronomy::Event.new(
         type: :llm_stream_chunk,
         target_id: "fsm-test",
-        payload: {content: "hello"}
+        payload: {llm_call_id: "llm-1", content: "hello"}
       )
 
       expect(inv.handle_fsm_event(event)).to be true
       expect(received.map(&:type)).to eq([:token])
       expect(received.first.payload[:content]).to eq("hello")
+    end
+
+    it "consumes a stale llm_stream_chunk without delivering it" do
+      received = []
+      inv = described_class.new(
+        agent: agent,
+        input: "hi",
+        config: {},
+        event_listener: ->(event) { received << event }
+      )
+      projection = Struct.new(:manifest_ref).new("manifest-1")
+      inv.begin_llm_call!(projection, llm_call_id: "llm-current")
+      event = Phronomy::Event.new(
+        type: :llm_stream_chunk,
+        target_id: "fsm-test",
+        payload: {llm_call_id: "llm-stale", content: "old"}
+      )
+
+      expect(inv.handle_fsm_event(event)).to eq(:consume)
+      expect(received).to be_empty
+      expect(inv.current_llm_call_id).to eq("llm-current")
     end
   end
 

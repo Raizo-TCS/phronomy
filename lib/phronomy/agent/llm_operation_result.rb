@@ -2,20 +2,25 @@
 
 module Phronomy
   module Agent
-    # Immutable carrier for one LLM adapter operation outcome.
+    # Immutable carrier for one Provider operation outcome.
     #
-    # Worker/timer threads create this value without mutating AgentInvocation.
-    # AgentInvocationSessionBuilder posts it as :llm_completed or :llm_failed,
-    # and AgentInvocation applies it on the EventLoop thread.
+    # The Provider Call identity is allocated on EventLoop before transport starts.
+    # Worker completion carries that semantic identity back to the owning
+    # FSMSession, which validates it against the currently active call before
+    # applying any live state.
     #
     # @api private
     class LLMOperationResult
-      attr_reader :response, :error, :streaming
+      attr_reader :llm_call_id, :response, :error, :streaming
 
-      def initialize(response: nil, error: nil, streaming: false)
+      def initialize(llm_call_id:, response: nil, error: nil, streaming: false)
+        id = llm_call_id&.to_s
+        raise ArgumentError, "LLMOperationResult requires llm_call_id" if id.nil? || id.empty?
+
+        @llm_call_id = id.freeze
         @response = response
         @error = error
-        @streaming = streaming
+        @streaming = !!streaming
         freeze
       end
     end

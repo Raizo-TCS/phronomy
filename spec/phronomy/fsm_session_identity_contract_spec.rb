@@ -76,7 +76,7 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
     runtime&.shutdown(timeout: 2)
   end
 
-  it "does not mutate Activation from provider completion before session routing" do
+  it "routes Provider completion before EventLoop applies semantic result state" do
     builder = File.read(
       File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb")
     )
@@ -84,7 +84,28 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
       File.join(root, "lib/phronomy/agent/agent_invocation.rb")
     )
 
-    expect(builder).not_to include("activation.record_llm_result")
-    expect(invocation).to include("activation.record_llm_result")
+    expect(builder).to include("post_session_event!(event_sink, event_type, result)")
+    expect(builder).not_to include("record_llm_result")
+    expect(invocation).to include("current_llm_result_authoritative?")
+    expect(invocation).to include("result.llm_call_id")
+    expect(invocation).not_to include("AgentExecutionActivation")
+  end
+
+  it "raises when posting to an unbound EventSink" do
+    runtime = Phronomy::Runtime.new
+    sink = Phronomy::FSMSession::EventSink.new(event_loop: runtime.event_loop)
+
+    expect { sink.post(:event, nil) }
+      .to raise_error(Phronomy::Error, /not bound/)
+  ensure
+    runtime&.shutdown(timeout: 2)
+  end
+
+  it "raises when claiming an already-claimed IdentityReservation" do
+    reservation = Phronomy::FSMSession.reserve_identity
+
+    reservation.send(:claim!)
+    expect { reservation.send(:claim!) }
+      .to raise_error(Phronomy::Error, /already claimed/)
   end
 end

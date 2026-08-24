@@ -36,6 +36,25 @@ RSpec.describe Phronomy::Agent::Base do
       )
     end
 
+    it "raises when agent_definition is called with id but no version" do
+      klass = Class.new(Phronomy::Agent::Base)
+
+      expect do
+        klass.agent_definition(id: "my-lineage")
+      end.to raise_error(ArgumentError, /requires version:/)
+    end
+
+    it "raises when tools DSL receives a non-Hash argument" do
+      klass = Class.new(Phronomy::Agent::Base)
+      expect { klass.tools([]) }.to raise_error(ArgumentError, /tools expects a Hash/)
+    end
+
+    it "sets cache_instructions to an explicit value" do
+      klass = Class.new(Phronomy::Agent::Base)
+      klass.cache_instructions(false)
+      expect(klass.cache_instructions).to be(false)
+    end
+
     it "does not inherit definition identity/revision while normal class configuration still inherits" do
       parent = Class.new(Phronomy::Agent::Base)
       stub_const("CG04ParentAgent", parent)
@@ -291,5 +310,23 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     ic = Phronomy::InvocationContext.new(deadline: Phronomy::Concurrency::Deadline.in(30))
     config = capture_config(agent) { agent.invoke("hi", config: {cancellation_token: explicit_token}, invocation_context: ic) }
     expect(config[:cancellation_token]).to be(explicit_token)
+  end
+
+  it "accepts user_id in config and forwards it through" do
+    config = capture_config(agent) { agent.invoke("hi", config: {user_id: "user-42"}) }
+    expect(config[:user_id]).to eq("user-42")
+  end
+
+  describe "#close!" do
+    it "marks the Agent as closed and prevents further invocations" do
+      agent.close!
+
+      expect { agent.invoke("hi") }.to raise_error(Phronomy::Error, /agent is closed/)
+    end
+
+    it "is idempotent — calling close! twice does not raise" do
+      agent.close!
+      expect { agent.close! }.not_to raise_error
+    end
   end
 end

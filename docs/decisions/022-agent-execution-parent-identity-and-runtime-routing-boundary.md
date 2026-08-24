@@ -6,6 +6,7 @@
 - [ADR-014](014-unified-persistence-durable-state.md)
 - [ADR-021](021-generic-agent-invocation-identity-removal.md)
 - [ADR-023](023-fsm-session-incarnation-identity-and-routing.md)
+- [ADR-024](024-event-loop-single-writer-agent-runtime.md)
 
 ---
 
@@ -130,14 +131,15 @@ CG-03b
   session-local Runtime routing binding
   stale-session completion rejection
   duplicate AgentInvocation/ToolInvocation session fields cleanup
-  status: identity/routing slice implemented by ADR-023; final closure remains
-          coupled to ACS-11 result-authority reconciliation
+  status: identity/routing slice implemented by ADR-023; result/live-state
+          authority completed by ADR-024 / ACS-11
 ```
 
-CG-03 remains open through the joint ACS-10/ACS-11 Runtime foundation. ADR-023
-implements the concrete-session identity/routing slice; ACS-11 must still remove
-broader worker-side live-state mutation before the stale-result authority
-criterion is considered fully reconciled.
+CG-03's Agent/Tool Runtime-foundation criteria are reconciled by the joint
+ADR-023 / ADR-024 implementation: concrete-session routing is separated from
+domain identity, and worker results return to EventLoop for current-state and
+semantic-ID validation before live apply. Workflow admission ownership remains
+separate ACS-13 work.
 
 ## CG-03b routing foundation implementation
 
@@ -187,4 +189,5 @@ This decision does not in CG-03a:
   `execution_id` key for newly produced requests.
 - Historical content-addressed approval audit bodies are intentionally not
   rewritten and may still contain `agent_invocation_id`.
-- CG-03 is not complete until the Runtime routing half lands.
+- The Agent/Tool portion of CG-03 is complete only when ADR-023 routing and
+  ADR-024 EventLoop result authority are both present.

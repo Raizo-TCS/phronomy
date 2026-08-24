@@ -26,7 +26,7 @@ Database / durable storage
 Persistence does not own live execution state. In particular, a backend must not
 persist or reconstruct the following as part of this SPI:
 
-- `AgentExecutionActivation`;
+- EventLoop Agent execution-directory entries;
 - `AgentInvocation`;
 - `FSMSession`;
 - `Task` or callbacks;
@@ -502,7 +502,7 @@ contract where their meaning is known.
 
 This Backend SPI does not provide:
 
-- durable reconstruction of a lost Agent Activation;
+- durable reconstruction of a lost live Agent execution;
 - serialization of Runtime objects;
 - cross-process Workflow execution exclusion;
 - exactly-once external Tool side effects;
@@ -511,5 +511,6 @@ This Backend SPI does not provide:
 - an async Persistence API.
 
 For the architectural reasons behind these boundaries, see
-[ADR-014: Unified Persistence for Durable State](decisions/014-unified-persistence-durable-state.md)
+[ADR-014: Unified Persistence for Durable State](decisions/014-unified-persistence-durable-state.md),
+[ADR-024: EventLoop Single-Writer Agent Runtime](decisions/024-event-loop-single-writer-agent-runtime.md),
 and [Runtime and concurrency](runtime-and-concurrency.md).

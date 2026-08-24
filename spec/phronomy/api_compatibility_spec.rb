@@ -102,11 +102,20 @@ RSpec.describe "Public API compatibility gate (Issue #210)" do
       expect(methods).not_to include(:agent_invocation_id)
     end
 
-    it "keeps ApprovalEvaluationRequest execution_id as the public logical parent" do
+    it "keeps ApprovalEvaluationRequest value-only at the authorization boundary" do
       methods = Phronomy::Agent::ApprovalEvaluationRequest.public_instance_methods
 
-      expect(methods).to include(:execution_id)
+      expect(methods).to include(
+        :agent_id,
+        :agent_definition_id,
+        :agent_definition_version,
+        :execution_id,
+        :tool_name,
+        :tool_schema
+      )
       expect(methods).not_to include(:agent_invocation_id)
+      expect(methods).not_to include(:agent)
+      expect(methods).not_to include(:tool)
     end
   end
 end

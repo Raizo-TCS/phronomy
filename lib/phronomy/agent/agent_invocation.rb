@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "securerandom"
+require "time"
+
 module Phronomy
   module Agent
     class AgentInvocation
@@ -16,6 +19,23 @@ module Phronomy
 
       LLM_EVENT_TYPES = %i[llm_completed llm_failed].freeze
       CALLBACK_FAILED_EVENTS = %i[application_callback_failed].freeze
+      LLM_SETUP_FAILED_EVENTS = %i[llm_setup_failed].freeze
+
+      ApplicationCallbackFailure = Data.define(:event_type, :error) do
+        def to_stream_callback_error
+          wrapped = Phronomy::StreamCallbackError.new(
+            event_type: event_type,
+            original_error: error,
+            result: nil
+          )
+          begin
+            raise wrapped, cause: error
+          rescue Phronomy::StreamCallbackError => caught
+            caught.set_backtrace(error.backtrace)
+            caught
+          end
+        end
+      end
 
       attr_accessor :input,
         :chat,
@@ -39,9 +59,10 @@ module Phronomy
         :tool_invocations,
         :phase,
         :mode,
-        :current_llm_call_id,
         :tool_batch_llm_call_id,
-        :handoff_request
+        :handoff_request,
+        :callback_failure,
+        :event_sink
 
       def initialize(
         agent:,
@@ -55,16 +76,18 @@ module Phronomy
       )
         @agent = agent
         @input = input
-        @config = config
-        resolved_execution_id = execution_id || config[:execution_id]
+        # The caller's Hash must not become a shared mutable Runtime object.
+        @config = config.dup
+        resolved_execution_id = execution_id || @config[:execution_id]
         @execution_id = resolved_execution_id&.to_s&.freeze
-        invocation_context = config[:invocation_context]
+        invocation_context = @config[:invocation_context]
         invocation_policy = if invocation_context&.respond_to?(:approval_policy)
           invocation_context.approval_policy
         end
         @approval_policy = invocation_policy || approval_policy
         @approval_listener = approval_listener
         @event_listener = event_listener
+        @event_sink = nil
         @mode = (mode || :invoke).to_sym
 
         @chat = nil
@@ -83,9 +106,12 @@ module Phronomy
         @pending_approval_resolution_ids = []
         @error = nil
         @phase = nil
-        @current_llm_call_id = nil
+        @current_llm_call = nil
         @tool_batch_llm_call_id = nil
         @handoff_request = nil
+        @llm_results = []
+        @runtime_events = []
+        @callback_failure = nil
       end
 
       def streaming?
@@ -96,9 +122,32 @@ module Phronomy
         @phase = phase
       end
 
-      def begin_llm_call!(llm_call_id)
-        @current_llm_call_id = llm_call_id.to_s
+      # Binds the Runtime-only event target of the currently owning FSMSession.
+      # A resume creates a new FSMSession incarnation and therefore replaces the
+      # previous sink on EventLoop before any resumed work starts.
+      def bind_event_sink!(sink)
+        @event_sink = sink
         self
+      end
+
+      def current_llm_call_id
+        @current_llm_call&.fetch(:llm_call_id)
+      end
+
+      # Allocates Provider Call identity on EventLoop before transport begins.
+      # The optional explicit ID is retained for focused internal tests; normal
+      # runtime code leaves it nil and receives a fresh UUID.
+      def begin_llm_call!(projection, llm_call_id: nil)
+        if @current_llm_call
+          raise Phronomy::Error,
+            "cannot start a Provider Call while another Provider Call is active"
+        end
+
+        @current_llm_call = {
+          llm_call_id: (llm_call_id || SecureRandom.uuid).to_s.freeze,
+          manifest_ref: projection.manifest_ref.to_s.freeze,
+          started_at: Time.now.utc.iso8601(6).freeze
+        }.freeze
       end
 
       def pending_tool_calls=(calls)
@@ -118,12 +167,23 @@ module Phronomy
 
       def handle_fsm_event(event)
         if event.type == :llm_stream_chunk
-          deliver_event(StreamEvent.new(type: :token, payload: {content: event.payload.fetch(:content)}))
+          payload = event.payload || {}
+          return :consume unless current_llm_result_authoritative?(payload[:llm_call_id])
+
+          deliver_event(
+            StreamEvent.new(type: :token, payload: {content: payload.fetch(:content)})
+          )
           return true
         end
 
         if LLM_EVENT_TYPES.include?(event.type)
-          apply_llm_event(event)
+          return apply_llm_event(event)
+        end
+
+        if LLM_SETUP_FAILED_EVENTS.include?(event.type)
+          @error ||= event.payload.is_a?(Exception) ? event.payload :
+            event.payload&.fetch(:error, nil)
+          @error ||= Phronomy::Error.new("LLM setup failed without an error")
           return true
         end
 
@@ -149,7 +209,7 @@ module Phronomy
       def accept_tool_calls!(tool_calls, llm_call_id: nil)
         @user_message_sent = true
         calls = Array(tool_calls)
-        call_llm_id = (llm_call_id || @current_llm_call_id)&.to_s
+        call_llm_id = (llm_call_id || current_llm_call_id)&.to_s
         handoff_matches = handoff_matches_for(calls)
 
         unless handoff_matches.empty?
@@ -159,7 +219,6 @@ module Phronomy
             )
             @pending_tool_calls = []
             @tool_batch_llm_call_id = call_llm_id
-            @current_llm_call_id = nil
             return self
           end
 
@@ -171,13 +230,11 @@ module Phronomy
           )
           @pending_tool_calls = []
           @tool_batch_llm_call_id = call_llm_id
-          @current_llm_call_id = nil
           return self
         end
 
         @pending_tool_calls = calls
         @tool_batch_llm_call_id = call_llm_id
-        @current_llm_call_id = nil
         @pending_tool_calls.each do |tool_call|
           deliver_event(
             StreamEvent.new(
@@ -194,7 +251,6 @@ module Phronomy
         @error = caught.is_a?(Phronomy::HandoffError) ? caught :
           Phronomy::HandoffError.new("invalid Handoff request: #{caught.message}")
         @pending_tool_calls = []
-        @current_llm_call_id = nil
         self
       end
 
@@ -213,7 +269,6 @@ module Phronomy
         @output = response.content
         @usage = Phronomy::TokenUsage.from_tokens(response.tokens)
         @pending_tool_calls = []
-        @current_llm_call_id = nil
         self
       end
 
@@ -278,6 +333,32 @@ module Phronomy
         end
         clear_tool_batch!
         self
+      end
+
+      # EventLoop-owned snapshot handed to one durable Offload operation.
+      # Values already canonicalized by Phronomy are immutable; the arrays are
+      # copied/frozen so worker code cannot mutate the live queues.
+      def runtime_snapshot
+        {
+          llm_results: @llm_results.dup.freeze,
+          runtime_events: @runtime_events.dup.freeze,
+          active_call: @current_llm_call
+        }.freeze
+      end
+
+      # Applies a successful durable barrier on EventLoop. Facts appended after
+      # the snapshot was taken remain queued for the next barrier.
+      def acknowledge_runtime_snapshot(snapshot)
+        @llm_results.shift(snapshot.fetch(:llm_results).length)
+        @runtime_events.shift(snapshot.fetch(:runtime_events).length)
+        if snapshot[:active_call] && @current_llm_call == snapshot[:active_call]
+          @current_llm_call = nil
+        end
+        self
+      end
+
+      def callback_failed?
+        !@callback_failure.nil?
       end
 
       def input_passed? = !@input_blocked
@@ -375,34 +456,55 @@ module Phronomy
           raise Phronomy::Error, "Expected LLMOperationResult, got #{result.class}"
         end
 
-        activation = @config[:phronomy_activation]
-        if activation && @current_llm_call_id
-          activation.record_llm_result(
-            response: canonical_response_for_llm_result(result),
-            error: result.error,
-            streaming: result.streaming
-          )
+        unless current_llm_result_authoritative?(result.llm_call_id)
+          warn_stale_llm_result(result.llm_call_id)
+          return :consume
         end
 
+        call = @current_llm_call
+        @llm_results << {
+          llm_call_id: call.fetch(:llm_call_id),
+          response: canonical_response_for_llm_result(result),
+          error: result.error,
+          streaming: result.streaming,
+          manifest_ref: call.fetch(:manifest_ref),
+          started_at: call.fetch(:started_at)
+        }.freeze
+        @current_llm_call = nil
+
         if event.type == :llm_failed
-          @current_llm_call_id = nil
           @error = result.error || Phronomy::Error.new("LLM operation failed without an error")
-          return
+          return true
         end
 
         if result.error
           if result.error.is_a?(ToolCallIntercepted)
             accept_tool_calls!(
               result.error.tool_calls,
-              llm_call_id: result.error.llm_call_id
+              llm_call_id: result.llm_call_id
             )
           else
-            @current_llm_call_id = nil
             @error = result.error
           end
         else
           apply_llm_response!(result.response)
         end
+        true
+      end
+
+      def current_llm_result_authoritative?(llm_call_id)
+        current = current_llm_call_id
+        !current.nil? && current == llm_call_id&.to_s
+      end
+
+      def warn_stale_llm_result(llm_call_id)
+        Phronomy.configuration.logger&.warn(
+          "[Phronomy] Dropped stale Provider result: " \
+          "execution_id=#{@execution_id} expected_llm_call_id=#{current_llm_call_id.inspect} " \
+          "actual_llm_call_id=#{llm_call_id.inspect}"
+        )
+      rescue
+        nil
       end
 
       def canonical_response_for_llm_result(result)
@@ -413,8 +515,46 @@ module Phronomy
         end
       end
 
+      # Canonical runtime recording is independent of Application callback health.
+      # Once an event is observed it is appended even after a listener has failed.
       def deliver_event(event)
-        @event_listener&.call(event)
+        # Canonical runtime facts must not share mutable payload containers with
+        # Application callbacks. Record an EventLoop-owned snapshot first; the
+        # listener receives the notification event separately.
+        @runtime_events << StreamEvent.new(
+          type: event.type,
+          payload: Immutable.copy(event.payload)
+        )
+        listener = @callback_failure ? nil : @event_listener
+        return unless listener
+
+        listener.call(event)
+      rescue => callback_error
+        failure = ApplicationCallbackFailure.new(
+          event_type: event.type,
+          error: callback_error
+        )
+        @callback_failure ||= failure
+        @event_listener = nil
+        notify_callback_failure(failure)
+      end
+
+      def notify_callback_failure(failure)
+        if @event_sink
+          accepted = @event_sink.post(:application_callback_failed, {failure: failure})
+          unless accepted
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] Callback failure recorded but could not notify " \
+              "FSMSession #{@event_sink.fsm_session_id}: execution_id=#{@execution_id}"
+            )
+          end
+        end
+        Phronomy.configuration.logger&.warn(
+          "[Phronomy] Application event listener failed: " \
+          "#{failure.error.class}: #{failure.error.message}"
+        )
+      rescue
+        nil
       end
     end
   end

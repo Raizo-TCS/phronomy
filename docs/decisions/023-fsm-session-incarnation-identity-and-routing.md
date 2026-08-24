@@ -7,6 +7,7 @@
 - [ADR-014](014-unified-persistence-durable-state.md)
 - [ADR-020](020-canonical-workflow-instance-identity.md)
 - [ADR-022](022-agent-execution-parent-identity-and-runtime-routing-boundary.md)
+- [ADR-024](024-event-loop-single-writer-agent-runtime.md)
 
 ---
 
@@ -70,16 +71,17 @@ sink when a Tool FSMSession is constructed.
 No `parent_fsm_session_id`, generic generation token, or replacement generic
 correlation identity is introduced.
 
-### 4. Provider completion is routed before it updates Activation result state
+### 4. Provider completion is routed before live result application
 
-Provider completion callbacks no longer call
-`AgentExecutionActivation#record_llm_result` before Runtime routing. They post an
-immutable `LLMOperationResult` through the current session sink, and the existing
-AgentInvocation EventLoop handler records that result only if the concrete
-session still owns the event.
+Provider completion callbacks post an immutable `LLMOperationResult` through the
+session-local sink. The result carries the Provider Call's semantic `llm_call_id`.
+The AgentInvocation EventLoop handler applies it only when the concrete session
+still owns the event and the `llm_call_id` still matches the current Provider
+Call.
 
-This is a targeted stale-session safety correction. It does not make
-`AgentExecutionActivation` the final architecture and does not complete ACS-11.
+ADR-024 completes this result-authority rule by making EventLoop the single
+writer of Phronomy-managed live Agent execution state and by removing the former
+Activation shared-mutable state model.
 
 ### 5. Runtime incarnation identity is not durable state
 
@@ -90,15 +92,12 @@ Recovery creates fresh Runtime objects from confirmed durable semantic state.
 ## Relationship to ACS-11 and ACS-13
 
 This decision is the ACS-10 identity/routing foundation and the implementation
-half of CG-03b. It intentionally does **not** claim the whole Runtime foundation
-wave is complete.
+half of CG-03b. ADR-024/ACS-11 builds directly on it: Offload work now returns
+operation-specific results and EventLoop validates/applies those results against
+current Runtime state and purpose-specific semantic identity.
 
-ACS-11 remains immediately next. Current Offload paths still contain broader
-worker-side live-state mutation through `AgentExecutionActivation` and
-`ExecutionCoordinator`; those paths must become operation-specific immutable
-Command/Snapshot/Result flows whose results are applied on EventLoop after
-current-state and semantic-authority checks. CG-03 remains open until that joint
-foundation closes the remaining stale-result-authority gap.
+Together, ADR-023 and ADR-024 close the Agent/Tool result-routing and live-state
+authority portion of CG-03 without introducing another generic identity.
 
 ACS-13 separately owns Workflow's opaque admission owner handle and the durable
 terminal-save barrier. This ADR does not pull those Workflow lifecycle changes
@@ -109,12 +108,14 @@ explicit transitional mismatch until ACS-13.
 
 This decision does not implement:
 
-- ACS-11 EventLoop single-writer / `AgentExecutionActivation` removal;
 - ACS-13 Workflow opaque admission owner or durable-save-before-terminal barrier;
 - restart-safe HITL/Workflow rehydration;
 - same-process Agent admission redesign;
 - cross-process ownership, leases, or fencing;
 - general Persistence schema/version evolution.
+
+Those items remain governed by their own later change sets. EventLoop single-
+writer Agent ownership itself is defined by ADR-024 rather than duplicated here.
 
 ## Consequences
 
@@ -122,8 +123,9 @@ This decision does not implement:
 
 - Agent/Tool/Multi-Agent domain IDs are no longer EventLoop routing IDs.
 - Rebuilt sessions receive fresh session-local routing sinks.
-- Old-session provider completion is not applied to a newer session merely
+- Old-session Provider completion is not applied to a newer session merely
   because the logical `execution_id` is unchanged.
+- Provider results are additionally protected by current semantic `llm_call_id`.
 - Workflow preserves pre-load admission ordering without retaining arbitrary
   caller-supplied FSMSession IDs.
 - ACS-13 admission-owner redesign remains cleanly separated.
@@ -132,4 +134,5 @@ This decision does not implement:
 
 - Workflow temporarily uses a private FSMSession identity reservation because
   its current admission owner is still the future FSMSession ID.
-- The larger EventLoop single-writer mismatch remains until ACS-11 lands.
+- Runtime result application now requires explicit state/semantic-ID validation
+  rather than relying on a shared mutable continuation container.

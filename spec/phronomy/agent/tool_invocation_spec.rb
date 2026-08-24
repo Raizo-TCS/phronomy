@@ -31,7 +31,20 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
   end
 
   let(:tool) { tool_class.new }
-  let(:agent) { instance_double(Phronomy::Agent::Base) }
+
+  let(:agent_class) do
+    Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "tool-invocation-spec-agent", version: 1
+
+      def initialize(agent_id:)
+        @agent_id = agent_id.to_s.freeze
+      end
+    end
+  end
+
+  let(:agent) do
+    agent_class.new(agent_id: "tool-invocation-spec-agent-instance")
+  end
   let(:tool_call) do
     ToolCall.new(
       id: "call-1",
