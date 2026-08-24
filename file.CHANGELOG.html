@@ -67,6 +67,31 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Workflow_Runtime_admission_and_durable_terminal_barrier__ACS_13_">Workflow Runtime admission and durable terminal barrier (ACS-13)</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li>ADR-026 defining opaque process-local Workflow admission ownership,
+admission-before-hydration ordering, and FSMSession-integrated terminal
+persistence.</li>
+<li>Explicit Workflow terminal persistence outcomes: known success, known failure,
+and fail-closed outcome uncertainty.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li>Workflow admission ownership no longer reuses the future <code>fsm_session_id</code>.
+EventLoop acquires a separate opaque owner token before durable load and binds
+the concrete FSMSession routing ID only after hydration.</li>
+<li>Durable Workflow halt/completion now remains nonterminal while the final
+snapshot is saved. The save result returns to the same FSMSession, and only a
+known-successful result permits <code>HALTED</code> / <code>COMPLETED</code>, admission release, and
+caller Task settlement.</li>
+<li>Portable known Persistence failures follow the Workflow error path. An
+arbitrary storage/transport error whose commit outcome is not established is
+treated as outcome-unknown: the success barrier stays closed and the
+<code>workflow_instance_id</code> admission remains fail-closed/recovery-required.</li>
+<li>Workflow persistence result handling is backend-topology neutral; the FSM does
+not depend on local/network/database transport details.</li>
+</ul>
 <h3 id="Process_local_Agent_ownership_and_Runtime_admission__ACS_12_">Process-local Agent ownership and Runtime admission (ACS-12)</h3>
 <h4 id="Added">Added</h4>
 <ul>
@@ -171,7 +196,7 @@ routing, and Agent-owned <code>_add_handoff_tool</code> / <code>_handoff_tools</
 <li><code>Persistence#workflow_states</code> with optimistic revision checks for durable Workflow snapshots.</li>
 <li>Runtime-local Agent execution ownership outside Persistence; ACS-11 now places the mutable live-state authority on EventLoop.</li>
 <li><code>Agent::Base.live_for_execution(execution_id)</code> for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.</li>
-<li>Owner-aware Workflow admission keyed by durable <code>workflow_instance_id</code>; the admission-owner representation remains Runtime-internal and is reconciled separately.</li>
+<li>Owner-aware Workflow admission keyed by durable <code>workflow_instance_id</code>; ACS-13 now uses a Runtime-only opaque owner token that is separate from concrete <code>fsm_session_id</code> routing.</li>
 <li>ADR-014 and the 0.19 migration guide for the unified durable-state architecture.</li>
 </ul>
 <h4 id="Changed">Changed</h4>
@@ -180,7 +205,7 @@ routing, and Agent-owned <code>_add_handoff_tool</code> / <code>_handoff_tools</
 <li><code>Phronomy.configuration.persistence</code> is the global durable backend for Workflows and for Agent <code>new</code>/<code>create</code> calls that do not explicitly inject another Persistence instance.</li>
 <li>Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.</li>
 <li>Approval suspension/resume preserves the same process-local Agent/AgentInvocation owner. Approval remains an Agent-instance operation; callers with only an <code>execution_id</code> resolve the EventLoop-backed live owner with <code>Agent::Base.live_for_execution</code> (or the expected concrete Agent class) before calling <code>agent.approve</code> / <code>agent.approve_async</code>.</li>
-<li>Workflow durable I/O runs outside EventLoop through OffloadPool, while <code>workflow_instance_id</code> admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.</li>
+<li>Workflow durable I/O runs outside EventLoop through OffloadPool. Terminal/halted snapshot persistence now completes inside the owning FSMSession lifecycle; only a known-successful save permits normal terminalization and admission release. Workflow admission remains process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.</li>
 <li>Workflow <code>workflow_instance_id</code> is distinct from one concrete Runtime FSMSession identity; generic application <code>session_id</code> is not a Phronomy core domain identity.</li>
 </ul>
 <h4 id="Removed">Removed</h4>
@@ -617,7 +642,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Aug 24 09:54:09 2026 by
+  Generated on Mon Aug 24 13:27:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

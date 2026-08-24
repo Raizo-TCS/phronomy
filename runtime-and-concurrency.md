@@ -17,6 +17,9 @@ Canonical Workflow instance identity is defined by
 [ADR-020](decisions/020-canonical-workflow-instance-identity.md).
 Concrete FSMSession incarnation identity and session-local Runtime routing are
 defined by [ADR-023](decisions/023-fsm-session-incarnation-identity-and-routing.md).
+Same-process Workflow admission ownership and durable terminal-barrier ordering
+are defined by
+[ADR-026](decisions/026-workflow-runtime-admission-and-durable-terminal-barrier.md).
 
 ## Runtime model
 
@@ -212,41 +215,67 @@ the result on EventLoop, and then builds a **fresh** FSMSession incarnation.
 If the process-local owner no longer exists, durable continuation reconstruction
 is not implied; `ExecutionRehydrationRequiredError` is raised.
 
-## Workflow identities and durable admission
+## Workflow identities, admission, and durable terminal barrier
 
-Workflow execution keeps three identities separate:
+Workflow runtime keeps identity and coordination responsibilities separate:
 
 ```text
 session_id
-  application session/correlation identity
+  application session/correlation metadata
 
 workflow_instance_id
-  durable Workflow identity and Persistence#workflow_states key
+  logical/durable Workflow identity and Persistence#workflow_states key
+
+admission owner token
+  opaque process-local Runtime coordination capability
 
 fsm_session_id
-  one Runtime FSMSession execution identity; generated again for each invoke/resume
+  one concrete Runtime FSMSession routing identity
 ```
 
-The application `session_id` is tracing/caller metadata and is not used for
-durable Workflow ownership. EventLoop registers active FSMs by `fsm_session_id`;
-durable Workflow admission is a separate owner map:
+EventLoop acquires the `workflow_instance_id` admission with a fresh opaque owner
+token **before** `workflow_states.load(workflow_instance_id)` is submitted. The
+token is not a domain identity and is never an Event target. After durable
+hydration, EventLoop constructs the concrete FSMSession and binds its fresh
+`fsm_session_id` to the existing admission for `Workflow#signal` routing.
 
 ```text
-workflow_instance_id -> owner_fsm_session_id
+admit workflow_instance_id with owner token
+    ↓
+Offload workflow_states.load
+    ↓
+EventLoop hydrate / create FSMSession
+    ↓
+bind fsm_session_id for routing
 ```
 
-`owner_fsm_session_id` above remains the current transitional Runtime
-implementation. It is not a Workflow domain identity. CG-03b/ACS-10 obtains that
-value through a single-use FSMSession-owned identity reservation rather than
-arbitrary caller/domain ID injection. Separating Workflow admission ownership
-from the future concrete FSMSession is ACS-13 and remains intentionally pending.
+A durable Workflow also keeps terminal persistence inside the FSMSession
+lifecycle. Logical halt/completion first enters a private
+`persisting_terminal` lifecycle condition; the FSMSession remains nonterminal
+while WorkflowRunner saves the terminal snapshot through OffloadPool. Only a
+known-successful save result returned to that same FSMSession permits
+`HALTED`/`COMPLETED`, admission release, and caller Task settlement.
 
-The owner is acquired before `workflow_states.load(workflow_instance_id)` and
-remains held until the halted/terminal `workflow_states.save(...)` completes.
-The admission map is process-local. Cross-process duplicate execution requires
-application-level distributed coordination; optimistic revisions detect stale
-terminal commits but do not prevent duplicate side effects before that conflict
-is detected.
+```text
+RUNNING
+    ↓ logical halt/completion
+PERSISTING_TERMINAL
+    ├─ known success  -> HALTED / COMPLETED -> release
+    ├─ known failure  -> ERROR -> release
+    └─ outcome unknown -> RECOVERY_REQUIRED (fail closed)
+```
+
+The FSMSession does not know whether Persistence is local, remote, SQL, HTTP, or
+networked. The Workflow persistence operation normalizes the result into
+`success`, `known_failure`, or `outcome_unknown`. Only known success crosses the
+durable barrier. If the backend/storage error does not establish non-commit,
+Phronomy treats the terminal outcome as uncertain rather than guessing.
+
+`recovery_required` prevents a fresh same-Workflow execution segment from being
+admitted, but ACS-13 does not claim restart-safe reconciliation; that remains
+ACS-15 work. The admission map itself is process-local. Cross-process duplicate
+execution requires the later coordination/fencing work; optimistic revisions
+remain durable conflict defense rather than distributed ownership.
 
 ## Tool execution modes
 

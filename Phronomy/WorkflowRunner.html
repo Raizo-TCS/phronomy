@@ -114,14 +114,16 @@
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
 <p>Execution boundary for compiled Workflows.</p>
-<p>WorkflowRunner separates three identities:</p>
+<p>WorkflowRunner separates three identities/responsibilities:</p>
 <ul>
 <li>application session_id remains caller/tracing metadata;</li>
 <li>workflow_instance_id identifies durable Workflow state;</li>
-<li>fsm_session_id identifies one concrete Runtime FSMSession incarnation.</li>
+<li>each concrete FSMSession owns a runtime-only fsm_session_id;</li>
+<li>Runtime admission uses a separate opaque owner token.</li>
 </ul>
 <p>Workflow persistence is synchronous at the repository contract but is always
-invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
+invoked through Runtime's OffloadPool. Durable terminal save results return
+to the same FSMSession before that session becomes halted/completed.</p>
 
   </div>
 </div>
@@ -134,7 +136,7 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="WorkflowRunner/Execution.html" title="Phronomy::WorkflowRunner::Execution (class)">Execution</a></span>, <span class='object_link'><a href="WorkflowRunner/WorkflowPersistenceCommand.html" title="Phronomy::WorkflowRunner::WorkflowPersistenceCommand (class)">WorkflowPersistenceCommand</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="WorkflowRunner/Execution.html" title="Phronomy::WorkflowRunner::Execution (class)">Execution</a></span>, <span class='object_link'><a href="WorkflowRunner/ResumeCommand.html" title="Phronomy::WorkflowRunner::ResumeCommand (class)">ResumeCommand</a></span>, <span class='object_link'><a href="WorkflowRunner/ResumeLoadReady.html" title="Phronomy::WorkflowRunner::ResumeLoadReady (class)">ResumeLoadReady</a></span>, <span class='object_link'><a href="WorkflowRunner/StartCommand.html" title="Phronomy::WorkflowRunner::StartCommand (class)">StartCommand</a></span>, <span class='object_link'><a href="WorkflowRunner/StartLoadReady.html" title="Phronomy::WorkflowRunner::StartLoadReady (class)">StartLoadReady</a></span>, <span class='object_link'><a href="WorkflowRunner/WorkflowLoadCommand.html" title="Phronomy::WorkflowRunner::WorkflowLoadCommand (class)">WorkflowLoadCommand</a></span>, <span class='object_link'><a href="WorkflowRunner/WorkflowLoadResult.html" title="Phronomy::WorkflowRunner::WorkflowLoadResult (class)">WorkflowLoadResult</a></span>, <span class='object_link'><a href="WorkflowRunner/WorkflowTerminalPersistenceCommand.html" title="Phronomy::WorkflowRunner::WorkflowTerminalPersistenceCommand (class)">WorkflowTerminalPersistenceCommand</a></span>, <span class='object_link'><a href="WorkflowRunner/WorkflowTerminalPersistenceResult.html" title="Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult (class)">WorkflowTerminalPersistenceResult</a></span>
     
   
 </p>
@@ -185,7 +187,7 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#deliver_persistence_on_event_loop-instance_method" title="#deliver_persistence_on_event_loop (instance method)">#<strong>deliver_persistence_on_event_loop</strong>(command)  &#x21d2; Object </a>
+      <a href="#deliver_on_event_loop-instance_method" title="#deliver_on_event_loop (instance method)">#<strong>deliver_on_event_loop</strong>(command)  &#x21d2; Object </a>
     
 
     
@@ -199,7 +201,7 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Called only by EventLoop for terminal Workflow persistence completion.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Every Workflow control message is delivered by EventLoop.</p></div></span>
   
 </li>
 
@@ -407,40 +409,40 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
-71</pre>
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>state_class:</span><span class='comma'>,</span>
@@ -486,9 +488,9 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="deliver_persistence_on_event_loop-instance_method">
+  <h3 class="signature first" id="deliver_on_event_loop-instance_method">
   
-    #<strong>deliver_persistence_on_event_loop</strong>(command)  &#x21d2; <tt>Object</tt> 
+    #<strong>deliver_on_event_loop</strong>(command)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -500,7 +502,9 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Called only by EventLoop for terminal Workflow persistence completion.</p>
+<p>Every Workflow control message is delivered by EventLoop. Admission,
+hydration apply, FSMSession creation/binding, and terminal live-state
+progression therefore remain EventLoop-owned.</p>
 
   </div>
 </div>
@@ -513,32 +517,42 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
       <pre class="lines">
 
 
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149</pre>
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 172</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_deliver_persistence_on_event_loop'>deliver_persistence_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_deliver_on_event_loop'>deliver_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
-  <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_release_workflow'>release_workflow</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span>
-    <span class='label'>owner_fsm_session_id:</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span>
-  <span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span>
-    <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_event_loop!'>assert_event_loop!</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
+
+  <span class='kw'>case</span> <span class='id identifier rubyid_command'>command</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="WorkflowRunner/StartCommand.html" title="Phronomy::WorkflowRunner::StartCommand (class)">StartCommand</a></span></span>
+    <span class='id identifier rubyid_begin_start_on_event_loop'>begin_start_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="WorkflowRunner/ResumeCommand.html" title="Phronomy::WorkflowRunner::ResumeCommand (class)">ResumeCommand</a></span></span>
+    <span class='id identifier rubyid_begin_resume_on_event_loop'>begin_resume_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="WorkflowRunner/StartLoadReady.html" title="Phronomy::WorkflowRunner::StartLoadReady (class)">StartLoadReady</a></span></span>
+    <span class='id identifier rubyid_apply_start_load_on_event_loop'>apply_start_load_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="WorkflowRunner/ResumeLoadReady.html" title="Phronomy::WorkflowRunner::ResumeLoadReady (class)">ResumeLoadReady</a></span></span>
+    <span class='id identifier rubyid_apply_resume_load_on_event_loop'>apply_resume_load_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
-    <span class='id identifier rubyid_complete_task'>complete_task</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unknown Workflow control command: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -574,20 +588,20 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
       <pre class="lines">
 
 
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83</pre>
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_call_allowed!'>ensure_blocking_call_allowed!</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
@@ -633,12 +647,12 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
       <pre class="lines">
 
 
-85
-86
-87</pre>
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_deferred'>invoke_deferred</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_start_new_execution'>start_new_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -676,12 +690,12 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
       <pre class="lines">
 
 
-96
-97
-98</pre>
+126
+127
+128</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 126</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:resume</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -719,25 +733,25 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
       <pre class="lines">
 
 
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115</pre>
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 100</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 130</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_call_allowed!'>ensure_blocking_call_allowed!</span><span class='lparen'>(</span><span class='symbol'>:send_event</span><span class='comma'>,</span> <span class='symbol'>:signal</span><span class='rparen'>)</span>
@@ -776,8 +790,9 @@ invoked through Runtime's OffloadPool from EventLoop-driven lifecycle paths.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Posts an application-defined event to the currently live Workflow owner.
-workflow_instance_id is resolved to its Runtime-only fsm_session_id by EventLoop; the
-application session_id is deliberately unrelated to this routing.</p>
+EventLoop resolves workflow_instance_id to the current concrete
+fsm_session_id. The opaque admission owner token is deliberately not a
+routing identity and is not exposed here.</p>
 
   </div>
 </div>
@@ -803,25 +818,25 @@ application session_id is deliberately unrelated to this routing.</p>
       <pre class="lines">
 
 
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135</pre>
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>workflow_instance_id is required</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -885,15 +900,15 @@ application session_id is deliberately unrelated to this routing.</p>
       <pre class="lines">
 
 
-89
-90
-91
-92
-93
-94</pre>
+119
+120
+121
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 89</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_observer'>observer</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_call_allowed!'>ensure_blocking_call_allowed!</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
@@ -911,7 +926,7 @@ application session_id is deliberately unrelated to this routing.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 24 09:54:10 2026 by
+  Generated on Mon Aug 24 13:27:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

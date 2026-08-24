@@ -337,6 +337,37 @@ snapshot and revision. String or Symbol Hash keys are accepted by Phronomy:
 
 Caller mutation of a loaded snapshot must not mutate durable storage.
 
+### Workflow Runtime admission and terminal-save outcome
+
+Same-process Workflow admission is owned by Runtime/EventLoop, not by this
+repository. EventLoop acquires an opaque owner token for `workflow_instance_id`
+before mutable durable load/hydration, then binds a separately generated
+`fsm_session_id` only after the concrete FSMSession is constructed.
+
+A durable Workflow terminal/halt snapshot is saved through OffloadPool while the
+owning FSMSession remains nonterminal. The backend still implements only the
+synchronous `save` contract above; it does not post Runtime events or decide FSM
+state.
+
+Phronomy interprets terminal-save results by semantic certainty:
+
+```text
+known successful save
+  -> durable barrier may be crossed
+
+portable known failure / known not committed
+  -> barrier remains closed; Workflow error path
+
+arbitrary storage/transport failure whose commit outcome is not established
+  -> outcome unknown; barrier remains closed and Runtime fails closed
+```
+
+This distinction is independent of physical topology. A local backend can have
+an uncertain outcome, and a remote backend can return a definite optimistic
+conflict. Backends must therefore preserve meaningful portable errors when the
+contract establishes them, and must surface other storage/transport failures
+honestly rather than converting them into `ConflictError`.
+
 ### Workflow value serialization
 
 `WorkflowContext#to_h` may contain ordinary Ruby application values. The
