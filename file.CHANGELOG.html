@@ -67,6 +67,40 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="EventLoop_single_writer_Agent_Runtime__ACS_11_">EventLoop single-writer Agent Runtime (ACS-11)</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li>ADR-024 defining EventLoop as the single writer of Phronomy-managed live
+Agent execution state and operation-specific Offload command/result apply.</li>
+<li>Runtime read-only Agent execution-owner lookup for approval/live-owner
+routing without exposing mutable execution internals.</li>
+<li>Provider result authority using current FSMSession/FSM state plus semantic
+<code>llm_call_id</code>; stale Provider results are consumed without advancing the FSM.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li>Agent initial preparation, follow-up Manifest preparation, approval resume,
+and terminal durable commits now return values from OffloadPool and apply
+committed live-state advances only on EventLoop.</li>
+<li>AgentInvocation owns FSM-local uncommitted Provider/Tool/runtime facts.</li>
+<li>Tool authorization captures Agent identity and Tool description data before
+worker execution; the authorization worker receives no live Agent, Tool, or
+ToolInvocation reference. Application-owned approval/facts/requirement
+callables remain explicit behavior handles.</li>
+<li><code>ApprovalEvaluationRequest</code> is value-only: Agent identity is exposed as
+<code>agent_id</code>, <code>agent_definition_id</code>, and <code>agent_definition_version</code>; Tool
+identity/description is exposed through <code>tool_name</code> / <code>tool_schema</code>.</li>
+<li>Tool authorization/execution outcomes carry semantic <code>tool_invocation_id</code>
+and are applied by the Tool FSMSession.</li>
+</ul>
+<h4 id="Removed">Removed</h4>
+<ul>
+<li><code>AgentExecutionActivation</code>, <code>Agent::ActivationRegistry</code>,
+<code>Runtime#__agent_activations</code>, and the <code>phronomy_activation</code> config bridge.</li>
+<li>Live-object accessors <code>ApprovalEvaluationRequest#agent</code> and
+<code>ApprovalEvaluationRequest#tool</code>; approval policies use value identity and
+Tool-description fields instead.</li>
+</ul>
 <h3 id="Semantic_Multi_Agent_Handoff_and_shared_Selection">Semantic Multi-Agent Handoff and shared Selection</h3>
 <h4 id="Added">Added</h4>
 <ul>
@@ -109,24 +143,24 @@ routing, and Agent-owned <code>_add_handoff_tool</code> / <code>_handoff_tools</
 <h4 id="Added">Added</h4>
 <ul>
 <li><code>Persistence#workflow_states</code> with optimistic revision checks for durable Workflow snapshots.</li>
-<li>Runtime-local Agent Activation ownership; live <code>AgentExecutionActivation</code> values are no longer Persistence repositories.</li>
+<li>Runtime-local Agent execution ownership outside Persistence; ACS-11 now places the mutable live-state authority on EventLoop.</li>
 <li><code>Agent::Base.live_for_execution(execution_id)</code> for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.</li>
 <li>Owner-aware Workflow admission keyed by durable <code>workflow_instance_id</code>; the admission-owner representation remains Runtime-internal and is reconciled separately.</li>
 <li>ADR-014 and the 0.19 migration guide for the unified durable-state architecture.</li>
 </ul>
 <h4 id="Changed">Changed</h4>
 <ul>
-<li>Live Agent instances now remain the authoritative logical-state owners after hydration. Context Policy and follow-up Manifest preparation use the Agent-local root, Journal view, and Activation state instead of reloading mutable Agent state for freshness.</li>
+<li>Live Agent instances remain authoritative for AgentRoot/Journal state after hydration, while EventLoop owns active execution-state mutation. Context Policy and follow-up Manifest preparation use those local views instead of reloading mutable Agent state for freshness.</li>
 <li><code>Phronomy.configuration.persistence</code> is the global durable backend for Workflows and for Agent <code>new</code>/<code>create</code> calls that do not explicitly inject another Persistence instance.</li>
 <li>Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.</li>
-<li>Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Approval remains an Agent-instance operation; callers with only an <code>execution_id</code> resolve the live owner with <code>Agent::Base.live_for_execution</code> (or the expected concrete Agent class) before calling <code>agent.approve</code> / <code>agent.approve_async</code>.</li>
+<li>Approval suspension/resume preserves the same process-local Agent/AgentInvocation owner. Approval remains an Agent-instance operation; callers with only an <code>execution_id</code> resolve the EventLoop-backed live owner with <code>Agent::Base.live_for_execution</code> (or the expected concrete Agent class) before calling <code>agent.approve</code> / <code>agent.approve_async</code>.</li>
 <li>Workflow durable I/O runs outside EventLoop through OffloadPool, while <code>workflow_instance_id</code> admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.</li>
 <li>Workflow <code>workflow_instance_id</code> is distinct from one concrete Runtime FSMSession identity; generic application <code>session_id</code> is not a Phronomy core domain identity.</li>
 </ul>
 <h4 id="Removed">Removed</h4>
 <ul>
 <li><code>Phronomy::StateStore</code>, <code>StateStore::InMemory</code>, <code>Workflow.define(..., state_store:)</code>, <code>Configuration#state_store</code>, and per-invocation <code>config[:state_store]</code>.</li>
-<li><code>Persistence#activations</code>; ActivationRegistry is transient Runtime state.</li>
+<li><code>Persistence#activations</code>; live Agent execution state is Runtime-only. The transitional ActivationRegistry is subsequently removed by ACS-11.</li>
 <li>Class-level <code>Agent::Base.approve</code> / <code>Agent::Base.approve_async</code> routing APIs and their caller-supplied <code>persistence:</code> argument; approval execution now goes through the resolved live Agent instance.</li>
 </ul>
 <h3 id="Public_API_fa_ade_and_typed_contracts">Public API façade and typed contracts</h3>
@@ -165,9 +199,10 @@ content-addressed audit bodies are not rewritten.</li>
 <li>Agent, Tool, and Multi-Agent concrete <code>FSMSession</code> instances no longer reuse
 domain/context IDs as EventLoop routing targets. Async callbacks use
 session-local event sinks, and Provider completion is routed to the owning
-FSMSession before updating Activation LLM-result state. Workflow retains its
-pre-load admission ordering through a private single-use FSMSession identity
-reservation; opaque Workflow admission ownership remains ACS-13 work.</li>
+FSMSession before EventLoop validates/applies <code>llm_call_id</code>-bound result
+state. Workflow retains its pre-load admission ordering through a private
+single-use FSMSession identity reservation; opaque Workflow admission
+ownership remains ACS-13 work.</li>
 <li>OutputParser <code>parse</code> is classified as the public subclass extension point that
 concrete parsers implement.</li>
 </ul>
@@ -556,7 +591,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:13 2026 by
+  Generated on Mon Aug 24 05:08:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

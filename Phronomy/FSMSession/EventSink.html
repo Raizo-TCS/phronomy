@@ -102,17 +102,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Runtime-only event target bound to exactly one concrete FSMSession
-incarnation. Rebuilt sessions receive different sinks and IDs.</p>
 
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
 
 
 
@@ -258,13 +248,13 @@ incarnation. Rebuilt sessions receive different sinks and IDs.</p>
       <pre class="lines">
 
 
-41
-42
-43
-44</pre>
+35
+36
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>event_loop:</span><span class='rparen'>)</span>
   <span class='ivar'>@event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_event_loop'>event_loop</span>
@@ -306,12 +296,12 @@ incarnation. Rebuilt sessions receive different sinks and IDs.</p>
       <pre class="lines">
 
 
-39
-40
-41</pre>
+33
+34
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span>
   <span class='ivar'>@fsm_session_id</span>
@@ -365,15 +355,15 @@ incarnation. Rebuilt sessions receive different sinks and IDs.</p>
       <pre class="lines">
 
 
-46
-47
-48
-49
-50
-51</pre>
+40
+41
+42
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_bind!'>bind!</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FSMSession EventSink is already bound</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@fsm_session_id</span>
@@ -423,6 +413,12 @@ incarnation. Rebuilt sessions receive different sinks and IDs.</p>
       <pre class="lines">
 
 
+47
+48
+49
+50
+51
+52
 53
 54
 55
@@ -430,16 +426,10 @@ incarnation. Rebuilt sessions receive different sinks and IDs.</p>
 57
 58
 59
-60
-61
-62
-63
-64
-65
-66</pre>
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_type'>type</span><span class='comma'>,</span> <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FSMSession EventSink is not bound</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='ivar'>@fsm_session_id</span>
@@ -465,7 +455,7 @@ incarnation. Rebuilt sessions receive different sinks and IDs.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:15 2026 by
+  Generated on Mon Aug 24 05:08:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

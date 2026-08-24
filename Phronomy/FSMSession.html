@@ -276,6 +276,28 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#current_state-instance_method" title="#current_state (instance method)">#<strong>current_state</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the live current state.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#handle-instance_method" title="#handle (instance method)">#<strong>handle</strong>(event)  &#x21d2; Object </a>
     
 
@@ -372,8 +394,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-78
-79
 80
 81
 82
@@ -420,10 +440,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 123
 124
 125
-126</pre>
+126
+127
+128</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>context:</span><span class='comma'>,</span>
@@ -510,12 +532,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-71
-72
-73</pre>
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context'>context</span>
   <span class='ivar'>@context</span>
@@ -551,12 +573,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-71
-72
-73</pre>
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_sink'>event_sink</span>
   <span class='ivar'>@event_sink</span>
@@ -592,12 +614,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-71
-72
-73</pre>
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@id</span>
@@ -642,12 +664,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-74
-75
-76</pre>
+76
+77
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 76</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_reserve_identity'>reserve_identity</span>
   <span class='const'>IdentityReservation</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -664,7 +686,50 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="handle-instance_method">
+  <h3 class="signature first" id="current_state-instance_method">
+  
+    #<strong>current_state</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the live current state. During an active FSM transition the
+tracker phase is authoritative; @current_state lags until fire_and_advance!
+returns.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+70
+71
+72
+73</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 70</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_current_state'>current_state</span>
+  <span class='kw'>return</span> <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='kw'>if</span> <span class='ivar'>@tracker</span>
+  <span class='ivar'>@current_state</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="handle-instance_method">
   
     #<strong>handle</strong>(event)  &#x21d2; <tt>Object</tt> 
   
@@ -678,8 +743,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-152
-153
 154
 155
 156
@@ -692,10 +755,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 163
 164
 165
-166</pre>
+166
+167
+168</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 152</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 154</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
@@ -732,8 +797,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-128
-129
 130
 131
 132
@@ -754,10 +817,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 147
 148
 149
-150</pre>
+150
+151
+152</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 128</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 130</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>if</span> <span class='ivar'>@resume_event</span>
@@ -792,7 +857,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:15 2026 by
+  Generated on Mon Aug 24 05:08:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

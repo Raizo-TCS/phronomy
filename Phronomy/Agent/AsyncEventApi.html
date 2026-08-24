@@ -315,15 +315,23 @@
 109
 110
 111
-112</pre>
+112
+113
+114
+115
+116</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__reject_removed_generic_identity_keys!'>_reject_removed_generic_identity_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_live'>live</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid___agent_activations'>__agent_activations</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>=</span> <span class='id identifier rubyid_live'>live</span><span class='op'>&amp;.</span><span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>||</span> <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid___agent_execution_owner'>__agent_execution_owner</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_owner'>owner</span><span class='op'>&amp;.</span><span class='id identifier rubyid_agent'>agent</span><span class='op'>&amp;.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_owner'>owner</span><span class='period'>.</span><span class='id identifier rubyid_coordinator'>coordinator</span>
+  <span class='kw'>else</span>
+    <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_coordinator'>coordinator</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
     <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
@@ -645,7 +653,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:14 2026 by
+  Generated on Mon Aug 24 05:08:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

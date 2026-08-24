@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Agent::AgentExecutionActivation::ApplicationCallbackFailure
+  Class: Phronomy::Agent::AgentInvocation::ApplicationCallbackFailure
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Agent::AgentExecutionActivation::ApplicationCallbackFailure";
+  pathId = "Phronomy::Agent::AgentInvocation::ApplicationCallbackFailure";
   relpath = '../../../';
 </script>
 
@@ -39,7 +39,7 @@
         <div id="menu">
   
     <a href="../../../_index.html">Index (A)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../AgentExecutionActivation.html" title="Phronomy::Agent::AgentExecutionActivation (class)">AgentExecutionActivation</a></span></span>
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../AgentInvocation.html" title="Phronomy::Agent::AgentInvocation (class)">AgentInvocation</a></span></span>
      &raquo; 
     <span class="title">ApplicationCallbackFailure</span>
   
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Agent::AgentExecutionActivation::ApplicationCallbackFailure
+      <div id="content"><h1>Class: Phronomy::Agent::AgentInvocation::ApplicationCallbackFailure
   
   
   
@@ -78,7 +78,7 @@
           
             <li class="next">Data</li>
           
-            <li class="next">Phronomy::Agent::AgentExecutionActivation::ApplicationCallbackFailure</li>
+            <li class="next">Phronomy::Agent::AgentInvocation::ApplicationCallbackFailure</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/agent_execution_activation.rb
+    <dd>lib/phronomy/agent/agent_invocation.rb
 </dd>
   </dl>
   
@@ -251,12 +251,12 @@
       <pre class="lines">
 
 
-107
-108
-109</pre>
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution_activation.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -308,12 +308,12 @@
       <pre class="lines">
 
 
-107
-108
-109</pre>
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution_activation.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_type'>event_type</span>
   <span class='ivar'>@event_type</span>
@@ -345,24 +345,28 @@
       <pre class="lines">
 
 
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118</pre>
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution_activation.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_stream_callback_error'>to_stream_callback_error</span>
   <span class='id identifier rubyid_wrapped'>wrapped</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../StreamCallbackError.html" title="Phronomy::StreamCallbackError (class)">StreamCallbackError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../../StreamCallbackError.html#initialize-instance_method" title="Phronomy::StreamCallbackError#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>event_type:</span> <span class='id identifier rubyid_event_type'>event_type</span><span class='comma'>,</span> <span class='label'>original_error:</span> <span class='id identifier rubyid_error'>error</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='kw'>nil</span>
+    <span class='label'>event_type:</span> <span class='id identifier rubyid_event_type'>event_type</span><span class='comma'>,</span>
+    <span class='label'>original_error:</span> <span class='id identifier rubyid_error'>error</span><span class='comma'>,</span>
+    <span class='label'>result:</span> <span class='kw'>nil</span>
   <span class='rparen'>)</span>
   <span class='kw'>begin</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='id identifier rubyid_wrapped'>wrapped</span><span class='comma'>,</span> <span class='label'>cause:</span> <span class='id identifier rubyid_error'>error</span>
@@ -381,7 +385,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:18 2026 by
+  Generated on Mon Aug 24 05:08:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

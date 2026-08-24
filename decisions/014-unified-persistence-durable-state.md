@@ -7,6 +7,7 @@
 - [ADR-020](020-canonical-workflow-instance-identity.md) for Workflow identity terminology only
 - [ADR-021](021-generic-agent-invocation-identity-removal.md) for `InvocationContext` generic session/correlation semantics and Agent-side generic invocation identity
 - [ADR-023](023-fsm-session-incarnation-identity-and-routing.md) for concrete FSMSession incarnation identity and Agent/Tool Runtime routing
+- [ADR-024](024-event-loop-single-writer-agent-runtime.md) for live Agent Runtime ownership, EventLoop single-writer apply, and `AgentExecutionActivation` removal
 
 ---
 

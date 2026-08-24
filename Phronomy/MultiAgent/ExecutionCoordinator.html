@@ -107,9 +107,9 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Handoff-aware specialization of the normal Agent execution coordinator.
-It changes only the terminal semantics of an invocation that produced a
-typed HandoffRequest; preparation, ordinary completion, failure, Tool and
-approval behavior remain owned by Agent::ExecutionCoordinator.</p>
+It changes only the durable terminal semantics of an invocation that
+produced a typed HandoffRequest. EventLoop ownership/apply remains entirely
+in Agent::ExecutionCoordinator.</p>
 
   </div>
 </div>
@@ -129,7 +129,7 @@ approval behavior remain owned by Agent::ExecutionCoordinator.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:18 2026 by
+  Generated on Mon Aug 24 05:08:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

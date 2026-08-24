@@ -108,10 +108,11 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Immutable carrier for one LLM adapter operation outcome.</p>
-<p>Worker/timer threads create this value without mutating AgentInvocation.
-AgentInvocationSessionBuilder posts it as :llm_completed or :llm_failed,
-and AgentInvocation applies it on the EventLoop thread.</p>
+<p>Immutable carrier for one Provider operation outcome.</p>
+<p>The Provider Call identity is allocated on EventLoop before transport starts.
+Worker completion carries that semantic identity back to the owning
+FSMSession, which validates it against the currently active call before
+applying any live state.</p>
 
   </div>
 </div>
@@ -129,6 +130,33 @@ and AgentInvocation applies it on the EventLoop thread.</p>
   <span class="summary_signature">
     
       <a href="#error-instance_method" title="#error (instance method)">#<strong>error</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#llm_call_id-instance_method" title="#llm_call_id (instance method)">#<strong>llm_call_id</strong>  &#x21d2; Object </a>
     
 
     
@@ -222,7 +250,7 @@ and AgentInvocation applies it on the EventLoop thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(response: nil, error: nil, streaming: false)  &#x21d2; LLMOperationResult </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(llm_call_id:, response: nil, error: nil, streaming: false)  &#x21d2; LLMOperationResult </a>
     
 
     
@@ -253,7 +281,7 @@ and AgentInvocation applies it on the EventLoop thread.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(response: nil, error: nil, streaming: false)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::LLMOperationResult (class)">LLMOperationResult</a></span></tt> 
+    #<strong>initialize</strong>(llm_call_id:, response: nil, error: nil, streaming: false)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::LLMOperationResult (class)">LLMOperationResult</a></span></tt> 
   
 
   
@@ -271,6 +299,19 @@ and AgentInvocation applies it on the EventLoop thread.</p>
 </div>
 <div class="tags">
   
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -278,20 +319,28 @@ and AgentInvocation applies it on the EventLoop thread.</p>
       <pre class="lines">
 
 
-15
 16
 17
 18
 19
-20</pre>
+20
+21
+22
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 16</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>response:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>streaming:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>llm_call_id:</span><span class='comma'>,</span> <span class='label'>response:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>streaming:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='id identifier rubyid_llm_call_id'>llm_call_id</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLMOperationResult requires llm_call_id</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>||</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+
+  <span class='ivar'>@llm_call_id</span> <span class='op'>=</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='ivar'>@response</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span>
   <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='ivar'>@streaming</span> <span class='op'>=</span> <span class='id identifier rubyid_streaming'>streaming</span>
+  <span class='ivar'>@streaming</span> <span class='op'>=</span> <span class='op'>!</span><span class='op'>!</span><span class='id identifier rubyid_streaming'>streaming</span>
   <span class='id identifier rubyid_freeze'>freeze</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -334,15 +383,60 @@ and AgentInvocation applies it on the EventLoop thread.</p>
       <pre class="lines">
 
 
-13
 14
-15</pre>
+15
+16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="llm_call_id-instance_method">
+  
+    #<strong>llm_call_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+14
+15
+16</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_llm_call_id'>llm_call_id</span>
+  <span class='ivar'>@llm_call_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -379,12 +473,12 @@ and AgentInvocation applies it on the EventLoop thread.</p>
       <pre class="lines">
 
 
-13
 14
-15</pre>
+15
+16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_response'>response</span>
   <span class='ivar'>@response</span>
@@ -424,12 +518,12 @@ and AgentInvocation applies it on the EventLoop thread.</p>
       <pre class="lines">
 
 
-13
 14
-15</pre>
+15
+16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_streaming'>streaming</span>
   <span class='ivar'>@streaming</span>
@@ -445,7 +539,7 @@ and AgentInvocation applies it on the EventLoop thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 23 15:52:17 2026 by
+  Generated on Mon Aug 24 05:08:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

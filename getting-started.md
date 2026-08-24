@@ -112,7 +112,8 @@ agent.invoke("Continue our previous discussion.")
 ```
 
 `load` is the hydration boundary. While that Agent instance is live, the
-instance and its active `AgentExecutionActivation` own the current logical state.
+Agent owns its current AgentRoot/Journal view and Runtime EventLoop owns active
+Agent execution state as the single live-state writer.
 Phronomy persists snapshots at defined durability boundaries but does not reload
 mutable Agent/Execution/Journal state before every LLM or Tool step. A conflicting
 external durable write is surfaced as `Persistence::ConflictError` rather than
@@ -200,8 +201,9 @@ end
 ```
 
 From an EventLoop callback, use `approve_async` rather than blocking EventLoop.
-Approval resume continues the same live Agent instance, Activation, and
-AgentInvocation; it is not an Agent reload boundary.
+Approval resume continues the same live Agent instance and AgentInvocation;
+Runtime resolves that process-local owner through EventLoop rather than through a
+shared Activation object. It is not an Agent reload boundary.
 
 ## Workflow basics
 

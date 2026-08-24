@@ -8,7 +8,9 @@ the bounded `OffloadPool`.
 
 For the design rationale, see [ADR-010](decisions/010-cooperative-first-concurrency.md).
 Durable-state ownership is defined by
-[ADR-014](decisions/014-unified-persistence-durable-state.md).
+[ADR-014](decisions/014-unified-persistence-durable-state.md), with live Agent
+Runtime ownership refined by
+[ADR-024](decisions/024-event-loop-single-writer-agent-runtime.md).
 Canonical Workflow instance identity is defined by
 [ADR-020](decisions/020-canonical-workflow-instance-identity.md).
 Concrete FSMSession incarnation identity and session-local Runtime routing are
@@ -19,17 +21,18 @@ defined by [ADR-023](decisions/023-fsm-session-incarnation-identity-and-routing.
 ```text
 Runtime
 ├─ EventLoop (one control-plane operating-system Thread)
-│  └─ FSMSession
-│     ├─ Agent
-│     ├─ Workflow
-│     ├─ ToolInvocation
-│     └─ MultiAgent fan-out
-├─ process-local Agent ActivationRegistry
+│  ├─ FSMSession
+│  │  ├─ Agent
+│  │  ├─ Workflow
+│  │  ├─ ToolInvocation
+│  │  └─ MultiAgent fan-out
+│  └─ Agent execution directory
+│     └─ execution_id -> immutable live-state record
 ├─ OffloadPool (bounded operating-system Threads)
 │  ├─ private Operation records
 │  ├─ blocking input/output (I/O)
 │  ├─ central-processing-unit (CPU)-bound synchronous work
-│  └─ other long synchronous work
+│  └─ operation-specific durable Agent/Workflow work
 ├─ named OffloadPools
 └─ EventLoop-driven timers
 
@@ -48,12 +51,22 @@ A live Agent or Workflow owns its current logical state. `Persistence` is the
 last committed durable representation and recovery source; it is not reloaded at
 every semantic boundary.
 
-For Agents, the live owner consists of the Agent instance plus its current
-`AgentRoot`, hydrated Journal view, and `AgentExecutionActivation`. Mutable
-Agent/Execution/Journal state is not automatically reloaded before every LLM or
-Tool step. Durable writes use optimistic revision/position guardrails; an
-external writer that advances the durable base causes `Persistence::ConflictError`
-rather than automatic reload or merge.
+For active Agents, **EventLoop is the single writer of Phronomy-managed live
+execution state**. EventLoop owns a process-local execution directory keyed by
+canonical `execution_id`. Each directory value is immutable and is replaced on
+EventLoop when the current AgentExecution, RuntimeProjection, AgentInvocation, or
+owning FSMSession changes. The former mutex-protected
+`AgentExecutionActivation` / `ActivationRegistry` model is removed.
+
+`AgentInvocation` is the FSM-local mutable context and holds uncommitted Provider
+outcomes, Tool/runtime events, active Provider-call provenance, and callback
+failure state. These fields are advanced only by EventLoop-driven FSMSession
+handling; workers do not receive AgentInvocation as a mutable state authority.
+
+Mutable Agent/Execution/Journal state is not automatically reloaded before every
+LLM or Tool step. Durable writes use optimistic revision/position guardrails; an
+external writer that advances the durable base causes
+`Persistence::ConflictError` rather than automatic reload or merge.
 
 For Workflows, the current `WorkflowContext` and FSMSession own the active
 logical state. A durable Workflow hydrates once at invocation/resume and saves at
@@ -61,6 +74,86 @@ the halted/terminal boundary.
 
 Content-addressed `Persistence#contents` values are immutable. Fetching a known
 content reference is value materialization rather than mutable state refresh.
+
+## EventLoop single-writer and Offload result application
+
+Persistence repositories are synchronous, so durable work must remain off the
+EventLoop thread. The ownership rule is therefore not "run everything on
+EventLoop". It is:
+
+```text
+EventLoop
+  capture operation-specific immutable state
+      ↓
+OffloadPool
+  blocking I/O / CPU / operation-local calculation
+  durable commit
+      ↓ operation-specific result
+EventLoop
+  validate current authority
+  apply committed result to live state
+```
+
+Agent initial preparation, follow-up Manifest preparation, approval resume, and
+terminal commit use distinct command/result values. An Offload worker may commit
+Persistence but does not update the live Agent root, Journal view, current
+AgentExecution, RuntimeProjection, AgentInvocation runtime queues, or EventLoop
+execution directory.
+
+Completion callbacks are lightweight bridges that enqueue the result back to the
+EventLoop. If EventLoop no longer accepts the result, the callback does not fall
+back to direct live mutation.
+
+## Provider Call result authority
+
+Provider Call identity is purpose-specific semantic provenance. EventLoop
+allocates `llm_call_id` before transport begins and binds it to the Manifest used
+for that call.
+
+Provider completion and streaming chunks return through the owning FSMSession's
+EventSink and carry the `llm_call_id`. A result is applicable only when:
+
+- it still targets the current FSMSession incarnation;
+- the FSM is in the state that accepts that result; and
+- the AgentInvocation still owns the same active `llm_call_id`.
+
+A callback to an old FSMSession incarnation is dropped by session-local routing.
+A result with a stale `llm_call_id` is consumed without advancing the current
+FSM. Phronomy does not add a generic generation/correlation token as another
+result authority.
+
+Tool operations follow the same ownership direction. `tool_invocation_id` is the
+semantic Tool-operation identity, while FSMSession ID is Runtime routing identity.
+Tool authorization captures Agent identity and Tool description data as values on
+EventLoop before offload. The authorization worker receives no live Agent, Tool, or
+ToolInvocation reference. Application-owned approval/facts/requirement callables
+are explicitly classified behavior handles and receive a value-only
+`ApprovalEvaluationRequest`.
+
+Hash, Array, and String authorization command data is recursively copied/frozen.
+Phronomy-managed live domain objects are rejected from that value data. A complete
+value-type/serialization contract for arbitrary Application-owned opaque objects is
+deferred; such objects remain Application-owned and must be worker-safe.
+
+Worker authorization/execution outcomes return as values carrying
+`tool_invocation_id`; the Tool FSMSession consumes a mismatched semantic result
+without advancing its current state.
+
+## Approval suspension and live owner lookup
+
+Approval suspension retains the same process-local Agent and AgentInvocation but
+has no active owning FSMSession until resume. EventLoop retains the suspended
+execution entry.
+
+`Agent::Base.live_for_execution(execution_id)` resolves a read-only Runtime owner
+view and returns the existing Agent instance. `agent.approve_async(...)` routes to
+the same live coordinator. Neither operation reloads a replacement Agent or
+Execution from Persistence.
+
+A resume performs its durable approval transition through OffloadPool, applies
+the result on EventLoop, and then builds a **fresh** FSMSession incarnation.
+If the process-local owner no longer exists, durable continuation reconstruction
+is not implied; `ExecutionRehydrationRequiredError` is raised.
 
 ## Workflow identities and durable admission
 
@@ -86,16 +179,17 @@ workflow_instance_id -> owner_fsm_session_id
 ```
 
 `owner_fsm_session_id` above remains the current transitional Runtime
-implementation. It is not a Workflow domain identity. CG-03b/ACS-10 now obtains
-that value through a single-use FSMSession-owned identity reservation rather than
+implementation. It is not a Workflow domain identity. CG-03b/ACS-10 obtains that
+value through a single-use FSMSession-owned identity reservation rather than
 arbitrary caller/domain ID injection. Separating Workflow admission ownership
 from the future concrete FSMSession is ACS-13 and remains intentionally pending.
 
-The owner is acquired before `workflow_states.load(workflow_instance_id)` and remains held
-until the halted/terminal `workflow_states.save(...)` completes. The admission map
-is process-local. Cross-process duplicate execution requires application-level
-distributed coordination; optimistic revisions detect stale terminal commits but
-do not prevent duplicate side effects before that conflict is detected.
+The owner is acquired before `workflow_states.load(workflow_instance_id)` and
+remains held until the halted/terminal `workflow_states.save(...)` completes.
+The admission map is process-local. Cross-process duplicate execution requires
+application-level distributed coordination; optimistic revisions detect stale
+terminal commits but do not prevent duplicate side effects before that conflict
+is detected.
 
 ## Tool execution modes
 
@@ -142,8 +236,7 @@ waiting at the same time.
 `Persistence` repositories expose synchronous operations. Framework lifecycle
 code must not perform potentially blocking durable reads/writes on EventLoop.
 Agent preparation/commit and Workflow hydrate/save operations are submitted to
-`OffloadPool`; completion continues through Task callbacks or explicit EventLoop
-events.
+`OffloadPool`; completion continues through explicit EventLoop events.
 
 A durable barrier may pause one logical lifecycle without blocking EventLoop.
 Persistence does not implement async repository variants and must not depend on
@@ -184,8 +277,9 @@ abandonment state.
 `Task#on_complete` registers an independent notification callback. Callback
 execution thread is not guaranteed. A callback may be delivered by an OffloadPool
 worker, a timer/cancellation caller, an EventLoop-related control path, or the
-thread that registers after settlement. Callbacks must be thread-safe and should
-complete quickly.
+thread that registers after settlement. Callbacks must therefore be thread-safe
+and should complete quickly. Framework lifecycle code normally converts worker
+completion into an explicit EventLoop event before applying live state.
 
 `Task#map` is application-level composition. A transformation exception settles
 the mapped Task as failed.
@@ -310,6 +404,10 @@ shutdown contract.
 Workflow durable admission participates in EventLoop idleness: a Workflow whose
 FSMSession has ended but whose durable save is still in flight remains owned until
 that save completes and owner-aware admission is released.
+
+Suspended Agent execution owner entries are process-local continuation state and
+do not by themselves keep Runtime shutdown waiting. Runtime/process loss does not
+imply durable Agent continuation reconstruction.
 
 `Phronomy.reset_runtime!` exists primarily for test isolation and performs a real
 Runtime shutdown before resetting configuration.
