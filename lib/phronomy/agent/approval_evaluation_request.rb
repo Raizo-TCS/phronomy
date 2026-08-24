@@ -2,17 +2,25 @@
 
 module Phronomy
   module Agent
-    # Immutable input passed to Tool approval policy callables.
+    # Value-oriented input passed to Tool approval policy callables.
     #
     # This object intentionally contains the internal, validated arguments used
-    # for policy evaluation. It must not be exposed directly to Application UI.
+    # for policy evaluation. It carries Agent identity metadata and Tool
+    # description data only; it never exposes live Agent or Tool objects.
+    #
+    # Hash, Array, and String values are recursively copied/frozen. Other
+    # application-owned opaque values remain application-owned; complete
+    # value-type enforcement for those objects is outside ACS-11.
+    #
+    # This object must not be exposed directly to Application UI.
     # Use {ToolApprovalRequest} for notifications.
     #
     # @api public
     class ApprovalEvaluationRequest
-      attr_reader :agent,
+      attr_reader :agent_id,
+        :agent_definition_id,
+        :agent_definition_version,
         :execution_id,
-        :tool,
         :tool_name,
         :tool_schema,
         :tool_invocation_id,
@@ -27,9 +35,10 @@ module Phronomy
       VALID_DECISIONS = %i[allow require_approval reject].freeze
 
       def initialize(
-        agent:,
+        agent_id:,
+        agent_definition_id:,
+        agent_definition_version:,
         execution_id:,
-        tool:,
         tool_name:,
         tool_schema:,
         tool_invocation_id:,
@@ -41,13 +50,21 @@ module Phronomy
         metadata: {},
         default_decision: nil
       )
+        if agent_id.nil? || agent_id.to_s.empty?
+          raise ArgumentError, "ApprovalEvaluationRequest requires agent_id"
+        end
+        if agent_definition_id.nil? || agent_definition_id.to_s.empty?
+          raise ArgumentError,
+            "ApprovalEvaluationRequest requires agent_definition_id"
+        end
         if execution_id.nil? || execution_id.to_s.empty?
           raise ArgumentError, "ApprovalEvaluationRequest requires execution_id"
         end
 
-        @agent = agent
+        @agent_id = agent_id.to_s.freeze
+        @agent_definition_id = agent_definition_id.to_s.freeze
+        @agent_definition_version = Integer(agent_definition_version)
         @execution_id = execution_id.to_s.freeze
-        @tool = tool
         @tool_name = tool_name.to_s.freeze
         @tool_schema = immutable_copy(tool_schema)
         @tool_invocation_id = tool_invocation_id.to_s.freeze
@@ -65,9 +82,10 @@ module Phronomy
       # @api private
       def with(facts: @facts, default_decision: @default_decision)
         self.class.new(
-          agent: @agent,
+          agent_id: @agent_id,
+          agent_definition_id: @agent_definition_id,
+          agent_definition_version: @agent_definition_version,
           execution_id: @execution_id,
-          tool: @tool,
           tool_name: @tool_name,
           tool_schema: @tool_schema,
           tool_invocation_id: @tool_invocation_id,
@@ -94,11 +112,7 @@ module Phronomy
         when String
           value.dup.freeze
         else
-          begin
-            value.frozen? ? value : value.dup.freeze
-          rescue TypeError
-            value
-          end
+          value
         end
       end
     end

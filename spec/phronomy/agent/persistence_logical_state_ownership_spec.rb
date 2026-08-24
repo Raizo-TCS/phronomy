@@ -3,12 +3,6 @@
 require "spec_helper"
 
 RSpec.describe "Agent logical-state ownership" do
-  FakeOutcome = Struct.new(:content, :tool_calls, :usage, :metadata) do
-    def content_present?
-      !content.nil?
-    end
-  end
-
   let(:persistence) { Phronomy::Persistence::InMemory.new }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
@@ -20,7 +14,7 @@ RSpec.describe "Agent logical-state ownership" do
     end
   end
   let(:agent) { agent_class.new(persistence: persistence) }
-  let(:coordinator) { Phronomy::Agent::ExecutionCoordinator.new(agent) }
+  let(:root) { File.expand_path("../../..", __dir__) }
 
   after do
     Phronomy.reset_runtime!
@@ -45,168 +39,73 @@ RSpec.describe "Agent logical-state ownership" do
     }).to include("known fact")
   end
 
-  it "prepares initial and follow-up Manifests without mutable repository reload" do
-    # Materialize the Agent-local view before installing the no-reload guards.
-    agent
-
-    expect(persistence.agents).not_to receive(:load)
-    expect(persistence.executions).not_to receive(:load)
-    expect(persistence.journals).not_to receive(:read)
-
-    prepared = coordinator.send(
-      :prepare,
-      "hello",
-      config: {}
-    )
-    activation = Phronomy::Agent::AgentExecutionActivation.new(
-      execution: prepared.execution,
-      agent: agent,
-      runtime_projection: prepared.runtime_projection,
-      coordinator: coordinator
-    )
-    activation.invocation = double("AgentInvocation", config: {})
-
-    activation.begin_llm_call(prepared.runtime_projection)
-    activation.record_llm_result(
-      response: FakeOutcome.new(
-        "first answer",
-        [],
-        {},
-        {"model_id" => "local-model"}
-      ),
-      error: nil,
-      streaming: false
+  it "keeps mutable Agent repository reload out of ExecutionCoordinator" do
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
 
-    projection = coordinator.prepare_next_llm_call(activation)
-    contents = projection.messages.map(&:content)
-    expect(contents).to include("hello")
-    expect(contents).to include("first answer")
+    expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
+    expect(coordinator).not_to match(/(?:tx|persistence)\.executions\.load/)
+    expect(coordinator).not_to match(/(?:tx|persistence)\.journals\.read/)
   end
 
-  it "acknowledges only facts captured by the committed snapshot" do
-    prepared = coordinator.send(
-      :prepare,
-      "hello",
-      config: {}
+  it "uses the local Agent watermark before fixing a follow-up Manifest" do
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
-    activation = Phronomy::Agent::AgentExecutionActivation.new(
-      execution: prepared.execution,
-      agent: agent,
-      runtime_projection: prepared.runtime_projection,
-      coordinator: coordinator
-    )
+    followup = coordinator
+      .split("def perform_followup_preparation", 2)
+      .fetch(1)
+      .split("def apply_followup_preparation_on_event_loop", 2)
+      .first
 
-    first = Phronomy::Agent::StreamEvent.new(
-      type: :diagnostic_a,
-      payload: {value: "A"}
-    )
-    later = Phronomy::Agent::StreamEvent.new(
-      type: :diagnostic_b,
-      payload: {value: "B"}
-    )
-    activation.record_event(first)
-    snapshot = activation.runtime_snapshot
-    activation.record_event(later)
-
-    activation.acknowledge_runtime_snapshot(snapshot)
-
-    remaining = activation.runtime_snapshot.fetch(:runtime_events)
-    expect(remaining).to eq([later])
+    expect(followup.index("assert_local_durable_base!")).to be <
+      followup.index("ContextAssembler.new")
+    expect(followup.index("ContextAssembler.new")).to be <
+      followup.index("tx.executions.save")
   end
 
-  it "keeps facts appended while a Persistence write is in flight" do
-    prepared = coordinator.send(
-      :prepare,
-      "hello",
-      config: {}
-    )
-    activation = Phronomy::Agent::AgentExecutionActivation.new(
-      execution: prepared.execution,
-      agent: agent,
-      runtime_projection: prepared.runtime_projection,
-      coordinator: coordinator
-    )
-    activation.invocation = double("AgentInvocation", config: {})
-    activation.begin_llm_call(prepared.runtime_projection)
-    activation.record_llm_result(
-      response: FakeOutcome.new(
-        "first answer",
-        [],
-        {},
-        {"model_id" => "local-model"}
-      ),
-      error: nil,
-      streaming: false
+  it "applies committed AgentRoot and Journal advances only through the EventLoop apply helper" do
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
 
-    save_entered = Queue.new
-    allow_save = Queue.new
-    original_save = persistence.executions.method(:save)
-    allow(persistence.executions).to receive(:save) do |*args, **kwargs|
-      save_entered << true
-      allow_save.pop
-      original_save.call(*args, **kwargs)
+    mutation_sites = coordinator.lines.each_index.filter_map do |index|
+      line = coordinator.lines[index]
+      next unless line.include?("__replace_root") || line.include?("_append_journal_records")
+      [index + 1, line]
     end
 
-    worker = Thread.new { coordinator.prepare_next_llm_call(activation) }
-    save_entered.pop
-
-    later = Phronomy::Agent::StreamEvent.new(
-      type: :diagnostic_after_snapshot,
-      payload: {value: "later"}
-    )
-    activation.record_event(later)
-    allow_save << true
-    worker.value
-
-    expect(
-      activation.runtime_snapshot.fetch(:runtime_events)
-    ).to eq([later])
+    expect(mutation_sites.length).to eq(2)
+    apply_section = coordinator
+      .split("def apply_agent_live_state", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+    expect(apply_section).to include("_append_journal_records")
+    expect(apply_section).to include("__replace_root")
   end
-  it "rejects an external Agent revision advance before the next Manifest is fixed" do
-    prepared = coordinator.send(
-      :prepare,
-      "hello",
-      config: {}
-    )
-    activation = Phronomy::Agent::AgentExecutionActivation.new(
-      execution: prepared.execution,
+
+  it "keeps uncommitted Provider and runtime facts in the EventLoop-owned AgentInvocation" do
+    invocation = Phronomy::Agent::AgentInvocation.new(
       agent: agent,
-      runtime_projection: prepared.runtime_projection,
-      coordinator: coordinator
+      input: "hello",
+      config: {execution_id: "execution-local"},
+      execution_id: "execution-local"
     )
-    activation.invocation = double("AgentInvocation", config: {})
-    activation.begin_llm_call(prepared.runtime_projection)
-    activation.record_llm_result(
-      response: FakeOutcome.new(
-        "first answer",
-        [],
-        {},
-        {"model_id" => "local-model"}
-      ),
-      error: nil,
+    projection = Struct.new(:manifest_ref).new("sha256:manifest")
+    invocation.begin_llm_call!(projection, llm_call_id: "llm-1")
+    current = Phronomy::Agent::LLMOperationResult.new(
+      llm_call_id: "llm-1",
+      error: Phronomy::Error.new("provider failure"),
       streaming: false
     )
-
-    durable_root = persistence.agents.load(agent.agent_id)
-    external_root = durable_root.with(
-      agent_revision: durable_root.agent_revision + 1,
-      context_revision: durable_root.context_revision + 1
-    )
-    persistence.agents.save(
-      agent.agent_id,
-      expected_revision: durable_root.agent_revision,
-      root: external_root
+    invocation.handle_fsm_event(
+      Phronomy::Event.new(type: :llm_failed, target_id: "fsm-1", payload: current)
     )
 
-    local_execution = activation.execution
-    expect {
-      coordinator.prepare_next_llm_call(activation)
-    }.to raise_error(Phronomy::Persistence::ConflictError, /agent revision conflict/)
-
-    expect(activation.execution).to be(local_execution)
-    expect(activation.runtime_snapshot.fetch(:llm_results)).not_to be_empty
-    expect(agent.agent_root.agent_revision).to eq(durable_root.agent_revision)
+    snapshot = invocation.runtime_snapshot
+    expect(snapshot.fetch(:llm_results).fetch(0).fetch(:llm_call_id)).to eq("llm-1")
+    expect(snapshot.fetch(:active_call)).to be_nil
   end
 end

@@ -57,10 +57,12 @@ module Phronomy
     end
 
     # Application policy input for one Tool authorization decision.
+    # This is a value-only worker-boundary contract: no live Agent or Tool object.
     class ApprovalEvaluationRequest
-      attr_reader agent: Base
+      attr_reader agent_id: String
+      attr_reader agent_definition_id: String
+      attr_reader agent_definition_version: Integer
       attr_reader execution_id: String
-      attr_reader tool: untyped
       attr_reader tool_name: String
       attr_reader tool_schema: Hash[untyped, untyped]
       attr_reader tool_invocation_id: String
@@ -72,7 +74,7 @@ module Phronomy
       attr_reader metadata: Hash[untyped, untyped]
       attr_reader default_decision: Symbol?
 
-      def initialize: (agent: Base, execution_id: String, tool: untyped, tool_name: String, tool_schema: Hash[untyped, untyped], tool_invocation_id: String, tool_call_id: String?, arguments: Hash[untyped, untyped], ?facts: Hash[untyped, untyped], ?invocation_context: Hash[untyped, untyped], ?origin: Symbol, ?metadata: Hash[untyped, untyped], ?default_decision: Symbol?) -> void
+      def initialize: (agent_id: String, agent_definition_id: String, agent_definition_version: Integer, execution_id: String, tool_name: String, tool_schema: Hash[untyped, untyped], tool_invocation_id: String, tool_call_id: String?, arguments: Hash[untyped, untyped], ?facts: Hash[untyped, untyped], ?invocation_context: Hash[untyped, untyped], ?origin: Symbol, ?metadata: Hash[untyped, untyped], ?default_decision: Symbol?) -> void
     end
 
     class Base

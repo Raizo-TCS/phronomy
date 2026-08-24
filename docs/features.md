@@ -20,7 +20,7 @@ for production deployments.
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
 | **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, and conversation context | Stable |
 | **Tool authoring façade** — `Phronomy::Tool::Base` is the public authoring name for the existing Capability base class; the legacy namespace remains compatible | Beta |
-| **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by the active instance/session between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
+| **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by Runtime/session authority between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
 | **LLMAdapter SPI** — `Phronomy::LLMAdapter::Base#complete` / `#stream` define the Beta call-adapter extension boundary; Phronomy owns async/offload wrapping | Beta |
 | **Before-Large-Language-Model (LLM) Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
 | **Context Management** — Journal + Context Policy + per-LLM-call Manifest with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies | Stable |
@@ -40,7 +40,6 @@ rather than implicitly inheriting the parent revision. The Stable
 `before_llm_input` context exposes the semantic revision as
 `agent_definition_version`.
 
-
 ## Knowledge and integration
 
 | Feature | Stability |
@@ -57,7 +56,8 @@ rather than implicitly inheriting the parent revision. The Stable
 
 | Feature | Stability |
 |---|---|
-| **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions | Beta |
+| **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions; single writer for Phronomy-managed live Agent execution state | Beta |
+| **Agent execution result authority** — Session-local routing plus current FSM state and purpose-specific semantic IDs (`llm_call_id`, `tool_invocation_id`) reject stale async results | Beta |
 | **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from load through terminal save; admission-owner representation remains Runtime-internal and is reconciled separately | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
 | **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
@@ -82,8 +82,8 @@ rather than implicitly inheriting the parent revision. The Stable
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **SharedState** — Peer-agent shared-state coordination | Experimental |
-| **Human-in-the-loop approval** — Suspension and approval/resume of Tool requests on the same live Agent/Activation owner | Beta |
-| **`tool_approval_policy`** — Application-defined allow/approve/reject policy | Beta |
+| **Human-in-the-loop approval** — Suspension and approval/resume on the same process-local live Agent owner and AgentInvocation, with a fresh FSMSession incarnation on resume | Beta |
+| **`tool_approval_policy`** — Application-defined allow/approve/reject policy using a value-only `ApprovalEvaluationRequest` without live Agent/Tool references | Beta |
 
 For Handoff, Application `HandoffPolicy` controls what may cross the Source/Target
 boundary. Transferred Handoff Context is immutable request-scoped material rather
@@ -115,7 +115,7 @@ extension contracts are deliberate exceptions to the ordinary
 application-facing interpretation of `@api public`: they are compatibility
 contracts for implementers. Extension implementations must not depend on Runtime
 private execution objects such as EventLoop/FSMSession/OffloadPool operation
-records.
+records or EventLoop Agent execution entries.
 
 `Phronomy::StateStore` is no longer a public backend abstraction. Workflow
 durability is provided through `Phronomy::Persistence#workflow_states`; see the

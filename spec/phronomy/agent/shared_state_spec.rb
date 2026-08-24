@@ -87,6 +87,11 @@ RSpec.describe Phronomy::Agent::SharedState do
         expect(klass._coordination).to eq("Custom team protocol.")
       end
 
+      it "returns the value when called without arguments (getter mode)" do
+        klass = Class.new(described_class) { coordination "team protocol" }
+        expect(klass.coordination).to eq("team protocol")
+      end
+
       it "returns nil when not configured" do
         klass = Class.new(described_class)
         expect(klass._coordination).to be_nil
@@ -99,6 +104,11 @@ RSpec.describe Phronomy::Agent::SharedState do
         expect(klass._max_cycles).to eq(5)
       end
 
+      it "returns the value when called without arguments (getter mode)" do
+        klass = Class.new(described_class) { max_cycles 3 }
+        expect(klass.max_cycles).to eq(3)
+      end
+
       it "returns nil when not configured" do
         klass = Class.new(described_class)
         expect(klass._max_cycles).to be_nil
@@ -109,6 +119,11 @@ RSpec.describe Phronomy::Agent::SharedState do
       it "stores and reads back the timeout seconds" do
         klass = Class.new(described_class) { timeout 30 }
         expect(klass._timeout).to eq(30)
+      end
+
+      it "returns the value when called without arguments (getter mode)" do
+        klass = Class.new(described_class) { timeout 10 }
+        expect(klass.timeout).to eq(10.0)
       end
 
       it "returns nil when not configured" do
@@ -125,6 +140,13 @@ RSpec.describe Phronomy::Agent::SharedState do
         expect(klass._terminate_when).to eq(blk)
       end
 
+      it "returns the block when called without arguments (getter mode)" do
+        blk = ->(store) { store.size >= 5 }
+        klass = Class.new(described_class)
+        klass.terminate_when(&blk)
+        expect(klass.terminate_when).to eq(blk)
+      end
+
       it "returns nil when not configured" do
         klass = Class.new(described_class)
         expect(klass._terminate_when).to be_nil
@@ -137,6 +159,13 @@ RSpec.describe Phronomy::Agent::SharedState do
         klass = Class.new(described_class)
         klass.aggregate(&blk)
         expect(klass._aggregator).to eq(blk)
+      end
+
+      it "returns the block when called without arguments (getter mode)" do
+        blk = ->(store) { store.read_all }
+        klass = Class.new(described_class)
+        klass.aggregate(&blk)
+        expect(klass.aggregate).to eq(blk)
       end
 
       it "returns nil when not configured" do

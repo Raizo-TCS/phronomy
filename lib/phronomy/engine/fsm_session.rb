@@ -9,10 +9,6 @@ module Phronomy
   # FSMSession owns FSM execution only; it does not own external Task handles,
   # activity tokens, callback correlation, or domain-specific stale-event policy.
   class FSMSession
-    # Runtime-only reservation used when infrastructure must allocate the future
-    # concrete FSMSession identity before the session object can be constructed.
-    # Workflow uses this only to preserve its current pre-load admission ordering
-    # until ACS-13 separates admission ownership from FSMSession identity.
     class IdentityReservation
       attr_reader :fsm_session_id
 
@@ -33,8 +29,6 @@ module Phronomy
     end
     private_constant :IdentityReservation
 
-    # Runtime-only event target bound to exactly one concrete FSMSession
-    # incarnation. Rebuilt sessions receive different sinks and IDs.
     class EventSink
       attr_reader :fsm_session_id
 
@@ -69,6 +63,14 @@ module Phronomy
     FINISH = WorkflowRunner::FINISH
 
     attr_reader :id, :context, :event_sink
+
+    # Returns the live current state. During an active FSM transition the
+    # tracker phase is authoritative; @current_state lags until fire_and_advance!
+    # returns.
+    def current_state
+      return @tracker.phase.to_sym if @tracker
+      @current_state
+    end
 
     # @api private
     def self.reserve_identity
@@ -348,8 +350,6 @@ module Phronomy
 
       return true if tracker.public_send(event_name)
 
-      # A declared external event whose guards all reject is a valid no-op.
-      # Applications use this to reject stale or unrelated correlated events.
       return false if has_external_event_from?(from_state, event_name)
 
       raise ArgumentError,

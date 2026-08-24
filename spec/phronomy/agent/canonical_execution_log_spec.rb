@@ -28,12 +28,11 @@ RSpec.describe "Canonical Complete Execution Log capture" do
       end
     end
     chat = fake_chat_class.new(assistant)
-    invocation = Struct.new(:current_llm_call_id).new("llm-1")
 
     Phronomy::Agent::AgentInvocationSessionBuilder.send(
       :install_tool_interceptors,
       chat,
-      invocation
+      llm_call_id: "llm-1"
     )
 
     expect { chat.trigger(call_a) }
@@ -48,26 +47,31 @@ RSpec.describe "Canonical Complete Execution Log capture" do
   end
 
   it "continues canonical event recording after the Application listener fails" do
-    execution = Struct.new(:execution_id).new("exec-1")
-    projection = Struct.new(:manifest_ref, :manifest).new("manifest-1", Object.new)
     listener_calls = 0
-    activation = Phronomy::Agent::AgentExecutionActivation.new(
-      execution: execution,
+    invocation = Phronomy::Agent::AgentInvocation.new(
       agent: Object.new,
-      runtime_projection: projection,
-      coordinator: Object.new,
-      application_listener: ->(_event) {
+      input: "input",
+      config: {execution_id: "exec-1"},
+      execution_id: "exec-1",
+      event_listener: ->(_event) {
         listener_calls += 1
         raise "callback failed"
       }
     )
 
-    activation.record_event(Phronomy::Agent::StreamEvent.new(type: :tool_call, payload: {}))
-    activation.record_event(Phronomy::Agent::StreamEvent.new(type: :tool_result, payload: {}))
+    invocation.send(
+      :deliver_event,
+      Phronomy::Agent::StreamEvent.new(type: :tool_call, payload: {})
+    )
+    invocation.send(
+      :deliver_event,
+      Phronomy::Agent::StreamEvent.new(type: :tool_result, payload: {})
+    )
 
     expect(listener_calls).to eq(1)
-    expect(activation.runtime_snapshot.fetch(:runtime_events).map(&:type))
+    expect(invocation.runtime_snapshot.fetch(:runtime_events).map(&:type))
       .to eq(%i[tool_call tool_result])
+    expect(invocation.callback_failure).not_to be_nil
   end
 
   it "records the exact Tool-role message separately from the raw Tool result" do
@@ -75,7 +79,8 @@ RSpec.describe "Canonical Complete Execution Log capture" do
     invocation = Phronomy::Agent::AgentInvocation.new(
       agent: Object.new,
       input: "input",
-      config: {},
+      config: {execution_id: "exec-1"},
+      execution_id: "exec-1",
       event_listener: ->(event) { events << event }
     )
     chat = Class.new do

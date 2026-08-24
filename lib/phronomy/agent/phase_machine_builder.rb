@@ -76,6 +76,8 @@ module Phronomy
 
             event :llm_completed do
               transition calling_llm: :failed,
+                if: ->(machine) { machine.context&.callback_failed? }
+              transition calling_llm: :failed,
                 if: ->(machine) { machine.context&.handoff_failed? }
               transition calling_llm: :handed_off,
                 if: ->(machine) { machine.context&.handoff_requested? }
@@ -85,6 +87,10 @@ module Phronomy
             end
 
             event :llm_failed do
+              transition calling_llm: :failed
+            end
+
+            event :llm_setup_failed do
               transition calling_llm: :failed
             end
 

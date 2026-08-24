@@ -458,16 +458,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
   end
 
-  describe "ActivationRegistry" do
-    it "raises on duplicate execution_id registration" do
-      registry = Phronomy::Agent::ActivationRegistry.new
-      activation = double("Activation", execution_id: "exec-1")
-      registry.register(activation)
-      expect { registry.register(activation) }
-        .to raise_error(ArgumentError, /already registered/)
-    end
-  end
-
   describe "ContextSelectionUnit" do
     it "raises on unknown constraint type" do
       expect {

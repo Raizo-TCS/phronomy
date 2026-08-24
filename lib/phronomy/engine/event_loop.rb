@@ -4,7 +4,8 @@ module Phronomy
   # Runtime-owned FIFO event loop for FSMSession instances.
   #
   # EventLoop owns the framework's sole control-plane OS thread. All session
-  # lifecycle progression happens by short event dispatches on this thread.
+  # lifecycle progression and Phronomy-managed live execution-state mutation
+  # happens by short event dispatches on this thread.
   class EventLoop
     SYSTEM_CHANNEL_ID = "__event_loop__"
 
@@ -16,7 +17,27 @@ module Phronomy
 
     STOP = Object.new.freeze
     WAKE = Object.new.freeze
-    private_constant :STOP, :WAKE
+    UNSET = Object.new.freeze
+    private_constant :STOP, :WAKE, :UNSET
+
+    # Immutable EventLoop-owned value. The map containing these records is the
+    # mutable authority; records are replaced rather than mutated in place.
+    AgentExecutionState = Data.define(
+      :execution_id,
+      :agent,
+      :coordinator,
+      :execution,
+      :runtime_projection,
+      :base_manifest,
+      :invocation,
+      :fsm_session_id
+    )
+    private_constant :AgentExecutionState
+
+    # Read-only process-local lookup view used by approval/live-owner APIs.
+    # It intentionally exposes no mutable execution, invocation, or projection.
+    AgentExecutionOwner = Data.define(:execution_id, :agent, :coordinator, :status)
+    private_constant :AgentExecutionOwner
 
     def initialize(runtime:)
       @runtime = runtime
@@ -30,6 +51,7 @@ module Phronomy
       @waiting = {}
       @admitted_fsm_session_ids = Set.new
       @workflow_admissions = {}
+      @agent_executions = {}
 
       @lifecycle_mutex = Mutex.new
       @idle_cond = ConditionVariable.new
@@ -153,6 +175,108 @@ module Phronomy
       true
     end
 
+    # Process-local read-only owner lookup. Mutable Agent execution state never
+    # crosses this boundary; external callers receive only routing/ownership data.
+    def agent_execution_owner(execution_id)
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        state = @agent_executions[key]
+        next nil unless state
+
+        AgentExecutionOwner.new(
+          execution_id: key.freeze,
+          agent: state.agent,
+          coordinator: state.coordinator,
+          status: state.execution.status
+        )
+      end
+    end
+
+    # EventLoop-only accessors below form the live Agent execution authority.
+    # Offload workers receive operation-specific immutable snapshots instead.
+    # @api private
+    def agent_execution_state(execution_id)
+      assert_event_loop_thread!
+      @agent_executions[execution_id.to_s]
+    end
+
+    # @api private
+    def install_agent_execution(
+      execution_id:,
+      agent:,
+      coordinator:,
+      execution:,
+      runtime_projection:,
+      base_manifest:,
+      invocation:,
+      fsm_session_id:
+    )
+      assert_event_loop_thread!
+      key = execution_id.to_s
+      state = AgentExecutionState.new(
+        execution_id: key.freeze,
+        agent: agent,
+        coordinator: coordinator,
+        execution: execution,
+        runtime_projection: runtime_projection,
+        base_manifest: base_manifest,
+        invocation: invocation,
+        fsm_session_id: fsm_session_id&.to_s&.freeze
+      )
+      @lifecycle_mutex.synchronize do
+        if @agent_executions.key?(key)
+          raise Phronomy::Error, "Agent execution #{key.inspect} is already live"
+        end
+        @agent_executions[key] = state
+      end
+      state
+    end
+
+    # @api private
+    def replace_agent_execution(
+      execution_id,
+      execution: UNSET,
+      runtime_projection: UNSET,
+      invocation: UNSET,
+      fsm_session_id: UNSET
+    )
+      assert_event_loop_thread!
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        current = @agent_executions.fetch(key) do
+          raise Phronomy::Error, "Agent execution #{key.inspect} is not live"
+        end
+        updated = AgentExecutionState.new(
+          execution_id: current.execution_id,
+          agent: current.agent,
+          coordinator: current.coordinator,
+          execution: execution.equal?(UNSET) ? current.execution : execution,
+          runtime_projection: runtime_projection.equal?(UNSET) ?
+            current.runtime_projection : runtime_projection,
+          base_manifest: current.base_manifest,
+          invocation: invocation.equal?(UNSET) ? current.invocation : invocation,
+          fsm_session_id: fsm_session_id.equal?(UNSET) ?
+            current.fsm_session_id : fsm_session_id&.to_s&.freeze
+        )
+        @agent_executions[key] = updated
+        updated
+      end
+    end
+
+    # @api private
+    def release_agent_execution(execution_id)
+      assert_event_loop_thread!
+      @lifecycle_mutex.synchronize do
+        @agent_executions.delete(execution_id.to_s)
+      end
+    end
+
+    # @api private
+    def fsm_session_state(fsm_session_id)
+      assert_event_loop_thread!
+      @fsms[fsm_session_id.to_s]&.current_state
+    end
+
     # Reserves one logical Workflow instance for one concrete FSMSession execution.
     # workflow_instance_id is durable Workflow identity; owner_fsm_session_id is the
     # Runtime-only identity of the invocation/resume that currently owns it.
@@ -175,9 +299,6 @@ module Phronomy
       true
     end
 
-    # Releases a Workflow reservation only when the caller is its current owner.
-    # A failed competing admission can therefore never release another session's
-    # reservation during cleanup.
     def release_workflow(workflow_instance_id, owner_fsm_session_id:)
       key = workflow_instance_id.to_s
       owner = owner_fsm_session_id.to_s
@@ -194,8 +315,6 @@ module Phronomy
       @lifecycle_mutex.synchronize { @workflow_admissions[workflow_instance_id.to_s] }
     end
 
-    # Resolves durable Workflow identity to the currently owning FSMSession and
-    # enqueues the event atomically with that ownership check.
     def post_to_workflow(workflow_instance_id:, event:, payload: nil)
       queued_depth = nil
       posted_event = nil
@@ -220,7 +339,6 @@ module Phronomy
       true
     end
 
-    # Interrupts the queue wait so EventLoop can recompute the next timer deadline.
     def wake
       @queue.push(WAKE)
       true
@@ -262,8 +380,6 @@ module Phronomy
       end
     end
 
-    # Sends STOP to the queue and joins the EventLoop thread.
-    # Assumes sessions have already been drained before this call.
     def stop_and_join(deadline:)
       @shutdown_mutex.synchronize do
         return @shutdown_status if @shutdown_status
@@ -288,7 +404,6 @@ module Phronomy
       end
     end
 
-    # Legacy entry point kept for any callers that pass deadline:/cancel_grace:.
     def shutdown(deadline:, cancel_grace: deadline)
       stop_and_join(deadline: deadline)
     end
@@ -297,7 +412,6 @@ module Phronomy
       @thread&.alive? || false
     end
 
-    # Compatibility for existing runtime/shutdown observers during migration.
     alias_method :task_alive?, :thread_alive?
 
     private
@@ -355,9 +469,6 @@ module Phronomy
         fsm_session_id = event.payload.fetch(:fsm_session_id)
         session = @fsms.delete(fsm_session_id)
         waiter = @waiting.delete(fsm_session_id)
-        # decrement before waking caller so wait_until_idle sees the control-plane
-        # session count immediately; Workflow durable admission may intentionally
-        # keep Runtime non-idle until its terminal save completes.
         decrement_outstanding if session
         complete_waiter(waiter, event.payload.fetch(:result))
       when :start
@@ -366,7 +477,9 @@ module Phronomy
         @fsms[session.id] = session
         @waiting[session.id] = waiter if waiter
         session.start
-      when :agent_terminal_ready
+      when :agent_control, :agent_terminal_ready
+        # :agent_terminal_ready is retained as an internal migration-compatible
+        # dispatch name; ACS-11 emits the operation-neutral :agent_control event.
         cmd = event.payload.fetch(:command)
         cmd.coordinator.deliver_on_event_loop(cmd)
       when :workflow_persistence_ready
@@ -409,6 +522,7 @@ module Phronomy
       @lifecycle_mutex.synchronize do
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
+        @agent_executions.clear
         @outstanding_sessions = 0
         @idle_cond.broadcast
       end
@@ -429,6 +543,7 @@ module Phronomy
         @state = :failed
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
+        @agent_executions.clear
         @idle_cond.broadcast
       end
       cleanup_abandoned_work(error)
@@ -443,6 +558,13 @@ module Phronomy
       return if accepting_events?
       raise Phronomy::RuntimeShutdownError,
         "EventLoop is #{@state}; new sessions are not accepted"
+    end
+
+    def assert_event_loop_thread!
+      return if current?
+
+      raise Phronomy::Error,
+        "Phronomy-managed live execution state may only be mutated on EventLoop"
     end
 
     def decrement_outstanding
@@ -469,6 +591,7 @@ module Phronomy
         @state = :terminated
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
+        @agent_executions.clear
         @thread = nil unless @thread&.alive?
         @idle_cond.broadcast
       end

@@ -62,7 +62,6 @@ module Phronomy
       @pool_registry = Phronomy::Concurrency::PoolRegistry.new(
         timer_queue_provider: -> { timer_queue }
       )
-      @agent_activations = Phronomy::Agent::ActivationRegistry.new
       @multi_agent_admissions = Phronomy::MultiAgent::AdmissionRegistry.new
       @lifecycle_mutex = Mutex.new
       @shutdown_mutex = Mutex.new
@@ -100,8 +99,12 @@ module Phronomy
       @timer_service.timer_queue
     end
 
-    def __agent_activations
-      @agent_activations
+    # Returns only an immutable process-local routing/ownership view. Mutable
+    # execution state remains inside EventLoop and is never exposed to callers.
+    # @api private
+    def __agent_execution_owner(execution_id)
+      loop_instance = @lifecycle_mutex.synchronize { @event_loop }
+      loop_instance&.agent_execution_owner(execution_id)
     end
 
     # @api private

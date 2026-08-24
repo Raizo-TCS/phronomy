@@ -14,48 +14,116 @@ Persistence
 └─ workflow_states
 ```
 
-Runtime-only state is deliberately outside Persistence. In particular,
-`AgentExecutionActivation` instances are process-local continuation state and are
-owned by the Runtime activation registry.
+Runtime-only state is deliberately outside Persistence. Active Agent execution
+state is process-local and owned by the Runtime EventLoop. The former
+`AgentExecutionActivation` / `ActivationRegistry` representation is not part of
+the current architecture.
 
 ## Agent ownership
 
 After an Agent is created or loaded, the live Agent instance owns its current
-logical state. Persistence is the durable representation of that state; it is not
-reloaded before every Large Language Model (LLM) or Tool boundary.
+logical root and Journal view. During active execution, EventLoop is the single
+writer of Phronomy-managed live execution state.
 
-The live state consists of:
+The current live shape is:
 
 ```text
 Agent instance
 ├─ current AgentRoot
-├─ hydrated Journal view
-└─ AgentExecutionActivation
+└─ hydrated Journal view
+
+Runtime EventLoop
+└─ execution_id -> immutable AgentExecutionState
    ├─ current AgentExecution
+   ├─ current RuntimeProjection / base Manifest
    ├─ AgentInvocation
-   └─ uncommitted Runtime facts
+   └─ current owning fsm_session_id
 ```
 
-A successful commit advances both the durable revision and the corresponding
-local owner state. A conflicting external write raises
-`Phronomy::Persistence::ConflictError`; Phronomy does not silently reload or
-merge external state into a live Agent.
+`AgentInvocation` is the FSM-local context and owns the mutable uncommitted
+Provider/Tool/runtime facts needed by that execution. It is advanced by EventLoop
+FSM handling, not by an Offload worker.
+
+A successful Persistence operation advances durable state first and returns an
+operation-specific result. EventLoop validates that result against the current
+Runtime authority and then advances the corresponding local state. A conflicting
+external write raises `Phronomy::Persistence::ConflictError`; Phronomy does not
+silently reload or merge external state into a live Agent.
 
 At next-LLM durable barriers, `Persistence#assert_agent_watermark!` checks the
-Agent revision and Journal position owned by the live instance. The check returns
-no replacement state; it is only a conflict precondition.
+Agent revision and Journal position captured from the live instance. The check
+returns no replacement state; it is only a conflict precondition.
 
 Content objects are content-addressed and immutable. Dereferencing a content
 reference is therefore not a mutable-state reload.
 
+## Agent Persistence I/O and live apply
+
+Persistence remains synchronous and potentially blocking. Agent durable work is
+therefore split into explicit phases:
+
+```text
+EventLoop live snapshot
+  -> OffloadPool operation-specific command
+  -> Persistence transaction / materialization
+  -> operation-specific immutable result
+  -> EventLoop authority validation
+  -> EventLoop live apply
+```
+
+Current Agent operation families include initial preparation, follow-up Manifest
+preparation, approval-resume commit, and terminal commit.
+
+Offload workers do not directly update:
+
+- the live AgentRoot;
+- the live Journal projection;
+- EventLoop Agent execution entries;
+- current AgentExecution / RuntimeProjection;
+- AgentInvocation runtime fact queues.
+
+Tool authorization applies the same ownership boundary. EventLoop captures Agent
+identity, Tool description data, immutable container data, and explicitly
+classified Application-owned authorization callables before submission. The
+authorization worker receives no live Agent, Tool, or ToolInvocation reference,
+and `ApprovalEvaluationRequest` is value-only.
+
+## Provider result authority
+
+One Provider Call receives an `llm_call_id` on EventLoop before transport begins.
+Completion and streaming chunks return through the owning FSMSession EventSink
+and carry the same semantic ID.
+
+A Provider result is applicable only to the current FSMSession/FSM state and the
+currently active `llm_call_id`. Old FSMSession callbacks are dropped by Runtime
+routing; a stale Provider semantic ID is consumed without advancing the current
+FSM.
+
+`execution_id`, `fsm_session_id`, and `llm_call_id` therefore have separate roles:
+
+```text
+execution_id
+  logical AgentExecution parent
+
+fsm_session_id
+  one Runtime FSMSession incarnation / routing target
+
+llm_call_id
+  one Provider Call semantic provenance identity
+```
+
+No generic session/generation/correlation ID is introduced to replace these
+purpose-specific identities.
+
 ## Approval suspension and resume
 
-Approval suspension does not transfer ownership. The same Agent instance,
-Activation, and AgentInvocation remain live while approval is pending.
+Approval suspension does not transfer process-local Agent ownership. The same
+Agent instance and AgentInvocation remain live, while the suspended EventLoop
+execution entry temporarily has no owning FSMSession.
 
 Instance-level `agent.approve(...)` / `agent.approve_async(...)` resume that live
-Activation. If an application has only an `execution_id`, it first resolves the
-process-local live owner with:
+owner. If an application has only an `execution_id`, it first resolves the
+process-local owner with:
 
 ```ruby
 agent = Phronomy::Agent::Base.live_for_execution(execution_id)
@@ -67,12 +135,11 @@ or, when the expected Agent class is known:
 agent = MyAgent.live_for_execution(execution_id)
 ```
 
-The lookup resolves `execution_id -> Runtime ActivationRegistry -> Activation ->
-activation.agent`. It does not load a new Agent or Execution from Persistence.
-Calling through a concrete Agent class additionally verifies the live owner is an
-instance of that class.
+The lookup resolves `execution_id -> Runtime/EventLoop owner view -> Agent`. It
+does not expose AgentInvocation/current execution mutable internals and does not
+load a new Agent or Execution from Persistence.
 
-If no live Activation exists, durable continuation reconstruction is not yet
+If no live owner exists, durable continuation reconstruction is not yet
 implemented and `ExecutionRehydrationRequiredError` is raised.
 
 `execution_id` is a routing identity, not an authorization token. Applications
@@ -151,13 +218,19 @@ those processes, but they do not prevent duplicate execution from starting and
 cannot undo external side effects already performed before a revision conflict is
 observed.
 
+Opaque Workflow admission ownership remains ACS-13 work and is intentionally not
+redefined by ACS-11.
+
 ## EventLoop and Persistence
 
 Persistence remains a synchronous repository abstraction. Operations that may
 block must not run on the Runtime EventLoop thread. Framework-owned Workflow
-loads/saves and Agent durable preparation/commit operations are submitted to the
-bounded OffloadPool, and their completions return to the EventLoop through
-explicit events or completion handles.
+loads/saves and Agent durable operations are submitted to bounded OffloadPool
+workers.
+
+For Agent execution, worker completion returns to EventLoop before Phronomy live
+state is advanced. For Workflow, lifecycle ordering continues through its
+existing explicit persistence-result EventLoop path.
 
 Logical waiting is represented by FSM state plus a later EventLoop event. No
 OffloadPool worker is consumed merely to wait for another Phronomy lifecycle.
@@ -178,14 +251,15 @@ rolled back by the same Monitor-owned transaction.
 The following are not persisted as Workflow or Agent durable state:
 
 - FSMSession objects and `fsm_session_id` values;
-- Runtime activation registry entries;
+- EventLoop Agent execution-directory entries;
+- AgentInvocation objects and active Provider-operation state;
 - Runtime Workflow admission entries;
 - `Task` instances and callbacks;
 - EventLoop queue contents;
 - in-flight provider operations.
 
-Process-loss recovery of an in-flight Agent Activation requires an explicit
-future rehydration design rather than serializing Runtime objects. Cross-process
+Process-loss recovery of an in-flight Agent execution requires the separate
+ACS-15 rehydration design rather than serializing Runtime objects. Cross-process
 exclusive Workflow execution likewise requires a separate distributed
 lease/fencing design; optimistic revisions alone are commit-conflict detection,
 not distributed execution locking.

@@ -31,15 +31,19 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(offenders).to be_empty
   end
 
-  it "keeps transient ActivationRegistry out of the Persistence contract" do
+  it "keeps transient Agent execution state out of the Persistence contract" do
     persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
     in_memory = File.read(File.join(root, "lib/phronomy/persistence/in_memory.rb"))
     runtime = File.read(File.join(root, "lib/phronomy/engine/runtime.rb"))
+    event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
 
     expect(persistence).to include("workflow_states")
     expect(persistence).not_to include("activations")
     expect(in_memory).not_to include("@activations")
-    expect(runtime).to include("@agent_activations")
+    expect(runtime).not_to include("@agent_activations")
+    expect(runtime).not_to include("__agent_activations")
+    expect(event_loop).to include("@agent_executions = {}")
+    expect(event_loop).to include("def agent_execution_owner")
   end
 
   it "keeps Agent durable ownership and live owner lookup semantics in Base" do
@@ -62,12 +66,12 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     lookup = class_api
       .split("def live_for_execution", 2)
       .fetch(1)
-      .split("\n        end\n      end\n", 2)  # def close + class<<self close
+      .split("\n        end\n      end\n", 2)
       .first
 
     expect(class_api).to include("def live_for_execution")
     expect(class_api).not_to match(/\bdef approve(?:_async)?\b/)
-    expect(lookup).to include("Phronomy::Runtime.instance.__agent_activations.fetch")
+    expect(lookup).to include("Phronomy::Runtime.instance.__agent_execution_owner")
     expect(lookup).not_to include("persistence.executions.load")
     expect(lookup).not_to include("persistence.agents.load")
     expect(base).to include("records: _journal_records_snapshot")
@@ -101,9 +105,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     followup = coordinator
-      .split("def prepare_next_llm_call", 2)
+      .split("def perform_followup_preparation", 2)
       .fetch(1)
-      .split("def prepare(", 2)
+      .split("def apply_followup_preparation_on_event_loop", 2)
       .first
 
     expect(followup.index("assert_local_durable_base!")).to be <
@@ -112,18 +116,43 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       followup.index("tx.executions.save")
   end
 
-  it "starts a follow-up Provider Call only after preparation succeeds" do
-    builder = File.read(
-      File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb")
+  it "starts a follow-up Provider Call only after EventLoop validates and applies preparation" do
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
-    method_source = builder
-      .split("def self.prepare_and_start_llm_call", 2)
+    apply = coordinator
+      .split("def apply_followup_preparation_on_event_loop", 2)
       .fetch(1)
-      .split("private_class_method :prepare_and_start_llm_call", 2)
+      .split("def begin_resume_on_event_loop", 2)
       .first
 
-    expect(method_source).to include("preparation.on_complete")
-    expect(method_source).to match(/if error.*post_preparation_failure.*else.*start_provider_call/m)
+    expect(apply.index("authoritative_state_for_operation")).to be <
+      apply.index("replace_agent_execution")
+    expect(apply.index("replace_agent_execution")).to be <
+      apply.index("start_prepared_provider_call")
+  end
+
+  it "keeps durable worker paths free of direct Phronomy live-state mutation" do
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+    )
+    worker_methods = %w[
+      perform_initial_preparation
+      perform_followup_preparation
+      perform_resume_commit
+      compute_terminal
+      commit_suspended
+      commit_completed
+      commit_failed_outcome
+    ]
+
+    worker_methods.each do |name|
+      body = coordinator.split("def #{name}", 2).fetch(1).split(/^      def /, 2).first
+      expect(body).not_to include("__replace_root")
+      expect(body).not_to include("_append_journal_records")
+      expect(body).not_to include("replace_agent_execution")
+      expect(body).not_to include("acknowledge_runtime_snapshot")
+    end
   end
 
   it "keeps Workflow Runtime identity distinct while deferring admission-owner separation to ACS-13" do
