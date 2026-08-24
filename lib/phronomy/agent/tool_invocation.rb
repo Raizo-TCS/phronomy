@@ -208,6 +208,7 @@ module Phronomy
           cancellation_token: @config[:cancellation_token],
           on_full: :raise
         ) { evaluator.send(:evaluate_authorization_command, command) }
+        runtime.event_loop.supervise_agent_operation(@execution_id, operation)
         operation.on_complete do |outcome, error|
           callback.call(
             error ? evaluator.send(:authorization_failure_result, tool_invocation_id, error) : outcome
@@ -240,6 +241,7 @@ module Phronomy
             raise Phronomy::ToolError,
               "Tool #{@tool.class.name}#call_async must return a completion handle"
           end
+          runtime.event_loop.supervise_agent_operation(@execution_id, operation)
 
           evaluator = self.class
           tool_invocation_id = @id.to_s.freeze

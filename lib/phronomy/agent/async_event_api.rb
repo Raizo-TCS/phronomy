@@ -7,6 +7,7 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
+        on_tool_approval_required: nil,
         on_event: nil,
         &block
       )
@@ -17,6 +18,7 @@ module Phronomy
           result = invoke_async(
             input,
             config: config,
+            on_tool_approval_required: on_tool_approval_required,
             on_event: listener
           ).wait_result
           [result, result[:usage]]

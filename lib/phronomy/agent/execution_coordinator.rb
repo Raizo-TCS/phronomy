@@ -73,6 +73,10 @@ module Phronomy
       TerminalCommitReady = Data.define(
         :coordinator, :operation, :delivery, :outcome, :error
       )
+      DeferredTerminalCommand = Data.define(
+        :coordinator, :execution_id, :result_task, :invocation,
+        :source_error, :fsm_session_id
+      )
 
       def initialize(agent)
         @agent = agent
@@ -205,6 +209,8 @@ module Phronomy
           apply_resume_commit_on_event_loop(command)
         when TerminalCommitReady
           apply_terminal_commit_on_event_loop(command)
+        when DeferredTerminalCommand
+          resume_deferred_terminal_on_event_loop(command)
         else
           raise Phronomy::Error, "unknown Agent control command: #{command.class}"
         end
@@ -646,6 +652,10 @@ module Phronomy
           invocation: session.context,
           fsm_session_id: session.id
         )
+        event_loop.register_agent_completion_waiter(
+          prepared.execution.execution_id,
+          request.result_task
+        )
         source_task = Phronomy::Task.deferred(name: "#{request.result_task.name}-source")
         source_task.on_complete do |invocation, error|
           finish_on_event_loop(
@@ -973,6 +983,10 @@ module Phronomy
           operation.execution_id,
           execution: ready.result.execution
         )
+        event_loop.register_agent_completion_waiter(
+          operation.execution_id,
+          request.result_task
+        )
         start_resume_on_event_loop(
           operation.execution_id,
           request.result_task,
@@ -1074,6 +1088,29 @@ module Phronomy
           )
         end
 
+        terminal_error = error || invocation&.error
+        unless event_loop.agent_execution_quiescent?(execution_id)
+          wait_state = quiescence_sensitive_terminal_error?(terminal_error) ?
+            :cancelling : :terminalizing
+          event_loop.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: execution_id,
+            state: wait_state
+          )
+          event_loop.defer_agent_terminal_until_quiescent(
+            execution_id,
+            DeferredTerminalCommand.new(
+              coordinator: self,
+              execution_id: execution_id.to_s.freeze,
+              result_task: result_task,
+              invocation: invocation,
+              source_error: error,
+              fsm_session_id: fsm_session_id.to_s.freeze
+            )
+          )
+          return
+        end
+
         begin_terminal_commit_on_event_loop(
           state,
           result_task,
@@ -1081,6 +1118,37 @@ module Phronomy
           error,
           fsm_session_id: fsm_session_id
         )
+      end
+
+      def resume_deferred_terminal_on_event_loop(command)
+        event_loop = Phronomy::Runtime.instance.event_loop
+        state = event_loop.agent_execution_state(command.execution_id)
+        unless state && state.agent.equal?(@agent) &&
+            state.fsm_session_id.to_s == command.fsm_session_id.to_s &&
+            state.invocation.equal?(command.invocation)
+          Phronomy.configuration.logger&.warn(
+            "[Phronomy] Dropped stale deferred terminal for #{command.execution_id}"
+          )
+          return
+        end
+
+        unless event_loop.agent_execution_quiescent?(command.execution_id)
+          raise Phronomy::Error,
+            "deferred terminal resumed before quiescence for #{command.execution_id}"
+        end
+
+        begin_terminal_commit_on_event_loop(
+          state,
+          command.result_task,
+          command.invocation,
+          command.source_error,
+          fsm_session_id: command.fsm_session_id
+        )
+      end
+
+      def quiescence_sensitive_terminal_error?(error)
+        error.is_a?(Phronomy::CancellationError) ||
+          error.is_a?(Phronomy::TimeoutError)
       end
 
       def begin_terminal_commit_on_event_loop(
@@ -1163,6 +1231,10 @@ module Phronomy
           state: :terminalizing
         )
         terminal_transition_started = true
+        event_loop.register_agent_completion_waiter(
+          operation.execution_id,
+          delivery.result_task
+        )
         task = runtime.offload.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. Task/listener delivery state stays outside it.
@@ -1186,7 +1258,10 @@ module Phronomy
             execution_id: operation.execution_id,
             state: :recovery_required
           )
-          fail_task(delivery.result_task, translated(error))
+          Phronomy.configuration.logger&.warn(
+            "[Phronomy] Agent terminal transition requires recovery for " \
+            "#{operation.execution_id}: #{error.class}: #{error.message}"
+          )
           return
         end
 
@@ -1492,42 +1567,23 @@ module Phronomy
           unless state && state.agent.equal?(@agent) &&
               state.execution.execution_revision == operation.expected_execution_revision &&
               state.fsm_session_id.to_s == operation.fsm_session_id.to_s
-            fail_task(
-              delivery.result_task,
-              Phronomy::Error.new("stale terminal result for #{operation.execution_id}")
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] Dropped stale Agent terminal result for #{operation.execution_id}"
             )
             return
           end
         end
 
         if ready.error
-          admission_error = nil
-          begin
-            event_loop.mark_agent_execution_admission(
-              @agent.agent_id,
-              execution_id: operation.execution_id,
-              state: :recovery_required
-            )
-          rescue => error
-            # Losing the admission while a durable terminal outcome is unknown
-            # is an Runtime authority violation. Settle the caller with the
-            # original durable error, then fail EventLoop so no competing start
-            # can be accepted from an unproven lineage.
-            admission_error = error
-          end
-          callback_error = deliver_terminal(
-            delivery.application_listener,
-            :error,
-            error: translated(ready.error)
+          event_loop.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id,
+            state: :recovery_required
           )
-          settle_after_terminal(
-            delivery.result_task,
-            callback_error,
-            :error,
-            nil,
-            translated(ready.error)
+          Phronomy.configuration.logger&.warn(
+            "[Phronomy] Agent terminal durable outcome requires recovery for " \
+            "#{operation.execution_id}: #{ready.error.class}: #{ready.error.message}"
           )
-          raise admission_error if admission_error
           return
         end
 
@@ -1558,8 +1614,7 @@ module Phronomy
             :approval_required,
             request: outcome.approval_request
           )
-          settle_after_terminal(
-            delivery.result_task,
+          report_nonterminal_callback_error(
             callback_error,
             :approval_required,
             outcome.result
@@ -1571,11 +1626,9 @@ module Phronomy
             execution_id: operation.execution_id
           )
           callback_error = deliver_terminal(delivery.application_listener, :done, outcome.result)
-          settle_after_terminal(
-            delivery.result_task,
-            callback_error,
-            :done,
-            outcome.result
+          settle_execution_waiters(
+            event_loop, operation.execution_id, delivery.result_task,
+            callback_error, :done, outcome.result
           )
         when :handed_off
           event_loop.release_agent_execution(operation.execution_id) if state
@@ -1588,11 +1641,9 @@ module Phronomy
             _phronomy_handoff_manifest: delivery.handoff_manifest
           ).freeze
           callback_error = deliver_terminal(delivery.application_listener, :handoff, result)
-          settle_after_terminal(
-            delivery.result_task,
-            callback_error,
-            :handoff,
-            result
+          settle_execution_waiters(
+            event_loop, operation.execution_id, delivery.result_task,
+            callback_error, :handoff, result
           )
         when :failed
           event_loop.release_agent_execution(operation.execution_id) if state
@@ -1606,12 +1657,9 @@ module Phronomy
             type,
             error: outcome.error
           )
-          settle_after_terminal(
-            delivery.result_task,
-            callback_error,
-            type,
-            nil,
-            outcome.error
+          settle_execution_waiters(
+            event_loop, operation.execution_id, delivery.result_task,
+            callback_error, type, nil, outcome.error
           )
         else
           fail_task(
@@ -1923,6 +1971,33 @@ module Phronomy
         )
       end
 
+      def settle_execution_waiters(
+        event_loop, execution_id, fallback_task, callback_error, event_type,
+        result, execution_error = nil
+      )
+        waiters = event_loop.take_agent_completion_waiters(
+          execution_id,
+          fallback: fallback_task
+        )
+        waiters.each do |task|
+          settle_after_terminal(
+            task, callback_error, event_type, result, execution_error
+          )
+        end
+      end
+
+      def report_nonterminal_callback_error(callback_error, event_type, result)
+        return unless callback_error
+
+        @agent.send(
+          :_report_stream_callback_error,
+          callback_error,
+          event: StreamEvent.new(type: event_type, payload: result),
+          execution_id: result&.fetch(:execution_id, nil),
+          callback_error_policy: Phronomy.configuration.stream_callback_error_policy
+        )
+      end
+
       def settle_after_terminal(
         result_task,
         callback_error,
@@ -1954,8 +2029,15 @@ module Phronomy
             )
           end
         end
-        execution_error ?
-          fail_task(result_task, execution_error) : complete_task(result_task, result)
+        if execution_error
+          if execution_error.is_a?(Phronomy::CancellationError)
+            result_task.cancel!(execution_error)
+          else
+            fail_task(result_task, execution_error)
+          end
+        else
+          complete_task(result_task, result)
+        end
       end
 
       def terminal_event_type(error)

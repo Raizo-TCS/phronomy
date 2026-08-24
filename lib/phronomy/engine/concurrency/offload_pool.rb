@@ -65,7 +65,9 @@ module Phronomy
           @timeout = timeout
           @cancellation_token = cancellation_token
           @on_abandoned = on_abandoned
-          @task = Phronomy::Task.deferred(name: task_name)
+          @task = Phronomy::Concurrency::PhysicalCompletionTask.deferred(
+            name: task_name
+          )
           @settled = false
           @timed_out = false
           @cancelled = false
@@ -162,6 +164,7 @@ module Phronomy
           else
             @task.complete(nil)
           end
+          @task.mark_physical_complete!
           changed
         end
 
@@ -224,6 +227,7 @@ module Phronomy
 
           detach_submit_cancellation
           notify_abandoned if abandoned_now
+          @task.mark_physical_complete! unless abandoned_now
           if cancelled
             @task.cancel!(error)
           else
@@ -251,18 +255,26 @@ module Phronomy
 
         def complete_with_value!(value)
           changed = claim_terminal!
-          return false unless changed
+          unless changed
+            @task.mark_physical_complete!
+            return false
+          end
 
           detach_submit_cancellation
+          @task.mark_physical_complete!
           @task.complete(value)
           true
         end
 
         def complete_with_error!(error)
           changed = claim_terminal!
-          return false unless changed
+          unless changed
+            @task.mark_physical_complete!
+            return false
+          end
 
           detach_submit_cancellation
+          @task.mark_physical_complete!
           @task.fail(error)
           true
         end
@@ -580,6 +592,8 @@ module Phronomy
             @total_wait_ns += wait_ns
             @completed_count += 1
           end
+
+          operation.task.mark_physical_complete!
 
           if abandoned
             @logger&.warn do

@@ -332,6 +332,10 @@ module Phronomy
             chat, message, config: config
           )
         end
+        runtime.event_loop.supervise_agent_operation(
+          invocation.execution_id,
+          operation
+        )
         observe_manifest_call(
           operation,
           event_sink,

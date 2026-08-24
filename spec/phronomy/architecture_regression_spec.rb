@@ -73,7 +73,8 @@ RSpec.describe "EventLoop-first architecture regression guards" do
 
     expect(source).to include("class Operation")
     expect(source).to include("private_constant :Operation")
-    expect(source).to include("@task = Phronomy::Task.deferred")
+    # ACS-16 replaced Task.deferred with the private PhysicalCompletionTask subclass.
+    expect(source).to include("@task = Phronomy::Concurrency::PhysicalCompletionTask.deferred")
     expect(source).not_to include("class PendingOperation")
   end
 

@@ -980,10 +980,20 @@ module Phronomy
           if custom_async_call
             define_method(:call_async) do |args, **kwargs|
               source = super(args, **kwargs)
-              filtered = Phronomy::Task.deferred(name: "tool-filter-#{name}")
+              filtered = Phronomy::Concurrency::PhysicalCompletionTask.deferred(
+                name: "tool-filter-#{name}"
+              )
+              source_has_physical_signal = source.respond_to?(:on_physical_complete)
+              source.on_physical_complete { filtered.mark_physical_complete! } if
+                source_has_physical_signal
               source.on_complete do |value, error|
                 if error
-                  filtered.fail(error)
+                  filtered.mark_physical_complete! unless source_has_physical_signal
+                  if source.respond_to?(:status) && source.status == :cancelled
+                    filtered.cancel!(error)
+                  else
+                    filtered.fail(error)
+                  end
                   next
                 end
 
@@ -991,8 +1001,10 @@ module Phronomy
                   result = result_filters.inject(value) { |val, filter|
                     filter.call(val, tool_name: name, args: args)
                   }
+                  filtered.mark_physical_complete! unless source_has_physical_signal
                   filtered.complete(result)
                 rescue => filter_error
+                  filtered.mark_physical_complete! unless source_has_physical_signal
                   filtered.fail(filter_error)
                 end
               end

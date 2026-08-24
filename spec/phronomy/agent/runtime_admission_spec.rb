@@ -145,7 +145,9 @@ RSpec.describe "Agent Runtime admission" do
       .fetch(1)
       .split(/^    def /, 2)
       .first
-    expect(idle_helper).to include("%i[admitting executing resuming terminalizing]")
+    expect(idle_helper).to include(
+      "%i[admitting executing resuming cancelling terminalizing]"
+    )
     expect(idle_helper).not_to include("suspended recovery_required")
 
     resume = coordinator_source

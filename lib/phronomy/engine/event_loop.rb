@@ -69,6 +69,9 @@ module Phronomy
       @workflow_admissions = {}
       @agent_admissions = {}
       @agent_executions = {}
+      @agent_completion_waiters = Hash.new { |hash, key| hash[key] = [] }
+      @agent_inflight_work = Hash.new { |hash, key| hash[key] = {} }
+      @agent_deferred_terminals = {}
 
       @lifecycle_mutex = Mutex.new
       @idle_cond = ConditionVariable.new
@@ -253,7 +256,7 @@ module Phronomy
       key = agent_id.to_s
       execution_key = execution_id.to_s
       next_state = state.to_sym
-      unless %i[executing suspended resuming terminalizing recovery_required].include?(next_state)
+      unless %i[executing suspended resuming cancelling terminalizing recovery_required].include?(next_state)
         raise ArgumentError, "unsupported Agent admission state: #{next_state.inspect}"
       end
 
@@ -410,11 +413,139 @@ module Phronomy
       end
     end
 
+    # Registers a caller-facing Task that observes the authoritative terminal
+    # outcome of one logical Agent execution. Waiters are Runtime-only and are
+    # never persisted or rehydrated.
+    # @api private
+    def register_agent_completion_waiter(execution_id, task)
+      assert_event_loop_thread!
+      unless task.is_a?(Phronomy::Task)
+        raise ArgumentError, "Agent completion waiter must be a Phronomy::Task"
+      end
+
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        waiters = @agent_completion_waiters[key]
+        waiters << task unless waiters.include?(task)
+      end
+      task
+    end
+
+    # Atomically detaches all process-local completion waiters at authoritative
+    # terminal delivery. A fallback Task is included for pre-install terminal
+    # paths that never acquired a live execution directory entry.
+    # @api private
+    def take_agent_completion_waiters(execution_id, fallback: nil)
+      assert_event_loop_thread!
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        waiters = @agent_completion_waiters.delete(key) || []
+        waiters << fallback if fallback && !waiters.include?(fallback)
+        waiters
+      end
+    end
+
+    # Registers one execution-owned asynchronous operation for physical
+    # quiescence supervision. OffloadPool tasks expose a private physical
+    # completion signal; custom asynchronous handles are required to make their
+    # ordinary completion mean that no residual execution-affecting work remains.
+    # @api private
+    def supervise_agent_operation(execution_id, operation)
+      assert_event_loop_thread!
+      key = execution_id.to_s
+      unless operation.respond_to?(:on_complete)
+        raise ArgumentError, "supervised operation must expose on_complete"
+      end
+
+      physically_done = if operation.respond_to?(:physical_complete?)
+        operation.physical_complete?
+      elsif operation.respond_to?(:done?)
+        operation.done?
+      else
+        false
+      end
+      return operation if physically_done
+
+      token = Object.new.freeze
+      @lifecycle_mutex.synchronize do
+        unless @agent_executions.key?(key)
+          raise Phronomy::Error, "Agent execution #{key.inspect} is not live"
+        end
+        @agent_inflight_work[key][token] = true
+      end
+
+      callback = lambda do
+        accepted = post(
+          Phronomy::Event.new(
+            type: :agent_physical_work_completed,
+            target_id: SYSTEM_CHANNEL_ID,
+            payload: {execution_id: key, token: token}.freeze
+          )
+        )
+        unless accepted
+          Phronomy.configuration.logger&.warn(
+            "[Phronomy] EventLoop rejected physical-completion delivery for #{key}"
+          )
+        end
+      end
+
+      if operation.respond_to?(:on_physical_complete)
+        operation.on_physical_complete(&callback)
+      else
+        operation.on_complete { |_value, _error| callback.call }
+      end
+      operation
+    end
+
+    # @api private
+    def agent_execution_quiescent?(execution_id)
+      assert_event_loop_thread!
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        work = @agent_inflight_work.fetch(key, nil)
+        work.nil? || work.empty?
+      end
+    end
+
+    # Holds exactly one terminal continuation while cancellation/deadline has
+    # revoked result authority but execution-owned physical work is still live.
+    # @api private
+    def defer_agent_terminal_until_quiescent(execution_id, command)
+      assert_event_loop_thread!
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        if @agent_deferred_terminals.key?(key)
+          raise Phronomy::Error, "Agent execution #{key.inspect} already has a deferred terminal"
+        end
+        @agent_deferred_terminals[key] = command
+      end
+      true
+    end
+
+    # @api private
+    def agent_inflight_work_count(execution_id)
+      key = execution_id.to_s
+      @lifecycle_mutex.synchronize do
+        (@agent_inflight_work.fetch(key, nil) || {}).size
+      end
+    end
+
     # @api private
     def release_agent_execution(execution_id)
       assert_event_loop_thread!
+      key = execution_id.to_s
       @lifecycle_mutex.synchronize do
-        @agent_executions.delete(execution_id.to_s)
+        work = @agent_inflight_work.fetch(key, nil)
+        unless work.nil? || work.empty?
+          raise Phronomy::Error,
+            "cannot release non-quiescent Agent execution #{key.inspect}"
+        end
+        if @agent_deferred_terminals.key?(key)
+          raise Phronomy::Error,
+            "cannot release Agent execution #{key.inspect} with deferred terminal work"
+        end
+        @agent_inflight_work.delete(key)
+        @agent_executions.delete(key)
       end
     end
 
@@ -705,6 +836,8 @@ module Phronomy
         # dispatch name; ACS-11 emits the operation-neutral :agent_control event.
         cmd = event.payload.fetch(:command)
         cmd.coordinator.deliver_on_event_loop(cmd)
+      when :agent_physical_work_completed
+        complete_agent_physical_work(event.payload)
       when :workflow_control
         cmd = event.payload.fetch(:command)
         cmd.runner.deliver_on_event_loop(cmd)
@@ -721,6 +854,24 @@ module Phronomy
         TERMINAL_MANAGEMENT_EVENTS.include?(event.type) &&
         event.payload.is_a?(Hash) &&
         event.payload.key?(:fsm_session_id)
+    end
+
+    def complete_agent_physical_work(payload)
+      key = payload.fetch(:execution_id).to_s
+      token = payload.fetch(:token)
+      deferred = @lifecycle_mutex.synchronize do
+        work = @agent_inflight_work.fetch(key, nil)
+        next nil unless work&.delete(token)
+
+        if work.empty?
+          @agent_inflight_work.delete(key)
+          command = @agent_deferred_terminals.delete(key)
+          @idle_cond.broadcast if runtime_idle_locked?
+          command
+        end
+      end
+      deferred&.coordinator&.deliver_on_event_loop(deferred)
+      true
     end
 
     def mark_workflow_recovery_required_for_session(fsm_session_id)
@@ -765,6 +916,14 @@ module Phronomy
       @waiting.values.each { |waiter| complete_waiter(waiter, error) }
       @waiting.clear
       @fsms.clear
+      completion_waiters = @lifecycle_mutex.synchronize do
+        waiters = @agent_completion_waiters.values.flatten
+        @agent_completion_waiters.clear
+        @agent_inflight_work.clear
+        @agent_deferred_terminals.clear
+        waiters
+      end
+      completion_waiters.each { |waiter| complete_waiter(waiter, error) }
       @lifecycle_mutex.synchronize do
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
@@ -824,6 +983,8 @@ module Phronomy
 
     def runtime_idle_locked?
       @outstanding_sessions.zero? &&
+        @agent_inflight_work.values.all?(&:empty?) &&
+        @agent_deferred_terminals.empty? &&
         !workflow_admission_transition_in_progress_locked? &&
         !agent_admission_transition_in_progress_locked?
     end
@@ -836,7 +997,7 @@ module Phronomy
 
     def agent_admission_transition_in_progress_locked?
       @agent_admissions.values.any? do |admission|
-        %i[admitting executing resuming terminalizing].include?(admission.state)
+        %i[admitting executing resuming cancelling terminalizing].include?(admission.state)
       end
     end
 
@@ -849,7 +1010,11 @@ module Phronomy
     end
 
     def finalize_terminated(status)
-      @lifecycle_mutex.synchronize do
+      pending_waiters = @lifecycle_mutex.synchronize do
+        waiters = @agent_completion_waiters.values.flatten
+        @agent_completion_waiters.clear
+        @agent_inflight_work.clear
+        @agent_deferred_terminals.clear
         @state = :terminated
         @admitted_fsm_session_ids.clear
         @workflow_admissions.clear
@@ -857,6 +1022,14 @@ module Phronomy
         @agent_executions.clear
         @thread = nil unless @thread&.alive?
         @idle_cond.broadcast
+        waiters
+      end
+      if pending_waiters.any?
+        error = Phronomy::ExecutionRehydrationRequiredError.new(
+          "Runtime terminated while Agent execution remained nonterminal; " \
+          "process-local Task handles are not rehydrated"
+        )
+        pending_waiters.each { |waiter| complete_waiter(waiter, error) }
       end
       status
     end
