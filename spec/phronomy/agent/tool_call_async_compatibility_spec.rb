@@ -54,6 +54,9 @@ RSpec.describe "Tool#call_async compatibility" do
     tool = tool_class.new
     invocation = build_ready_invocation(tool: tool, arguments: {"value" => "ok"})
     runtime = instance_double(Phronomy::Runtime)
+    event_loop_dbl = instance_double(Phronomy::EventLoop)
+    allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
+    allow(event_loop_dbl).to receive(:supervise_agent_operation)
     operation = Phronomy::Task.deferred(name: "offloaded-tool")
     operation.complete("ok")
 
@@ -97,6 +100,9 @@ RSpec.describe "Tool#call_async compatibility" do
       config: {suffix: "custom"}
     )
     runtime = instance_double(Phronomy::Runtime)
+    event_loop_dbl = instance_double(Phronomy::EventLoop)
+    allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
+    allow(event_loop_dbl).to receive(:supervise_agent_operation)
 
     expect(Phronomy::Agent::ToolExecutor).not_to receive(:call_async)
 

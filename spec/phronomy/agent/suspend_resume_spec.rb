@@ -65,46 +65,79 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     nil
   end
 
-  describe "#invoke with an approval-required tool (no policy override)" do
+  describe "Execution-scoped Task suspension semantics" do
     let(:agent) { HITLAgent.new }
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
-    it "returns :suspended => true" do
-      expect(agent.invoke("run tool")[:suspended]).to be true
+    def invoke_and_capture_approval(agent)
+      approvals = Queue.new
+      events = Queue.new
+      task = agent.invoke_async(
+        "run tool",
+        on_tool_approval_required: ->(request) { approvals << request },
+        on_event: ->(event) { events << event }
+      )
+      [task, approvals.pop, events]
     end
 
-    it "returns :output => nil" do
-      expect(agent.invoke("run tool")[:output]).to be_nil
-    end
+    it "keeps the original Task pending while durable execution is suspended" do
+      task, request, = invoke_and_capture_approval(agent)
 
-    it "returns an :execution_id String" do
-      result = agent.invoke("run tool")
-      expect(result[:execution_id]).to be_a(String)
-      expect(result[:execution_id]).not_to be_empty
-    end
+      expect(task).to be_a(Phronomy::Task)
+      expect(task).not_to be_done
+      expect(request.execution_id).to be_a(String)
+      expect(request.execution_id).not_to be_empty
 
-    it "returns an approval request owned by the Agent execution" do
-      result = agent.invoke("run tool")
-      request = result.fetch(:approval_request)
-      expect(request.id).to be_a(String)
-      expect(request.execution_id).to eq(result.fetch(:execution_id))
-      expect(request).not_to respond_to(:agent_invocation_id)
-      expect(request.to_h).not_to have_key(:agent_invocation_id)
-
-      durable = agent.persistence.executions.load(result.fetch(:execution_id))
-      expect(durable.approval_request["execution_id"])
-        .to eq(result.fetch(:execution_id))
+      durable = agent.persistence.executions.load(request.execution_id)
+      expect(durable.status).to eq(:suspended)
+      expect(durable.approval_request["execution_id"]).to eq(request.execution_id)
       expect(durable.approval_request).not_to have_key("agent_invocation_id")
     end
 
-    it "has a suspended execution in persistence" do
-      agent.invoke("run tool")
-      expect(
-        agent.persistence.executions.list_active(agent.agent_id).any? { |e|
-          e.status == :suspended
-        }
-      ).to be true
+    it "delivers approval_required without settling the original Task" do
+      task, request, events = invoke_and_capture_approval(agent)
+      # :tool_call events are published before :approval_required; drain until found.
+      event = events.pop
+      event = events.pop until event.type == :approval_required
+
+      expect(event.payload.fetch(:request).id).to eq(request.id)
+      expect(task).not_to be_done
+    end
+
+    it "settles original and accepted approval Tasks with the same terminal result" do
+      task, request, = invoke_and_capture_approval(agent)
+      allow(tool_instance).to receive(:call).and_return("executed: hello")
+
+      approval_task = agent.approve_async(
+        request.execution_id,
+        approval_request_id: request.id
+      )
+
+      original_result = task.wait_result
+      approval_result = approval_task.wait_result
+      expect(original_result[:output]).to eq("Task complete.")
+      expect(approval_result[:output]).to eq("Task complete.")
+      expect(approval_result[:execution_id]).to eq(original_result[:execution_id])
+      expect(agent.persistence.executions.list_active(agent.agent_id)).to be_empty
+    end
+
+    it "keeps the original Task pending when a stale approval fails" do
+      task, request, = invoke_and_capture_approval(agent)
+
+      stale = agent.approve_async(
+        request.execution_id,
+        approval_request_id: "stale-request"
+      )
+      expect { stale.wait_result }.to raise_error(ArgumentError, /does not match/)
+      expect(task).not_to be_done
+
+      allow(tool_instance).to receive(:call).and_return("executed: hello")
+      agent.approve_async(
+        request.execution_id,
+        approval_request_id: request.id
+      ).wait_result
+      expect(task.wait_result[:output]).to eq("Task complete.")
     end
 
     it "does NOT suspend when tool_approval_policy returns :allow" do
@@ -116,7 +149,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     end
   end
 
-  describe "#approve (instance method)" do
+  describe "#invoke terminal-waiting HITL wrapper" do
     let(:agent) { HITLAgent.new }
     let(:chat_dbl) do
       build_hitl_chat(
@@ -124,32 +157,28 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
         final_response: "Tool ran."
       )
     end
-    before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
-
-    def invoke_and_get_ids
-      result = agent.invoke("run tool")
-      [result[:execution_id], result[:approval_request].id]
-    end
-
-    it "returns final output after approval" do
-      execution_id, request_id = invoke_and_get_ids
+    before do
+      allow(RubyLLM).to receive(:chat).and_return(chat_dbl)
       allow(tool_instance).to receive(:call).and_return("executed: hello")
-      expect(
-        agent.approve(execution_id, approval_request_id: request_id)[:output]
-      ).to eq("Tool ran.")
     end
 
-    it "execution is no longer active after approval" do
-      execution_id, request_id = invoke_and_get_ids
-      allow(tool_instance).to receive(:call).and_return("r")
-      agent.approve(execution_id, approval_request_id: request_id)
-      expect(agent.persistence.executions.list_active(agent.agent_id)).to be_empty
-    end
+    it "accepts on_tool_approval_required and waits through suspension" do
+      request_seen = Queue.new
+      result = agent.invoke(
+        "run tool",
+        on_tool_approval_required: ->(request) {
+          request_seen << request
+          agent.approve_async(
+            request.execution_id,
+            approval_request_id: request.id
+          )
+        }
+      )
 
-    it "raises ExecutionRehydrationRequiredError for an execution with no live execution owner" do
-      expect {
-        agent.approve("nonexistent-exec", approval_request_id: "none")
-      }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+      request = request_seen.pop
+      expect(request.execution_id).to eq(result[:execution_id])
+      expect(result[:output]).to eq("Tool ran.")
+      expect(result[:suspended]).to be_falsy
     end
   end
 
@@ -158,30 +187,23 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
-    def invoke_and_get_ids
-      result = agent.invoke("run tool")
-      [result[:execution_id], result[:approval_request].id]
-    end
+    it "returns :rejected => true without executing the tool" do
+      approvals = Queue.new
+      original = agent.invoke_async(
+        "run tool",
+        on_tool_approval_required: ->(request) { approvals << request }
+      )
+      request = approvals.pop
 
-    it "returns :rejected => true" do
-      execution_id, request_id = invoke_and_get_ids
-      expect(
-        agent.approve(
-          execution_id,
-          approval_request_id: request_id,
-          approved: false
-        )[:rejected]
-      ).to be true
-    end
-
-    it "does NOT call the tool when rejected" do
-      execution_id, request_id = invoke_and_get_ids
       expect(tool_instance).not_to receive(:call)
-      agent.approve(
-        execution_id,
-        approval_request_id: request_id,
+      approval = agent.approve_async(
+        request.execution_id,
+        approval_request_id: request.id,
         approved: false
       )
+
+      expect(approval.wait_result[:rejected]).to be true
+      expect(original.wait_result[:rejected]).to be true
     end
   end
 end

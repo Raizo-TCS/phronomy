@@ -6,33 +6,23 @@ require_relative "support/llm_stub"
 
 # Group 30: Approval Resume
 #
-# Pairwise factors:
-#   approval_suspension_mode x approval_decision x approval_tool_count
-#
-# Generated test cases: 4 (all feasible; no infeasible cases)
-#
-# LLM required: No (WebMock)
-#   All LLM interactions are stubbed via LLMStub.  No real LM Studio
-#   connection is required.
-#
-# Current approval identity contract:
-#   - result[:execution_id] is the canonical Agent execution identity
-#   - ToolApprovalRequest#execution_id is the same logical parent
-#   - agent.approve(execution_id, approval_request_id:, approved:) resumes it
-#   - tool_approval_policy decides authorization; notification is separate
+# ACS-16 / CG-06 contract:
+# - SUSPENDED is a nonterminal Agent execution state.
+# - The original invoke_async Task remains pending through suspension.
+# - approval-required notification carries execution_id/request id.
+# - An accepted approve_async Task is distinct but observes the same logical
+#   execution's terminal outcome.
+# - Invalid approval fails only that approval Task.
 
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
     LLMStub.deactivate
+    Phronomy.reset_runtime!
+  rescue
+    nil
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-001: no_policy / approved / single
-  #   Agent has one approval-required tool and no tool_approval_policy.
-  #   requires_approval default → :require_approval.
-  #   invoke suspends; approve with approved: true executes tool and returns output.
-  # ---------------------------------------------------------------------------
-  describe "TC-001: no_policy; approved; single approval tool" do
+  describe "no policy; approved; single approval tool" do
     let(:tool_class) { IntegrationFactors.approval_tool(result_value: "tool_result_001") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
     let(:agent) { agent_class.new }
@@ -44,171 +34,150 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       ])
     end
 
-    it "invoke returns :suspended => true" do
-      result = agent.invoke("Please use the approval tool")
-      expect(result[:suspended]).to be true
-    end
-
-    it "invoke returns an :execution_id String" do
-      result = agent.invoke("Please use the approval tool")
-      expect(result[:execution_id]).to be_a(String)
-      expect(result[:execution_id]).not_to be_empty
-    end
-
-    it "invoke returns an approval request bound to the execution" do
-      result = agent.invoke("Please use the approval tool")
-      request = result.fetch(:approval_request)
-      expect(request.id).to be_a(String)
-      expect(request.execution_id).to eq(result.fetch(:execution_id))
-      expect(request).not_to respond_to(:agent_invocation_id)
-    end
-
-    it "approve with approved: true returns output from the LLM" do
-      suspend_result = agent.invoke("Please use the approval tool")
-      resume_result = agent.approve(
-        suspend_result[:execution_id],
-        approval_request_id: suspend_result[:approval_request].id,
-        approved: true
+    it "keeps invoke_async pending while the execution is durably suspended" do
+      approvals = Queue.new
+      task = agent.invoke_async(
+        "Please use the approval tool",
+        on_tool_approval_required: ->(request) { approvals << request }
       )
-      expect(resume_result[:output]).to be_a(String)
-      expect(resume_result[:output]).not_to be_empty
+      request = approvals.pop
+
+      expect(task).not_to be_done
+      expect(request.execution_id).to be_a(String)
+      expect(request.execution_id).not_to be_empty
+      expect(agent.persistence.executions.load(request.execution_id).status)
+        .to eq(:suspended)
     end
 
-    it "approve_async returns a Task that resolves to the resumed output" do
-      suspend_result = agent.invoke("Please use the approval tool")
-      task = agent.approve_async(
-        suspend_result[:execution_id],
-        approval_request_id: suspend_result[:approval_request].id,
+    it "settles original and approval Tasks with the same terminal execution" do
+      approvals = Queue.new
+      original = agent.invoke_async(
+        "Please use the approval tool",
+        on_tool_approval_required: ->(request) { approvals << request }
+      )
+      request = approvals.pop
+
+      approval = agent.approve_async(
+        request.execution_id,
+        approval_request_id: request.id,
         approved: true
       )
 
-      expect(task).to be_a(Phronomy::Task)
-      resume_result = task.wait_result
-      expect(resume_result[:output]).to be_a(String)
-      expect(resume_result[:output]).not_to be_empty
+      expect(approval).not_to equal(original)
+      original_result = original.wait_result
+      approval_result = approval.wait_result
+      expect(original_result[:output]).to be_a(String)
+      expect(original_result[:output]).not_to be_empty
+      expect(approval_result[:output]).to eq(original_result[:output])
+      expect(approval_result[:execution_id]).to eq(original_result[:execution_id])
     end
 
-    it "approve with approved: true returns :suspended falsy" do
-      suspend_result = agent.invoke("Please use the approval tool")
-      resume_result = agent.approve(
-        suspend_result[:execution_id],
-        approval_request_id: suspend_result[:approval_request].id,
+    it "fails a stale approval without settling the original invocation Task" do
+      approvals = Queue.new
+      original = agent.invoke_async(
+        "Please use the approval tool",
+        on_tool_approval_required: ->(request) { approvals << request }
+      )
+      request = approvals.pop
+
+      stale = agent.approve_async(
+        request.execution_id,
+        approval_request_id: "stale",
         approved: true
       )
-      expect(resume_result[:suspended]).to be_falsy
+      expect { stale.wait_result }.to raise_error(ArgumentError, /does not match/)
+      expect(original).not_to be_done
+
+      agent.approve_async(
+        request.execution_id,
+        approval_request_id: request.id,
+        approved: true
+      ).wait_result
+      expect(original.wait_result[:output]).to be_a(String)
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-002: no_policy / denied / multiple
-  #   Agent has two approval-required tools and no policy.
-  #   invoke suspends on the first approval tool; approve with approved: false
-  #   rejects the tool and ends the invocation (rejected: true).
-  # ---------------------------------------------------------------------------
-  describe "TC-002: no_policy; denied; multiple approval tools" do
-    let(:tool_class_a) { IntegrationFactors.approval_tool(result_value: "first_tool_result") }
-    let(:tool_class_b) { IntegrationFactors.second_approval_tool(result_value: "second_tool_result") }
-    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class_a, tool_class_b) }
+  describe "no policy; denied" do
+    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "should_not_run") }
+    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
     let(:agent) { agent_class.new }
 
     before do
       @llm = LLMStub.activate(responses: [
-        LLMStub.tool_call_response("approval_required_tool", {query: "denied test"}),
-        "Understood, I will not execute the tool."
+        LLMStub.tool_call_response("approval_required_tool", {query: "deny it"})
       ])
     end
 
-    it "invoke suspends on the first approval tool" do
-      result = agent.invoke("Try the first tool")
-      expect(result[:suspended]).to be true
-      expect(result[:execution_id]).to be_a(String)
-    end
-
-    it "approve with approved: false returns :rejected => true" do
-      suspend_result = agent.invoke("Try the first tool")
-      resume_result = agent.approve(
-        suspend_result[:execution_id],
-        approval_request_id: suspend_result[:approval_request].id,
+    it "returns the same rejected terminal outcome to both Tasks" do
+      approvals = Queue.new
+      original = agent.invoke_async(
+        "Try the protected tool",
+        on_tool_approval_required: ->(request) { approvals << request }
+      )
+      request = approvals.pop
+      approval = agent.approve_async(
+        request.execution_id,
+        approval_request_id: request.id,
         approved: false
       )
-      expect(resume_result[:rejected]).to be true
-    end
 
-    it "approve with approved: false does NOT execute the approval tool" do
-      suspend_result = agent.invoke("Try the first tool")
-      result = agent.approve(
-        suspend_result[:execution_id],
-        approval_request_id: suspend_result[:approval_request].id,
-        approved: false
-      )
-      expect(result[:rejected]).to be true
+      expect(approval.wait_result[:rejected]).to be true
+      expect(original.wait_result[:rejected]).to be true
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-003: policy_allow / approved / multiple
-  #   Agent has two approval-required tools; tool_approval_policy returns :allow.
-  #   invoke should NOT suspend; tools execute without Human intervention;
-  #   agent returns a final text response.
-  # ---------------------------------------------------------------------------
-  describe "TC-003: policy_allow; approved; multiple approval tools" do
-    let(:tool_class_a) { IntegrationFactors.approval_tool(result_value: "approved_result_a") }
-    let(:tool_class_b) { IntegrationFactors.second_approval_tool(result_value: "approved_result_b") }
-    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class_a, tool_class_b) }
+  describe "policy allow" do
+    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "approved_result") }
+    let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
     let(:agent) { agent_class.new }
 
     before do
       agent.tool_approval_policy { :allow }
       @llm = LLMStub.activate(responses: [
-        LLMStub.tool_call_response("approval_required_tool", {query: "sync approval test"}),
+        LLMStub.tool_call_response("approval_required_tool", {query: "run it"}),
         "Done -- policy allowed the tool."
       ])
     end
 
-    it "invoke does NOT return :suspended" do
-      result = agent.invoke("Use the approval tool")
-      expect(result[:suspended]).to be_falsy
-    end
+    it "does not produce a suspension notification and completes normally" do
+      approvals = []
+      result = agent.invoke(
+        "Use the approval tool",
+        on_tool_approval_required: ->(request) { approvals << request }
+      )
 
-    it "invoke returns a non-nil text output" do
-      result = agent.invoke("Use the approval tool")
+      expect(approvals).to be_empty
       expect(result[:output]).to be_a(String)
-      expect(result[:output]).not_to be_empty
-    end
-
-    it "invoke does not return suspended: true (no suspension occurred)" do
-      result = agent.invoke("Use the approval tool")
-      expect(result[:suspended]).not_to eq(true)
+      expect(result[:suspended]).to be_falsy
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-004: policy_reject / denied / single
-  #   Agent has one approval-required tool; tool_approval_policy returns :reject.
-  #   invoke should NOT suspend; the tool is denied by policy before execution;
-  #   the LLM receives the rejection and returns a final text response.
-  # ---------------------------------------------------------------------------
-  describe "TC-004: policy_reject; denied; single approval tool" do
-    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "should_not_appear") }
+  describe "synchronous terminal-waiting wrapper" do
+    let(:tool_class) { IntegrationFactors.approval_tool(result_value: "tool_result_sync") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
     let(:agent) { agent_class.new }
 
     before do
-      agent.tool_approval_policy { :reject }
       @llm = LLMStub.activate(responses: [
-        LLMStub.tool_call_response("approval_required_tool", {query: "deny test"}),
-        "The tool execution was denied by policy."
+        LLMStub.tool_call_response("approval_required_tool", {query: "run sync"}),
+        "Sync flow completed."
       ])
     end
 
-    it "invoke returns :rejected => true (policy rejected the tool before execution)" do
-      result = agent.invoke("Use the approval tool please")
-      expect(result[:rejected]).to be true
-    end
+    it "accepts approval notification and returns only the final result" do
+      result = agent.invoke(
+        "Use the protected tool",
+        on_tool_approval_required: ->(request) {
+          agent.approve_async(
+            request.execution_id,
+            approval_request_id: request.id,
+            approved: true
+          )
+        }
+      )
 
-    it "invoke does not return a text output (rejected before LLM gets tool result)" do
-      result = agent.invoke("Use the approval tool please")
-      expect(result[:output]).to be_nil
+      expect(result[:output]).to eq("Sync flow completed.")
+      expect(result[:suspended]).to be_falsy
     end
   end
 end
