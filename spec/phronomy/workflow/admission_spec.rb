@@ -172,6 +172,13 @@ RSpec.describe "Workflow durable admission" do
     expect(event_loop.admitted_fsm_session?(fsm_session_id)).to be(true)
     expect(task.status).to eq(:pending)
 
+    # Post an event to the FSMSession while it is in persisting_terminal state.
+    # The FSMSession must discard it without changing lifecycle state.
+    stray_event = Phronomy::Event.new(type: :some_event, target_id: fsm_session_id, payload: nil)
+    event_loop.post_to_session(stray_event)
+    sleep 0.02  # let EventLoop process the discarded event
+    expect(event_loop.workflow_admission_state("barrier")).to eq(:persisting_terminal)
+
     competitor = workflow.invoke_async({}, config: {workflow_instance_id: "barrier"})
     expect { competitor.wait_result }
       .to raise_error(Phronomy::Error, /live execution segment/)
@@ -287,5 +294,166 @@ RSpec.describe "Workflow durable admission" do
     expect { competitor.wait_result }
       .to raise_error(Phronomy::Error, /live execution segment/)
     expect(task.status).to eq(:pending)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Halting workflow helper: halts at wait_state for synchronous invoke tests.
+  # ---------------------------------------------------------------------------
+  def halting_workflow(persistence: nil)
+    Phronomy::Workflow.define(
+      WorkflowAdmissionContext,
+      persistence: persistence
+    ) do
+      initial :running
+      state :running, action: ->(ctx) { ctx.merge(value: ctx.value + 1) }
+      wait_state :waiting
+      state :done
+      transition from: :running, to: :waiting
+      transition from: :waiting, on: :finish, to: :done
+      transition from: :done, to: :__finish__
+    end
+  end
+
+  it "raises ArgumentError when send_event state has nil workflow_instance_id" do
+    workflow = halting_workflow
+    # A stub state that looks halted but has no durable identity.
+    stub_state = Struct.new(:phase, :workflow_instance_id).new(:waiting, nil)
+    expect { workflow.send_event(state: stub_state, event: :finish) }
+      .to raise_error(ArgumentError, /workflow_instance_id/)
+  end
+
+  it "raises ConflictError when the durable snapshot has diverged since halt" do
+    persistence = Phronomy::Persistence::InMemory.new
+    repo = persistence.workflow_states
+    workflow = halting_workflow(persistence: persistence)
+
+    halted = workflow.invoke({value: 0}, config: {workflow_instance_id: "diverged"})
+    expect(halted.halted?).to be(true)
+
+    # Simulate an external actor advancing the durable state (no phase key
+    # ensures the nil-phase branch of normalize_snapshot is also exercised).
+    repo.save("diverged", expected_revision: 1, snapshot: {fields: {value: 99}})
+
+    expect { workflow.send_event(state: halted, event: :finish) }
+      .to raise_error(Phronomy::Persistence::ConflictError)
+  end
+
+  it "propagates a repository load error during durable Workflow start" do
+    persistence = Phronomy::Persistence::InMemory.new
+    fail_repo = Object.new
+    fail_repo.define_singleton_method(:load) { |_id| raise IOError, "load exploded on start" }
+    fail_repo.define_singleton_method(:save) do |id, expected_revision:, snapshot:|
+      persistence.workflow_states.save(id, expected_revision: expected_revision, snapshot: snapshot)
+    end
+    fail_repo.define_singleton_method(:delete) do |id, expected_revision:|
+      persistence.workflow_states.delete(id, expected_revision: expected_revision)
+    end
+    allow(persistence).to receive(:workflow_states).and_return(fail_repo)
+
+    workflow = finishing_workflow(persistence: persistence)
+    task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "start-load-err"})
+    expect { task.wait_result }.to raise_error(IOError, /load exploded on start/)
+    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("start-load-err"))
+      .to be_nil
+  end
+
+  it "propagates a repository load error during durable Workflow resume" do
+    persistence = Phronomy::Persistence::InMemory.new
+    real_repo = persistence.workflow_states
+    load_count = 0
+    flaky_repo = Object.new
+    flaky_repo.define_singleton_method(:load) do |id|
+      load_count += 1
+      raise IOError, "load exploded on resume" if load_count > 1
+      real_repo.load(id)
+    end
+    flaky_repo.define_singleton_method(:save) do |id, expected_revision:, snapshot:|
+      real_repo.save(id, expected_revision: expected_revision, snapshot: snapshot)
+    end
+    flaky_repo.define_singleton_method(:delete) do |id, expected_revision:|
+      real_repo.delete(id, expected_revision: expected_revision)
+    end
+    allow(persistence).to receive(:workflow_states).and_return(flaky_repo)
+
+    workflow = halting_workflow(persistence: persistence)
+    halted = workflow.invoke({value: 0}, config: {workflow_instance_id: "resume-load-err"})
+    expect(halted.halted?).to be(true)
+
+    expect { workflow.send_event(state: halted, event: :finish) }
+      .to raise_error(IOError, /load exploded on resume/)
+    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("resume-load-err"))
+      .to be_nil
+  end
+
+  it "returns false from signal when the Workflow admission is no longer active" do
+    workflow = waiting_workflow
+    event_loop = Phronomy::Runtime.instance.event_loop
+    task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "signal-gone"})
+
+    # Wait until the FSMSession is bound (executing state) before signalling.
+    eventually { event_loop.workflow_admission_fsm_session_id("signal-gone") }
+    expect(workflow.signal(workflow_instance_id: "signal-gone", event: :finish)).to be(true)
+    task.wait_result
+
+    # Admission is released after completion; a late signal must return false.
+    expect(workflow.signal(workflow_instance_id: "signal-gone", event: :finish)).to be(false)
+  end
+
+  it "handles a durable repository that returns string-keyed snapshot records on resume" do
+    persistence = Phronomy::Persistence::InMemory.new
+    real_repo = persistence.workflow_states
+    # Wrap the repository so that returned records use string keys, exercising
+    # record_value's string-key fallback and deep_immutable_copy's String-key branch.
+    string_key_repo = Object.new
+    string_key_repo.define_singleton_method(:load) do |id|
+      record = real_repo.load(id)
+      next nil unless record
+      snap = record[:snapshot]
+      str_snap = snap ? {
+        "fields" => (snap[:fields] || {}).transform_keys(&:to_s),
+        "phase" => snap[:phase]
+      } : nil
+      {"snapshot" => str_snap, "revision" => record[:revision]}
+    end
+    string_key_repo.define_singleton_method(:save) do |id, expected_revision:, snapshot:|
+      real_repo.save(id, expected_revision: expected_revision, snapshot: snapshot)
+    end
+    string_key_repo.define_singleton_method(:delete) do |id, expected_revision:|
+      real_repo.delete(id, expected_revision: expected_revision)
+    end
+    allow(persistence).to receive(:workflow_states).and_return(string_key_repo)
+
+    workflow = halting_workflow(persistence: persistence)
+    halted = workflow.invoke({value: 5}, config: {workflow_instance_id: "str-keys"})
+    expect(halted.halted?).to be(true)
+
+    result = workflow.send_event(state: halted, event: :finish)
+    expect(result.value).to eq(6)
+  end
+
+  it "fails the Workflow when a signal targets a state with no matching transition" do
+    # Build a workflow with TWO external events on DIFFERENT states so that
+    # signalling :finish while the FSMSession is at :state_a triggers the
+    # "non-external event rejection" guard in fire_event!.
+    workflow = Phronomy::Workflow.define(WorkflowAdmissionContext) do
+      initial :state_a
+      state :state_a
+      state :state_b
+      state :done
+      transition from: :state_a, on: :go_to_b, to: :state_b
+      transition from: :state_b, on: :finish, to: :done
+      transition from: :done, to: :__finish__
+    end
+
+    event_loop = Phronomy::Runtime.instance.event_loop
+    task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "bad-signal"})
+    eventually { event_loop.workflow_admission_fsm_session_id("bad-signal") }
+
+    # :finish is defined for :state_b but the FSMSession is at :state_a.
+    # The transition fires, fails, and the ArgumentError is propagated.
+    workflow.signal(workflow_instance_id: "bad-signal", event: :finish)
+
+    expect { task.wait_result }.to raise_error(ArgumentError, /Transition from/)
+    expect(event_loop.workflow_admission_owner("bad-signal")).to be_nil
   end
 end
