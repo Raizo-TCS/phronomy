@@ -155,19 +155,25 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     end
   end
 
-  it "keeps Workflow Runtime identity distinct while deferring admission-owner separation to ACS-13" do
+  it "keeps Workflow admission ownership, FSMSession routing, and terminal persistence distinct" do
     runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
     event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
     fsm = File.read(File.join(root, "lib/phronomy/engine/fsm_session.rb"))
 
     expect(runner).to include("workflow_instance_id")
-    expect(runner).to include("fsm_session_id")
-    expect(runner).to include("Phronomy::FSMSession.reserve_identity")
-    expect(runner).to include("identity_reservation:")
+    expect(runner).to include("owner_token: Object.new.freeze")
+    expect(runner).to include("bind_workflow_session")
+    expect(runner).not_to include("owner_fsm_session_id")
+    expect(runner).not_to include("Phronomy::FSMSession.reserve_identity")
     expect(runner).not_to include("graph_thread_id:")
-    expect(event_loop).to include("owner_fsm_session_id")
-    expect(event_loop).to include("@workflow_admissions")
-    expect(event_loop).not_to include("owner_session_id")
+
+    expect(event_loop).to include("WorkflowAdmission = Data.define")
+    expect(event_loop).to include(":owner_token, :fsm_session_id, :state")
+    expect(event_loop).to include("%i[executing persisting_terminal recovery_required]")
+
+    expect(fsm).to include("workflow_terminal_persistence_result")
+    expect(fsm).to include("@terminal_lifecycle_state = :persisting_terminal")
+    expect(fsm).to include("@terminal_lifecycle_state = :recovery_required")
     expect(fsm).to include("SecureRandom.uuid.to_s.freeze")
   end
 

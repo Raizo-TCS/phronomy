@@ -106,7 +106,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
     # :probe is FIFO after the stale event; when probe is consumed by the
     # context the guard-mismatch dispatch is guaranteed complete.
     # post_to_workflow bypasses signal's event-name guard intentionally while
-    # still resolving workflow_instance_id to the current owner_fsm_session_id atomically.
+    # still resolving workflow_instance_id to the currently bound fsm_session_id atomically.
     Phronomy::Runtime.instance.event_loop.post_to_workflow(
       workflow_instance_id: "guarded-workflow",
       event: :probe,

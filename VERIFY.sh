@@ -20,10 +20,12 @@ required_files=(
   docs/decisions/023-fsm-session-incarnation-identity-and-routing.md
   docs/decisions/024-event-loop-single-writer-agent-runtime.md
   docs/decisions/025-process-local-agent-ownership-and-runtime-admission.md
+  docs/decisions/026-workflow-runtime-admission-and-durable-terminal-barrier.md
   lib/phronomy/workflow.rb
   lib/phronomy/workflow_context.rb
   lib/phronomy/workflow_runner.rb
   lib/phronomy/engine/event_loop.rb
+  lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
@@ -50,6 +52,7 @@ required_files=(
   spec/phronomy/agent/async_event_contract_spec.rb
   spec/phronomy/workflow/admission_spec.rb
   spec/phronomy/workflow/live_signal_spec.rb
+  spec/phronomy/workflow/transition_action_spec.rb
   lib/phronomy/generator_verifier.rb
   spec/phronomy/generator_verifier_spec.rb
   spec/integration/subgraph_parallel_agent_tool_spec.rb
@@ -105,6 +108,7 @@ syntax_files=(
   lib/phronomy/workflow_context.rb
   lib/phronomy/workflow_runner.rb
   lib/phronomy/engine/event_loop.rb
+  lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
@@ -374,12 +378,41 @@ for rel in [
     text = pathlib.Path(rel).read_text()
     if re.search(r"FSMSession\.new\(.*?\bid\s*:", text, re.S):
         raise SystemExit(f"FAIL: {rel} still injects a domain/context ID as FSMSession id")
+
 workflow = pathlib.Path("lib/phronomy/workflow_runner.rb").read_text()
-if "Phronomy::FSMSession.reserve_identity" not in workflow:
-    raise SystemExit("FAIL: Workflow no longer uses the FSMSession-owned pre-load identity reservation")
-if "owner_fsm_session_id" not in workflow:
-    raise SystemExit("FAIL: this slice unexpectedly pulled ACS-13 Workflow admission-owner redesign forward")
+event_loop = pathlib.Path("lib/phronomy/engine/event_loop.rb").read_text()
+fsm = pathlib.Path("lib/phronomy/engine/fsm_session.rb").read_text()
+
+if "Phronomy::FSMSession.reserve_identity" in workflow:
+    raise SystemExit("FAIL: ACS-13 Workflow still pre-reserves FSMSession identity for admission")
+if "owner_fsm_session_id" in workflow or "owner_fsm_session_id" in event_loop:
+    raise SystemExit("FAIL: ACS-13 Workflow admission still conflates owner and routing identity")
+for required in ["owner_token: Object.new.freeze", "bind_workflow_session"]:
+    if required not in workflow:
+        raise SystemExit(f"FAIL: WorkflowRunner missing ACS-13 invariant: {required}")
+for required in ["WorkflowAdmission = Data.define", ":owner_token, :fsm_session_id, :state"]:
+    if required not in event_loop:
+        raise SystemExit(f"FAIL: EventLoop missing ACS-13 admission invariant: {required}")
+for required in ["workflow_terminal_persistence_result", ":persisting_terminal", ":recovery_required"]:
+    if required not in fsm:
+        raise SystemExit(f"FAIL: FSMSession missing ACS-13 terminal barrier invariant: {required}")
 PY
+
+echo "== ACS-13 Workflow admission / durable terminal barrier =="
+ruby -c lib/phronomy/workflow_runner.rb >/dev/null
+ruby -c lib/phronomy/engine/event_loop.rb >/dev/null
+ruby -c lib/phronomy/engine/fsm_session.rb >/dev/null
+ruby -c spec/phronomy/workflow/admission_spec.rb >/dev/null
+ruby -c spec/phronomy/workflow/transition_action_spec.rb >/dev/null
+ruby -c spec/phronomy/fsm_session_identity_contract_spec.rb >/dev/null
+bundle exec rspec \
+  spec/phronomy/workflow/admission_spec.rb \
+  spec/phronomy/workflow/live_signal_spec.rb \
+  spec/phronomy/workflow/transition_action_spec.rb \
+  spec/phronomy/fsm_session_identity_contract_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb \
+  spec/integration/wait_state_spec.rb \
+  spec/integration/graph_spec.rb
 
 echo "== CG-03a Agent execution parent identity =="
 bundle exec rbs -I sig validate
@@ -462,4 +495,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-13 + ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

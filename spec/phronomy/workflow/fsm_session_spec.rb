@@ -57,12 +57,10 @@ RSpec.describe Phronomy::FSMSession do
   # ---------------------------------------------------------------------------
 
   def build_test_execution(ctx, recursion_limit:)
-    fsm_identity_reservation = Phronomy::FSMSession.reserve_identity
     Phronomy::WorkflowRunner::Execution.new(
       context: ctx,
       workflow_instance_id: "test-thread",
-      fsm_session_id: fsm_identity_reservation.fsm_session_id,
-      fsm_identity_reservation: fsm_identity_reservation,
+      owner_token: Object.new.freeze,
       recursion_limit: recursion_limit,
       repository: nil,
       persist: false,
@@ -359,6 +357,188 @@ RSpec.describe Phronomy::FSMSession do
         expect(finish_event).not_to be_nil
         # The second-state entry action returned s.merge(tag: "updated")
         expect(finish_event.payload[:result].tag).to eq("updated")
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # handle_terminal_persistence_result edge cases.
+  # ---------------------------------------------------------------------------
+  describe "terminal persistence result handling" do
+    let(:simple_workflow_for_persistence) do
+      Phronomy::Workflow.define(ctx_class) do
+        initial :step
+        state :step
+        transition from: :step, to: :__finish__
+      end
+    end
+
+    it "ignores a persistence result when not in persisting_terminal state" do
+      runner = runner_from(simple_workflow_for_persistence)
+      ctx = ctx_class.new(value: 0)
+
+      with_fake_loop do |_fake, fake_runtime|
+        session = build_linear_session(ctx, runner: runner, fake_runtime: fake_runtime)
+        # Force terminal_lifecycle_state to :running (default) so a persistence
+        # result arriving out-of-order is silently discarded.
+        bogus_result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+          outcome: :success, revision: 1, error: nil
+        )
+        session.handle(
+          Phronomy::Event.new(
+            type: :workflow_terminal_persistence_result,
+            target_id: session.id,
+            payload: bogus_result
+          )
+        )
+        # No crash; lifecycle state unchanged (session has not started yet)
+        expect(session.instance_variable_get(:@terminal_lifecycle_state)).to eq(:running)
+      end
+    end
+
+    it "raises an error for an unknown persistence outcome" do
+      runner = runner_from(simple_workflow_for_persistence)
+      ctx = ctx_class.new(value: 0)
+
+      with_fake_loop do |fake, fake_runtime|
+        session = build_linear_session(ctx, runner: runner, fake_runtime: fake_runtime)
+        session.instance_variable_set(:@terminal_lifecycle_state, :persisting_terminal)
+
+        unknown_result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+          outcome: :bogus_unknown, revision: nil, error: nil
+        )
+        session.handle(
+          Phronomy::Event.new(
+            type: :workflow_terminal_persistence_result,
+            target_id: session.id,
+            payload: unknown_result
+          )
+        )
+        # finish_with_error is called; session should post an :error terminal event
+        error_event = fake.events.find { |e| e.type == :error }
+        expect(error_event).not_to be_nil
+        expect(error_event.payload[:result]).to be_a(Phronomy::Error)
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # IdentityReservation: FSMSession accepts a pre-reserved identity.
+  # ---------------------------------------------------------------------------
+  describe "IdentityReservation" do
+    let(:simple_workflow) do
+      Phronomy::Workflow.define(ctx_class) do
+        initial :step
+        state :step
+        transition from: :step, to: :__finish__
+      end
+    end
+
+    it "uses the reserved id when a valid IdentityReservation is provided" do
+      reservation = Phronomy::FSMSession.reserve_identity
+      runner = runner_from(simple_workflow)
+      ctx = ctx_class.new(value: 0)
+      ctx.set_graph_metadata(workflow_instance_id: "reservation-test")
+
+      with_fake_loop do |_fake, fake_runtime|
+        session = Phronomy::FSMSession.new(
+          context: ctx,
+          context_metadata: {workflow_instance_id: "reservation-test"},
+          entry_point: runner.instance_variable_get(:@entry_point),
+          entry_actions: runner.instance_variable_get(:@entry_actions),
+          auto_state_set: runner.instance_variable_get(:@auto_state_set),
+          declared_states: runner.instance_variable_get(:@declared_states),
+          wait_state_names: runner.instance_variable_get(:@wait_state_names),
+          external_events: runner.instance_variable_get(:@external_events),
+          phase_machine_class: runner.instance_variable_get(:@phase_machine_class),
+          recursion_limit: 25,
+          event_loop: fake_runtime.event_loop,
+          identity_reservation: reservation
+        )
+        expect(session.id).to eq(reservation.fsm_session_id)
+      end
+    end
+
+    it "raises ArgumentError when the identity_reservation is not an IdentityReservation" do
+      runner = runner_from(simple_workflow)
+      ctx = ctx_class.new(value: 0)
+
+      with_fake_loop do |_fake, fake_runtime|
+        expect do
+          Phronomy::FSMSession.new(
+            context: ctx,
+            context_metadata: {},
+            entry_point: runner.instance_variable_get(:@entry_point),
+            entry_actions: runner.instance_variable_get(:@entry_actions),
+            auto_state_set: runner.instance_variable_get(:@auto_state_set),
+            declared_states: runner.instance_variable_get(:@declared_states),
+            wait_state_names: runner.instance_variable_get(:@wait_state_names),
+            external_events: runner.instance_variable_get(:@external_events),
+            phase_machine_class: runner.instance_variable_get(:@phase_machine_class),
+            recursion_limit: 25,
+            event_loop: fake_runtime.event_loop,
+            identity_reservation: Object.new
+          )
+        end.to raise_error(ArgumentError, /identity_reservation must come from FSMSession.reserve_identity/)
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # apply_context_event: handle_fsm_event returns a new WorkflowContext.
+  # ---------------------------------------------------------------------------
+  describe "context update via handle_fsm_event" do
+    let(:ctx_with_event_handler) do
+      Class.new do
+        include Phronomy::WorkflowContext
+
+        field :value, type: :replace, default: 0
+
+        def handle_fsm_event(event)
+          return :consume if event.type == :skip
+
+          # Return a NEW context object; FSMSession must adopt it.
+          return self.class.new(value: value + 100) if event.type == :enrich
+
+          false
+        end
+      end
+    end
+
+    it "adopts the new context returned by handle_fsm_event" do
+      app = Phronomy::Workflow.define(ctx_with_event_handler) do
+        initial :waiting
+        state :waiting
+        state :done
+        transition from: :waiting, on: :enrich, to: :done
+        transition from: :done, to: :__finish__
+      end
+
+      runner = runner_from(app)
+      ctx = ctx_with_event_handler.new(value: 1)
+      ctx.set_graph_metadata(workflow_instance_id: "enrich-test")
+
+      with_fake_loop do |fake, fake_runtime|
+        session = build_wait_session(ctx, runner: runner, fake_runtime: fake_runtime)
+        session.start
+
+        # Drive the auto-transition manually if needed
+        while (ev = fake.events.last) && ev.type == :state_completed
+          fake.events.clear
+          session.handle(Phronomy::Event.new(type: :state_completed, target_id: session.id, payload: nil))
+        end
+
+        # Send :enrich — handle_fsm_event returns a NEW context (+100 to value)
+        session.handle(Phronomy::Event.new(type: :enrich, target_id: session.id, payload: nil))
+
+        while (ev = fake.events.last) && ev.type == :state_completed
+          fake.events.clear
+          session.handle(Phronomy::Event.new(type: :state_completed, target_id: session.id, payload: nil))
+        end
+
+        finish_event = fake.events.find { |e| e.type == :finished }
+        expect(finish_event).not_to be_nil
+        expect(finish_event.payload[:result].value).to eq(101)
       end
     end
   end
