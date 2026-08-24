@@ -64,9 +64,10 @@ module Phronomy
 
     attr_reader :id, :context, :event_sink
 
-    # Returns the live current state. During an active FSM transition the
-    # tracker phase is authoritative; @current_state lags until fire_and_advance!
-    # returns.
+    # Returns the live current Workflow phase. During an active FSM transition
+    # the tracker phase is authoritative; @current_state lags until
+    # fire_and_advance! returns. Terminal persistence lifecycle is deliberately
+    # separate from this logical Workflow phase.
     def current_state
       return @tracker.phase.to_sym if @tracker
       @current_state
@@ -93,7 +94,8 @@ module Phronomy
       stable_observer: nil,
       context_metadata: {},
       event_sink: nil,
-      identity_reservation: nil
+      identity_reservation: nil,
+      terminal_barrier: nil
     )
       @id = if identity_reservation
         unless identity_reservation.is_a?(IdentityReservation)
@@ -121,6 +123,10 @@ module Phronomy
       @resume_event = resume_event
       @resume_phase = resume_phase
       @stable_observer = stable_observer
+      @terminal_barrier = terminal_barrier
+      @terminal_lifecycle_state = :running
+      @pending_terminal_type = nil
+      @pending_terminal_notify_stable = false
       @step = 0
       @done = false
       @current_state = nil
@@ -154,6 +160,16 @@ module Phronomy
     def handle(event)
       return if @done
 
+      if event.type == :workflow_terminal_persistence_result
+        handle_terminal_persistence_result(event.payload)
+        return
+      end
+
+      # Once terminal persistence begins, ordinary Workflow events no longer
+      # have result authority. Only the persistence completion for this concrete
+      # FSMSession can advance its terminal lifecycle.
+      return unless @terminal_lifecycle_state == :running
+
       context_disposition = apply_context_event(event)
       return if context_disposition == :consume
 
@@ -168,6 +184,8 @@ module Phronomy
     end
 
     private
+
+    attr_reader :terminal_lifecycle_state
 
     def run_initial_entry_actions!
       Array(@entry_actions[@current_state]).each do |callable|
@@ -245,25 +263,33 @@ module Phronomy
     def advance_or_halt
       return finish! if @current_state == FINISH
 
-      notify_stable_state!
-
+      # A wait state is the logical end of this Workflow execution segment. Its
+      # public stable-state notification is therefore part of terminalization
+      # and, for durable Workflows, must not escape before the durable barrier.
       if @wait_state_names.include?(@current_state)
         halt!
         return
       end
 
       if @auto_state_set.key?(@current_state)
+        notify_stable_state!
         post_session_event(:state_completed)
         return
       end
 
-      return if has_external_event_from?(@current_state)
+      if has_external_event_from?(@current_state)
+        notify_stable_state!
+        return
+      end
 
       unless @declared_states.include?(@current_state)
         raise ArgumentError, "State #{@current_state.inspect} is not defined"
       end
 
-      finish!
+      # A declared state with no outgoing transition is also a logical terminal
+      # boundary. Preserve its stable-state notification, but for durable
+      # Workflows publish it only after the terminal save succeeds.
+      finish!(notify_stable: true)
     end
 
     def notify_stable_state!
@@ -295,27 +321,88 @@ module Phronomy
         "EventLoop rejected #{type.inspect} for FSMSession #{@id}"
     end
 
-    def finish!
-      return if @done
-
-      @done = true
-      apply_context_metadata!(phase: :__end__)
-      post_terminal_event(:finished, @ctx)
+    def finish!(notify_stable: false)
+      request_terminal!(
+        :finished,
+        phase: :__end__,
+        notify_stable: notify_stable
+      )
     end
 
     def halt!
-      return if @done
+      request_terminal!(:halted, phase: @current_state, notify_stable: true)
+    end
 
+    def request_terminal!(terminal_type, phase:, notify_stable:)
+      return if @done || @terminal_lifecycle_state != :running
+
+      apply_context_metadata!(phase: phase)
+      @pending_terminal_type = terminal_type
+      @pending_terminal_notify_stable = notify_stable
+      unless @terminal_barrier
+        complete_terminal!(terminal_type)
+        return
+      end
+
+      @terminal_lifecycle_state = :persisting_terminal
+      @terminal_barrier.call(
+        terminal_type: terminal_type,
+        context: @ctx,
+        event_sink: @event_sink
+      )
+    rescue => error
+      finish_with_error(error)
+    end
+
+    def handle_terminal_persistence_result(result)
+      return unless @terminal_lifecycle_state == :persisting_terminal
+
+      case result.outcome
+      when :success
+        complete_terminal!(@pending_terminal_type)
+      when :known_failure
+        finish_with_error(
+          result.error || Phronomy::Error.new("Workflow terminal persistence failed")
+        )
+      when :outcome_unknown
+        @done = true
+        @terminal_lifecycle_state = :recovery_required
+        post_recovery_required_event(result.error)
+      else
+        raise Phronomy::Error,
+          "unknown Workflow terminal persistence outcome: #{result.outcome.inspect}"
+      end
+    end
+
+    def complete_terminal!(terminal_type)
       @done = true
-      apply_context_metadata!(phase: @current_state)
-      post_terminal_event(:halted, @ctx)
+      @terminal_lifecycle_state =
+        (terminal_type == :halted) ? :halted : :completed
+      notify_stable_state! if @pending_terminal_notify_stable
+      post_terminal_event(terminal_type, @ctx)
     end
 
     def finish_with_error(error)
       return if @done
 
       @done = true
+      @terminal_lifecycle_state = :error
       post_terminal_event(:error, error)
+    end
+
+    def post_recovery_required_event(error)
+      accepted = @event_loop.post(
+        Phronomy::Event.new(
+          type: :recovery_required,
+          target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+          payload: {fsm_session_id: @id, error: error}
+        )
+      )
+      return if accepted
+
+      Phronomy.configuration.logger&.warn(
+        "[Phronomy::FSMSession] EventLoop rejected recovery-required event for #{@id}"
+      )
     end
 
     def post_terminal_event(type, result)

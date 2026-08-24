@@ -12,7 +12,7 @@ module Phronomy
     QUEUE_BACKLOG_WARNING_THRESHOLD = 1_000
     QUEUE_BACKLOG_WARNING_INTERVAL_SECONDS = 60.0
 
-    TERMINAL_MANAGEMENT_EVENTS = %i[finished halted error].freeze
+    TERMINAL_MANAGEMENT_EVENTS = %i[finished halted error recovery_required].freeze
     private_constant :TERMINAL_MANAGEMENT_EVENTS
 
     STOP = Object.new.freeze
@@ -45,6 +45,15 @@ module Phronomy
     # never a semantic result-authority identifier.
     AgentAdmission = Data.define(:agent_id, :owner_token, :execution_id, :state)
     private_constant :AgentAdmission
+
+    # EventLoop-owned process-local Workflow execution-segment admission. The
+    # owner token is a Runtime coordination capability, not a domain identity or
+    # routing identity. fsm_session_id is bound only after durable load/hydration
+    # completes and a concrete FSMSession has been constructed.
+    WorkflowAdmission = Data.define(
+      :workflow_instance_id, :owner_token, :fsm_session_id, :state
+    )
+    private_constant :WorkflowAdmission
 
     def initialize(runtime:)
       @runtime = runtime
@@ -415,33 +424,92 @@ module Phronomy
       @fsms[fsm_session_id.to_s]&.current_state
     end
 
-    # Reserves one logical Workflow instance for one concrete FSMSession execution.
-    # workflow_instance_id is durable Workflow identity; owner_fsm_session_id is the
-    # Runtime-only identity of the invocation/resume that currently owns it.
-    def admit_workflow(workflow_instance_id, owner_fsm_session_id:)
+    # Reserves one logical Workflow execution segment before durable load or
+    # hydration. The owner token is independent from any later FSMSession id.
+    # @api private
+    def admit_workflow(workflow_instance_id, owner_token:)
+      assert_event_loop_thread!
       key = workflow_instance_id.to_s
-      owner = owner_fsm_session_id.to_s
       raise ArgumentError, "workflow_instance_id must not be empty" if key.empty?
-      raise ArgumentError, "owner_fsm_session_id must not be empty" if owner.empty?
+      raise ArgumentError, "owner_token is required" unless owner_token
 
       @lifecycle_mutex.synchronize do
         ensure_accepting_registrations!
-        current_owner = @workflow_admissions[key]
-        if current_owner
+        if @workflow_admissions.key?(key)
           raise Phronomy::Error,
-            "Workflow instance #{key.inspect} is already owned by " \
-            "FSMSession #{current_owner.inspect}"
+            "Workflow instance #{key.inspect} already has a live execution segment"
         end
-        @workflow_admissions[key] = owner
+        @workflow_admissions[key] = WorkflowAdmission.new(
+          workflow_instance_id: key.freeze,
+          owner_token: owner_token,
+          fsm_session_id: nil,
+          state: :admitting
+        )
       end
       true
     end
 
-    def release_workflow(workflow_instance_id, owner_fsm_session_id:)
+    # Binds the concrete routing identity after admission and durable hydration.
+    # @api private
+    def bind_workflow_session(workflow_instance_id, owner_token:, fsm_session_id:)
+      assert_event_loop_thread!
       key = workflow_instance_id.to_s
-      owner = owner_fsm_session_id.to_s
+      fsm_key = fsm_session_id.to_s
+      raise ArgumentError, "fsm_session_id must not be empty" if fsm_key.empty?
+
       @lifecycle_mutex.synchronize do
-        next false unless @workflow_admissions[key] == owner
+        current = @workflow_admissions.fetch(key) do
+          raise Phronomy::Error, "Workflow instance #{key.inspect} has no Runtime admission"
+        end
+        unless current.owner_token.equal?(owner_token) && current.fsm_session_id.nil?
+          raise Phronomy::Error, "stale Workflow admission bind for #{key.inspect}"
+        end
+        @workflow_admissions[key] = WorkflowAdmission.new(
+          workflow_instance_id: current.workflow_instance_id,
+          owner_token: current.owner_token,
+          fsm_session_id: fsm_key.freeze,
+          state: :executing
+        )
+      end
+      true
+    end
+
+    # @api private
+    def mark_workflow_admission(workflow_instance_id, owner_token:, state:)
+      assert_event_loop_thread!
+      key = workflow_instance_id.to_s
+      next_state = state.to_sym
+      unless %i[executing persisting_terminal recovery_required].include?(next_state)
+        raise ArgumentError, "unsupported Workflow admission state: #{next_state.inspect}"
+      end
+
+      @lifecycle_mutex.synchronize do
+        current = @workflow_admissions.fetch(key) do
+          raise Phronomy::Error, "Workflow instance #{key.inspect} has no Runtime admission"
+        end
+        unless current.owner_token.equal?(owner_token)
+          raise Phronomy::Error, "stale Workflow admission update for #{key.inspect}"
+        end
+        @workflow_admissions[key] = WorkflowAdmission.new(
+          workflow_instance_id: current.workflow_instance_id,
+          owner_token: current.owner_token,
+          fsm_session_id: current.fsm_session_id,
+          state: next_state
+        )
+        @idle_cond.broadcast if runtime_idle_locked?
+      end
+      true
+    end
+
+    # Owner-aware release. A competing or stale attempt cannot release the
+    # current Workflow execution segment.
+    # @api private
+    def release_workflow(workflow_instance_id, owner_token:)
+      assert_event_loop_thread!
+      key = workflow_instance_id.to_s
+      @lifecycle_mutex.synchronize do
+        current = @workflow_admissions[key]
+        next false unless current&.owner_token&.equal?(owner_token)
 
         @workflow_admissions.delete(key)
         @idle_cond.broadcast if runtime_idle_locked?
@@ -449,8 +517,23 @@ module Phronomy
       end
     end
 
+    # Read-only diagnostics used by internal tests and routing assertions.
     def workflow_admission_owner(workflow_instance_id)
-      @lifecycle_mutex.synchronize { @workflow_admissions[workflow_instance_id.to_s] }
+      @lifecycle_mutex.synchronize do
+        @workflow_admissions[workflow_instance_id.to_s]&.owner_token
+      end
+    end
+
+    def workflow_admission_fsm_session_id(workflow_instance_id)
+      @lifecycle_mutex.synchronize do
+        @workflow_admissions[workflow_instance_id.to_s]&.fsm_session_id
+      end
+    end
+
+    def workflow_admission_state(workflow_instance_id)
+      @lifecycle_mutex.synchronize do
+        @workflow_admissions[workflow_instance_id.to_s]&.state
+      end
     end
 
     def post_to_workflow(workflow_instance_id:, event:, payload: nil)
@@ -459,13 +542,15 @@ module Phronomy
       accepted = @lifecycle_mutex.synchronize do
         next false unless accepting_events?
 
-        owner = @workflow_admissions[workflow_instance_id.to_s]
-        next false unless owner
-        next false unless @admitted_fsm_session_ids.include?(owner)
+        admission = @workflow_admissions[workflow_instance_id.to_s]
+        next false unless admission&.state == :executing
+        fsm_session_id = admission.fsm_session_id
+        next false unless fsm_session_id
+        next false unless @admitted_fsm_session_ids.include?(fsm_session_id)
 
         posted_event = Phronomy::Event.new(
           type: event.to_sym,
-          target_id: owner,
+          target_id: fsm_session_id,
           payload: payload
         )
         queued_depth = enqueue([posted_event, monotonic_nanoseconds])
@@ -620,9 +705,14 @@ module Phronomy
         # dispatch name; ACS-11 emits the operation-neutral :agent_control event.
         cmd = event.payload.fetch(:command)
         cmd.coordinator.deliver_on_event_loop(cmd)
-      when :workflow_persistence_ready
+      when :workflow_control
         cmd = event.payload.fetch(:command)
-        cmd.runner.deliver_persistence_on_event_loop(cmd)
+        cmd.runner.deliver_on_event_loop(cmd)
+      when :recovery_required
+        fsm_session_id = event.payload.fetch(:fsm_session_id)
+        session = @fsms.delete(fsm_session_id)
+        decrement_outstanding if session
+        mark_workflow_recovery_required_for_session(fsm_session_id)
       end
     end
 
@@ -631,6 +721,24 @@ module Phronomy
         TERMINAL_MANAGEMENT_EVENTS.include?(event.type) &&
         event.payload.is_a?(Hash) &&
         event.payload.key?(:fsm_session_id)
+    end
+
+    def mark_workflow_recovery_required_for_session(fsm_session_id)
+      @lifecycle_mutex.synchronize do
+        key, admission = @workflow_admissions.find do |_workflow_instance_id, candidate|
+          candidate.fsm_session_id == fsm_session_id.to_s
+        end
+        return false unless admission
+
+        @workflow_admissions[key] = WorkflowAdmission.new(
+          workflow_instance_id: admission.workflow_instance_id,
+          owner_token: admission.owner_token,
+          fsm_session_id: nil,
+          state: :recovery_required
+        )
+        @idle_cond.broadcast if runtime_idle_locked?
+      end
+      true
     end
 
     def begin_stopping_if_idle
@@ -716,8 +824,14 @@ module Phronomy
 
     def runtime_idle_locked?
       @outstanding_sessions.zero? &&
-        @workflow_admissions.empty? &&
+        !workflow_admission_transition_in_progress_locked? &&
         !agent_admission_transition_in_progress_locked?
+    end
+
+    def workflow_admission_transition_in_progress_locked?
+      @workflow_admissions.values.any? do |admission|
+        %i[admitting executing persisting_terminal].include?(admission.state)
+      end
     end
 
     def agent_admission_transition_in_progress_locked?

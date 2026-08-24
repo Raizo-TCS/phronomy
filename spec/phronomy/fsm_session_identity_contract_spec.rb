@@ -5,13 +5,13 @@ require "spec_helper"
 RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" do
   let(:root) { File.expand_path("../..", __dir__) }
 
-  it "removes raw caller-supplied FSMSession id while retaining the private Workflow reservation bridge" do
+  it "removes raw caller-supplied FSMSession id while retaining private reservation support" do
     keys = Phronomy::FSMSession.instance_method(:initialize).parameters.map(&:last)
     expect(keys).not_to include(:id, :graph_thread_id)
-    expect(keys).to include(:context_metadata, :event_sink, :identity_reservation)
+    expect(keys).to include(:context_metadata, :event_sink, :identity_reservation, :terminal_barrier)
   end
 
-  it "keeps each reserved Workflow Runtime identity single-use" do
+  it "keeps each reserved Runtime identity single-use" do
     reservation = Phronomy::FSMSession.reserve_identity
     expect(reservation.fsm_session_id).to match(/\A[0-9a-f-]{36}\z/)
     expect(reservation.send(:claim!)).to eq(reservation.fsm_session_id)
@@ -39,11 +39,17 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
     expect(sources).not_to match(/FSMSession\.new\(.*?\bid\s*:/m)
   end
 
-  it "uses an FSMSession-owned identity reservation for Workflow pre-load admission" do
+  it "keeps Workflow admission ownership separate from concrete FSMSession routing" do
     runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
-    expect(runner).to include("Phronomy::FSMSession.reserve_identity")
-    expect(runner).to include("identity_reservation: execution.fsm_identity_reservation")
-    expect(runner).to include("owner_fsm_session_id")
+    event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
+
+    expect(runner).not_to include("Phronomy::FSMSession.reserve_identity")
+    expect(runner).not_to include("owner_fsm_session_id")
+    expect(runner).to include("owner_token: Object.new.freeze")
+    expect(runner).to include("bind_workflow_session")
+    expect(event_loop).to include("WorkflowAdmission = Data.define")
+    expect(event_loop).to include(":owner_token, :fsm_session_id, :state")
+    expect(event_loop).to include("current.owner_token.equal?(owner_token)")
     expect(runner).not_to include("graph_thread_id:")
   end
 

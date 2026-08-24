@@ -57,12 +57,10 @@ RSpec.describe Phronomy::FSMSession do
   # ---------------------------------------------------------------------------
 
   def build_test_execution(ctx, recursion_limit:)
-    fsm_identity_reservation = Phronomy::FSMSession.reserve_identity
     Phronomy::WorkflowRunner::Execution.new(
       context: ctx,
       workflow_instance_id: "test-thread",
-      fsm_session_id: fsm_identity_reservation.fsm_session_id,
-      fsm_identity_reservation: fsm_identity_reservation,
+      owner_token: Object.new.freeze,
       recursion_limit: recursion_limit,
       repository: nil,
       persist: false,

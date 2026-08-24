@@ -2,6 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-08-23
+**Partially superseded by**: [ADR-026](026-workflow-runtime-admission-and-durable-terminal-barrier.md) for the transitional Workflow FSMSession-identity reservation/admission bridge
 **Related**:
 - [ADR-010](010-cooperative-first-concurrency.md)
 - [ADR-014](014-unified-persistence-durable-state.md)

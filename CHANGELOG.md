@@ -12,6 +12,32 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Workflow Runtime admission and durable terminal barrier (ACS-13)
+
+#### Added
+
+- ADR-026 defining opaque process-local Workflow admission ownership,
+  admission-before-hydration ordering, and FSMSession-integrated terminal
+  persistence.
+- Explicit Workflow terminal persistence outcomes: known success, known failure,
+  and fail-closed outcome uncertainty.
+
+#### Changed
+
+- Workflow admission ownership no longer reuses the future `fsm_session_id`.
+  EventLoop acquires a separate opaque owner token before durable load and binds
+  the concrete FSMSession routing ID only after hydration.
+- Durable Workflow halt/completion now remains nonterminal while the final
+  snapshot is saved. The save result returns to the same FSMSession, and only a
+  known-successful result permits `HALTED` / `COMPLETED`, admission release, and
+  caller Task settlement.
+- Portable known Persistence failures follow the Workflow error path. An
+  arbitrary storage/transport error whose commit outcome is not established is
+  treated as outcome-unknown: the success barrier stays closed and the
+  `workflow_instance_id` admission remains fail-closed/recovery-required.
+- Workflow persistence result handling is backend-topology neutral; the FSM does
+  not depend on local/network/database transport details.
+
 ### Process-local Agent ownership and Runtime admission (ACS-12)
 
 #### Added
@@ -121,7 +147,7 @@ Release history for 0.14.0 and earlier is archived in
 - `Persistence#workflow_states` with optimistic revision checks for durable Workflow snapshots.
 - Runtime-local Agent execution ownership outside Persistence; ACS-11 now places the mutable live-state authority on EventLoop.
 - `Agent::Base.live_for_execution(execution_id)` for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.
-- Owner-aware Workflow admission keyed by durable `workflow_instance_id`; the admission-owner representation remains Runtime-internal and is reconciled separately.
+- Owner-aware Workflow admission keyed by durable `workflow_instance_id`; ACS-13 now uses a Runtime-only opaque owner token that is separate from concrete `fsm_session_id` routing.
 - ADR-014 and the 0.19 migration guide for the unified durable-state architecture.
 
 #### Changed
@@ -130,7 +156,7 @@ Release history for 0.14.0 and earlier is archived in
 - `Phronomy.configuration.persistence` is the global durable backend for Workflows and for Agent `new`/`create` calls that do not explicitly inject another Persistence instance.
 - Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.
 - Approval suspension/resume preserves the same process-local Agent/AgentInvocation owner. Approval remains an Agent-instance operation; callers with only an `execution_id` resolve the EventLoop-backed live owner with `Agent::Base.live_for_execution` (or the expected concrete Agent class) before calling `agent.approve` / `agent.approve_async`.
-- Workflow durable I/O runs outside EventLoop through OffloadPool, while `workflow_instance_id` admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.
+- Workflow durable I/O runs outside EventLoop through OffloadPool. Terminal/halted snapshot persistence now completes inside the owning FSMSession lifecycle; only a known-successful save permits normal terminalization and admission release. Workflow admission remains process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.
 - Workflow `workflow_instance_id` is distinct from one concrete Runtime FSMSession identity; generic application `session_id` is not a Phronomy core domain identity.
 
 #### Removed
