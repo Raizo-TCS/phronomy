@@ -227,7 +227,14 @@ The authoritative subject list is `.mutant.yml`. It currently includes:
 - `Phronomy::Agent::Selection::Selectors::RecentFirstSelector`
 - `Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker`
 - `Phronomy::Agent::ContextPlanValidator`
+- `Phronomy::MultiAgent::HandoffPolicy`
+- `Phronomy::MultiAgent::HandoffProjection`
 - `Phronomy::VectorStore::InMemory`
+
+The nightly mutation matrix mirrors this authoritative list so each subject can
+run in an isolated job with its own timeout. The regular test suite includes a
+configuration-consistency guard that fails if the nightly subject set diverges
+from `.mutant.yml`.
 
 The Tool mutation subject intentionally uses
 `Phronomy::Agent::Context::Capability::Base`, which is the implementation

@@ -22,7 +22,7 @@ jobs:
           - subject: Phronomy::WorkflowRunner
             label: WorkflowRunner
             timeout_minutes: 60
-          - subject: Phronomy::Tool::Base
+          - subject: Phronomy::Agent::Context::Capability::Base
             label: Tool::Base
           - subject: Phronomy::LlmContextWindow::TokenBudget
             label: LlmContextWindow::TokenBudget
