@@ -8,7 +8,8 @@ module Phronomy
       # External/API -> EventLoop control messages.
       StartCommand = Data.define(
         :coordinator, :input, :config, :mode,
-        :approval_policy, :approval_listener, :on_event, :result_task
+        :approval_policy, :approval_listener, :on_event, :result_task,
+        :admission_token
       )
       ResumeCommand = Data.define(
         :coordinator, :execution_id, :approval_request_id,
@@ -51,7 +52,7 @@ module Phronomy
       # mutated by a worker; these values are validated and applied on EventLoop.
       InitialPreparationResult = Data.define(
         :execution, :root, :runtime_projection, :filtered_input,
-        :config, :appended_records, :error
+        :config, :appended_records, :error, :admission_outcome
       )
       FollowupPreparationResult = Data.define(:execution, :runtime_projection, :error)
       ResumeCommitResult = Data.define(:execution, :root)
@@ -81,6 +82,7 @@ module Phronomy
         input, config: {}, mode: :invoke,
         approval_policy: nil, approval_listener: nil, on_event: nil
       )
+        @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = Phronomy::Task.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
         command = StartCommand.new(
@@ -91,7 +93,8 @@ module Phronomy
           approval_policy: approval_policy,
           approval_listener: approval_listener,
           on_event: on_event,
-          result_task: result_task
+          result_task: result_task,
+          admission_token: Object.new.freeze
         )
         unless post_control(Phronomy::Runtime.instance, command)
           fail_task(result_task, runtime_rejected_error(:start))
@@ -108,6 +111,7 @@ module Phronomy
         approved:,
         config: {}
       )
+        @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = Phronomy::Task.deferred(
           name: "agent-approval-resume:#{execution_id}"
@@ -214,6 +218,7 @@ module Phronomy
 
       def begin_start_on_event_loop(request)
         runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
         root = @agent.agent_root
         if root.lifecycle_status == :closed
           deliver_start_failure_on_event_loop(
@@ -222,6 +227,21 @@ module Phronomy
           )
           return
         end
+
+        @agent.send(:__assert_live_agent!)
+        admitted = false
+        submitted = false
+        event_loop.admit_agent_execution(
+          @agent.agent_id,
+          owner_token: request.admission_token
+        )
+        admitted = true
+
+        # Ownership purge may begin on an application thread between the first
+        # live-owner check and EventLoop admission. Re-check after the slot is
+        # installed: once this check succeeds, purge observes the admission and
+        # must abort instead of deleting the Agent underneath this start.
+        @agent.send(:__assert_live_agent!)
 
         operation = InitialPreparationCommand.new(
           root: root,
@@ -232,6 +252,7 @@ module Phronomy
         task = runtime.offload.submit(on_full: :raise) do
           perform_initial_preparation(operation)
         end
+        submitted = true
         task.on_complete do |result, error|
           ready = InitialPreparationReady.new(
             coordinator: self,
@@ -243,14 +264,84 @@ module Phronomy
             post_control(runtime, ready)
         end
       rescue => error
+        if admitted
+          if submitted
+            event_loop.mark_agent_admission_recovery_required(
+              @agent.agent_id,
+              owner_token: request.admission_token
+            )
+          else
+            event_loop.release_agent_execution_admission(
+              @agent.agent_id,
+              owner_token: request.admission_token
+            )
+          end
+        end
         deliver_start_failure_on_event_loop(request, translated(error))
       end
 
       def perform_initial_preparation(operation)
-        raw_message = @agent.send(:extract_message, operation.input)
-        execution, active_root = admit_execution(raw_message, root: operation.root)
-        current_execution = execution
+        begin
+          raw_message = @agent.send(:extract_message, operation.input)
+        rescue => error
+          return InitialPreparationResult.new(
+            execution: nil,
+            root: operation.root,
+            runtime_projection: nil,
+            filtered_input: nil,
+            config: operation.config,
+            appended_records: [].freeze,
+            error: translated(error),
+            admission_outcome: :not_established
+          )
+        end
 
+        begin
+          execution, active_root = admit_execution(raw_message, root: operation.root)
+        rescue Phronomy::AgentBusyError => error
+          # A durable busy conflict proves that another nonterminal logical
+          # Execution already exists for this agent_id. Process loss does not
+          # make that execution terminal; keep Runtime admission fail-closed
+          # until ACS-15 recovery/reconciliation can establish current lineage.
+          return InitialPreparationResult.new(
+            execution: nil,
+            root: operation.root,
+            runtime_projection: nil,
+            filtered_input: nil,
+            config: operation.config,
+            appended_records: [].freeze,
+            error: translated(error),
+            admission_outcome: :recovery_required
+          )
+        rescue Phronomy::Persistence::ConflictError,
+          Phronomy::Persistence::NotFoundError,
+          Phronomy::Persistence::SerializationError,
+          ArgumentError,
+          Phronomy::ConfigurationError => error
+          return InitialPreparationResult.new(
+            execution: nil,
+            root: operation.root,
+            runtime_projection: nil,
+            filtered_input: nil,
+            config: operation.config,
+            appended_records: [].freeze,
+            error: translated(error),
+            admission_outcome: :not_established
+          )
+        rescue => error
+          return InitialPreparationResult.new(
+            execution: nil,
+            root: operation.root,
+            runtime_projection: nil,
+            filtered_input: nil,
+            config: operation.config,
+            appended_records: [].freeze,
+            error: translated(error),
+            admission_outcome: :outcome_unknown
+          )
+        end
+
+        current_execution = execution
         begin
           effective_config = operation.config
           @agent.send(
@@ -332,7 +423,8 @@ module Phronomy
             filtered_input: filtered_input,
             config: effective_config,
             appended_records: [].freeze,
-            error: nil
+            error: nil,
+            admission_outcome: :active
           )
         rescue => error
           failure = commit_preparation_failure(
@@ -347,7 +439,8 @@ module Phronomy
             filtered_input: nil,
             config: operation.config,
             appended_records: failure.fetch(:appended_records),
-            error: failure.fetch(:error)
+            error: failure.fetch(:error),
+            admission_outcome: :terminal
           )
         end
       end
@@ -459,25 +552,64 @@ module Phronomy
 
       def apply_initial_preparation_on_event_loop(ready)
         request = ready.request
+        event_loop = Phronomy::Runtime.instance.event_loop
         if ready.error
+          event_loop.mark_agent_admission_recovery_required(
+            @agent.agent_id,
+            owner_token: request.admission_token
+          )
           deliver_start_failure_on_event_loop(request, translated(ready.error))
           return
         end
 
         result = ready.result
+        case result.admission_outcome
+        when :not_established
+          event_loop.release_agent_execution_admission(
+            @agent.agent_id,
+            owner_token: request.admission_token
+          )
+          deliver_start_failure_on_event_loop(request, result.error)
+          return
+        when :outcome_unknown, :recovery_required
+          event_loop.mark_agent_admission_recovery_required(
+            @agent.agent_id,
+            owner_token: request.admission_token
+          )
+          deliver_start_failure_on_event_loop(request, result.error)
+          return
+        when :active, :terminal
+          event_loop.bind_agent_execution_admission(
+            @agent.agent_id,
+            owner_token: request.admission_token,
+            execution_id: result.execution.execution_id
+          )
+        else
+          event_loop.mark_agent_admission_recovery_required(
+            @agent.agent_id,
+            owner_token: request.admission_token
+          )
+          raise Phronomy::Error,
+            "unknown initial admission outcome: #{result.admission_outcome.inspect}"
+        end
+
         apply_agent_live_state(
           root: result.root,
           appended_records: result.appended_records
         )
-        if result.error
+        if result.admission_outcome == :terminal
+          event_loop.release_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: result.execution.execution_id
+          )
           deliver_start_failure_on_event_loop(request, result.error)
           return
         end
 
         register_initial_session_on_event_loop(request, result)
       rescue => error
-        # Preparation is already durably active. Terminalize through another
-        # offloaded durable operation rather than mutating durable/live state here.
+        # Preparation may already be durably active. Terminalize through another
+        # offloaded durable operation rather than releasing the admission blindly.
         begin_terminal_without_session_on_event_loop(
           request: request,
           prepared: ready.result,
@@ -720,9 +852,18 @@ module Phronomy
           approval_request_id: request.approval_request_id,
           approved: request.approved
         )
+        resume_transition_started = false
+        submitted = false
+        event_loop.mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: state.execution_id,
+          state: :resuming
+        )
+        resume_transition_started = true
         task = runtime.offload.submit(on_full: :raise) do
           perform_resume_commit(operation)
         end
+        submitted = true
         task.on_complete do |result, error|
           ready = ResumeCommitReady.new(
             coordinator: self,
@@ -735,7 +876,15 @@ module Phronomy
             post_control(runtime, ready)
         end
       rescue => error
+        if resume_transition_started
+          event_loop.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: state.execution_id,
+            state: submitted ? :recovery_required : :suspended
+          )
+        end
         fail_task(request.result_task, translated(error))
+        raise unless resume_transition_started
       end
 
       def perform_resume_commit(operation)
@@ -805,11 +954,21 @@ module Phronomy
         end
 
         if ready.error
+          event_loop.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id,
+            state: :recovery_required
+          )
           fail_task(request.result_task, translated(ready.error))
           return
         end
 
         apply_agent_live_state(root: ready.result.root, appended_records: [])
+        event_loop.mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: operation.execution_id,
+          state: :executing
+        )
         event_loop.replace_agent_execution(
           operation.execution_id,
           execution: ready.result.execution
@@ -996,6 +1155,14 @@ module Phronomy
 
       def submit_terminal_operation(operation, delivery)
         runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
+        terminal_transition_started = false
+        event_loop.mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: operation.execution_id,
+          state: :terminalizing
+        )
+        terminal_transition_started = true
         task = runtime.offload.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. Task/listener delivery state stays outside it.
@@ -1013,7 +1180,18 @@ module Phronomy
             post_control(runtime, ready)
         end
       rescue => error
+        if terminal_transition_started
+          event_loop.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id,
+            state: :recovery_required
+          )
+          fail_task(delivery.result_task, translated(error))
+          return
+        end
+
         fail_task(delivery.result_task, translated(error))
+        raise
       end
 
       def terminal_view(invocation, source_error)
@@ -1323,6 +1501,20 @@ module Phronomy
         end
 
         if ready.error
+          admission_error = nil
+          begin
+            event_loop.mark_agent_execution_admission(
+              @agent.agent_id,
+              execution_id: operation.execution_id,
+              state: :recovery_required
+            )
+          rescue => error
+            # Losing the admission while a durable terminal outcome is unknown
+            # is an Runtime authority violation. Settle the caller with the
+            # original durable error, then fail EventLoop so no competing start
+            # can be accepted from an unproven lineage.
+            admission_error = error
+          end
           callback_error = deliver_terminal(
             delivery.application_listener,
             :error,
@@ -1335,6 +1527,7 @@ module Phronomy
             nil,
             translated(ready.error)
           )
+          raise admission_error if admission_error
           return
         end
 
@@ -1354,6 +1547,11 @@ module Phronomy
 
         case outcome.type
         when :suspended
+          event_loop.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id,
+            state: :suspended
+          )
           dispatch_approval_listener(delivery.approval_listener, outcome.approval_request)
           callback_error = deliver_terminal(
             delivery.application_listener,
@@ -1368,6 +1566,10 @@ module Phronomy
           )
         when :completed
           event_loop.release_agent_execution(operation.execution_id) if state
+          event_loop.release_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id
+          )
           callback_error = deliver_terminal(delivery.application_listener, :done, outcome.result)
           settle_after_terminal(
             delivery.result_task,
@@ -1377,6 +1579,10 @@ module Phronomy
           )
         when :handed_off
           event_loop.release_agent_execution(operation.execution_id) if state
+          event_loop.release_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id
+          )
           result = outcome.result.merge(
             handoff_request: delivery.handoff_request,
             _phronomy_handoff_manifest: delivery.handoff_manifest
@@ -1390,6 +1596,10 @@ module Phronomy
           )
         when :failed
           event_loop.release_agent_execution(operation.execution_id) if state
+          event_loop.release_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: operation.execution_id
+          )
           type = terminal_event_type(outcome.error)
           callback_error = deliver_terminal(
             delivery.application_listener,

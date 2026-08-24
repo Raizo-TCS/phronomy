@@ -375,4 +375,30 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       expect(token.cancelled?).to be true
     end
   end
+
+  describe "#on_cancel without a block" do
+    it "raises ArgumentError when called without a block" do
+      token = described_class.new
+      expect { token.on_cancel }.to raise_error(ArgumentError, /on_cancel requires a block/)
+    end
+
+    it "silently suppresses errors raised by on_cancel callbacks" do
+      token = described_class.new
+      token.on_cancel { raise "callback error" }
+
+      expect { token.cancel! }.not_to raise_error
+    end
+
+    it "logs errors raised by on_cancel callbacks when a logger is configured" do
+      logger = double("logger")
+      allow(logger).to receive(:error)
+      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+
+      token = described_class.new
+      token.on_cancel { raise "callback error" }
+      token.cancel!
+
+      expect(logger).to have_received(:error)
+    end
+  end
 end

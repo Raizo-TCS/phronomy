@@ -40,6 +40,12 @@ module Phronomy
   class EventLoopReentrancyError < Error
   end
 
+  class AgentAlreadyExistsError < Error
+  end
+
+  class AgentPurgedError < Error
+  end
+
   class PoolShutdownError < Error
   end
 

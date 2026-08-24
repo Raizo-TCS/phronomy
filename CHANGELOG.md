@@ -12,6 +12,33 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Process-local Agent ownership and Runtime admission (ACS-12)
+
+#### Added
+
+- ADR-025 defining one mutable live Agent owner per `agent_id` per Runtime and
+  EventLoop-owned same-process top-level execution admission.
+- `Agent::Base.get(agent_id)` for process-local live-owner lookup without
+  Persistence I/O.
+- `AgentAlreadyExistsError` for create/new identity conflicts and
+  `AgentPurgedError` for stale references after successful purge.
+
+#### Changed
+
+- Repeated `Agent.load(agent_id, persistence:)` returns the exact existing live
+  Agent object; a durable-only Agent is hydrated once, and a missing durable
+  Agent remains a strict `Persistence::NotFoundError`.
+- `new` / `create` mean creation only and reject an identity that is already
+  live or already durable instead of materializing a second mutable owner.
+- EventLoop acquires the same-Agent top-level execution slot before initial
+  Offload/Persistence work. Suspension retains that slot; known durable terminal
+  completion releases it; uncertain durable outcomes remain fail-closed.
+- Persistence `executions.create_active` / atomic admission remains the durable
+  second line of integrity defense rather than the primary same-process lock.
+- Runtime-lifetime Agent ownership is released on clean Runtime shutdown.
+  Successful `purge!` is the explicit earlier destruction boundary and makes
+  the stale Agent object permanently unusable before the identity can be reused.
+
 ### EventLoop single-writer Agent Runtime (ACS-11)
 
 #### Added

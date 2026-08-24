@@ -11,6 +11,7 @@ RSpec.describe "Agent-as-Tool blocking-pool independence" do
     )
     runtime_double = instance_double(Phronomy::Runtime, offload: pool)
     allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_double)
+    allow(runtime_double).to receive(:__create_agent).and_yield(runtime_double)
 
     launch_thread_names = []
     child_agent = Class.new do

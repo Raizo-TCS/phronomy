@@ -149,4 +149,19 @@ RSpec.describe "CG-03a Agent execution parent identity" do
     expect(evaluation_section).to include("attr_reader execution_id: String")
     expect(evaluation_section).not_to include("agent_invocation_id")
   end
+
+  it "accepts nil tool_call_id and freezes it safely" do
+    request = Phronomy::Agent::ApprovalEvaluationRequest.new(
+      agent_id: "agent-1",
+      agent_definition_id: "my-agent",
+      agent_definition_version: 1,
+      execution_id: "exec-1",
+      tool_name: "do_thing",
+      tool_schema: {},
+      tool_invocation_id: "inv-1",
+      tool_call_id: nil,
+      arguments: {}
+    )
+    expect(request.tool_call_id).to be_nil
+  end
 end

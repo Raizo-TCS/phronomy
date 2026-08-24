@@ -8,6 +8,7 @@
 - [ADR-021](021-generic-agent-invocation-identity-removal.md) for `InvocationContext` generic session/correlation semantics and Agent-side generic invocation identity
 - [ADR-023](023-fsm-session-incarnation-identity-and-routing.md) for concrete FSMSession incarnation identity and Agent/Tool Runtime routing
 - [ADR-024](024-event-loop-single-writer-agent-runtime.md) for live Agent Runtime ownership, EventLoop single-writer apply, and `AgentExecutionActivation` removal
+- [ADR-025](025-process-local-agent-ownership-and-runtime-admission.md) for one-live-Agent-per-`agent_id` process ownership and same-process top-level execution admission
 
 ---
 
