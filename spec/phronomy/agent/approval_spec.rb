@@ -52,11 +52,16 @@ class ApprovalRequiredReactAgent < Phronomy::Agent::Base
 end
 
 RSpec.describe "Agent approval gate" do
+  after do
+    Phronomy.reset_runtime!
+  rescue
+    nil
+  end
+
   describe "#tool_approval_policy" do
     it "returns self for chaining" do
       agent = ApprovalBaseAgent.new
-      result = agent.tool_approval_policy { :allow }
-      expect(result).to be(agent)
+      expect(agent.tool_approval_policy { :allow }).to be(agent)
     end
 
     it "accepts a block" do
@@ -70,21 +75,21 @@ RSpec.describe "Agent approval gate" do
     end
   end
 
-  describe "#on_tool_approval_required" do
-    it "returns self for chaining" do
-      agent = ApprovalBaseAgent.new
-      result = agent.on_tool_approval_required { |_req| }
-      expect(result).to be(agent)
+  describe "approval notification API" do
+    it "does not expose the removed #on_tool_approval_required registration method" do
+      expect(ApprovalBaseAgent.new).not_to respond_to(:on_tool_approval_required)
     end
 
-    it "accepts a block" do
-      agent = ApprovalBaseAgent.new
-      expect { agent.on_tool_approval_required { |_req| } }.not_to raise_error
+    it "accepts the canonical Agent-incarnation on_event listener" do
+      listener = ->(_event) {}
+      agent = ApprovalBaseAgent.new(on_event: listener)
+      expect(agent).to be_a(ApprovalBaseAgent)
     end
 
-    it "raises ArgumentError when called without a block" do
-      agent = ApprovalBaseAgent.new
-      expect { agent.on_tool_approval_required }.to raise_error(ArgumentError, /block/)
+    it "rejects on_event plus a construction block" do
+      expect {
+        ApprovalBaseAgent.new(on_event: ->(_event) {}) { |_event| }
+      }.to raise_error(ArgumentError, /on_event.*block|block.*on_event/i)
     end
   end
 
@@ -92,47 +97,42 @@ RSpec.describe "Agent approval gate" do
     context "when tool does NOT require approval" do
       it "returns the tool class unchanged when no policy is set" do
         agent = ApprovalBaseAgent.new
-        result = agent.send(:prepare_tool_class, ApprovalTestTool)
-        expect(result).to be(ApprovalTestTool)
+        expect(agent.send(:prepare_tool_class, ApprovalTestTool)).to be(ApprovalTestTool)
       end
 
       it "returns the tool class unchanged even when a policy is registered" do
         agent = ApprovalBaseAgent.new
         agent.tool_approval_policy { :allow }
-        result = agent.send(:prepare_tool_class, ApprovalTestTool)
-        expect(result).to be(ApprovalTestTool)
+        expect(agent.send(:prepare_tool_class, ApprovalTestTool)).to be(ApprovalTestTool)
       end
     end
 
     context "when tool requires approval" do
-      it "returns the tool class unchanged (authorization is handled by ToolInvocation)" do
+      it "returns the tool class unchanged because ToolInvocation owns authorization" do
         agent = ApprovalRequiredBaseAgent.new
-        result = agent.send(:prepare_tool_class, ApprovalRequiredTool)
-        expect(result).to be(ApprovalRequiredTool)
+        expect(agent.send(:prepare_tool_class, ApprovalRequiredTool))
+          .to be(ApprovalRequiredTool)
       end
 
-      it "allows the tool to execute directly (ToolInvocation is the authorization gate)" do
+      it "allows direct Tool execution outside the Agent authorization path" do
         agent = ApprovalRequiredBaseAgent.new
         tool_instance = agent.send(:prepare_tool_class, ApprovalRequiredTool).new
-        output = tool_instance.call({"value" => "hello"})
-        expect(output).to eq("executed: hello")
+        expect(tool_instance.call({"value" => "hello"})).to eq("executed: hello")
       end
     end
 
-    context "when an instantiated tool object is passed (e.g. Phronomy::Tools::Mcp instance)" do
-      it "returns the instance as-is without raising NoMethodError (#383)" do
+    context "when an instantiated tool object is passed" do
+      it "returns the instance as-is" do
         tool_instance = ApprovalTestTool.new
         agent = ApprovalBaseAgent.new
-        result = agent.send(:prepare_tool_class, tool_instance)
-        expect(result).to equal(tool_instance)
+        expect(agent.send(:prepare_tool_class, tool_instance)).to equal(tool_instance)
       end
 
       it "returns the instance unchanged even when a policy is registered" do
         tool_instance = ApprovalTestTool.new
         agent = ApprovalBaseAgent.new
         agent.tool_approval_policy { :allow }
-        result = agent.send(:prepare_tool_class, tool_instance)
-        expect(result).to equal(tool_instance)
+        expect(agent.send(:prepare_tool_class, tool_instance)).to equal(tool_instance)
       end
     end
 
@@ -143,8 +143,7 @@ RSpec.describe "Agent approval gate" do
           model "test-model"
           tools(ApprovalRequiredTool => "aliased_name")
         end
-        agent = aliased_agent_class.new
-        wrapped = agent.send(:prepare_tool_class, ApprovalRequiredTool)
+        wrapped = aliased_agent_class.new.send(:prepare_tool_class, ApprovalRequiredTool)
         expect(wrapped.new.name).to eq("aliased_name")
       end
     end

@@ -21,10 +21,11 @@
       "invoke",
       "invoke_async",
       "journal_projection",
-      "on_tool_approval_required",
       "persistence",
       "purge!",
       "reset_context!",
+      "resolve",
+      "resolve_async",
       "stream",
       "stream_async",
       "tool_approval_policy",
@@ -74,7 +75,9 @@
       "tracer_span",
       "user_id"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::Agent::Context::Capability::Base",
@@ -167,7 +170,9 @@
       "trace",
       "variables"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::MultiAgent::Handoff",
@@ -178,7 +183,9 @@
       "source_agent",
       "target_agent"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::MultiAgent::HandoffPolicy",
@@ -205,7 +212,9 @@
       "invoke",
       "main_agent"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::MultiAgent::Orchestrator",
@@ -233,10 +242,11 @@
       "invoke",
       "invoke_async",
       "journal_projection",
-      "on_tool_approval_required",
       "persistence",
       "purge!",
       "reset_context!",
+      "resolve",
+      "resolve_async",
       "stream",
       "stream_async",
       "subagent",
@@ -303,7 +313,9 @@
     "public_instance_methods": [
       "call"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::Filter::PromptInjectionFilter",
@@ -311,7 +323,9 @@
     "public_instance_methods": [
       "call"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::VectorStore::Base",
@@ -327,7 +341,9 @@
       "search_async",
       "size"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::VectorStore::InMemory",
@@ -343,7 +359,9 @@
       "search_async",
       "size"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::VectorStore::Embeddings::Base",
@@ -352,7 +370,9 @@
       "embed",
       "embed_async"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::Tracing::Base",
@@ -362,7 +382,9 @@
       "start_span",
       "trace"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::Tracing::NullTracer",
@@ -372,7 +394,9 @@
       "start_span",
       "trace"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+
+    ]
   },
   {
     "name": "Phronomy::Tools::Mcp",

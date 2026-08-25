@@ -8,7 +8,15 @@ RSpec.describe "public event-driven API" do
       .to include(:signal)
   end
 
-  it "exposes on_event: on both Agent async APIs" do
+  it "binds Agent events at live materialization rather than async invocation" do
+    create_parameters =
+      Phronomy::Agent::Base
+        .method(:create)
+        .parameters
+    load_parameters =
+      Phronomy::Agent::Base
+        .method(:load)
+        .parameters
     invoke_parameters =
       Phronomy::Agent::Base
         .instance_method(:invoke_async)
@@ -18,8 +26,20 @@ RSpec.describe "public event-driven API" do
         .instance_method(:stream_async)
         .parameters
 
-    expect(invoke_parameters).to include([:key, :on_event])
-    expect(stream_parameters).to include([:key, :on_event])
+    expect(create_parameters).to include([:key, :on_event])
+    expect(load_parameters).to include([:key, :on_event])
+    expect(invoke_parameters).not_to include([:key, :on_event])
+    expect(stream_parameters).not_to include([:key, :on_event])
+  end
+
+  it "exposes Recovery resolution on Agent" do
+    expect(Phronomy::Agent::Base.public_instance_methods)
+      .to include(:resolve, :resolve_async)
+  end
+
+  it "does not expose a generic Recovery resume API" do
+    expect(Phronomy::Agent::Base.public_instance_methods)
+      .not_to include(:recover, :recover_async, :resume_async)
   end
 
   it "exposes action: on Workflow transition definitions" do

@@ -255,7 +255,7 @@ RSpec.describe "Workflow durable admission" do
       .to be_nil
   end
 
-  it "fails closed when terminal save may have committed but its outcome is unknown" do
+  it "reconciles terminal save response loss when authoritative state is the intended post-state" do
     persistence = Phronomy::Persistence::InMemory.new
     repository = persistence.workflow_states
     save_returned = Queue.new
@@ -280,20 +280,11 @@ RSpec.describe "Workflow durable admission" do
     task = workflow.invoke_async({}, config: {workflow_instance_id: "uncertain"})
     expect(save_returned.pop).to eq(1)
 
-    event_loop = Phronomy::Runtime.instance.event_loop
-    eventually { event_loop.workflow_admission_state("uncertain") == :recovery_required }
-
-    # Durable storage did advance, but this Runtime did not receive a known
-    # success. The barrier therefore remains closed and the caller Task is not
-    # falsely settled as success/failure.
+    result = task.wait_result
+    expect(result.value).to eq(1)
     expect(repository.load("uncertain")[:revision]).to eq(1)
-    expect(task.status).to eq(:pending)
-    expect(event_loop.workflow_admission_fsm_session_id("uncertain")).to be_nil
-
-    competitor = workflow.invoke_async({}, config: {workflow_instance_id: "uncertain"})
-    expect { competitor.wait_result }
-      .to raise_error(Phronomy::Error, /live execution segment/)
-    expect(task.status).to eq(:pending)
+    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("uncertain"))
+      .to be_nil
   end
 
   # ---------------------------------------------------------------------------

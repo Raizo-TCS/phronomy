@@ -61,7 +61,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | **Agent live ownership/admission** — Runtime owns one mutable live Agent per `agent_id`; EventLoop rejects competing same-Agent top-level executions while suspension retains the logical execution slot; Persistence admission remains durable defense | Beta |
 | **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from load through terminal save; admission-owner representation remains Runtime-internal and is reconciled separately | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
-| **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
+| **Agent async events** — one Runtime-only `on_event` listener is bound at Agent `new` / `create` / `load`; invoke/stream operations publish through that listener and streaming additionally emits `:token` | Beta |
 | **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |
 | **`stream_callback_error_policy`** — Terminal event callback error policy (`:report` / `:fail_task`) | Beta |
 | **Task completion contract** — `Task` is the common caller-facing completion handle for EventLoop/FSMSession lifecycles and OffloadPool work | Beta |
@@ -83,7 +83,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **SharedState** — Peer-agent shared-state coordination | Experimental |
-| **Human-in-the-loop approval** — Suspension and approval/resume on the same process-local live Agent owner and AgentInvocation, with a fresh FSMSession incarnation on resume | Beta |
+| **Human-in-the-loop approval** — durable suspension publishes `:approval_required` through the Agent listener; `approve` / `approve_async` resumes the same logical `execution_id` with a fresh FSMSession incarnation | Beta |
 | **`tool_approval_policy`** — Application-defined allow/approve/reject policy using a value-only `ApprovalEvaluationRequest` without live Agent/Tool references | Beta |
 
 For Handoff, Application `HandoffPolicy` controls what may cross the Source/Target

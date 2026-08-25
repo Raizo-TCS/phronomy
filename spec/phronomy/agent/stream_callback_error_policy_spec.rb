@@ -10,36 +10,14 @@ RSpec.describe "Agent terminal stream callback error policy" do
       model "gpt-4o-mini"
     end
   end
-  let(:agent) { agent_class.new }
-  let(:event_loop) { double("event_loop", current?: true) }
-  let(:invocation) { double("invocation", id: "invocation-1") }
   let(:result) { {output: "completed", messages: [], usage: nil} }
   let(:logger) { double("logger", warn: nil) }
 
   after do
     Phronomy.reset_configuration!
-  end
-
-  def deferred_result_task(name = "stream-callback-policy-test")
-    Phronomy::Task.deferred(name: name)
-  end
-
-  def handle_completion(
-    invocation:, listener:, event_loop:, callback_error_policy:, result_task: deferred_result_task,
-    error: nil,
-    mode: :stream
-  )
-    agent.send(
-      :_handle_agent_completion,
-      result_task: result_task,
-      invocation: invocation,
-      error: error,
-      mode: mode,
-      listener: listener,
-      event_loop: event_loop,
-      callback_error_policy: callback_error_policy
-    )
-    result_task
+    Phronomy.reset_runtime!
+  rescue
+    nil
   end
 
   describe Phronomy::Configuration do
@@ -49,27 +27,18 @@ RSpec.describe "Agent terminal stream callback error policy" do
 
     it "accepts :report and :fail_task" do
       config = described_class.new
-
       config.stream_callback_error_policy = :report
       expect(config.stream_callback_error_policy).to eq(:report)
-
       config.stream_callback_error_policy = :fail_task
       expect(config.stream_callback_error_policy).to eq(:fail_task)
     end
 
     it "rejects unsupported values" do
       config = described_class.new
-
-      expect do
-        config.stream_callback_error_policy = :raise
-      end.to raise_error(
-        Phronomy::ConfigurationError,
-        /stream_callback_error_policy.*report.*fail_task/
-      )
-
-      expect do
-        config.stream_callback_error_policy = nil
-      end.to raise_error(Phronomy::ConfigurationError)
+      expect { config.stream_callback_error_policy = :raise }
+        .to raise_error(Phronomy::ConfigurationError, /report.*fail_task/)
+      expect { config.stream_callback_error_policy = nil }
+        .to raise_error(Phronomy::ConfigurationError)
     end
   end
 
@@ -81,22 +50,35 @@ RSpec.describe "Agent terminal stream callback error policy" do
         original_error: original_error,
         result: result
       )
-
       expect(wrapped).to be_a(Phronomy::Error)
       expect(wrapped.event_type).to eq(:done)
       expect(wrapped.result).to equal(result)
       expect(wrapped.original_error).to equal(original_error)
-      expect(wrapped.message).to include(":done")
-      expect(wrapped.message).to include("RuntimeError")
-      expect(wrapped.message).to include("callback failed")
+      expect(wrapped.message).to include(":done", "RuntimeError", "callback failed")
     end
   end
 
-  describe "terminal completion handling via real pipeline" do
-    # Streaming agent with a mock LLM that returns a single chunk then completes.
-    let(:streaming_agent) { agent_class.new }
-    let(:fake_tokens) { double("Tok", input: 1, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
-    let(:fake_response) { double("Resp", role: :assistant, content: "completed", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+  describe "terminal completion handling via Agent-incarnation listener" do
+    let(:fake_tokens) do
+      double(
+        "Tok",
+        input: 1,
+        output: 2,
+        cached: 0,
+        cache_creation: 0,
+        to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0}
+      )
+    end
+    let(:fake_response) do
+      double(
+        "Resp",
+        role: :assistant,
+        content: "completed",
+        tool_calls: nil,
+        tokens: fake_tokens,
+        tool_call?: false
+      )
+    end
 
     def build_streaming_chat_for_policy(response)
       dbl = double("Chat")
@@ -108,34 +90,36 @@ RSpec.describe "Agent terminal stream callback error policy" do
       allow(dbl).to receive(:on_tool_call)
       allow(dbl).to receive(:before_tool_call)
       allow(dbl).to receive(:on_tool_result)
-      allow(dbl).to receive(:ask) { |_msg, &blk|
+      allow(dbl).to receive(:ask) do |_msg, &blk|
         blk&.call(double("Chunk", content: "token1"))
         response
-      }
-      allow(dbl).to receive(:complete) { |&blk|
+      end
+      allow(dbl).to receive(:complete) do |&blk|
         blk&.call(double("Chunk", content: "token1"))
         response
-      }
+      end
       dbl
     end
 
     before do
-      allow(RubyLLM).to receive(:chat).and_return(build_streaming_chat_for_policy(fake_response))
+      allow(RubyLLM).to receive(:chat)
+        .and_return(build_streaming_chat_for_policy(fake_response))
       Phronomy.configuration.logger = logger
     end
 
-    it "reports a :done callback failure and preserves the Agent result by default (:report)" do
+    it "reports a :done callback failure and preserves the result under :report" do
       callback_error = RuntimeError.new("websocket disconnected")
       events = []
       expect(logger).to receive(:warn).with(
         include("Stream callback failed", "event=:done", "policy=:report", "websocket disconnected")
       )
-
-      task = streaming_agent.stream_async("hello", on_event: ->(event) {
-        events << event.type
-        raise callback_error if event.type == :done
-      })
-      result = task.wait_result
+      agent = agent_class.new(
+        on_event: ->(event) {
+          events << event.type
+          raise callback_error if event.type == :done
+        }
+      )
+      result = agent.stream_async("hello").wait_result
       expect(result[:output]).to eq("completed")
       expect(events).to include(:done)
     end
@@ -144,12 +128,13 @@ RSpec.describe "Agent terminal stream callback error policy" do
       Phronomy.configuration.stream_callback_error_policy = :fail_task
       callback_error = RuntimeError.new("delivery failed")
       events = []
-
-      task = streaming_agent.stream_async("hello", on_event: ->(event) {
-        events << event.type
-        raise callback_error if event.type == :done
-      })
-
+      agent = agent_class.new(
+        on_event: ->(event) {
+          events << event.type
+          raise callback_error if event.type == :done
+        }
+      )
+      task = agent.stream_async("hello")
       expect { task.wait_result }.to raise_error(Phronomy::StreamCallbackError) { |error|
         expect(error.event_type).to eq(:done)
         expect(error.original_error).to equal(callback_error)
@@ -159,24 +144,25 @@ RSpec.describe "Agent terminal stream callback error policy" do
     end
 
     it "keeps the original Agent error when the :error callback also fails" do
-      # Simulate an LLM failure by making ask raise.
-      allow(RubyLLM).to receive(:chat).and_return(
-        build_streaming_chat_for_policy(fake_response).tap do |dbl|
-          allow(dbl).to receive(:ask).and_raise(Phronomy::TransportError, "provider failed")
-        end
-      )
+      bad_chat = build_streaming_chat_for_policy(fake_response)
+      allow(bad_chat).to receive(:ask)
+        .and_raise(Phronomy::TransportError, "provider failed")
+      allow(bad_chat).to receive(:complete)
+        .and_raise(Phronomy::TransportError, "provider failed")
+      allow(RubyLLM).to receive(:chat).and_return(bad_chat)
 
       callback_error = RuntimeError.new("error sink failed")
       expect(logger).to receive(:warn).with(include("event=:error"))
-
-      task = streaming_agent.stream_async("hello", on_event: ->(event) {
-        raise callback_error if event.type == :error
-      })
-
-      expect { task.wait_result }.to raise_error(Phronomy::TransportError, "provider failed")
+      agent = agent_class.new(
+        on_event: ->(event) {
+          raise callback_error if event.type == :error
+        }
+      )
+      expect { agent.stream_async("hello").wait_result }
+        .to raise_error(Phronomy::TransportError, "provider failed")
     end
 
-    it "uses Kernel.warn as a fallback when the configured logger fails" do
+    it "uses Kernel.warn as fallback when the configured logger fails" do
       failing_logger = double("failing_logger")
       allow(failing_logger).to receive(:warn).and_raise("logger failed")
       Phronomy.configuration.logger = failing_logger
@@ -184,54 +170,22 @@ RSpec.describe "Agent terminal stream callback error policy" do
       expect(Kernel).to receive(:warn).with(
         include("Logger failed while reporting a stream callback error")
       )
-
-      task = streaming_agent.stream_async("hello", on_event: ->(event) {
-        raise "callback failed" if event.type == :done
-      })
-      task.wait_result
-    end
-  end
-
-  describe "public async entry points" do
-    let(:streaming_agent) { agent_class.new }
-    let(:fake_tokens) { double("Tok2", input: 1, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
-    let(:fake_response) { double("Resp2", role: :assistant, content: "completed", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
-
-    def build_streaming_chat_for_entry(response)
-      dbl = double("Chat2")
-      allow(dbl).to receive(:with_instructions).and_return(dbl)
-      allow(dbl).to receive(:with_tool).and_return(dbl)
-      allow(dbl).to receive(:with_temperature).and_return(dbl)
-      allow(dbl).to receive(:messages).and_return([response])
-      allow(dbl).to receive(:cancellation_token=)
-      allow(dbl).to receive(:on_tool_call)
-      allow(dbl).to receive(:before_tool_call)
-      allow(dbl).to receive(:on_tool_result)
-      allow(dbl).to receive(:ask) { |_msg, &blk|
-        blk&.call(double("Chunk2", content: "token"))
-        response
-      }
-      allow(dbl).to receive(:complete) { |&blk|
-        blk&.call(double("Chunk2", content: "token"))
-        response
-      }
-      dbl
+      agent = agent_class.new(
+        on_event: ->(event) {
+          raise "callback failed" if event.type == :done
+        }
+      )
+      expect(agent.stream_async("hello").wait_result[:output]).to eq("completed")
     end
 
-    before { allow(RubyLLM).to receive(:chat).and_return(build_streaming_chat_for_entry(fake_response)) }
-
-    it "applies :fail_task for the initial stream execution" do
-      Phronomy.configuration.stream_callback_error_policy = :fail_task
-      callback_error = RuntimeError.new("terminal consumer failed")
-
-      task = streaming_agent.stream_async("hello") do |event|
-        raise callback_error if event.type == :done
-      end
-
-      expect { task.wait_result }.to raise_error(Phronomy::StreamCallbackError) { |error|
-        expect(error.original_error).to equal(callback_error)
-        expect(error.event_type).to eq(:done)
-      }
+    it "rejects the removed per-invocation stream listener" do
+      agent = agent_class.new(on_event: ->(_event) {})
+      expect {
+        agent.stream_async("hello", on_event: ->(_event) {})
+      }.to raise_error(ArgumentError, /removed per-invocation/)
+      expect {
+        agent.stream_async("hello") { |_event| }
+      }.to raise_error(ArgumentError, /no longer register Agent events/)
     end
   end
 end

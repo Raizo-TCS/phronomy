@@ -1,15 +1,9 @@
 module Phronomy
   module Agent
-    # Callable contract for all three Stable before_llm_input registration
-    # tiers. This is a typed representation of the existing runtime contract;
-    # it does not define hook execution placement inside Runtime/Persistence.
     interface _BeforeLLMInputHook
       def call: (LLMInputBuildContext context) -> LLMInputPatch?
     end
 
-    # Current Stable before_llm_input patch value. These two readers represent
-    # the current v1 capability, not a permanent ceiling on future Phronomy-
-    # owned input customization representations.
     class LLMInputPatch
       attr_reader model_config_patch: Hash[untyped, untyped]?
       attr_reader segment_candidates: Array[untyped]?
@@ -18,9 +12,6 @@ module Phronomy
       def self.empty: () -> LLMInputPatch
     end
 
-    # Immutable metadata supplied to before_llm_input. The Stable surface is
-    # metadata-only: it intentionally contains no live Agent, RubyLLM::Chat,
-    # Persistence, EventLoop, or other Runtime-private object.
     class LLMInputBuildContext
       attr_reader agent_id: String
       attr_reader agent_definition_id: String
@@ -31,7 +22,6 @@ module Phronomy
       def initialize: (agent_id: String, agent_definition_id: String, agent_definition_version: Integer, ?config: Hash[untyped, untyped], call_sequence: Integer) -> void
     end
 
-    # Application-facing notification for a suspended Tool batch.
     class ToolApprovalRequest
       class Item
         attr_reader tool_invocation_id: String
@@ -44,6 +34,7 @@ module Phronomy
         attr_reader metadata: Hash[untyped, untyped]
 
         def initialize: (tool_invocation_id: String, tool_call_id: String?, tool_name: String, arguments: Hash[untyped, untyped], facts: Hash[untyped, untyped], reason: String?, origin: Symbol, metadata: Hash[untyped, untyped]) -> void
+        def self.from_h: (Hash[untyped, untyped]) -> Item
         def to_h: () -> Hash[Symbol, untyped]
       end
 
@@ -53,11 +44,10 @@ module Phronomy
       attr_reader created_at: untyped
 
       def initialize: (execution_id: String, items: Array[Item], ?id: String, ?created_at: untyped) -> void
+      def self.from_h: (Hash[untyped, untyped]) -> ToolApprovalRequest
       def to_h: () -> Hash[Symbol, untyped]
     end
 
-    # Application policy input for one Tool authorization decision.
-    # This is a value-only worker-boundary contract: no live Agent or Tool object.
     class ApprovalEvaluationRequest
       attr_reader agent_id: String
       attr_reader agent_definition_id: String
@@ -92,19 +82,36 @@ module Phronomy
       def self.agent_definition: () -> Hash[Symbol, untyped]
                                | (version: Integer, ?id: String?) -> Hash[Symbol, untyped]
       def self.before_llm_input: (?_BeforeLLMInputHook callable) ?{ (LLMInputBuildContext context) -> LLMInputPatch? } -> _BeforeLLMInputHook?
-      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped]) -> instance
-      def self.load: (String agent_id, persistence: Persistence) -> instance
+
+      # on_event is bound once to the live Agent Runtime incarnation. The block
+      # is an alternative spelling of on_event; supplying both is an error.
+      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
+      def self.load: (String agent_id, persistence: Persistence, ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
       def self.get: (String agent_id) -> instance?
       def self.live_for_execution: (String execution_id) -> instance
+
+      def initialize: (?agent_id: String?, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> void
 
       attr_reader agent_id: String
       attr_reader persistence: Persistence
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
-      def invoke: (untyped input, **untyped) -> Hash[Symbol, untyped]
-      def invoke_async: (untyped input, **untyped) -> Task[Hash[Symbol, untyped]]
-      def stream: (untyped input, **untyped) { (untyped event) -> void } -> Hash[Symbol, untyped]
-      def stream_async: (untyped input, **untyped) -> Task[Hash[Symbol, untyped]]
+      # Public operation methods no longer accept per-invocation event listeners
+      # or event-listener blocks.
+      def invoke: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Hash[Symbol, untyped]
+      def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Task[Hash[Symbol, untyped]]
+      def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Hash[Symbol, untyped]
+      def stream_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Task[Hash[Symbol, untyped]]
+
+      def approve: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> untyped
+      def approve_async: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> Task[untyped]
+
+      # Resolves a factual Recovery ambiguity. result: is meaningful for
+      # :succeeded; error: is required for :failed; neither is used by
+      # :not_performed.
+      def resolve: (String execution_id, expected_execution_revision: Integer, subject: Hash[Symbol, untyped], outcome: Symbol, ?result: untyped, ?error: Exception) -> untyped
+      def resolve_async: (String execution_id, expected_execution_revision: Integer, subject: Hash[Symbol, untyped], outcome: Symbol, ?result: untyped, ?error: Exception) -> Task[untyped]
+
       def transcript: () -> Array[untyped]
       def add_knowledge: (untyped content, ?metadata: Hash[untyped, untyped]) -> self
       def clear_transcript!: () -> untyped

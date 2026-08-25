@@ -15,6 +15,19 @@ module Phronomy
           freeze
         end
 
+        def self.from_h(hash)
+          source = hash.to_h { |key, value| [key.to_s, value] }
+          new(
+            position: Integer(source.fetch("position")),
+            category: source.fetch("category").to_sym,
+            role: source["role"]&.to_sym,
+            content_ref: source.fetch("content_ref").to_s,
+            delivery: source.fetch("delivery").to_sym,
+            tool_call_id: source["tool_call_id"]&.to_s,
+            metadata: source["metadata"] || {}
+          )
+        end
+
         def to_h
           {
             "position" => position,
@@ -61,6 +74,31 @@ module Phronomy
         freeze
       end
 
+      # Exact v1 decoder for restart hydration. Unsupported schema versions fail
+      # closed; long-term schema migration policy belongs outside ACS-15.
+      def self.from_h(hash)
+        source = hash.to_h { |key, value| [key.to_s, value] }
+        version = Integer(source.fetch("version"))
+        unless version == VERSION
+          raise Phronomy::ConfigurationError,
+            "unsupported LLMInputManifest version: #{version}; supported version is #{VERSION}"
+        end
+
+        new(
+          version: version,
+          call_sequence: source.fetch("call_sequence"),
+          call_mode: source.fetch("call_mode"),
+          assembly_policy_version: source.fetch("assembly_policy_version", 1),
+          segments: Array(source.fetch("segments")).map { |segment| Segment.from_h(segment) },
+          model_config_ref: source.fetch("model_config_ref"),
+          tool_definitions_ref: source["tool_definitions_ref"],
+          response_schema_ref: source["response_schema_ref"],
+          ruby_llm_version: source["ruby_llm_version"],
+          adapter_name: source["adapter_name"],
+          adapter_version: source["adapter_version"]
+        )
+      end
+
       def referenced_content_refs
         ([model_config_ref, tool_definitions_ref, response_schema_ref] +
           segments.map(&:content_ref)).compact.uniq.freeze
@@ -85,6 +123,10 @@ module Phronomy
       private
 
       def validate!
+        unless version == VERSION
+          raise Phronomy::ConfigurationError,
+            "unsupported LLMInputManifest version: #{version}; supported version is #{VERSION}"
+        end
         raise ArgumentError, "invalid manifest call mode: #{call_mode.inspect}" unless CALL_MODES.include?(call_mode)
         raise ArgumentError, "call_sequence must be positive" unless call_sequence.positive?
         expected = (0...segments.length).to_a

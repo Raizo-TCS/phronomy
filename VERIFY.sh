@@ -370,13 +370,36 @@ fi
 
 python3 - <<'PY'
 import pathlib, re
+
+def fsm_new_has_id_kwarg(text):
+    """Return True only if FSMSession.new(...) itself has an id: keyword argument."""
+    pos = 0
+    while True:
+        m = re.search(r'FSMSession\.new\(', text[pos:])
+        if not m:
+            return False
+        start = pos + m.end()
+        depth = 1
+        i = start
+        while i < len(text) and depth > 0:
+            if text[i] == '(':
+                depth += 1
+            elif text[i] == ')':
+                depth -= 1
+            i += 1
+        call_args = text[start:i - 1]
+        if re.search(r'\bid\s*:', call_args):
+            return True
+        pos = pos + m.end()
+    return False
+
 for rel in [
     "lib/phronomy/agent/agent_invocation_session_builder.rb",
     "lib/phronomy/agent/tool_invocation_session_builder.rb",
     "lib/phronomy/multi_agent/fan_out_session_builder.rb",
 ]:
     text = pathlib.Path(rel).read_text()
-    if re.search(r"FSMSession\.new\(.*?\bid\s*:", text, re.S):
+    if fsm_new_has_id_kwarg(text):
         raise SystemExit(f"FAIL: {rel} still injects a domain/context ID as FSMSession id")
 
 workflow = pathlib.Path("lib/phronomy/workflow_runner.rb").read_text()

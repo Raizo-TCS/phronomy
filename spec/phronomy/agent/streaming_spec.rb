@@ -2,9 +2,6 @@
 
 require "spec_helper"
 
-# ---------------------------------------------------------------------------
-# Test agents
-# ---------------------------------------------------------------------------
 class StreamingBasicAgent < Phronomy::Agent::Base
   agent_definition id: "streaming-basic-agent", version: 1
   model "test-model"
@@ -17,12 +14,28 @@ class StreamingReactAgent < Phronomy::Agent::Base
   instructions "You are a helpful assistant."
 end
 
-# ---------------------------------------------------------------------------
 RSpec.describe "Agent streaming" do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
-  let(:fake_response) { double("Response", role: :assistant, content: "Hello, world!", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+  let(:fake_tokens) do
+    double(
+      "Tokens",
+      input: 10,
+      output: 5,
+      cached: 0,
+      cache_creation: 0,
+      to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}
+    )
+  end
+  let(:fake_response) do
+    double(
+      "Response",
+      role: :assistant,
+      content: "Hello, world!",
+      tool_calls: nil,
+      tokens: fake_tokens,
+      tool_call?: false
+    )
+  end
 
-  # Build a chat double that supports streaming callbacks
   def build_streaming_chat(response)
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
@@ -44,11 +57,23 @@ RSpec.describe "Agent streaming" do
     dbl
   end
 
+  def event_agent(klass = StreamingBasicAgent, events: [])
+    [
+      klass.new(on_event: ->(event) { events << event }),
+      events
+    ]
+  end
+
   before do
     allow(RubyLLM).to receive(:chat).and_return(build_streaming_chat(fake_response))
   end
 
-  # -------------------------------------------------------------------------
+  after do
+    Phronomy.reset_runtime!
+  rescue
+    nil
+  end
+
   describe Phronomy::Agent::StreamEvent do
     it "is a Data type with :type and :payload attributes" do
       event = described_class.new(type: :token, payload: {content: "hi"})
@@ -62,38 +87,44 @@ RSpec.describe "Agent streaming" do
     end
   end
 
-  # -------------------------------------------------------------------------
   describe Phronomy::Agent::Base, "#stream" do
-    subject(:agent) { StreamingBasicAgent.new }
-
-    it "yields :token events for each LLM chunk" do
-      events = []
-      agent.stream("Hello") { |e| events << e }
-      token_events = events.select { |e| e.type == :token }
+    it "publishes :token events through the Agent-incarnation listener" do
+      agent, events = event_agent
+      agent.stream("Hello")
+      token_events = events.select { |event| event.type == :token }
       expect(token_events).not_to be_empty
       expect(token_events.first.payload[:content]).to be_a(String)
     end
 
-    it "yields a :done event as the final event" do
-      events = []
-      agent.stream("Hello") { |e| events << e }
+    it "publishes :done as the final event" do
+      agent, events = event_agent
+      agent.stream("Hello")
       expect(events.last.type).to eq(:done)
     end
 
     it "includes output in the :done payload" do
-      done_payload = nil
-      agent.stream("Hello") { |e| done_payload = e.payload if e.type == :done }
-      expect(done_payload[:output]).to eq("Hello, world!")
+      agent, events = event_agent
+      agent.stream("Hello")
+      done = events.find { |event| event.type == :done }
+      expect(done.payload[:output]).to eq("Hello, world!")
     end
 
-    it "returns the same hash as #invoke" do
-      result = agent.stream("Hello") { |_e| }
+    it "returns the same result shape as #invoke" do
+      agent, = event_agent
+      result = agent.stream("Hello")
       expect(result).to include(:output, :messages, :usage)
       expect(result[:output]).to eq("Hello, world!")
     end
 
-    it "raises ArgumentError when no block is given" do
-      expect { agent.stream("Hello") }.to raise_error(ArgumentError, /block/)
+    it "requires an Agent-incarnation listener" do
+      expect { StreamingBasicAgent.new.stream("Hello") }
+        .to raise_error(ArgumentError, /Agent on_event listener/)
+    end
+
+    it "rejects the removed per-invocation stream block" do
+      agent, = event_agent
+      expect { agent.stream("Hello") { |_event| } }
+        .to raise_error(ArgumentError, /no longer register Agent events/)
     end
 
     context "when an error occurs" do
@@ -106,55 +137,39 @@ RSpec.describe "Agent streaming" do
         allow(bad_chat).to receive(:on_tool_call)
         allow(bad_chat).to receive(:before_tool_call)
         allow(bad_chat).to receive(:on_tool_result)
+        allow(bad_chat).to receive(:messages).and_return([])
         allow(bad_chat).to receive(:ask).and_raise(RuntimeError, "LLM exploded")
+        allow(bad_chat).to receive(:complete).and_raise(RuntimeError, "LLM exploded")
         allow(RubyLLM).to receive(:chat).and_return(bad_chat)
       end
 
-      it "yields an :error event before re-raising" do
-        events = []
-        expect do
-          agent.stream("boom") { |e| events << e }
-        end.to raise_error(RuntimeError, "LLM exploded")
-        expect(events.map(&:type)).to include(:error)
-        expect(events.find { |e| e.type == :error }.payload[:error]).to be_a(RuntimeError)
+      it "publishes :error before re-raising" do
+        agent, events = event_agent
+        expect { agent.stream("boom") }
+          .to raise_error(RuntimeError, "LLM exploded")
+        error_event = events.find { |event| event.type == :error }
+        expect(error_event).not_to be_nil
+        expect(error_event.payload[:error]).to be_a(RuntimeError)
       end
     end
   end
 
-  # -------------------------------------------------------------------------
-  describe Phronomy::Agent::Base, "#stream (via StreamingReactAgent)" do
-    subject(:agent) { StreamingReactAgent.new }
-
-    it "yields :token events" do
-      events = []
-      agent.stream("What is 2+2?") { |e| events << e }
-      expect(events.any? { |e| e.type == :token }).to be(true)
-    end
-
-    it "yields a :done event last" do
-      events = []
-      agent.stream("What is 2+2?") { |e| events << e }
+  describe Phronomy::Agent::Base, "#stream via StreamingReactAgent" do
+    it "publishes :token and final :done events" do
+      agent, events = event_agent(StreamingReactAgent)
+      result = agent.stream("What is 2+2?")
+      expect(events.any? { |event| event.type == :token }).to be(true)
       expect(events.last.type).to eq(:done)
-    end
-
-    it "returns a hash with :output" do
-      result = agent.stream("What is 2+2?") { |_e| }
       expect(result[:output]).to be_a(String)
     end
 
-    it "raises ArgumentError when no block given" do
-      expect { agent.stream("What is 2+2?") }.to raise_error(ArgumentError, /block/)
+    it "requires an Agent-incarnation listener" do
+      expect { StreamingReactAgent.new.stream("What is 2+2?") }
+        .to raise_error(ArgumentError, /Agent on_event listener/)
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Regression tests for issue #40:
-  # Agent::Base#stream must produce a trace span.
-  # Before the fix, the stream method did not call trace(), so streaming
-  # invocations produced no span in Langfuse / OpenTelemetry.
-  # ---------------------------------------------------------------------------
   describe "stream produces a trace span (issue #40)" do
-    # A minimal tracer that records every start_span call.
     let(:recording_tracer) do
       Class.new(Phronomy::Tracing::Base) do
         attr_reader :spans
@@ -169,8 +184,8 @@ RSpec.describe "Agent streaming" do
           span
         end
 
-        def finish_span(span, output: nil, usage: nil, error: nil)
-          # no-op
+        def finish_span(_span, output: nil, usage: nil, error: nil)
+          nil
         end
       end.new
     end
@@ -182,23 +197,11 @@ RSpec.describe "Agent streaming" do
       Phronomy.configure { |c| c.tracer = original }
     end
 
-    context "Agent::Base#stream" do
-      subject(:agent) { StreamingBasicAgent.new }
-
-      it "creates a span named 'agent.stream'" do
-        agent.stream("hello") { |_e| }
-        span_names = recording_tracer.spans.map { |s| s[:name] }
-        expect(span_names).to include("agent.stream")
-      end
-    end
-
-    context "Agent::Base#stream (via StreamingReactAgent)" do
-      subject(:agent) { StreamingReactAgent.new }
-
-      it "creates a span named 'agent.stream'" do
-        agent.stream("hello") { |_e| }
-        span_names = recording_tracer.spans.map { |s| s[:name] }
-        expect(span_names).to include("agent.stream")
+    [StreamingBasicAgent, StreamingReactAgent].each do |klass|
+      it "creates a span named agent.stream for #{klass}" do
+        klass.new(on_event: ->(_event) {}).stream("hello")
+        expect(recording_tracer.spans.map { |span| span[:name] })
+          .to include("agent.stream")
       end
     end
   end

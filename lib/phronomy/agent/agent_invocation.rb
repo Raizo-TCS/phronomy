@@ -143,8 +143,25 @@ module Phronomy
             "cannot start a Provider Call while another Provider Call is active"
         end
 
+        durable_id = llm_call_id
+        if durable_id.nil? &&
+            Phronomy::Runtime.instance.event_loop.current?
+          state =
+            Phronomy::Runtime.instance.event_loop.agent_execution_state(
+              execution_id
+            )
+          durable_id = state&.execution&.metadata&.fetch(
+            RecoverySupport::PENDING_LLM_ID_KEY,
+            nil
+          )
+        end
+        unless durable_id
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "Provider Call semantic identity was not durably established before dispatch"
+        end
+
         @current_llm_call = {
-          llm_call_id: (llm_call_id || SecureRandom.uuid).to_s.freeze,
+          llm_call_id: durable_id.to_s.freeze,
           manifest_ref: projection.manifest_ref.to_s.freeze,
           started_at: Time.now.utc.iso8601(6).freeze
         }.freeze
