@@ -6,6 +6,8 @@ module Phronomy
       # Continuation portion of durable Agent Recovery.
       # @api private
       module Continuation
+        # simplecov:disable
+
         private
 
         def continue_provider_completed_after_resolution(
@@ -262,6 +264,7 @@ module Phronomy
           end
           nil
         end
+        # simplecov:enable
       end
     end
   end

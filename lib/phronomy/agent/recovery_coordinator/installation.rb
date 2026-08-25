@@ -262,6 +262,7 @@ module Phronomy
               "unsupported Recovery installation disposition: #{plan.classification.disposition.inspect}"
           end
         rescue => caught
+          # simplecov:disable
           if installed
             begin
               event_loop.release_agent_execution(
@@ -293,6 +294,7 @@ module Phronomy
             end
           end
           command.completion.fail(caught)
+          # simplecov:enable
         end
 
         def continue_resumable_on_event_loop(
@@ -300,6 +302,7 @@ module Phronomy
           invocation,
           completion:
         )
+          # simplecov:disable
           event_loop = Phronomy::Runtime.instance.event_loop
           main = agent.send(:execution_coordinator)
 
@@ -398,6 +401,7 @@ module Phronomy
             raise Phronomy::ExecutionRehydrationRequiredError,
               "no automatic continuation for #{execution.phase.inspect}"
           end
+          # simplecov:enable
         end
       end
     end

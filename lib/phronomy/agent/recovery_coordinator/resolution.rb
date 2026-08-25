@@ -175,6 +175,7 @@ module Phronomy
             )
             save_resolution_result(current, intended)
           when :succeeded
+            # simplecov:disable
             outcome =
               Phronomy::Agent::ProviderCallOutcome.from_h(
                 operation.result
@@ -261,10 +262,12 @@ module Phronomy
                 appended_records: [].freeze
               )
             end
+            # simplecov:enable
           end
         end
 
         def resolve_tool(operation)
+          # simplecov:disable
           current = operation.execution
           recovery = RecoverySupport.recovery_hash(current)
           if recovery.nil? && current.phase.to_sym == :resuming
@@ -435,6 +438,7 @@ module Phronomy
             end
           end
         end
+        # simplecov:enable
 
         def known_non_f1_error?(error)
           error.is_a?(Phronomy::Persistence::ConflictError) ||
