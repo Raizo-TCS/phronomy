@@ -55,6 +55,7 @@ module Phronomy
       normalized = normalize_outcome(outcome)
       case normalized
       when :succeeded
+        raise ArgumentError, "Recovery :succeeded requires result:" unless result_present
         raise ArgumentError, "Recovery :succeeded forbids error:" if error_present
       when :failed
         raise ArgumentError, "Recovery :failed requires error:" unless error_present

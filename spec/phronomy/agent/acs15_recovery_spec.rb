@@ -143,6 +143,14 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
 
       expect {
         described_class.validate_resolution_material!(
+          outcome: :succeeded,
+          result_present: false,
+          error_present: false
+        )
+      }.to raise_error(ArgumentError, /requires result/)
+
+      expect {
+        described_class.validate_resolution_material!(
           outcome: :failed,
           result_present: false,
           error_present: false

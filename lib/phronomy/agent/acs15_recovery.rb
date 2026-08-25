@@ -2064,22 +2064,11 @@ module Phronomy
         manifest_ref = execution.metadata.fetch(
           "manifest_ref"
         )
-        manifest, projection =
+        _manifest, projection =
           ACS15RecoverySupport.materialize_projection(
             agent,
             manifest_ref
           )
-        base_ref = execution.metadata[
-          "base_manifest_ref"
-        ] || manifest_ref
-        _base_manifest = if base_ref.to_s == manifest_ref.to_s
-          manifest
-        else
-          ACS15RecoverySupport.manifest_from_ref(
-            agent,
-            base_ref
-          )
-        end
         main = agent.send(:execution_coordinator)
         invocation =
           ACS15RecoverySupport.build_chat_for_recovery(
