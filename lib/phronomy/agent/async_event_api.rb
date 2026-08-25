@@ -2,24 +2,32 @@
 
 module Phronomy
   module Agent
+    # Public Agent execution facade.
+    #
+    # CG-09 clean break:
+    # - application event listeners are bound to the live Agent incarnation at
+    #   new/create/load time;
+    # - invoke/invoke_async/stream/stream_async do not accept per-call event
+    #   listeners or listener blocks;
+    # - approval notifications share the Agent listener as :approval_required;
+    # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
       def invoke(
         input,
         config: {},
         invocation_context: nil,
-        on_tool_approval_required: nil,
-        on_event: nil,
-        &block
+        **removed_options,
+        &removed_block
       )
-        listener = resolve_event_listener(on_event, block)
+        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
         config = _prepare_invocation_config(config, invocation_context)
         _check_event_loop_reentrancy(:invoke, :invoke_async)
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          result = invoke_async(
+          result = _start_agent_operation(
             input,
             config: config,
-            on_tool_approval_required: on_tool_approval_required,
-            on_event: listener
+            mode: :invoke,
+            listener: _phronomy_event_listener
           ).wait_result
           [result, result[:usage]]
         end
@@ -29,20 +37,16 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
-        on_tool_approval_required: nil,
-        on_event: nil,
-        &block
+        **removed_options,
+        &removed_block
       )
-        listener = resolve_event_listener(on_event, block)
+        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
         config = _prepare_invocation_config(config, invocation_context)
-        approval = _approval_configuration_snapshot(on_tool_approval_required)
-        execution_coordinator_for(config).start(
+        _start_agent_operation(
           input,
           config: config,
           mode: :invoke,
-          approval_policy: approval[:policy],
-          approval_listener: approval[:listener],
-          on_event: listener
+          listener: _phronomy_event_listener
         )
       end
 
@@ -50,20 +54,19 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
-        on_tool_approval_required: nil,
-        on_event: nil,
-        &block
+        **removed_options,
+        &removed_block
       )
-        listener = resolve_event_listener(on_event, block)
-        raise ArgumentError, "stream requires on_event: or a block" unless listener
+        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
+        listener = _required_stream_listener!(:stream)
         config = _prepare_invocation_config(config, invocation_context)
         _check_event_loop_reentrancy(:stream, :stream_async)
         trace("agent.stream", input: input, **_build_caller_meta(config)) do |_span|
-          result = stream_async(
+          result = _start_agent_operation(
             input,
             config: config,
-            on_tool_approval_required: on_tool_approval_required,
-            on_event: listener
+            mode: :stream,
+            listener: listener
           ).wait_result
           [result, result[:usage]]
         end
@@ -73,21 +76,17 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
-        on_tool_approval_required: nil,
-        on_event: nil,
-        &block
+        **removed_options,
+        &removed_block
       )
-        listener = resolve_event_listener(on_event, block)
-        raise ArgumentError, "stream_async requires on_event: or a block" unless listener
+        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
+        listener = _required_stream_listener!(:stream_async)
         config = _prepare_invocation_config(config, invocation_context)
-        approval = _approval_configuration_snapshot(on_tool_approval_required)
-        execution_coordinator_for(config).start(
+        _start_agent_operation(
           input,
           config: config,
           mode: :stream,
-          approval_policy: approval[:policy],
-          approval_listener: approval[:listener],
-          on_event: listener
+          listener: listener
         )
       end
 
@@ -117,7 +116,94 @@ module Phronomy
         )
       end
 
+      def resolve(
+        execution_id,
+        expected_execution_revision:,
+        subject:,
+        outcome:,
+        result: Phronomy::Recovery::MISSING,
+        error: Phronomy::Recovery::MISSING
+      )
+        _check_event_loop_reentrancy(:resolve, :resolve_async)
+        resolve_async(
+          execution_id,
+          expected_execution_revision: expected_execution_revision,
+          subject: subject,
+          outcome: outcome,
+          result: result,
+          error: error
+        ).wait_result
+      end
+
+      def resolve_async(
+        execution_id,
+        expected_execution_revision:,
+        subject:,
+        outcome:,
+        result: Phronomy::Recovery::MISSING,
+        error: Phronomy::Recovery::MISSING
+      )
+        Phronomy::Agent::RecoveryCoordinator.new(self).resolve(
+          execution_id,
+          expected_execution_revision: expected_execution_revision,
+          subject: subject,
+          outcome: outcome,
+          result: result,
+          error: error
+        )
+      end
+
       private
+
+      # Framework-private execution-local event routing. This is intentionally
+      # not a public compatibility path for invoke_async(..., on_event:).
+      def __invoke_async_with_event_sink(
+        input,
+        on_event:, config: {},
+        invocation_context: nil
+      )
+        raise ArgumentError, "on_event is required" unless on_event
+
+        config = _prepare_invocation_config(config, invocation_context)
+        _start_agent_operation(
+          input,
+          config: config,
+          mode: :invoke,
+          listener: on_event
+        )
+      end
+
+      def _start_agent_operation(input, config:, mode:, listener:)
+        approval = _approval_configuration_snapshot(nil)
+        execution_coordinator_for(config).start(
+          input,
+          config: config.merge(phronomy_recovery_mode: mode.to_sym),
+          mode: mode,
+          approval_policy: approval[:policy],
+          approval_listener: nil,
+          on_event: listener
+        )
+      end
+
+      def _required_stream_listener!(method_name)
+        listener = _phronomy_event_listener
+        return listener if listener
+
+        raise ArgumentError,
+          "#{method_name} requires an Agent on_event listener registered at new/create/load"
+      end
+
+      def _reject_removed_invocation_listener_arguments!(options, block)
+        if block
+          raise ArgumentError,
+            "invoke/stream blocks no longer register Agent events; register the listener at new/create/load"
+        end
+        return if options.empty?
+
+        removed = options.keys.map(&:inspect).join(", ")
+        raise ArgumentError,
+          "removed per-invocation Agent option(s): #{removed}; register on_event at new/create/load"
+      end
 
       def execution_coordinator
         @execution_coordinator ||= Agent::ExecutionCoordinator.new(self)
@@ -130,13 +216,6 @@ module Phronomy
 
         @multi_agent_execution_coordinator ||=
           Phronomy::MultiAgent::ExecutionCoordinator.new(self)
-      end
-
-      def resolve_event_listener(keyword_listener, block_listener)
-        if keyword_listener && block_listener
-          raise ArgumentError, "Provide either on_event: or a block, not both"
-        end
-        keyword_listener || block_listener
       end
     end
   end

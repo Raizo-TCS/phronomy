@@ -231,12 +231,12 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       end
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
-      agent = ACS16TerminalBarrierAgent.new(persistence: persistence)
       events = Queue.new
-      task = agent.invoke_async(
-        "finish normally",
+      agent = ACS16TerminalBarrierAgent.new(
+        persistence: persistence,
         on_event: ->(event) { events << event.type }
       )
+      task = agent.invoke_async("finish normally")
 
       expect { task.wait_result(timeout: 0.1) }
         .to raise_error(Phronomy::TimeoutError)
@@ -268,20 +268,18 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
   # ---------------------------------------------------------------------------
   describe "terminal delivery edge cases" do
     it "propagates execution_error through settle_after_terminal when start fails for a closed agent" do
-      agent = ACS16TerminalBarrierAgent.new
-
-      # A closed agent causes begin_start_on_event_loop to call
-      # deliver_start_failure_on_event_loop with a non-nil on_event that raises,
-      # exercising the callback_error branch of settle_after_terminal.
-      agent.send(:close!)
       raised_in_callback = Queue.new
-      task = agent.invoke_async(
-        "closed agent invoke",
+      agent = ACS16TerminalBarrierAgent.new(
         on_event: ->(event) {
           raised_in_callback << event.type
           raise "on_event callback failure"
         }
       )
+
+      # A closed agent delivers :error through the already-bound Agent listener
+      # before Task settlement.
+      agent.send(:close!)
+      task = agent.invoke_async("closed agent invoke")
       expect { task.wait_result }.to raise_error(Phronomy::Error, /agent is closed/)
       # The callback was invoked (with the error event) and raised.
       expect(raised_in_callback.pop).to eq(:error)
@@ -307,11 +305,10 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       # report_nonterminal_callback_error non-nil branch.
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
-      agent = ACS16TerminalBarrierAgent.new
-      task = agent.invoke_async(
-        "plain completion",
+      agent = ACS16TerminalBarrierAgent.new(
         on_event: ->(event) { raise "event callback failure" if event.type == :done }
       )
+      task = agent.invoke_async("plain completion")
       # The agent completes; the callback raises on :done; the task should still
       # settle with the stream_callback_error_policy-governed result.
       expect { task.wait_result }.not_to raise_error
@@ -321,11 +318,10 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
-      agent = ACS16TerminalBarrierAgent.new
-      task = agent.invoke_async(
-        "callback fail_task policy",
+      agent = ACS16TerminalBarrierAgent.new(
         on_event: ->(event) { raise "callback failure" if event.type == :done }
       )
+      task = agent.invoke_async("callback fail_task policy")
       expect { task.wait_result }.to raise_error(Phronomy::StreamCallbackError)
     end
 
@@ -390,15 +386,14 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       allow(chat).to receive(:ask) { stored_hook&.call(tc) }
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
-      agent = hitl_agent_cls.new(persistence: persistence)
-
-      # No on_tool_approval_required → dispatch_approval_listener receives nil.
-      # Also pass on_event that raises on :approval_required to exercise
-      # report_nonterminal_callback_error's non-nil callback_error branch.
-      task = agent.invoke_async(
-        "run hitl tool",
+      agent = hitl_agent_cls.new(
+        persistence: persistence,
         on_event: ->(event) { raise "event error" if event.type == :approval_required }
       )
+
+      # The canonical Agent listener is allowed to fail on a nonterminal
+      # :approval_required notification without settling the execution Task.
+      task = agent.invoke_async("run hitl tool")
 
       Timeout.timeout(2) do
         loop do

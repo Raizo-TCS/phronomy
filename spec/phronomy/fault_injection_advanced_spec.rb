@@ -228,7 +228,14 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         model "test-model"
       end
     end
-    let(:streaming_agent) { streaming_agent_class.new }
+    let(:stream_event_handlers) { [] }
+    let(:streaming_agent) do
+      streaming_agent_class.new(
+        on_event: ->(event) {
+          stream_event_handlers.each { |handler| handler.call(event) }
+        }
+      )
+    end
 
     before do
       allow(streaming_agent).to receive(:build_chat).and_return(streaming_chat)
@@ -237,13 +244,15 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     it "propagates the callback exception to the stream caller" do
       chunk_count = 0
 
-      expect {
-        streaming_agent.stream("trigger streaming") do |event|
-          if event.type == :token
-            chunk_count += 1
-            raise "callback exploded on chunk #{chunk_count}" if chunk_count == 2
-          end
+      stream_event_handlers << lambda { |event|
+        if event.type == :token
+          chunk_count += 1
+          raise "callback exploded on chunk #{chunk_count}" if chunk_count == 2
         end
+      }
+
+      expect {
+        streaming_agent.stream("trigger streaming")
       }.to raise_error(Phronomy::StreamCallbackError) { |error|
         expect(error.event_type).to eq(:token)
         expect(error.original_error.message).to eq("callback exploded on chunk 2")
@@ -251,10 +260,11 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "does not leave the agent in a bad state; a subsequent invoke succeeds" do
+      stream_event_handlers << lambda { |event|
+        raise "boom" if event.type == :token
+      }
       expect {
-        streaming_agent.stream("trigger streaming") do |event|
-          raise "boom" if event.type == :token
-        end
+        streaming_agent.stream("trigger streaming")
       }.to raise_error(Phronomy::StreamCallbackError)
 
       calm_chat = double("CalmChat")

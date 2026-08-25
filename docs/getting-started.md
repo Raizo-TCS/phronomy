@@ -160,18 +160,25 @@ task = agent.invoke_async("Hello")
 result = task.wait_result
 ```
 
-Both `invoke` and `invoke_async` can receive public Agent events through either
-an `on_event:` listener or a block. A block is convenient when the listener is
-local to the call:
+Public Agent events belong to the live Agent Runtime incarnation. Register
+the listener when the Agent is materialized, not on each invocation:
 
 ```ruby
-task = agent.invoke_async("Hello") do |event|
-  puts event.payload[:output] if event.type == :done
-end
+agent = ResearchAgent.load(
+  "research-session-42",
+  persistence: persistence,
+  on_event: ->(event) {
+    puts event.payload[:output] if event.type == :done
+  }
+)
+
+task = agent.invoke_async("Hello")
 ```
 
-Use `on_event:` when the listener already exists as a callable. Do not provide
-both `on_event:` and a block to the same invocation.
+`new`, `create`, and `load` also accept an equivalent listener block.
+Supplying both `on_event:` and a construction block is an error. If `load`
+resolves an already-live same-process Agent, supplying any new listener/block
+is also an error; the existing binding is immutable for that Runtime incarnation.
 
 `Phronomy::Task` is the common caller-facing completion handle for asynchronous
 Phronomy work. Logical lifecycle progress is driven by EventLoop/FSMSession;
@@ -181,43 +188,49 @@ OffloadPool. Both paths expose completion as a `Task`.
 `Task#wait_result` is for an external caller. Do not block EventLoop waiting for
 a Task that can only complete through that same EventLoop.
 
-Streaming follows the same split:
+Streaming uses the same Agent-incarnation listener:
 
 ```ruby
-agent.stream("Explain the design") do |event|
-  puts event.payload if event.type == :token
-end
+agent = ResearchAgent.new(
+  on_event: ->(event) {
+    puts event.payload if event.type == :token
+  }
+)
+
+agent.stream("Explain the design")
+task = agent.stream_async("Explain another design")
 ```
 
-```ruby
-task = agent.stream_async("Explain the design") do |event|
-  puts event.payload if event.type == :token
-end
-```
-
-Agent event callbacks execute on EventLoop and therefore should return quickly.
+`stream` / `stream_async` require an Agent event listener because event
+delivery is their public streaming channel. Agent event callbacks execute on
+EventLoop and therefore should return quickly.
 
 ## Human-in-the-loop approval
 
-A Tool requiring approval can suspend an Agent invocation. Resume it with the
-approval request identifier returned by the suspension result.
-
-At a top-level synchronous boundary:
+A Tool requiring approval suspends the durable logical execution without
+settling the original execution Task. Approval notification is delivered
+through the same Agent listener as `:approval_required`:
 
 ```ruby
-result = agent.invoke("Perform the requested protected action")
+agent = nil
+agent = ResearchAgent.new(
+  on_event: ->(event) {
+    next unless event.type == :approval_required
 
-if result[:suspended]
-  request = result[:approval_request]
-  result = agent.approve(
-    result[:execution_id],
-    approval_request_id: request.id,
-    approved: true
-  )
-end
+    request = event.payload.fetch(:request)
+    agent.approve_async(
+      request.execution_id,
+      approval_request_id: request.id,
+      approved: true
+    )
+  }
+)
+
+result = agent.invoke("Perform the requested protected action")
 ```
 
-From an EventLoop callback, use `approve_async` rather than blocking EventLoop.
+Use `approve_async` inside the EventLoop callback; synchronous `approve` is
+for an external thread that already has the durable approval identifiers.
 Approval resume continues the same live Agent instance and AgentInvocation;
 Runtime resolves that process-local owner through EventLoop rather than through a
 shared Activation object. It is not an Agent reload boundary.

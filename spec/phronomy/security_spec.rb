@@ -110,11 +110,11 @@ RSpec.describe "Security specs (Issue #214)" do
       end
     end
 
-    def build_agent
+    def build_agent(on_event: nil)
       Class.new(Phronomy::Agent::Base) {
         agent_definition id: "test-agent-206", version: 1
         model "test-model"
-      }.new
+      }.new(on_event: on_event)
     end
 
     context "tool_approval_policy API (Issue #214 / 0.15.0 migration)" do
@@ -133,9 +133,10 @@ RSpec.describe "Security specs (Issue #214)" do
         expect { agent.tool_approval_policy { :require_approval } }.not_to raise_error
       end
 
-      it "registers an approval notification listener" do
-        agent = build_agent
-        expect { agent.on_tool_approval_required { |_req| } }.not_to raise_error
+      it "registers approval notification through the Agent listener" do
+        expect {
+          build_agent(on_event: ->(_event) {})
+        }.not_to raise_error
       end
     end
 

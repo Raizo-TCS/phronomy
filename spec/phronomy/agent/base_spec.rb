@@ -224,11 +224,13 @@ RSpec.describe Phronomy::Agent::Base do
       events = []
       event_loop_flags = []
 
-      task = agent.stream_async("hi") do |event|
-        events << event
-        event_loop_flags << event_loop.current?
-      end
-      task.wait_result
+      streaming_agent = agent.class.new(
+        on_event: ->(event) {
+          events << event
+          event_loop_flags << event_loop.current?
+        }
+      )
+      streaming_agent.stream_async("hi").wait_result
 
       token_events = events.select { |e| e.type == :token }
       expect(token_events).not_to be_empty

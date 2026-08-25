@@ -63,33 +63,23 @@ RSpec.describe "Agent async event contract" do
     nil
   end
 
-  it "delivers lifecycle events from invoke_async" do
+  it "delivers lifecycle events from invoke_async through the Agent-incarnation listener" do
     events = []
-    result = SymmetricAsyncEventAgent.new.invoke_async(
-      "hello",
+    agent = SymmetricAsyncEventAgent.new(
       on_event: ->(event) { events << event.type }
-    ).wait_result
+    )
+    result = agent.invoke_async("hello").wait_result
 
     expect(result[:output]).to eq("answer")
     expect(events).to eq([:done])
   end
 
-  it "accepts an event listener block for invoke_async" do
+  it "accepts an event listener block at Agent materialization" do
     events = []
-    task = SymmetricAsyncEventAgent.new.invoke_async("hello") do |event|
+    agent = SymmetricAsyncEventAgent.new do |event|
       events << event.type
     end
-    result = task.wait_result
-
-    expect(result[:output]).to eq("answer")
-    expect(events).to eq([:done])
-  end
-
-  it "accepts an event listener block for invoke" do
-    events = []
-    result = SymmetricAsyncEventAgent.new.invoke("hello") do |event|
-      events << event.type
-    end
+    result = agent.invoke_async("hello").wait_result
 
     expect(result[:output]).to eq("answer")
     expect(events).to eq([:done])
@@ -97,28 +87,43 @@ RSpec.describe "Agent async event contract" do
 
   it "keeps invoke_async listener optional" do
     result = SymmetricAsyncEventAgent.new.invoke_async("hello").wait_result
-
     expect(result[:output]).to eq("answer")
+  end
+
+  it "rejects the removed per-invocation listener keyword and block" do
+    agent = SymmetricAsyncEventAgent.new
+    expect {
+      agent.invoke_async("hello", on_event: ->(_event) {})
+    }.to raise_error(ArgumentError, /removed per-invocation/)
+
+    expect {
+      agent.invoke_async("hello") { |_event| }
+    }.to raise_error(ArgumentError, /no longer register Agent events/)
   end
 
   it "adds token events only for stream_async" do
     invoke_events = []
     stream_events = []
-    agent = SymmetricAsyncEventAgent.new
 
-    agent.invoke_async(
-      "hello",
+    SymmetricAsyncEventAgent.new(
       on_event: ->(event) { invoke_events << event.type }
-    ).wait_result
+    ).invoke_async("hello").wait_result
 
-    agent.stream_async(
-      "hello",
+    SymmetricAsyncEventAgent.new(
       on_event: ->(event) { stream_events << event.type }
-    ).wait_result
+    ).stream_async("hello").wait_result
 
     expect(invoke_events).to eq([:done])
     expect(stream_events).to include(:token)
     expect(stream_events.last).to eq(:done)
+  end
+
+  it "requires a live Agent listener for stream/stream_async" do
+    agent = SymmetricAsyncEventAgent.new
+    expect { agent.stream_async("hello") }
+      .to raise_error(ArgumentError, /Agent on_event listener/)
+    expect { agent.stream("hello") }
+      .to raise_error(ArgumentError, /Agent on_event listener/)
   end
 
   it "runs invoke_async and stream_async listeners on the EventLoop thread" do
@@ -128,19 +133,16 @@ RSpec.describe "Agent async event contract" do
     [:invoke_async, :stream_async].each do |method_name|
       callback_threads = []
       on_event_loop = []
-      SymmetricAsyncEventAgent.new.public_send(
-        method_name,
-        "hello",
+      agent = SymmetricAsyncEventAgent.new(
         on_event: ->(_event) {
           callback_threads << Thread.current
           on_event_loop << event_loop.current?
         }
-      ).wait_result
+      )
+      agent.public_send(method_name, "hello").wait_result
 
       expect(callback_threads).not_to be_empty
-      expect(callback_threads).to all(satisfy { |thread|
-        thread != caller_thread
-      })
+      expect(callback_threads).to all(satisfy { |thread| thread != caller_thread })
       expect(on_event_loop).to all(be(true))
     end
   end
@@ -159,7 +161,6 @@ RSpec.describe "Agent async event contract" do
       tool_call = double("ToolCall")
 
       invocation.accept_tool_calls!([tool_call])
-
       expect(event_types).to eq([:tool_call])
     end
   end
@@ -187,52 +188,68 @@ RSpec.describe "Agent async event contract" do
       ]
 
       invocation.record_tool_results!
-
       expect(event_types).to eq([:tool_result])
     end
   end
 
-  it "delivers :error before failing the Task for both async APIs" do
+  it "delivers :error before failing invoke_async" do
     bad_chat = build_chat(fake_response)
     allow(bad_chat).to receive(:ask).and_raise(RuntimeError, "LLM exploded")
     allow(bad_chat).to receive(:complete).and_raise(RuntimeError, "LLM exploded")
     allow(RubyLLM).to receive(:chat).and_return(bad_chat)
 
-    [:invoke_async, :stream_async].each do |method_name|
-      events = []
-      task = SymmetricAsyncEventAgent.new.public_send(
-        method_name,
-        "hello",
-        on_event: ->(event) { events << event.type }
-      )
+    events = []
+    agent = SymmetricAsyncEventAgent.new(
+      on_event: ->(event) { events << event.type }
+    )
+    task = agent.invoke_async("hello")
 
-      expect { task.wait_result }.to raise_error(RuntimeError, "LLM exploded")
-      expect(events.last).to eq(:error)
-    end
+    expect { task.wait_result }.to raise_error(RuntimeError, "LLM exploded")
+    expect(events.last).to eq(:error)
+  end
+
+  it "delivers :error before failing stream_async" do
+    bad_chat = build_chat(fake_response)
+    allow(bad_chat).to receive(:ask).and_raise(RuntimeError, "LLM exploded")
+    allow(bad_chat).to receive(:complete).and_raise(RuntimeError, "LLM exploded")
+    allow(RubyLLM).to receive(:chat).and_return(bad_chat)
+
+    events = []
+    agent = SymmetricAsyncEventAgent.new(
+      on_event: ->(event) { events << event.type }
+    )
+    task = agent.stream_async("hello")
+
+    expect { task.wait_result(timeout: 2) }
+      .to raise_error(RuntimeError, "LLM exploded")
+    expect(events.last).to eq(:error)
   end
 
   it "distinguishes timeout from explicit cancellation" do
     timeout_events = []
-    timeout_task = SymmetricAsyncEventAgent.new.invoke_async(
+    timeout_agent = SymmetricAsyncEventAgent.new(
+      on_event: ->(event) { timeout_events << event.type }
+    )
+    timeout_task = timeout_agent.invoke_async(
       "hello",
       config: {
         cancellation_token:
           Phronomy::Concurrency::CancellationToken.timeout_after(-1)
-      },
-      on_event: ->(event) { timeout_events << event.type }
+      }
     )
 
-    expect { timeout_task.wait_result }
-      .to raise_error(Phronomy::TimeoutError)
+    expect { timeout_task.wait_result }.to raise_error(Phronomy::TimeoutError)
     expect(timeout_events).to eq([:timeout])
 
     token = Phronomy::Concurrency::CancellationToken.new
     token.cancel!
     cancellation_events = []
-    cancellation_task = SymmetricAsyncEventAgent.new.invoke_async(
-      "hello",
-      config: {cancellation_token: token},
+    cancellation_agent = SymmetricAsyncEventAgent.new(
       on_event: ->(event) { cancellation_events << event.type }
+    )
+    cancellation_task = cancellation_agent.invoke_async(
+      "hello",
+      config: {cancellation_token: token}
     )
 
     expect { cancellation_task.wait_result }
@@ -242,24 +259,22 @@ RSpec.describe "Agent async event contract" do
 
   it "delivers the terminal event before settling the returned Task" do
     order = []
-    task = SymmetricAsyncEventAgent.new.invoke_async(
-      "hello",
+    agent = SymmetricAsyncEventAgent.new(
       on_event: ->(event) {
         order << event.type if event.type == :done
       }
     )
+    task = agent.invoke_async("hello")
     task.on_complete { |_value, _error| order << :task_completed }
 
     task.wait_result
     expect(order).to eq([:done, :task_completed])
   end
 
-  it "keeps Task#on_complete active when on_event is also used" do
+  it "keeps Task#on_complete active when the Agent listener is configured" do
     callback_result = Queue.new
-    task = SymmetricAsyncEventAgent.new.invoke_async(
-      "hello",
-      on_event: ->(_event) {}
-    )
+    agent = SymmetricAsyncEventAgent.new(on_event: ->(_event) {})
+    task = agent.invoke_async("hello")
     task.on_complete do |value, error|
       callback_result << [value, error]
     end
@@ -270,7 +285,7 @@ RSpec.describe "Agent async event contract" do
     expect(task.wait_result[:output]).to eq("answer")
   end
 
-  it "invoke_async passes tracing InvocationContext without generic identity" do
+  it "passes tracing InvocationContext without generic identity" do
     ic = Phronomy::InvocationContext.new(task_id: "ctx-task")
     captured_config = nil
     allow(Phronomy::Agent::AgentInvocationSessionBuilder)
@@ -280,10 +295,12 @@ RSpec.describe "Agent async event contract" do
         original.call(**kwargs)
       end
     events = []
-    result = SymmetricAsyncEventAgent.new.invoke_async(
-      "hello",
-      invocation_context: ic,
+    agent = SymmetricAsyncEventAgent.new(
       on_event: ->(event) { events << event.type }
+    )
+    result = agent.invoke_async(
+      "hello",
+      invocation_context: ic
     ).wait_result
     expect(result[:output]).to eq("answer")
     expect(events).to eq([:done])
@@ -292,56 +309,37 @@ RSpec.describe "Agent async event contract" do
     expect(captured_config).not_to have_key(:session_id)
   end
 
-  it "stream_async passes tracing InvocationContext through" do
-    ic = Phronomy::InvocationContext.new(task_id: "ctx-stream")
-    events = []
-    SymmetricAsyncEventAgent.new.stream_async(
-      "hello",
-      invocation_context: ic,
-      on_event: ->(event) { events << event.type }
-    ).wait_result
-    expect(events).to include(:done)
-  end
-
-  it "stream passes tracing InvocationContext through" do
-    ic = Phronomy::InvocationContext.new(task_id: "ctx-stream-sync")
-    events = []
-    SymmetricAsyncEventAgent.new.stream(
-      "hello",
-      invocation_context: ic,
-      on_event: ->(event) { events << event.type }
-    )
-    expect(events).to include(:done)
-  end
-
-  it "invoke APIs raise ArgumentError when on_event: and block are both given" do
-    [:invoke, :invoke_async].each do |method_name|
-      expect {
-        SymmetricAsyncEventAgent.new.public_send(
-          method_name,
-          "hello",
-          on_event: ->(_event) {}
-        ) do |_event|
-        end
-      }.to raise_error(ArgumentError, /on_event.*block|block.*on_event/i)
+  it "passes tracing InvocationContext through stream APIs" do
+    [:stream_async, :stream].each do |method_name|
+      ic = Phronomy::InvocationContext.new(task_id: "ctx-#{method_name}")
+      events = []
+      agent = SymmetricAsyncEventAgent.new(
+        on_event: ->(event) { events << event.type }
+      )
+      result = agent.public_send(
+        method_name,
+        "hello",
+        invocation_context: ic
+      )
+      result.wait_result if result.is_a?(Phronomy::Task)
+      expect(events).to include(:done)
     end
   end
 
-  it "stream_async raises ArgumentError when on_event: and block are both given" do
+  it "rejects on_event plus a construction block" do
     expect {
-      SymmetricAsyncEventAgent.new.stream_async(
-        "hello",
-        on_event: ->(_event) {},
-        &->(_event) {}
-      )
+      SymmetricAsyncEventAgent.new(
+        on_event: ->(_event) {}
+      ) { |_event| }
     }.to raise_error(ArgumentError, /on_event.*block|block.*on_event/i)
   end
 end
 
-# Unit tests for check_cancellation! error classification (avoids async EventLoop timing).
 RSpec.describe "Agent::Base#check_cancellation!" do
   let(:agent_class) do
-    Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-201", version: 1 }
+    Class.new(Phronomy::Agent::Base) {
+      agent_definition id: "test-agent-201", version: 1
+    }
   end
   let(:agent) { agent_class.new }
 

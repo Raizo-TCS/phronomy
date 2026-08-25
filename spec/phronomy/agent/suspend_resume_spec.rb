@@ -39,7 +39,14 @@ def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
     tokens: FAKE_HITL_TOKENS,
     tool_call?: true
   )
-  final_resp = double("FinalResp", content: final_response, tokens: FAKE_HITL_TOKENS)
+  final_resp = double(
+    "FinalResp",
+    role: :assistant,
+    content: final_response,
+    tool_calls: nil,
+    tokens: FAKE_HITL_TOKENS,
+    tool_call?: false
+  )
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
   allow(dbl).to receive(:with_tool).and_return(dbl)
@@ -65,24 +72,32 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     nil
   end
 
+  def agent_with_event_queues
+    approvals = Queue.new
+    events = Queue.new
+    agent = HITLAgent.new(
+      on_event: ->(event) {
+        events << event
+        if event.type == :approval_required
+          approvals << event.payload.fetch(:request)
+        end
+      }
+    )
+    [agent, approvals, events]
+  end
+
   describe "Execution-scoped Task suspension semantics" do
-    let(:agent) { HITLAgent.new }
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
-    def invoke_and_capture_approval(agent)
-      approvals = Queue.new
-      events = Queue.new
-      task = agent.invoke_async(
-        "run tool",
-        on_tool_approval_required: ->(request) { approvals << request },
-        on_event: ->(event) { events << event }
-      )
-      [task, approvals.pop, events]
+    def invoke_and_capture_approval
+      agent, approvals, events = agent_with_event_queues
+      task = agent.invoke_async("run tool")
+      [agent, task, approvals.pop, events]
     end
 
     it "keeps the original Task pending while durable execution is suspended" do
-      task, request, = invoke_and_capture_approval(agent)
+      agent, task, request, = invoke_and_capture_approval
 
       expect(task).to be_a(Phronomy::Task)
       expect(task).not_to be_done
@@ -95,9 +110,8 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       expect(durable.approval_request).not_to have_key("agent_invocation_id")
     end
 
-    it "delivers approval_required without settling the original Task" do
-      task, request, events = invoke_and_capture_approval(agent)
-      # :tool_call events are published before :approval_required; drain until found.
+    it "delivers approval_required through on_event without settling the original Task" do
+      _agent, task, request, events = invoke_and_capture_approval
       event = events.pop
       event = events.pop until event.type == :approval_required
 
@@ -106,7 +120,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     end
 
     it "settles original and accepted approval Tasks with the same terminal result" do
-      task, request, = invoke_and_capture_approval(agent)
+      agent, task, request, = invoke_and_capture_approval
       allow(tool_instance).to receive(:call).and_return("executed: hello")
 
       approval_task = agent.approve_async(
@@ -123,7 +137,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     end
 
     it "keeps the original Task pending when a stale approval fails" do
-      task, request, = invoke_and_capture_approval(agent)
+      agent, task, request, = invoke_and_capture_approval
 
       stale = agent.approve_async(
         request.execution_id,
@@ -141,6 +155,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     end
 
     it "does NOT suspend when tool_approval_policy returns :allow" do
+      agent = HITLAgent.new
       agent.tool_approval_policy { :allow }
       allow(tool_instance).to receive(:call).and_return("executed: hello")
       result = agent.invoke("run tool")
@@ -150,7 +165,6 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
   end
 
   describe "#invoke terminal-waiting HITL wrapper" do
-    let(:agent) { HITLAgent.new }
     let(:chat_dbl) do
       build_hitl_chat(
         tools_hash: {hitl_tool: tool_instance},
@@ -162,11 +176,14 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       allow(tool_instance).to receive(:call).and_return("executed: hello")
     end
 
-    it "accepts on_tool_approval_required and waits through suspension" do
+    it "uses approval_required on the Agent listener and waits through suspension" do
       request_seen = Queue.new
-      result = agent.invoke(
-        "run tool",
-        on_tool_approval_required: ->(request) {
+      agent = nil
+      agent = HITLAgent.new(
+        on_event: ->(event) {
+          next unless event.type == :approval_required
+
+          request = event.payload.fetch(:request)
           request_seen << request
           agent.approve_async(
             request.execution_id,
@@ -174,6 +191,8 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
           )
         }
       )
+
+      result = agent.invoke("run tool")
 
       request = request_seen.pop
       expect(request.execution_id).to eq(result[:execution_id])
@@ -183,16 +202,12 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
   end
 
   describe "#approve with approved: false (rejection)" do
-    let(:agent) { HITLAgent.new }
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
     it "returns :rejected => true without executing the tool" do
-      approvals = Queue.new
-      original = agent.invoke_async(
-        "run tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      agent, approvals, = agent_with_event_queues
+      original = agent.invoke_async("run tool")
       request = approvals.pop
 
       expect(tool_instance).not_to receive(:call)

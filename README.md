@@ -92,16 +92,22 @@ task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks")
 result = task.wait_result   # top-level/external caller only
 ```
 
-A block listener receives Agent lifecycle events and is equivalent to `on_event:`:
+Agent lifecycle events are bound to one live Agent Runtime incarnation.
+Register `on_event:` (or the equivalent construction block) when the Agent
+is created or loaded, then invoke it without a per-call listener:
 
 ```ruby
-task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks") do |event|
-  puts event.type   # :done, :error, :tool_call, :tool_result, etc.
-end
+agent = ResearchAgent.new(
+  on_event: ->(event) {
+    puts event.type   # :done, :error, :tool_call, :tool_result, etc.
+  }
+)
 
-# on_event: keyword form is also accepted and behaves identically
-task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks", on_event: listener)
+task = agent.invoke_async("Research Ruby AI frameworks")
 ```
+
+The same listener registration is available on `create` and `load`.
+Public per-invocation `on_event:` / listener blocks are removed.
 
 ## Runtime model
 

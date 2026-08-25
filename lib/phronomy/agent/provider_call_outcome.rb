@@ -3,11 +3,10 @@
 module Phronomy
   module Agent
     # Immutable, Phronomy-owned snapshot of one completed Provider assistant output.
-    # It is captured before Agent-owned Tool execution begins, so durable logging
-    # never depends on RubyLLM's later control flow or Application callbacks.
     ProviderCallOutcome = Data.define(:role, :content, :tool_calls, :usage, :metadata) do
       def self.capture(message)
         return if message.nil?
+        return message if message.is_a?(self)
 
         calls = if message.respond_to?(:tool_calls) && message.tool_calls
           source = message.tool_calls.respond_to?(:values) ? message.tool_calls.values : Array(message.tool_calls)
@@ -29,6 +28,17 @@ module Phronomy
           tool_calls: calls,
           usage: usage,
           metadata: metadata
+        )
+      end
+
+      def self.from_h(hash)
+        source = hash.to_h { |key, value| [key.to_s, value] }
+        new(
+          role: source.fetch("role", "assistant"),
+          content: source["content"],
+          tool_calls: source.fetch("tool_calls", []),
+          usage: source.fetch("usage", {}),
+          metadata: source.fetch("metadata", {})
         )
       end
 
@@ -54,11 +64,7 @@ module Phronomy
         when String, Integer, Float, TrueClass, FalseClass, NilClass
           value
         else
-          if value.respond_to?(:to_h)
-            normalize(value.to_h)
-          else
-            value.to_s
-          end
+          value.respond_to?(:to_h) ? normalize(value.to_h) : value.to_s
         end
       end
       private_class_method :normalize
@@ -76,6 +82,16 @@ module Phronomy
         Immutable.validate_canonical_json!(usage, label: "Provider usage")
         Immutable.validate_canonical_json!(metadata, label: "Provider outcome metadata")
         freeze
+      end
+
+      def to_h
+        {
+          "role" => role&.to_s,
+          "content" => content,
+          "tool_calls" => tool_calls,
+          "usage" => usage,
+          "metadata" => metadata
+        }.compact
       end
 
       def content_present?

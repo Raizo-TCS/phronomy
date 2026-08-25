@@ -6,19 +6,14 @@ require_relative "support/llm_stub"
 
 # Group 30: Approval Resume
 #
-# ACS-16 / CG-06 contract:
+# ACS-16 / CG-09 contract:
 # - SUSPENDED is a nonterminal Agent execution state.
 # - The original invoke_async Task remains pending through suspension.
-# - approval-required notification carries execution_id/request id.
+# - approval-required notification is delivered through the Agent-incarnation
+#   on_event listener and carries execution_id/request id.
 # - An accepted approve_async Task is distinct but observes the same logical
 #   execution's terminal outcome.
 # - Invalid approval fails only that approval Task.
-#
-# Existing pairwise approval-policy/tool-count coverage is intentionally kept:
-#   no_policy / approved / single
-#   no_policy / denied   / multiple
-#   policy_allow / approved / multiple
-#   policy_reject / denied / single
 
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
@@ -31,7 +26,14 @@ RSpec.describe "Group 30: Approval Resume", :integration do
   describe "no policy; approved; single approval tool" do
     let(:tool_class) { IntegrationFactors.approval_tool(result_value: "tool_result_001") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
-    let(:agent) { agent_class.new }
+    let(:approvals) { Queue.new }
+    let(:agent) do
+      agent_class.new(
+        on_event: ->(event) {
+          approvals << event.payload.fetch(:request) if event.type == :approval_required
+        }
+      )
+    end
 
     before do
       @llm = LLMStub.activate(responses: [
@@ -41,11 +43,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
 
     it "keeps invoke_async pending while the execution is durably suspended" do
-      approvals = Queue.new
-      task = agent.invoke_async(
-        "Please use the approval tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      task = agent.invoke_async("Please use the approval tool")
       request = approvals.pop
 
       expect(task).not_to be_done
@@ -56,11 +54,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
 
     it "settles original and approval Tasks with the same terminal execution" do
-      approvals = Queue.new
-      original = agent.invoke_async(
-        "Please use the approval tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      original = agent.invoke_async("Please use the approval tool")
       request = approvals.pop
 
       approval = agent.approve_async(
@@ -79,11 +73,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
 
     it "fails a stale approval without settling the original invocation Task" do
-      approvals = Queue.new
-      original = agent.invoke_async(
-        "Please use the approval tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      original = agent.invoke_async("Please use the approval tool")
       request = approvals.pop
 
       stale = agent.approve_async(
@@ -107,7 +97,14 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     let(:tool_class_a) { IntegrationFactors.approval_tool(result_value: "first_tool_result") }
     let(:tool_class_b) { IntegrationFactors.second_approval_tool(result_value: "second_tool_result") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class_a, tool_class_b) }
-    let(:agent) { agent_class.new }
+    let(:approvals) { Queue.new }
+    let(:agent) do
+      agent_class.new(
+        on_event: ->(event) {
+          approvals << event.payload.fetch(:request) if event.type == :approval_required
+        }
+      )
+    end
 
     before do
       @llm = LLMStub.activate(responses: [
@@ -116,11 +113,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
 
     it "returns the same rejected terminal outcome to the original and approval Tasks" do
-      approvals = Queue.new
-      original = agent.invoke_async(
-        "Try the protected tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      original = agent.invoke_async("Try the protected tool")
       request = approvals.pop
 
       expect(original).not_to be_done
@@ -140,7 +133,14 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     let(:tool_class_a) { IntegrationFactors.approval_tool(result_value: "approved_result_a") }
     let(:tool_class_b) { IntegrationFactors.second_approval_tool(result_value: "approved_result_b") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class_a, tool_class_b) }
-    let(:agent) { agent_class.new }
+    let(:approvals) { [] }
+    let(:agent) do
+      agent_class.new(
+        on_event: ->(event) {
+          approvals << event.payload.fetch(:request) if event.type == :approval_required
+        }
+      )
+    end
 
     before do
       agent.tool_approval_policy { :allow }
@@ -151,11 +151,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
 
     it "does not suspend and does not produce an approval notification" do
-      approvals = []
-      result = agent.invoke(
-        "Use the approval tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      result = agent.invoke("Use the approval tool")
 
       expect(approvals).to be_empty
       expect(result[:suspended]).to be_falsy
@@ -167,7 +163,14 @@ RSpec.describe "Group 30: Approval Resume", :integration do
   describe "policy reject; denied; single approval tool" do
     let(:tool_class) { IntegrationFactors.approval_tool(result_value: "should_not_appear") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
-    let(:agent) { agent_class.new }
+    let(:approvals) { [] }
+    let(:agent) do
+      agent_class.new(
+        on_event: ->(event) {
+          approvals << event.payload.fetch(:request) if event.type == :approval_required
+        }
+      )
+    end
 
     before do
       agent.tool_approval_policy { :reject }
@@ -177,11 +180,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
 
     it "rejects before suspension and returns no text output" do
-      approvals = []
-      result = agent.invoke(
-        "Use the approval tool please",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+      result = agent.invoke("Use the approval tool please")
 
       expect(approvals).to be_empty
       expect(result[:rejected]).to be true
@@ -193,7 +192,6 @@ RSpec.describe "Group 30: Approval Resume", :integration do
   describe "synchronous terminal-waiting wrapper" do
     let(:tool_class) { IntegrationFactors.approval_tool(result_value: "tool_result_sync") }
     let(:agent_class) { IntegrationFactors.approval_resume_agent(tool_class) }
-    let(:agent) { agent_class.new }
 
     before do
       @llm = LLMStub.activate(responses: [
@@ -202,10 +200,13 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       ])
     end
 
-    it "accepts approval notification and returns only the final result" do
-      result = agent.invoke(
-        "Use the protected tool",
-        on_tool_approval_required: ->(request) {
+    it "receives approval notification through the Agent listener and returns only the final result" do
+      agent = nil
+      agent = agent_class.new(
+        on_event: ->(event) {
+          next unless event.type == :approval_required
+
+          request = event.payload.fetch(:request)
           agent.approve_async(
             request.execution_id,
             approval_request_id: request.id,
@@ -213,6 +214,8 @@ RSpec.describe "Group 30: Approval Resume", :integration do
           )
         }
       )
+
+      result = agent.invoke("Use the protected tool")
 
       expect(result[:output]).to eq("Sync flow completed.")
       expect(result[:suspended]).to be_falsy

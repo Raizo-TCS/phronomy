@@ -96,22 +96,25 @@ RSpec.describe Phronomy::Agent::Base do
 
   describe "#approve_async" do
     let(:tool_instance) { HITLTool.new }
-    let(:agent) { HITLAgentForApproveAsync.new }
+    let(:approvals) { Queue.new }
+    let(:agent) do
+      HITLAgentForApproveAsync.new(
+        on_event: ->(event) {
+          approvals << event.payload.fetch(:request) if event.type == :approval_required
+        }
+      )
+    end
     let(:chat) { build_approve_async_chat(tool_instance: tool_instance) }
 
     before { allow(RubyLLM).to receive(:chat).and_return(chat) }
 
-    def invoke_and_suspend(agent)
-      approvals = Queue.new
-      original = agent.invoke_async(
-        "run tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+    def invoke_and_suspend(agent, approvals)
+      original = agent.invoke_async("run tool")
       [original, approvals.pop]
     end
 
     it "returns a distinct pending Task that joins the same terminal execution" do
-      original, request = invoke_and_suspend(agent)
+      original, request = invoke_and_suspend(agent, approvals)
       allow(tool_instance).to receive(:call).and_return("done")
 
       task = agent.approve_async(
@@ -129,7 +132,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "resumes the same live Agent owner without exposing mutable Runtime state" do
-      original, request = invoke_and_suspend(agent)
+      original, request = invoke_and_suspend(agent, approvals)
       owner = Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id)
 
       expect(owner.agent).to be(agent)
@@ -146,7 +149,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "is callable while the EventLoop is current" do
-      original, request = invoke_and_suspend(agent)
+      original, request = invoke_and_suspend(agent, approvals)
       allow(tool_instance).to receive(:call).and_return("done")
 
       event_loop = Phronomy::Runtime.instance.event_loop
@@ -171,7 +174,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "fails only the approval Task when another Agent instance attempts resume" do
-      original, request = invoke_and_suspend(agent)
+      original, request = invoke_and_suspend(agent, approvals)
       other = HITLAgentForApproveAsync.new
 
       task = other.approve_async(
@@ -199,24 +202,26 @@ RSpec.describe Phronomy::Agent::Base do
   describe ".live_for_execution" do
     let(:tool_instance) { HITLTool.new }
     let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:approvals) { Queue.new }
     let(:agent) do
-      HITLAgentForApproveAsync.new(persistence: persistence)
+      HITLAgentForApproveAsync.new(
+        persistence: persistence,
+        on_event: ->(event) {
+          approvals << event.payload.fetch(:request) if event.type == :approval_required
+        }
+      )
     end
     let(:chat) { build_approve_async_chat(tool_instance: tool_instance) }
 
     before { allow(RubyLLM).to receive(:chat).and_return(chat) }
 
-    def invoke_and_suspend(agent)
-      approvals = Queue.new
-      original = agent.invoke_async(
-        "run tool",
-        on_tool_approval_required: ->(request) { approvals << request }
-      )
+    def invoke_and_suspend(agent, approvals)
+      original = agent.invoke_async("run tool")
       [original, approvals.pop]
     end
 
     it "returns the same live owner Agent through Agent::Base" do
-      _original, request = invoke_and_suspend(agent)
+      _original, request = invoke_and_suspend(agent, approvals)
       owner = Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id)
 
       resolved = Phronomy::Agent::Base.live_for_execution(request.execution_id)
@@ -226,7 +231,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "returns the same live owner Agent through its concrete Agent class" do
-      _original, request = invoke_and_suspend(agent)
+      _original, request = invoke_and_suspend(agent, approvals)
 
       resolved = HITLAgentForApproveAsync.live_for_execution(request.execution_id)
 
@@ -234,7 +239,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "does not load Agent or Execution state from Persistence" do
-      _original, request = invoke_and_suspend(agent)
+      _original, request = invoke_and_suspend(agent, approvals)
 
       expect(persistence.executions).not_to receive(:load)
       expect(persistence.agents).not_to receive(:load)
@@ -249,7 +254,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "raises ArgumentError when the live owner is not an instance of the receiver class" do
-      _original, request = invoke_and_suspend(agent)
+      _original, request = invoke_and_suspend(agent, approvals)
 
       other_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "other-class-agent", version: 1

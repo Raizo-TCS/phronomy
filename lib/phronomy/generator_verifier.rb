@@ -159,7 +159,7 @@ module Phronomy
           feedback = next_state.review_notes.last
           prompt = draft_prompt_builder.call(next_state.input, feedback)
 
-          draft_agent.invoke_async(
+          draft_agent.send(:__invoke_async_with_event_sink,
             prompt,
             on_event: ->(agent_event) {
               case agent_event.type
@@ -219,8 +219,7 @@ module Phronomy
                   }
                 )
               end
-            }
-          )
+            })
 
           next_state
         }
@@ -234,7 +233,7 @@ module Phronomy
             next_state.citations
           )
 
-          review_agent.invoke_async(
+          review_agent.send(:__invoke_async_with_event_sink,
             prompt,
             on_event: ->(agent_event) {
               case agent_event.type
@@ -291,8 +290,7 @@ module Phronomy
                   }
                 )
               end
-            }
-          )
+            })
 
           next_state
         }
