@@ -91,7 +91,25 @@
   
 </div>
 
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Public Agent execution facade.</p>
+<p>CG-09 clean break:</p>
+<ul>
+<li>application event listeners are bound to the live Agent incarnation at
+new/create/load time;</li>
+<li>invoke/invoke_async/stream/stream_async do not accept per-call event
+listeners or listener blocks;</li>
+<li>approval notifications share the Agent listener as :approval_required;</li>
+<li>Recovery resolution uses resolve/resolve_async.</li>
+</ul>
 
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
 
 
 
@@ -153,7 +171,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; Object </a>
+      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; Object </a>
     
 
     
@@ -175,7 +193,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke_async-instance_method" title="#invoke_async (instance method)">#<strong>invoke_async</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; Object </a>
+      <a href="#invoke_async-instance_method" title="#invoke_async (instance method)">#<strong>invoke_async</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; Object </a>
     
 
     
@@ -197,7 +215,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; Object </a>
+      <a href="#resolve-instance_method" title="#resolve (instance method)">#<strong>resolve</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Recovery::MISSING, error: Phronomy::Recovery::MISSING)  &#x21d2; Object </a>
     
 
     
@@ -219,7 +237,51 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; Object </a>
+      <a href="#resolve_async-instance_method" title="#resolve_async (instance method)">#<strong>resolve_async</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Recovery::MISSING, error: Phronomy::Recovery::MISSING)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; Object </a>
     
 
     
@@ -263,6 +325,7 @@
       <pre class="lines">
 
 
+93
 94
 95
 96
@@ -270,11 +333,10 @@
 98
 99
 100
-101
-102</pre>
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:approve</span><span class='comma'>,</span> <span class='symbol'>:approve_async</span><span class='rparen'>)</span>
@@ -305,6 +367,7 @@
       <pre class="lines">
 
 
+103
 104
 105
 106
@@ -318,11 +381,10 @@
 114
 115
 116
-117
-118</pre>
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__reject_removed_generic_identity_keys!'>_reject_removed_generic_identity_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -347,7 +409,7 @@
       <div class="method_details ">
   <h3 class="signature " id="invoke-instance_method">
   
-    #<strong>invoke</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
+    #<strong>invoke</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -359,15 +421,6 @@
       <pre class="lines">
 
 
-6
-7
-8
-9
-10
-11
-12
-13
-14
 15
 16
 17
@@ -379,28 +432,35 @@
 23
 24
 25
-26</pre>
+26
+27
+28
+29
+30
+31
+32
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 6</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
+  <span class='op'>**</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span>
+  <span class='op'>&amp;</span><span class='id identifier rubyid_removed_block'>removed_block</span>
 <span class='rparen'>)</span>
-  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid__reject_removed_invocation_listener_arguments!'>_reject_removed_invocation_listener_arguments!</span><span class='lparen'>(</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span> <span class='id identifier rubyid_removed_block'>removed_block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__prepare_invocation_config'>_prepare_invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
       <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
       <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='label'>on_tool_approval_required:</span> <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='comma'>,</span>
-      <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
+      <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
+      <span class='label'>listener:</span> <span class='id identifier rubyid__phronomy_event_listener'>_phronomy_event_listener</span>
     <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
@@ -413,7 +473,7 @@
       <div class="method_details ">
   <h3 class="signature " id="invoke_async-instance_method">
   
-    #<strong>invoke_async</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
+    #<strong>invoke_async</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -425,14 +485,6 @@
       <pre class="lines">
 
 
-28
-29
-30
-31
-32
-33
-34
-35
 36
 37
 38
@@ -444,29 +496,147 @@
 44
 45
 46
-47</pre>
+47
+48
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
+  <span class='op'>**</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span>
+  <span class='op'>&amp;</span><span class='id identifier rubyid_removed_block'>removed_block</span>
 <span class='rparen'>)</span>
-  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid__reject_removed_invocation_listener_arguments!'>_reject_removed_invocation_listener_arguments!</span><span class='lparen'>(</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span> <span class='id identifier rubyid_removed_block'>removed_block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__prepare_invocation_config'>_prepare_invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_approval'>approval</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
     <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
-    <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:policy</span><span class='rbracket'>]</span><span class='comma'>,</span>
-    <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:listener</span><span class='rbracket'>]</span><span class='comma'>,</span>
-    <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
+    <span class='label'>listener:</span> <span class='id identifier rubyid__phronomy_event_listener'>_phronomy_event_listener</span>
+  <span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="resolve-instance_method">
+  
+    #<strong>resolve</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Recovery::MISSING, error: Phronomy::Recovery::MISSING)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 119</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+  <span class='label'>expected_execution_revision:</span><span class='comma'>,</span>
+  <span class='label'>subject:</span><span class='comma'>,</span>
+  <span class='label'>outcome:</span><span class='comma'>,</span>
+  <span class='label'>result:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span><span class='comma'>,</span>
+  <span class='label'>error:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span>
+<span class='rparen'>)</span>
+  <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:resolve</span><span class='comma'>,</span> <span class='symbol'>:resolve_async</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_resolve_async'>resolve_async</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+    <span class='label'>expected_execution_revision:</span> <span class='id identifier rubyid_expected_execution_revision'>expected_execution_revision</span><span class='comma'>,</span>
+    <span class='label'>subject:</span> <span class='id identifier rubyid_subject'>subject</span><span class='comma'>,</span>
+    <span class='label'>outcome:</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span>
+    <span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span>
+    <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="resolve_async-instance_method">
+  
+    #<strong>resolve_async</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Recovery::MISSING, error: Phronomy::Recovery::MISSING)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 138</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_resolve_async'>resolve_async</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+  <span class='label'>expected_execution_revision:</span><span class='comma'>,</span>
+  <span class='label'>subject:</span><span class='comma'>,</span>
+  <span class='label'>outcome:</span><span class='comma'>,</span>
+  <span class='label'>result:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span><span class='comma'>,</span>
+  <span class='label'>error:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span>
+<span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryCoordinator.html" title="Phronomy::Agent::RecoveryCoordinator (class)">RecoveryCoordinator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="RecoveryCoordinator.html#initialize-instance_method" title="Phronomy::Agent::RecoveryCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_resolve'><span class='object_link'><a href="RecoveryCoordinator.html#resolve-instance_method" title="Phronomy::Agent::RecoveryCoordinator#resolve (method)">resolve</a></span></span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+    <span class='label'>expected_execution_revision:</span> <span class='id identifier rubyid_expected_execution_revision'>expected_execution_revision</span><span class='comma'>,</span>
+    <span class='label'>subject:</span> <span class='id identifier rubyid_subject'>subject</span><span class='comma'>,</span>
+    <span class='label'>outcome:</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span>
+    <span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span>
+    <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -477,44 +647,18 @@
       <div class="method_details ">
   <h3 class="signature " id="stream-instance_method">
   
-    #<strong>stream</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
+    #<strong>stream</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-49
-50
-51
-52
 53
 54
 55
@@ -532,29 +676,31 @@
 67
 68
 69
-70</pre>
+70
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
+  <span class='op'>**</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span>
+  <span class='op'>&amp;</span><span class='id identifier rubyid_removed_block'>removed_block</span>
 <span class='rparen'>)</span>
-  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream requires on_event: or a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_listener'>listener</span>
+  <span class='id identifier rubyid__reject_removed_invocation_listener_arguments!'>_reject_removed_invocation_listener_arguments!</span><span class='lparen'>(</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span> <span class='id identifier rubyid_removed_block'>removed_block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid__required_stream_listener!'>_required_stream_listener!</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__prepare_invocation_config'>_prepare_invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='comma'>,</span> <span class='symbol'>:stream_async</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.stream</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
       <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
       <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='label'>on_tool_approval_required:</span> <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='comma'>,</span>
-      <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
+      <span class='label'>mode:</span> <span class='symbol'>:stream</span><span class='comma'>,</span>
+      <span class='label'>listener:</span> <span class='id identifier rubyid_listener'>listener</span>
     <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
@@ -567,43 +713,18 @@
       <div class="method_details ">
   <h3 class="signature " id="stream_async-instance_method">
   
-    #<strong>stream_async</strong>(input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
+    #<strong>stream_async</strong>(input, config: {}, invocation_context: nil, **removed_options, &amp;removed_block)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-72
-73
-74
 75
 76
 77
@@ -620,31 +741,26 @@
 88
 89
 90
-91
-92</pre>
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
+  <span class='op'>**</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span>
+  <span class='op'>&amp;</span><span class='id identifier rubyid_removed_block'>removed_block</span>
 <span class='rparen'>)</span>
-  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream_async requires on_event: or a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_listener'>listener</span>
+  <span class='id identifier rubyid__reject_removed_invocation_listener_arguments!'>_reject_removed_invocation_listener_arguments!</span><span class='lparen'>(</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span> <span class='id identifier rubyid_removed_block'>removed_block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid__required_stream_listener!'>_required_stream_listener!</span><span class='lparen'>(</span><span class='symbol'>:stream_async</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__prepare_invocation_config'>_prepare_invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_approval'>approval</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
     <span class='label'>mode:</span> <span class='symbol'>:stream</span><span class='comma'>,</span>
-    <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:policy</span><span class='rbracket'>]</span><span class='comma'>,</span>
-    <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:listener</span><span class='rbracket'>]</span><span class='comma'>,</span>
-    <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
+    <span class='label'>listener:</span> <span class='id identifier rubyid_listener'>listener</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -657,7 +773,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 24 23:44:24 2026 by
+  Generated on Tue Aug 25 15:19:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

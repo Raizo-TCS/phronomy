@@ -132,14 +132,19 @@ another Task; continue through explicit events instead.</p>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research Ruby AI frameworks</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>   <span class='comment'># top-level/external caller only
 </span></code></pre>
-<p>A block listener receives Agent lifecycle events and is equivalent to <code>on_event:</code>:</p>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research Ruby AI frameworks</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_event'>event</span><span class='op'>|</span>
-  <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>   <span class='comment'># :done, :error, :tool_call, :tool_result, etc.
-</span><span class='kw'>end</span>
+<p>Agent lifecycle events are bound to one live Agent Runtime incarnation.
+Register <code>on_event:</code> (or the equivalent construction block) when the Agent
+is created or loaded, then invoke it without a per-call listener:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='label'>on_event:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>   <span class='comment'># :done, :error, :tool_call, :tool_result, etc.
+</span>  <span class='rbrace'>}</span>
+<span class='rparen'>)</span>
 
-<span class='comment'># on_event: keyword form is also accepted and behaves identically
-</span><span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research Ruby AI frameworks</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research Ruby AI frameworks</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 </code></pre>
+<p>The same listener registration is available on <code>create</code> and <code>load</code>.
+Public per-invocation <code>on_event:</code> / listener blocks are removed.</p>
 <h2 id="Runtime_model">Runtime model</h2>
 <p>Phronomy uses one completion model with two execution mechanisms:</p>
 <pre class="code text"><code class="text">Runtime
@@ -203,7 +208,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Mon Aug 24 23:44:24 2026 by
+  Generated on Tue Aug 25 15:19:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

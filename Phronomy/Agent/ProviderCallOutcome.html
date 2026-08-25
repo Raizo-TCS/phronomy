@@ -106,9 +106,7 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Immutable, Phronomy-owned snapshot of one completed Provider assistant output.
-It is captured before Agent-owned Tool execution begins, so durable logging
-never depends on RubyLLM's later control flow or Application callbacks.</p>
+    <p>Immutable, Phronomy-owned snapshot of one completed Provider assistant output.</p>
 
   </div>
 </div>
@@ -292,6 +290,28 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#from_h-class_method" title="from_h (class method)">.<strong>from_h</strong>(hash)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -351,6 +371,28 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#tool_call%3F-instance_method" title="#tool_call? (instance method)">#<strong>tool_call?</strong>  &#x21d2; Boolean </a>
     
 
@@ -402,12 +444,6 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-66
-67
-68
-69
-70
-71
 72
 73
 74
@@ -415,10 +451,16 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
 76
 77
 78
-79</pre>
+79
+80
+81
+82
+83
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>role:</span><span class='comma'>,</span> <span class='label'>content:</span><span class='comma'>,</span> <span class='label'>tool_calls:</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='kw'>super</span><span class='lparen'>(</span>
@@ -486,12 +528,12 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-8
-9
-10</pre>
+6
+7
+8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_content'>content</span>
   <span class='ivar'>@content</span>
@@ -543,12 +585,12 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-8
-9
-10</pre>
+6
+7
+8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_metadata'>metadata</span>
   <span class='ivar'>@metadata</span>
@@ -600,12 +642,12 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-8
-9
-10</pre>
+6
+7
+8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_role'>role</span>
   <span class='ivar'>@role</span>
@@ -657,12 +699,12 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-8
-9
-10</pre>
+6
+7
+8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_calls'>tool_calls</span>
   <span class='ivar'>@tool_calls</span>
@@ -714,12 +756,12 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-8
-9
-10</pre>
+6
+7
+8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_usage'>usage</span>
   <span class='ivar'>@usage</span>
@@ -751,6 +793,8 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
+7
+8
 9
 10
 11
@@ -774,14 +818,14 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
 29
 30
 31
-32
-33</pre>
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 7</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_capture'>capture</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_message'>message</span> <span class='kw'>if</span> <span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
 
   <span class='id identifier rubyid_calls'>calls</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:tool_calls</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span>
     <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:values</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span> <span class='op'>:</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='rparen'>)</span>
@@ -803,6 +847,50 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
     <span class='label'>tool_calls:</span> <span class='id identifier rubyid_calls'>calls</span><span class='comma'>,</span>
     <span class='label'>usage:</span> <span class='id identifier rubyid_usage'>usage</span><span class='comma'>,</span>
     <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span>
+  <span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="from_h-class_method">
+  
+    .<strong>from_h</strong>(hash)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 34</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_h'>from_h</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+    <span class='label'>role:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>role</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>assistant</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>content:</span> <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>tool_calls:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_calls</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>usage:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>usage</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>metadata:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>metadata</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -853,15 +941,57 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-81
-82
-83</pre>
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_content_present?'>content_present?</span>
   <span class='op'>!</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='lparen'>(</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:empty?</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="to_h-instance_method">
+  
+    #<strong>to_h</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+87
+88
+89
+90
+91
+92
+93
+94
+95</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 87</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
+  <span class='lbrace'>{</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>role</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_role'>role</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_content'>content</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_calls</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>usage</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_usage'>usage</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>metadata</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_metadata'>metadata</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -905,12 +1035,12 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
       <pre class="lines">
 
 
-85
-86
-87</pre>
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/provider_call_outcome.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call?'>tool_call?</span>
   <span class='op'>!</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -925,7 +1055,7 @@ never depends on RubyLLM's later control flow or Application callbacks.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 24 23:44:28 2026 by
+  Generated on Tue Aug 25 15:19:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
