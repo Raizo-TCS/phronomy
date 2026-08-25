@@ -152,37 +152,66 @@ module Phronomy
             "#{name || self} must declare agent_definition version: ..."
         end
 
-        def create(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {})
+        def create(
+          agent_id: SecureRandom.uuid,
+          context: nil,
+          knowledge: [],
+          persistence: nil,
+          metadata: {},
+          on_event: nil,
+          &event_block
+        )
           new(
             agent_id: agent_id,
             context: context,
             knowledge: knowledge,
             persistence: persistence,
-            metadata: metadata
+            metadata: metadata,
+            on_event: on_event,
+            &event_block
           )
         end
 
         # Resolves one existing logical Agent. A live process-local owner wins
         # without a Persistence reload; otherwise the durable Agent is hydrated.
-        def load(agent_id, persistence:)
+        def load(agent_id, persistence:, on_event: nil, &event_block)
           raise ArgumentError, "persistence is required" unless persistence
+          if on_event && event_block
+            raise ArgumentError, "Provide either on_event: or a block, not both"
+          end
 
           key = agent_id.to_s
           raise ArgumentError, "agent_id must not be empty" if key.empty?
+
+          listener_supplied = !on_event.nil? || !event_block.nil?
           runtime = Phronomy::Runtime.instance
+          materialized = false
+
           agent = runtime.__load_agent(key, expected_class: self) do |owner_runtime|
-            __construct_owned_agent(
+            materialized = true
+            instance = __construct_owned_agent(
               owner_runtime,
               key,
               agent_id: key,
               persistence: persistence,
-              load_existing: true
+              load_existing: true,
+              on_event: on_event,
+              &event_block
             )
+            Phronomy::Agent::RecoveryCoordinator.new(instance).recover_on_load!
+            instance
           end
+
           unless agent.persistence.equal?(persistence)
             raise Phronomy::ConfigurationError,
               "Agent #{key.inspect} is already live with a different Persistence instance"
           end
+
+          if !materialized && listener_supplied
+            raise Phronomy::ConfigurationError,
+              "Agent #{key.inspect} is already live; load cannot add, replace, or re-bind on_event"
+          end
+
           agent
         end
 
@@ -229,8 +258,15 @@ module Phronomy
         knowledge: [],
         persistence: nil,
         metadata: {},
-        load_existing: false
+        load_existing: false,
+        on_event: nil,
+        &event_block
       )
+        if on_event && event_block
+          raise ArgumentError, "Provide either on_event: or a block, not both"
+        end
+        @_phronomy_event_listener = on_event || event_block
+
         reserved_agent_id = @_phronomy_reserved_agent_id
         effective_agent_id = if agent_id.nil?
           reserved_agent_id || SecureRandom.uuid.to_s
@@ -492,6 +528,8 @@ module Phronomy
 
       private
 
+      attr_reader :_phronomy_event_listener
+
       def initialize_owned_state(
         agent_id:,
         context:,
@@ -679,14 +717,6 @@ module Phronomy
         raise ArgumentError, "tool_approval_policy requires a block" unless block
 
         _approval_configuration_mutex.synchronize { @tool_approval_policy = block }
-        self
-      end
-
-      def on_tool_approval_required(&block)
-        __assert_live_agent!
-        raise ArgumentError, "on_tool_approval_required requires a block" unless block
-
-        _approval_configuration_mutex.synchronize { @tool_approval_listener = block }
         self
       end
 

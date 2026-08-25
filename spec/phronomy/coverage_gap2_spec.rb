@@ -108,7 +108,13 @@ RSpec.describe "Coverage gap fill-in (round 2)" do
       instructions "Return a short answer."
     end
 
-    after { Phronomy.reset_runtime! rescue nil }
+    after {
+      begin
+        Phronomy.reset_runtime!
+      rescue
+        nil
+      end
+    }
 
     def install_calling_llm_execution(agent_id)
       persistence = Phronomy::Persistence::InMemory.new
@@ -161,7 +167,7 @@ RSpec.describe "Coverage gap fill-in (round 2)" do
     end
 
     it "rejects resolve when expected_execution_revision does not match" do
-      _orig, persistence, exec = install_calling_llm_execution("acs15-err-rev")
+      _orig, persistence, _ = install_calling_llm_execution("acs15-err-rev")
 
       Phronomy.reset_runtime!
       events = Queue.new
@@ -206,10 +212,17 @@ RSpec.describe "Coverage gap fill-in (round 2)" do
   describe "Workflow legacy config rejection" do
     class WorkflowCoverageContext
       include Phronomy::WorkflowContext
+
       field :value, type: :replace, default: 0
     end
 
-    after { Phronomy.reset_runtime! rescue nil }
+    after {
+      begin
+        Phronomy.reset_runtime!
+      rescue
+        nil
+      end
+    }
 
     let(:workflow) do
       Phronomy::Workflow.define(WorkflowCoverageContext) do

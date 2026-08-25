@@ -36,5 +36,6 @@ unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)
 end
 
-# ACS-15 Recovery / CG-09 public event API clean break.
-require_relative "agent/acs15_recovery"
+# Durable Agent Recovery and Agent-incarnation event binding.
+require_relative "agent/recovery_support"
+require_relative "agent/recovery_coordinator"

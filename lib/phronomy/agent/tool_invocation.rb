@@ -74,13 +74,20 @@ module Phronomy
         :origin,
         :metadata
 
-      def self.missing(execution_id:, agent:, tool_call:, config: {})
+      def self.missing(
+        execution_id:,
+        agent:,
+        tool_call:,
+        config: {},
+        id: SecureRandom.uuid
+      )
         new(
           execution_id: execution_id,
           agent: agent,
           tool: nil,
           tool_call: tool_call,
-          config: config
+          config: config,
+          id: id
         ).tap { |invocation| invocation.send(:complete_missing_tool!) }
       end
 

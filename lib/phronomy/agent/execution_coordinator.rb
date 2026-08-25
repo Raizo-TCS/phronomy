@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "time"
+require "securerandom"
 
 module Phronomy
   module Agent
@@ -303,7 +304,11 @@ module Phronomy
         end
 
         begin
-          execution, active_root = admit_execution(raw_message, root: operation.root)
+          execution, active_root = admit_execution(
+            raw_message,
+            root: operation.root,
+            mode: (operation.config[:phronomy_recovery_mode] || :invoke).to_sym
+          )
         rescue Phronomy::AgentBusyError => error
           # A durable busy conflict proves that another nonterminal logical
           # Execution already exists for this agent_id. Process loss does not
@@ -451,10 +456,17 @@ module Phronomy
         end
       end
 
-      def admit_execution(raw_message, root:)
-        raise Phronomy::Error, "agent is closed: #{@agent.agent_id}" if root.lifecycle_status == :closed
+      def admit_execution(raw_message, root:, mode: :invoke)
+        if root.lifecycle_status == :closed
+          raise Phronomy::Error,
+            "agent is closed: #{@agent.agent_id}"
+        end
 
         execution = next_root = nil
+        mode = mode.to_sym
+        pending_llm_call_id = SecureRandom.uuid.to_s.freeze
+        pending_started_at = Time.now.utc.iso8601(6).freeze
+
         @agent.persistence.transaction do |tx|
           input_ref = tx.contents.put_text(raw_message)
           input_record = JournalRecord.new(
@@ -472,11 +484,20 @@ module Phronomy
             input_record: input_record,
             metadata: {
               "current_input_ref" => input_ref,
-              "context_policy" => policy_descriptor.to_h
+              "context_policy" => policy_descriptor.to_h,
+              RecoverySupport::CONTRACT_VERSION_KEY =>
+                RecoverySupport::CONTRACT_VERSION,
+              RecoverySupport::INVOCATION_MODE_KEY => mode.to_s,
+              RecoverySupport::PENDING_LLM_ID_KEY =>
+                pending_llm_call_id,
+              RecoverySupport::PENDING_LLM_STARTED_AT_KEY =>
+                pending_started_at
             }.compact
           )
           input_record = JournalRecord.from_h(
-            input_record.to_h.merge("execution_id" => execution.execution_id)
+            input_record.to_h.merge(
+              "execution_id" => execution.execution_id
+            )
           )
           execution = execution.with(
             execution_revision: 0,
@@ -696,6 +717,19 @@ module Phronomy
       # ----------------------------------------------------------------------
 
       def perform_followup_preparation(operation)
+        pending_id = SecureRandom.uuid.to_s.freeze
+        pending_started_at = Time.now.utc.iso8601(6).freeze
+        staged_execution = RecoverySupport.with_recovery_metadata(
+          operation.execution,
+          RecoverySupport::PENDING_LLM_ID_KEY => pending_id,
+          RecoverySupport::PENDING_LLM_STARTED_AT_KEY => pending_started_at,
+          RecoverySupport::CONTRACT_VERSION_KEY =>
+            RecoverySupport::CONTRACT_VERSION
+        )
+        operation = operation.class.new(
+          **operation.to_h.merge(execution: staged_execution)
+        )
+
         manifest = manifest_ref = updated = nil
 
         @agent.persistence.transaction do |tx|
@@ -819,6 +853,20 @@ module Phronomy
       # ----------------------------------------------------------------------
 
       def begin_resume_on_event_loop(request)
+        event_loop = Phronomy::Runtime.instance.event_loop
+        state = event_loop.agent_execution_state(request.execution_id)
+        if state&.agent&.equal?(@agent) && state&.invocation
+          @recovery_resume_snapshot_mutex ||= Mutex.new
+          snapshot = RecoverySupport.build_tool_batch_snapshot(
+            state.invocation
+          )
+          @recovery_resume_snapshot_mutex.synchronize do
+            @recovery_resume_snapshots ||= {}
+            @recovery_resume_snapshots[request.execution_id.to_s] =
+              snapshot
+          end
+        end
+
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
         state = event_loop.agent_execution_state(request.execution_id)
@@ -898,6 +946,23 @@ module Phronomy
       end
 
       def perform_resume_commit(operation)
+        snapshot = nil
+        @recovery_resume_snapshot_mutex&.synchronize do
+          snapshot = @recovery_resume_snapshots&.delete(
+            operation.execution_id.to_s
+          )
+        end
+
+        if snapshot
+          staged_execution = RecoverySupport.with_recovery_metadata(
+            operation.execution,
+            RecoverySupport::TOOL_BATCH_METADATA_KEY => snapshot
+          )
+          operation = operation.class.new(
+            **operation.to_h.merge(execution: staged_execution)
+          )
+        end
+
         current = operation.execution
         current_root = operation.root
         request = current.approval_request || {}
@@ -1158,6 +1223,17 @@ module Phronomy
         source_error,
         fsm_session_id:
       )
+        if invocation&.phase == :suspended
+          snapshot = RecoverySupport.build_tool_batch_snapshot(invocation)
+          staged_execution = RecoverySupport.with_recovery_metadata(
+            state.execution,
+            RecoverySupport::TOOL_BATCH_METADATA_KEY => snapshot
+          )
+          state = state.class.new(
+            **state.to_h.merge(execution: staged_execution)
+          )
+        end
+
         operation = build_terminal_operation(
           execution: state.execution,
           root: @agent.agent_root,

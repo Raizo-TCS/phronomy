@@ -1,9 +1,78 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ripper"
 
 RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" do
   let(:root) { File.expand_path("../..", __dir__) }
+
+  def constant_path_name(node)
+    return unless node.is_a?(Array)
+
+    case node[0]
+    when :var_ref
+      token = node[1]
+      (token[0] == :@const) ? token[1] : nil
+    when :const_path_ref
+      left = constant_path_name(node[1])
+      right = node[2]
+      return unless left && right&.first == :@const
+
+      "#{left}::#{right[1]}"
+    when :top_const_ref
+      token = node[1]
+      (token[0] == :@const) ? "::#{token[1]}" : nil
+    end
+  end
+
+  def direct_keyword_names(arguments)
+    return [] unless arguments.is_a?(Array)
+
+    node = arguments
+    node = node[1] if node[0] == :arg_paren
+    return [] unless node.is_a?(Array) && node[0] == :args_add_block
+
+    Array(node[1]).flat_map do |argument|
+      next [] unless argument.is_a?(Array) && argument[0] == :bare_assoc_hash
+
+      Array(argument[1]).filter_map do |association|
+        next unless association.is_a?(Array) && association[0] == :assoc_new
+
+        key = association[1]
+        key[1].delete_suffix(":").to_sym if key&.first == :@label
+      end
+    end
+  end
+
+  def fsm_session_constructor_keyword_names(source)
+    syntax = Ripper.sexp(source)
+    raise "source is not valid Ruby" unless syntax
+
+    names = []
+    visit = lambda do |node|
+      return unless node.is_a?(Array)
+
+      if node[0] == :method_add_arg
+        call = node[1]
+        if call.is_a?(Array) &&
+            call[0] == :call &&
+            call[3]&.first == :@ident &&
+            call[3][1] == "new" &&
+            %w[FSMSession Phronomy::FSMSession].include?(
+              constant_path_name(call[1])
+            )
+          names.concat(direct_keyword_names(node[2]))
+        end
+      end
+
+      node.each do |child|
+        visit.call(child) if child.is_a?(Array)
+      end
+    end
+
+    visit.call(syntax)
+    names
+  end
 
   it "removes raw caller-supplied FSMSession id while retaining private reservation support" do
     keys = Phronomy::FSMSession.instance_method(:initialize).parameters.map(&:last)
@@ -31,12 +100,14 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   end
 
   it "does not inject Agent, Tool, or FanOut domain IDs into FSMSession constructors" do
-    sources = %w[
+    %w[
       lib/phronomy/agent/agent_invocation_session_builder.rb
       lib/phronomy/agent/tool_invocation_session_builder.rb
       lib/phronomy/multi_agent/fan_out_session_builder.rb
-    ].map { |relative| File.read(File.join(root, relative)) }.join("\n")
-    expect(sources).not_to match(/FSMSession\.new\(.*?\bid\s*:/m)
+    ].each do |relative|
+      source = File.read(File.join(root, relative))
+      expect(fsm_session_constructor_keyword_names(source)).not_to include(:id)
+    end
   end
 
   it "keeps Workflow admission ownership separate from concrete FSMSession routing" do

@@ -45,6 +45,20 @@ module Phronomy
           freeze
         end
 
+        def self.from_h(hash)
+          values = hash.to_h { |key, value| [key.to_s, value] }
+          new(
+            tool_invocation_id: values.fetch("tool_invocation_id"),
+            tool_call_id: values["tool_call_id"],
+            tool_name: values.fetch("tool_name"),
+            arguments: values.fetch("arguments", {}),
+            facts: values.fetch("facts", {}),
+            reason: values["reason"],
+            origin: values.fetch("origin", "local"),
+            metadata: values.fetch("metadata", {})
+          )
+        end
+
         def to_h
           {
             tool_invocation_id: @tool_invocation_id,
@@ -75,6 +89,17 @@ module Phronomy
       end
 
       attr_reader :id, :execution_id, :items, :created_at
+
+      def self.from_h(hash)
+        source = hash.to_h { |key, value| [key.to_s, value] }
+        items = Array(source.fetch("items")).map { |item| Item.from_h(item) }
+        new(
+          execution_id: source.fetch("execution_id"),
+          items: items,
+          id: source.fetch("id"),
+          created_at: Time.iso8601(source.fetch("created_at"))
+        )
+      end
 
       def self.build(agent_invocation)
         pending = agent_invocation.tool_invocations.select(&:awaiting_approval?)

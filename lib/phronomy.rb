@@ -114,7 +114,7 @@ module Phronomy
   end
 end
 
-# ACS-15 shared Recovery primitives and Workflow Persistence F1 reconciliation.
+# Shared Recovery primitives and Workflow Persistence F1 reconciliation.
 # Entity-specific Agent Recovery is loaded from lib/phronomy/agent.rb when the
 # Agent namespace is materialized.
 require_relative "phronomy/recovery"

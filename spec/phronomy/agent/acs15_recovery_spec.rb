@@ -468,7 +468,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
   end
 
-  describe Phronomy::Agent::ACS15RecoverySupport do
+  describe Phronomy::Agent::RecoverySupport do
     describe ".canonical_copy" do
       it "converts an Array recursively" do
         expect(described_class.canonical_copy([:a, "b", 1])).to eq(["a", "b", 1])
@@ -533,8 +533,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
           tool_name: "tool_#{id}",
           raw_arguments: {"x" => 1},
           status: completed ? :completed : :pending,
-          execution_completed?: completed
-        )
+          execution_completed?: completed)
         allow(inv).to receive(:result).and_return(result) if completed
         inv
       end
@@ -571,8 +570,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
       it "returns a descriptor hash when pending_llm_call_id is present" do
         execution = double("execution",
           metadata: {"pending_llm_call_id" => "llm-1", "manifest_ref" => "sha256:abc"},
-          llm_calls: []
-        )
+          llm_calls: [])
         result = described_class.pending_llm_descriptor(execution)
         expect(result[:subject][:llm_call_id]).to eq("llm-1")
         expect(result[:reason]).to eq(:outcome_unknown)
@@ -603,8 +601,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
             "recovery" => {
               "subjects" => [{"tool_invocation_id" => "inv-1", "state" => "resolved"}]
             }
-          }
-        )
+          })
         expect(described_class.current_tool_descriptor(execution)).to be_nil
       end
 
@@ -625,8 +622,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
                 }
               ]
             }
-          }
-        )
+          })
         result = described_class.current_tool_descriptor(execution)
         expect(result[:subject][:tool_invocation_id]).to eq("inv-1")
         expect(result[:allowed_outcomes]).to include(:succeeded)
@@ -638,8 +634,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
         execution = double("execution",
           phase: "calling_llm",
           metadata: {"pending_llm_call_id" => "llm-1", "manifest_ref" => "sha256:x"},
-          llm_calls: []
-        )
+          llm_calls: [])
         result = described_class.recovery_descriptor(execution)
         expect(result[:subject][:type]).to eq(:llm_call)
       end
@@ -648,16 +643,14 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
         execution = double("execution",
           phase: "resuming",
           metadata: {},
-          approval_request: nil
-        )
+          approval_request: nil)
         expect(described_class.recovery_descriptor(execution)).to be_nil
       end
 
       it "returns nil for :recovery_tools with no unresolved subjects" do
         execution = double("execution",
           phase: "recovery_tools",
-          metadata: {}
-        )
+          metadata: {})
         expect(described_class.recovery_descriptor(execution)).to be_nil
       end
     end
@@ -805,8 +798,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
               {"tool_invocation_id" => "inv-3", "tool_call_id" => "call-3",
                "tool_name" => "baz", "arguments" => {}, "status" => "awaiting_approval"}
             ]
-          }
-        )
+          })
         result = described_class.resuming_tool_subjects(execution)
         ids = result.map { |s| s["tool_invocation_id"] }
         expect(ids).to contain_exactly("inv-1", "inv-3")

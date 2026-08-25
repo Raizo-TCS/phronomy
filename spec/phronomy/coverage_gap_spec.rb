@@ -101,9 +101,9 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
 
   describe "Phronomy.with_configuration preserving state on exception" do
     it "restores configuration after a raised exception" do
-      original_config = Phronomy.configuration
+      Phronomy.configuration
       expect {
-        Phronomy.with_configuration { raise RuntimeError, "boom" }
+        Phronomy.with_configuration { raise "boom" }
       }.to raise_error(RuntimeError, "boom")
       # configuration is restored by ensure
       expect(Phronomy.configuration).not_to be_nil
@@ -111,7 +111,13 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
   end
 
   describe "Phronomy.reset_runtime! restores previous grace period" do
-    after { Phronomy.reset_runtime! rescue nil }
+    after {
+      begin
+        Phronomy.reset_runtime!
+      rescue
+        nil
+      end
+    }
 
     it "transfers previous event_loop_stop_grace_seconds to the new configuration" do
       Phronomy.configuration.event_loop_stop_grace_seconds = 99
@@ -207,7 +213,11 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
     it "join without limit waits for settlement", :skip_if_slow do
       task = described_class.new(name: "join-settle")
       settled = Queue.new
-      t = Thread.new { sleep 0.001; task.complete("done"); settled << true }
+      t = Thread.new {
+        sleep 0.001
+        task.complete("done")
+        settled << true
+      }
       result = task.join(1.0)
       t.join(2)
       expect(result).to be task

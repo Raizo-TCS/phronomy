@@ -413,6 +413,16 @@ module Phronomy
       def self.starting_tools_action(runtime, parent_event_sink, invocation)
         children = invocation.pending_tool_calls.map do |tool_call|
           tool = invocation.chat.tools[tool_call.name.to_sym]
+          tool_invocation_id =
+            RecoverySupport.semantic_tool_id(
+              execution_id: invocation.execution_id,
+              llm_call_id: invocation.tool_batch_llm_call_id,
+              tool_call_id: (
+                tool_call.respond_to?(:id) ? tool_call.id : nil
+              ),
+              tool_name: tool_call.name
+            )
+
           if tool
             ToolInvocation.new(
               execution_id: invocation.execution_id,
@@ -421,14 +431,16 @@ module Phronomy
               tool_call: tool_call,
               config: invocation.config,
               approval_policy: invocation.approval_policy,
-              approval_context: invocation.approval_context
+              approval_context: invocation.approval_context,
+              id: tool_invocation_id
             )
           else
             ToolInvocation.missing(
               execution_id: invocation.execution_id,
               agent: invocation.agent,
               tool_call: tool_call,
-              config: invocation.config
+              config: invocation.config,
+              id: tool_invocation_id
             )
           end
         end
@@ -440,7 +452,12 @@ module Phronomy
             parent_event_sink: parent_event_sink,
             runtime: runtime
           )
-          register_child_session(runtime, child, session, parent_event_sink)
+          register_child_session(
+            runtime,
+            child,
+            session,
+            parent_event_sink
+          )
         end
         invocation
       end
