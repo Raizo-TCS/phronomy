@@ -153,10 +153,10 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>application_callback_failed</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
-        <dt id="LLM_SETUP_FAILED_EVENTS-constant" class="">LLM_SETUP_FAILED_EVENTS =
+        <dt id="SETUP_FAILED_EVENTS-constant" class="">SETUP_FAILED_EVENTS =
           
         </dt>
-        <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>llm_setup_failed</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+        <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>llm_setup_failed</span><span class='words_sep'> </span><span class='tstring_content'>tool_setup_failed</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
     </dl>
   
@@ -3432,10 +3432,10 @@ previous sink on EventLoop before any resumed work starts.</p>
     <span class='kw'>return</span> <span class='id identifier rubyid_apply_llm_event'>apply_llm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 
-  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="#LLM_SETUP_FAILED_EVENTS-constant" title="Phronomy::Agent::AgentInvocation::LLM_SETUP_FAILED_EVENTS (constant)">LLM_SETUP_FAILED_EVENTS</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="#SETUP_FAILED_EVENTS-constant" title="Phronomy::Agent::AgentInvocation::SETUP_FAILED_EVENTS (constant)">SETUP_FAILED_EVENTS</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span><span class='rparen'>)</span>
     <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Exception</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span> <span class='op'>:</span>
       <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='op'>&amp;.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:error</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-    <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLM setup failed without an error</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>external operation setup failed without an error</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
     <span class='kw'>return</span> <span class='kw'>true</span>
   <span class='kw'>end</span>
 
@@ -4462,7 +4462,7 @@ copied/frozen so worker code cannot mutate the live queues.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Aug 25 15:19:25 2026 by
+  Generated on Wed Aug 26 04:55:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

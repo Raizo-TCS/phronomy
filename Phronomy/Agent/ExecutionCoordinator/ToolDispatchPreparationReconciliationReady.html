@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Agent::ExecutionCoordinator::FollowupPreparationReady
+  Class: Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Agent::ExecutionCoordinator::FollowupPreparationReady";
+  pathId = "Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady";
   relpath = '../../../';
 </script>
 
@@ -38,10 +38,10 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../../../_index.html">Index (F)</a> &raquo;
+    <a href="../../../_index.html">Index (T)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../ExecutionCoordinator.html" title="Phronomy::Agent::ExecutionCoordinator (class)">ExecutionCoordinator</a></span></span>
      &raquo; 
-    <span class="title">FollowupPreparationReady</span>
+    <span class="title">ToolDispatchPreparationReconciliationReady</span>
   
 </div>
 
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Agent::ExecutionCoordinator::FollowupPreparationReady
+      <div id="content"><h1>Class: Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady
   
   
   
@@ -78,7 +78,7 @@
           
             <li class="next">Data</li>
           
-            <li class="next">Phronomy::Agent::ExecutionCoordinator::FollowupPreparationReady</li>
+            <li class="next">Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -110,6 +110,33 @@
 
   <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
   <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#command-instance_method" title="#command (instance method)">#<strong>command</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute command.</p></div></span>
+  
+</li>
+
     
       <li class="public ">
   <span class="summary_signature">
@@ -168,33 +195,6 @@
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#operation-instance_method" title="#operation (instance method)">#<strong>operation</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute operation.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#result-instance_method" title="#result (instance method)">#<strong>result</strong>  &#x21d2; Object </a>
     
 
@@ -232,7 +232,64 @@
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="coordinator-instance_method">
+  <h3 class="signature first" id="command-instance_method">
+  
+    #<strong>command</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute command</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current value of command</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+95
+96
+97</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 95</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_command'>command</span>
+  <span class='ivar'>@command</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="coordinator-instance_method">
   
     #<strong>coordinator</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
@@ -271,12 +328,12 @@
       <pre class="lines">
 
 
-68
-69
-70</pre>
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_coordinator'>coordinator</span>
   <span class='ivar'>@coordinator</span>
@@ -328,72 +385,15 @@
       <pre class="lines">
 
 
-68
-69
-70</pre>
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="operation-instance_method">
-  
-    #<strong>operation</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute operation</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the current value of operation</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-68
-69
-70</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 68</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_operation'>operation</span>
-  <span class='ivar'>@operation</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -442,12 +442,12 @@
       <pre class="lines">
 
 
-68
-69
-70</pre>
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_result'>result</span>
   <span class='ivar'>@result</span>
@@ -463,7 +463,7 @@
 </div>
 
       <div id="footer">
-  Generated on Tue Aug 25 15:19:25 2026 by
+  Generated on Wed Aug 26 04:55:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

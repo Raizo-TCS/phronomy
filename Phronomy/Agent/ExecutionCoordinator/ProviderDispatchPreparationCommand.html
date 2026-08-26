@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Agent::ExecutionCoordinator::FollowupPreparationCommand
+  Class: Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationCommand
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Agent::ExecutionCoordinator::FollowupPreparationCommand";
+  pathId = "Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationCommand";
   relpath = '../../../';
 </script>
 
@@ -38,10 +38,10 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../../../_index.html">Index (F)</a> &raquo;
+    <a href="../../../_index.html">Index (P)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../ExecutionCoordinator.html" title="Phronomy::Agent::ExecutionCoordinator (class)">ExecutionCoordinator</a></span></span>
      &raquo; 
-    <span class="title">FollowupPreparationCommand</span>
+    <span class="title">ProviderDispatchPreparationCommand</span>
   
 </div>
 
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Agent::ExecutionCoordinator::FollowupPreparationCommand
+      <div id="content"><h1>Class: Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationCommand
   
   
   
@@ -78,7 +78,7 @@
           
             <li class="next">Data</li>
           
-            <li class="next">Phronomy::Agent::ExecutionCoordinator::FollowupPreparationCommand</li>
+            <li class="next">Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationCommand</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -296,6 +296,60 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the value of attribute journal_records.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#pending_llm_call_id-instance_method" title="#pending_llm_call_id (instance method)">#<strong>pending_llm_call_id</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute pending_llm_call_id.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#pending_llm_started_at-instance_method" title="#pending_llm_started_at (instance method)">#<strong>pending_llm_started_at</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute pending_llm_started_at.</p></div></span>
   
 </li>
 
@@ -793,6 +847,120 @@
       
       <span id=""></span>
       <div class="method_details ">
+  <h3 class="signature " id="pending_llm_call_id-instance_method">
+  
+    #<strong>pending_llm_call_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute pending_llm_call_id</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current value of pending_llm_call_id</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+24
+25
+26</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 24</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_pending_llm_call_id'>pending_llm_call_id</span>
+  <span class='ivar'>@pending_llm_call_id</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="pending_llm_started_at-instance_method">
+  
+    #<strong>pending_llm_started_at</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute pending_llm_started_at</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current value of pending_llm_started_at</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+24
+25
+26</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 24</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_pending_llm_started_at'>pending_llm_started_at</span>
+  <span class='ivar'>@pending_llm_started_at</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
   <h3 class="signature " id="root-instance_method">
   
     #<strong>root</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
@@ -967,7 +1135,7 @@
 </div>
 
       <div id="footer">
-  Generated on Tue Aug 25 15:19:25 2026 by
+  Generated on Wed Aug 26 04:55:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
