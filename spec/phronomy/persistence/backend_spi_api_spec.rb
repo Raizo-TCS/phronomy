@@ -6,11 +6,24 @@ RSpec.describe "Persistence Backend SPI public contract" do
   subject(:persistence_class) { Phronomy::Persistence }
 
   class CapturingAgentRecordRepository
-    attr_reader :created_record
+    attr_reader :created_record, :created_metadata
 
-    def create(record)
+    def create(agent_id:, agent_revision:, record:)
+      @created_metadata = {
+        agent_id: agent_id,
+        agent_revision: agent_revision
+      }.freeze
       @created_record = record
       record
+    end
+  end
+
+  class CapturingWatermark
+    attr_reader :received
+
+    def assert_agent_watermark!(**kwargs)
+      @received = kwargs.freeze
+      true
     end
   end
 
@@ -30,11 +43,12 @@ RSpec.describe "Persistence Backend SPI public contract" do
       :executions,
       :workflow_states,
       :transaction,
+      :build_transaction_view,
       :assert_agent_watermark!
     )
   end
 
-  it "wraps record-oriented backend repositories with domain-facing facades" do
+  it "wraps record-oriented backend repositories and passes index metadata separately" do
     contents = Object.new
     agents = CapturingAgentRecordRepository.new
     unused = Object.new
@@ -64,9 +78,56 @@ RSpec.describe "Persistence Backend SPI public contract" do
     expect(backend.contents).to equal(contents)
     expect(backend.agents).not_to equal(agents)
     expect(restored).to be_a(Phronomy::Agent::AgentRoot)
+    expect(agents.created_metadata).to eq(
+      agent_id: root.agent_id,
+      agent_revision: root.agent_revision
+    )
     expect(agents.created_record).to be_a(Phronomy::Persistence::DurableRecord)
     expect(agents.created_record.record_type).to eq("phronomy.agent_root")
     expect(agents.created_record.format_version).to eq("0.1")
+  end
+
+  it "provides one standard facade builder for transaction-scoped raw repositories" do
+    raw_agents = CapturingAgentRecordRepository.new
+    raw = Object.new
+    watermark = CapturingWatermark.new
+
+    backend_class = Class.new(Phronomy::Persistence) do
+      def capabilities
+        Phronomy::Persistence::REQUIRED_CAPABILITIES
+      end
+    end
+    backend = backend_class.new(
+      contents: raw,
+      agents: raw_agents,
+      journals: raw,
+      executions: raw,
+      workflow_states: raw
+    )
+
+    view = backend.build_transaction_view(
+      contents: raw,
+      agents: raw_agents,
+      journals: raw,
+      executions: raw,
+      workflow_states: raw,
+      watermark: watermark
+    )
+
+    expect(view.contents).to equal(raw)
+    expect(view.agents).not_to equal(raw_agents)
+    expect(
+      view.assert_agent_watermark!(
+        agent_id: "agent-1",
+        agent_revision: 3,
+        journal_position: 4
+      )
+    ).to be(true)
+    expect(watermark.received).to eq(
+      agent_id: "agent-1",
+      agent_revision: 3,
+      journal_position: 4
+    )
   end
 
   it "rejects a backend that omits optimistic revision support" do

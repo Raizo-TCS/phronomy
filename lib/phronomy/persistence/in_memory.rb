@@ -45,18 +45,22 @@ module Phronomy
         end
       end
 
-      # Backend-side Agent record repository. Values crossing this boundary are
-      # DurableRecord objects, never AgentRoot instances.
+      # Backend-side Agent record repository. DurableRecord is opaque here;
+      # identity/revision metadata is supplied explicitly by RepositoryFacades.
       class Agents
         def initialize(owner) = @owner = owner
 
-        def create(record)
+        def create(agent_id:, agent_revision:, record:)
           record = @owner.require_durable_record!(record)
+          key = agent_id.to_s
+          revision = Integer(agent_revision)
+          raise ConflictError, "agent_id must not be empty" if key.empty?
+          raise ConflictError, "agent_revision must be non-negative" if revision.negative?
+
           @owner.synchronize do
-            key = record.payload.fetch("agent_id").to_s
-            raise ConflictError, "agent_id must not be empty" if key.empty?
             raise ConflictError, "agent already exists: #{key}" if @owner.state[:agents].key?(key)
             @owner.state[:agents][key] = record.copy
+            @owner.state[:agent_revisions][key] = revision
           end
           record.copy
         end
@@ -69,74 +73,75 @@ module Phronomy
           end
         end
 
-        def save(agent_id, expected_revision:, record:)
+        def save(agent_id, expected_revision:, next_revision:, record:)
           record = @owner.require_durable_record!(record)
+          key = agent_id.to_s
+          expected = Integer(expected_revision)
+          next_value = Integer(next_revision)
           @owner.synchronize do
-            current = @owner.state[:agents].fetch(agent_id.to_s) do
+            unless @owner.state[:agents].key?(key)
               raise NotFoundError, "agent not found: #{agent_id}"
             end
-            actual_revision = Integer(current.payload.fetch("agent_revision"))
-            unless actual_revision == expected_revision
+            actual_revision = @owner.state[:agent_revisions].fetch(key)
+            unless actual_revision == expected
               raise ConflictError,
-                "agent revision conflict: expected #{expected_revision}, actual #{actual_revision}"
+                "agent revision conflict: expected #{expected}, actual #{actual_revision}"
             end
-            record_agent_id = record.payload.fetch("agent_id").to_s
-            unless record_agent_id == agent_id.to_s
-              raise ConflictError,
-                "Agent root identity mismatch: #{record_agent_id} != #{agent_id}"
-            end
-            next_revision = Integer(record.payload.fetch("agent_revision"))
-            unless next_revision == expected_revision + 1
+            unless next_value == expected + 1
               raise ConflictError,
                 "agent save must advance revision exactly once: " \
-                "expected #{expected_revision + 1}, got #{next_revision}"
+                "expected #{expected + 1}, got #{next_value}"
             end
-            @owner.state[:agents][agent_id.to_s] = record.copy
+            @owner.state[:agents][key] = record.copy
+            @owner.state[:agent_revisions][key] = next_value
           end
           record.copy
         end
 
         def delete(agent_id)
-          @owner.synchronize { @owner.state[:agents].delete(agent_id.to_s) }
+          @owner.synchronize do
+            key = agent_id.to_s
+            @owner.state[:agent_revisions].delete(key)
+            @owner.state[:agents].delete(key)
+          end
         end
       end
 
       class Journals
         def initialize(owner) = @owner = owner
 
-        def append(agent_id, expected_position:, records:)
+        def append(agent_id, expected_position:, records:, record_ids:)
           encoded = Array(records).map { |record| @owner.require_durable_record!(record) }
+          ids = Array(record_ids).map(&:to_s)
+          unless encoded.length == ids.length
+            raise ConflictError,
+              "Journal records/record_ids length mismatch: #{encoded.length} != #{ids.length}"
+          end
+          if ids.any?(&:empty?)
+            raise ConflictError, "Journal record_id must not be empty"
+          end
+
           @owner.synchronize do
-            target = (@owner.state[:journals][agent_id.to_s] ||= [])
-            unless target.length == expected_position
+            key = agent_id.to_s
+            target = (@owner.state[:journals][key] ||= [])
+            known_ids = (@owner.state[:journal_record_ids][key] ||= {})
+            expected = Integer(expected_position)
+            unless target.length == expected
               raise ConflictError,
-                "journal position conflict: expected #{expected_position}, actual #{target.length}"
+                "journal position conflict: expected #{expected}, actual #{target.length}"
             end
-            existing_ids = target.to_h do |record|
-              [record.payload.fetch("record_id").to_s, true]
-            end
+
             incoming_ids = {}
-            encoded.each_with_index do |record, index|
-              payload = record.payload
-              record_agent_id = payload.fetch("agent_id").to_s
-              unless record_agent_id == agent_id.to_s
-                raise ConflictError,
-                  "Journal record Agent mismatch: #{record_agent_id} != #{agent_id}"
-              end
-              expected_sequence = expected_position + index + 1
-              actual_sequence = Integer(payload.fetch("sequence"))
-              unless actual_sequence == expected_sequence
-                raise ConflictError,
-                  "Journal sequence mismatch: expected #{expected_sequence}, actual #{actual_sequence}"
-              end
-              record_id = payload.fetch("record_id").to_s
-              if existing_ids[record_id] || incoming_ids[record_id]
+            ids.each do |record_id|
+              if known_ids[record_id] || incoming_ids[record_id]
                 raise ConflictError, "duplicate Journal record_id: #{record_id}"
               end
               incoming_ids[record_id] = true
             end
+
             stored = encoded.map(&:copy)
             target.concat(stored)
+            incoming_ids.each_key { |record_id| known_ids[record_id] = true }
             stored.map(&:copy).freeze
           end
         end
@@ -155,31 +160,41 @@ module Phronomy
         end
 
         def delete(agent_id)
-          @owner.synchronize { @owner.state[:journals].delete(agent_id.to_s) }
+          @owner.synchronize do
+            key = agent_id.to_s
+            @owner.state[:journal_record_ids].delete(key)
+            @owner.state[:journals].delete(key)
+          end
         end
       end
 
       class Executions
-        ACTIVE_STATUSES = %w[preparing active suspended].freeze
-
         def initialize(owner) = @owner = owner
 
-        def create_active(record)
+        def create_active(execution_id:, agent_id:, execution_revision:, record:)
           record = @owner.require_durable_record!(record)
+          execution_key = execution_id.to_s
+          agent_key = agent_id.to_s
+          revision = Integer(execution_revision)
+          raise ConflictError, "execution_id must not be empty" if execution_key.empty?
+          raise ConflictError, "agent_id must not be empty" if agent_key.empty?
+          raise ConflictError, "execution_revision must be non-negative" if revision.negative?
+
           @owner.synchronize do
-            payload = record.payload
-            execution_id = payload.fetch("execution_id").to_s
-            agent_id = payload.fetch("agent_id").to_s
-            if @owner.state[:executions].key?(execution_id)
-              raise ConflictError, "execution already exists: #{execution_id}"
+            if @owner.state[:executions].key?(execution_key)
+              raise ConflictError, "execution already exists: #{execution_key}"
             end
-            active = @owner.state[:executions].values.find do |candidate|
-              candidate_payload = candidate.payload
-              candidate_payload.fetch("agent_id").to_s == agent_id &&
-                ACTIVE_STATUSES.include?(candidate_payload.fetch("status").to_s)
+            active = @owner.state[:execution_metadata].values.find do |metadata|
+              metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
             end
-            raise Phronomy::AgentBusyError, "agent is busy: #{agent_id}" if active
-            @owner.state[:executions][execution_id] = record.copy
+            raise Phronomy::AgentBusyError, "agent is busy: #{agent_key}" if active
+
+            @owner.state[:executions][execution_key] = record.copy
+            @owner.state[:execution_metadata][execution_key] = {
+              agent_id: agent_key,
+              revision: revision,
+              active: true
+            }.freeze
           end
           record.copy
         end
@@ -192,65 +207,88 @@ module Phronomy
           end
         end
 
-        def save(execution_id, expected_revision:, record:)
+        def save(execution_id, expected_revision:, next_revision:, agent_id:, active:, record:)
           record = @owner.require_durable_record!(record)
+          execution_key = execution_id.to_s
+          agent_key = agent_id.to_s
+          expected = Integer(expected_revision)
+          next_value = Integer(next_revision)
+          unless active.equal?(true) || active.equal?(false)
+            raise ConflictError, "execution active metadata must be true or false"
+          end
+
           @owner.synchronize do
-            current = @owner.state[:executions].fetch(execution_id.to_s) do
+            unless @owner.state[:executions].key?(execution_key)
               raise NotFoundError, "execution not found: #{execution_id}"
             end
-            actual_revision = Integer(current.payload.fetch("execution_revision"))
-            unless actual_revision == expected_revision
+            current = @owner.state[:execution_metadata].fetch(execution_key)
+            actual_revision = current.fetch(:revision)
+            unless actual_revision == expected
               raise ConflictError,
-                "execution revision conflict: expected #{expected_revision}, actual #{actual_revision}"
+                "execution revision conflict: expected #{expected}, actual #{actual_revision}"
             end
-            record_execution_id = record.payload.fetch("execution_id").to_s
-            unless record_execution_id == execution_id.to_s
+            unless current.fetch(:agent_id) == agent_key
               raise ConflictError,
-                "Execution identity mismatch: #{record_execution_id} != #{execution_id}"
+                "Execution Agent identity mismatch: #{agent_key} != #{current.fetch(:agent_id)}"
             end
-            next_revision = Integer(record.payload.fetch("execution_revision"))
-            unless next_revision == expected_revision + 1
+            unless next_value == expected + 1
               raise ConflictError,
                 "execution save must advance revision exactly once: " \
-                "expected #{expected_revision + 1}, got #{next_revision}"
+                "expected #{expected + 1}, got #{next_value}"
             end
-            @owner.state[:executions][execution_id.to_s] = record.copy
+
+            @owner.state[:executions][execution_key] = record.copy
+            @owner.state[:execution_metadata][execution_key] = {
+              agent_id: agent_key,
+              revision: next_value,
+              active: active
+            }.freeze
           end
           record.copy
         end
 
         def list_active(agent_id)
           @owner.synchronize do
-            @owner.state[:executions].values.select do |record|
-              payload = record.payload
-              payload.fetch("agent_id").to_s == agent_id.to_s &&
-                ACTIVE_STATUSES.include?(payload.fetch("status").to_s)
-            end.map(&:copy).freeze
+            agent_key = agent_id.to_s
+            ids = @owner.state[:execution_metadata].filter_map do |execution_id, metadata|
+              execution_id if metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
+            end
+            ids.map { |execution_id| @owner.state[:executions].fetch(execution_id).copy }.freeze
           end
         end
 
         def delete(execution_id)
-          @owner.synchronize { @owner.state[:executions].delete(execution_id.to_s) }
+          @owner.synchronize do
+            key = execution_id.to_s
+            @owner.state[:execution_metadata].delete(key)
+            @owner.state[:executions].delete(key)
+          end
         end
 
         def delete_for_agent(agent_id)
           @owner.synchronize do
-            @owner.state[:executions].delete_if do |_id, record|
-              record.payload.fetch("agent_id").to_s == agent_id.to_s
+            agent_key = agent_id.to_s
+            ids = @owner.state[:execution_metadata].filter_map do |execution_id, metadata|
+              execution_id if metadata.fetch(:agent_id) == agent_key
+            end
+            ids.each do |execution_id|
+              @owner.state[:execution_metadata].delete(execution_id)
+              @owner.state[:executions].delete(execution_id)
             end
           end
         end
 
         def assert_idle!(agent_id)
-          active = @owner.state[:executions].values.find do |record|
-            payload = record.payload
-            payload.fetch("agent_id").to_s == agent_id.to_s &&
-              ACTIVE_STATUSES.include?(payload.fetch("status").to_s)
+          @owner.synchronize do
+            active = @owner.state[:execution_metadata].values.find do |metadata|
+              metadata.fetch(:agent_id) == agent_id.to_s && metadata.fetch(:active)
+            end
+            if active
+              raise Phronomy::AgentBusyError,
+                "agent has an active or suspended execution: #{agent_id}"
+            end
           end
-          if active
-            raise Phronomy::AgentBusyError,
-              "agent has an active or suspended execution: #{agent_id}"
-          end
+          true
         end
       end
 
@@ -264,33 +302,27 @@ module Phronomy
           end
         end
 
-        def save(workflow_instance_id, expected_revision:, record:)
+        def save(workflow_instance_id, expected_revision:, next_revision:, record:)
           record = @owner.require_durable_record!(record)
+          key = workflow_instance_id.to_s
+          expected = expected_revision.nil? ? nil : Integer(expected_revision)
+          next_value = Integer(next_revision)
           @owner.synchronize do
-            key = workflow_instance_id.to_s
-            current = @owner.state[:workflow_states][key]
-            actual_revision = current&.payload&.fetch("workflow_revision")
-            unless actual_revision == expected_revision
+            actual_revision = @owner.state[:workflow_revisions][key]
+            unless actual_revision == expected
               raise ConflictError,
                 "workflow state revision conflict for #{key}: " \
-                "expected #{expected_revision.inspect}, actual #{actual_revision.inspect}"
+                "expected #{expected.inspect}, actual #{actual_revision.inspect}"
             end
-
-            payload = record.payload
-            unless payload.fetch("workflow_instance_id").to_s == key
-              raise ConflictError,
-                "Workflow state identity mismatch: " \
-                "#{payload.fetch("workflow_instance_id")} != #{key}"
-            end
-            expected_next = expected_revision.nil? ? 1 : expected_revision + 1
-            actual_next = Integer(payload.fetch("workflow_revision"))
-            unless actual_next == expected_next
+            expected_next = expected.nil? ? 1 : expected + 1
+            unless next_value == expected_next
               raise ConflictError,
                 "workflow state save must advance revision exactly once: " \
-                "expected #{expected_next}, got #{actual_next}"
+                "expected #{expected_next}, got #{next_value}"
             end
 
             @owner.state[:workflow_states][key] = record.copy
+            @owner.state[:workflow_revisions][key] = next_value
           end
           record.copy
         end
@@ -298,13 +330,14 @@ module Phronomy
         def delete(workflow_instance_id, expected_revision:)
           @owner.synchronize do
             key = workflow_instance_id.to_s
-            current = @owner.state[:workflow_states][key]
-            actual_revision = current&.payload&.fetch("workflow_revision")
-            unless actual_revision == expected_revision
+            expected = Integer(expected_revision)
+            actual_revision = @owner.state[:workflow_revisions][key]
+            unless actual_revision == expected
               raise ConflictError,
                 "workflow state revision conflict for #{key}: " \
-                "expected #{expected_revision.inspect}, actual #{actual_revision.inspect}"
+                "expected #{expected.inspect}, actual #{actual_revision.inspect}"
             end
+            @owner.state[:workflow_revisions].delete(key)
             @owner.state[:workflow_states].delete(key)
           end
           nil
@@ -318,9 +351,13 @@ module Phronomy
         @state = {
           contents: {},
           agents: {},
+          agent_revisions: {},
           journals: {},
+          journal_record_ids: {},
           executions: {},
-          workflow_states: {}
+          execution_metadata: {},
+          workflow_states: {},
+          workflow_revisions: {}
         }
         @contents_backend = Contents.new(self)
         @agents_backend = Agents.new(self)
@@ -342,18 +379,18 @@ module Phronomy
 
       def assert_agent_watermark!(agent_id:, agent_revision:, journal_position:)
         synchronize do
-          stored = @state[:agents][agent_id.to_s]
-          unless stored
+          key = agent_id.to_s
+          unless @state[:agents].key?(key)
             raise NotFoundError, "Agent not found: #{agent_id}"
           end
 
-          actual_revision = Integer(stored.payload.fetch("agent_revision"))
+          actual_revision = @state[:agent_revisions].fetch(key)
           if actual_revision != agent_revision
             raise ConflictError,
               "agent revision conflict: expected #{agent_revision}, actual #{actual_revision}"
           end
 
-          actual_position = Array(@state[:journals][agent_id.to_s]).length
+          actual_position = Array(@state[:journals][key]).length
           if actual_position != journal_position
             raise ConflictError,
               "journal position conflict: expected #{journal_position}, actual #{actual_position}"

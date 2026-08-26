@@ -126,6 +126,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     expect(record).to be_a(Phronomy::Persistence::DurableRecord)
     expect(record.record_type).to eq("phronomy.agent_root")
     expect(record.format_version).to eq("0.1")
+    expect(record.payload.fetch("lifecycle_status")).to eq("idle")
     expect(described_class.decode_agent_root(record).to_h).to eq(root.to_h)
   end
 
@@ -138,6 +139,10 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
       .not_to have_key("format_version")
     expect(record.payload.fetch("llm_calls").first)
       .not_to have_key("format_version")
+    expect(record.payload.fetch("working_records").first.fetch("kind"))
+      .to eq("external_message")
+    expect(record.payload.fetch("llm_calls").first.fetch("status"))
+      .to eq("completed")
     expect(restored.to_h).to eq(execution.to_h)
   end
 
@@ -189,6 +194,37 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
       .to raise_error(Phronomy::Persistence::SerializationError, /unknown=.*unexpected/)
   end
 
+  it "rejects wrong scalar types within the current AgentRoot format" do
+    current = described_class.encode_agent_root(root)
+    malformed = Phronomy::Persistence::DurableRecord.new(
+      record_type: current.record_type,
+      format_version: current.format_version,
+      payload: current.payload.to_h.merge("agent_id" => 42)
+    )
+
+    expect do
+      described_class.decode_agent_root(malformed)
+    end.to raise_error(Phronomy::Persistence::SerializationError, /agent_id.*String/)
+  end
+
+  it "rejects wrong nested types within the current AgentExecution format" do
+    current = described_class.encode_agent_execution(execution)
+    payload = Marshal.load(Marshal.dump(current.payload))
+    payload.fetch("working_records").first["context_candidate"] = "true"
+    malformed = Phronomy::Persistence::DurableRecord.new(
+      record_type: current.record_type,
+      format_version: current.format_version,
+      payload: payload
+    )
+
+    expect do
+      described_class.decode_agent_execution(malformed)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /working_records\[0\].*context_candidate.*true or false/
+    )
+  end
+
   it "rejects unknown nested fields in the current AgentExecution schema" do
     current = described_class.encode_agent_execution(execution)
     payload = Marshal.load(Marshal.dump(current.payload))
@@ -231,6 +267,25 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     expect(decoded).to eq(
       snapshot: {"fields" => {"count" => 2}, "phase" => "pause"},
       revision: 2
+    )
+  end
+
+  it "keeps Workflow Symbol normalization explicit and isolated to Workflow fields" do
+    record = described_class.encode_workflow_state(
+      workflow_instance_id: "workflow-symbols",
+      workflow_revision: 1,
+      snapshot: {
+        fields: {status: :ready, nested: {mode: :fast}},
+        phase: :pause
+      }
+    )
+
+    expect(record.payload.fetch("snapshot")).to eq(
+      "fields" => {
+        "status" => "ready",
+        "nested" => {"mode" => "fast"}
+      },
+      "phase" => "pause"
     )
   end
 end

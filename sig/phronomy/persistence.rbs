@@ -36,26 +36,27 @@ module Phronomy
     def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
   end
 
-  # Backend-side record repository interfaces. Structured Persistence values are
-  # exchanged only as DurableRecord; domain objects never cross this boundary.
+  # Backend-side record repository interfaces. DurableRecord is the opaque data
+  # carrier. Identity/revision/index metadata is passed separately so backends do
+  # not need to interpret DurableRecord#payload.
   interface _BackendAgentRecordRepository
-    def create: (Persistence::DurableRecord record) -> Persistence::DurableRecord
+    def create: (agent_id: String, agent_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def load: (String agent_id) -> Persistence::DurableRecord
-    def save: (String agent_id, expected_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def save: (String agent_id, expected_revision: Integer, next_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def delete: (String agent_id) -> untyped
   end
 
   interface _BackendJournalRecordRepository
-    def append: (String agent_id, expected_position: Integer, records: Array[Persistence::DurableRecord]) -> Array[Persistence::DurableRecord]
+    def append: (String agent_id, expected_position: Integer, records: Array[Persistence::DurableRecord], record_ids: Array[String]) -> Array[Persistence::DurableRecord]
     def read: (String agent_id, ?after: Integer?, ?limit: Integer?) -> Array[Persistence::DurableRecord]
     def head: (String agent_id) -> Integer
     def delete: (String agent_id) -> untyped
   end
 
   interface _BackendExecutionRecordRepository
-    def create_active: (Persistence::DurableRecord record) -> Persistence::DurableRecord
+    def create_active: (execution_id: String, agent_id: String, execution_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def load: (String execution_id) -> Persistence::DurableRecord
-    def save: (String execution_id, expected_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def save: (String execution_id, expected_revision: Integer, next_revision: Integer, agent_id: String, active: bool, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def list_active: (String agent_id) -> Array[Persistence::DurableRecord]
     def delete: (String execution_id) -> untyped
     def delete_for_agent: (String agent_id) -> untyped
@@ -64,8 +65,12 @@ module Phronomy
 
   interface _BackendWorkflowStateRecordRepository
     def load: (String workflow_instance_id) -> Persistence::DurableRecord?
-    def save: (String workflow_instance_id, expected_revision: Integer?, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def save: (String workflow_instance_id, expected_revision: Integer?, next_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _BackendWatermark
+    def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
   end
 
   interface _PersistenceTransactionView
@@ -117,6 +122,7 @@ module Phronomy
     def initialize: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository) -> void
     def capabilities: () -> Hash[Symbol, bool]
     def transaction: () { (_PersistenceTransactionView) -> untyped } -> untyped
+    def build_transaction_view: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, watermark: _BackendWatermark) -> _PersistenceTransactionView
     def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
   end
 end

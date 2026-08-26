@@ -27,6 +27,15 @@ required_files=(
   lib/phronomy/engine/event_loop.rb
   lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
+  lib/phronomy/persistence/durable_record.rb
+  lib/phronomy/persistence/durable_codec.rb
+  lib/phronomy/persistence/repository_facades.rb
+  lib/phronomy/persistence/migration/initial_format_migration.rb
+  sig/phronomy/persistence.rbs
+  spec/phronomy/persistence/backend_spi_api_spec.rb
+  spec/phronomy/persistence/durable_codec_spec.rb
+  spec/phronomy/persistence/in_memory_spec.rb
+  spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
   lib/phronomy/invocation_context.rb
@@ -109,6 +118,14 @@ syntax_files=(
   lib/phronomy/engine/event_loop.rb
   lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
+  lib/phronomy/persistence/durable_record.rb
+  lib/phronomy/persistence/durable_codec.rb
+  lib/phronomy/persistence/repository_facades.rb
+  lib/phronomy/persistence/migration/initial_format_migration.rb
+  spec/phronomy/persistence/backend_spi_api_spec.rb
+  spec/phronomy/persistence/durable_codec_spec.rb
+  spec/phronomy/persistence/in_memory_spec.rb
+  spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
   lib/phronomy/invocation_context.rb
@@ -281,6 +298,34 @@ bundle exec rspec \
   spec/phronomy/multi_agent/runner_spec.rb \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb
+
+echo "== ACS-06 / CG-07 durable format / record-oriented Persistence SPI =="
+ruby -c lib/phronomy/persistence.rb >/dev/null
+ruby -c lib/phronomy/persistence/durable_record.rb >/dev/null
+ruby -c lib/phronomy/persistence/durable_codec.rb >/dev/null
+ruby -c lib/phronomy/persistence/repository_facades.rb >/dev/null
+ruby -c lib/phronomy/persistence/in_memory.rb >/dev/null
+ruby -c lib/phronomy/persistence/migration/initial_format_migration.rb >/dev/null
+ruby -c spec/phronomy/persistence/backend_spi_api_spec.rb >/dev/null
+ruby -c spec/phronomy/persistence/durable_codec_spec.rb >/dev/null
+ruby -c spec/phronomy/persistence/in_memory_spec.rb >/dev/null
+ruby -c spec/phronomy/persistence/initial_format_migration_spec.rb >/dev/null
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/persistence/backend_spi_api_spec.rb \
+  spec/phronomy/persistence/durable_codec_spec.rb \
+  spec/phronomy/persistence/in_memory_spec.rb \
+  spec/phronomy/persistence/initial_format_migration_spec.rb \
+  spec/phronomy/persistence/backend_contract_spec.rb \
+  spec/phronomy/agent/agent_execution_codec_spec.rb \
+  spec/phronomy/agent/llm_input_manifest_spec.rb \
+  spec/phronomy/agent/approval_parent_identity_contract_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb
+
+if grep -nE '\.payload(\.|\[|\.fetch)' lib/phronomy/persistence/in_memory.rb; then
+  echo "FAIL: raw InMemory Backend reintroduced DurableRecord payload interpretation" >&2
+  exit 1
+fi
 
 echo "== CG-02 generic invocation identity / durable Journal compatibility =="
 bundle exec rbs -I sig validate
@@ -517,4 +562,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-13 + ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-13 + ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-06 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

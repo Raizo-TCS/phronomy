@@ -21,6 +21,17 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
       .to eq(root.agent_id)
   end
 
+  it "rejects unknown pre-S3 AgentRoot fields instead of silently dropping them" do
+    legacy = root.to_h.merge("unknown_legacy_field" => true)
+
+    expect do
+      described_class.agent_root(legacy)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /pre-S3 AgentRoot.*unknown=.*unknown_legacy_field/
+    )
+  end
+
   it "isolates removed Journal correlation compatibility inside explicit migration" do
     current = Phronomy::Agent::JournalRecord.new(
       record_id: "record-1",
@@ -43,6 +54,23 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
 
     expect(restored.to_h).not_to have_key("correlation_id")
     expect(restored.record_id).to eq("record-1")
+  end
+
+  it "rejects unknown pre-S3 Journal fields other than the known correlation field" do
+    current = Phronomy::Agent::JournalRecord.new(
+      record_id: "record-1",
+      agent_id: root.agent_id,
+      sequence: 1,
+      kind: :knowledge,
+      channel: :context
+    )
+
+    expect do
+      described_class.journal_record(current.to_h.merge("mystery" => 1))
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /pre-S3 JournalRecord.*unknown=.*mystery/
+    )
   end
 
   it "isolates the removed approval parent identity inside explicit migration" do
@@ -102,6 +130,52 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect(restored.approval_request).to include("execution_id" => "execution-1")
     expect(restored.approval_request).not_to have_key("agent_invocation_id")
     expect(restored.working_records.first.to_h).not_to have_key("correlation_id")
+  end
+
+  it "rejects unknown nested pre-S3 AgentExecution fields" do
+    execution = Phronomy::Agent::AgentExecution.new(
+      execution_id: "execution-1",
+      agent_id: root.agent_id,
+      execution_revision: 0,
+      status: :active,
+      phase: :calling_llm,
+      base_agent_revision: 0,
+      base_context_revision: 0,
+      base_journal_position: 0,
+      working_records: [],
+      llm_calls: [],
+      approval_request: nil,
+      result_ref: nil,
+      error_ref: nil,
+      created_at: "2026-08-23T00:00:00.000000Z",
+      updated_at: "2026-08-23T00:00:01.000000Z",
+      terminal_reason: nil,
+      metadata: {}
+    )
+    legacy = execution.to_h
+    legacy["llm_calls"] = [
+      {
+        "llm_call_id" => "llm-1",
+        "execution_id" => "execution-1",
+        "sequence" => 1,
+        "status" => "completed",
+        "manifest_ref" => "sha256:m",
+        "output_ref" => nil,
+        "error_ref" => nil,
+        "usage_ref" => nil,
+        "started_at" => "2026-08-23T00:00:00Z",
+        "completed_at" => "2026-08-23T00:00:01Z",
+        "metadata" => {},
+        "mystery" => true
+      }
+    ]
+
+    expect do
+      described_class.agent_execution(legacy)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /llm_calls\[0\].*unknown=.*mystery/
+    )
   end
 
   it "migrates the pre-CG-07 integer LLMInputManifest version explicitly" do
