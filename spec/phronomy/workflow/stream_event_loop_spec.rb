@@ -80,7 +80,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
 
     expect(result.value).to eq(11)
     record = persistence.workflow_states.load("stream-state")
-    expect(record[:snapshot][:fields][:value]).to eq(11)
+    expect(record[:snapshot]["fields"]["value"]).to eq(11)
     expect(record[:revision]).to eq(2)
   end
 

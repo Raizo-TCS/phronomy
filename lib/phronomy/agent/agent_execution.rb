@@ -85,6 +85,8 @@ module Phronomy
         self.class.new(**values)
       end
 
+      # Current semantic payload representation. Persistence format identity and
+      # compatibility validation are owned by Persistence::DurableCodec.
       # @api public
       def to_h
         ATTRIBUTES.to_h do |name|
@@ -95,11 +97,23 @@ module Phronomy
         end
       end
 
+      # Restores only the current semantic payload shape. Historical durable
+      # representations must go through explicit Persistence migration first.
       # @api public
       def self.from_h(hash)
+        source = hash.to_h { |key, value| [key.to_s, value] }
+        expected = ATTRIBUTES.map(&:to_s).sort
+        actual = source.keys.sort
+        unless actual == expected
+          missing = expected - actual
+          unknown = actual - expected
+          raise ArgumentError,
+            "AgentExecution payload schema mismatch: " \
+            "missing=#{missing.inspect}, unknown=#{unknown.inspect}"
+        end
+
         attributes = ATTRIBUTES.to_h do |name|
-          key = hash.key?(name.to_s) ? name.to_s : name
-          [name, hash.fetch(key)]
+          [name, source.fetch(name.to_s)]
         end
 
         attributes[:working_records] = attributes.fetch(:working_records).map do |record|
@@ -108,28 +122,9 @@ module Phronomy
         attributes[:llm_calls] = attributes.fetch(:llm_calls).map do |call|
           call.is_a?(LLMCallRecord) ? call : LLMCallRecord.from_h(call)
         end
-        attributes[:approval_request] = normalize_legacy_approval_request(
-          attributes[:approval_request],
-          execution_id: attributes.fetch(:execution_id)
-        )
 
         new(**attributes)
       end
-
-      def self.normalize_legacy_approval_request(request, execution_id:)
-        return request unless request
-        has_legacy_parent =
-          request.key?("agent_invocation_id") || request.key?(:agent_invocation_id)
-        return request unless has_legacy_parent
-
-        normalized = request.each_with_object({}) do |(key, value), result|
-          result[key.to_s] = value
-        end
-        normalized.delete("agent_invocation_id")
-        normalized["execution_id"] = execution_id.to_s
-        normalized
-      end
-      private_class_method :normalize_legacy_approval_request
     end
   end
 end

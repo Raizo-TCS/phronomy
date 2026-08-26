@@ -5,6 +5,7 @@ module Phronomy
     def exist?: (String content_id) -> bool
   end
 
+  # Runtime/domain-facing repository interfaces.
   interface _AgentRepository
     def create: (untyped root) -> untyped
     def load: (String agent_id) -> untyped
@@ -31,8 +32,45 @@ module Phronomy
 
   interface _WorkflowStateRepository
     def load: (String workflow_instance_id) -> Hash[untyped, untyped]?
-    def save: (String workflow_instance_id, expected_revision: Integer?, snapshot: Hash[untyped, untyped]) -> untyped
+    def save: (String workflow_instance_id, expected_revision: Integer?, snapshot: Hash[untyped, untyped]) -> Integer
     def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
+  end
+
+  # Backend-side record repository interfaces. DurableRecord is the opaque data
+  # carrier. Identity/revision/index metadata is passed separately so backends do
+  # not need to interpret DurableRecord#payload.
+  interface _BackendAgentRecordRepository
+    def create: (agent_id: String, agent_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def load: (String agent_id) -> Persistence::DurableRecord
+    def save: (String agent_id, expected_revision: Integer, next_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def delete: (String agent_id) -> untyped
+  end
+
+  interface _BackendJournalRecordRepository
+    def append: (String agent_id, expected_position: Integer, records: Array[Persistence::DurableRecord], record_ids: Array[String]) -> Array[Persistence::DurableRecord]
+    def read: (String agent_id, ?after: Integer?, ?limit: Integer?) -> Array[Persistence::DurableRecord]
+    def head: (String agent_id) -> Integer
+    def delete: (String agent_id) -> untyped
+  end
+
+  interface _BackendExecutionRecordRepository
+    def create_active: (execution_id: String, agent_id: String, execution_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def load: (String execution_id) -> Persistence::DurableRecord
+    def save: (String execution_id, expected_revision: Integer, next_revision: Integer, agent_id: String, active: bool, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def list_active: (String agent_id) -> Array[Persistence::DurableRecord]
+    def delete: (String execution_id) -> untyped
+    def delete_for_agent: (String agent_id) -> untyped
+    def assert_idle!: (String agent_id) -> untyped
+  end
+
+  interface _BackendWorkflowStateRecordRepository
+    def load: (String workflow_instance_id) -> Persistence::DurableRecord?
+    def save: (String workflow_instance_id, expected_revision: Integer?, next_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _BackendWatermark
+    def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
   end
 
   interface _PersistenceTransactionView
@@ -54,6 +92,25 @@ module Phronomy
     class SerializationError < Phronomy::Error
     end
 
+    class DurableRecord
+      FORMAT_VERSION_PATTERN: Regexp
+      attr_reader record_type: String
+      attr_reader format_version: String
+      attr_reader payload: Hash[String, untyped]
+      def initialize: (record_type: String, format_version: String, payload: Hash[String, untyped]) -> void
+      def copy: () -> DurableRecord
+    end
+
+    module Migration
+      module InitialFormatMigration
+        def self.agent_root: (Hash[untyped, untyped] hash) -> DurableRecord
+        def self.agent_execution: (Hash[untyped, untyped] hash) -> DurableRecord
+        def self.journal_record: (Hash[untyped, untyped] hash) -> DurableRecord
+        def self.workflow_state: (workflow_instance_id: String, revision: Integer, snapshot: Hash[untyped, untyped]) -> DurableRecord
+        def self.llm_input_manifest: (Hash[untyped, untyped] hash) -> Hash[String, untyped]
+      end
+    end
+
     REQUIRED_CAPABILITIES: Hash[Symbol, bool]
 
     attr_reader contents: _ContentRepository
@@ -62,9 +119,10 @@ module Phronomy
     attr_reader executions: _ExecutionRepository
     attr_reader workflow_states: _WorkflowStateRepository
 
-    def initialize: (contents: _ContentRepository, agents: _AgentRepository, journals: _JournalRepository, executions: _ExecutionRepository, workflow_states: _WorkflowStateRepository) -> void
+    def initialize: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository) -> void
     def capabilities: () -> Hash[Symbol, bool]
     def transaction: () { (_PersistenceTransactionView) -> untyped } -> untyped
+    def build_transaction_view: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, watermark: _BackendWatermark) -> _PersistenceTransactionView
     def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
   end
 end

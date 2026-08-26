@@ -27,6 +27,15 @@ required_files=(
   lib/phronomy/engine/event_loop.rb
   lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
+  lib/phronomy/persistence/durable_record.rb
+  lib/phronomy/persistence/durable_codec.rb
+  lib/phronomy/persistence/repository_facades.rb
+  lib/phronomy/persistence/migration/initial_format_migration.rb
+  sig/phronomy/persistence.rbs
+  spec/phronomy/persistence/backend_spi_api_spec.rb
+  spec/phronomy/persistence/durable_codec_spec.rb
+  spec/phronomy/persistence/in_memory_spec.rb
+  spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
   lib/phronomy/invocation_context.rb
@@ -39,7 +48,6 @@ required_files=(
   lib/phronomy/multi_agent/fan_out_invocation.rb
   sig/phronomy/runtime.rbs
   spec/phronomy/generic_invocation_identity_contract_spec.rb
-  spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb
   spec/phronomy/fsm_session_identity_contract_spec.rb
@@ -110,6 +118,14 @@ syntax_files=(
   lib/phronomy/engine/event_loop.rb
   lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
+  lib/phronomy/persistence/durable_record.rb
+  lib/phronomy/persistence/durable_codec.rb
+  lib/phronomy/persistence/repository_facades.rb
+  lib/phronomy/persistence/migration/initial_format_migration.rb
+  spec/phronomy/persistence/backend_spi_api_spec.rb
+  spec/phronomy/persistence/durable_codec_spec.rb
+  spec/phronomy/persistence/in_memory_spec.rb
+  spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
   lib/phronomy/invocation_context.rb
@@ -121,7 +137,6 @@ syntax_files=(
   lib/phronomy/multi_agent/orchestrator.rb
   lib/phronomy/multi_agent/fan_out_invocation.rb
   spec/phronomy/generic_invocation_identity_contract_spec.rb
-  spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb
   spec/phronomy/fsm_session_identity_contract_spec.rb
@@ -284,9 +299,37 @@ bundle exec rspec \
   spec/integration/multi_agent_handoff_spec.rb \
   spec/integration/multi_agent_handoff_followup_spec.rb
 
+echo "== ACS-06 / CG-07 durable format / record-oriented Persistence SPI =="
+ruby -c lib/phronomy/persistence.rb >/dev/null
+ruby -c lib/phronomy/persistence/durable_record.rb >/dev/null
+ruby -c lib/phronomy/persistence/durable_codec.rb >/dev/null
+ruby -c lib/phronomy/persistence/repository_facades.rb >/dev/null
+ruby -c lib/phronomy/persistence/in_memory.rb >/dev/null
+ruby -c lib/phronomy/persistence/migration/initial_format_migration.rb >/dev/null
+ruby -c spec/phronomy/persistence/backend_spi_api_spec.rb >/dev/null
+ruby -c spec/phronomy/persistence/durable_codec_spec.rb >/dev/null
+ruby -c spec/phronomy/persistence/in_memory_spec.rb >/dev/null
+ruby -c spec/phronomy/persistence/initial_format_migration_spec.rb >/dev/null
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/persistence/backend_spi_api_spec.rb \
+  spec/phronomy/persistence/durable_codec_spec.rb \
+  spec/phronomy/persistence/in_memory_spec.rb \
+  spec/phronomy/persistence/initial_format_migration_spec.rb \
+  spec/phronomy/persistence/backend_contract_spec.rb \
+  spec/phronomy/agent/agent_execution_codec_spec.rb \
+  spec/phronomy/agent/llm_input_manifest_spec.rb \
+  spec/phronomy/agent/approval_parent_identity_contract_spec.rb \
+  spec/phronomy/persistence_architecture_regression_spec.rb
+
+if grep -nE '\.payload([^[:alnum:]_]|$)' lib/phronomy/persistence/in_memory.rb; then
+  echo "FAIL: raw InMemory Backend reintroduced DurableRecord payload interpretation" >&2
+  exit 1
+fi
+
 echo "== CG-02 generic invocation identity / durable Journal compatibility =="
 bundle exec rbs -I sig validate
-bundle exec rspec   spec/phronomy/generic_invocation_identity_contract_spec.rb   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb   spec/phronomy/agent/journal_record_llm_call_id_spec.rb   spec/phronomy/agent/agent_execution_codec_spec.rb   spec/phronomy/invocation_context_spec.rb   spec/phronomy/trace_context_task_tree_spec.rb   spec/phronomy/agent/base_spec.rb   spec/phronomy/agent_spec.rb   spec/phronomy/agent/async_event_contract_spec.rb   spec/phronomy/agent/before_llm_input_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/agent/agent_invocation_spec.rb   spec/phronomy/agent/agent_invocation_session_builder_spec.rb   spec/phronomy/concurrency/cancellation_token_spec.rb   spec/phronomy/fault_injection_spec.rb   spec/phronomy/multi_agent/orchestrator_spec.rb   spec/phronomy/multi_agent/team_coordinator_spec.rb   spec/phronomy/multi_agent/orchestrator_knowledge_inheritance_spec.rb   spec/integration/orchestrator_spec.rb   spec/phronomy/api_compatibility_spec.rb
+bundle exec rspec   spec/phronomy/generic_invocation_identity_contract_spec.rb   spec/phronomy/agent/journal_record_llm_call_id_spec.rb   spec/phronomy/agent/agent_execution_codec_spec.rb   spec/phronomy/invocation_context_spec.rb   spec/phronomy/trace_context_task_tree_spec.rb   spec/phronomy/agent/base_spec.rb   spec/phronomy/agent_spec.rb   spec/phronomy/agent/async_event_contract_spec.rb   spec/phronomy/agent/before_llm_input_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/agent/agent_invocation_spec.rb   spec/phronomy/agent/agent_invocation_session_builder_spec.rb   spec/phronomy/concurrency/cancellation_token_spec.rb   spec/phronomy/fault_injection_spec.rb   spec/phronomy/multi_agent/orchestrator_spec.rb   spec/phronomy/multi_agent/team_coordinator_spec.rb   spec/phronomy/multi_agent/orchestrator_knowledge_inheritance_spec.rb   spec/integration/orchestrator_spec.rb   spec/phronomy/api_compatibility_spec.rb
 
 legacy_correlation_source="$(
   grep -RInE '(^|[^[:alnum:]_])correlation_id:' lib/phronomy     --include='*.rb' || true
@@ -465,7 +508,8 @@ legacy_agent_invocation_identity="$(
 legacy_agent_invocation_identity="$(
   printf '%s\n' "$legacy_agent_invocation_identity" |
     grep -v 'lib/phronomy/agent/base.rb' |
-    grep -v 'lib/phronomy/agent/agent_execution.rb' || true
+    grep -v 'lib/phronomy/agent/agent_execution.rb' |
+    grep -v 'lib/phronomy/persistence/migration/initial_format_migration.rb' || true
 )"
 if [[ -n "$legacy_agent_invocation_identity" ]]; then
   echo "FAIL: active source/RBS reintroduced agent_invocation_id domain identity:" >&2
@@ -518,4 +562,4 @@ if find tmp/cg04-cg05-gem-unpack -type f -name '*.gem' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: ACS-13 + ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"
+echo "OK: ACS-13 + ACS-12 + CG-03b routing foundation + CG-03a + CG-02 + CG-01 + ACS-06 + ACS-05 + ACS-03 + ACS-07 + ACS-18 + ACS-01 + existing CG-04/CG-05 regression validation completed"

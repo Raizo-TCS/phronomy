@@ -131,7 +131,7 @@ RSpec.shared_examples "an Execution repository" do
         expected_revision: 0,
         execution: other
       )
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 
   it "requires execution revision to advance exactly once" do

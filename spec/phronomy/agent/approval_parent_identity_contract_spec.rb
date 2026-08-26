@@ -100,7 +100,7 @@ RSpec.describe "CG-03a Agent execution parent identity" do
     end
   end
 
-  it "normalizes legacy embedded durable approval parent from the enclosing execution" do
+  it "normalizes legacy embedded durable approval parent via InitialFormatMigration" do
     legacy = {
       "execution_id" => "execution-1",
       "agent_id" => "agent-1",
@@ -115,7 +115,18 @@ RSpec.describe "CG-03a Agent execution parent identity" do
       "approval_request" => {
         "id" => "approval-1",
         "agent_invocation_id" => "legacy-runtime-route",
-        "items" => [],
+        "items" => [
+          {
+            "tool_invocation_id" => "tool-invocation-1",
+            "tool_call_id" => "tool-call-1",
+            "tool_name" => "protected_tool",
+            "arguments" => {},
+            "facts" => {},
+            "reason" => nil,
+            "origin" => "local",
+            "metadata" => {}
+          }
+        ],
         "created_at" => "2026-08-23T00:00:00Z"
       },
       "result_ref" => nil,
@@ -126,7 +137,8 @@ RSpec.describe "CG-03a Agent execution parent identity" do
       "metadata" => {}
     }
 
-    restored = Phronomy::Agent::AgentExecution.from_h(legacy)
+    record = Phronomy::Persistence::Migration::InitialFormatMigration.agent_execution(legacy)
+    restored = Phronomy::Persistence::DurableCodec.decode_agent_execution(record)
     approval = restored.approval_request
 
     expect(approval["execution_id"]).to eq("execution-1")

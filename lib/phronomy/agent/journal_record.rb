@@ -51,16 +51,28 @@ module Phronomy
         self.class.from_h(to_h.merge("sequence" => sequence))
       end
 
+      # Current semantic payload representation. Persistence format identity and
+      # compatibility validation are owned by Persistence::DurableCodec.
       def to_h
         ATTRIBUTES.to_h { |name| [name.to_s, public_send(name)] }
       end
 
+      # Historical durable fields are not accepted here. Explicit migration must
+      # convert them to the current semantic payload first.
       def self.from_h(hash)
-        # Decode only current canonical attributes. This intentionally lets
-        # legacy durable Hashes carry removed correlation_id without restoring it.
+        source = hash.to_h { |key, value| [key.to_s, value] }
+        expected = ATTRIBUTES.map(&:to_s).sort
+        actual = source.keys.sort
+        unless actual == expected
+          missing = expected - actual
+          unknown = actual - expected
+          raise ArgumentError,
+            "JournalRecord payload schema mismatch: " \
+            "missing=#{missing.inspect}, unknown=#{unknown.inspect}"
+        end
+
         new(**ATTRIBUTES.to_h do |name|
-          key = hash.key?(name.to_s) ? name.to_s : name
-          [name, hash[key]]
+          [name, source.fetch(name.to_s)]
         end)
       end
     end

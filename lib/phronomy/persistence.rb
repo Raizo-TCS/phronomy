@@ -13,51 +13,73 @@ module Phronomy
       optimistic_revision: true
     }.freeze
 
-    # Durable repository accessors supplied by a Persistence backend.
+    # Content-addressed immutable content repository. ContentStore has its own
+    # codec/canonicalization boundary and is not wrapped in DurableRecord.
     #
-    # The repository objects are part of the Backend SPI. They may be private
-    # implementation classes owned by the backend; they do not need to inherit
-    # from Phronomy repository base classes.
-    #
-    # @return [Object] content-addressed immutable content repository
+    # @return [Object]
     # @api public
     attr_reader :contents
 
-    # @return [Object] AgentRoot repository
+    # Runtime/domain-facing AgentRoot repository. The backend repository supplied
+    # to #initialize is record-oriented; this facade owns encode/decode.
+    #
+    # @return [Object]
     # @api public
     attr_reader :agents
 
-    # @return [Object] append-only Agent Journal repository
+    # Runtime/domain-facing append-only Agent Journal repository.
+    #
+    # @return [Object]
     # @api public
     attr_reader :journals
 
-    # @return [Object] AgentExecution repository
+    # Runtime/domain-facing AgentExecution repository.
+    #
+    # @return [Object]
     # @api public
     attr_reader :executions
 
-    # @return [Object] durable Workflow snapshot repository
+    # Runtime/domain-facing durable Workflow snapshot repository.
+    #
+    # @return [Object]
     # @api public
     attr_reader :workflow_states
 
-    # Initializes a Persistence backend with its durable repositories.
+    # Initializes a Persistence backend from record-oriented storage
+    # repositories.
     #
-    # Subclasses normally construct backend-specific repository objects and then
-    # call +super+. The backend must advertise every capability in
-    # {REQUIRED_CAPABILITIES}; construction fails fast otherwise.
+    # Except for +contents+, backend repositories exchange
+    # {Phronomy::Persistence::DurableRecord} values. Phronomy's repository
+    # facades own current-format validation and domain-object encode/decode.
     #
-    # @param contents [Object]
-    # @param agents [Object]
-    # @param journals [Object]
-    # @param executions [Object]
-    # @param workflow_states [Object]
-    # @raise [UnsupportedBackendError] when a required capability is missing
+    # Identity, revision, admission, and index metadata needed by a Backend is
+    # passed explicitly as repository arguments. A Backend must not inspect
+    # DurableRecord#payload to rediscover Phronomy domain semantics.
+    #
+    # Required raw repository shapes:
+    # - agents:
+    #   create(agent_id:, agent_revision:, record:), load(id),
+    #   save(id, expected_revision:, next_revision:, record:), delete(id)
+    # - journals:
+    #   append(id, expected_position:, records:, record_ids:), read/head/delete
+    # - executions:
+    #   create_active(execution_id:, agent_id:, execution_revision:, record:),
+    #   load(id), save(id, expected_revision:, next_revision:, agent_id:,
+    #   active:, record:), list_active/delete/delete_for_agent/assert_idle!
+    # - workflow_states:
+    #   load(id), save(id, expected_revision:, next_revision:, record:), delete
+    #
+    # Subclasses normally construct backend-specific raw repository objects and
+    # call +super+. Construction fails fast when required capabilities are not
+    # advertised.
+    #
     # @api public
     def initialize(contents:, agents:, journals:, executions:, workflow_states:)
       @contents = contents
-      @agents = agents
-      @journals = journals
-      @executions = executions
-      @workflow_states = workflow_states
+      @agents = RepositoryFacades::Agents.new(agents)
+      @journals = RepositoryFacades::Journals.new(journals)
+      @executions = RepositoryFacades::Executions.new(executions)
+      @workflow_states = RepositoryFacades::WorkflowStates.new(workflow_states)
       validate_capabilities!
     end
 
@@ -84,11 +106,9 @@ module Phronomy
 
     # Executes one atomic durable transaction.
     #
-    # The object yielded to the block is a transaction-scoped Persistence view.
-    # It must respond to +contents+, +agents+, +journals+, +executions+,
-    # +workflow_states+, and +assert_agent_watermark!+. It may be +self+, but
-    # backends are free to yield a separate transaction view backed by a checked
-    # out connection/session.
+    # The yielded object is a transaction-scoped Persistence view exposing the
+    # same domain-facing repository facades. Its underlying backend repositories
+    # remain DurableRecord-oriented.
     #
     # If the block raises, mutations made through the transaction view must not
     # be committed. Storage failures whose commit outcome is fundamentally
@@ -103,6 +123,36 @@ module Phronomy
       raise UnsupportedBackendError, "#{self.class} does not provide atomic_all"
     end
 
+    # Backend SPI helper for transaction implementations whose transaction-scoped
+    # raw repositories differ from the root repository objects.
+    #
+    # +watermark+ is a transaction-scoped object responding to
+    # +assert_agent_watermark!+. The returned view owns the same Phronomy codec
+    # facades as the root Persistence instance, so backend authors never need to
+    # instantiate RepositoryFacades directly.
+    #
+    # Backends whose repository objects are already transaction-scoped may yield
+    # +self+ and need not call this helper.
+    #
+    # @api public
+    def build_transaction_view(
+      contents:,
+      agents:,
+      journals:,
+      executions:,
+      workflow_states:,
+      watermark:
+    )
+      RepositoryFacades::View.new(
+        contents: contents,
+        agents: agents,
+        journals: journals,
+        executions: executions,
+        workflow_states: workflow_states,
+        watermark: watermark
+      )
+    end
+
     # Verifies that a live Agent still owns the durable base it hydrated.
     #
     # This is a Backend SPI operation invoked by Phronomy at durable barriers.
@@ -111,16 +161,6 @@ module Phronomy
     # supplied watermark in the same storage consistency view used by subsequent
     # writes in the surrounding transaction.
     #
-    # The method is a precondition check only. It must not reload or return
-    # replacement mutable Agent state; the live Agent remains the logical owner.
-    #
-    # @param agent_id [String]
-    # @param agent_revision [Integer]
-    # @param journal_position [Integer]
-    # @return [true]
-    # @raise [NotFoundError] when the Agent does not exist
-    # @raise [ConflictError] when either durable watermark component differs
-    # @raise [UnsupportedBackendError] when the backend does not implement the check
     # @api public
     def assert_agent_watermark!(agent_id:, agent_revision:, journal_position:)
       raise UnsupportedBackendError,

@@ -363,9 +363,9 @@ RSpec.describe "Group 7: Workflow", :integration do
         expect(state.step).to eq(2)
 
         record = persistence.workflow_states.load("tc-016")
-        expect(record[:snapshot][:phase]).to eq("__end__")
-        expect(record[:snapshot][:fields][:value]).to eq("second")
-        expect(record[:snapshot][:fields][:step]).to eq(2)
+        expect(record[:snapshot]["phase"]).to eq("__end__")
+        expect(record[:snapshot]["fields"]["value"]).to eq("second")
+        expect(record[:snapshot]["fields"]["step"]).to eq(2)
       end
     end
   end

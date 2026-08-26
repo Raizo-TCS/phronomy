@@ -9,13 +9,12 @@ RSpec.describe "ACS-17 causal durability" do
     def initialize(delegate)
       @delegate = delegate
       @lose_next_response = false
-      super(
-        contents: delegate.contents,
-        agents: delegate.agents,
-        journals: delegate.journals,
-        executions: delegate.executions,
-        workflow_states: delegate.workflow_states
-      )
+      # Assign facade repos directly to avoid double-wrapping via Persistence#initialize.
+      @contents = delegate.contents
+      @agents = delegate.agents
+      @journals = delegate.journals
+      @executions = delegate.executions
+      @workflow_states = delegate.workflow_states
     end
 
     def capabilities = @delegate.capabilities

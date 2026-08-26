@@ -106,7 +106,7 @@ RSpec.shared_examples "a Journal repository" do
         expected_position: 0,
         records: [record]
       )
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 
   it "reads records in sequence order and supports after/limit" do

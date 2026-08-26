@@ -195,41 +195,6 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
   end
 
-  describe Phronomy::Agent::LLMInputManifest do
-    let(:manifest_hash) do
-      {
-        "version" => 1,
-        "call_sequence" => 1,
-        "call_mode" => "ask",
-        "assembly_policy_version" => 1,
-        "segments" => [
-          {
-            "position" => 0,
-            "category" => "external_message",
-            "role" => "user",
-            "content_ref" => "sha256:input",
-            "delivery" => "ask_argument",
-            "metadata" => {}
-          }
-        ],
-        "model_config_ref" => "sha256:model"
-      }
-    end
-
-    it "round-trips the exact v1 durable representation" do
-      manifest = described_class.from_h(manifest_hash)
-
-      expect(manifest.version).to eq(1)
-      expect(manifest.to_h).to eq(manifest_hash)
-    end
-
-    it "fails closed for an unsupported manifest version" do
-      expect {
-        described_class.from_h(manifest_hash.merge("version" => 2))
-      }.to raise_error(Phronomy::ConfigurationError, /unsupported LLMInputManifest version/)
-    end
-  end
-
   describe "load-integrated Recovery" do
     def install_ambiguous_llm_execution(agent, persistence, execution_id:)
       root = agent.agent_root

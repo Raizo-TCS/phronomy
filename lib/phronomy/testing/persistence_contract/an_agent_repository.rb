@@ -71,7 +71,7 @@ RSpec.shared_examples "an Agent repository" do
         expected_revision: 0,
         root: other
       )
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 
   it "requires revision to advance exactly once" do
