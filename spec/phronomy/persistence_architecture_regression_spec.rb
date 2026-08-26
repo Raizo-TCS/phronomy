@@ -133,7 +133,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     apply = coordinator
       .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
       .fetch(1)
-      .split("def reconcile_provider_dispatch_preparation_f1_on_event_loop", 2)
+      .split("def apply_confirmed_tool_dispatch_preparation_on_event_loop", 2)
       .first
 
     expect(apply.index("authoritative_state_for_operation")).to be <
