@@ -65,7 +65,6 @@ module Phronomy
                 if: ->(machine) { machine.context&.ready_to_dispatch? }
               transition evaluating_tools: :waiting_for_tools
 
-              transition dispatching_tools: :evaluating_tools
               transition recording_tool_results: :calling_llm
 
               transition output_filtering: :completed,
@@ -92,6 +91,14 @@ module Phronomy
 
             event :llm_setup_failed do
               transition calling_llm: :failed
+            end
+
+            event :tool_setup_failed do
+              transition dispatching_tools: :failed
+            end
+
+            event :tool_dispatch_prepared do
+              transition dispatching_tools: :evaluating_tools
             end
 
             TOOL_EVENTS.each do |event_name|

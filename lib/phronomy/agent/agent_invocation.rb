@@ -19,7 +19,7 @@ module Phronomy
 
       LLM_EVENT_TYPES = %i[llm_completed llm_failed].freeze
       CALLBACK_FAILED_EVENTS = %i[application_callback_failed].freeze
-      LLM_SETUP_FAILED_EVENTS = %i[llm_setup_failed].freeze
+      SETUP_FAILED_EVENTS = %i[llm_setup_failed tool_setup_failed].freeze
 
       ApplicationCallbackFailure = Data.define(:event_type, :error) do
         def to_stream_callback_error
@@ -197,10 +197,10 @@ module Phronomy
           return apply_llm_event(event)
         end
 
-        if LLM_SETUP_FAILED_EVENTS.include?(event.type)
+        if SETUP_FAILED_EVENTS.include?(event.type)
           @error ||= event.payload.is_a?(Exception) ? event.payload :
             event.payload&.fetch(:error, nil)
-          @error ||= Phronomy::Error.new("LLM setup failed without an error")
+          @error ||= Phronomy::Error.new("external operation setup failed without an error")
           return true
         end
 

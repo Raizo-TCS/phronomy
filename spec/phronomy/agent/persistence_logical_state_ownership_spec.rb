@@ -63,7 +63,17 @@ RSpec.describe "Agent logical-state ownership" do
     )
 
     expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
-    expect(coordinator).not_to match(/(?:tx|persistence)\.executions\.load/)
+
+    prefix, tail = coordinator.split(
+      "      def preparation_reconciliation_state",
+      2
+    )
+    reconciliation, suffix = tail.split(/^      def /, 2)
+    without_reconciliation = prefix + (suffix ? "      def #{suffix}" : "")
+    expect(reconciliation).to include("@agent.persistence.executions.load")
+    expect(without_reconciliation).not_to match(
+      /(?:tx|persistence)\.executions\.load/
+    )
     expect(coordinator).not_to match(/(?:tx|persistence)\.journals\.read/)
   end
 
@@ -72,9 +82,9 @@ RSpec.describe "Agent logical-state ownership" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     followup = coordinator
-      .split("def perform_followup_preparation", 2)
+      .split("def perform_provider_dispatch_preparation", 2)
       .fetch(1)
-      .split("def apply_followup_preparation_on_event_loop", 2)
+      .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
       .first
 
     expect(followup.index("assert_local_durable_base!")).to be <

@@ -270,8 +270,9 @@ module Phronomy
           # simplecov:disable
           current = operation.execution
           recovery = RecoverySupport.recovery_hash(current)
-          if recovery.nil? && current.phase.to_sym == :resuming
-            subjects = RecoverySupport.resuming_tool_subjects(current)
+          if recovery.nil? &&
+              %i[resuming dispatching_tools].include?(current.phase.to_sym)
+            subjects = RecoverySupport.pending_tool_subjects(current)
             recovery = RecoverySupport.build_recovery_hash(subjects)
           end
           unless recovery

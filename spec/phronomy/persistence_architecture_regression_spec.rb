@@ -96,7 +96,17 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     )
 
     expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
-    expect(coordinator).not_to match(/(?:tx|persistence)\.executions\.load/)
+
+    prefix, tail = coordinator.split(
+      "      def preparation_reconciliation_state",
+      2
+    )
+    reconciliation, suffix = tail.split(/^      def /, 2)
+    without_reconciliation = prefix + (suffix ? "      def #{suffix}" : "")
+    expect(reconciliation).to include("@agent.persistence.executions.load")
+    expect(without_reconciliation).not_to match(
+      /(?:tx|persistence)\.executions\.load/
+    )
     expect(coordinator).not_to include("persistence.activations")
   end
 
@@ -105,9 +115,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     followup = coordinator
-      .split("def perform_followup_preparation", 2)
+      .split("def perform_provider_dispatch_preparation", 2)
       .fetch(1)
-      .split("def apply_followup_preparation_on_event_loop", 2)
+      .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
       .first
 
     expect(followup.index("assert_local_durable_base!")).to be <
@@ -121,9 +131,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     apply = coordinator
-      .split("def apply_followup_preparation_on_event_loop", 2)
+      .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
       .fetch(1)
-      .split("def begin_resume_on_event_loop", 2)
+      .split("def apply_confirmed_tool_dispatch_preparation_on_event_loop", 2)
       .first
 
     expect(apply.index("authoritative_state_for_operation")).to be <
@@ -138,7 +148,10 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     )
     worker_methods = %w[
       perform_initial_preparation
-      perform_followup_preparation
+      perform_provider_dispatch_preparation
+      perform_tool_dispatch_preparation
+      perform_provider_dispatch_preparation_reconciliation
+      perform_tool_dispatch_preparation_reconciliation
       perform_resume_commit
       compute_terminal
       commit_suspended
@@ -153,6 +166,39 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       expect(body).not_to include("replace_agent_execution")
       expect(body).not_to include("acknowledge_runtime_snapshot")
     end
+  end
+
+  it "keeps causal-barrier reconciliation Persistence reads off EventLoop apply paths" do
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+    )
+    provider_worker = coordinator
+      .split("def perform_provider_dispatch_preparation_reconciliation", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+    tool_worker = coordinator
+      .split("def perform_tool_dispatch_preparation_reconciliation", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+    provider_apply = coordinator
+      .split("def apply_provider_dispatch_preparation_reconciliation_on_event_loop", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+    tool_apply = coordinator
+      .split("def apply_tool_dispatch_preparation_reconciliation_on_event_loop", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+
+    expect(provider_worker).to include("preparation_reconciliation_state")
+    expect(tool_worker).to include("preparation_reconciliation_state")
+    expect(provider_apply).not_to include("executions.load")
+    expect(tool_apply).not_to include("executions.load")
+    expect(provider_apply).not_to include("materialize_projection")
+    expect(tool_apply).not_to include("materialize_projection")
   end
 
   it "keeps Workflow admission ownership, FSMSession routing, and terminal persistence distinct" do

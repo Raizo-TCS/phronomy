@@ -89,32 +89,21 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
   end
 
   describe ".dispatching_tools_action" do
-    it "dispatches every authorized ToolInvocation in the batch" do
-      first = double("first", id: "tool-1", authorized?: true)
-      second = double("second", id: "tool-2", authorized?: true)
-      rejected = double("rejected", id: "tool-3", authorized?: false)
-      invocation = double("invocation", tool_invocations: [first, second, rejected])
-      runtime = instance_double(Phronomy::Runtime)
-      first_session = double("first-session")
-      second_session = double("second-session")
-
-      allow(Phronomy::Agent::ToolInvocationSessionBuilder)
-        .to receive(:build_for_resume)
-        .and_return(first_session, second_session)
-      allow(described_class).to receive(:register_child_session)
-
+    it "delegates Tool dispatch to causal durable preparation" do
+      coordinator = double("coordinator")
+      config = {phronomy_execution_coordinator: coordinator}
+      invocation = double("invocation", config: config)
       parent_event_sink = double("parent-event-sink")
+
+      allow(coordinator).to receive(:prepare_tool_dispatch)
+
       result = described_class.send(
-        :dispatching_tools_action, runtime, parent_event_sink, invocation
+        :dispatching_tools_action, nil, parent_event_sink, invocation
       )
 
       expect(result).to be(invocation)
-      expect(Phronomy::Agent::ToolInvocationSessionBuilder)
-        .to have_received(:build_for_resume).twice
-      expect(described_class).to have_received(:register_child_session)
-        .with(runtime, first, first_session, parent_event_sink)
-      expect(described_class).to have_received(:register_child_session)
-        .with(runtime, second, second_session, parent_event_sink)
+      expect(coordinator).to have_received(:prepare_tool_dispatch)
+        .with(invocation, event_sink: parent_event_sink)
     end
   end
 end

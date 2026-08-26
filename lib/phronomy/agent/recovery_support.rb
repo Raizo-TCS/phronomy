@@ -189,7 +189,7 @@ module Phronomy
         }.freeze
       end
 
-      def resuming_tool_subjects(execution)
+      def pending_tool_subjects(execution)
         Array(execution.metadata[TOOL_BATCH_METADATA_KEY]).filter_map do |entry|
           hash = entry.to_h { |key, value| [key.to_s, value] }
           next unless %w[authorized awaiting_approval].include?(
@@ -209,8 +209,8 @@ module Phronomy
         end.freeze
       end
 
-      def resuming_tool_descriptor(execution)
-        subjects = resuming_tool_subjects(execution)
+      def pending_tool_descriptor(execution)
+        subjects = pending_tool_subjects(execution)
         return if subjects.empty?
 
         first = subjects.first
@@ -240,7 +240,9 @@ module Phronomy
               execution.approval_request["approved"] ||
               execution.approval_request[:approved]
             )
-          approved ? resuming_tool_descriptor(execution) : nil
+          approved ? pending_tool_descriptor(execution) : nil
+        when :dispatching_tools
+          pending_tool_descriptor(execution)
         when :recovery_tools
           current_tool_descriptor(execution)
         end
