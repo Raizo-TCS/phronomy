@@ -321,9 +321,8 @@ RSpec.describe "Workflow durable admission" do
     halted = workflow.invoke({value: 0}, config: {workflow_instance_id: "diverged"})
     expect(halted.halted?).to be(true)
 
-    # Simulate an external actor advancing the durable state (no phase key
-    # ensures the nil-phase branch of normalize_snapshot is also exercised).
-    repo.save("diverged", expected_revision: 1, snapshot: {fields: {value: 99}})
+    # Simulate an external actor advancing the durable state.
+    repo.save("diverged", expected_revision: 1, snapshot: {fields: {value: 99}, phase: nil})
 
     expect { workflow.send_event(state: halted, event: :finish) }
       .to raise_error(Phronomy::Persistence::ConflictError)
@@ -401,8 +400,8 @@ RSpec.describe "Workflow durable admission" do
       next nil unless record
       snap = record[:snapshot]
       str_snap = snap ? {
-        "fields" => (snap[:fields] || {}).transform_keys(&:to_s),
-        "phase" => snap[:phase]
+        "fields" => (snap["fields"] || {}).transform_keys(&:to_s),
+        "phase" => snap["phase"]
       } : nil
       {"snapshot" => str_snap, "revision" => record[:revision]}
     end

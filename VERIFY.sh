@@ -39,7 +39,6 @@ required_files=(
   lib/phronomy/multi_agent/fan_out_invocation.rb
   sig/phronomy/runtime.rbs
   spec/phronomy/generic_invocation_identity_contract_spec.rb
-  spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb
   spec/phronomy/fsm_session_identity_contract_spec.rb
@@ -121,7 +120,6 @@ syntax_files=(
   lib/phronomy/multi_agent/orchestrator.rb
   lib/phronomy/multi_agent/fan_out_invocation.rb
   spec/phronomy/generic_invocation_identity_contract_spec.rb
-  spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb
   spec/phronomy/agent/journal_record_llm_call_id_spec.rb
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb
   spec/phronomy/fsm_session_identity_contract_spec.rb
@@ -286,7 +284,7 @@ bundle exec rspec \
 
 echo "== CG-02 generic invocation identity / durable Journal compatibility =="
 bundle exec rbs -I sig validate
-bundle exec rspec   spec/phronomy/generic_invocation_identity_contract_spec.rb   spec/phronomy/agent/journal_record_correlation_compatibility_spec.rb   spec/phronomy/agent/journal_record_llm_call_id_spec.rb   spec/phronomy/agent/agent_execution_codec_spec.rb   spec/phronomy/invocation_context_spec.rb   spec/phronomy/trace_context_task_tree_spec.rb   spec/phronomy/agent/base_spec.rb   spec/phronomy/agent_spec.rb   spec/phronomy/agent/async_event_contract_spec.rb   spec/phronomy/agent/before_llm_input_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/agent/agent_invocation_spec.rb   spec/phronomy/agent/agent_invocation_session_builder_spec.rb   spec/phronomy/concurrency/cancellation_token_spec.rb   spec/phronomy/fault_injection_spec.rb   spec/phronomy/multi_agent/orchestrator_spec.rb   spec/phronomy/multi_agent/team_coordinator_spec.rb   spec/phronomy/multi_agent/orchestrator_knowledge_inheritance_spec.rb   spec/integration/orchestrator_spec.rb   spec/phronomy/api_compatibility_spec.rb
+bundle exec rspec   spec/phronomy/generic_invocation_identity_contract_spec.rb   spec/phronomy/agent/journal_record_llm_call_id_spec.rb   spec/phronomy/agent/agent_execution_codec_spec.rb   spec/phronomy/invocation_context_spec.rb   spec/phronomy/trace_context_task_tree_spec.rb   spec/phronomy/agent/base_spec.rb   spec/phronomy/agent_spec.rb   spec/phronomy/agent/async_event_contract_spec.rb   spec/phronomy/agent/before_llm_input_spec.rb   spec/phronomy/agent/persistence_logical_state_ownership_spec.rb   spec/phronomy/agent/agent_invocation_spec.rb   spec/phronomy/agent/agent_invocation_session_builder_spec.rb   spec/phronomy/concurrency/cancellation_token_spec.rb   spec/phronomy/fault_injection_spec.rb   spec/phronomy/multi_agent/orchestrator_spec.rb   spec/phronomy/multi_agent/team_coordinator_spec.rb   spec/phronomy/multi_agent/orchestrator_knowledge_inheritance_spec.rb   spec/integration/orchestrator_spec.rb   spec/phronomy/api_compatibility_spec.rb
 
 legacy_correlation_source="$(
   grep -RInE '(^|[^[:alnum:]_])correlation_id:' lib/phronomy     --include='*.rb' || true
@@ -465,7 +463,8 @@ legacy_agent_invocation_identity="$(
 legacy_agent_invocation_identity="$(
   printf '%s\n' "$legacy_agent_invocation_identity" |
     grep -v 'lib/phronomy/agent/base.rb' |
-    grep -v 'lib/phronomy/agent/agent_execution.rb' || true
+    grep -v 'lib/phronomy/agent/agent_execution.rb' |
+    grep -v 'lib/phronomy/persistence/migration/initial_format_migration.rb' || true
 )"
 if [[ -n "$legacy_agent_invocation_identity" ]]; then
   echo "FAIL: active source/RBS reintroduced agent_invocation_id domain identity:" >&2

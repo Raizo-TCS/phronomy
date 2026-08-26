@@ -28,6 +28,17 @@ RSpec.describe Phronomy::Persistence::InMemory do
     expect(persistence.contents.exist?(temporary_id)).to be(false)
   end
 
+  it "stores structured durable state as DurableRecord rather than domain objects" do
+    persistence.agents.create(root)
+
+    stored = persistence.state.fetch(:agents).fetch(root.agent_id)
+    expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+    expect(stored.record_type).to eq("phronomy.agent_root")
+    expect(stored.format_version).to eq("0.1")
+    expect(stored.payload.fetch("agent_id")).to eq(root.agent_id)
+    expect(stored).not_to be_a(Phronomy::Agent::AgentRoot)
+  end
+
   it "uses ExecutionRepository as atomic Agent admission" do
     persistence.transaction { |tx| tx.agents.create(root) }
     input_ref = persistence.contents.put_text("hello")
@@ -51,6 +62,10 @@ RSpec.describe Phronomy::Persistence::InMemory do
     expect do
       persistence.transaction { |tx| tx.executions.create_active(second) }
     end.to raise_error(Phronomy::AgentBusyError)
+
+    stored = persistence.state.fetch(:executions).fetch(first.execution_id)
+    expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+    expect(stored.record_type).to eq("phronomy.agent_execution")
   end
 
   describe "workflow_states" do
@@ -65,8 +80,8 @@ RSpec.describe Phronomy::Persistence::InMemory do
       record = persistence.workflow_states.load("workflow-1")
       expect(record[:revision]).to eq(1)
       expect(record[:snapshot]).to eq(
-        fields: {count: 1},
-        phase: "pause"
+        "fields" => {"count" => 1},
+        "phase" => "pause"
       )
 
       revision = persistence.workflow_states.save(
@@ -76,6 +91,10 @@ RSpec.describe Phronomy::Persistence::InMemory do
       )
       expect(revision).to eq(2)
       expect(persistence.workflow_states.load("workflow-1")[:revision]).to eq(2)
+
+      stored = persistence.state.fetch(:workflow_states).fetch("workflow-1")
+      expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+      expect(stored.payload.fetch("workflow_revision")).to eq(2)
     end
 
     it "rejects stale saves instead of overwriting a newer snapshot" do
@@ -94,11 +113,11 @@ RSpec.describe Phronomy::Persistence::InMemory do
       end.to raise_error(Phronomy::Persistence::ConflictError)
 
       expect(
-        persistence.workflow_states.load("workflow-1")[:snapshot][:fields][:count]
+        persistence.workflow_states.load("workflow-1")[:snapshot]["fields"]["count"]
       ).to eq(1)
     end
 
-    it "returns copies so caller mutation cannot alter stored state" do
+    it "returns immutable copies so caller mutation cannot alter stored state" do
       persistence.workflow_states.save(
         "workflow-1",
         expected_revision: nil,
@@ -106,28 +125,25 @@ RSpec.describe Phronomy::Persistence::InMemory do
       )
 
       loaded = persistence.workflow_states.load("workflow-1")
-      loaded[:snapshot][:fields][:items] << "caller-mutation"
+      expect do
+        loaded[:snapshot]["fields"]["items"] << "caller-mutation"
+      end.to raise_error(FrozenError)
 
       expect(
-        persistence.workflow_states.load("workflow-1")[:snapshot][:fields][:items]
+        persistence.workflow_states.load("workflow-1")[:snapshot]["fields"]["items"]
       ).to eq(["a"])
     end
 
-    it "supports non-Marshalable Workflow values without breaking Agent transactions" do
+    it "rejects non-canonical Workflow values at the durable codec boundary" do
       callable = -> { :ok }
-      persistence.workflow_states.save(
-        "workflow-proc",
-        expected_revision: nil,
-        snapshot: {fields: {callable: callable}, phase: "pause"}
-      )
 
-      persistence.transaction do |tx|
-        tx.agents.create(root)
-      end
-
-      record = persistence.workflow_states.load("workflow-proc")
-      expect(record[:snapshot][:fields][:callable]).to respond_to(:call)
-      expect(record[:snapshot][:fields][:callable].call).to eq(:ok)
+      expect do
+        persistence.workflow_states.save(
+          "workflow-proc",
+          expected_revision: nil,
+          snapshot: {fields: {callable: callable}, phase: "pause"}
+        )
+      end.to raise_error(Phronomy::Persistence::SerializationError, /unsupported durable value/)
     end
 
     it "rolls Agent and Workflow durable state back in the same transaction" do
@@ -178,7 +194,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
 
     it "rejects a Journal position advance even when Agent revision is unchanged" do
       persistence.agents.create(root)
-      persistence.journals.append(
+      appended = persistence.journals.append(
         root.agent_id,
         expected_position: 0,
         records: [
@@ -191,6 +207,11 @@ RSpec.describe Phronomy::Persistence::InMemory do
           )
         ]
       )
+      expect(appended.first.sequence).to eq(1)
+
+      stored = persistence.state.fetch(:journals).fetch(root.agent_id).first
+      expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+      expect(stored.record_type).to eq("phronomy.journal_record")
 
       expect do
         persistence.assert_agent_watermark!(

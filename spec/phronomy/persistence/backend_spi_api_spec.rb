@@ -5,6 +5,15 @@ require "spec_helper"
 RSpec.describe "Persistence Backend SPI public contract" do
   subject(:persistence_class) { Phronomy::Persistence }
 
+  class CapturingAgentRecordRepository
+    attr_reader :created_record
+
+    def create(record)
+      @created_record = record
+      record
+    end
+  end
+
   it "publishes the required backend capabilities" do
     expect(persistence_class::REQUIRED_CAPABILITIES).to eq(
       atomic_all: true,
@@ -25,8 +34,10 @@ RSpec.describe "Persistence Backend SPI public contract" do
     )
   end
 
-  it "constructs backend subclasses through the documented .new contract" do
-    repository = Object.new
+  it "wraps record-oriented backend repositories with domain-facing facades" do
+    contents = Object.new
+    agents = CapturingAgentRecordRepository.new
+    unused = Object.new
 
     backend_class = Class.new(Phronomy::Persistence) do
       def capabilities
@@ -35,18 +46,27 @@ RSpec.describe "Persistence Backend SPI public contract" do
     end
 
     backend = backend_class.new(
-      contents: repository,
-      agents: repository,
-      journals: repository,
-      executions: repository,
-      workflow_states: repository
+      contents: contents,
+      agents: agents,
+      journals: unused,
+      executions: unused,
+      workflow_states: unused
     )
 
-    expect(backend.contents).to equal(repository)
-    expect(backend.agents).to equal(repository)
-    expect(backend.journals).to equal(repository)
-    expect(backend.executions).to equal(repository)
-    expect(backend.workflow_states).to equal(repository)
+    root = Phronomy::Agent::AgentRoot.create(
+      agent_id: "backend-spi-agent",
+      agent_definition_id: "backend-spi-definition",
+      agent_definition_version: 1
+    )
+
+    restored = backend.agents.create(root)
+
+    expect(backend.contents).to equal(contents)
+    expect(backend.agents).not_to equal(agents)
+    expect(restored).to be_a(Phronomy::Agent::AgentRoot)
+    expect(agents.created_record).to be_a(Phronomy::Persistence::DurableRecord)
+    expect(agents.created_record.record_type).to eq("phronomy.agent_root")
+    expect(agents.created_record.format_version).to eq("0.1")
   end
 
   it "rejects a backend that omits optimistic revision support" do
@@ -76,5 +96,30 @@ RSpec.describe "Persistence Backend SPI public contract" do
     expect(persistence_class::NotFoundError).to be < Phronomy::Error
     expect(persistence_class::UnsupportedBackendError).to be < Phronomy::Error
     expect(persistence_class::SerializationError).to be < Phronomy::Error
+  end
+
+  it "uses one immutable DurableRecord carrier for the record SPI" do
+    record = Phronomy::Persistence::DurableRecord.new(
+      record_type: "phronomy.example",
+      format_version: "0.1",
+      payload: {"value" => [1, "two"]}
+    )
+
+    expect(record).to be_frozen
+    expect(record.payload).to be_frozen
+    expect(record.payload.fetch("value")).to be_frozen
+    expect(record.copy.payload).to eq(record.payload)
+  end
+
+  it "reports a missing format version as SerializationError" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: "phronomy.example",
+        payload: {"value" => 1}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /format_version is missing/
+    )
   end
 end

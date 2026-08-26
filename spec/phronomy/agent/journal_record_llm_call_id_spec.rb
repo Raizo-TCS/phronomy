@@ -18,22 +18,23 @@ RSpec.describe Phronomy::Agent::JournalRecord do
     expect(restored.llm_call_id).to eq("llm-1")
   end
 
-  it "loads pre-change records without synthesizing llm_call_id" do
+  it "accepts nil llm_call_id in a current-format payload" do
     record = described_class.from_h(
       "record_id" => "record-1",
       "agent_id" => "agent-1",
+      "sequence" => 1,
       "execution_id" => nil,
+      "llm_call_id" => nil,
       "kind" => "external_message",
       "channel" => "external",
       "role" => "user",
       "content_ref" => "sha256:content",
-      "content_format" => "text",
-      "correlation_id" => nil,
+      "parent_id" => nil,
       "causation_id" => nil,
+      "visibility" => "agent",
       "context_generation" => 0,
       "context_candidate" => true,
-      "sequence" => 1,
-      "created_at" => "2026-08-08T00:00:00Z",
+      "occurred_at" => "2026-08-08T00:00:00Z",
       "metadata" => {}
     )
 

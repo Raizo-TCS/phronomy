@@ -233,8 +233,8 @@ RSpec.describe Phronomy::Workflow do
       record = persistence.workflow_states.load("t1")
 
       expect(record).not_to be_nil
-      expect(record[:snapshot][:phase]).to eq("__end__")
-      expect(record[:snapshot][:fields][:counter]).to eq(1)
+      expect(record[:snapshot]["phase"]).to eq("__end__")
+      expect(record[:snapshot]["fields"]["counter"]).to eq(1)
       expect(record[:revision]).to eq(1)
     end
 
@@ -243,7 +243,7 @@ RSpec.describe Phronomy::Workflow do
       app.invoke({}, config: {workflow_instance_id: "t1"})
       record = persistence.workflow_states.load("t1")
 
-      expect(record[:snapshot][:fields][:counter]).to eq(2)
+      expect(record[:snapshot]["fields"]["counter"]).to eq(2)
       expect(record[:revision]).to eq(2)
     end
 
@@ -252,7 +252,7 @@ RSpec.describe Phronomy::Workflow do
       app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
       record = persistence.workflow_states.load("t1")
 
-      expect(record[:snapshot][:fields][:counter]).to eq(1)
+      expect(record[:snapshot]["fields"]["counter"]).to eq(1)
     end
 
     it "does not save state when no explicit workflow_instance_id is given" do
@@ -271,7 +271,7 @@ RSpec.describe Phronomy::Workflow do
 
       global_app.invoke({counter: 4}, config: {workflow_instance_id: "global"})
       record = persistence.workflow_states.load("global")
-      expect(record[:snapshot][:fields][:counter]).to eq(5)
+      expect(record[:snapshot]["fields"]["counter"]).to eq(5)
     ensure
       Phronomy.configure { |c| c.persistence = nil }
     end
@@ -320,7 +320,7 @@ RSpec.describe Phronomy::Workflow do
       expect(final.value).to eq("prepared:done")
 
       record = persistence.workflow_states.load("persist-resume")
-      expect(record[:snapshot][:phase]).to eq("__end__")
+      expect(record[:snapshot]["phase"]).to eq("__end__")
     end
 
     it "merges explicit input when resuming with persistence" do

@@ -3,7 +3,7 @@
 require "spec_helper"
 require "json"
 
-RSpec.describe "durable Agent domain codecs" do
+RSpec.describe "current Agent domain semantic payload codecs" do
   let(:root) do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "codec-agent",
@@ -42,6 +42,26 @@ RSpec.describe "durable Agent domain codecs" do
     )
   end
 
+  let(:approval_request) do
+    {
+      "id" => "approval-1",
+      "execution_id" => "execution-1",
+      "items" => [
+        {
+          "tool_invocation_id" => "tool-invocation-1",
+          "tool_call_id" => "tool-call-1",
+          "tool_name" => "protected_tool",
+          "arguments" => {},
+          "facts" => {},
+          "reason" => nil,
+          "origin" => "local",
+          "metadata" => {}
+        }
+      ],
+      "created_at" => "2026-08-16T00:00:01Z"
+    }
+  end
+
   let(:execution) do
     Phronomy::Agent::AgentExecution.new(
       execution_id: "execution-1",
@@ -54,7 +74,7 @@ RSpec.describe "durable Agent domain codecs" do
       base_journal_position: 4,
       working_records: [journal_record],
       llm_calls: [llm_call],
-      approval_request: {"id" => "approval-1", "tool_name" => "protected_tool"},
+      approval_request: approval_request,
       result_ref: nil,
       error_ref: nil,
       created_at: "2026-08-16T00:00:00.000000Z",
@@ -80,12 +100,20 @@ RSpec.describe "durable Agent domain codecs" do
     end.to raise_error(KeyError, /agent_definition_version/)
   end
 
-  it "keeps the existing JournalRecord Hash codec symmetric" do
+  it "keeps the current JournalRecord Hash payload symmetric" do
     expect(Phronomy::Agent::JournalRecord.from_h(journal_record.to_h).to_h)
       .to eq(journal_record.to_h)
   end
 
-  it "round-trips AgentExecution including nested durable records" do
+  it "rejects removed JournalRecord fields outside explicit migration" do
+    legacy = journal_record.to_h.merge("correlation_id" => "legacy")
+
+    expect do
+      Phronomy::Agent::JournalRecord.from_h(legacy)
+    end.to raise_error(ArgumentError, /unknown=.*correlation_id/)
+  end
+
+  it "round-trips AgentExecution including nested durable values" do
     restored = Phronomy::Agent::AgentExecution.from_h(execution.to_h)
 
     expect(restored.to_h).to eq(execution.to_h)
@@ -100,10 +128,24 @@ RSpec.describe "durable Agent domain codecs" do
     expect(restored.to_h).to eq(execution.to_h)
   end
 
-  it "accepts Symbol top-level keys without requiring backend constructor knowledge" do
+  it "accepts Symbol top-level keys as current Ruby payload input" do
     symbolized = execution.to_h.transform_keys(&:to_sym)
     restored = Phronomy::Agent::AgentExecution.from_h(symbolized)
 
     expect(restored.to_h).to eq(execution.to_h)
+  end
+
+  it "rejects removed approval parent identity outside explicit migration" do
+    legacy = execution.to_h
+    approval = legacy.fetch("approval_request").dup
+    approval["agent_invocation_id"] = approval.delete("execution_id")
+    legacy["approval_request"] = approval
+
+    restored = Phronomy::Agent::AgentExecution.from_h(legacy)
+    expect(restored.approval_request).to have_key("agent_invocation_id")
+
+    expect do
+      Phronomy::Persistence::DurableCodec.encode_agent_execution(restored)
+    end.to raise_error(Phronomy::Persistence::SerializationError, /approval_request.*schema mismatch/)
   end
 end

@@ -54,7 +54,7 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
 
     expect(result.workflow_instance_id).to eq("workflow-1")
     record = persistence.workflow_states.load("workflow-1")
-    expect(record[:snapshot][:fields][:counter]).to eq(1)
+    expect(record[:snapshot]["fields"]["counter"]).to eq(1)
     expect(record[:revision]).to eq(1)
   end
 

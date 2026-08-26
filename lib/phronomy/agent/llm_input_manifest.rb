@@ -2,8 +2,10 @@
 
 module Phronomy
   module Agent
+    # ContentStore-backed durable codec boundary for one Provider input manifest.
+    # It is intentionally separate from Persistence::DurableRecord.
     class LLMInputManifest
-      VERSION = 1
+      VERSION = "0.1"
       CALL_MODES = %i[ask complete].freeze
 
       Segment = Data.define(
@@ -16,7 +18,13 @@ module Phronomy
         end
 
         def self.from_h(hash)
-          source = hash.to_h { |key, value| [key.to_s, value] }
+          source = LLMInputManifest.send(
+            :strict_source!,
+            hash,
+            required: %w[position category content_ref delivery metadata],
+            optional: %w[role tool_call_id],
+            label: "LLMInputManifest segment"
+          )
           new(
             position: Integer(source.fetch("position")),
             category: source.fetch("category").to_sym,
@@ -24,8 +32,13 @@ module Phronomy
             content_ref: source.fetch("content_ref").to_s,
             delivery: source.fetch("delivery").to_sym,
             tool_call_id: source["tool_call_id"]&.to_s,
-            metadata: source["metadata"] || {}
+            metadata: source.fetch("metadata")
           )
+        rescue Phronomy::Persistence::SerializationError
+          raise
+        rescue => error
+          raise Phronomy::Persistence::SerializationError,
+            "invalid LLMInputManifest segment: #{error.class}: #{error.message}"
         end
 
         def to_h
@@ -40,6 +53,15 @@ module Phronomy
           }.compact
         end
       end
+
+      REQUIRED_KEYS = %w[
+        version call_sequence call_mode assembly_policy_version segments
+        model_config_ref
+      ].freeze
+      OPTIONAL_KEYS = %w[
+        tool_definitions_ref response_schema_ref ruby_llm_version
+        adapter_name adapter_version
+      ].freeze
 
       attr_reader :version, :call_sequence, :call_mode,
         :assembly_policy_version, :segments,
@@ -59,7 +81,7 @@ module Phronomy
         adapter_version: nil,
         version: VERSION
       )
-        @version = Integer(version)
+        @version = String(version).freeze
         @call_sequence = Integer(call_sequence)
         @call_mode = call_mode.to_sym
         @assembly_policy_version = Integer(assembly_policy_version)
@@ -74,21 +96,27 @@ module Phronomy
         freeze
       end
 
-      # Exact v1 decoder for restart hydration. Unsupported schema versions fail
-      # closed; long-term schema migration policy belongs outside ACS-15.
+      # Current-format-only durable decoder. Historical format conversion is an
+      # explicit migration operation and is never attempted here.
       def self.from_h(hash)
-        source = hash.to_h { |key, value| [key.to_s, value] }
-        version = Integer(source.fetch("version"))
-        unless version == VERSION
-          raise Phronomy::ConfigurationError,
-            "unsupported LLMInputManifest version: #{version}; supported version is #{VERSION}"
+        source = strict_source!(
+          hash,
+          required: REQUIRED_KEYS,
+          optional: OPTIONAL_KEYS,
+          label: "LLMInputManifest"
+        )
+        version = source.fetch("version")
+        unless version.is_a?(String) && version == VERSION
+          raise Phronomy::Persistence::SerializationError,
+            "unsupported LLMInputManifest version: #{version.inspect}; " \
+            "current version is #{VERSION.inspect}"
         end
 
         new(
           version: version,
           call_sequence: source.fetch("call_sequence"),
           call_mode: source.fetch("call_mode"),
-          assembly_policy_version: source.fetch("assembly_policy_version", 1),
+          assembly_policy_version: source.fetch("assembly_policy_version"),
           segments: Array(source.fetch("segments")).map { |segment| Segment.from_h(segment) },
           model_config_ref: source.fetch("model_config_ref"),
           tool_definitions_ref: source["tool_definitions_ref"],
@@ -97,6 +125,11 @@ module Phronomy
           adapter_name: source["adapter_name"],
           adapter_version: source["adapter_version"]
         )
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        raise Phronomy::Persistence::SerializationError,
+          "invalid LLMInputManifest: #{error.class}: #{error.message}"
       end
 
       def referenced_content_refs
@@ -120,12 +153,48 @@ module Phronomy
         }.compact
       end
 
+      class << self
+        private
+
+        def strict_source!(hash, required:, optional:, label:)
+          unless hash.is_a?(Hash)
+            raise Phronomy::Persistence::SerializationError,
+              "#{label} must be a Hash"
+          end
+          source = {}
+          hash.each do |key, value|
+            string_key = key.is_a?(String) ? key : key.to_s
+            if source.key?(string_key)
+              raise Phronomy::Persistence::SerializationError,
+                "#{label} contains duplicate key #{string_key.inspect}"
+            end
+            source[string_key] = value
+          end
+          actual = source.keys
+          missing = required - actual
+          unknown = actual - (required + optional)
+          unless missing.empty? && unknown.empty?
+            details = []
+            details << "missing=#{missing.inspect}" unless missing.empty?
+            details << "unknown=#{unknown.inspect}" unless unknown.empty?
+            raise Phronomy::Persistence::SerializationError,
+              "#{label} schema mismatch (#{details.join(", ")})"
+          end
+          Phronomy::CanonicalJSON.dump(source)
+          source
+        rescue ArgumentError => error
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} is not canonical JSON compatible: #{error.message}"
+        end
+      end
+
       private
 
       def validate!
         unless version == VERSION
           raise Phronomy::ConfigurationError,
-            "unsupported LLMInputManifest version: #{version}; supported version is #{VERSION}"
+            "unsupported LLMInputManifest version: #{version.inspect}; " \
+            "current version is #{VERSION.inspect}"
         end
         raise ArgumentError, "invalid manifest call mode: #{call_mode.inspect}" unless CALL_MODES.include?(call_mode)
         raise ArgumentError, "call_sequence must be positive" unless call_sequence.positive?
