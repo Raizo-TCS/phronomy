@@ -63,7 +63,17 @@ RSpec.describe "Agent logical-state ownership" do
     )
 
     expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
-    expect(coordinator).not_to match(/(?<!@agent\.)(?:tx|persistence)\.executions\.load/)
+
+    prefix, tail = coordinator.split(
+      "      def preparation_reconciliation_state",
+      2
+    )
+    reconciliation, suffix = tail.split(/^      def /, 2)
+    without_reconciliation = prefix + (suffix ? "      def #{suffix}" : "")
+    expect(reconciliation).to include("@agent.persistence.executions.load")
+    expect(without_reconciliation).not_to match(
+      /(?:tx|persistence)\.executions\.load/
+    )
     expect(coordinator).not_to match(/(?:tx|persistence)\.journals\.read/)
   end
 

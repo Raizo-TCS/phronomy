@@ -89,7 +89,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
   end
 
   describe ".dispatching_tools_action" do
-    it "dispatches every authorized ToolInvocation in the batch" do
+    it "delegates Tool dispatch to causal durable preparation" do
       coordinator = double("coordinator")
       config = {phronomy_execution_coordinator: coordinator}
       invocation = double("invocation", config: config)

@@ -31,6 +31,12 @@ module Phronomy
         :execution_id, :fsm_session_id, :expected_execution_revision,
         :root, :execution, :runtime_snapshot, :tool_batch_snapshot
       )
+      ProviderDispatchPreparationReconciliationCommand = Data.define(
+        :operation, :intended_result, :original_error
+      )
+      ToolDispatchPreparationReconciliationCommand = Data.define(
+        :operation, :intended_result, :original_error
+      )
       ResumeCommitCommand = Data.define(
         :execution_id, :expected_execution_revision,
         :root, :execution, :approval_request_id, :approved
@@ -62,6 +68,12 @@ module Phronomy
       )
       ProviderDispatchPreparationResult = Data.define(:execution, :runtime_projection, :error)
       ToolDispatchPreparationResult = Data.define(:execution)
+      ProviderDispatchPreparationReconciliationResult = Data.define(
+        :disposition, :preparation_result
+      )
+      ToolDispatchPreparationReconciliationResult = Data.define(
+        :disposition, :preparation_result
+      )
       ResumeCommitResult = Data.define(:execution, :root)
       TerminalOutcome = Data.define(
         :type, :execution, :root, :appended_records,
@@ -76,6 +88,12 @@ module Phronomy
       )
       ToolDispatchPreparationReady = Data.define(
         :coordinator, :operation, :result, :error
+      )
+      ProviderDispatchPreparationReconciliationReady = Data.define(
+        :coordinator, :command, :result, :error
+      )
+      ToolDispatchPreparationReconciliationReady = Data.define(
+        :coordinator, :command, :result, :error
       )
       ResumeCommitReady = Data.define(
         :coordinator, :request, :operation, :result, :error
@@ -273,6 +291,60 @@ module Phronomy
         end
       end
 
+      def submit_provider_dispatch_preparation_reconciliation(operation, uncertainty)
+        runtime = Phronomy::Runtime.instance
+        command = ProviderDispatchPreparationReconciliationCommand.new(
+          operation: operation,
+          intended_result: uncertainty.intended_result,
+          original_error: uncertainty.original_error
+        )
+        task = runtime.offload.submit(on_full: :raise) do
+          perform_provider_dispatch_preparation_reconciliation(command)
+        end
+        task.on_complete do |result, error|
+          ready = ProviderDispatchPreparationReconciliationReady.new(
+            coordinator: self,
+            command: command,
+            result: result,
+            error: error
+          )
+          unless post_control(runtime, ready)
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] EventLoop rejected Provider dispatch reconciliation result for #{operation.execution_id}"
+            )
+          end
+        end
+      rescue => error
+        mark_barrier_recovery_required(operation, error)
+      end
+
+      def submit_tool_dispatch_preparation_reconciliation(operation, uncertainty)
+        runtime = Phronomy::Runtime.instance
+        command = ToolDispatchPreparationReconciliationCommand.new(
+          operation: operation,
+          intended_result: uncertainty.intended_result,
+          original_error: uncertainty.original_error
+        )
+        task = runtime.offload.submit(on_full: :raise) do
+          perform_tool_dispatch_preparation_reconciliation(command)
+        end
+        task.on_complete do |result, error|
+          ready = ToolDispatchPreparationReconciliationReady.new(
+            coordinator: self,
+            command: command,
+            result: result,
+            error: error
+          )
+          unless post_control(runtime, ready)
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] EventLoop rejected Tool dispatch reconciliation result for #{operation.execution_id}"
+            )
+          end
+        end
+      rescue => error
+        mark_barrier_recovery_required(operation, error)
+      end
+
       # Every control message is delivered by EventLoop. This method is the only
       # coordinator entry point allowed to advance Phronomy-managed live state.
       # @api private
@@ -289,6 +361,10 @@ module Phronomy
           apply_provider_dispatch_preparation_on_event_loop(command)
         when ToolDispatchPreparationReady
           apply_tool_dispatch_preparation_on_event_loop(command)
+        when ProviderDispatchPreparationReconciliationReady
+          apply_provider_dispatch_preparation_reconciliation_on_event_loop(command)
+        when ToolDispatchPreparationReconciliationReady
+          apply_tool_dispatch_preparation_reconciliation_on_event_loop(command)
         when ResumeCommand
           begin_resume_on_event_loop(command)
         when ResumeCommitReady
@@ -944,10 +1020,9 @@ module Phronomy
 
         if ready.error
           if ready.error.is_a?(PreparationOutcomeUnknownError)
-            reconcile_provider_dispatch_preparation_f1_on_event_loop(
+            submit_provider_dispatch_preparation_reconciliation(
               operation,
-              ready.error,
-              state
+              ready.error
             )
           else
             state.invocation.event_sink.post(:llm_setup_failed, translated(ready.error))
@@ -976,10 +1051,9 @@ module Phronomy
 
         if ready.error
           if ready.error.is_a?(PreparationOutcomeUnknownError)
-            reconcile_tool_dispatch_preparation_f1_on_event_loop(
+            submit_tool_dispatch_preparation_reconciliation(
               operation,
-              ready.error,
-              state
+              ready.error
             )
           else
             state.invocation.event_sink.post(:tool_setup_failed, translated(ready.error))
@@ -1049,17 +1123,13 @@ module Phronomy
         )
       end
 
-      def reconcile_provider_dispatch_preparation_f1_on_event_loop(
-        operation,
-        uncertainty,
-        state
-      )
+      def perform_provider_dispatch_preparation_reconciliation(command)
         disposition, current = preparation_reconciliation_state(
-          operation,
-          uncertainty.intended_result.execution
+          command.operation,
+          command.intended_result.execution
         )
-        case disposition
-        when :committed
+        preparation_result = nil
+        if disposition == :committed
           projection = materialization_error = nil
           begin
             _manifest, projection = RecoverySupport.materialize_projection(
@@ -1069,56 +1139,113 @@ module Phronomy
           rescue => error
             materialization_error = error
           end
-          result = ProviderDispatchPreparationResult.new(
+          preparation_result = ProviderDispatchPreparationResult.new(
             execution: current,
             runtime_projection: projection,
             error: materialization_error
           )
+        end
+        ProviderDispatchPreparationReconciliationResult.new(
+          disposition: disposition,
+          preparation_result: preparation_result
+        )
+      end
+
+      def perform_tool_dispatch_preparation_reconciliation(command)
+        disposition, current = preparation_reconciliation_state(
+          command.operation,
+          command.intended_result.execution
+        )
+        preparation_result = if disposition == :committed
+          ToolDispatchPreparationResult.new(execution: current)
+        end
+        ToolDispatchPreparationReconciliationResult.new(
+          disposition: disposition,
+          preparation_result: preparation_result
+        )
+      end
+
+      def apply_provider_dispatch_preparation_reconciliation_on_event_loop(ready)
+        command = ready.command
+        operation = command.operation
+        state = authoritative_state_for_operation(
+          execution_id: operation.execution_id,
+          fsm_session_id: operation.fsm_session_id,
+          expected_execution_revision: operation.expected_execution_revision,
+          expected_fsm_state: :calling_llm
+        )
+        return unless state
+
+        if ready.error
+          mark_barrier_recovery_required(operation, ready.error)
+          return
+        end
+
+        case ready.result.disposition
+        when :committed
           apply_confirmed_provider_dispatch_preparation_on_event_loop(
             operation,
-            result,
+            ready.result.preparation_result,
             state
           )
         when :not_committed
           state.invocation.event_sink.post(
             :llm_setup_failed,
-            translated(uncertainty.original_error)
+            translated(command.original_error)
           )
         when :conflict
-          mark_barrier_recovery_required(operation, uncertainty.original_error)
+          mark_barrier_recovery_required(operation, command.original_error)
+        else
+          raise Phronomy::Error,
+            "unknown Provider dispatch reconciliation disposition: " \
+            "#{ready.result.disposition.inspect}"
         end
       rescue => error
         mark_barrier_recovery_required(operation, error)
       end
 
-      def reconcile_tool_dispatch_preparation_f1_on_event_loop(
-        operation,
-        uncertainty,
-        state
-      )
-        disposition, current = preparation_reconciliation_state(
-          operation,
-          uncertainty.intended_result.execution
+      def apply_tool_dispatch_preparation_reconciliation_on_event_loop(ready)
+        command = ready.command
+        operation = command.operation
+        state = authoritative_state_for_operation(
+          execution_id: operation.execution_id,
+          fsm_session_id: operation.fsm_session_id,
+          expected_execution_revision: operation.expected_execution_revision,
+          expected_fsm_state: :dispatching_tools
         )
-        case disposition
+        return unless state
+
+        if ready.error
+          mark_barrier_recovery_required(operation, ready.error)
+          return
+        end
+
+        case ready.result.disposition
         when :committed
           apply_confirmed_tool_dispatch_preparation_on_event_loop(
             operation,
-            ToolDispatchPreparationResult.new(execution: current),
+            ready.result.preparation_result,
             state
           )
         when :not_committed
           state.invocation.event_sink.post(
             :tool_setup_failed,
-            translated(uncertainty.original_error)
+            translated(command.original_error)
           )
         when :conflict
-          mark_barrier_recovery_required(operation, uncertainty.original_error)
+          mark_barrier_recovery_required(operation, command.original_error)
+        else
+          raise Phronomy::Error,
+            "unknown Tool dispatch reconciliation disposition: " \
+            "#{ready.result.disposition.inspect}"
         end
       rescue => error
         mark_barrier_recovery_required(operation, error)
       end
 
+      # Worker-only Persistence readback for causal-barrier F1 reconciliation.
+      # EventLoop submits one operation-specific ReconciliationCommand and only
+      # applies this result after it returns through the normal control path.
       def preparation_reconciliation_state(operation, intended_execution)
         current = @agent.persistence.executions.load(operation.execution_id)
         if current.execution_revision == intended_execution.execution_revision &&

@@ -226,6 +226,12 @@ RSpec.describe "ACS-17 causal durability" do
     expect(coordinator.const_defined?(:ToolDispatchPreparationCommand, false)).to be(true)
     expect(coordinator.const_defined?(:ToolDispatchPreparationResult, false)).to be(true)
     expect(coordinator.const_defined?(:ToolDispatchPreparationReady, false)).to be(true)
+    expect(coordinator.const_defined?(:ProviderDispatchPreparationReconciliationCommand, false)).to be(true)
+    expect(coordinator.const_defined?(:ProviderDispatchPreparationReconciliationResult, false)).to be(true)
+    expect(coordinator.const_defined?(:ProviderDispatchPreparationReconciliationReady, false)).to be(true)
+    expect(coordinator.const_defined?(:ToolDispatchPreparationReconciliationCommand, false)).to be(true)
+    expect(coordinator.const_defined?(:ToolDispatchPreparationReconciliationResult, false)).to be(true)
+    expect(coordinator.const_defined?(:ToolDispatchPreparationReconciliationReady, false)).to be(true)
     expect(coordinator.const_defined?(:FollowupPreparationCommand, false)).to be(false)
   end
 
@@ -320,7 +326,7 @@ RSpec.describe "ACS-17 causal durability" do
     expect(result.runtime_projection).not_to be_nil
   end
 
-  it "reconciles Tool-dispatch preparation as committed when only the Persistence response is lost" do
+  it "reconciles Tool-dispatch preparation as committed off EventLoop when only the Persistence response is lost" do
     delegate = Phronomy::Persistence::InMemory.new
     persistence = ResponseLostAfterCommitPersistence.new(delegate)
     agent = build_agent(persistence)
@@ -337,19 +343,23 @@ RSpec.describe "ACS-17 causal durability" do
     uncertainty = capture_uncertain_result do
       coordinator.send(:perform_tool_dispatch_preparation, operation)
     end
-    intended = uncertainty.intended_result.execution
-    disposition, current = coordinator.send(
-      :preparation_reconciliation_state,
-      operation,
-      intended
+    command = Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand.new(
+      operation: operation,
+      intended_result: uncertainty.intended_result,
+      original_error: uncertainty.original_error
+    )
+    result = coordinator.send(
+      :perform_tool_dispatch_preparation_reconciliation,
+      command
     )
 
-    expect(disposition).to eq(:committed)
-    expect(current.to_h).to eq(intended.to_h)
-    expect(current.phase).to eq(:dispatching_tools)
+    expect(result.disposition).to eq(:committed)
+    expect(result.preparation_result.execution.to_h)
+      .to eq(uncertainty.intended_result.execution.to_h)
+    expect(result.preparation_result.execution.phase).to eq(:dispatching_tools)
   end
 
-  it "reconciles Provider-dispatch preparation as committed when only the Persistence response is lost" do
+  it "reconciles Provider-dispatch preparation as committed off EventLoop when only the Persistence response is lost" do
     delegate = Phronomy::Persistence::InMemory.new
     persistence = ResponseLostAfterCommitPersistence.new(delegate)
     agent = build_agent(persistence)
@@ -375,17 +385,162 @@ RSpec.describe "ACS-17 causal durability" do
     uncertainty = capture_uncertain_result do
       coordinator.send(:perform_provider_dispatch_preparation, operation)
     end
-    intended = uncertainty.intended_result.execution
-    disposition, current = coordinator.send(
-      :preparation_reconciliation_state,
-      operation,
-      intended
+    command = Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationCommand.new(
+      operation: operation,
+      intended_result: uncertainty.intended_result,
+      original_error: uncertainty.original_error
+    )
+    result = coordinator.send(
+      :perform_provider_dispatch_preparation_reconciliation,
+      command
     )
 
-    expect(disposition).to eq(:committed)
-    expect(current.to_h).to eq(intended.to_h)
-    expect(current.phase).to eq(:calling_llm)
-    expect(current.metadata.fetch(Phronomy::Agent::RecoverySupport::PENDING_LLM_ID_KEY))
-      .to eq("llm-2")
+    expect(result.disposition).to eq(:committed)
+    expect(result.preparation_result.execution.to_h)
+      .to eq(uncertainty.intended_result.execution.to_h)
+    expect(result.preparation_result.execution.phase).to eq(:calling_llm)
+    expect(result.preparation_result.runtime_projection).not_to be_nil
+  end
+
+  it "classifies an unchanged durable Tool pre-state as not committed" do
+    persistence = Phronomy::Persistence::InMemory.new
+    agent = build_agent(persistence)
+    coordinator, execution, root, _manifest, manifest_ref =
+      establish_execution(agent, persistence)
+    operation = tool_preparation_operation(
+      coordinator,
+      execution,
+      root,
+      manifest_ref
+    )
+    intended = Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationResult.new(
+      execution: execution.with(phase: :dispatching_tools)
+    )
+    command = Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand.new(
+      operation: operation,
+      intended_result: intended,
+      original_error: IOError.new("simulated uncertain Tool preparation")
+    )
+
+    result = coordinator.send(
+      :perform_tool_dispatch_preparation_reconciliation,
+      command
+    )
+
+    expect(result.disposition).to eq(:not_committed)
+    expect(result.preparation_result).to be_nil
+  end
+
+  it "classifies an unchanged durable Provider pre-state as not committed" do
+    persistence = Phronomy::Persistence::InMemory.new
+    agent = build_agent(persistence)
+    coordinator, execution, root, manifest, _manifest_ref =
+      establish_execution(agent, persistence)
+    operation = provider_preparation_operation(execution, root, manifest)
+    intended = Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationResult.new(
+      execution: execution.with(phase: :calling_llm),
+      runtime_projection: nil,
+      error: nil
+    )
+    command = Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationCommand.new(
+      operation: operation,
+      intended_result: intended,
+      original_error: IOError.new("simulated uncertain Provider preparation")
+    )
+
+    result = coordinator.send(
+      :perform_provider_dispatch_preparation_reconciliation,
+      command
+    )
+
+    expect(result.disposition).to eq(:not_committed)
+    expect(result.preparation_result).to be_nil
+  end
+
+  it "classifies a third durable state as conflict and does not manufacture a dispatch result" do
+    persistence = Phronomy::Persistence::InMemory.new
+    agent = build_agent(persistence)
+    coordinator, execution, root, _manifest, manifest_ref =
+      establish_execution(agent, persistence)
+    operation = tool_preparation_operation(
+      coordinator,
+      execution,
+      root,
+      manifest_ref
+    )
+    intended = Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationResult.new(
+      execution: execution.with(phase: :dispatching_tools)
+    )
+    conflicting = execution.with(
+      phase: :calling_llm,
+      metadata: execution.metadata.merge("acs17_conflict_marker" => true)
+    )
+    persistence.executions.save(
+      execution.execution_id,
+      expected_revision: execution.execution_revision,
+      execution: conflicting
+    )
+    command = Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand.new(
+      operation: operation,
+      intended_result: intended,
+      original_error: IOError.new("simulated uncertain Tool preparation")
+    )
+
+    result = coordinator.send(
+      :perform_tool_dispatch_preparation_reconciliation,
+      command
+    )
+
+    expect(result.disposition).to eq(:conflict)
+    expect(result.preparation_result).to be_nil
+  end
+
+  it "does not convert a known durable conflict into F1 uncertainty" do
+    persistence = Phronomy::Persistence::InMemory.new
+    agent = build_agent(persistence)
+    coordinator, execution, root, _manifest, manifest_ref =
+      establish_execution(agent, persistence)
+    operation = tool_preparation_operation(
+      coordinator,
+      execution,
+      root,
+      manifest_ref
+    )
+    conflicting = execution.with(
+      metadata: execution.metadata.merge("acs17_known_conflict" => true)
+    )
+    persistence.executions.save(
+      execution.execution_id,
+      expected_revision: execution.execution_revision,
+      execution: conflicting
+    )
+
+    expect {
+      coordinator.send(:perform_tool_dispatch_preparation, operation)
+    }.to raise_error(Phronomy::Persistence::ConflictError)
+  end
+
+  it "keeps physical Provider and Tool dispatch behind confirmed apply helpers only" do
+    root = File.expand_path("../../..", __dir__)
+    coordinator = File.read(
+      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+    )
+
+    expect(coordinator.scan("start_prepared_provider_call").length).to eq(1)
+    expect(coordinator.scan("start_prepared_tool_dispatch").length).to eq(1)
+
+    provider_apply = coordinator
+      .split("def apply_confirmed_provider_dispatch_preparation_on_event_loop", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+    tool_apply = coordinator
+      .split("def apply_confirmed_tool_dispatch_preparation_on_event_loop", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+
+    expect(provider_apply).to include("start_prepared_provider_call")
+    expect(tool_apply).to include("start_prepared_tool_dispatch")
   end
 end

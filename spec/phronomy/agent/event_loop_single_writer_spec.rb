@@ -34,6 +34,8 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
       perform_initial_preparation
       perform_provider_dispatch_preparation
       perform_tool_dispatch_preparation
+      perform_provider_dispatch_preparation_reconciliation
+      perform_tool_dispatch_preparation_reconciliation
       perform_resume_commit
       compute_terminal
       commit_suspended
