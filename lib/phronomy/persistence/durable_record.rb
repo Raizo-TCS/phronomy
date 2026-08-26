@@ -36,9 +36,17 @@ module Phronomy
         if payload.equal?(MISSING)
           raise Phronomy::Persistence::SerializationError, "durable payload is missing"
         end
+        unless record_type.is_a?(String)
+          raise Phronomy::Persistence::SerializationError,
+            "durable record_type must be a String"
+        end
+        unless format_version.is_a?(String)
+          raise Phronomy::Persistence::SerializationError,
+            "durable format_version must be a String"
+        end
 
-        @record_type = String(record_type).dup.freeze
-        @format_version = String(format_version).dup.freeze
+        @record_type = record_type.dup.freeze
+        @format_version = format_version.dup.freeze
         validate_header!
         validate_payload!(payload)
         @payload = immutable_copy(payload)

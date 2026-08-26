@@ -322,7 +322,7 @@ bundle exec rspec \
   spec/phronomy/agent/approval_parent_identity_contract_spec.rb \
   spec/phronomy/persistence_architecture_regression_spec.rb
 
-if grep -nE '\.payload(\.|\[|\.fetch)' lib/phronomy/persistence/in_memory.rb; then
+if grep -nE '\.payload([^[:alnum:]_]|$)' lib/phronomy/persistence/in_memory.rb; then
   echo "FAIL: raw InMemory Backend reintroduced DurableRecord payload interpretation" >&2
   exit 1
 fi

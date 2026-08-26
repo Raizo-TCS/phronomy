@@ -183,4 +183,30 @@ RSpec.describe "Persistence Backend SPI public contract" do
       /format_version is missing/
     )
   end
+
+  it "does not coerce DurableRecord record_type into String" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: :phronomy_example,
+        format_version: "0.1",
+        payload: {"value" => 1}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /record_type must be a String/
+    )
+  end
+
+  it "does not coerce DurableRecord format_version into String" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: "phronomy.example",
+        format_version: 0.1,
+        payload: {"value" => 1}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /format_version must be a String/
+    )
+  end
 end

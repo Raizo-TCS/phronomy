@@ -25,14 +25,58 @@ module Phronomy
             optional: %w[role tool_call_id],
             label: "LLMInputManifest segment"
           )
+          label = "LLMInputManifest segment"
+          position = LLMInputManifest.send(
+            :require_nonnegative_integer_field!,
+            source,
+            "position",
+            label: label
+          )
+          category = LLMInputManifest.send(
+            :require_nonempty_string_field!,
+            source,
+            "category",
+            label: label
+          )
+          role = LLMInputManifest.send(
+            :require_optional_string_field!,
+            source,
+            "role",
+            label: label
+          )
+          content_ref = LLMInputManifest.send(
+            :require_nonempty_string_field!,
+            source,
+            "content_ref",
+            label: label
+          )
+          delivery = LLMInputManifest.send(
+            :require_nonempty_string_field!,
+            source,
+            "delivery",
+            label: label
+          )
+          tool_call_id = LLMInputManifest.send(
+            :require_optional_string_field!,
+            source,
+            "tool_call_id",
+            label: label
+          )
+          metadata = LLMInputManifest.send(
+            :require_hash_field!,
+            source,
+            "metadata",
+            label: label
+          )
+
           new(
-            position: Integer(source.fetch("position")),
-            category: source.fetch("category").to_sym,
-            role: source["role"]&.to_sym,
-            content_ref: source.fetch("content_ref").to_s,
-            delivery: source.fetch("delivery").to_sym,
-            tool_call_id: source["tool_call_id"]&.to_s,
-            metadata: source.fetch("metadata")
+            position: position,
+            category: category.to_sym,
+            role: role&.to_sym,
+            content_ref: content_ref,
+            delivery: delivery.to_sym,
+            tool_call_id: tool_call_id,
+            metadata: metadata
           )
         rescue Phronomy::Persistence::SerializationError
           raise
@@ -97,7 +141,8 @@ module Phronomy
       end
 
       # Current-format-only durable decoder. Historical format conversion is an
-      # explicit migration operation and is never attempted here.
+      # explicit migration operation and is never attempted here. Unlike the
+      # Ruby construction API, this decoder never coerces durable field types.
       def self.from_h(hash)
         source = strict_source!(
           hash,
@@ -105,6 +150,7 @@ module Phronomy
           optional: OPTIONAL_KEYS,
           label: "LLMInputManifest"
         )
+        label = "LLMInputManifest"
         version = source.fetch("version")
         unless version.is_a?(String) && version == VERSION
           raise Phronomy::Persistence::SerializationError,
@@ -112,18 +158,67 @@ module Phronomy
             "current version is #{VERSION.inspect}"
         end
 
+        call_sequence = require_positive_integer_field!(
+          source,
+          "call_sequence",
+          label: label
+        )
+        call_mode = require_enum_string_field!(
+          source,
+          "call_mode",
+          CALL_MODES.map(&:to_s),
+          label: label
+        )
+        assembly_policy_version = require_integer_field!(
+          source,
+          "assembly_policy_version",
+          label: label
+        )
+        segments = require_array_field!(source, "segments", label: label)
+          .map { |segment| Segment.from_h(segment) }
+        model_config_ref = require_nonempty_string_field!(
+          source,
+          "model_config_ref",
+          label: label
+        )
+        tool_definitions_ref = require_optional_string_field!(
+          source,
+          "tool_definitions_ref",
+          label: label
+        )
+        response_schema_ref = require_optional_string_field!(
+          source,
+          "response_schema_ref",
+          label: label
+        )
+        ruby_llm_version = require_optional_string_field!(
+          source,
+          "ruby_llm_version",
+          label: label
+        )
+        adapter_name = require_optional_string_field!(
+          source,
+          "adapter_name",
+          label: label
+        )
+        adapter_version = require_optional_string_field!(
+          source,
+          "adapter_version",
+          label: label
+        )
+
         new(
           version: version,
-          call_sequence: source.fetch("call_sequence"),
-          call_mode: source.fetch("call_mode"),
-          assembly_policy_version: source.fetch("assembly_policy_version"),
-          segments: Array(source.fetch("segments")).map { |segment| Segment.from_h(segment) },
-          model_config_ref: source.fetch("model_config_ref"),
-          tool_definitions_ref: source["tool_definitions_ref"],
-          response_schema_ref: source["response_schema_ref"],
-          ruby_llm_version: source["ruby_llm_version"],
-          adapter_name: source["adapter_name"],
-          adapter_version: source["adapter_version"]
+          call_sequence: call_sequence,
+          call_mode: call_mode.to_sym,
+          assembly_policy_version: assembly_policy_version,
+          segments: segments,
+          model_config_ref: model_config_ref,
+          tool_definitions_ref: tool_definitions_ref,
+          response_schema_ref: response_schema_ref,
+          ruby_llm_version: ruby_llm_version,
+          adapter_name: adapter_name,
+          adapter_version: adapter_version
         )
       rescue Phronomy::Persistence::SerializationError
         raise
@@ -161,16 +256,12 @@ module Phronomy
             raise Phronomy::Persistence::SerializationError,
               "#{label} must be a Hash"
           end
-          source = {}
-          hash.each do |key, value|
-            string_key = key.is_a?(String) ? key : key.to_s
-            if source.key?(string_key)
-              raise Phronomy::Persistence::SerializationError,
-                "#{label} contains duplicate key #{string_key.inspect}"
-            end
-            source[string_key] = value
+          unless hash.keys.all? { |key| key.is_a?(String) }
+            raise Phronomy::Persistence::SerializationError,
+              "#{label} keys must all be String"
           end
-          actual = source.keys
+
+          actual = hash.keys
           missing = required - actual
           unknown = actual - (required + optional)
           unless missing.empty? && unknown.empty?
@@ -180,11 +271,75 @@ module Phronomy
             raise Phronomy::Persistence::SerializationError,
               "#{label} schema mismatch (#{details.join(", ")})"
           end
-          Phronomy::CanonicalJSON.dump(source)
-          source
+          Phronomy::CanonicalJSON.dump(hash)
+          hash
         rescue ArgumentError => error
           raise Phronomy::Persistence::SerializationError,
             "#{label} is not canonical JSON compatible: #{error.message}"
+        end
+
+        def require_integer_field!(hash, key, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(Integer)
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be an Integer"
+        end
+
+        def require_positive_integer_field!(hash, key, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(Integer) && value.positive?
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be a positive Integer"
+        end
+
+        def require_nonnegative_integer_field!(hash, key, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(Integer) && value >= 0
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be a non-negative Integer"
+        end
+
+        def require_nonempty_string_field!(hash, key, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(String) && !value.empty?
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be a non-empty String"
+        end
+
+        def require_optional_string_field!(hash, key, label:)
+          value = hash[key]
+          return value if value.nil? || value.is_a?(String)
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be a String or nil"
+        end
+
+        def require_enum_string_field!(hash, key, allowed, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(String) && allowed.include?(value)
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be one of #{allowed.inspect}"
+        end
+
+        def require_array_field!(hash, key, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(Array)
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be an Array"
+        end
+
+        def require_hash_field!(hash, key, label:)
+          value = hash.fetch(key)
+          return value if value.is_a?(Hash)
+
+          raise Phronomy::Persistence::SerializationError,
+            "#{label} #{key} must be a Hash"
         end
       end
 

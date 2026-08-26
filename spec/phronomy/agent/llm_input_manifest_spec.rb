@@ -157,4 +157,84 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
     expect { described_class.from_h(unknown) }
       .to raise_error(Phronomy::Persistence::SerializationError, /unknown=.*future_field/)
   end
+
+  it "requires String keys in the current durable decoder" do
+    current = described_class.new(
+      call_sequence: 1,
+      call_mode: :complete,
+      segments: [],
+      model_config_ref: "sha256:m"
+    ).to_h
+    symbolized = current.transform_keys(&:to_sym)
+
+    expect do
+      described_class.from_h(symbolized)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /keys must all be String/
+    )
+  end
+
+  it "does not coerce scalar durable field types" do
+    current = described_class.new(
+      call_sequence: 1,
+      call_mode: :complete,
+      segments: [],
+      model_config_ref: "sha256:m"
+    ).to_h
+
+    wrong_sequence = current.merge("call_sequence" => "1")
+    wrong_ref = current.merge("model_config_ref" => 123)
+
+    expect do
+      described_class.from_h(wrong_sequence)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /call_sequence must be a positive Integer/
+    )
+    expect do
+      described_class.from_h(wrong_ref)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /model_config_ref must be a non-empty String/
+    )
+  end
+
+  it "does not coerce Segment durable field types" do
+    current = described_class.new(
+      call_sequence: 1,
+      call_mode: :complete,
+      segments: [
+        segment_class.new(
+          position: 0,
+          category: :instruction,
+          role: nil,
+          content_ref: "sha256:inst",
+          delivery: :inline,
+          tool_call_id: nil,
+          metadata: {}
+        )
+      ],
+      model_config_ref: "sha256:m"
+    ).to_h
+
+    wrong_position = Marshal.load(Marshal.dump(current))
+    wrong_position.fetch("segments").first["position"] = "0"
+
+    wrong_content_ref = Marshal.load(Marshal.dump(current))
+    wrong_content_ref.fetch("segments").first["content_ref"] = 123
+
+    expect do
+      described_class.from_h(wrong_position)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /segment position must be a non-negative Integer/
+    )
+    expect do
+      described_class.from_h(wrong_content_ref)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /segment content_ref must be a non-empty String/
+    )
+  end
 end
