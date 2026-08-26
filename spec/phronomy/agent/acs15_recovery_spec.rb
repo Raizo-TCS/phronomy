@@ -786,7 +786,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
       end
     end
 
-    describe ".resuming_tool_subjects" do
+    describe ".pending_tool_subjects" do
       it "includes only authorized and awaiting_approval entries" do
         execution = double("execution",
           metadata: {
@@ -799,7 +799,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
                "tool_name" => "baz", "arguments" => {}, "status" => "awaiting_approval"}
             ]
           })
-        result = described_class.resuming_tool_subjects(execution)
+        result = described_class.pending_tool_subjects(execution)
         ids = result.map { |s| s["tool_invocation_id"] }
         expect(ids).to contain_exactly("inv-1", "inv-3")
       end

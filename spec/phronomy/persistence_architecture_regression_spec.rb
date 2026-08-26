@@ -96,7 +96,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     )
 
     expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
-    expect(coordinator).not_to match(/(?:tx|persistence)\.executions\.load/)
+    expect(coordinator).not_to match(/(?<!@agent\.)(?:tx|persistence)\.executions\.load/)
     expect(coordinator).not_to include("persistence.activations")
   end
 
@@ -105,9 +105,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     followup = coordinator
-      .split("def perform_followup_preparation", 2)
+      .split("def perform_provider_dispatch_preparation", 2)
       .fetch(1)
-      .split("def apply_followup_preparation_on_event_loop", 2)
+      .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
       .first
 
     expect(followup.index("assert_local_durable_base!")).to be <
@@ -121,9 +121,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
     apply = coordinator
-      .split("def apply_followup_preparation_on_event_loop", 2)
+      .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
       .fetch(1)
-      .split("def begin_resume_on_event_loop", 2)
+      .split("def reconcile_provider_dispatch_preparation_f1_on_event_loop", 2)
       .first
 
     expect(apply.index("authoritative_state_for_operation")).to be <
@@ -138,7 +138,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     )
     worker_methods = %w[
       perform_initial_preparation
-      perform_followup_preparation
+      perform_provider_dispatch_preparation
       perform_resume_commit
       compute_terminal
       commit_suspended

@@ -32,7 +32,8 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
 
     worker_sections = %w[
       perform_initial_preparation
-      perform_followup_preparation
+      perform_provider_dispatch_preparation
+      perform_tool_dispatch_preparation
       perform_resume_commit
       compute_terminal
       commit_suspended
@@ -86,16 +87,16 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
       .split("private_class_method :prepare_and_start_llm_call", 2).first
 
     expect(method_source.index("return if invocation.callback_failed?")).to be <
-      method_source.index("prepare_next_llm_call")
+      method_source.index("prepare_provider_dispatch")
   end
 
   it "applies a known committed follow-up execution even if runtime materialization fails" do
     coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
     worker = coordinator
-      .split("def perform_followup_preparation", 2).fetch(1)
+      .split("def perform_provider_dispatch_preparation", 2).fetch(1)
       .split(/^      def /, 2).first
     apply = coordinator
-      .split("def apply_followup_preparation_on_event_loop", 2).fetch(1)
+      .split("def apply_confirmed_provider_dispatch_preparation_on_event_loop", 2).fetch(1)
       .split(/^      def /, 2).first
 
     expect(worker).to include("materialization_error")

@@ -21,10 +21,15 @@ module Phronomy
       InitialPreparationCommand = Data.define(
         :root, :journal_records, :input, :config
       )
-      FollowupPreparationCommand = Data.define(
+      ProviderDispatchPreparationCommand = Data.define(
         :execution_id, :fsm_session_id, :expected_execution_revision,
         :root, :journal_records, :execution, :base_manifest,
-        :invocation_config, :runtime_snapshot, :streaming
+        :invocation_config, :runtime_snapshot, :streaming,
+        :pending_llm_call_id, :pending_llm_started_at
+      )
+      ToolDispatchPreparationCommand = Data.define(
+        :execution_id, :fsm_session_id, :expected_execution_revision,
+        :root, :execution, :runtime_snapshot, :tool_batch_snapshot
       )
       ResumeCommitCommand = Data.define(
         :execution_id, :expected_execution_revision,
@@ -55,7 +60,8 @@ module Phronomy
         :execution, :root, :runtime_projection, :filtered_input,
         :config, :appended_records, :error, :admission_outcome
       )
-      FollowupPreparationResult = Data.define(:execution, :runtime_projection, :error)
+      ProviderDispatchPreparationResult = Data.define(:execution, :runtime_projection, :error)
+      ToolDispatchPreparationResult = Data.define(:execution)
       ResumeCommitResult = Data.define(:execution, :root)
       TerminalOutcome = Data.define(
         :type, :execution, :root, :appended_records,
@@ -65,7 +71,10 @@ module Phronomy
       InitialPreparationReady = Data.define(
         :coordinator, :request, :result, :error
       )
-      FollowupPreparationReady = Data.define(
+      ProviderDispatchPreparationReady = Data.define(
+        :coordinator, :operation, :result, :error
+      )
+      ToolDispatchPreparationReady = Data.define(
         :coordinator, :operation, :result, :error
       )
       ResumeCommitReady = Data.define(
@@ -78,6 +87,21 @@ module Phronomy
         :coordinator, :execution_id, :result_task, :invocation,
         :source_error, :fsm_session_id
       )
+
+      class PreparationOutcomeUnknownError < Phronomy::Error
+        attr_reader :original_error, :intended_result
+
+        def initialize(original_error, intended_result)
+          @original_error = original_error
+          @intended_result = intended_result
+          super(
+            "durable dispatch preparation outcome is uncertain: " \
+              "#{original_error.class}: #{original_error.message}"
+          )
+          set_backtrace(original_error.backtrace)
+        end
+      end
+      private_constant :PreparationOutcomeUnknownError
 
       def initialize(agent)
         @agent = agent
@@ -138,11 +162,11 @@ module Phronomy
         result_task
       end
 
-      # Called only from the Agent FSMSession's :calling_llm entry action on
-      # EventLoop. Captures the current immutable durable/runtime facts and sends
-      # exactly that operation snapshot to OffloadPool.
+      # Called only from an Agent FSMSession external-operation dispatch state on
+      # EventLoop. Each method captures one operation-specific immutable snapshot
+      # and sends only that snapshot to OffloadPool.
       # @api private
-      def prepare_next_llm_call(invocation, event_sink:, streaming:)
+      def prepare_provider_dispatch(invocation, event_sink:, streaming:)
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
         assert_event_loop!(event_loop)
@@ -150,10 +174,10 @@ module Phronomy
         validate_live_session!(state, invocation, event_sink.fsm_session_id)
         unless event_loop.fsm_session_state(event_sink.fsm_session_id) == :calling_llm
           raise Phronomy::Error,
-            "follow-up LLM preparation requires the owning FSMSession to be in :calling_llm"
+            "Provider dispatch preparation requires the owning FSMSession to be in :calling_llm"
         end
 
-        operation = FollowupPreparationCommand.new(
+        operation = ProviderDispatchPreparationCommand.new(
           execution_id: state.execution_id,
           fsm_session_id: event_sink.fsm_session_id.to_s.freeze,
           expected_execution_revision: state.execution.execution_revision,
@@ -163,31 +187,90 @@ module Phronomy
           base_manifest: state.base_manifest,
           invocation_config: invocation.config.dup.freeze,
           runtime_snapshot: invocation.runtime_snapshot,
-          streaming: !!streaming
+          streaming: !!streaming,
+          pending_llm_call_id: SecureRandom.uuid.to_s.freeze,
+          pending_llm_started_at: Time.now.utc.iso8601(6).freeze
         )
+        submit_provider_dispatch_preparation(operation)
+        nil
+      rescue => error
+        event_sink.post(:llm_setup_failed, translated(error))
+        nil
+      end
+
+      # @api private
+      def prepare_tool_dispatch(invocation, event_sink:)
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
+        assert_event_loop!(event_loop)
+        state = event_loop.agent_execution_state(invocation.execution_id)
+        validate_live_session!(state, invocation, event_sink.fsm_session_id)
+        unless event_loop.fsm_session_state(event_sink.fsm_session_id) == :dispatching_tools
+          raise Phronomy::Error,
+            "Tool dispatch preparation requires the owning FSMSession to be in :dispatching_tools"
+        end
+
+        tool_batch_snapshot = RecoverySupport.build_tool_batch_snapshot(invocation)
+        if tool_batch_snapshot.empty?
+          raise Phronomy::Error, "Tool dispatch preparation requires a non-empty Tool batch"
+        end
+
+        operation = ToolDispatchPreparationCommand.new(
+          execution_id: state.execution_id,
+          fsm_session_id: event_sink.fsm_session_id.to_s.freeze,
+          expected_execution_revision: state.execution.execution_revision,
+          root: @agent.agent_root,
+          execution: state.execution,
+          runtime_snapshot: invocation.runtime_snapshot,
+          tool_batch_snapshot: tool_batch_snapshot
+        )
+        submit_tool_dispatch_preparation(operation)
+        nil
+      rescue => error
+        event_sink.post(:tool_setup_failed, translated(error))
+        nil
+      end
+
+      def submit_provider_dispatch_preparation(operation)
+        runtime = Phronomy::Runtime.instance
         task = runtime.offload.submit(on_full: :raise) do
-          perform_followup_preparation(operation)
+          perform_provider_dispatch_preparation(operation)
         end
         task.on_complete do |result, error|
-          ready = FollowupPreparationReady.new(
+          ready = ProviderDispatchPreparationReady.new(
             coordinator: self,
             operation: operation,
             result: result,
             error: error
           )
           unless post_control(runtime, ready)
-            # The durable operation may already have committed. Do not mutate live
-            # state from this callback thread merely to emulate EventLoop apply.
             Phronomy.configuration.logger&.warn(
-              "[Phronomy] EventLoop rejected follow-up durable result for " \
+              "[Phronomy] EventLoop rejected Provider dispatch preparation result for " \
               "#{operation.execution_id}"
             )
           end
         end
-        nil
-      rescue => error
-        event_sink.post(:llm_setup_failed, translated(error))
-        nil
+      end
+
+      def submit_tool_dispatch_preparation(operation)
+        runtime = Phronomy::Runtime.instance
+        task = runtime.offload.submit(on_full: :raise) do
+          perform_tool_dispatch_preparation(operation)
+        end
+        task.on_complete do |result, error|
+          ready = ToolDispatchPreparationReady.new(
+            coordinator: self,
+            operation: operation,
+            result: result,
+            error: error
+          )
+          unless post_control(runtime, ready)
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] EventLoop rejected Tool dispatch preparation result for " \
+              "#{operation.execution_id}"
+            )
+          end
+        end
       end
 
       # Every control message is delivered by EventLoop. This method is the only
@@ -202,8 +285,10 @@ module Phronomy
           begin_start_on_event_loop(command)
         when InitialPreparationReady
           apply_initial_preparation_on_event_loop(command)
-        when FollowupPreparationReady
-          apply_followup_preparation_on_event_loop(command)
+        when ProviderDispatchPreparationReady
+          apply_provider_dispatch_preparation_on_event_loop(command)
+        when ToolDispatchPreparationReady
+          apply_tool_dispatch_preparation_on_event_loop(command)
         when ResumeCommand
           begin_resume_on_event_loop(command)
         when ResumeCommitReady
@@ -713,70 +798,81 @@ module Phronomy
       end
 
       # ----------------------------------------------------------------------
-      # Follow-up durable barrier
+      # External-operation causal durable barriers
       # ----------------------------------------------------------------------
 
-      def perform_followup_preparation(operation)
-        pending_id = SecureRandom.uuid.to_s.freeze
-        pending_started_at = Time.now.utc.iso8601(6).freeze
-        staged_execution = RecoverySupport.with_recovery_metadata(
-          operation.execution,
-          RecoverySupport::PENDING_LLM_ID_KEY => pending_id,
-          RecoverySupport::PENDING_LLM_STARTED_AT_KEY => pending_started_at,
-          RecoverySupport::CONTRACT_VERSION_KEY =>
-            RecoverySupport::CONTRACT_VERSION
-        )
-        operation = operation.class.new(
-          **operation.to_h.merge(execution: staged_execution)
+      def perform_provider_dispatch_preparation(operation)
+        metadata = operation.execution.metadata.dup
+        metadata.delete(RecoverySupport::TOOL_BATCH_METADATA_KEY)
+        metadata.delete(RecoverySupport::RECOVERY_METADATA_KEY)
+        metadata[RecoverySupport::PENDING_LLM_ID_KEY] =
+          operation.pending_llm_call_id
+        metadata[RecoverySupport::PENDING_LLM_STARTED_AT_KEY] =
+          operation.pending_llm_started_at
+        metadata[RecoverySupport::CONTRACT_VERSION_KEY] =
+          RecoverySupport::CONTRACT_VERSION
+        staged_execution = operation.execution.with(
+          execution_revision: operation.execution.execution_revision,
+          metadata: metadata
         )
 
-        manifest = manifest_ref = updated = nil
-
-        @agent.persistence.transaction do |tx|
-          assert_local_durable_base!(tx, operation.root)
-          encoded_records, call_records = encode_runtime_records(
-            operation.execution,
-            tx: tx,
-            snapshot: operation.runtime_snapshot,
-            context_candidate: true,
-            agent_root: operation.root
-          )
-          staged = operation.execution.with(
-            execution_revision: operation.execution.execution_revision,
-            phase: :preparing_llm_call,
-            working_records: operation.execution.working_records + encoded_records,
-            llm_calls: operation.execution.llm_calls + call_records
-          )
-          patch = @agent.send(
-            :run_before_llm_input_hooks,
-            call_sequence: staged.llm_calls.length + 1,
-            config: operation.invocation_config
-          )
-          manifest, manifest_ref = ContextAssembler.new(
-            agent: @agent,
-            persistence: tx,
-            policy: context_policy_for(staged),
-            journal_records: operation.journal_records
-          ).build_followup(
-            base_manifest: operation.base_manifest,
-            agent_root: operation.root,
-            execution: staged,
-            config: operation.invocation_config,
-            patch: patch
-          )
-          refs = Array(staged.metadata["manifest_refs"]) + [manifest_ref]
-          updated = staged.with(
-            phase: :calling_llm,
-            metadata: staged.metadata.merge(
-              "manifest_ref" => manifest_ref,
-              "manifest_refs" => refs
+        manifest = manifest_ref = updated = intended = nil
+        begin
+          @agent.persistence.transaction do |tx|
+            assert_local_durable_base!(tx, operation.root)
+            encoded_records, call_records = encode_runtime_records(
+              staged_execution,
+              tx: tx,
+              snapshot: operation.runtime_snapshot,
+              context_candidate: true,
+              agent_root: operation.root
             )
-          )
-          tx.executions.save(
-            operation.execution.execution_id,
-            expected_revision: operation.execution.execution_revision,
-            execution: updated
-          )
+            staged = staged_execution.with(
+              execution_revision: staged_execution.execution_revision,
+              phase: :preparing_llm_call,
+              working_records: staged_execution.working_records + encoded_records,
+              llm_calls: staged_execution.llm_calls + call_records
+            )
+            patch = @agent.send(
+              :run_before_llm_input_hooks,
+              call_sequence: staged.llm_calls.length + 1,
+              config: operation.invocation_config
+            )
+            manifest, manifest_ref = ContextAssembler.new(
+              agent: @agent,
+              persistence: tx,
+              policy: context_policy_for(staged),
+              journal_records: operation.journal_records
+            ).build_followup(
+              base_manifest: operation.base_manifest,
+              agent_root: operation.root,
+              execution: staged,
+              config: operation.invocation_config,
+              patch: patch
+            )
+            refs = Array(staged.metadata["manifest_refs"]) + [manifest_ref]
+            updated = staged.with(
+              phase: :calling_llm,
+              metadata: staged.metadata.merge(
+                "manifest_ref" => manifest_ref,
+                "manifest_refs" => refs
+              )
+            )
+            tx.executions.save(
+              operation.execution.execution_id,
+              expected_revision: operation.execution.execution_revision,
+              execution: updated
+            )
+            intended = ProviderDispatchPreparationResult.new(
+              execution: updated,
+              runtime_projection: nil,
+              error: nil
+            )
+          end
+        rescue => caught
+          raise if known_durable_preparation_failure?(caught) || intended.nil?
+
+          raise PreparationOutcomeUnknownError.new(caught, intended)
         end
 
         projection = materialization_error = nil
@@ -786,21 +882,58 @@ module Phronomy
             persistence: @agent.persistence
           ).materialize(manifest: manifest, manifest_ref: manifest_ref)
         rescue => error
-          # The execution save above has already committed. Return that known
-          # committed execution to EventLoop even when runtime materialization
-          # fails, so live revision/snapshot authority cannot remain stale.
           materialization_error = error
         end
-        FollowupPreparationResult.new(
+        ProviderDispatchPreparationResult.new(
           execution: updated,
           runtime_projection: projection,
           error: materialization_error
         )
       end
 
-      def apply_followup_preparation_on_event_loop(ready)
+      def perform_tool_dispatch_preparation(operation)
+        intended = nil
+        begin
+          @agent.persistence.transaction do |tx|
+            assert_local_durable_base!(tx, operation.root)
+            encoded_records, call_records = encode_runtime_records(
+              operation.execution,
+              tx: tx,
+              snapshot: operation.runtime_snapshot,
+              context_candidate: true,
+              agent_root: operation.root
+            )
+            metadata = operation.execution.metadata.dup
+            metadata.delete(RecoverySupport::PENDING_LLM_ID_KEY)
+            metadata.delete(RecoverySupport::PENDING_LLM_STARTED_AT_KEY)
+            metadata.delete(RecoverySupport::RECOVERY_METADATA_KEY)
+            metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] =
+              RecoverySupport.canonical_copy(operation.tool_batch_snapshot)
+            metadata[RecoverySupport::CONTRACT_VERSION_KEY] =
+              RecoverySupport::CONTRACT_VERSION
+            updated = operation.execution.with(
+              phase: :dispatching_tools,
+              working_records: operation.execution.working_records + encoded_records,
+              llm_calls: operation.execution.llm_calls + call_records,
+              metadata: metadata
+            )
+            tx.executions.save(
+              operation.execution.execution_id,
+              expected_revision: operation.execution.execution_revision,
+              execution: updated
+            )
+            intended = ToolDispatchPreparationResult.new(execution: updated)
+          end
+        rescue => caught
+          raise if known_durable_preparation_failure?(caught) || intended.nil?
+
+          raise PreparationOutcomeUnknownError.new(caught, intended)
+        end
+        intended
+      end
+
+      def apply_provider_dispatch_preparation_on_event_loop(ready)
         operation = ready.operation
-        event_loop = Phronomy::Runtime.instance.event_loop
         state = authoritative_state_for_operation(
           execution_id: operation.execution_id,
           fsm_session_id: operation.fsm_session_id,
@@ -810,13 +943,65 @@ module Phronomy
         return unless state
 
         if ready.error
-          # No successful operation result means no known committed execution
-          # advance is safe to apply.
-          state.invocation.event_sink.post(:llm_setup_failed, translated(ready.error))
+          if ready.error.is_a?(PreparationOutcomeUnknownError)
+            reconcile_provider_dispatch_preparation_f1_on_event_loop(
+              operation,
+              ready.error,
+              state
+            )
+          else
+            state.invocation.event_sink.post(:llm_setup_failed, translated(ready.error))
+          end
           return
         end
 
-        result = ready.result
+        apply_confirmed_provider_dispatch_preparation_on_event_loop(
+          operation,
+          ready.result,
+          state
+        )
+      rescue => error
+        state&.invocation&.event_sink&.post(:llm_setup_failed, translated(error))
+      end
+
+      def apply_tool_dispatch_preparation_on_event_loop(ready)
+        operation = ready.operation
+        state = authoritative_state_for_operation(
+          execution_id: operation.execution_id,
+          fsm_session_id: operation.fsm_session_id,
+          expected_execution_revision: operation.expected_execution_revision,
+          expected_fsm_state: :dispatching_tools
+        )
+        return unless state
+
+        if ready.error
+          if ready.error.is_a?(PreparationOutcomeUnknownError)
+            reconcile_tool_dispatch_preparation_f1_on_event_loop(
+              operation,
+              ready.error,
+              state
+            )
+          else
+            state.invocation.event_sink.post(:tool_setup_failed, translated(ready.error))
+          end
+          return
+        end
+
+        apply_confirmed_tool_dispatch_preparation_on_event_loop(
+          operation,
+          ready.result,
+          state
+        )
+      rescue => error
+        state&.invocation&.event_sink&.post(:tool_setup_failed, translated(error))
+      end
+
+      def apply_confirmed_provider_dispatch_preparation_on_event_loop(
+        operation,
+        result,
+        state
+      )
+        event_loop = Phronomy::Runtime.instance.event_loop
         if result.runtime_projection
           event_loop.replace_agent_execution(
             operation.execution_id,
@@ -844,8 +1029,130 @@ module Phronomy
           projection: result.runtime_projection,
           streaming: operation.streaming
         )
+      end
+
+      def apply_confirmed_tool_dispatch_preparation_on_event_loop(
+        operation,
+        result,
+        state
+      )
+        event_loop = Phronomy::Runtime.instance.event_loop
+        event_loop.replace_agent_execution(
+          operation.execution_id,
+          execution: result.execution
+        )
+        state.invocation.acknowledge_runtime_snapshot(operation.runtime_snapshot)
+        Agent::AgentInvocationSessionBuilder.start_prepared_tool_dispatch(
+          runtime: Phronomy::Runtime.instance,
+          event_sink: state.invocation.event_sink,
+          invocation: state.invocation
+        )
+      end
+
+      def reconcile_provider_dispatch_preparation_f1_on_event_loop(
+        operation,
+        uncertainty,
+        state
+      )
+        disposition, current = preparation_reconciliation_state(
+          operation,
+          uncertainty.intended_result.execution
+        )
+        case disposition
+        when :committed
+          projection = materialization_error = nil
+          begin
+            _manifest, projection = RecoverySupport.materialize_projection(
+              @agent,
+              current.metadata.fetch("manifest_ref")
+            )
+          rescue => error
+            materialization_error = error
+          end
+          result = ProviderDispatchPreparationResult.new(
+            execution: current,
+            runtime_projection: projection,
+            error: materialization_error
+          )
+          apply_confirmed_provider_dispatch_preparation_on_event_loop(
+            operation,
+            result,
+            state
+          )
+        when :not_committed
+          state.invocation.event_sink.post(
+            :llm_setup_failed,
+            translated(uncertainty.original_error)
+          )
+        when :conflict
+          mark_barrier_recovery_required(operation, uncertainty.original_error)
+        end
       rescue => error
-        state&.invocation&.event_sink&.post(:llm_setup_failed, translated(error))
+        mark_barrier_recovery_required(operation, error)
+      end
+
+      def reconcile_tool_dispatch_preparation_f1_on_event_loop(
+        operation,
+        uncertainty,
+        state
+      )
+        disposition, current = preparation_reconciliation_state(
+          operation,
+          uncertainty.intended_result.execution
+        )
+        case disposition
+        when :committed
+          apply_confirmed_tool_dispatch_preparation_on_event_loop(
+            operation,
+            ToolDispatchPreparationResult.new(execution: current),
+            state
+          )
+        when :not_committed
+          state.invocation.event_sink.post(
+            :tool_setup_failed,
+            translated(uncertainty.original_error)
+          )
+        when :conflict
+          mark_barrier_recovery_required(operation, uncertainty.original_error)
+        end
+      rescue => error
+        mark_barrier_recovery_required(operation, error)
+      end
+
+      def preparation_reconciliation_state(operation, intended_execution)
+        current = @agent.persistence.executions.load(operation.execution_id)
+        if current.execution_revision == intended_execution.execution_revision &&
+            current.to_h == intended_execution.to_h
+          return [:committed, current]
+        end
+        if current.execution_revision == operation.execution.execution_revision &&
+            current.to_h == operation.execution.to_h
+          return [:not_committed, current]
+        end
+
+        [:conflict, current]
+      end
+
+      def known_durable_preparation_failure?(error)
+        error.is_a?(Phronomy::Persistence::ConflictError) ||
+          error.is_a?(Phronomy::Persistence::NotFoundError) ||
+          error.is_a?(Phronomy::Persistence::SerializationError) ||
+          error.is_a?(Phronomy::Persistence::UnsupportedBackendError) ||
+          error.is_a?(ArgumentError) ||
+          error.is_a?(Phronomy::ConfigurationError)
+      end
+
+      def mark_barrier_recovery_required(operation, error)
+        event_loop = Phronomy::Runtime.instance.event_loop
+        event_loop.mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: operation.execution_id,
+          state: :recovery_required
+        )
+        Phronomy.configuration.logger&.warn(
+          "[Phronomy] causal durable barrier requires recovery for " \
+          "#{operation.execution_id}: #{error.class}: #{error.message}"
+        )
       end
 
       # ----------------------------------------------------------------------

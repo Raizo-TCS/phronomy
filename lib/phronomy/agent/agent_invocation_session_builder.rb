@@ -9,7 +9,6 @@ module Phronomy
         building_context: true,
         starting_tools: true,
         evaluating_tools: true,
-        dispatching_tools: true,
         recording_tool_results: true,
         output_filtering: true
       }.freeze
@@ -127,6 +126,12 @@ module Phronomy
           ],
           llm_setup_failed: [
             {from: :calling_llm, to: :failed, guard: nil}
+          ],
+          tool_setup_failed: [
+            {from: :dispatching_tools, to: :failed, guard: nil}
+          ],
+          tool_dispatch_prepared: [
+            {from: :dispatching_tools, to: :evaluating_tools, guard: nil}
           ],
           resume: [
             {from: :suspended, to: :waiting_for_tools, guard: nil}
@@ -246,7 +251,7 @@ module Phronomy
         return if invocation.callback_failed?
 
         if invocation.user_message_sent
-          invocation.config.fetch(:phronomy_execution_coordinator).prepare_next_llm_call(
+          invocation.config.fetch(:phronomy_execution_coordinator).prepare_provider_dispatch(
             invocation,
             event_sink: event_sink,
             streaming: streaming
@@ -463,20 +468,41 @@ module Phronomy
       end
       private_class_method :starting_tools_action
 
-      def self.dispatching_tools_action(runtime, parent_event_sink, invocation)
+      def self.dispatching_tools_action(_runtime, parent_event_sink, invocation)
+        invocation.config.fetch(:phronomy_execution_coordinator).prepare_tool_dispatch(
+          invocation,
+          event_sink: parent_event_sink
+        )
+        invocation
+      end
+      private_class_method :dispatching_tools_action
+
+      # Continues Tool physical dispatch after the operation-specific durable
+      # preparation has been confirmed and applied by ExecutionCoordinator.
+      # @api private
+      def self.start_prepared_tool_dispatch(
+        runtime:,
+        event_sink:,
+        invocation:
+      )
         invocation.tool_invocations.select(&:authorized?).each do |child|
           session = ToolInvocationSessionBuilder.build_for_resume(
             tool_invocation: child,
-            parent_event_sink: parent_event_sink,
+            parent_event_sink: event_sink,
             resume_event: :dispatch,
             resume_phase: :authorized,
             runtime: runtime
           )
-          register_child_session(runtime, child, session, parent_event_sink)
+          begin
+            register_child_session(runtime, child, session, event_sink)
+          rescue => error
+            child.mark_framework_failed!(error)
+            event_sink.post(:tool_failed, {tool_invocation_id: child.id})
+          end
         end
+        post_session_event!(event_sink, :tool_dispatch_prepared, nil)
         invocation
       end
-      private_class_method :dispatching_tools_action
 
       def self.register_child_session(runtime, child, session, parent_event_sink)
         completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
