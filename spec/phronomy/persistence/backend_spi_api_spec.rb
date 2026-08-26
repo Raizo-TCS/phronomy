@@ -209,4 +209,67 @@ RSpec.describe "Persistence Backend SPI public contract" do
       /format_version must be a String/
     )
   end
+
+  it "rejects a missing record_type in DurableRecord" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        format_version: "0.1",
+        payload: {"value" => 1}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /record_type is missing/
+    )
+  end
+
+  it "rejects a missing payload in DurableRecord" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: "phronomy.example",
+        format_version: "0.1"
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /payload is missing/
+    )
+  end
+
+  it "rejects an empty record_type in DurableRecord" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: "",
+        format_version: "0.1",
+        payload: {"value" => 1}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /record_type must not be empty/
+    )
+  end
+
+  it "rejects an invalid format_version pattern in DurableRecord" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: "phronomy.example",
+        format_version: "not-semver",
+        payload: {"value" => 1}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /invalid durable format_version/
+    )
+  end
+
+  it "rejects a non-JSON-serializable payload in DurableRecord" do
+    expect do
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: "phronomy.example",
+        format_version: "0.1",
+        payload: {"value" => Float::INFINITY}
+      )
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /canonical JSON compatible/
+    )
+  end
 end

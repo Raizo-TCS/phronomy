@@ -11,6 +11,66 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     )
   end
 
+  def build_execution_without_approval
+    Phronomy::Agent::AgentExecution.new(
+      execution_id: "exec-migration-1",
+      agent_id: root.agent_id,
+      execution_revision: 1,
+      status: :active,
+      phase: :calling_llm,
+      base_agent_revision: 0,
+      base_context_revision: 0,
+      base_journal_position: 0,
+      working_records: [],
+      llm_calls: [],
+      approval_request: nil,
+      result_ref: nil,
+      error_ref: nil,
+      created_at: "2026-08-26T00:00:00.000000Z",
+      updated_at: "2026-08-26T00:00:01.000000Z",
+      terminal_reason: nil,
+      metadata: {}
+    )
+  end
+
+  def build_execution_with_approval
+    Phronomy::Agent::AgentExecution.new(
+      execution_id: "exec-migration-2",
+      agent_id: root.agent_id,
+      execution_revision: 2,
+      status: :suspended,
+      phase: :approval,
+      base_agent_revision: 0,
+      base_context_revision: 0,
+      base_journal_position: 0,
+      working_records: [],
+      llm_calls: [],
+      approval_request: {
+        "id" => "approval-migration-1",
+        "execution_id" => "exec-migration-2",
+        "items" => [
+          {
+            "tool_invocation_id" => "tv-1",
+            "tool_call_id" => "tc-1",
+            "tool_name" => "protected_tool",
+            "arguments" => {},
+            "facts" => {},
+            "reason" => nil,
+            "origin" => "local",
+            "metadata" => {}
+          }
+        ],
+        "created_at" => "2026-08-26T00:00:00Z"
+      },
+      result_ref: nil,
+      error_ref: nil,
+      created_at: "2026-08-26T00:00:00.000000Z",
+      updated_at: "2026-08-26T00:00:01.000000Z",
+      terminal_reason: nil,
+      metadata: {}
+    )
+  end
+
   it "converts the fixed-base unversioned AgentRoot payload to v0.1" do
     record = described_class.agent_root(root.to_h)
 
@@ -192,5 +252,83 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
 
     expect(migrated.fetch("version")).to eq("0.1")
     expect(Phronomy::Agent::LLMInputManifest.from_h(migrated).version).to eq("0.1")
+  end
+
+  it "rejects an unsupported pre-S3 LLMInputManifest version" do
+    unsupported = {
+      "version" => "2",
+      "call_sequence" => 1,
+      "call_mode" => "complete",
+      "assembly_policy_version" => 1,
+      "segments" => [],
+      "model_config_ref" => "sha256:model"
+    }
+
+    expect do
+      described_class.llm_input_manifest(unsupported)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /unsupported pre-S3 LLMInputManifest version/
+    )
+  end
+
+  it "rejects a non-Hash migration input" do
+    expect do
+      described_class.agent_root("not-a-hash")
+    end.to raise_error(Phronomy::Persistence::SerializationError, /must be a Hash/)
+  end
+
+  it "rejects a migration input with non-String/Symbol keys" do
+    expect do
+      described_class.agent_root({123 => "value"})
+    end.to raise_error(Phronomy::Persistence::SerializationError, /key must be String or Symbol/)
+  end
+
+  it "rejects a migration input with duplicate keys after normalization" do
+    # :foo and "foo" both normalize to "foo" → duplicate
+    mixed = {foo: "a"}.merge("foo" => "b")
+    expect do
+      described_class.agent_root(mixed)
+    end.to raise_error(Phronomy::Persistence::SerializationError, /duplicate/)
+  end
+
+  it "returns nil for a nil approval_request in agent_execution migration" do
+    legacy = build_execution_without_approval.to_h
+    record = described_class.agent_execution(legacy)
+    restored = Phronomy::Persistence::DurableCodec.decode_agent_execution(record)
+    expect(restored.approval_request).to be_nil
+  end
+
+  it "rejects an approval_request where execution_id does not match the enclosing execution" do
+    execution = build_execution_with_approval
+    legacy = execution.to_h
+    approval = legacy.fetch("approval_request").dup
+    approval.delete("agent_invocation_id")
+    approval["execution_id"] = "different-execution-id"
+    legacy["approval_request"] = approval
+
+    expect do
+      described_class.agent_execution(legacy)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /execution_id does not match/
+    )
+  end
+
+  it "rejects an approval_request with empty items" do
+    execution = build_execution_with_approval
+    legacy = execution.to_h
+    approval = legacy.fetch("approval_request").dup
+    approval.delete("agent_invocation_id")
+    approval["execution_id"] = execution.execution_id
+    approval["items"] = []
+    legacy["approval_request"] = approval
+
+    expect do
+      described_class.agent_execution(legacy)
+    end.to raise_error(
+      Phronomy::Persistence::SerializationError,
+      /items must be a non-empty Array/
+    )
   end
 end

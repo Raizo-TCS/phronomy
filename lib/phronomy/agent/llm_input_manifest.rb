@@ -7,12 +7,17 @@ module Phronomy
     class LLMInputManifest
       VERSION = "0.1"
       CALL_MODES = %i[ask complete].freeze
+      SEGMENT_DELIVERIES = %w[ask_argument chat_message].freeze
 
       Segment = Data.define(
         :position, :category, :role, :content_ref, :delivery,
         :tool_call_id, :metadata
       ) do
         def initialize(**values)
+          delivery = values[:delivery]
+          if delivery && !SEGMENT_DELIVERIES.include?(delivery.to_s)
+            raise ArgumentError, "unknown Segment delivery: #{delivery.inspect}"
+          end
           super(**values.merge(metadata: Immutable.copy(values[:metadata] || {})))
           freeze
         end
@@ -56,6 +61,10 @@ module Phronomy
             "delivery",
             label: label
           )
+          unless SEGMENT_DELIVERIES.include?(delivery)
+            raise Phronomy::Persistence::SerializationError,
+              "LLMInputManifest segment delivery must be one of #{SEGMENT_DELIVERIES.inspect}, got #{delivery.inspect}"
+          end
           tool_call_id = LLMInputManifest.send(
             :require_optional_string_field!,
             source,

@@ -5,6 +5,29 @@ require "spec_helper"
 RSpec.describe Phronomy::Agent::LLMInputManifest do
   let(:segment_class) { Phronomy::Agent::LLMInputManifest::Segment }
 
+  it "rejects an unknown delivery in the Segment constructor" do
+    expect {
+      segment_class.new(
+        position: 0, category: :instruction, role: nil,
+        content_ref: "sha256:x", delivery: :inline,
+        tool_call_id: nil, metadata: {}
+      )
+    }.to raise_error(ArgumentError, /unknown Segment delivery.*:inline/)
+  end
+
+  it "rejects an unknown delivery in the Segment durable decoder" do
+    segment = segment_class.new(
+      position: 0, category: :instruction, role: nil,
+      content_ref: "sha256:x", delivery: :chat_message,
+      tool_call_id: nil, metadata: {}
+    )
+    bad_hash = segment.to_h.merge("delivery" => "inline")
+
+    expect {
+      segment_class.from_h(bad_hash)
+    }.to raise_error(Phronomy::Persistence::SerializationError, /delivery must be one of/)
+  end
+
   it "uses the pre-1.0 durable codec version convention" do
     expect(described_class::VERSION).to eq("0.1")
   end
@@ -98,7 +121,7 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
   it "accepts optional metadata fields and serializes segments with nil role" do
     segment = segment_class.new(
       position: 0, category: :instruction, role: nil,
-      content_ref: "sha256:inst", delivery: :inline,
+      content_ref: "sha256:inst", delivery: :chat_message,
       tool_call_id: nil, metadata: {}
     )
     manifest = described_class.new(
@@ -210,7 +233,7 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
           category: :instruction,
           role: nil,
           content_ref: "sha256:inst",
-          delivery: :inline,
+          delivery: :chat_message,
           tool_call_id: nil,
           metadata: {}
         )

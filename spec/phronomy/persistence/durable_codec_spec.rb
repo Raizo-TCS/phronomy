@@ -288,4 +288,125 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
       "phase" => "pause"
     )
   end
+
+  describe "decode rejects corrupt backend payloads" do
+    def corrupt_execution_record(overrides)
+      base = described_class.encode_agent_execution(execution)
+      bad_payload = base.payload.merge(overrides)
+      Phronomy::Persistence::DurableRecord.new(
+        record_type: described_class::AGENT_EXECUTION_RECORD_TYPE,
+        format_version: described_class::AGENT_EXECUTION_FORMAT_VERSION,
+        payload: bad_payload
+      )
+    end
+
+    it "rejects non-Array working_records" do
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("working_records" => "corrupt"))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /working_records must be an Array/)
+    end
+
+    it "rejects non-Array llm_calls" do
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("llm_calls" => "corrupt"))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /llm_calls must be an Array/)
+    end
+
+    it "rejects a working_record with wrong agent_id" do
+      bad_wr = described_class.encode_agent_execution(execution)
+        .payload.fetch("working_records").first.merge("agent_id" => "wrong-agent")
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("working_records" => [bad_wr]))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /working_records\[0\] agent_id mismatch/)
+    end
+
+    it "rejects a working_record with mismatched execution_id" do
+      bad_wr = described_class.encode_agent_execution(execution)
+        .payload.fetch("working_records").first.merge("execution_id" => "wrong-exec")
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("working_records" => [bad_wr]))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /working_records\[0\] execution_id mismatch/)
+    end
+
+    it "rejects a llm_call with wrong execution_id" do
+      bad_call = described_class.encode_agent_execution(execution)
+        .payload.fetch("llm_calls").first.merge("execution_id" => "wrong-exec")
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("llm_calls" => [bad_call]))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /llm_calls\[0\] execution_id mismatch/)
+    end
+
+    it "rejects approval_request with wrong execution_id" do
+      bad_approval = described_class.encode_agent_execution(execution)
+        .payload.fetch("approval_request").merge("execution_id" => "wrong-exec")
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("approval_request" => bad_approval))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /approval_request execution_id mismatch/)
+    end
+
+    it "rejects approval_request with non-boolean approved field" do
+      bad_approval = described_class.encode_agent_execution(execution)
+        .payload.fetch("approval_request").merge("approved" => "maybe")
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("approval_request" => bad_approval))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /approved must be true or false/)
+    end
+
+    it "rejects approval_request with empty items" do
+      bad_approval = described_class.encode_agent_execution(execution)
+        .payload.fetch("approval_request").merge("items" => [])
+      expect {
+        described_class.decode_agent_execution(corrupt_execution_record("approval_request" => bad_approval))
+      }.to raise_error(Phronomy::Persistence::SerializationError, /items must be a non-empty Array/)
+    end
+
+    it "rejects a workflow state with wrong expected_workflow_instance_id" do
+      record = described_class.encode_workflow_state(
+        workflow_instance_id: "real-id",
+        workflow_revision: 1,
+        snapshot: {fields: {}, phase: nil}
+      )
+      expect {
+        described_class.decode_workflow_state(record, expected_workflow_instance_id: "wrong-id")
+      }.to raise_error(Phronomy::Persistence::SerializationError, /mismatch/)
+    end
+
+    it "rejects a workflow snapshot with non-Hash fields" do
+      record = described_class.encode_workflow_state(
+        workflow_instance_id: "wf-1",
+        workflow_revision: 1,
+        snapshot: {fields: {}, phase: nil}
+      )
+      bad_payload = record.payload.merge(
+        "snapshot" => record.payload.fetch("snapshot").merge("fields" => "not-a-hash")
+      )
+      bad_record = Phronomy::Persistence::DurableRecord.new(
+        record_type: described_class::WORKFLOW_STATE_RECORD_TYPE,
+        format_version: described_class::WORKFLOW_STATE_FORMAT_VERSION,
+        payload: bad_payload
+      )
+      expect {
+        described_class.decode_workflow_state(bad_record)
+      }.to raise_error(Phronomy::Persistence::SerializationError, /fields must be a Hash/)
+    end
+
+    it "rejects a workflow snapshot with non-String phase" do
+      record = described_class.encode_workflow_state(
+        workflow_instance_id: "wf-1",
+        workflow_revision: 1,
+        snapshot: {fields: {}, phase: nil}
+      )
+      bad_payload = record.payload.merge(
+        "snapshot" => record.payload.fetch("snapshot").merge("phase" => 42)
+      )
+      bad_record = Phronomy::Persistence::DurableRecord.new(
+        record_type: described_class::WORKFLOW_STATE_RECORD_TYPE,
+        format_version: described_class::WORKFLOW_STATE_FORMAT_VERSION,
+        payload: bad_payload
+      )
+      expect {
+        described_class.decode_workflow_state(bad_record)
+      }.to raise_error(Phronomy::Persistence::SerializationError, /phase must be a String or nil/)
+    end
+  end
 end
