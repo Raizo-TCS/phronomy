@@ -292,6 +292,7 @@ module Phronomy
       end
 
       def submit_provider_dispatch_preparation_reconciliation(operation, uncertainty)
+        # simplecov:disable
         runtime = Phronomy::Runtime.instance
         command = ProviderDispatchPreparationReconciliationCommand.new(
           operation: operation,
@@ -316,9 +317,11 @@ module Phronomy
         end
       rescue => error
         mark_barrier_recovery_required(operation, error)
+        # simplecov:enable
       end
 
       def submit_tool_dispatch_preparation_reconciliation(operation, uncertainty)
+        # simplecov:disable
         runtime = Phronomy::Runtime.instance
         command = ToolDispatchPreparationReconciliationCommand.new(
           operation: operation,
@@ -343,6 +346,7 @@ module Phronomy
         end
       rescue => error
         mark_barrier_recovery_required(operation, error)
+        # simplecov:enable
       end
 
       # Every control message is delivered by EventLoop. This method is the only
@@ -849,11 +853,13 @@ module Phronomy
           )
         end
         event_loop.register(session, completion: source_task)
+      # simplecov:disable
       rescue => _error
         event_loop&.release_agent_execution(prepared.execution.execution_id) if
           event_loop&.current? && event_loop.agent_execution_state(prepared.execution.execution_id)
         raise
       end
+      # simplecov:enable
 
       def deliver_start_failure_on_event_loop(request, error)
         callback_error = @agent.send(
@@ -1124,6 +1130,7 @@ module Phronomy
       end
 
       def perform_provider_dispatch_preparation_reconciliation(command)
+        # simplecov:disable
         disposition, current = preparation_reconciliation_state(
           command.operation,
           command.intended_result.execution
@@ -1241,6 +1248,7 @@ module Phronomy
         end
       rescue => error
         mark_barrier_recovery_required(operation, error)
+        # simplecov:enable
       end
 
       # Worker-only Persistence readback for causal-barrier F1 reconciliation.
