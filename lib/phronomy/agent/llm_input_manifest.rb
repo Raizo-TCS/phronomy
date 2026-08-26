@@ -15,7 +15,7 @@ module Phronomy
       ) do
         def initialize(**values)
           delivery = values[:delivery]
-          if delivery && !SEGMENT_DELIVERIES.include?(delivery.to_s)
+          if delivery.nil? || !SEGMENT_DELIVERIES.include?(delivery.to_s)
             raise ArgumentError, "unknown Segment delivery: #{delivery.inspect}"
           end
           super(**values.merge(metadata: Immutable.copy(values[:metadata] || {})))

@@ -15,6 +15,16 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
     }.to raise_error(ArgumentError, /unknown Segment delivery.*:inline/)
   end
 
+  it "rejects nil delivery in the Segment constructor" do
+    expect {
+      segment_class.new(
+        position: 0, category: :instruction, role: nil,
+        content_ref: "sha256:x", delivery: nil,
+        tool_call_id: nil, metadata: {}
+      )
+    }.to raise_error(ArgumentError, /unknown Segment delivery.*nil/)
+  end
+
   it "rejects an unknown delivery in the Segment durable decoder" do
     segment = segment_class.new(
       position: 0, category: :instruction, role: nil,
