@@ -423,15 +423,23 @@
       <pre class="lines">
 
 
-13
-14
-15
-16</pre>
+16
+17
+18
+19
+20
+21
+22
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_delivery'>delivery</span> <span class='op'>=</span> <span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:delivery</span><span class='rbracket'>]</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_delivery'>delivery</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>||</span> <span class='op'>!</span><span class='const'><span class='object_link'><a href="../LLMInputManifest.html#SEGMENT_DELIVERIES-constant" title="Phronomy::Agent::LLMInputManifest::SEGMENT_DELIVERIES (constant)">SEGMENT_DELIVERIES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_delivery'>delivery</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unknown Segment delivery: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_delivery'>delivery</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
   <span class='kw'>super</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>metadata:</span> <span class='const'><span class='object_link'><a href="../Immutable.html" title="Phronomy::Agent::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Immutable.html#copy-class_method" title="Phronomy::Agent::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_freeze'>freeze</span>
 <span class='kw'>end</span></pre>
@@ -487,12 +495,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_category'>category</span>
   <span class='ivar'>@category</span>
@@ -544,12 +552,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_content_ref'>content_ref</span>
   <span class='ivar'>@content_ref</span>
@@ -601,12 +609,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_delivery'>delivery</span>
   <span class='ivar'>@delivery</span>
@@ -658,12 +666,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_metadata'>metadata</span>
   <span class='ivar'>@metadata</span>
@@ -715,12 +723,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_position'>position</span>
   <span class='ivar'>@position</span>
@@ -772,12 +780,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_role'>role</span>
   <span class='ivar'>@role</span>
@@ -829,12 +837,12 @@
       <pre class="lines">
 
 
-9
-10
-11</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call_id'>tool_call_id</span>
   <span class='ivar'>@tool_call_id</span>
@@ -866,33 +874,151 @@
       <pre class="lines">
 
 
-18
-19
-20
-21
-22
-23
-24
 25
 26
 27
 28
-29</pre>
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 18</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_h'>from_h</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
-    <span class='label'>position:</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>position</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>category:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>category</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
-    <span class='label'>role:</span> <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>role</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
-    <span class='label'>content_ref:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content_ref</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
-    <span class='label'>delivery:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>delivery</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
-    <span class='label'>tool_call_id:</span> <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_call_id</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
-    <span class='label'>metadata:</span> <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>metadata</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:strict_source!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span>
+    <span class='label'>required:</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>position</span><span class='words_sep'> </span><span class='tstring_content'>category</span><span class='words_sep'> </span><span class='tstring_content'>content_ref</span><span class='words_sep'> </span><span class='tstring_content'>delivery</span><span class='words_sep'> </span><span class='tstring_content'>metadata</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
+    <span class='label'>optional:</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>role</span><span class='words_sep'> </span><span class='tstring_content'>tool_call_id</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLMInputManifest segment</span><span class='tstring_end'>&quot;</span></span>
   <span class='rparen'>)</span>
+  <span class='id identifier rubyid_label'>label</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLMInputManifest segment</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_position'>position</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_nonnegative_integer_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>position</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_category'>category</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_nonempty_string_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>category</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_role'>role</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_optional_string_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>role</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_content_ref'>content_ref</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_nonempty_string_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content_ref</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_delivery'>delivery</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_nonempty_string_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>delivery</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html#SEGMENT_DELIVERIES-constant" title="Phronomy::Agent::LLMInputManifest::SEGMENT_DELIVERIES (constant)">SEGMENT_DELIVERIES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_delivery'>delivery</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence/SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLMInputManifest segment delivery must be one of </span><span class='embexpr_beg'>#{</span><span class='const'><span class='object_link'><a href="../LLMInputManifest.html#SEGMENT_DELIVERIES-constant" title="Phronomy::Agent::LLMInputManifest::SEGMENT_DELIVERIES (constant)">SEGMENT_DELIVERIES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'>, got </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_delivery'>delivery</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_tool_call_id'>tool_call_id</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_optional_string_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_call_id</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_metadata'>metadata</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
+    <span class='symbol'>:require_hash_field!</span><span class='comma'>,</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>metadata</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span>
+  <span class='rparen'>)</span>
+
+  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+    <span class='label'>position:</span> <span class='id identifier rubyid_position'>position</span><span class='comma'>,</span>
+    <span class='label'>category:</span> <span class='id identifier rubyid_category'>category</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
+    <span class='label'>role:</span> <span class='id identifier rubyid_role'>role</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
+    <span class='label'>content_ref:</span> <span class='id identifier rubyid_content_ref'>content_ref</span><span class='comma'>,</span>
+    <span class='label'>delivery:</span> <span class='id identifier rubyid_delivery'>delivery</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
+    <span class='label'>tool_call_id:</span> <span class='id identifier rubyid_tool_call_id'>tool_call_id</span><span class='comma'>,</span>
+    <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span>
+  <span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence/SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence/SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invalid LLMInputManifest segment: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -920,20 +1046,20 @@
       <pre class="lines">
 
 
-31
-32
-33
-34
-35
-36
-37
-38
-39
-40
-41</pre>
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_input_manifest.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='lbrace'>{</span>
@@ -956,7 +1082,7 @@
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 26 04:55:50 2026 by
+  Generated on Wed Aug 26 14:27:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

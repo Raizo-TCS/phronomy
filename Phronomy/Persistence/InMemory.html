@@ -148,33 +148,6 @@
 </li>
 
     
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#workflow_state_data-instance_method" title="#workflow_state_data (instance method)">#<strong>workflow_state_data</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute workflow_state_data.</p></div></span>
-  
-</li>
-
-    
   </ul>
 
 
@@ -235,28 +208,6 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#deep_dup_workflow_value-instance_method" title="#deep_dup_workflow_value (instance method)">#<strong>deep_dup_workflow_value</strong>(value)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Workflow fields historically accepted ordinary Ruby values in the in-memory store.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>  &#x21d2; InMemory </a>
     
 
@@ -274,6 +225,28 @@
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of InMemory.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#require_durable_record!-instance_method" title="#require_durable_record! (instance method)">#<strong>require_durable_record!</strong>(record)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -354,42 +327,60 @@
       <pre class="lines">
 
 
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281</pre>
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 265</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 349</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@monitor</span> <span class='op'>=</span> <span class='const'>Monitor</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='ivar'>@state</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>contents:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>agents:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>journals:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>executions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rbrace'>}</span>
-  <span class='ivar'>@workflow_state_data</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='ivar'>@contents</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Contents.html" title="Phronomy::Persistence::InMemory::Contents (class)">Contents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Contents.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Contents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
-  <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Agents.html" title="Phronomy::Persistence::InMemory::Agents (class)">Agents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Agents.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Agents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
-  <span class='ivar'>@journals</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Journals.html" title="Phronomy::Persistence::InMemory::Journals (class)">Journals</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Journals.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Journals#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
-  <span class='ivar'>@executions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Executions.html" title="Phronomy::Persistence::InMemory::Executions (class)">Executions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Executions.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Executions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
-  <span class='ivar'>@workflow_states</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/WorkflowStates.html" title="Phronomy::Persistence::InMemory::WorkflowStates (class)">WorkflowStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/WorkflowStates.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::WorkflowStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='ivar'>@state</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+    <span class='label'>contents:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>agents:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>agent_revisions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>journals:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>journal_record_ids:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>executions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>execution_metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>workflow_states:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>workflow_revisions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='rbrace'>}</span>
+  <span class='ivar'>@contents_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Contents.html" title="Phronomy::Persistence::InMemory::Contents (class)">Contents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Contents.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Contents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='ivar'>@agents_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Agents.html" title="Phronomy::Persistence::InMemory::Agents (class)">Agents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Agents.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Agents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='ivar'>@journals_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Journals.html" title="Phronomy::Persistence::InMemory::Journals (class)">Journals</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Journals.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Journals#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='ivar'>@executions_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Executions.html" title="Phronomy::Persistence::InMemory::Executions (class)">Executions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Executions.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Executions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='ivar'>@workflow_states_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/WorkflowStates.html" title="Phronomy::Persistence::InMemory::WorkflowStates (class)">WorkflowStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/WorkflowStates.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::WorkflowStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
   <span class='kw'>super</span><span class='lparen'>(</span>
-    <span class='label'>contents:</span> <span class='ivar'>@contents</span><span class='comma'>,</span>
-    <span class='label'>agents:</span> <span class='ivar'>@agents</span><span class='comma'>,</span>
-    <span class='label'>journals:</span> <span class='ivar'>@journals</span><span class='comma'>,</span>
-    <span class='label'>executions:</span> <span class='ivar'>@executions</span><span class='comma'>,</span>
-    <span class='label'>workflow_states:</span> <span class='ivar'>@workflow_states</span>
+    <span class='label'>contents:</span> <span class='ivar'>@contents_backend</span><span class='comma'>,</span>
+    <span class='label'>agents:</span> <span class='ivar'>@agents_backend</span><span class='comma'>,</span>
+    <span class='label'>journals:</span> <span class='ivar'>@journals_backend</span><span class='comma'>,</span>
+    <span class='label'>executions:</span> <span class='ivar'>@executions_backend</span><span class='comma'>,</span>
+    <span class='label'>workflow_states:</span> <span class='ivar'>@workflow_states_backend</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -428,56 +419,15 @@
       <pre class="lines">
 
 
-263
-264
-265</pre>
+347
+348
+349</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 263</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 347</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@state</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="workflow_state_data-instance_method">
-  
-    #<strong>workflow_state_data</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute workflow_state_data.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-263
-264
-265</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 263</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_workflow_state_data'>workflow_state_data</span>
-  <span class='ivar'>@workflow_state_data</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -506,44 +456,46 @@
       <pre class="lines">
 
 
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302
-303
-304
-305
-306
-307</pre>
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 287</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 380</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_stored'>stored</span> <span class='op'>=</span> <span class='ivar'>@state</span><span class='lbracket'>[</span><span class='symbol'>:agents</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_stored'>stored</span>
+    <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='kw'>unless</span> <span class='ivar'>@state</span><span class='lbracket'>[</span><span class='symbol'>:agents</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent not found: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
 
-    <span class='kw'>if</span> <span class='id identifier rubyid_stored'>stored</span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span> <span class='op'>!=</span> <span class='id identifier rubyid_agent_revision'>agent_revision</span>
+    <span class='id identifier rubyid_actual_revision'>actual_revision</span> <span class='op'>=</span> <span class='ivar'>@state</span><span class='lbracket'>[</span><span class='symbol'>:agent_revisions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_actual_revision'>actual_revision</span> <span class='op'>!=</span> <span class='id identifier rubyid_agent_revision'>agent_revision</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent revision conflict: expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='embexpr_end'>}</span><span class='tstring_content'>, actual </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_stored'>stored</span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent revision conflict: expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='embexpr_end'>}</span><span class='tstring_content'>, actual </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_actual_revision'>actual_revision</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
 
-    <span class='id identifier rubyid_actual_position'>actual_position</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='ivar'>@state</span><span class='lbracket'>[</span><span class='symbol'>:journals</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
+    <span class='id identifier rubyid_actual_position'>actual_position</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='ivar'>@state</span><span class='lbracket'>[</span><span class='symbol'>:journals</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_actual_position'>actual_position</span> <span class='op'>!=</span> <span class='id identifier rubyid_journal_position'>journal_position</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>journal position conflict: expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_journal_position'>journal_position</span><span class='embexpr_end'>}</span><span class='tstring_content'>, actual </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_actual_position'>actual_position</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
@@ -572,12 +524,12 @@
       <pre class="lines">
 
 
-283
-284
-285</pre>
+376
+377
+378</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 376</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_capabilities'>capabilities</span>
   <span class='lbrace'>{</span><span class='label'>atomic_all:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>atomic_admission:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>optimistic_revision:</span> <span class='kw'>true</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -588,9 +540,9 @@
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="deep_dup_workflow_value-instance_method">
+  <h3 class="signature " id="require_durable_record!-instance_method">
   
-    #<strong>deep_dup_workflow_value</strong>(value)  &#x21d2; <tt>Object</tt> 
+    #<strong>require_durable_record!</strong>(record)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -598,14 +550,29 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Workflow fields historically accepted ordinary Ruby values in the
-in-memory store. Keep that contract without forcing the Agent durable
-state Marshal snapshot to serialize arbitrary Workflow values.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
 <div class="tags">
   
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">Phronomy::Persistence::SerializationError</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -613,49 +580,21 @@ state Marshal snapshot to serialize arbitrary Workflow values.</p>
       <pre class="lines">
 
 
-330
-331
-332
-333
-334
-335
-336
-337
-338
-339
-340
-341
-342
-343
-344
-345
-346
-347
-348
-349</pre>
+420
+421
+422
+423
+424
+425</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 330</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 420</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_deep_dup_workflow_value'>deep_dup_workflow_value</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
-  <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
-  <span class='kw'>when</span> <span class='const'>Hash</span>
-    <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid_child'>child</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
-      <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='id identifier rubyid_deep_dup_workflow_value'>deep_dup_workflow_value</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_deep_dup_workflow_value'>deep_dup_workflow_value</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-  <span class='kw'>when</span> <span class='const'>Array</span>
-    <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_child'>child</span><span class='op'>|</span> <span class='id identifier rubyid_deep_dup_workflow_value'>deep_dup_workflow_value</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-  <span class='kw'>when</span> <span class='const'>NilClass</span><span class='comma'>,</span> <span class='const'>Symbol</span><span class='comma'>,</span> <span class='const'>Integer</span><span class='comma'>,</span> <span class='const'>Float</span><span class='comma'>,</span> <span class='const'>TrueClass</span><span class='comma'>,</span> <span class='const'>FalseClass</span>
-    <span class='id identifier rubyid_value'>value</span>
-  <span class='kw'>else</span>
-    <span class='kw'>return</span> <span class='id identifier rubyid_value'>value</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_frozen?'>frozen?</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_require_durable_record!'>require_durable_record!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_record'>record</span> <span class='kw'>if</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DurableRecord.html" title="Phronomy::Persistence::DurableRecord (class)">DurableRecord</a></span></span><span class='rparen'>)</span>
 
-    <span class='kw'>begin</span>
-      <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
-    <span class='kw'>rescue</span> <span class='const'>TypeError</span>
-      <span class='id identifier rubyid_value'>value</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>backend repository expected Persistence::DurableRecord, got </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -677,12 +616,12 @@ state Marshal snapshot to serialize arbitrary Workflow values.</p>
       <pre class="lines">
 
 
-323
-324
-325</pre>
+415
+416
+417</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 323</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 415</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_synchronize'>synchronize</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@monitor</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -707,32 +646,28 @@ state Marshal snapshot to serialize arbitrary Workflow values.</p>
       <pre class="lines">
 
 
-309
-310
-311
-312
-313
-314
-315
-316
-317
-318
-319
-320
-321</pre>
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 309</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 403</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transaction'>transaction</span>
   <span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_state_snapshot'>state_snapshot</span> <span class='op'>=</span> <span class='const'>Marshal</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='const'>Marshal</span><span class='period'>.</span><span class='id identifier rubyid_dump'>dump</span><span class='lparen'>(</span><span class='ivar'>@state</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_workflow_snapshot'>workflow_snapshot</span> <span class='op'>=</span> <span class='id identifier rubyid_deep_dup_workflow_value'>deep_dup_workflow_value</span><span class='lparen'>(</span><span class='ivar'>@workflow_state_data</span><span class='rparen'>)</span>
     <span class='kw'>begin</span>
       <span class='kw'>yield</span> <span class='kw'>self</span>
     <span class='kw'>rescue</span>
       <span class='ivar'>@state</span><span class='period'>.</span><span class='id identifier rubyid_replace'>replace</span><span class='lparen'>(</span><span class='id identifier rubyid_state_snapshot'>state_snapshot</span><span class='rparen'>)</span>
-      <span class='ivar'>@workflow_state_data</span><span class='period'>.</span><span class='id identifier rubyid_replace'>replace</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_snapshot'>workflow_snapshot</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_raise'>raise</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
@@ -747,7 +682,7 @@ state Marshal snapshot to serialize arbitrary Workflow values.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 26 04:55:49 2026 by
+  Generated on Wed Aug 26 14:27:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

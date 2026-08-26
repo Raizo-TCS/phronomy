@@ -134,7 +134,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Raises AgentBusyError if there is an active execution for agent_id.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -142,7 +142,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#create_active-instance_method" title="#create_active (instance method)">#<strong>create_active</strong>(execution)  &#x21d2; Object </a>
+      <a href="#create_active-instance_method" title="#create_active (instance method)">#<strong>create_active</strong>(execution_id:, agent_id:, execution_revision:, record:)  &#x21d2; Object </a>
     
 
     
@@ -276,7 +276,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#save-instance_method" title="#save (instance method)">#<strong>save</strong>(execution_id, expected_revision:, execution:)  &#x21d2; Object </a>
+      <a href="#save-instance_method" title="#save (instance method)">#<strong>save</strong>(execution_id, expected_revision:, next_revision:, agent_id:, active:, record:)  &#x21d2; Object </a>
     
 
     
@@ -326,10 +326,10 @@
       <pre class="lines">
 
 
-139</pre>
+172</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 139</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 172</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@owner</span> <span class='op'>=</span> <span class='id identifier rubyid_owner'>owner</span></pre>
     </td>
@@ -353,10 +353,57 @@
   
 
   
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 281</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_assert_idle!'>assert_idle!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_active'>active</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_metadata'>metadata</span><span class='op'>|</span>
+      <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:active</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_active'>active</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent has an active or suspended execution: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="create_active-instance_method">
+  
+    #<strong>create_active</strong>(execution_id:, agent_id:, execution_revision:, record:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Raises AgentBusyError if there is an active execution for agent_id.
-Must be called from within a transaction (monitor already held).</p>
+    
 
   </div>
 </div>
@@ -368,7 +415,7 @@ Must be called from within a transaction (monitor already held).</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">Phronomy::AgentBusyError</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></tt>)</span>
       
       
       
@@ -382,71 +429,63 @@ Must be called from within a transaction (monitor already held).</p>
       <pre class="lines">
 
 
-204
-205
-206
-207
-208
-209</pre>
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 204</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 174</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_assert_idle!'>assert_idle!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_active'>active</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_candidate'>candidate</span><span class='op'>|</span>
-    <span class='id identifier rubyid_candidate'>candidate</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_candidate'>candidate</span><span class='period'>.</span><span class='id identifier rubyid_active?'>active?</span>
-  <span class='kw'>end</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent has an active or suspended execution: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_active'>active</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="create_active-instance_method">
-  
-    #<strong>create_active</strong>(execution)  &#x21d2; <tt>Object</tt> 
-  
+<span class='kw'>def</span> <span class='id identifier rubyid_create_active'>create_active</span><span class='lparen'>(</span><span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_revision:</span><span class='comma'>,</span> <span class='label'>record:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_require_durable_record!'>require_durable_record!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution_key'>execution_key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_agent_key'>agent_key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_revision'>revision</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_id must not be empty</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_execution_key'>execution_key</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent_id must not be empty</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_agent_key'>agent_key</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_revision must be non-negative</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_revision'>revision</span><span class='period'>.</span><span class='id identifier rubyid_negative?'>negative?</span>
 
-  
-
-  
-</h3><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 141</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_create_active'>create_active</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='kw'>if</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution already exists: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>if</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution already exists: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
-    <span class='id identifier rubyid_active'>active</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_candidate'>candidate</span><span class='op'>|</span>
-      <span class='id identifier rubyid_candidate'>candidate</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>==</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_candidate'>candidate</span><span class='period'>.</span><span class='id identifier rubyid_active?'>active?</span>
+    <span class='id identifier rubyid_active'>active</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_metadata'>metadata</span><span class='op'>|</span>
+      <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_key'>agent_key</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:active</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent is busy: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_active'>active</span>
-    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent is busy: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_key'>agent_key</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_active'>active</span>
+
+    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span>
+    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+      <span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_key'>agent_key</span><span class='comma'>,</span>
+      <span class='label'>revision:</span> <span class='id identifier rubyid_revision'>revision</span><span class='comma'>,</span>
+      <span class='label'>active:</span> <span class='kw'>true</span>
+    <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_execution'>execution</span>
+  <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -468,15 +507,23 @@ Must be called from within a transaction (monitor already held).</p>
       <pre class="lines">
 
 
-192
-193
-194</pre>
+260
+261
+262
+263
+264
+265
+266</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 192</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 260</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -498,18 +545,32 @@ Must be called from within a transaction (monitor already held).</p>
       <pre class="lines">
 
 
-196
-197
-198
-199
-200</pre>
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 196</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 268</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_delete_for_agent'>delete_for_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete_if'>delete_if</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid__id'>_id</span><span class='comma'>,</span> <span class='id identifier rubyid_execution'>execution</span><span class='op'>|</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span>
+    <span class='id identifier rubyid_agent_key'>agent_key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='id identifier rubyid_ids'>ids</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_filter_map'>filter_map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='op'>|</span>
+      <span class='id identifier rubyid_execution_id'>execution_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_key'>agent_key</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_ids'>ids</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='op'>|</span>
+      <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+      <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -532,22 +593,26 @@ Must be called from within a transaction (monitor already held).</p>
       <pre class="lines">
 
 
-184
-185
-186
-187
-188
-189
-190</pre>
+250
+251
+252
+253
+254
+255
+256
+257
+258</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 184</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 250</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_list_active'>list_active</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_execution'>execution</span><span class='op'>|</span>
-      <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_active?'>active?</span>
-    <span class='kw'>end</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+    <span class='id identifier rubyid_agent_key'>agent_key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='id identifier rubyid_ids'>ids</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_filter_map'>filter_map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='op'>|</span>
+      <span class='id identifier rubyid_execution_id'>execution_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_key'>agent_key</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:active</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_ids'>ids</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='op'>|</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -570,22 +635,22 @@ Must be called from within a transaction (monitor already held).</p>
       <pre class="lines">
 
 
-155
-156
-157
-158
-159
-160
-161</pre>
+202
+203
+204
+205
+206
+207
+208</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 155</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 202</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='kw'>do</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution not found: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-    <span class='kw'>end</span>
+    <span class='kw'>end</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -596,7 +661,7 @@ Must be called from within a transaction (monitor already held).</p>
       <div class="method_details ">
   <h3 class="signature " id="save-instance_method">
   
-    #<strong>save</strong>(execution_id, expected_revision:, execution:)  &#x21d2; <tt>Object</tt> 
+    #<strong>save</strong>(execution_id, expected_revision:, next_revision:, agent_id:, active:, record:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -608,49 +673,87 @@ Must be called from within a transaction (monitor already held).</p>
       <pre class="lines">
 
 
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182</pre>
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 163</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 210</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>expected_revision:</span><span class='comma'>,</span> <span class='label'>execution:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>expected_revision:</span><span class='comma'>,</span> <span class='label'>next_revision:</span><span class='comma'>,</span> <span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>active:</span><span class='comma'>,</span> <span class='label'>record:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_require_durable_record!'>require_durable_record!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution_key'>execution_key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_agent_key'>agent_key</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_expected'>expected</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_expected_revision'>expected_revision</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_next_value'>next_value</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_next_revision'>next_revision</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_active'>active</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='kw'>true</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='id identifier rubyid_active'>active</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='kw'>false</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution active metadata must be true or false</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution not found: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span> <span class='op'>==</span> <span class='id identifier rubyid_expected_revision'>expected_revision</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution revision conflict: expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_expected_revision'>expected_revision</span><span class='embexpr_end'>}</span><span class='tstring_content'>, actual </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>unless</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution not found: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>==</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_actual_revision'>actual_revision</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:revision</span><span class='rparen'>)</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_actual_revision'>actual_revision</span> <span class='op'>==</span> <span class='id identifier rubyid_expected'>expected</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution identity mismatch: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_content'> != </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution revision conflict: expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_expected'>expected</span><span class='embexpr_end'>}</span><span class='tstring_content'>, actual </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_actual_revision'>actual_revision</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span> <span class='op'>==</span> <span class='id identifier rubyid_expected_revision'>expected_revision</span> <span class='op'>+</span> <span class='int'>1</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_key'>agent_key</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution Agent identity mismatch: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_key'>agent_key</span><span class='embexpr_end'>}</span><span class='tstring_content'> != </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_next_value'>next_value</span> <span class='op'>==</span> <span class='id identifier rubyid_expected'>expected</span> <span class='op'>+</span> <span class='int'>1</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution save must advance revision exactly once: </span><span class='tstring_end'>&quot;</span></span> \
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_expected_revision'>expected_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='embexpr_end'>}</span><span class='tstring_content'>, got </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_expected'>expected</span> <span class='op'>+</span> <span class='int'>1</span><span class='embexpr_end'>}</span><span class='tstring_content'>, got </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_next_value'>next_value</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
-    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span>
+
+    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span>
+    <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='id identifier rubyid_execution_key'>execution_key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+      <span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_key'>agent_key</span><span class='comma'>,</span>
+      <span class='label'>revision:</span> <span class='id identifier rubyid_next_value'>next_value</span><span class='comma'>,</span>
+      <span class='label'>active:</span> <span class='id identifier rubyid_active'>active</span>
+    <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_execution'>execution</span>
+  <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -662,7 +765,7 @@ Must be called from within a transaction (monitor already held).</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 26 04:55:50 2026 by
+  Generated on Wed Aug 26 14:27:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

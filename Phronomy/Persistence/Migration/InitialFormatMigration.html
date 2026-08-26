@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Module: Phronomy::Persistence::Migration::InitialFormatMigration
+  
+    &mdash; Documentation by YARD 0.9.45
+  
+</title>
+
+  <link rel="stylesheet" href="../../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Persistence::Migration::InitialFormatMigration";
+  relpath = '../../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../../_index.html">Index (I)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Migration.html" title="Phronomy::Persistence::Migration (module)">Migration</a></span></span>
+     &raquo; 
+    <span class="title">InitialFormatMigration</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Module: Phronomy::Persistence::Migration::InitialFormatMigration
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/persistence/migration/initial_format_migration.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Explicit logical conversion from the pre-S3 unversioned representations
+present at the ACS-06 fixed base to the initial 0.1 durable formats.</p>
+<p>This module does not scan a database or write records. A backend-specific
+migration runner is responsible for physical enumeration, transactions,
+and replacement. Normal Runtime load never calls these methods.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="PRE_S3_AGENT_ROOT_KEYS-constant" class="">PRE_S3_AGENT_ROOT_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/AgentRoot.html" title="Phronomy::Agent::AgentRoot (class)">AgentRoot</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/AgentRoot.html#ATTRIBUTES-constant" title="Phronomy::Agent::AgentRoot::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_AGENT_EXECUTION_KEYS-constant" class="">PRE_S3_AGENT_EXECUTION_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/AgentExecution.html" title="Phronomy::Agent::AgentExecution (class)">AgentExecution</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/AgentExecution.html#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_JOURNAL_KEYS-constant" class="">PRE_S3_JOURNAL_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/JournalRecord.html#ATTRIBUTES-constant" title="Phronomy::Agent::JournalRecord::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_LLM_CALL_KEYS-constant" class="">PRE_S3_LLM_CALL_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/LLMCallRecord.html" title="Phronomy::Agent::LLMCallRecord (class)">LLMCallRecord</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/LLMCallRecord.html#ATTRIBUTES-constant" title="Phronomy::Agent::LLMCallRecord::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_APPROVAL_REQUIRED_KEYS-constant" class="">PRE_S3_APPROVAL_REQUIRED_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w[</span><span class='tstring_content'>id</span><span class='words_sep'> </span><span class='tstring_content'>items</span><span class='words_sep'> </span><span class='tstring_content'>created_at</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_APPROVAL_PARENT_KEYS-constant" class="">PRE_S3_APPROVAL_PARENT_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w[</span><span class='tstring_content'>execution_id</span><span class='words_sep'> </span><span class='tstring_content'>agent_invocation_id</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_APPROVAL_OPTIONAL_KEYS-constant" class="">PRE_S3_APPROVAL_OPTIONAL_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w[</span><span class='tstring_content'>approved</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+        <dt id="PRE_S3_APPROVAL_ITEM_KEYS-constant" class="">PRE_S3_APPROVAL_ITEM_KEYS =
+          <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w[</span><span class='words_sep'>
+</span><span class='words_sep'>  </span><span class='tstring_content'>tool_invocation_id</span><span class='words_sep'> </span><span class='tstring_content'>tool_call_id</span><span class='words_sep'> </span><span class='tstring_content'>tool_name</span><span class='words_sep'> </span><span class='tstring_content'>arguments</span><span class='words_sep'> </span><span class='tstring_content'>facts</span><span class='words_sep'> </span><span class='tstring_content'>reason</span><span class='words_sep'> </span><span class='tstring_content'>origin</span><span class='words_sep'> </span><span class='tstring_content'>metadata</span><span class='words_sep'>
+</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
+    </dl>
+  
+
+
+
+
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#agent_execution-class_method" title="agent_execution (class method)">.<strong>agent_execution</strong>(hash)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#agent_root-class_method" title="agent_root (class method)">.<strong>agent_root</strong>(hash)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#journal_record-class_method" title="journal_record (class method)">.<strong>journal_record</strong>(hash)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#llm_input_manifest-class_method" title="llm_input_manifest (class method)">.<strong>llm_input_manifest</strong>(hash)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>LLMInputManifest is a ContentStore codec boundary, not a Persistence::DurableRecord.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#workflow_state-class_method" title="workflow_state (class method)">.<strong>workflow_state</strong>(workflow_instance_id:, revision:, snapshot:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="agent_execution-class_method">
+  
+    .<strong>agent_execution</strong>(hash)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/migration/initial_format_migration.rb', line 44</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_agent_execution'>agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_stringify_keys'>stringify_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='const'><span class='object_link'><a href="#PRE_S3_AGENT_EXECUTION_KEYS-constant" title="Phronomy::Persistence::Migration::InitialFormatMigration::PRE_S3_AGENT_EXECUTION_KEYS (constant)">PRE_S3_AGENT_EXECUTION_KEYS</a></span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pre-S3 AgentExecution</span><span class='tstring_end'>&quot;</span></span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>working_records</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>working_records</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='period'>.</span><span class='id identifier rubyid_with_index'>with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='id identifier rubyid_index'>index</span><span class='op'>|</span>
+    <span class='id identifier rubyid_normalize_legacy_journal_record'>normalize_legacy_journal_record</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_record'>record</span><span class='comma'>,</span>
+      <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pre-S3 AgentExecution working_records[</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_index'>index</span><span class='embexpr_end'>}</span><span class='tstring_content'>]</span><span class='tstring_end'>&quot;</span></span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>llm_calls</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>llm_calls</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='period'>.</span><span class='id identifier rubyid_with_index'>with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_call'>call</span><span class='comma'>,</span> <span class='id identifier rubyid_index'>index</span><span class='op'>|</span>
+    <span class='id identifier rubyid_normalized'>normalized</span> <span class='op'>=</span> <span class='id identifier rubyid_stringify_keys'>stringify_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_call'>call</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_normalized'>normalized</span><span class='comma'>,</span>
+      <span class='const'><span class='object_link'><a href="#PRE_S3_LLM_CALL_KEYS-constant" title="Phronomy::Persistence::Migration::InitialFormatMigration::PRE_S3_LLM_CALL_KEYS (constant)">PRE_S3_LLM_CALL_KEYS</a></span></span><span class='comma'>,</span>
+      <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pre-S3 AgentExecution llm_calls[</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_index'>index</span><span class='embexpr_end'>}</span><span class='tstring_content'>]</span><span class='tstring_end'>&quot;</span></span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_normalized'>normalized</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>approval_request</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_legacy_approval_request'>normalize_legacy_approval_request</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>approval_request</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>execution_id:</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_id</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/AgentExecution.html" title="Phronomy::Agent::AgentExecution (class)">AgentExecution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../../Agent/AgentExecution.html#from_h-class_method" title="Phronomy::Agent::AgentExecution.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../DurableCodec.html" title="Phronomy::Persistence::DurableCodec (module)">DurableCodec</a></span></span><span class='period'>.</span><span class='id identifier rubyid_encode_agent_execution'><span class='object_link'><a href="../DurableCodec.html#encode_agent_execution-class_method" title="Phronomy::Persistence::DurableCodec.encode_agent_execution (method)">encode_agent_execution</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_migration_error'>migration_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentExecution</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="agent_root-class_method">
+  
+    .<strong>agent_root</strong>(hash)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/migration/initial_format_migration.rb', line 28</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_agent_root'>agent_root</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_stringify_keys'>stringify_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_source'>source</span><span class='comma'>,</span>
+    <span class='const'><span class='object_link'><a href="#PRE_S3_AGENT_ROOT_KEYS-constant" title="Phronomy::Persistence::Migration::InitialFormatMigration::PRE_S3_AGENT_ROOT_KEYS (constant)">PRE_S3_AGENT_ROOT_KEYS</a></span></span><span class='comma'>,</span>
+    <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pre-S3 AgentRoot</span><span class='tstring_end'>&quot;</span></span>
+  <span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../DurableCodec.html" title="Phronomy::Persistence::DurableCodec (module)">DurableCodec</a></span></span><span class='period'>.</span><span class='id identifier rubyid_encode_agent_root'><span class='object_link'><a href="../DurableCodec.html#encode_agent_root-class_method" title="Phronomy::Persistence::DurableCodec.encode_agent_root (method)">encode_agent_root</a></span></span><span class='lparen'>(</span>
+    <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/AgentRoot.html" title="Phronomy::Agent::AgentRoot (class)">AgentRoot</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../../Agent/AgentRoot.html#from_h-class_method" title="Phronomy::Agent::AgentRoot.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='rparen'>)</span>
+  <span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_migration_error'>migration_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentRoot</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="journal_record-class_method">
+  
+    .<strong>journal_record</strong>(hash)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/migration/initial_format_migration.rb', line 78</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_journal_record'>journal_record</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_legacy_journal_record'>normalize_legacy_journal_record</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pre-S3 JournalRecord</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../DurableCodec.html" title="Phronomy::Persistence::DurableCodec (module)">DurableCodec</a></span></span><span class='period'>.</span><span class='id identifier rubyid_encode_journal_record'><span class='object_link'><a href="../DurableCodec.html#encode_journal_record-class_method" title="Phronomy::Persistence::DurableCodec.encode_journal_record (method)">encode_journal_record</a></span></span><span class='lparen'>(</span>
+    <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../../Agent/JournalRecord.html#from_h-class_method" title="Phronomy::Agent::JournalRecord.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='rparen'>)</span>
+  <span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_migration_error'>migration_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>JournalRecord</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="llm_input_manifest-class_method">
+  
+    .<strong>llm_input_manifest</strong>(hash)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>LLMInputManifest is a ContentStore codec boundary, not a
+Persistence::DurableRecord. Its pre-CG-07 integer version 1 is migrated
+explicitly to the pre-1.0 string version &quot;0.1&quot;.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/migration/initial_format_migration.rb', line 104</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_llm_input_manifest'>llm_input_manifest</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_stringify_keys'>stringify_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_old_version'>old_version</span> <span class='op'>=</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>version</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_old_version'>old_version</span> <span class='op'>==</span> <span class='int'>1</span> <span class='op'>||</span> <span class='id identifier rubyid_old_version'>old_version</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>1</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unsupported pre-S3 LLMInputManifest version: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_old_version'>old_version</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_source'>source</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>version</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/LLMInputManifest.html#VERSION-constant" title="Phronomy::Agent::LLMInputManifest::VERSION (constant)">VERSION</a></span></span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Agent/LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../../Agent/LLMInputManifest.html#from_h-class_method" title="Phronomy::Agent::LLMInputManifest.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_migration_error'>migration_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLMInputManifest</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="workflow_state-class_method">
+  
+    .<strong>workflow_state</strong>(workflow_instance_id:, revision:, snapshot:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/migration/initial_format_migration.rb', line 89</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_workflow_state'>workflow_state</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span><span class='comma'>,</span> <span class='label'>revision:</span><span class='comma'>,</span> <span class='label'>snapshot:</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../DurableCodec.html" title="Phronomy::Persistence::DurableCodec (module)">DurableCodec</a></span></span><span class='period'>.</span><span class='id identifier rubyid_encode_workflow_state'><span class='object_link'><a href="../DurableCodec.html#encode_workflow_state-class_method" title="Phronomy::Persistence::DurableCodec.encode_workflow_state (method)">encode_workflow_state</a></span></span><span class='lparen'>(</span>
+    <span class='label'>workflow_instance_id:</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span>
+    <span class='label'>workflow_revision:</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_revision'>revision</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>snapshot:</span> <span class='id identifier rubyid_snapshot'>snapshot</span>
+  <span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_migration_error'>migration_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow state</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Wed Aug 26 14:27:14 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.45 (ruby-3.3.12).
+</div>
+
+    </div>
+  </body>
+</html>

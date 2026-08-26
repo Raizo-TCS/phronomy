@@ -97,7 +97,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/persistence.rb<span class="defines">,<br>
-  lib/phronomy/persistence/in_memory.rb</span>
+  lib/phronomy/persistence/in_memory.rb,<br> lib/phronomy/persistence/durable_codec.rb,<br> lib/phronomy/persistence/durable_record.rb,<br> lib/phronomy/persistence/repository_facades.rb,<br> lib/phronomy/persistence/migration/initial_format_migration.rb</span>
 
 </dd>
   </dl>
@@ -108,9 +108,11 @@
 <p class="children">
   
     
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Persistence/DurableCodec.html" title="Phronomy::Persistence::DurableCodec (module)">DurableCodec</a></span>, <span class='object_link'><a href="Persistence/Migration.html" title="Phronomy::Persistence::Migration (module)">Migration</a></span>, <span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span>
+    
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Persistence/ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span>, <span class='object_link'><a href="Persistence/InMemory.html" title="Phronomy::Persistence::InMemory (class)">InMemory</a></span>, <span class='object_link'><a href="Persistence/NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span>, <span class='object_link'><a href="Persistence/SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span>, <span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Persistence/ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span>, <span class='object_link'><a href="Persistence/DurableRecord.html" title="Phronomy::Persistence::DurableRecord (class)">DurableRecord</a></span>, <span class='object_link'><a href="Persistence/InMemory.html" title="Phronomy::Persistence::InMemory (class)">InMemory</a></span>, <span class='object_link'><a href="Persistence/NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span>, <span class='object_link'><a href="Persistence/SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span>, <span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span>
     
   
 </p>
@@ -163,7 +165,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>AgentRoot repository.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Runtime/domain-facing AgentRoot repository.</p></div></span>
   
 </li>
 
@@ -190,7 +192,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Durable repository accessors supplied by a Persistence backend.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Content-addressed immutable content repository.</p></div></span>
   
 </li>
 
@@ -217,7 +219,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>AgentExecution repository.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Runtime/domain-facing AgentExecution repository.</p></div></span>
   
 </li>
 
@@ -244,7 +246,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Append-only Agent Journal repository.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Runtime/domain-facing append-only Agent Journal repository.</p></div></span>
   
 </li>
 
@@ -271,7 +273,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Durable Workflow snapshot repository.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Runtime/domain-facing durable Workflow snapshot repository.</p></div></span>
   
 </li>
 
@@ -292,7 +294,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#assert_agent_watermark!-instance_method" title="#assert_agent_watermark! (instance method)">#<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; true </a>
+      <a href="#assert_agent_watermark!-instance_method" title="#assert_agent_watermark! (instance method)">#<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; Object </a>
     
 
     
@@ -307,6 +309,28 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Verifies that a live Agent still owns the durable base it hydrated.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build_transaction_view-instance_method" title="#build_transaction_view (instance method)">#<strong>build_transaction_view</strong>(contents:, agents:, journals:, executions:, workflow_states:, watermark:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Backend SPI helper for transaction implementations whose transaction-scoped raw repositories differ from the root repository objects.</p></div></span>
   
 </li>
 
@@ -352,7 +376,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Initializes a Persistence backend with its durable repositories.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Initializes a Persistence backend from record-oriented storage repositories.</p></div></span>
   
 </li>
 
@@ -397,90 +421,36 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Initializes a Persistence backend with its durable repositories.</p>
-<p>Subclasses normally construct backend-specific repository objects and then
-call <code>super</code>. The backend must advertise every capability in
-<span class='object_link'><a href="#REQUIRED_CAPABILITIES-constant" title="Phronomy::Persistence::REQUIRED_CAPABILITIES (constant)">REQUIRED_CAPABILITIES</a></span>; construction fails fast otherwise.</p>
+    <p>Initializes a Persistence backend from record-oriented storage
+repositories.</p>
+<p>Except for <code>contents</code>, backend repositories exchange
+<span class='object_link'><a href="Persistence/DurableRecord.html" title="Phronomy::Persistence::DurableRecord (class)">DurableRecord</a></span> values. Phronomy's repository
+facades own current-format validation and domain-object encode/decode.</p>
+<p>Identity, revision, admission, and index metadata needed by a Backend is
+passed explicitly as repository arguments. A Backend must not inspect
+DurableRecord#payload to rediscover Phronomy domain semantics.</p>
+<p>Required raw repository shapes:</p>
+<ul>
+<li>agents:
+create(agent_id:, agent_revision:, record:), load(id),
+save(id, expected_revision:, next_revision:, record:), delete(id)</li>
+<li>journals:
+append(id, expected_position:, records:, record_ids:), read/head/delete</li>
+<li>executions:
+create_active(execution_id:, agent_id:, execution_revision:, record:),
+load(id), save(id, expected_revision:, next_revision:, agent_id:,
+active:, record:), list_active/delete/delete_for_agent/assert_idle!</li>
+<li>workflow_states:
+load(id), save(id, expected_revision:, next_revision:, record:), delete</li>
+</ul>
+<p>Subclasses normally construct backend-specific raw repository objects and
+call <code>super</code>. Construction fails fast when required capabilities are not
+advertised.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>contents</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>agents</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>journals</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>executions</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>workflow_states</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when a required capability is missing</p></div>
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -488,24 +458,24 @@ call <code>super</code>. The backend must advertise every capability in
       <pre class="lines">
 
 
-55
-56
-57
-58
-59
-60
-61
-62</pre>
+77
+78
+79
+80
+81
+82
+83
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>workflow_states:</span><span class='rparen'>)</span>
   <span class='ivar'>@contents</span> <span class='op'>=</span> <span class='id identifier rubyid_contents'>contents</span>
-  <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='id identifier rubyid_agents'>agents</span>
-  <span class='ivar'>@journals</span> <span class='op'>=</span> <span class='id identifier rubyid_journals'>journals</span>
-  <span class='ivar'>@executions</span> <span class='op'>=</span> <span class='id identifier rubyid_executions'>executions</span>
-  <span class='ivar'>@workflow_states</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span>
+  <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Agents.html" title="Phronomy::Persistence::RepositoryFacades::Agents (class)">Agents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Agents.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Agents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_agents'>agents</span><span class='rparen'>)</span>
+  <span class='ivar'>@journals</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Journals.html" title="Phronomy::Persistence::RepositoryFacades::Journals (class)">Journals</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Journals.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Journals#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_journals'>journals</span><span class='rparen'>)</span>
+  <span class='ivar'>@executions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Executions.html" title="Phronomy::Persistence::RepositoryFacades::Executions (class)">Executions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Executions.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Executions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_executions'>executions</span><span class='rparen'>)</span>
+  <span class='ivar'>@workflow_states</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/WorkflowStates.html" title="Phronomy::Persistence::RepositoryFacades::WorkflowStates (class)">WorkflowStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/WorkflowStates.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::WorkflowStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_states'>workflow_states</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_capabilities!'>validate_capabilities!</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -531,7 +501,8 @@ call <code>super</code>. The backend must advertise every capability in
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns AgentRoot repository.</p>
+    <p>Runtime/domain-facing AgentRoot repository. The backend repository supplied
+to #initialize is record-oriented; this facade owns encode/decode.</p>
 
   </div>
 </div>
@@ -546,9 +517,6 @@ call <code>super</code>. The backend must advertise every capability in
         <span class='type'>(<tt>Object</tt>)</span>
       
       
-      
-        &mdash;
-        <div class='inline'><p>AgentRoot repository</p></div>
       
     </li>
   
@@ -588,10 +556,8 @@ call <code>super</code>. The backend must advertise every capability in
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Durable repository accessors supplied by a Persistence backend.</p>
-<p>The repository objects are part of the Backend SPI. They may be private
-implementation classes owned by the backend; they do not need to inherit
-from Phronomy repository base classes.</p>
+    <p>Content-addressed immutable content repository. ContentStore has its own
+codec/canonicalization boundary and is not wrapped in DurableRecord.</p>
 
   </div>
 </div>
@@ -607,9 +573,6 @@ from Phronomy repository base classes.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>content-addressed immutable content repository</p></div>
-      
     </li>
   
 </ul>
@@ -620,12 +583,12 @@ from Phronomy repository base classes.</p>
       <pre class="lines">
 
 
-24
-25
-26</pre>
+21
+22
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 21</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_contents'>contents</span>
   <span class='ivar'>@contents</span>
@@ -648,7 +611,7 @@ from Phronomy repository base classes.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns AgentExecution repository.</p>
+    <p>Runtime/domain-facing AgentExecution repository.</p>
 
   </div>
 </div>
@@ -664,9 +627,6 @@ from Phronomy repository base classes.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>AgentExecution repository</p></div>
-      
     </li>
   
 </ul>
@@ -677,12 +637,12 @@ from Phronomy repository base classes.</p>
       <pre class="lines">
 
 
-36
-37
-38</pre>
+40
+41
+42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_executions'>executions</span>
   <span class='ivar'>@executions</span>
@@ -705,7 +665,7 @@ from Phronomy repository base classes.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns append-only Agent Journal repository.</p>
+    <p>Runtime/domain-facing append-only Agent Journal repository.</p>
 
   </div>
 </div>
@@ -721,9 +681,6 @@ from Phronomy repository base classes.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>append-only Agent Journal repository</p></div>
-      
     </li>
   
 </ul>
@@ -734,12 +691,12 @@ from Phronomy repository base classes.</p>
       <pre class="lines">
 
 
-32
-33
-34</pre>
+34
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_journals'>journals</span>
   <span class='ivar'>@journals</span>
@@ -762,7 +719,7 @@ from Phronomy repository base classes.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns durable Workflow snapshot repository.</p>
+    <p>Runtime/domain-facing durable Workflow snapshot repository.</p>
 
   </div>
 </div>
@@ -778,9 +735,6 @@ from Phronomy repository base classes.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>durable Workflow snapshot repository</p></div>
-      
     </li>
   
 </ul>
@@ -791,12 +745,12 @@ from Phronomy repository base classes.</p>
       <pre class="lines">
 
 
-40
-41
-42</pre>
+46
+47
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span>
   <span class='ivar'>@workflow_states</span>
@@ -816,7 +770,7 @@ from Phronomy repository base classes.</p>
       <div class="method_details first">
   <h3 class="signature first" id="assert_agent_watermark!-instance_method">
   
-    #<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; <tt>true</tt> 
+    #<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -830,89 +784,13 @@ Ordinary application code should not call it directly. The backend must
 compare the stored Agent revision and current Journal position against the
 supplied watermark in the same storage consistency view used by subsequent
 writes in the surrounding transaction.</p>
-<p>The method is a precondition check only. It must not reload or return
-replacement mutable Agent state; the live Agent remains the logical owner.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>agent_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>agent_revision</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>journal_position</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>true</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 <p class="tag_title">Raises:</p>
 <ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Persistence/NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when the Agent does not exist</p></div>
-      
-    </li>
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Persistence/ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when either durable watermark component differs</p></div>
-      
-    </li>
   
     <li>
       
@@ -920,9 +798,6 @@ replacement mutable Agent state; the live Agent remains the logical owner.</p>
         <span class='type'>(<tt><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></tt>)</span>
       
       
-      
-        &mdash;
-        <div class='inline'><p>when the backend does not implement the check</p></div>
       
     </li>
   
@@ -934,17 +809,91 @@ replacement mutable Agent state; the live Agent remains the logical owner.</p>
       <pre class="lines">
 
 
-125
-126
-127
-128</pre>
+165
+166
+167
+168</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 165</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></span><span class='comma'>,</span>
     <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'> does not provide Agent durable-watermark checks</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="build_transaction_view-instance_method">
+  
+    #<strong>build_transaction_view</strong>(contents:, agents:, journals:, executions:, workflow_states:, watermark:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Backend SPI helper for transaction implementations whose transaction-scoped
+raw repositories differ from the root repository objects.</p>
+<p><code>watermark</code> is a transaction-scoped object responding to
+<code>assert_agent_watermark!</code>. The returned view owns the same Phronomy codec
+facades as the root Persistence instance, so backend authors never need to
+instantiate RepositoryFacades directly.</p>
+<p>Backends whose repository objects are already transaction-scoped may yield
+<code>self</code> and need not call this helper.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 138</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_build_transaction_view'>build_transaction_view</span><span class='lparen'>(</span>
+  <span class='label'>contents:</span><span class='comma'>,</span>
+  <span class='label'>agents:</span><span class='comma'>,</span>
+  <span class='label'>journals:</span><span class='comma'>,</span>
+  <span class='label'>executions:</span><span class='comma'>,</span>
+  <span class='label'>workflow_states:</span><span class='comma'>,</span>
+  <span class='label'>watermark:</span>
+<span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/View.html" title="Phronomy::Persistence::RepositoryFacades::View (class)">View</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/View.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::View#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+    <span class='label'>contents:</span> <span class='id identifier rubyid_contents'>contents</span><span class='comma'>,</span>
+    <span class='label'>agents:</span> <span class='id identifier rubyid_agents'>agents</span><span class='comma'>,</span>
+    <span class='label'>journals:</span> <span class='id identifier rubyid_journals'>journals</span><span class='comma'>,</span>
+    <span class='label'>executions:</span> <span class='id identifier rubyid_executions'>executions</span><span class='comma'>,</span>
+    <span class='label'>workflow_states:</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span><span class='comma'>,</span>
+    <span class='label'>watermark:</span> <span class='id identifier rubyid_watermark'>watermark</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -998,16 +947,16 @@ Journal position checks provide compare-and-swap conflict detection.</li>
       <pre class="lines">
 
 
-77
-78
-79
-80
-81
-82
-83</pre>
+99
+100
+101
+102
+103
+104
+105</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_capabilities'>capabilities</span>
   <span class='lbrace'>{</span>
@@ -1033,11 +982,9 @@ Journal position checks provide compare-and-swap conflict detection.</li>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Executes one atomic durable transaction.</p>
-<p>The object yielded to the block is a transaction-scoped Persistence view.
-It must respond to <code>contents</code>, <code>agents</code>, <code>journals</code>, <code>executions</code>,
-<code>workflow_states</code>, and <code>assert_agent_watermark!</code>. It may be <code>self</code>, but
-backends are free to yield a separate transaction view backed by a checked
-out connection/session.</p>
+<p>The yielded object is a transaction-scoped Persistence view exposing the
+same domain-facing repository facades. Its underlying backend repositories
+remain DurableRecord-oriented.</p>
 <p>If the block raises, mutations made through the transaction view must not
 be committed. Storage failures whose commit outcome is fundamentally
 unknown remain backend/database failures; Phronomy does not claim
@@ -1101,12 +1048,12 @@ exactly-once semantics for such failures.</p>
       <pre class="lines">
 
 
-102
-103
-104</pre>
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transaction'>transaction</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'> does not provide atomic_all</span><span class='tstring_end'>&quot;</span></span>
@@ -1121,7 +1068,7 @@ exactly-once semantics for such failures.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 26 04:55:48 2026 by
+  Generated on Wed Aug 26 14:27:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

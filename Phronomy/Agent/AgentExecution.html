@@ -180,7 +180,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Restores only the current semantic payload shape.</p></div></span>
   
 </li>
 
@@ -302,7 +302,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Current semantic payload representation.</p></div></span>
   
 </li>
 
@@ -428,7 +428,8 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>Restores only the current semantic payload shape. Historical durable
+representations must go through explicit Persistence migration first.</p>
 
   </div>
 </div>
@@ -441,10 +442,6 @@
       <pre class="lines">
 
 
-99
-100
-101
-102
 103
 104
 105
@@ -459,15 +456,35 @@
 114
 115
 116
-117</pre>
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 99</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_h'>from_h</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_expected'>expected</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_sort'>sort</span>
+  <span class='id identifier rubyid_actual'>actual</span> <span class='op'>=</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_sort'>sort</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_actual'>actual</span> <span class='op'>==</span> <span class='id identifier rubyid_expected'>expected</span>
+    <span class='id identifier rubyid_missing'>missing</span> <span class='op'>=</span> <span class='id identifier rubyid_expected'>expected</span> <span class='op'>-</span> <span class='id identifier rubyid_actual'>actual</span>
+    <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_actual'>actual</span> <span class='op'>-</span> <span class='id identifier rubyid_expected'>expected</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentExecution payload schema mismatch: </span><span class='tstring_end'>&quot;</span></span> \
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>missing=</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_missing'>missing</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'>, unknown=</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
   <span class='id identifier rubyid_attributes'>attributes</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'><span class='object_link'><a href="#to_h-instance_method" title="Phronomy::Agent::AgentExecution#to_h (method)">to_h</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
-    <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>:</span> <span class='id identifier rubyid_name'>name</span>
-    <span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+    <span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_attributes'>attributes</span><span class='lbracket'>[</span><span class='symbol'>:working_records</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_attributes'>attributes</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:working_records</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='op'>|</span>
@@ -476,10 +493,6 @@
   <span class='id identifier rubyid_attributes'>attributes</span><span class='lbracket'>[</span><span class='symbol'>:llm_calls</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_attributes'>attributes</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:llm_calls</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_call'>call</span><span class='op'>|</span>
     <span class='id identifier rubyid_call'>call</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="LLMCallRecord.html" title="Phronomy::Agent::LLMCallRecord (class)">LLMCallRecord</a></span></span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_call'>call</span> <span class='op'>:</span> <span class='const'><span class='object_link'><a href="LLMCallRecord.html" title="Phronomy::Agent::LLMCallRecord (class)">LLMCallRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="LLMCallRecord.html#from_h-class_method" title="Phronomy::Agent::LLMCallRecord.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_call'>call</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_attributes'>attributes</span><span class='lbracket'>[</span><span class='symbol'>:approval_request</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_legacy_approval_request'>normalize_legacy_approval_request</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_attributes'>attributes</span><span class='lbracket'>[</span><span class='symbol'>:approval_request</span><span class='rbracket'>]</span><span class='comma'>,</span>
-    <span class='label'>execution_id:</span> <span class='id identifier rubyid_attributes'>attributes</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:execution_id</span><span class='rparen'>)</span>
-  <span class='rparen'>)</span>
 
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attributes'>attributes</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
@@ -677,7 +690,8 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>Current semantic payload representation. Persistence format identity and
+compatibility validation are owned by Persistence::DurableCodec.</p>
 
   </div>
 </div>
@@ -690,17 +704,17 @@
       <pre class="lines">
 
 
-89
-90
 91
 92
 93
 94
 95
-96</pre>
+96
+97
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 89</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
@@ -764,7 +778,7 @@
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 26 04:55:49 2026 by
+  Generated on Wed Aug 26 14:27:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
