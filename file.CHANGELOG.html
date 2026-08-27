@@ -67,6 +67,44 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Four_category_Context_Policy_SPI_and_transaction_boundary__ACS_04_">Four-category Context Policy SPI and transaction boundary (ACS-04)</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li>Public immutable <code>ContextPolicyInput</code> typed values for <code>instruction</code>,
+<code>knowledge</code>, <code>tools</code>, and indivisibly grouped <code>conversation</code>.</li>
+<li>Agent-class <code>context_policy &lt;instance&gt;</code> binding for reusable Application
+Context strategies, with built-in Default fallback.</li>
+<li>Small ContextPolicy helpers for current-call generated instruction, Knowledge,
+and conversation items.</li>
+<li>Framework trace boundary around ContextPolicy invocation without standard-trace
+inclusion of full Policy input/Plan content.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li><code>ContextPlan</code> now directly carries ordered output material in the same four
+semantic categories.</li>
+<li>Default Policy uses deterministic recent-conversation / stable-fit Knowledge
+selection with an approximately 60/40 variable budget split and preserves the
+effective Tool set.</li>
+<li>Custom Policy may select/reorder a subset of effective Tools; arbitrary
+schema-only runtime Tool creation remains outside ACS-04 because durable
+runtime Tool identity/wiring is not defined.</li>
+<li>ContextPolicy executes outside Phronomy Persistence transactions. The durable
+base/revision is revalidated before the short Manifest/execution commit.</li>
+<li>Context assembly policy version is <code>8</code>.</li>
+</ul>
+<h4 id="Removed">Removed</h4>
+<ul>
+<li><code>ContextRequest</code>, <code>ContextPolicyDescriptor</code>, <code>ContextPolicyRegistry</code>, and
+<code>DerivedContentSpec</code>.</li>
+<li>Intermediate selection-unit/policy-parts machinery superseded by the typed
+four-category SPI: <code>Selection::Unit</code>, <code>Selection::Validator</code>,
+<code>DependencyAwareUnitBuilder</code>, <code>RequiredContextResolver</code>,
+<code>RecentFirstSelector</code>, and <code>TokenBudgetPacker</code>.</li>
+<li>Descriptor persistence/reconstruction and old <code>ContextPlan</code> fields
+<code>selected_unit_ids</code>, <code>derived_contents</code>, <code>ordering_hints</code>, and
+<code>policy_descriptor</code>.</li>
+</ul>
 <h3 id="Workflow_Runtime_admission_and_durable_terminal_barrier__ACS_13_">Workflow Runtime admission and durable terminal barrier (ACS-13)</h3>
 <h4 id="Added">Added</h4>
 <ul>
@@ -642,7 +680,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed Aug 26 14:27:13 2026 by
+  Generated on Thu Aug 27 13:28:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
