@@ -40,6 +40,7 @@
       "agent_definition",
       "before_llm_input",
       "cache_instructions",
+      "context_policy",
       "context_window",
       "create",
       "get",
@@ -59,6 +60,184 @@
     ]
   },
   {
+    "name": "Phronomy::Agent::ContextPolicy",
+    "type": "class",
+    "public_instance_methods": [
+      "call"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ContextPolicyInput",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "call_mode",
+      "call_sequence",
+      "conversation",
+      "deconstruct",
+      "deconstruct_keys",
+      "execution_id",
+      "instruction",
+      "knowledge",
+      "members",
+      "metadata",
+      "model_config",
+      "previous_manifest",
+      "to_h",
+      "token_budget",
+      "tools",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ContextPolicyInput::Provenance",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "content_ref",
+      "deconstruct",
+      "deconstruct_keys",
+      "execution_id",
+      "llm_call_id",
+      "members",
+      "origin",
+      "record_id",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ContextPolicyInput::InstructionItem",
+    "type": "class",
+    "public_instance_methods": [
+      "content",
+      "content_format",
+      "deconstruct",
+      "deconstruct_keys",
+      "estimated_tokens",
+      "id",
+      "kind",
+      "members",
+      "metadata",
+      "provenance",
+      "required",
+      "required?",
+      "role",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ContextPolicyInput::KnowledgeItem",
+    "type": "class",
+    "public_instance_methods": [
+      "content",
+      "content_format",
+      "deconstruct",
+      "deconstruct_keys",
+      "estimated_tokens",
+      "id",
+      "kind",
+      "members",
+      "metadata",
+      "provenance",
+      "required",
+      "required?",
+      "role",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ContextPolicyInput::ToolItem",
+    "type": "class",
+    "public_instance_methods": [
+      "deconstruct",
+      "deconstruct_keys",
+      "definition",
+      "estimated_tokens",
+      "id",
+      "members",
+      "metadata",
+      "provenance",
+      "required",
+      "required?",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ContextPolicyInput::ConversationItem",
+    "type": "class",
+    "public_instance_methods": [
+      "content",
+      "content_format",
+      "deconstruct",
+      "deconstruct_keys",
+      "delivery",
+      "estimated_tokens",
+      "id",
+      "kind",
+      "members",
+      "metadata",
+      "provenance",
+      "required",
+      "required?",
+      "role",
+      "sequence",
+      "to_h",
+      "tool_call_id",
+      "tool_call_ids",
+      "with",
+      "with_required"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ContextPlan",
+    "type": "class",
+    "public_instance_methods": [
+      "conversation",
+      "deconstruct",
+      "deconstruct_keys",
+      "instruction",
+      "knowledge",
+      "members",
+      "metadata",
+      "to_h",
+      "tools",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
     "name": "Phronomy::InvocationContext",
     "type": "class",
     "public_instance_methods": [
@@ -75,9 +254,7 @@
       "tracer_span",
       "user_id"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Agent::Context::Capability::Base",
@@ -170,9 +347,7 @@
       "trace",
       "variables"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::MultiAgent::Handoff",
@@ -183,9 +358,7 @@
       "source_agent",
       "target_agent"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::MultiAgent::HandoffPolicy",
@@ -212,9 +385,7 @@
       "invoke",
       "main_agent"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::MultiAgent::Orchestrator",
@@ -313,9 +484,7 @@
     "public_instance_methods": [
       "call"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Filter::PromptInjectionFilter",
@@ -323,9 +492,7 @@
     "public_instance_methods": [
       "call"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::VectorStore::Base",
@@ -341,9 +508,7 @@
       "search_async",
       "size"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::VectorStore::InMemory",
@@ -359,9 +524,7 @@
       "search_async",
       "size"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::VectorStore::Embeddings::Base",
@@ -370,9 +533,7 @@
       "embed",
       "embed_async"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Tracing::Base",
@@ -382,9 +543,7 @@
       "start_span",
       "trace"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Tracing::NullTracer",
@@ -394,9 +553,7 @@
       "start_span",
       "trace"
     ],
-    "public_class_methods": [
-
-    ]
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Tools::Mcp",

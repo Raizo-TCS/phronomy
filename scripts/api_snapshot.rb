@@ -19,6 +19,14 @@ require_relative "../lib/phronomy"
 PUBLIC_API_ENTRIES = [
   # Stable
   Phronomy::Agent::Base,
+  Phronomy::Agent::ContextPolicy,
+  Phronomy::Agent::ContextPolicyInput,
+  Phronomy::Agent::ContextPolicyInput::Provenance,
+  Phronomy::Agent::ContextPolicyInput::InstructionItem,
+  Phronomy::Agent::ContextPolicyInput::KnowledgeItem,
+  Phronomy::Agent::ContextPolicyInput::ToolItem,
+  Phronomy::Agent::ContextPolicyInput::ConversationItem,
+  Phronomy::Agent::ContextPlan,
   Phronomy::InvocationContext,
   Phronomy::Agent::Context::Capability::Base,
   Phronomy::Workflow,

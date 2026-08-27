@@ -305,4 +305,139 @@ RSpec.describe Phronomy::MultiAgent::HandoffProjection do
       :tool_message
     )
   end
+
+  it "groups current-format Context conversation segments without Selection::Unit" do
+    persistence = Phronomy::Persistence::InMemory.new
+    first_ref = persistence.contents.put_text("first")
+    second_ref = persistence.contents.put_text("second")
+    group_metadata = {
+      "context_policy_conversation_group_id" => "conversation:2:3",
+      "handoff_policy_category" => "history"
+    }
+    current_manifest = manifest(persistence, [
+      segment(
+        position: 0,
+        category: :external_message,
+        content_ref: first_ref,
+        metadata: group_metadata
+      ),
+      segment(
+        position: 1,
+        category: :external_message,
+        content_ref: second_ref,
+        metadata: group_metadata
+      )
+    ])
+
+    groups = described_class.new.send(:project_visible_groups, current_manifest)
+
+    expect(groups.length).to eq(1)
+    expect(groups.values.first.fetch(:segments).map(&:position)).to eq([0, 1])
+  end
+  it "classifies current-format semantic Conversation as Handoff history independently of kind" do
+    source = build_agent("projection-semantic-conversation-source")
+    target = build_agent("projection-semantic-conversation-target")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      policy: policy
+    )
+    content_ref = source.persistence.contents.put_text("APPLICATION_CONVERSATION_MARKER")
+    source_manifest = manifest(source.persistence, [
+      segment(
+        position: 0,
+        category: :application_note,
+        content_ref: content_ref,
+        metadata: {
+          "context_policy_semantic_category" => "conversation",
+          "context_policy_conversation_group_id" => "conversation:1:0"
+        }
+      )
+    ])
+
+    context = described_class.new.build(
+      request: request(handoff),
+      manifest: source_manifest,
+      persistence: source.persistence,
+      source_agent: source
+    )
+
+    expect(context.items.length).to eq(1)
+    expect(context.items.first.policy_category).to eq(:history)
+    expect(context.items.first.candidate_category).to eq(:application_note)
+    expect(context.items.first.content).to eq("APPLICATION_CONVERSATION_MARKER")
+    expect(context.items.first.metadata["context_policy_semantic_category"])
+      .to eq("conversation")
+  end
+  it "preserves current-format JSON content for an Application-specific kind" do
+    source = build_agent("projection-json-format-source")
+    target = build_agent("projection-json-format-target")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      policy: policy
+    )
+    payload = {"type" => "application_note", "value" => 42}
+    content_ref = source.persistence.contents.put_json(payload)
+    source_manifest = manifest(source.persistence, [
+      segment(
+        position: 0,
+        category: :application_note,
+        content_ref: content_ref,
+        metadata: {
+          "context_policy_semantic_category" => "conversation",
+          "context_policy_content_format" => "json",
+          "context_policy_conversation_group_id" => "conversation:1:0"
+        }
+      )
+    ])
+
+    context = described_class.new.build(
+      request: request(handoff),
+      manifest: source_manifest,
+      persistence: source.persistence,
+      source_agent: source
+    )
+
+    item = context.items.fetch(0)
+    expect(item.policy_category).to eq(:history)
+    expect(item.candidate_category).to eq(:application_note)
+    expect(item.content_format).to eq(:json)
+    expect(item.content).to eq(payload)
+    expect(item.metadata["context_policy_semantic_category"]).to eq("conversation")
+    expect(item.metadata).not_to have_key("context_policy_content_format")
+  end
+
+  it "falls back to legacy kind-based content format when metadata is absent" do
+    source = build_agent("projection-legacy-format-source")
+    target = build_agent("projection-legacy-format-target")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      policy: policy
+    )
+    content_ref = source.persistence.contents.put_json(
+      "role" => "assistant",
+      "content" => "legacy"
+    )
+    source_manifest = manifest(source.persistence, [
+      segment(
+        position: 0,
+        category: :assistant_message,
+        role: :assistant,
+        content_ref: content_ref,
+        metadata: {}
+      )
+    ])
+
+    context = described_class.new.build(
+      request: request(handoff),
+      manifest: source_manifest,
+      persistence: source.persistence,
+      source_agent: source
+    )
+
+    expect(context.items.fetch(0).content_format).to eq(:json)
+    expect(context.items.fetch(0).content).to include("role" => "assistant")
+  end
 end

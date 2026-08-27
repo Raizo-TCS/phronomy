@@ -103,8 +103,7 @@ module Phronomy
           )
         end
 
-        expected = @persistence.contents.fetch(manifest.tool_definitions_ref)
-        expected_definitions = Phronomy::CanonicalJSON.load(expected)
+        expected_definitions = fetch_json(manifest.tool_definitions_ref)
         additional = @additional_tools
         if additional.empty? && defined?(Phronomy::MultiAgent::HandoffCapabilityFactory)
           ordinary_names = ToolDefinitionSet.build(@agent).definitions
@@ -116,13 +115,8 @@ module Phronomy
           end
         end
 
-        tool_set = ToolDefinitionSet.build(@agent, additional_tools: additional)
-        actual = Phronomy::CanonicalJSON.dump(tool_set.definitions)
-        unless expected == actual
-          raise Phronomy::ConfigurationError,
-            "Agent tool definitions changed after manifest creation"
-        end
-        tool_set
+        ToolDefinitionSet.build(@agent, additional_tools: additional)
+          .select_definitions(expected_definitions)
       end
 
       def fetch_json(content_ref)

@@ -265,6 +265,7 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
 
   let(:tool_b) do
     Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_name "tool_b"
       description "Tool B"
       def execute = "b"
     end

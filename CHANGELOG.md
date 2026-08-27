@@ -12,6 +12,45 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Four-category Context Policy SPI and transaction boundary (ACS-04)
+
+#### Added
+
+- Public immutable `ContextPolicyInput` typed values for `instruction`,
+  `knowledge`, `tools`, and indivisibly grouped `conversation`.
+- Agent-class `context_policy <instance>` binding for reusable Application
+  Context strategies, with built-in Default fallback.
+- Small ContextPolicy helpers for current-call generated instruction, Knowledge,
+  and conversation items.
+- Framework trace boundary around ContextPolicy invocation without standard-trace
+  inclusion of full Policy input/Plan content.
+
+#### Changed
+
+- `ContextPlan` now directly carries ordered output material in the same four
+  semantic categories.
+- Default Policy uses deterministic recent-conversation / stable-fit Knowledge
+  selection with an approximately 60/40 variable budget split and preserves the
+  effective Tool set.
+- Custom Policy may select/reorder a subset of effective Tools; arbitrary
+  schema-only runtime Tool creation remains outside ACS-04 because durable
+  runtime Tool identity/wiring is not defined.
+- ContextPolicy executes outside Phronomy Persistence transactions. The durable
+  base/revision is revalidated before the short Manifest/execution commit.
+- Context assembly policy version is `8`.
+
+#### Removed
+
+- `ContextRequest`, `ContextPolicyDescriptor`, `ContextPolicyRegistry`, and
+  `DerivedContentSpec`.
+- Intermediate selection-unit/policy-parts machinery superseded by the typed
+  four-category SPI: `Selection::Unit`, `Selection::Validator`,
+  `DependencyAwareUnitBuilder`, `RequiredContextResolver`,
+  `RecentFirstSelector`, and `TokenBudgetPacker`.
+- Descriptor persistence/reconstruction and old `ContextPlan` fields
+  `selected_unit_ids`, `derived_contents`, `ordering_hints`, and
+  `policy_descriptor`.
+
 ### Workflow Runtime admission and durable terminal barrier (ACS-13)
 
 #### Added

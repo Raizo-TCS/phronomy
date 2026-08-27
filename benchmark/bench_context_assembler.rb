@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Benchmark: Manifest-first Context assembly and Default Context Policy.
+# Benchmark: typed ContextPolicyInput and split Context assembly.
 #
 # Usage:
 #   ruby benchmark/bench_context_assembler.rb
@@ -13,66 +13,40 @@ require_relative "../lib/phronomy"
 module BenchContextAssembler
   module_function
 
-  def candidate(index)
-    category, role = if (index % 10).zero?
-      [:knowledge, :user]
-    elsif index.even?
-      [:assistant_message, :assistant]
-    else
-      [:external_message, :user]
+  def provenance
+    Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal)
+  end
+
+  def policy_input(item_count)
+    knowledge = []
+    conversation = []
+    item_count.times do |index|
+      if (index % 10).zero?
+        knowledge << Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+          id: "knowledge-#{index}", kind: :knowledge, role: :user,
+          content: "knowledge #{index}", content_format: :text,
+          estimated_tokens: 8, required: false, provenance: provenance, metadata: {}
+        )
+      else
+        conversation << [Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+          id: "message-#{index}", kind: :external_message, role: :user,
+          content: "message #{index}", content_format: :text,
+          sequence: index, estimated_tokens: 8, required: false,
+          provenance: provenance, tool_call_id: nil, tool_call_ids: [],
+          delivery: :chat_message, metadata: {}
+        )]
+      end
     end
 
-    Phronomy::Agent::Selection::Candidate.new(
-      candidate_id: "candidate-#{index}",
-      source_kind: :journal,
-      category: category,
-      role: role,
-      content_ref: "content-#{index}",
-      record_id: "record-#{index}",
-      agent_id: "bench-agent",
-      execution_id: "execution-#{index / 4}",
-      llm_call_id: nil,
-      tool_call_id: nil,
-      sequence: index,
-      constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :context_policy),
-      priority: 0,
-      metadata: {
-        "estimated_tokens" => 8,
-        "source_sequence" => index
-      }
-    )
-  end
-
-  def parts
-    {
-      unit_builder:
-        Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder.new,
-      required_context_resolver:
-        Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver.new,
-      recent_first_selector:
-        Phronomy::Agent::Selection::Selectors::RecentFirstSelector.new,
-      token_budget_packer:
-        Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker.new
-    }.freeze
-  end
-
-  def request(candidate_count)
-    candidates = Array.new(candidate_count) { |i| candidate(i) }
-    Phronomy::Agent::ContextRequest.new(
-      agent_id: "bench-agent",
-      execution_id: "bench-execution",
-      call_sequence: 2,
-      call_mode: :complete,
-      candidates: candidates,
+    Phronomy::Agent::ContextPolicyInput.new(
+      agent_id: "bench-agent", execution_id: "bench-execution",
+      call_sequence: 2, call_mode: :complete,
+      instruction: [], knowledge: knowledge, tools: [], conversation: conversation,
       token_budget: Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: [candidate_count * 16, 4_096].max,
+        context_window: [item_count * 16, 4_096].max,
         max_output_tokens: 512
       ),
-      model_config: {},
-      previous_manifest: nil,
-      required_coverage: [],
-      parts: parts,
-      metadata: {"mandatory_token_estimate" => 32}
+      model_config: {}, previous_manifest: nil, metadata: {}
     )
   end
 
@@ -120,31 +94,32 @@ module BenchContextAssembler
   end
 end
 
-puts "Manifest-first Context benchmark"
+puts "Typed Context Policy benchmark"
 puts "Ruby #{RUBY_VERSION} on #{RUBY_PLATFORM}"
 puts "=" * 72
 
-policy = Phronomy::Agent::ContextPolicies::Default.new
-policy_requests = [10, 100, 1_000].to_h do |count|
-  [count, BenchContextAssembler.request(count)]
+policy = Phronomy::Agent::ContextPolicies::Default.instance
+policy_inputs = [10, 100, 1_000].to_h do |count|
+  [count, BenchContextAssembler.policy_input(count)]
 end
 
 Benchmark.bm(46) do |x|
-  policy_requests.each do |count, request|
+  policy_inputs.each do |count, policy_input|
     iterations = (count >= 1_000) ? 200 : 1_000
-    x.report("DefaultContextPolicy #{count} candidates x#{iterations}") do
-      iterations.times { policy.call(request) }
+    x.report("DefaultContextPolicy #{count} items x#{iterations}") do
+      iterations.times { policy.call(policy_input) }
     end
   end
 
   assembler, root, execution = BenchContextAssembler.assembler_fixture
-  x.report("ContextAssembler#build_initial x500") do
+  x.report("ContextAssembler prepare/finalize x500") do
     500.times do
-      assembler.build_initial(
+      prepared = assembler.prepare_initial(
         input: "benchmark input",
         agent_root: root,
         execution: execution
       )
+      assembler.finalize(prepared)
     end
   end
 end

@@ -53,14 +53,16 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
       working_records: [input_record]
     )
 
-    manifest, = Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextAssembler.new(
       agent: agent,
       persistence: persistence
-    ).build_initial(
+    )
+    prepared = assembler.prepare_initial(
       input: "hello",
       agent_root: root,
       execution: execution
     )
+    manifest, = assembler.finalize(prepared)
 
     expect(manifest.assembly_policy_version)
       .to eq(Phronomy::Agent::ContextAssembler::ASSEMBLY_POLICY_VERSION)
@@ -95,15 +97,17 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
       working_records: [input_record]
     )
 
-    manifest, = Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextAssembler.new(
       agent: agent,
       persistence: persistence
-    ).build_initial(
+    )
+    prepared = assembler.prepare_initial(
       input: "hello",
       agent_root: root,
       execution: execution,
       config: {}
     )
+    manifest, = assembler.finalize(prepared)
 
     model_config = persistence.contents.fetch_json(manifest.model_config_ref)
     # Provider metadata keys (model, temperature, etc.) are stored in

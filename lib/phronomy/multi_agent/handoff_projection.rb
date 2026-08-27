@@ -52,7 +52,7 @@ module Phronomy
           }
           if group[:policy_category] != policy_category
             raise Phronomy::HandoffError,
-              "one Selection unit spans incompatible Handoff policy categories"
+              "one Handoff projection group spans incompatible policy categories"
           end
           group[:segments] << segment
         end
@@ -64,6 +64,19 @@ module Phronomy
           segment.metadata[:handoff_policy_category]
         return explicit.to_sym if explicit
 
+        semantic_category =
+          segment.metadata["context_policy_semantic_category"] ||
+          segment.metadata[:context_policy_semantic_category]
+        case semantic_category&.to_sym
+        when :instruction
+          return nil
+        when :knowledge
+          return :knowledge
+        when :conversation
+          return :current_request if segment.delivery.to_sym == :ask_argument
+          return :history
+        end
+
         return :current_request if segment.delivery.to_sym == :ask_argument
         return nil if CONTROL_CATEGORIES.include?(segment.category.to_sym)
         return :knowledge if segment.category.to_sym == :knowledge
@@ -73,12 +86,21 @@ module Phronomy
 
         case segment.category.to_sym
         when :external_message, :assistant_message, :tool_message,
-             :memory, :summary, :structured_state
+             :conversation, :memory, :summary, :structured_state
           :history
         end
       end
 
       def selection_group_key(segment, policy_category)
+        conversation_group_id =
+          segment.metadata["context_policy_conversation_group_id"] ||
+          segment.metadata[:context_policy_conversation_group_id]
+        if conversation_group_id
+          return "context-policy-conversation:#{conversation_group_id}"
+        end
+
+        # Compatibility for finalized pre-ACS-04 manifests. New manifests use
+        # context_policy_conversation_group_id and do not recreate Selection::Unit.
         unit_id = segment.metadata["selection_unit_id"] ||
           segment.metadata[:selection_unit_id]
         return "unit:#{unit_id}" if unit_id
@@ -99,9 +121,9 @@ module Phronomy
       def materialize_item(segment, policy_category:, persistence:, source_agent:, target_agent:)
         bytes = persistence.contents.fetch(segment.content_ref)
         category = segment.category.to_sym
-        format = JSON_CATEGORIES.include?(category) ? :json : :text
-        content = (format == :json) ? Phronomy::CanonicalJSON.load(bytes) : bytes.to_s
         metadata = segment.metadata.to_h.transform_keys(&:to_s)
+        format = content_format_for(segment, metadata)
+        content = (format == :json) ? Phronomy::CanonicalJSON.load(bytes) : bytes.to_s
         provenance = provenance_for(
           metadata,
           segment: segment,
@@ -118,10 +140,27 @@ module Phronomy
           tool_call_id: segment.tool_call_id,
           provenance: provenance,
           metadata: metadata.except(
+            "context_policy_content_format",
+            "context_policy_conversation_group_id",
             "selection_candidate_id", "selection_unit_id", "selection_unit_kind",
             "handoff_policy_category", "handoff_provenance"
           )
         )
+      end
+
+      def content_format_for(segment, metadata)
+        explicit = metadata["context_policy_content_format"] ||
+          metadata[:context_policy_content_format]
+        if explicit
+          format = explicit.to_sym
+          unless Phronomy::Agent::ContextPolicyInput::CONTENT_FORMATS.include?(format)
+            raise Phronomy::HandoffError,
+              "unsupported Context content format in Manifest: #{explicit.inspect}"
+          end
+          return format
+        end
+
+        JSON_CATEGORIES.include?(segment.category.to_sym) ? :json : :text
       end
 
       def provenance_for(metadata, segment:, source_agent:, target_agent:)

@@ -67,6 +67,118 @@ module Phronomy
       def initialize: (agent_id: String, agent_definition_id: String, agent_definition_version: Integer, execution_id: String, tool_name: String, tool_schema: Hash[untyped, untyped], tool_invocation_id: String, tool_call_id: String?, arguments: Hash[untyped, untyped], ?facts: Hash[untyped, untyped], ?invocation_context: Hash[untyped, untyped], ?origin: Symbol, ?metadata: Hash[untyped, untyped], ?default_decision: Symbol?) -> void
     end
 
+    class LLMInputManifest
+      VERSION: String
+      CALL_MODES: Array[Symbol]
+      SEGMENT_DELIVERIES: Array[String]
+
+      def self.from_h: (Hash[String, untyped] hash) -> LLMInputManifest
+      def version: () -> String
+      def to_h: () -> Hash[String, untyped]
+    end
+
+    class ContextPolicyInput
+      class Provenance
+        attr_reader origin: Symbol
+        attr_reader content_ref: String?
+        attr_reader record_id: String?
+        attr_reader agent_id: String?
+        attr_reader execution_id: String?
+        attr_reader llm_call_id: String?
+        def initialize: (origin: Symbol, ?content_ref: String?, ?record_id: String?, ?agent_id: String?, ?execution_id: String?, ?llm_call_id: String?) -> void
+      end
+
+      class InstructionItem
+        attr_reader id: String
+        attr_reader kind: Symbol
+        attr_reader role: Symbol?
+        attr_reader content: untyped
+        attr_reader content_format: Symbol
+        attr_reader estimated_tokens: Integer
+        attr_reader required: bool
+        attr_reader provenance: Provenance
+        attr_reader metadata: Hash[untyped, untyped]
+        def initialize: (id: String, kind: Symbol, ?role: Symbol?, content: untyped, ?content_format: Symbol?, ?estimated_tokens: Integer?, ?required: bool?, ?provenance: Provenance?, ?metadata: Hash[untyped, untyped]) -> void
+        def required?: () -> bool
+      end
+
+      class KnowledgeItem
+        attr_reader id: String
+        attr_reader kind: Symbol
+        attr_reader role: Symbol?
+        attr_reader content: untyped
+        attr_reader content_format: Symbol
+        attr_reader estimated_tokens: Integer
+        attr_reader required: bool
+        attr_reader provenance: Provenance
+        attr_reader metadata: Hash[untyped, untyped]
+        def initialize: (id: String, kind: Symbol, ?role: Symbol?, content: untyped, ?content_format: Symbol?, ?estimated_tokens: Integer?, ?required: bool?, ?provenance: Provenance?, ?metadata: Hash[untyped, untyped]) -> void
+        def required?: () -> bool
+      end
+
+      class ToolItem
+        attr_reader id: String
+        attr_reader definition: Hash[untyped, untyped]
+        attr_reader estimated_tokens: Integer
+        attr_reader required: bool
+        attr_reader provenance: Provenance
+        attr_reader metadata: Hash[untyped, untyped]
+        def initialize: (id: String, definition: Hash[untyped, untyped], ?estimated_tokens: Integer?, ?required: bool?, ?provenance: Provenance?, ?metadata: Hash[untyped, untyped]) -> void
+        def required?: () -> bool
+      end
+
+      class ConversationItem
+        attr_reader id: String
+        attr_reader kind: Symbol
+        attr_reader role: Symbol?
+        attr_reader content: untyped
+        attr_reader content_format: Symbol
+        attr_reader sequence: Integer?
+        attr_reader estimated_tokens: Integer
+        attr_reader required: bool
+        attr_reader provenance: Provenance
+        attr_reader tool_call_id: String?
+        attr_reader tool_call_ids: Array[String]
+        attr_reader delivery: Symbol
+        attr_reader metadata: Hash[untyped, untyped]
+        def initialize: (id: String, kind: Symbol, ?role: Symbol?, content: untyped, ?content_format: Symbol?, ?sequence: Integer?, ?estimated_tokens: Integer?, ?required: bool?, ?provenance: Provenance?, ?tool_call_id: String?, ?tool_call_ids: Array[String], ?delivery: Symbol, ?metadata: Hash[untyped, untyped]) -> void
+        def required?: () -> bool
+        def with_required: (bool required) -> ConversationItem
+      end
+
+      attr_reader agent_id: String
+      attr_reader execution_id: String?
+      attr_reader call_sequence: Integer
+      attr_reader call_mode: Symbol
+      attr_reader instruction: Array[InstructionItem]
+      attr_reader knowledge: Array[KnowledgeItem]
+      attr_reader tools: Array[ToolItem]
+      attr_reader conversation: Array[Array[ConversationItem]]
+      attr_reader token_budget: untyped
+      attr_reader model_config: Hash[untyped, untyped]
+      attr_reader previous_manifest: LLMInputManifest?
+      attr_reader metadata: Hash[untyped, untyped]
+      def initialize: (agent_id: String, ?execution_id: String?, call_sequence: Integer, call_mode: Symbol, ?instruction: Array[InstructionItem], ?knowledge: Array[KnowledgeItem], ?tools: Array[ToolItem], ?conversation: Array[Array[ConversationItem]], token_budget: untyped, ?model_config: Hash[untyped, untyped], previous_manifest: LLMInputManifest?, ?metadata: Hash[untyped, untyped]) -> void
+    end
+
+    class ContextPlan
+      attr_reader instruction: Array[ContextPolicyInput::InstructionItem]
+      attr_reader knowledge: Array[ContextPolicyInput::KnowledgeItem]
+      attr_reader tools: Array[ContextPolicyInput::ToolItem]
+      attr_reader conversation: Array[Array[ContextPolicyInput::ConversationItem]]
+      attr_reader metadata: Hash[untyped, untyped]
+      def initialize: (?instruction: Array[ContextPolicyInput::InstructionItem], ?knowledge: Array[ContextPolicyInput::KnowledgeItem], ?tools: Array[ContextPolicyInput::ToolItem], ?conversation: Array[Array[ContextPolicyInput::ConversationItem]], ?metadata: Hash[untyped, untyped]) -> void
+    end
+
+    class ContextPolicy
+      def call: (ContextPolicyInput input) -> ContextPlan
+
+      def instruction_item: (content: untyped, ?role: Symbol, ?kind: Symbol, ?content_format: Symbol?, ?required: bool, ?metadata: Hash[untyped, untyped]) -> ContextPolicyInput::InstructionItem
+      def knowledge_item: (content: untyped, ?role: Symbol, ?kind: Symbol, ?content_format: Symbol?, ?required: bool, ?metadata: Hash[untyped, untyped]) -> ContextPolicyInput::KnowledgeItem
+      def conversation_item: (content: untyped, role: Symbol, ?kind: Symbol, ?content_format: Symbol?, ?sequence: Integer?, ?required: bool, ?tool_call_id: String?, ?tool_call_ids: Array[String], ?delivery: Symbol, ?metadata: Hash[untyped, untyped]) -> ContextPolicyInput::ConversationItem
+      def plan: (?instruction: Array[ContextPolicyInput::InstructionItem], ?knowledge: Array[ContextPolicyInput::KnowledgeItem], ?tools: Array[ContextPolicyInput::ToolItem], ?conversation: Array[Array[ContextPolicyInput::ConversationItem]], ?metadata: Hash[untyped, untyped]) -> ContextPlan
+    end
+
     class Base
       def self.model: (?String name) -> String?
       def self.instructions: (?untyped text) { (untyped) -> untyped } -> untyped
@@ -79,6 +191,8 @@ module Phronomy
       def self.cache_instructions: (?bool enabled) -> bool?
       def self.max_output_tokens: (?Integer value) -> Integer?
       def self.context_window: (?Integer value) -> Integer?
+      def self.context_policy: () -> ContextPolicy
+                             | (ContextPolicy policy) -> ContextPolicy
       def self.agent_definition: () -> Hash[Symbol, untyped]
                                | (version: Integer, ?id: String?) -> Hash[Symbol, untyped]
       def self.before_llm_input: (?_BeforeLLMInputHook callable) ?{ (LLMInputBuildContext context) -> LLMInputPatch? } -> _BeforeLLMInputHook?

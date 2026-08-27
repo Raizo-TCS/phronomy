@@ -534,43 +534,55 @@ module Phronomy
           filtered_message = @agent.send(:extract_message, filtered_input)
           manifest = manifest_ref = active_execution = nil
 
+          # Content-addressed source material may be written before the Policy call.
+          # No mutable Agent/Execution repository state is committed here.
+          filtered_ref = @agent.persistence.contents.put_text(filtered_message)
+          input_record = JournalRecord.new(
+            agent_id: @agent.agent_id,
+            execution_id: current_execution.execution_id,
+            kind: :external_message,
+            channel: :external,
+            role: :user,
+            content_ref: filtered_ref,
+            context_generation: active_root.transcript_generation,
+            context_candidate: true,
+            metadata: {"handoff_policy_category" => "current_request"}
+          )
+          staged = current_execution.with(
+            execution_revision: current_execution.execution_revision,
+            working_records: current_execution.working_records + [input_record],
+            metadata: current_execution.metadata.merge(
+              "current_input_ref" => filtered_ref,
+              "current_input_record_id" => input_record.record_id
+            )
+          )
+          assembler = ContextAssembler.new(
+            agent: @agent,
+            persistence: @agent.persistence,
+            journal_records: operation.journal_records
+          )
+          prepared = assembler.prepare_initial(
+            input: filtered_input,
+            agent_root: active_root,
+            execution: staged,
+            config: effective_config,
+            patch: @agent.send(
+              :run_before_llm_input_hooks,
+              call_sequence: 1,
+              config: effective_config
+            )
+          )
+          @agent.send(
+            :check_cancellation!,
+            effective_config,
+            "invocation cancelled after context policy"
+          )
+
+          # Revalidate the durable base only after Application Policy returns.
+          # ContextPolicy never runs while this transaction is open.
           @agent.persistence.transaction do |tx|
             assert_local_durable_base!(tx, active_root)
-            filtered_ref = tx.contents.put_text(filtered_message)
-            input_record = JournalRecord.new(
-              agent_id: @agent.agent_id,
-              execution_id: current_execution.execution_id,
-              kind: :external_message,
-              channel: :external,
-              role: :user,
-              content_ref: filtered_ref,
-              context_generation: active_root.transcript_generation,
-              context_candidate: true
-            )
-            staged = current_execution.with(
-              execution_revision: current_execution.execution_revision,
-              working_records: current_execution.working_records + [input_record],
-              metadata: current_execution.metadata.merge(
-                "current_input_ref" => filtered_ref,
-                "current_input_record_id" => input_record.record_id
-              )
-            )
-            manifest, manifest_ref = ContextAssembler.new(
-              agent: @agent,
-              persistence: tx,
-              policy: context_policy_for(staged),
-              journal_records: operation.journal_records
-            ).build_initial(
-              input: filtered_input,
-              agent_root: active_root,
-              execution: staged,
-              config: effective_config,
-              patch: @agent.send(
-                :run_before_llm_input_hooks,
-                call_sequence: 1,
-                config: effective_config
-              )
-            )
+            manifest, manifest_ref = assembler.finalize(prepared, persistence: tx)
             active_execution = staged.with(
               status: :active,
               phase: :calling_llm,
@@ -643,13 +655,11 @@ module Phronomy
             context_generation: root.transcript_generation,
             context_candidate: false
           )
-          policy_descriptor = ContextPolicies::Default.new.descriptor
           execution = AgentExecution.start(
             agent_root: root,
             input_record: input_record,
             metadata: {
               "current_input_ref" => input_ref,
-              "context_policy" => policy_descriptor.to_h,
               RecoverySupport::CONTRACT_VERSION_KEY =>
                 RecoverySupport::CONTRACT_VERSION,
               RecoverySupport::INVOCATION_MODE_KEY => mode.to_s,
@@ -899,39 +909,53 @@ module Phronomy
         )
 
         manifest = manifest_ref = updated = intended = nil
+
+        # Encode the immutable runtime snapshot first. This transaction may add
+        # content-addressed blobs, but it does not advance Execution state.
+        encoded_records = call_records = nil
+        @agent.persistence.transaction do |tx|
+          assert_local_durable_base!(tx, operation.root)
+          encoded_records, call_records = encode_runtime_records(
+            staged_execution,
+            tx: tx,
+            snapshot: operation.runtime_snapshot,
+            context_candidate: true,
+            agent_root: operation.root
+          )
+        end
+        staged = staged_execution.with(
+          execution_revision: staged_execution.execution_revision,
+          phase: :preparing_llm_call,
+          working_records: staged_execution.working_records + encoded_records,
+          llm_calls: staged_execution.llm_calls + call_records
+        )
+        patch = @agent.send(
+          :run_before_llm_input_hooks,
+          call_sequence: staged.llm_calls.length + 1,
+          config: operation.invocation_config
+        )
+        assembler = ContextAssembler.new(
+          agent: @agent,
+          persistence: @agent.persistence,
+          journal_records: operation.journal_records
+        )
+        prepared = assembler.prepare_followup(
+          base_manifest: operation.base_manifest,
+          agent_root: operation.root,
+          execution: staged,
+          config: operation.invocation_config,
+          patch: patch
+        )
+        @agent.send(
+          :check_cancellation!,
+          operation.invocation_config,
+          "invocation cancelled after context policy"
+        )
+
         begin
           @agent.persistence.transaction do |tx|
             assert_local_durable_base!(tx, operation.root)
-            encoded_records, call_records = encode_runtime_records(
-              staged_execution,
-              tx: tx,
-              snapshot: operation.runtime_snapshot,
-              context_candidate: true,
-              agent_root: operation.root
-            )
-            staged = staged_execution.with(
-              execution_revision: staged_execution.execution_revision,
-              phase: :preparing_llm_call,
-              working_records: staged_execution.working_records + encoded_records,
-              llm_calls: staged_execution.llm_calls + call_records
-            )
-            patch = @agent.send(
-              :run_before_llm_input_hooks,
-              call_sequence: staged.llm_calls.length + 1,
-              config: operation.invocation_config
-            )
-            manifest, manifest_ref = ContextAssembler.new(
-              agent: @agent,
-              persistence: tx,
-              policy: context_policy_for(staged),
-              journal_records: operation.journal_records
-            ).build_followup(
-              base_manifest: operation.base_manifest,
-              agent_root: operation.root,
-              execution: staged,
-              config: operation.invocation_config,
-              patch: patch
-            )
+            manifest, manifest_ref = assembler.finalize(prepared, persistence: tx)
             refs = Array(staged.metadata["manifest_refs"]) + [manifest_ref]
             updated = staged.with(
               phase: :calling_llm,
@@ -2457,14 +2481,6 @@ module Phronomy
           context_revision: root.context_revision,
           journal_position: root.journal_position
         }
-      end
-
-      def context_policy_for(execution)
-        descriptor_hash = execution.metadata.fetch("context_policy") do
-          ContextPolicies::Default.new.descriptor.to_h
-        end
-        descriptor = ContextPolicyDescriptor.from_h(descriptor_hash)
-        ContextPolicyRegistry.default.resolve(descriptor)
       end
 
       def deliver_terminal(listener, type, payload)

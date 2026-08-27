@@ -43,15 +43,17 @@ RSpec.describe "Journal-backed Agent Knowledge" do
 
   def build_initial(agent, input: "hello", patch: Phronomy::Agent::LLMInputPatch.empty)
     execution, = execution_for(agent, input: input)
-    Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextAssembler.new(
       agent: agent,
       persistence: agent.persistence
-    ).build_initial(
+    )
+    prepared = assembler.prepare_initial(
       input: input,
       agent_root: agent.agent_root,
       execution: execution,
       patch: patch
-    ).first
+    )
+    assembler.finalize(prepared).first
   end
 
   it "registers creation-time Knowledge as Journal context candidates, not transcript messages" do

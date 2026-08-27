@@ -131,6 +131,23 @@ module Phronomy
           end
         end
 
+        # Binds one Application-constructed ContextPolicy instance to this
+        # Agent class. Policy binding is Application code/runtime wiring rather
+        # than durable Agent state.
+        def context_policy(*args)
+          if args.empty?
+            return @context_policy if instance_variable_defined?(:@context_policy)
+            return superclass.context_policy if superclass.respond_to?(:context_policy)
+            return ContextPolicies::Default.instance
+          end
+          unless args.length == 1 && args.first.is_a?(ContextPolicy)
+            raise ArgumentError,
+              "context_policy expects one Phronomy::Agent::ContextPolicy instance"
+          end
+
+          @context_policy = args.first
+        end
+
         def agent_definition(id: nil, version: nil)
           if !id.nil? || !version.nil?
             raise ArgumentError, "agent_definition requires version:" if version.nil?

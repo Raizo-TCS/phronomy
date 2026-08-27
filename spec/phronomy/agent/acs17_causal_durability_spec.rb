@@ -23,7 +23,8 @@ RSpec.describe "ACS-17 causal durability" do
       @delegate.assert_agent_watermark!(**kwargs)
     end
 
-    def lose_next_transaction_response!
+    def lose_next_transaction_response!(skip: 0)
+      @skip_count = skip
       @lose_next_response = true
       self
     end
@@ -31,8 +32,12 @@ RSpec.describe "ACS-17 causal durability" do
     def transaction
       result = @delegate.transaction { |tx| yield tx }
       if @lose_next_response
-        @lose_next_response = false
-        raise IOError, "simulated Persistence response loss after commit"
+        if @skip_count.to_i > 0
+          @skip_count -= 1
+        else
+          @lose_next_response = false
+          raise IOError, "simulated Persistence response loss after commit"
+        end
       end
       result
     end
@@ -379,7 +384,9 @@ RSpec.describe "ACS-17 causal durability" do
       root,
       manifest
     )
-    persistence.lose_next_transaction_response!
+    # skip: 1 because perform_provider_dispatch_preparation now uses two transactions;
+    # the first encodes records and the second (guarded) commits the execution save.
+    persistence.lose_next_transaction_response!(skip: 1)
 
     uncertainty = capture_uncertain_result do
       coordinator.send(:perform_provider_dispatch_preparation, operation)

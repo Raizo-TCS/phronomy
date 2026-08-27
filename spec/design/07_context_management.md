@@ -1,141 +1,214 @@
 # Context management design
 
-> **Current design contract — Manifest-first**
->
-> This document replaces the legacy `build_context` / mutable-message trimming
-> model. Historical design discussions remain in superseded ADRs.
+> **Current design contract — four-category Context Policy + Manifest-first**
+
+Historical execution facts and one-call LLM input are separate authorities.
+Context Policy edits a typed immutable snapshot; it never rewrites the Journal.
 
 ## Authority model
 
 ```text
-Observed execution facts / registered Knowledge
+Observed execution facts / registered Knowledge / current-call material
         ↓
-Canonical append-only Agent Journal
+JournalProjection + internal candidate normalization
         ↓
-ContextCandidateResolver
+ContextPolicyInput
+  instruction / knowledge / tools / conversation
         ↓
-Context Policy
+ContextPolicy#call
         ↓
 validated ContextPlan
+  instruction / knowledge / tools / conversation
         ↓
-Canonical LLMInputManifest
+ContextAssembler canonicalization + final budget validation
+        ↓
+LLMInputManifest
         ↓
 RubyLLMMaterializer
         ↓
 RubyLLM / Provider
 ```
 
-The Journal and Manifest have different authority:
+- **Journal**: canonical append-only logical execution facts and persistent Agent
+  Knowledge.
+- **Manifest**: canonical logical input fixed for one specific LLM Call.
+- **Runtime projection**: derived from the Manifest; not a new source of truth.
 
-- **Journal**: canonical record of logical execution facts and persistent Agent Knowledge.
-- **Manifest**: canonical logical input selected for one specific LLM Call.
-- **Runtime projection**: derived from the Manifest; it is not a new source of truth.
+## Public Context Policy SPI
 
-Context selection may omit prior records from one Manifest, but it must not
-delete or rewrite raw Journal history.
-
-## Current public-facing knobs
-
-Agent definitions may configure model, provider, instructions, Tool definitions
-and token-window overrides. Persistent Knowledge belongs to Agent instances,
-not Agent classes:
+Application code defines ordinary reusable Ruby strategy objects:
 
 ```ruby
-agent = MyAgent.new(
-  knowledge: [
-    "Customer tier: enterprise",
-    "Policy: external uploads require malware scanning."
-  ]
-)
+class SearchContextPolicy < Phronomy::Agent::ContextPolicy
+  def initialize(search:)
+    @search = search
+  end
 
-agent.add_knowledge("Customer locale: ja-JP")
+  def call(input)
+    selected = @search.call(input.knowledge)
+    plan(
+      instruction: input.instruction,
+      knowledge: selected,
+      tools: input.tools,
+      conversation: input.conversation
+    )
+  end
+end
+
+SEARCH_POLICY = SearchContextPolicy.new(search: SEARCH_SERVICE)
+
+class ResearchAgent < Phronomy::Agent::Base
+  context_policy SEARCH_POLICY
+end
 ```
 
-`context_overhead` is not part of the current contract. Mandatory instructions,
-current input and Tool definitions are budgeted from their actual canonical
-values. Optional candidates are packed by Context Policy.
+`context_policy` binds a **Policy instance** on the Agent class. The Application
+owns Policy construction and dependency injection. If an instance is shared by
+multiple Agent classes or live Agents, its concurrency safety and dependency
+safety are Application responsibilities; Phronomy does not serialize shared
+Policy calls.
 
-## Context Policy
+There are no Policy overrides on Agent creation/loading or `invoke` / `stream`.
+There is no durable Policy descriptor or registry.
 
-The default policy uses framework-owned parts including:
+## ContextPolicyInput
 
-- `ContextParts::UnitBuilders::DependencyAwareUnitBuilder`
-- `ContextParts::Requirements::RequiredContextResolver`
-- `ContextParts::Selectors::RecentFirstSelector`
-- `ContextParts::Budget::TokenBudgetPacker`
-- `ContextPlanValidator`
-- `ContextParts::Validators::FinalBudgetValidator`
+The input is immutable and has exactly four top-level semantic collections:
 
-Policy chooses optional Context. Framework validators retain authority over
-protocol dependency closure, required coverage and final token-budget validity.
+- `instruction`
+- `knowledge`
+- `tools`
+- `conversation`
 
-`execution_id` is provenance, not an atomic selection boundary.
+Instruction, Knowledge, Tool, and Conversation entries are Phronomy-defined typed
+immutable values. Policy may inspect lower-level kind/provenance/metadata when it
+needs them, but those details do not replace the four-category mental model.
 
-## Knowledge
+Conversation is an ordered outer Array of immutable non-empty inner Arrays. Each
+inner Array is an indivisible selection group. Ordinary messages use singleton
+groups. Assistant Tool Calls and their corresponding Tool-role messages are
+validated and grouped atomically by actual `tool_call_id` relationships.
 
-Knowledge is one candidate category. Phronomy does not distinguish Static,
-Entity or RAG Knowledge classes.
+## ContextPlan
 
-Persistent Knowledge is stored as append-only Journal records with
-`kind: :knowledge`. It is excluded from the public conversation transcript but
-included in the Context candidate projection.
+The Plan uses the same four categories. Presence means selected; omission means
+omitted. Output order within a category is the Policy's semantic order.
 
-Knowledge is optional by default. Being Knowledge does not make a segment
-mandatory. If an application requires content to be present on every call, it
-must express that requirement as instructions, required coverage or an
-appropriate Context Policy decision.
+The Framework validates:
 
-`clear_knowledge!` appends a logical reset marker. Earlier Knowledge records
-remain in the Journal but are no longer eligible for future Context selection.
-`reset_context!` resets both transcript eligibility and Knowledge eligibility.
+- selected items came from the immutable input or are permitted Policy-generated
+  current-call items;
+- required material is retained;
+- input conversation groups are not split, merged, or internally reordered;
+- generated conversation Tool protocol is structurally valid;
+- Tool selection resolves to effective runtime Tool wiring;
+- item identity is unambiguous;
+- the realized canonical input fits the final token budget.
+
+Provider/Manifest structural placement remains `ContextAssembler` responsibility.
+
+## Policy-generated material
+
+`ContextPolicy` provides small protected helpers for generating instruction,
+Knowledge, and conversation items. A generated item is placed directly in the
+ordinary Plan category; there is no `DerivedContentSpec` or fifth derived
+collection.
+
+Phronomy supplies current-call identity, token estimation, immutability/basic
+validation, and Manifest canonicalization. Application code owns transformation
+semantics and any internal source mapping/provenance it wants to retain.
+
+Generated current-call content does not automatically become a Journal record or
+a reusable future Context candidate. Cross-call cache/reuse/storage is
+Application responsibility.
+
+### Framework-owned metadata
+
+Context item `metadata` remains an Application extension area, but Framework
+control keys are reserved. Current Manifest realization owns keys such as
+`context_policy_semantic_category`, `context_policy_content_format`,
+`context_policy_conversation_group_id`, `handoff_policy_category`, and
+`handoff_provenance`; legacy `selection_*` keys are read only from already
+finalized older Manifests.
+
+Policy-generated items and `before_llm_input` segment candidates may not set
+Framework-reserved keys. Manifest realization also sanitizes reserved keys as a
+defense-in-depth boundary. Trusted inbound Handoff routing/provenance metadata is
+carried only when the typed item provenance identifies Framework Handoff input.
+
+`content_format` is a typed item property. Manifest realization records it as
+Framework metadata so materialized Handoff Context preserves `:text` versus
+`:json` independently of lower-level Application-defined `kind` values.
+
+For ACS-04, the Tool category supports subset/order of the effective Tool
+configuration. Schema-only creation of a brand-new runtime Tool is intentionally
+not invented here because finalized-Manifest Recovery would require an additional
+durable runtime-Tool identity/wiring contract.
+
+## Default Policy
+
+Default behavior is deterministic and does not invoke another model:
+
+- instructions: retain stable order; no automatic compaction;
+- Tools: retain effective configuration and order;
+- current/required conversation: retain;
+- optional conversation: choose a recent contiguous window at group granularity
+  and realize chronologically;
+- Knowledge: stable-order fit selection; skip an oversized item and continue;
+- variable remainder: approximately 60% conversation / 40% Knowledge, with
+  unused share reusable by the other category;
+- no vector retrieval, reranking, embeddings, or automatic compaction.
+
+If required/fixed material does not fit, Context preparation fails rather than
+silently dropping it.
+
+## Execution, Persistence, tracing, and Recovery
+
+`ContextPolicy#call` is synchronous and executes on the existing Agent preparation
+Offload worker. Policy may therefore perform blocking Application work, but it
+must not block EventLoop.
+
+No Phronomy Persistence transaction spans Policy execution. The Policy runs on an
+immutable snapshot, then the short commit path revalidates durable Agent/Execution
+revision/watermark before canonicalizing/storing the Manifest and persisting the
+state transition.
+
+Phronomy traces the Policy invocation boundary by default using non-content
+metadata such as Agent/Execution/call identity and category counts. It does not
+put full `ContextPolicyInput` or `ContextPlan` content into the standard trace.
+Policy-internal retrieval/selection/transformation tracing is Application
+responsibility.
+
+A finalized `LLMInputManifest` is the Recovery authority for that Provider input.
+Recovery does not rerun Context Policy to reconstruct it. Future Context
+preparation uses the Policy supplied by the currently loaded Application code.
+Agent and Workflow durability therefore do not depend on Policy durability.
 
 ## before_llm_input
 
-`before_llm_input` may return `LLMInputPatch` with model-configuration changes
-or logical `segment_candidates`.
+`before_llm_input` may return `LLMInputPatch` with model-configuration changes or
+logical `segment_candidates`. Per-call candidates are not automatically persisted;
+they enter the same Policy input and may be selected/omitted according to Policy
+semantics and Framework invariants.
 
-Per-call segment candidates are not persisted. They enter the same Context
-Policy request as persistent/history candidates and may therefore be omitted by
-policy when optional and over budget. The hook does not receive mutable RubyLLM
-message history and must not mutate the Journal.
+## Removed intermediate contracts
 
-## Tool protocol dependency
+ACS-04 removes rather than aliases the intermediate Context selection SPI:
 
-Assistant Tool Calls and the Tool messages that answer them must not be selected
-into a malformed protocol sequence. Dependency grouping is based on actual Tool
-protocol identity (`tool_call_id`) and current call relationships, not on a
-synthetic conversation-group identifier.
+- `ContextRequest`
+- `ContextPolicyDescriptor`
+- `ContextPolicyRegistry`
+- `DerivedContentSpec`
+- `ContextPlan#selected_unit_ids`
+- `ContextPlan#derived_contents`
+- `ContextPlan#ordering_hints`
+- `ContextPlan#policy_descriptor`
+- public `request.parts`
+- `Selection::Unit` / `Selection::Validator`
+- `DependencyAwareUnitBuilder`
+- `RequiredContextResolver`
+- `RecentFirstSelector`
+- `TokenBudgetPacker`
 
-## Import
-
-Imported user/assistant/Tool messages preserve the logical message boundaries
-supplied by the Import API. Phronomy does not invent synthetic `llm_call_id` or
-message-group IDs merely to make imported history fit runtime-origin records.
-
-Malformed Tool protocol data is rejected; valid imported message structure is
-not flattened and guessed back together.
-
-## Token budget
-
-`Phronomy::LlmContextWindow::TokenBudget` is an arithmetic value object used by
-Agent Context assembly. Model lookup and Agent-specific resolution belong to
-`Agent::TokenBudgetResolver`.
-
-The final assembled Manifest is validated after policy selection. A policy
-cannot bypass the final budget check.
-
-## Legacy contracts
-
-The following are removed from the active architecture:
-
-- `Agent::Base#build_context`
-- `Agent::Base#trim_messages`
-- Agent-level mutable-message compaction as LLM-input authority
-- `context_overhead`
-- `Phronomy::LlmContextWindow::Assembler`
-- `Phronomy::LlmContextWindow::ContextVersionCache`
-- `Knowledge::Base`, `StaticKnowledge`, `EntityKnowledge`
-- `static_knowledge*` class APIs
-
-See ADR-012 for the Journal/Manifest authority model and ADR-013 for persistent
-Knowledge semantics.
+The internal `Selection::Candidate` / `Selection::Constraint` normalization used
+while constructing `ContextPolicyInput` is not an Application Context Policy DSL.
