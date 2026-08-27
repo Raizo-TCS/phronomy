@@ -305,4 +305,33 @@ RSpec.describe Phronomy::MultiAgent::HandoffProjection do
       :tool_message
     )
   end
+
+  it "groups current-format Context conversation segments without Selection::Unit" do
+    persistence = Phronomy::Persistence::InMemory.new
+    first_ref = persistence.contents.put_text("first")
+    second_ref = persistence.contents.put_text("second")
+    group_metadata = {
+      "context_policy_conversation_group_id" => "conversation:2:3",
+      "handoff_policy_category" => "history"
+    }
+    current_manifest = manifest(persistence, [
+      segment(
+        position: 0,
+        category: :external_message,
+        content_ref: first_ref,
+        metadata: group_metadata
+      ),
+      segment(
+        position: 1,
+        category: :external_message,
+        content_ref: second_ref,
+        metadata: group_metadata
+      )
+    ])
+
+    groups = described_class.new.send(:project_visible_groups, current_manifest)
+
+    expect(groups.length).to eq(1)
+    expect(groups.values.first.fetch(:segments).map(&:position)).to eq([0, 1])
+  end
 end

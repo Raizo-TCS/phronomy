@@ -76,5 +76,6 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       .compact
       .join("\n")
     expect(target_text).to include("ORIGINAL_CURRENT_REQUEST_MARKER")
+    expect(target_text).to include("lookup result for case-42")
   end
 end

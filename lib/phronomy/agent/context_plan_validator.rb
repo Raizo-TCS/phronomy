@@ -114,9 +114,18 @@ module Phronomy
       end
 
       def validate_generated_conversation_group!(group)
+        group.each { |item| validate_generated_conversation_item!(item) }
+
         assistants = group.select { |item| item.kind == :assistant_message }
         tools = group.select { |item| item.kind == :tool_message }
+        protocol_items = assistants + tools
+        if protocol_items.any? && protocol_items.length != group.length
+          raise ArgumentError,
+            "Policy-generated Tool exchange group may contain only assistant_message and tool_message items"
+        end
+
         tool_by_id = tools.group_by(&:tool_call_id)
+        positions = group.each_with_index.to_h
 
         tool_by_id.each do |tool_call_id, messages|
           if tool_call_id.nil? || tool_call_id.empty? || messages.length != 1
@@ -133,9 +142,14 @@ module Phronomy
                 "Policy-generated conversation group has duplicate assistant Tool Call: #{tool_call_id}"
             end
             assistant_by_call[tool_call_id] = assistant
-            unless tool_by_id.key?(tool_call_id)
+            tool = tool_by_id[tool_call_id]&.first
+            unless tool
               raise ArgumentError,
                 "Policy-generated assistant Tool Call has no Tool message: #{tool_call_id}"
+            end
+            unless positions.fetch(tool) > positions.fetch(assistant)
+              raise ArgumentError,
+                "Policy-generated Tool message must follow its assistant Tool Call: #{tool_call_id}"
             end
           end
         end
@@ -146,6 +160,78 @@ module Phronomy
               "Policy-generated conversation group contains orphan Tool message: #{tool.tool_call_id}"
           end
         end
+      end
+
+      def validate_generated_conversation_item!(item)
+        case item.kind
+        when :assistant_message
+          payload = validate_generated_canonical_message!(item, expected_role: :assistant)
+          raw_calls = payload["tool_calls"] || payload[:tool_calls]
+          unless raw_calls.nil? || raw_calls.is_a?(Array)
+            raise ArgumentError,
+              "Policy-generated assistant_message tool_calls must be an Array"
+          end
+          payload_call_ids = Array(raw_calls).map do |call|
+            unless call.is_a?(Hash)
+              raise ArgumentError,
+                "Policy-generated assistant_message Tool Call must be a Hash"
+            end
+            id = call["id"] || call[:id]
+            name = call["name"] || call[:name]
+            arguments = if call.key?("arguments")
+              call["arguments"]
+            else
+              call.fetch(:arguments, {})
+            end
+            if id.to_s.empty? || name.to_s.empty? || !arguments.is_a?(Hash)
+              raise ArgumentError,
+                "Policy-generated assistant_message has malformed Tool Call"
+            end
+            id.to_s
+          end
+          unless payload_call_ids == item.tool_call_ids
+            raise ArgumentError,
+              "Policy-generated assistant_message Tool Call IDs do not match ConversationItem"
+          end
+          if item.tool_call_id
+            raise ArgumentError,
+              "Policy-generated assistant_message must not set tool_call_id"
+          end
+        when :tool_message
+          payload = validate_generated_canonical_message!(item, expected_role: :tool)
+          payload_tool_call_id = payload["tool_call_id"] || payload[:tool_call_id]
+          if item.tool_call_id.to_s.empty? || payload_tool_call_id.to_s != item.tool_call_id
+            raise ArgumentError,
+              "Policy-generated tool_message tool_call_id does not match canonical content"
+          end
+          unless item.tool_call_ids.empty?
+            raise ArgumentError,
+              "Policy-generated tool_message must not set tool_call_ids"
+          end
+        when :tool_result
+          raise ArgumentError,
+            "Policy-generated conversation must not contain raw tool_result items"
+        else
+          if item.tool_call_id || !item.tool_call_ids.empty?
+            raise ArgumentError,
+              "Policy-generated non-Tool conversation item must not declare Tool Call IDs"
+          end
+        end
+      end
+
+      def validate_generated_canonical_message!(item, expected_role:)
+        unless item.content_format == :json && item.content.is_a?(Hash)
+          raise ArgumentError,
+            "Policy-generated #{item.kind} must use canonical JSON message content"
+        end
+
+        payload_role = item.content["role"] || item.content[:role]
+        unless item.role == expected_role && payload_role.to_s == expected_role.to_s
+          raise ArgumentError,
+            "Policy-generated #{item.kind} role does not match canonical content"
+        end
+
+        item.content
       end
 
       def validate_unique_ids!(plan)

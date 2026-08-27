@@ -7,6 +7,8 @@ module Phronomy
       SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
       POLICY_ORIGIN_METADATA_KEY = "context_policy_origin"
       POLICY_ITEM_ID_METADATA_KEY = "context_policy_item_id"
+      CONVERSATION_GROUP_ID_METADATA_KEY = "context_policy_conversation_group_id"
+      HANDOFF_POLICY_CATEGORY_METADATA_KEY = "handoff_policy_category"
       BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
       HANDOFF_CONTEXT_ORIGIN = "handoff_context"
 
@@ -218,9 +220,21 @@ module Phronomy
         plan.knowledge.each do |item|
           segments << segment_from_content_item(item, persistence: persistence)
         end
-        plan.conversation.each do |group|
+        plan.conversation.each_with_index do |group, group_index|
+          group_metadata = {
+            CONVERSATION_GROUP_ID_METADATA_KEY =>
+              "conversation:#{prepared.call_sequence}:#{group_index}"
+          }
+          if tool_exchange_group?(group)
+            group_metadata[HANDOFF_POLICY_CATEGORY_METADATA_KEY] = "tool_exchanges"
+          end
+
           group.each do |item|
-            segments << segment_from_content_item(item, persistence: persistence)
+            segments << segment_from_content_item(
+              item,
+              persistence: persistence,
+              additional_metadata: group_metadata
+            )
           end
         end
 
@@ -385,9 +399,9 @@ module Phronomy
         [manifest, persistence.contents.put_json(manifest.to_h)]
       end
 
-      def segment_from_content_item(item, persistence:)
+      def segment_from_content_item(item, persistence:, additional_metadata: {})
         content_ref = item.provenance.content_ref || store_item_content(item, persistence)
-        metadata = item.metadata.merge(
+        metadata = item.metadata.merge(additional_metadata).merge(
           POLICY_ITEM_ID_METADATA_KEY => item.id,
           POLICY_ORIGIN_METADATA_KEY => item.provenance.origin.to_s,
           "journal_record_id" => item.provenance.record_id,
@@ -404,6 +418,12 @@ module Phronomy
           tool_call_id: item.respond_to?(:tool_call_id) ? item.tool_call_id : nil,
           metadata: metadata
         }
+      end
+
+      def tool_exchange_group?(group)
+        Array(group).any? do |item|
+          item.kind == :assistant_message && !item.tool_call_ids.empty?
+        end && Array(group).any? { |item| item.kind == :tool_message }
       end
 
       def store_item_content(item, persistence)

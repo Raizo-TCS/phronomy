@@ -189,6 +189,97 @@ RSpec.describe "Context Policy semantic API" do
     }.to raise_error(ArgumentError, /has no Tool message/)
   end
 
+  it "rejects non-canonical Policy-generated assistant messages before Manifest commit" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: "not canonical JSON",
+          role: :assistant,
+          kind: :assistant_message
+        )
+        plan(instruction: input.instruction, conversation: [[generated]])
+      end
+    end
+    policy_input = input
+    invalid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+    }.to raise_error(ArgumentError, /canonical JSON message content/)
+  end
+
+  it "rejects a Policy-generated Tool message ordered before its assistant Tool Call" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        assistant = conversation_item(
+          content: {
+            "role" => "assistant",
+            "content" => nil,
+            "tool_calls" => [
+              {"id" => "tc-1", "name" => "lookup", "arguments" => {}}
+            ]
+          },
+          role: :assistant,
+          kind: :assistant_message,
+          tool_call_ids: ["tc-1"]
+        )
+        tool = conversation_item(
+          content: {
+            "role" => "tool",
+            "content" => "result",
+            "tool_call_id" => "tc-1"
+          },
+          role: :tool,
+          kind: :tool_message,
+          tool_call_id: "tc-1"
+        )
+        plan(instruction: input.instruction, conversation: [[tool, assistant]])
+      end
+    end
+    policy_input = input
+    invalid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+    }.to raise_error(ArgumentError, /must follow its assistant Tool Call/)
+  end
+
+  it "accepts a canonical Policy-generated Tool exchange in protocol order" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        assistant = conversation_item(
+          content: {
+            "role" => "assistant",
+            "content" => nil,
+            "tool_calls" => [
+              {"id" => "tc-1", "name" => "lookup", "arguments" => {}}
+            ]
+          },
+          role: :assistant,
+          kind: :assistant_message,
+          tool_call_ids: ["tc-1"]
+        )
+        tool = conversation_item(
+          content: {
+            "role" => "tool",
+            "content" => "result",
+            "tool_call_id" => "tc-1"
+          },
+          role: :tool,
+          kind: :tool_message,
+          tool_call_id: "tc-1"
+        )
+        plan(instruction: input.instruction, conversation: [[assistant, tool]])
+      end
+    end
+    policy_input = input
+    valid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: valid)
+    }.not_to raise_error
+  end
+
   it "traces only the ContextPolicy invocation boundary by default" do
     events = []
     tracer = Object.new

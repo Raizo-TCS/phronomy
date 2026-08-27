@@ -79,6 +79,15 @@ module Phronomy
       end
 
       def selection_group_key(segment, policy_category)
+        conversation_group_id =
+          segment.metadata["context_policy_conversation_group_id"] ||
+          segment.metadata[:context_policy_conversation_group_id]
+        if conversation_group_id
+          return "context-policy-conversation:#{conversation_group_id}"
+        end
+
+        # Compatibility for finalized pre-ACS-04 manifests. New manifests use
+        # context_policy_conversation_group_id and do not recreate Selection::Unit.
         unit_id = segment.metadata["selection_unit_id"] ||
           segment.metadata[:selection_unit_id]
         return "unit:#{unit_id}" if unit_id
@@ -118,6 +127,7 @@ module Phronomy
           tool_call_id: segment.tool_call_id,
           provenance: provenance,
           metadata: metadata.except(
+            "context_policy_conversation_group_id",
             "selection_candidate_id", "selection_unit_id", "selection_unit_kind",
             "handoff_policy_category", "handoff_provenance"
           )

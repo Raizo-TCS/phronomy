@@ -51,11 +51,19 @@ Required and forbidden decisions cannot be overridden by the Source Agent.
 Source selection is bounded to the effective Source Context represented by the
 current Manifest.
 
-### 4. Context selection machinery is shared, but policy authority is not
+### 4. Context dependency grouping is preserved across the Handoff boundary
 
-Context and Handoff use shared `Agent::Selection::Candidate`, `Unit`,
-`Constraint`, and validation machinery. Tool Call/Tool result dependency closure
-is preserved as one selection unit.
+Context Policy uses typed `ContextPolicyInput` conversation groups rather than
+the removed `Selection::Unit` SPI. Assistant Tool Calls and their corresponding
+Tool-role messages are one indivisible conversation group. When the selected
+Plan is realized, the Manifest records the Framework conversation-group identity
+and classifies canonical Tool exchanges as `tool_exchanges` for Handoff.
+
+`HandoffProjection` groups current-format Manifest segments by that conversation
+group identity. It may still read legacy `selection_unit_id` metadata from a
+finalized pre-ACS-04 Manifest, but new Context assembly does not recreate
+`Selection::Unit`. `Selection::Candidate` and `Selection::Constraint` remain
+internal Context-input normalization details only.
 
 Handoff Policy answers what may cross the Agent boundary. Target Context Policy
 remains the final authority for what enters each Target LLM call. Transferred
