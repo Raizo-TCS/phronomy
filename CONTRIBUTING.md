@@ -222,10 +222,7 @@ The authoritative subject list is `.mutant.yml`. It currently includes:
 - `Phronomy::LlmContextWindow::TokenBudget`
 - `Phronomy::Agent::ContextAssembler`
 - `Phronomy::Agent::ContextPolicies::Default`
-- `Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder`
-- `Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver`
-- `Phronomy::Agent::Selection::Selectors::RecentFirstSelector`
-- `Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker`
+- `Phronomy::Agent::ContextPolicyInputBuilder`
 - `Phronomy::Agent::ContextPlanValidator`
 - `Phronomy::MultiAgent::HandoffPolicy`
 - `Phronomy::MultiAgent::HandoffProjection`

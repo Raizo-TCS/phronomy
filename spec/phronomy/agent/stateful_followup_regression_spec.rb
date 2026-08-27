@@ -76,9 +76,10 @@ RSpec.describe "stateful manifest follow-up regressions" do
       base_manifest = build_test_manifest("call-one-model")
 
       assembler = Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
-      result_manifest, _ref = assembler.build_followup(
+      prepared = assembler.prepare_followup(
         base_manifest: base_manifest, agent_root: root, execution: execution, config: {}
       )
+      result_manifest, _ref = assembler.finalize(prepared)
       expect(resolve_model_from_manifest(result_manifest)).to eq("base-model")
     end
 
@@ -98,10 +99,11 @@ RSpec.describe "stateful manifest follow-up regressions" do
 
       patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {model: "call-two-model"})
       assembler = Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
-      result_manifest, _ref = assembler.build_followup(
+      prepared = assembler.prepare_followup(
         base_manifest: base_manifest, agent_root: root, execution: execution,
         config: {}, patch: patch
       )
+      result_manifest, _ref = assembler.finalize(prepared)
       expect(resolve_model_from_manifest(result_manifest)).to eq("call-two-model")
     end
   end
@@ -157,43 +159,49 @@ RSpec.describe "stateful manifest follow-up regressions" do
 
     it "marks hook-created segments in the initial Manifest" do
       root, execution = initial_execution
-      manifest, = assembler.build_initial(
+      prepared = assembler.prepare_initial(
         input: "hello", agent_root: root, execution: execution,
         patch: hook_instruction_patch("Be concise")
       )
+      manifest, = assembler.finalize(prepared)
       hook_segment = manifest.segments.find do |segment|
         persistence.contents.fetch_text(segment.content_ref) == "Be concise"
       end
       expect(hook_segment.metadata).to include("phronomy_origin" => "before_llm_input")
-      expect(manifest.assembly_policy_version).to eq(7)
+      expect(manifest.assembly_policy_version)
+        .to eq(Phronomy::Agent::ContextAssembler::ASSEMBLY_POLICY_VERSION)
     end
 
     it "includes the same hook instruction only once in a follow-up Call" do
       root, execution = initial_execution
-      initial_manifest, initial_ref = assembler.build_initial(
+      initial_prepared = assembler.prepare_initial(
         input: "hello", agent_root: root, execution: execution,
         patch: hook_instruction_patch("Be concise")
       )
+      initial_manifest, initial_ref = assembler.finalize(initial_prepared)
       next_execution = followup_execution(execution, initial_ref)
-      followup_manifest, = assembler.build_followup(
+      followup_prepared = assembler.prepare_followup(
         base_manifest: initial_manifest, agent_root: root, execution: next_execution,
         patch: hook_instruction_patch("Be concise")
       )
+      followup_manifest, = assembler.finalize(followup_prepared)
       expect(segment_contents(followup_manifest).count("Be concise")).to eq(1)
       expect(segment_contents(followup_manifest)).to include("Base instruction")
     end
 
     it "replaces the previous hook instruction with the current Call instruction" do
       root, execution = initial_execution
-      initial_manifest, initial_ref = assembler.build_initial(
+      initial_prepared = assembler.prepare_initial(
         input: "hello", agent_root: root, execution: execution,
         patch: hook_instruction_patch("Use tools when useful")
       )
+      initial_manifest, initial_ref = assembler.finalize(initial_prepared)
       next_execution = followup_execution(execution, initial_ref)
-      followup_manifest, = assembler.build_followup(
+      followup_prepared = assembler.prepare_followup(
         base_manifest: initial_manifest, agent_root: root, execution: next_execution,
         patch: hook_instruction_patch("Do not call more tools")
       )
+      followup_manifest, = assembler.finalize(followup_prepared)
       contents = segment_contents(followup_manifest)
       expect(contents).to include("Do not call more tools")
       expect(contents).not_to include("Use tools when useful")

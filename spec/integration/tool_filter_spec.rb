@@ -239,6 +239,7 @@ RSpec.describe "Group 2: Tool / Filter", :integration do
     let(:tool_class) do
       parent_desc = IntegrationFactors::EnumCitySelectorTool.description
       Class.new(IntegrationFactors::EnumCitySelectorTool) do
+        tool_name "city_selector_approval"
         description parent_desc
         requires_approval true
         on_error :suppress

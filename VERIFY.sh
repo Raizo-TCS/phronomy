@@ -43,6 +43,13 @@ required_files=(
   lib/phronomy/agent/execution_coordinator.rb
   lib/phronomy/agent/journal_record.rb
   lib/phronomy/agent/context_assembler.rb
+  lib/phronomy/agent/context_policy.rb
+  lib/phronomy/agent/context_policy_input.rb
+  lib/phronomy/agent/context_policy_input_builder.rb
+  lib/phronomy/agent/context_plan.rb
+  lib/phronomy/agent/context_plan_validator.rb
+  lib/phronomy/agent/context_policies/default.rb
+  spec/phronomy/agent/context_policy_architecture_regression_spec.rb
   lib/phronomy/agent/agent_invocation.rb
   lib/phronomy/multi_agent/orchestrator.rb
   lib/phronomy/multi_agent/fan_out_invocation.rb
@@ -133,6 +140,13 @@ syntax_files=(
   lib/phronomy/agent/execution_coordinator.rb
   lib/phronomy/agent/journal_record.rb
   lib/phronomy/agent/context_assembler.rb
+  lib/phronomy/agent/context_policy.rb
+  lib/phronomy/agent/context_policy_input.rb
+  lib/phronomy/agent/context_policy_input_builder.rb
+  lib/phronomy/agent/context_plan.rb
+  lib/phronomy/agent/context_plan_validator.rb
+  lib/phronomy/agent/context_policies/default.rb
+  spec/phronomy/agent/context_policy_architecture_regression_spec.rb
   lib/phronomy/agent/agent_invocation.rb
   lib/phronomy/multi_agent/orchestrator.rb
   lib/phronomy/multi_agent/fan_out_invocation.rb
@@ -203,8 +217,6 @@ syntax_files=(
   spec/phronomy/agent/stateful_followup_regression_spec.rb
   spec/phronomy/persistence/in_memory_spec.rb
   lib/phronomy/agent/context_assembler.rb
-  lib/phronomy/agent/context_parts/requirements/required_context_resolver.rb
-  lib/phronomy/agent/selection/unit_builders/dependency_aware_unit_builder.rb
   lib/phronomy/multi_agent/coordinator.rb
   spec/phronomy/agent/context_policy_spec.rb
   spec/phronomy/multi_agent/handoff_spec.rb
@@ -288,6 +300,16 @@ bundle exec rspec \
   spec/phronomy/agent/stateful_followup_regression_spec.rb \
   spec/phronomy/persistence/in_memory_spec.rb \
   spec/phronomy/persistence/backend_contract_spec.rb
+
+echo "== ACS-04 Context Policy four-category SPI =="
+bundle exec rbs -I sig validate
+bundle exec rspec \
+  spec/phronomy/agent/context_policy_spec.rb \
+  spec/phronomy/agent/context_policy_branch_coverage_spec.rb \
+  spec/phronomy/agent/context_policy_architecture_regression_spec.rb \
+  spec/phronomy/agent/knowledge_context_spec.rb \
+  spec/phronomy/agent/manifest_token_budget_spec.rb \
+  spec/phronomy/agent/stateful_followup_regression_spec.rb
 
 echo "== CG-05 focused specs =="
 bundle exec rspec \

@@ -46,9 +46,55 @@ module Phronomy
       end
 
       def initialize(runtime_tools:, definitions:)
-        @runtime_tools = runtime_tools
+        @runtime_tools = Array(runtime_tools).freeze
         @definitions = Immutable.copy(definitions)
+        validate_unique_names!
         freeze
+      end
+
+      def select_definitions(expected_definitions)
+        expected = Immutable.copy(Array(expected_definitions))
+        current_by_name = definitions.each_with_index.to_h do |definition, index|
+          [definition.fetch("name"), [definition, runtime_tools.fetch(index)]]
+        end
+        seen = {}
+        selected_tools = []
+        selected_definitions = []
+
+        expected.each do |definition|
+          name = definition.fetch("name").to_s
+          raise ArgumentError, "duplicate selected Tool definition: #{name}" if seen[name]
+          seen[name] = true
+
+          current_definition, runtime_tool = current_by_name.fetch(name) do
+            raise Phronomy::ConfigurationError,
+              "ContextPolicy selected Tool not present in current Agent configuration: #{name}"
+          end
+          unless Phronomy::CanonicalJSON.dump(current_definition) ==
+              Phronomy::CanonicalJSON.dump(definition)
+            raise Phronomy::ConfigurationError,
+              "Agent Tool definition changed after ContextPolicy selection: #{name}"
+          end
+
+          selected_tools << runtime_tool
+          selected_definitions << current_definition
+        end
+
+        self.class.new(
+          runtime_tools: selected_tools,
+          definitions: selected_definitions
+        )
+      end
+
+      private
+
+      def validate_unique_names!
+        names = definitions.map { |definition| definition.fetch("name").to_s }
+        duplicates = names.group_by(&:itself).select { |_name, values| values.length > 1 }.keys
+        return if duplicates.empty?
+
+        raise Phronomy::ConfigurationError,
+          "duplicate effective Tool definition name(s): #{duplicates.inspect}"
       end
     end
   end

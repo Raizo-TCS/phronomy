@@ -2,68 +2,150 @@
 
 ## Status
 
-Accepted for the stateful Agent refactor. This decision supersedes the parts of ADR-011 that made the legacy `build_context`/Assembler path the long-term LLM-input authority.
+Accepted and implemented by the stateful Agent / ACS-04 Context Policy refactor.
+This decision supersedes the legacy `build_context` / Assembler authority model and
+the intermediate descriptor/registry-based Context Policy design.
 
 ## Decision
 
-Phronomy records the logical execution facts it observes as an append-only Canonical Complete Execution Log. Context selection, pruning and compaction do not rewrite or delete those raw facts. They decide only which representation is materialized into one LLM Call Manifest.
+Phronomy records the logical execution facts it observes as an append-only Canonical
+Complete Execution Log. Context selection, pruning, ordering, Tool subset selection,
+and compaction do not rewrite or delete those raw facts. They decide only what is
+materialized into one LLM Call Manifest.
 
 Journal and Manifest are separate authorities:
 
-- **Journal** is the authoritative record of logical execution facts that Phronomy observed.
-- **Manifest** is the authoritative record of the logical input fixed for one particular LLM Call.
-- Runtime Projection is derived from the Manifest and must not add semantic content that the Manifest did not select.
+- **Journal** is the authoritative record of logical execution facts observed by Phronomy.
+- **Manifest** is the authoritative record of the logical input fixed for one LLM Call.
+- Runtime Projection is derived from the Manifest and must not add semantic content that
+  the Manifest did not select.
 
-The persistent identity axes have narrow responsibilities:
+`agent_id`, `execution_id`, `llm_call_id`, `tool_call_id`, and Journal `sequence` retain
+their narrow identity/provenance meanings. They are not generic Context-selection
+boundaries. Tool protocol dependencies are represented as indivisible conversation
+groups rather than by grouping all records from one execution.
 
-- `agent_id` identifies the owning Agent.
-- `execution_id` identifies one AgentExecution. It is provenance, not a Context-selection atom.
-- `llm_call_id` identifies one runtime Provider LLM Call. It is allocated before transport starts and correlates that call's outcome. It is provenance, not a semantic-compaction boundary.
-- `tool_call_id` links an assistant message's Tool Call with the corresponding Tool execution/message.
-- Journal `sequence` is canonical chronology.
+## Context Policy semantic boundary
 
-No `message_group_id`, import-only source provenance ID, or synthetic imported `execution_id` / `llm_call_id` is introduced.
+One LLM Call is prepared through:
 
-### Message preservation
+```text
+Context sources
+  -> ContextPolicyInput
+  -> ContextPolicy
+  -> ContextPlan
+  -> ContextAssembler validation/canonicalization
+  -> LLMInputManifest
+```
 
-A logical message that Phronomy receives is not flattened merely to make later Context assembly convenient.
+`ContextPolicyInput` exposes four top-level semantic categories:
 
-- A Provider assistant response is captured as one complete assistant message containing its observable `content` and all Tool Calls.
-- An imported assistant message is journaled as one assistant message with the structure supplied by the Import contract.
-- A Tool value returned by Phronomy Tool execution is an execution fact (`tool_result`).
-- The Tool-role message actually appended to the LLM conversation is a separate logical fact (`tool_message`).
-- Imported Tool-role messages are journaled directly as `tool_message` records; Phronomy does not invent a separate raw Tool execution result for an execution it did not observe.
+```text
+instruction
+knowledge
+tools
+conversation
+```
 
-The Journal therefore does not need to infer or reconstruct a source message boundary that Phronomy already observed. Context Policy can inspect Tool Call IDs contained in an assistant message and form protocol-safe selection units with the corresponding Tool messages.
+The values are immutable Phronomy-defined typed items. Conversation is exposed as an
+ordered array of indivisible groups. An ordinary message is a singleton group; an
+assistant Tool Call and its corresponding Tool-role message(s) form one atomic group.
 
-### Import boundary
+`ContextPlan` uses the same four categories. Items omitted from the Plan are omitted from
+that LLM Call. Plan ordering expresses Policy ordering within the Framework-owned
+structural layout. ContextAssembler validates required material, group integrity, Tool
+configuration, and the final token budget before it stores the Manifest.
 
-The application supplying imported history is responsible for satisfying Phronomy's Import contract. Phronomy interprets valid input according to that contract and rejects only data that is invalid under the contract, such as unsupported roles, missing Tool Call IDs, orphan/duplicate Tool results, unresolved Tool calls, or malformed message structure.
+A custom ContextPolicy is ordinary Ruby strategy code. It may select, omit, order,
+compact, retrieve, or otherwise compute its Plan. Phronomy does not expose a public
+Pipeline/Selector/UnitBuilder composition DSL as the Context Policy SPI.
 
-External resource acquisition is not a `ContextImporter` responsibility. Files, URLs and similar resources are obtained and interpreted by the Application or Tool that owns that capability; Phronomy journals the logical content/results it actually receives. `ContextImporter` therefore does not introduce RubyLLM-specific attachment handling or an attachment-specific reject path.
+## Agent binding and lifetime
 
-Phronomy must not reject an otherwise valid input merely because an internal flattened representation would lose information. In particular, two separately supplied assistant messages remain two separate Journal messages.
+A ContextPolicy is Application code/runtime wiring, not durable Agent state.
 
-### Manifest boundary
+An Application binds a **ContextPolicy instance** on the Agent class:
 
-The Manifest fixes what one LLM Call will actually receive after Context Policy selection. A historical raw Tool return value and the Tool message produced from it are not interchangeable: the raw result belongs to the execution log, while the message selected for an LLM Call belongs to the Manifest input path.
+```ruby
+SEARCH_POLICY = SearchContextPolicy.new(vector_store: VECTOR_STORE)
 
-One Provider response is captured as a Phronomy-owned `ProviderCallOutcome` before Agent-owned Tool execution starts. The canonical assistant-message record is produced from that outcome, not from Application callback delivery.
+class ResearchAgent < Phronomy::Agent::Base
+  context_policy SEARCH_POLICY
+end
+```
 
-Context selection is expressed separately through `ContextCandidate`, dependency-aware `ContextSelectionUnit`, `ContextRequest`, `ContextPolicy`, validated `ContextPlan`, and final token-budget validation. An assistant message containing Tool Calls and the corresponding Tool messages form an atomic protocol unit. Ordinary messages in the same `execution_id` remain independently selectable.
+If no Policy is bound, the built-in Default instance is used. There is no Policy override
+on Agent instance creation/loading or on `invoke` / `stream` calls. A Policy instance may
+be shared by multiple Agent classes; concurrency safety of a shared Policy and its runtime
+dependencies is the Application's responsibility.
 
-## RubyLLM boundary
+Phronomy does not persist or reconstruct a Policy instance and defines no
+`ContextPolicyDescriptor`, Policy registry, serialized Policy config, or Policy version
+contract. Recovery hydrates finalized `LLMInputManifest` values directly. Future Context
+preparation after Recovery uses the ContextPolicy supplied by the currently loaded
+Application code.
 
-Agent-owned Tool execution requires RubyLLM's additive callback contract introduced in RubyLLM 1.15. Phronomy therefore requires `ruby_llm >= 1.15, < 2`.
+## Policy-generated material
 
-RubyLLM 1.15 adds the complete assistant message to `Chat#messages` before `before_tool_call` callbacks run. Phronomy captures the immutable Provider outcome at that boundary and raises `ToolCallIntercepted` only as an internal control transfer so approval, suspension, parallel dispatch and durable state remain Phronomy-owned.
+A Policy may create new instruction, knowledge, or conversation items through the small
+protected helper/factory API on `ContextPolicy`. Such material is an ordinary current-call
+Plan item; there is no separate `DerivedContentSpec` collection.
+
+Phronomy assigns current-call identity, estimates tokens, freezes/canonicalizes the value,
+and stores content when needed by the finalized Manifest. The Application owns the
+semantic transformation and any internal source mapping/provenance it requires. Merely
+using a generated item in a Manifest does not promote it to a Journal fact or reusable
+future Context candidate.
+
+The ACS-04 Tool category is selection-only: a Policy may choose a subset of the effective
+Agent Tool definitions but may not invent a runtime Tool implementation from schema-only
+data.
+
+## Default Context Policy
+
+The built-in Default is deterministic and model-free:
+
+- retain effective instructions in stable order;
+- retain the effective Agent Tool configuration;
+- retain required/current conversation and choose a contiguous recent optional history;
+- choose Knowledge in stable order, skipping an oversized item and continuing with later
+  items that fit;
+- allocate variable remainder approximately 60% to conversation and 40% to Knowledge,
+  allowing unused share to be reused by the other category;
+- perform no automatic compaction, embedding search, reranking, or additional LLM Call.
+
+If required/fixed Context cannot fit, preparation fails rather than silently deleting it.
+
+## Execution / Persistence boundary
+
+ContextPolicy executes synchronously on an OffloadPool worker, never on the Runtime
+EventLoop. No Phronomy Persistence transaction spans `ContextPolicy#call`.
+
+The required preparation shape is:
+
+```text
+capture authoritative local/durable snapshot
+  -> build immutable ContextPolicyInput
+  -> ContextPolicy#call outside Persistence transaction
+  -> revalidate durable base/revision/lineage
+  -> short commit transaction
+       validate Plan
+       canonicalize selected/generated content
+       final budget validation
+       store LLMInputManifest
+       save execution state
+```
+
+A stale Policy result is rejected by the final revision/watermark precondition. Phronomy
+does not automatically retry or fall back to another Policy after Policy failure.
 
 ## Consequences
 
-- Canonical execution history is independent of the current Context budget or policy.
-- Import and runtime histories converge on the same canonical assistant/tool-message model without synthetic grouping identity.
-- Old optional working history may be excluded from a follow-up Manifest without being deleted.
-- Raw Tool results remain available as execution facts even when the corresponding Tool message is omitted from a later Manifest.
-- Tool protocol dependencies are validated independently from semantic selection policy.
-- Context Policy can later introduce deterministic derived/compacted records without replacing their raw sources.
-- Public custom Context Policy APIs, transaction-boundary restructuring, deterministic compaction, Manifest v2/tool subsets, and legacy Assembler removal remain later phases.
+- Agent/Workflow durability is independent of ContextPolicy durability.
+- The Manifest, not the historical Policy implementation, is the Recovery authority for a
+  finalized Provider input.
+- Application Context strategies remain ordinary reusable Ruby objects with ordinary DI.
+- Framework-internal protocol grouping/validation may use private helpers, but those
+  helpers are not the Application Policy API.
+- Replaced descriptor/registry/request/derived-content and selector-pipeline abstractions
+  are removed rather than retained as compatibility aliases.

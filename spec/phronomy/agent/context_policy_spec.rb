@@ -2,228 +2,263 @@
 
 require "spec_helper"
 
-RSpec.describe "Context Policy selection" do
-  def candidate(
-    id:,
-    category:,
-    sequence:,
-    source_kind: :journal,
-    execution_id: "exec-1",
-    llm_call_id: nil,
-    tool_call_id: nil,
-    tool_call_ids: [],
-    tokens: 5
-  )
-    role = case category
-    when :external_message, :knowledge then :user
-    when :tool_message then :tool
-    else :assistant
-    end
-    Phronomy::Agent::Selection::Candidate.new(
-      candidate_id: id,
-      source_kind: source_kind,
-      category: category,
-      role: role,
-      content_ref: "content-#{id}",
-      record_id: "record-#{id}",
-      agent_id: "agent-1",
-      execution_id: execution_id,
-      llm_call_id: llm_call_id,
-      tool_call_id: tool_call_id,
-      sequence: sequence,
-      constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :context_policy),
-      priority: (source_kind == :working) ? 100 : 0,
-      metadata: {
-        "estimated_tokens" => tokens,
-        "source_sequence" => sequence,
-        "tool_call_ids" => tool_call_ids
-      }
+RSpec.describe "Context Policy semantic API" do
+  let(:provenance) do
+    Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal)
+  end
+
+  def instruction(id: "i1", tokens: 5, required: true)
+    Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      id: id, kind: :instruction, role: :system, content: "instruction",
+      content_format: :text, estimated_tokens: tokens, required: required,
+      provenance: provenance, metadata: {}
     )
   end
 
-  def parts
-    {
-      unit_builder: Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder.new,
-      required_context_resolver: Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver.new,
-      recent_first_selector: Phronomy::Agent::Selection::Selectors::RecentFirstSelector.new,
-      token_budget_packer: Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker.new
-    }
+  def knowledge(id:, tokens:, required: false)
+    Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+      id: id, kind: :knowledge, role: :user, content: id,
+      content_format: :text, estimated_tokens: tokens, required: required,
+      provenance: provenance, metadata: {}
+    )
   end
 
-  def request(candidates, call_mode: :complete, context_window: 200, mandatory: 0)
-    Phronomy::Agent::ContextRequest.new(
+  def conversation(id:, sequence:, tokens:, required: false)
+    Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      id: id, kind: :external_message, role: :user, content: id,
+      content_format: :text, sequence: sequence, estimated_tokens: tokens,
+      required: required, provenance: provenance, tool_call_id: nil,
+      tool_call_ids: [], delivery: :chat_message, metadata: {}
+    )
+  end
+
+  def input(
+    instruction_items: [instruction],
+    knowledge_items: [],
+    tool_items: [],
+    conversation_groups: [],
+    context_window: 100,
+    max_output_tokens: 0
+  )
+    Phronomy::Agent::ContextPolicyInput.new(
       agent_id: "agent-1",
-      execution_id: "exec-1",
-      call_sequence: 2,
-      call_mode: call_mode,
-      candidates: candidates,
+      execution_id: "execution-1",
+      call_sequence: 1,
+      call_mode: :complete,
+      instruction: instruction_items,
+      knowledge: knowledge_items,
+      tools: tool_items,
+      conversation: conversation_groups,
       token_budget: Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: context_window,
-        max_output_tokens: 0
+        max_output_tokens: max_output_tokens
       ),
       model_config: {},
       previous_manifest: nil,
-      required_coverage: [],
-      parts: parts,
-      metadata: {"mandatory_token_estimate" => mandatory}
+      metadata: {}
     )
   end
 
-  it "does not use execution_id as an atomic selection boundary" do
-    candidates = [
-      candidate(id: "a", category: :assistant_message, sequence: 1),
-      candidate(id: "b", category: :assistant_message, sequence: 2)
-    ]
-
-    units = parts.fetch(:unit_builder).build(candidates)
-    expect(units.map(&:candidate_ids)).to contain_exactly(["a"], ["b"])
-  end
-
-  it "keeps one assistant message and all matching Tool messages atomic" do
-    candidates = [
-      candidate(
-        id: "assistant",
-        category: :assistant_message,
-        sequence: 1,
-        llm_call_id: "llm-1",
-        tool_call_ids: %w[call-a call-b]
-      ),
-      candidate(
-        id: "result-a",
-        category: :tool_message,
-        sequence: 2,
-        llm_call_id: "llm-1",
-        tool_call_id: "call-a"
-      ),
-      candidate(
-        id: "result-b",
-        category: :tool_message,
-        sequence: 3,
-        llm_call_id: "llm-1",
-        tool_call_id: "call-b"
-      )
-    ]
-
-    units = parts.fetch(:unit_builder).build(candidates)
-    expect(units.length).to eq(1)
-    expect(units.first.kind).to eq(:tool_exchange)
-    expect(units.first.candidate_ids).to contain_exactly(
-      "assistant", "result-a", "result-b"
-    )
-  end
-
-  it "uses the same Tool dependency rule for imported messages without llm_call_id" do
-    candidates = [
-      candidate(
-        id: "assistant",
-        category: :assistant_message,
-        sequence: 10,
-        execution_id: nil,
-        llm_call_id: nil,
-        tool_call_ids: ["call-a"]
-      ),
-      candidate(
-        id: "result",
-        category: :tool_message,
-        sequence: 11,
-        execution_id: nil,
-        llm_call_id: nil,
-        tool_call_id: "call-a"
-      )
-    ]
-
-    units = parts.fetch(:unit_builder).build(candidates)
-    expect(units.length).to eq(1)
-    expect(units.first.candidate_ids).to contain_exactly("assistant", "result")
-  end
-
-  it "treats Knowledge as an ordinary selectable unit" do
-    candidates = [
-      candidate(id: "knowledge", category: :knowledge, sequence: 1, tokens: 100),
-      candidate(id: "recent", category: :assistant_message, sequence: 2, tokens: 5)
-    ]
-    context_request = request(candidates, context_window: 20, mandatory: 5)
-
-    plan = Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
-    validated = Phronomy::Agent::ContextPlanValidator.new.validate!(
-      request: context_request,
-      plan: plan
-    )
-
-    expect(validated.selected_candidates.map(&:candidate_id)).to eq(["recent"])
-  end
-
-  it "requires only the latest current Tool exchange and may drop older working history" do
-    candidates = [
-      candidate(id: "old", category: :assistant_message, sequence: 1,
-        source_kind: :working, tokens: 80),
-      candidate(id: "assistant", category: :assistant_message, sequence: 2,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_ids: ["call"], tokens: 10),
-      candidate(id: "result", category: :tool_message, sequence: 3,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10)
-    ]
-    context_request = request(candidates, context_window: 40, mandatory: 5)
-
-    plan = Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
-    validated = Phronomy::Agent::ContextPlanValidator.new.validate!(
-      request: context_request,
-      plan: plan
-    )
-
-    expect(validated.selected_candidates.map(&:candidate_id)).to contain_exactly("assistant", "result")
-    expect(validated.selected_units.first.constraint.required?).to be(true)
-    expect(validated.selected_units.first.constraint.origin).to eq(:framework_protocol)
-  end
-
-  it "requires the current user request together with the latest current Tool exchange" do
-    candidates = [
-      candidate(id: "current", category: :external_message, sequence: 1,
-        source_kind: :working, tokens: 10),
-      candidate(id: "old", category: :assistant_message, sequence: 2,
-        source_kind: :working, tokens: 80),
-      candidate(id: "assistant", category: :assistant_message, sequence: 3,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_ids: ["call"], tokens: 10),
-      candidate(id: "result", category: :tool_message, sequence: 4,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10)
-    ]
-    context_request = request(candidates, context_window: 50, mandatory: 5)
-
-    plan = Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
-    validated = Phronomy::Agent::ContextPlanValidator.new.validate!(
-      request: context_request,
-      plan: plan
-    )
-
-    expect(validated.selected_candidates.map(&:candidate_id))
-      .to contain_exactly("current", "assistant", "result")
-
-    current_unit = validated.selected_units.find do |unit|
-      unit.candidate_ids.include?("current")
+  it "binds one ContextPolicy instance on the Agent class and inherits it" do
+    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        Phronomy::Agent::ContextPlan.new(
+          instruction: input.instruction,
+          knowledge: input.knowledge,
+          tools: input.tools,
+          conversation: input.conversation
+        )
+      end
+    end.new
+    parent = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-binding-parent", version: 1
+      context_policy policy
     end
-    tool_unit = validated.selected_units.find { |unit| unit.kind == :tool_exchange }
+    child = Class.new(parent)
 
-    expect(current_unit.constraint.required?).to be(true)
-    expect(current_unit.constraint.origin).to eq(:framework_protocol)
-    expect(tool_unit.constraint.required?).to be(true)
-    expect(tool_unit.constraint.origin).to eq(:framework_protocol)
+    expect(parent.context_policy).to equal(policy)
+    expect(child.context_policy).to equal(policy)
   end
 
-  it "raises instead of dropping the current user request when required follow-up Context does not fit" do
-    candidates = [
-      candidate(id: "current", category: :external_message, sequence: 1,
-        source_kind: :working, tokens: 20),
-      candidate(id: "assistant", category: :assistant_message, sequence: 2,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_ids: ["call"], tokens: 10),
-      candidate(id: "result", category: :tool_message, sequence: 3,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10)
-    ]
-    context_request = request(candidates, context_window: 35, mandatory: 5)
+  it "uses the built-in Default instance when the Agent class has no binding" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-default-binding", version: 1
+    end
 
-    expect do
-      Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
-    end.to raise_error(
-      Phronomy::ContextBudgetExceededError,
-      /Required Context/
+    expect(klass.context_policy).to equal(Phronomy::Agent::ContextPolicies::Default.instance)
+  end
+
+  it "rejects a ContextPolicy class because the binding contract requires an instance" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-instance-only", version: 1
+    end
+
+    expect { klass.context_policy(Phronomy::Agent::ContextPolicies::Default) }
+      .to raise_error(ArgumentError, /ContextPolicy instance/)
+  end
+
+  it "uses four typed semantic categories without request parts or descriptors" do
+    policy_input = input
+
+    expect(policy_input.instruction.first)
+      .to be_a(Phronomy::Agent::ContextPolicyInput::InstructionItem)
+    expect(policy_input.knowledge).to eq([])
+    expect(policy_input.tools).to eq([])
+    expect(policy_input.conversation).to eq([])
+    expect(policy_input).not_to respond_to(:parts)
+    expect(policy_input).not_to respond_to(:candidates)
+    expect(Phronomy::Agent::ContextPolicies::Default.instance).not_to respond_to(:descriptor)
+  end
+
+  it "keeps conversation groups indivisible" do
+    first = conversation(id: "assistant", sequence: 1, tokens: 5)
+    second = conversation(id: "tool", sequence: 2, tokens: 5)
+    policy_input = input(conversation_groups: [[first, second]])
+    invalid = Phronomy::Agent::ContextPlan.new(
+      instruction: policy_input.instruction,
+      knowledge: [], tools: [], conversation: [[first]]
     )
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+    }.to raise_error(ArgumentError, /split, merged, or reordered/)
+  end
+
+  it "permits Policy-generated Knowledge without Framework source-item provenance" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = knowledge_item(content: "derived summary", metadata: {"kind" => "summary"})
+        plan(
+          instruction: input.instruction,
+          knowledge: [generated],
+          tools: input.tools,
+          conversation: input.conversation
+        )
+      end
+    end
+    policy_input = input
+    plan = policy_class.new.call(policy_input)
+
+    expect(plan.knowledge.first.provenance.origin).to eq(:policy_generated)
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: plan)
+    }.not_to raise_error
+  end
+
+  it "does not allow a Policy to invent a runtime Tool definition" do
+    generated_tool = Phronomy::Agent::ContextPolicyInput::ToolItem.new(
+      id: "tool:invented",
+      definition: {"name" => "invented"},
+      estimated_tokens: 1,
+      required: false,
+      provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :policy_generated),
+      metadata: {}
+    )
+    policy_input = input
+    plan = Phronomy::Agent::ContextPlan.new(
+      instruction: policy_input.instruction,
+      tools: [generated_tool]
+    )
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: plan)
+    }.to raise_error(ArgumentError, /unknown tools item/)
+  end
+
+  it "rejects malformed Tool protocol in a Policy-generated conversation group" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: {
+            "role" => "assistant",
+            "content" => nil,
+            "tool_calls" => [{"id" => "tc-1", "name" => "tool", "arguments" => {}}]
+          },
+          role: :assistant,
+          kind: :assistant_message,
+          tool_call_ids: ["tc-1"]
+        )
+        plan(instruction: input.instruction, conversation: [[generated]])
+      end
+    end
+    policy_input = input
+    invalid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+    }.to raise_error(ArgumentError, /has no Tool message/)
+  end
+
+  it "traces only the ContextPolicy invocation boundary by default" do
+    events = []
+    tracer = Object.new
+    tracer.define_singleton_method(:start_span) do |name, **attributes|
+      events << [:start, name, attributes]
+      Object.new
+    end
+    tracer.define_singleton_method(:finish_span) do |_span, **attributes|
+      events << [:finish, attributes]
+    end
+    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        Phronomy::Agent::ContextPlan.new(
+          instruction: input.instruction,
+          knowledge: input.knowledge,
+          tools: input.tools,
+          conversation: input.conversation
+        )
+      end
+    end.new
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-tracing", version: 1
+      context_policy policy
+    end
+    agent = agent_class.new
+    assembler = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: agent.persistence
+    )
+    allow(Phronomy.configuration).to receive(:tracer).and_return(tracer)
+
+    result = assembler.send(:invoke_policy, input)
+
+    expect(result).to be_a(Phronomy::Agent::ContextPlan)
+    expect(events.first[0, 2]).to eq([:start, "context_policy"])
+    expect(events.first.fetch(2)).to include(
+      agent_id: "agent-1", execution_id: "execution-1", call_sequence: 1
+    )
+    expect(events.last).to eq([:finish, {}])
+  end
+
+  it "Default retains instructions, takes recent contiguous conversation, and stable-fit Knowledge" do
+    policy_input = input(
+      knowledge_items: [
+        knowledge(id: "k-large", tokens: 40),
+        knowledge(id: "k-small", tokens: 5)
+      ],
+      conversation_groups: [
+        [conversation(id: "old", sequence: 1, tokens: 40)],
+        [conversation(id: "recent", sequence: 2, tokens: 10, required: true)]
+      ],
+      context_window: 35
+    )
+
+    plan = Phronomy::Agent::ContextPolicies::Default.instance.call(policy_input)
+
+    expect(plan.instruction.map(&:id)).to eq(["i1"])
+    expect(plan.conversation.flatten.map(&:id)).to eq(["recent"])
+    expect(plan.knowledge.map(&:id)).to eq(["k-small"])
+  end
+
+  it "Default fails instead of omitting required Context" do
+    policy_input = input(
+      conversation_groups: [
+        [conversation(id: "current", sequence: 1, tokens: 100, required: true)]
+      ],
+      context_window: 50
+    )
+
+    expect { Phronomy::Agent::ContextPolicies::Default.instance.call(policy_input) }
+      .to raise_error(Phronomy::ContextBudgetExceededError, /Required Context/)
   end
 end
