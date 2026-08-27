@@ -8,7 +8,12 @@ module Phronomy
       POLICY_ORIGIN_METADATA_KEY = "context_policy_origin"
       POLICY_ITEM_ID_METADATA_KEY = "context_policy_item_id"
       SEMANTIC_CATEGORY_METADATA_KEY = "context_policy_semantic_category"
+      CONTENT_FORMAT_METADATA_KEY = "context_policy_content_format"
       CONVERSATION_GROUP_ID_METADATA_KEY = "context_policy_conversation_group_id"
+      TRUSTED_HANDOFF_METADATA_KEYS = %w[
+        handoff_policy_category
+        handoff_provenance
+      ].freeze
       HANDOFF_POLICY_CATEGORY_METADATA_KEY = "handoff_policy_category"
       BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
       HANDOFF_CONTEXT_ORIGIN = "handoff_context"
@@ -411,7 +416,8 @@ module Phronomy
 
       def segment_from_content_item(item, persistence:, additional_metadata: {})
         content_ref = item.provenance.content_ref || store_item_content(item, persistence)
-        metadata = item.metadata.merge(additional_metadata).merge(
+        metadata = sanitized_item_metadata(item).merge(additional_metadata).merge(
+          CONTENT_FORMAT_METADATA_KEY => item.content_format.to_s,
           POLICY_ITEM_ID_METADATA_KEY => item.id,
           POLICY_ORIGIN_METADATA_KEY => item.provenance.origin.to_s,
           "journal_record_id" => item.provenance.record_id,
@@ -428,6 +434,20 @@ module Phronomy
           tool_call_id: item.respond_to?(:tool_call_id) ? item.tool_call_id : nil,
           metadata: metadata
         }
+      end
+
+      def sanitized_item_metadata(item)
+        raw = item.metadata.to_h.transform_keys(&:to_s)
+        # :working origin is Phronomy-controlled (from perform_initial_preparation),
+        # so handoff routing metadata on working records is equally trusted.
+        trusted_handoff = if item.provenance.origin == :handoff || item.provenance.origin == :working
+          raw.slice(*TRUSTED_HANDOFF_METADATA_KEYS)
+        else
+          {}
+        end
+
+        raw.except(*ContextPolicyInput::FRAMEWORK_METADATA_KEYS)
+          .merge(trusted_handoff)
       end
 
       def tool_exchange_group?(group)
@@ -471,14 +491,25 @@ module Phronomy
           content = hash.fetch(:content) { hash.fetch("content") }
           category = (hash[:category] || hash["category"] || :knowledge).to_sym
           role = (hash[:role] || hash["role"] || default_role(category)).to_sym
-          metadata = hash[:metadata] || hash["metadata"] || {}
+          metadata = (hash[:metadata] || hash["metadata"] || {})
+            .to_h
+            .transform_keys(&:to_s)
+          validate_application_metadata!(metadata, source: "LLMInputPatch segment candidate")
           {
             content: content,
             category: category,
             role: role,
-            metadata: metadata.to_h.transform_keys(&:to_s)
+            metadata: metadata
           }
         end
+      end
+
+      def validate_application_metadata!(metadata, source:)
+        conflicts = metadata.keys.map(&:to_s) & ContextPolicyInput::FRAMEWORK_METADATA_KEYS
+        return if conflicts.empty?
+
+        raise ArgumentError,
+          "#{source} metadata uses Framework-reserved key(s): #{conflicts.sort.inspect}"
       end
 
       def merge_hook_candidates(candidates, hooks, agent_root:, execution:, call_sequence:)

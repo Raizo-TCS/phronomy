@@ -132,6 +132,7 @@ Framework-owned semantic metadata:
 
 ```text
 context_policy_semantic_category
+context_policy_content_format
 context_policy_conversation_group_id   # conversation only
 handoff_policy_category                # when an explicit Handoff category is known
 ```
@@ -144,7 +145,15 @@ Handoff Context so the Target `ContextPolicyInputBuilder` can reconstruct the
 correct typed category even when the lower-level kind is Application-defined.
 
 Canonical Tool exchange groups are additionally classified as
-`handoff_policy_category = tool_exchanges`.
+`handoff_policy_category = tool_exchanges`. `context_policy_content_format`
+preserves `text` versus canonical `json` independently of the lower-level kind,
+including Application-defined kinds.
+
+These names are Framework-owned metadata. Application Policy output and
+`before_llm_input` segment candidates must not use them as arbitrary extension
+keys. Manifest realization sanitizes the reserved namespace and only carries
+trusted inbound Handoff category/provenance when the item itself came from the
+Framework Handoff boundary.
 
 `HandoffProjection` groups current-format conversation segments by
 `context_policy_conversation_group_id`. For finalized pre-ACS-04 Manifests it

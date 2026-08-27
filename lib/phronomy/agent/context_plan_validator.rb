@@ -72,6 +72,8 @@ module Phronomy
             end
           elsif !generated_allowed || item.provenance.origin != :policy_generated
             raise ArgumentError, "ContextPlan contains unknown #{label} item: #{item.id.inspect}"
+          else
+            validate_policy_generated_metadata!(item)
           end
         end
 
@@ -144,8 +146,20 @@ module Phronomy
           "#{item.kind.inspect} kind for #{reserved_category}"
       end
 
+      def validate_policy_generated_metadata!(item)
+        conflicts = item.metadata.keys.map(&:to_s) & ContextPolicyInput::FRAMEWORK_METADATA_KEYS
+        return if conflicts.empty?
+
+        raise ArgumentError,
+          "Policy-generated Context item #{item.id.inspect} metadata uses " \
+          "Framework-reserved key(s): #{conflicts.sort.inspect}"
+      end
+
       def validate_generated_conversation_group!(group)
-        group.each { |item| validate_generated_conversation_item!(item) }
+        group.each do |item|
+          validate_policy_generated_metadata!(item)
+          validate_generated_conversation_item!(item)
+        end
 
         assistants = group.select { |item| item.kind == :assistant_message }
         tools = group.select { |item| item.kind == :tool_message }

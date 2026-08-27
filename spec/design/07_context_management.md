@@ -122,6 +122,24 @@ Generated current-call content does not automatically become a Journal record or
 a reusable future Context candidate. Cross-call cache/reuse/storage is
 Application responsibility.
 
+### Framework-owned metadata
+
+Context item `metadata` remains an Application extension area, but Framework
+control keys are reserved. Current Manifest realization owns keys such as
+`context_policy_semantic_category`, `context_policy_content_format`,
+`context_policy_conversation_group_id`, `handoff_policy_category`, and
+`handoff_provenance`; legacy `selection_*` keys are read only from already
+finalized older Manifests.
+
+Policy-generated items and `before_llm_input` segment candidates may not set
+Framework-reserved keys. Manifest realization also sanitizes reserved keys as a
+defense-in-depth boundary. Trusted inbound Handoff routing/provenance metadata is
+carried only when the typed item provenance identifies Framework Handoff input.
+
+`content_format` is a typed item property. Manifest realization records it as
+Framework metadata so materialized Handoff Context preserves `:text` versus
+`:json` independently of lower-level Application-defined `kind` values.
+
 For ACS-04, the Tool category supports subset/order of the effective Tool
 configuration. Schema-only creation of a brand-new runtime Tool is intentionally
 not invented here because finalized-Manifest Recovery would require an additional

@@ -433,4 +433,182 @@ RSpec.describe "Context Policy semantic API" do
     expect { Phronomy::Agent::ContextPolicies::Default.instance.call(policy_input) }
       .to raise_error(Phronomy::ContextBudgetExceededError, /Required Context/)
   end
+  it "preserves JSON content format in Framework-owned Manifest metadata" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: {"type" => "application_note", "value" => 42},
+          role: :user,
+          kind: :application_note
+        )
+        plan(instruction: input.instruction, conversation: [[generated]])
+      end
+    end
+    policy_input = input
+    selected_plan = policy_class.new.call(policy_input)
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-content-format-metadata", version: 1
+    end
+    agent = agent_class.new
+    assembler = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: agent.persistence
+    )
+    prepared = Phronomy::Agent::ContextAssembler::Prepared.new(
+      input: policy_input,
+      plan: selected_plan,
+      model_config: {},
+      call_sequence: 1,
+      call_mode: :complete
+    )
+
+    manifest, = assembler.finalize(prepared)
+    generated_segment = manifest.segments.find do |segment|
+      segment.category.to_sym == :application_note
+    end
+
+    expect(generated_segment.metadata["context_policy_content_format"]).to eq("json")
+  end
+
+  it "rejects Framework-reserved metadata on Policy-generated items" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: "attempted metadata override",
+          role: :user,
+          kind: :application_note,
+          metadata: {"handoff_policy_category" => "knowledge"}
+        )
+        plan(instruction: input.instruction, conversation: [[generated]])
+      end
+    end
+    policy_input = input
+    invalid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+    }.to raise_error(ArgumentError, /Framework-reserved.*handoff_policy_category/)
+  end
+
+  it "rejects Framework-reserved metadata on before_llm_input segment candidates" do
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-reserved-hook-metadata", version: 1
+    end
+    agent = agent_class.new
+    assembler = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: agent.persistence
+    )
+
+    expect {
+      assembler.send(
+        :normalize_candidates,
+        [{
+          content: "hook material",
+          category: :knowledge,
+          metadata: {"handoff_provenance" => {"fake" => true}}
+        }]
+      )
+    }.to raise_error(ArgumentError, /Framework-reserved.*handoff_provenance/)
+  end
+
+  it "restores JSON Application-specific kinds into the Target typed conversation category" do
+    payload = {"type" => "application_note", "value" => 42}
+    candidate = Phronomy::Agent::Selection::Candidate.new(
+      candidate_id: "handoff-json-application-note",
+      source_kind: :handoff,
+      category: :application_note,
+      role: :user,
+      content_ref: "json-ref",
+      record_id: nil,
+      agent_id: "source-agent",
+      execution_id: "target-execution",
+      llm_call_id: nil,
+      tool_call_id: nil,
+      sequence: 1,
+      constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :handoff_context),
+      priority: 50,
+      metadata: {
+        "context_policy_semantic_category" => "conversation",
+        "content_format" => "json",
+        "estimated_tokens" => 1
+      }
+    )
+    builder = Phronomy::Agent::ContextPolicyInputBuilder.new(
+      content_loader: ->(_ref) { Phronomy::CanonicalJSON.dump(payload) }
+    )
+
+    result = builder.build(
+      agent_id: "target-agent",
+      execution_id: "target-execution",
+      call_sequence: 1,
+      call_mode: :complete,
+      candidates: [candidate],
+      instruction: [],
+      tools: [],
+      token_budget: nil,
+      model_config: {},
+      previous_manifest: nil
+    )
+
+    item = result.conversation.fetch(0).fetch(0)
+    expect(item.kind).to eq(:application_note)
+    expect(item.content_format).to eq(:json)
+    expect(item.content).to eq(payload)
+  end
+
+  it "sanitizes Framework metadata while preserving trusted inbound Handoff metadata" do
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-trusted-handoff-metadata", version: 1
+    end
+    agent = agent_class.new
+    assembler = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: agent.persistence
+    )
+    content_ref = agent.persistence.contents.put_text("transferred")
+    provenance_hash = {
+      "origin_agent_id" => "source-agent",
+      "transfer_path" => ["source-agent", agent.agent_id]
+    }
+    item = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      id: "trusted-handoff-item",
+      kind: :application_note,
+      role: :user,
+      content: "transferred",
+      content_format: :text,
+      sequence: 1,
+      estimated_tokens: 1,
+      required: false,
+      provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(
+        origin: :handoff,
+        content_ref: content_ref,
+        agent_id: "source-agent"
+      ),
+      tool_call_id: nil,
+      tool_call_ids: [],
+      delivery: :chat_message,
+      metadata: {
+        "handoff_policy_category" => "history",
+        "handoff_provenance" => provenance_hash,
+        "context_policy_semantic_category" => "knowledge",
+        "selection_unit_id" => "legacy-unit"
+      }
+    )
+
+    segment = assembler.send(
+      :segment_from_content_item,
+      item,
+      persistence: agent.persistence,
+      additional_metadata: {"context_policy_semantic_category" => "conversation"}
+    )
+
+    expect(segment.fetch(:metadata)).to include(
+      "handoff_policy_category" => "history",
+      "handoff_provenance" => provenance_hash,
+      "context_policy_semantic_category" => "conversation",
+      "context_policy_content_format" => "text"
+    )
+    expect(segment.fetch(:metadata)).not_to have_key("selection_unit_id")
+  end
 end

@@ -121,9 +121,9 @@ module Phronomy
       def materialize_item(segment, policy_category:, persistence:, source_agent:, target_agent:)
         bytes = persistence.contents.fetch(segment.content_ref)
         category = segment.category.to_sym
-        format = JSON_CATEGORIES.include?(category) ? :json : :text
-        content = (format == :json) ? Phronomy::CanonicalJSON.load(bytes) : bytes.to_s
         metadata = segment.metadata.to_h.transform_keys(&:to_s)
+        format = content_format_for(segment, metadata)
+        content = (format == :json) ? Phronomy::CanonicalJSON.load(bytes) : bytes.to_s
         provenance = provenance_for(
           metadata,
           segment: segment,
@@ -140,11 +140,27 @@ module Phronomy
           tool_call_id: segment.tool_call_id,
           provenance: provenance,
           metadata: metadata.except(
+            "context_policy_content_format",
             "context_policy_conversation_group_id",
             "selection_candidate_id", "selection_unit_id", "selection_unit_kind",
             "handoff_policy_category", "handoff_provenance"
           )
         )
+      end
+
+      def content_format_for(segment, metadata)
+        explicit = metadata["context_policy_content_format"] ||
+          metadata[:context_policy_content_format]
+        if explicit
+          format = explicit.to_sym
+          unless Phronomy::Agent::ContextPolicyInput::CONTENT_FORMATS.include?(format)
+            raise Phronomy::HandoffError,
+              "unsupported Context content format in Manifest: #{explicit.inspect}"
+          end
+          return format
+        end
+
+        JSON_CATEGORIES.include?(segment.category.to_sym) ? :json : :text
       end
 
       def provenance_for(metadata, segment:, source_agent:, target_agent:)

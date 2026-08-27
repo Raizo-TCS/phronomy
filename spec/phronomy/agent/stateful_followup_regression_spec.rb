@@ -167,7 +167,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
       hook_segment = manifest.segments.find do |segment|
         persistence.contents.fetch_text(segment.content_ref) == "Be concise"
       end
-      expect(hook_segment.metadata).to include("phronomy_origin" => "before_llm_input")
+      expect(hook_segment.metadata).to include("context_policy_origin" => "hook")
       expect(manifest.assembly_policy_version)
         .to eq(Phronomy::Agent::ContextAssembler::ASSEMBLY_POLICY_VERSION)
     end

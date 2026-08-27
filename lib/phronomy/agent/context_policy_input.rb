@@ -70,6 +70,23 @@ module Phronomy
     class ContextPolicyInput
       CONTENT_FORMATS = %i[text json].freeze
       DELIVERIES = %i[ask_argument chat_message].freeze
+      FRAMEWORK_METADATA_KEYS = %w[
+        phronomy_origin
+        context_policy_origin
+        context_policy_item_id
+        context_policy_semantic_category
+        context_policy_content_format
+        context_policy_conversation_group_id
+        handoff_policy_category
+        handoff_provenance
+        selection_candidate_id
+        selection_unit_id
+        selection_unit_kind
+        journal_record_id
+        source_agent_id
+        source_execution_id
+        llm_call_id
+      ].freeze
 
       Provenance = Data.define(
         :origin,
