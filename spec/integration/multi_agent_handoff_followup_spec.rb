@@ -78,4 +78,73 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
     expect(target_text).to include("ORIGINAL_CURRENT_REQUEST_MARKER")
     expect(target_text).to include("lookup result for case-42")
   end
+  it "transfers Policy-generated Conversation history with an Application-specific kind" do
+    generated_policy = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: "POLICY_GENERATED_HISTORY_MARKER",
+          role: :user,
+          kind: :application_note
+        )
+        plan(
+          instruction: input.instruction,
+          knowledge: input.knowledge,
+          tools: input.tools,
+          conversation: input.conversation + [[generated]]
+        )
+      end
+    end.new
+
+    source_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "cg05-generated-history-source", version: 1
+      model IntegrationFactors::LM_MODEL_26
+      provider :openai
+      instructions "Transfer the request to the target Agent."
+      context_policy generated_policy
+    end
+    target_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "cg05-generated-history-target", version: 1
+      model IntegrationFactors::LM_MODEL_26
+      provider :openai
+      instructions "Finish the handed-off request."
+    end
+
+    source = source_class.new
+    target = target_class.new
+    handoff_policy = Phronomy::MultiAgent::HandoffPolicy.define do
+      required :current_request
+      selectable :history, default: :include
+      selectable :knowledge, default: :exclude
+      selectable :tool_exchanges, default: :exclude
+    end
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      policy: handoff_policy,
+      description: "Transfer to the target Agent"
+    )
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+
+    recorder = LLMStub.activate(responses: [
+      LLMStub.tool_call_response(
+        transport_name,
+        {responsibility: "Continue with the transferred Context"}
+      ),
+      "Completed by target."
+    ])
+
+    result = Phronomy::MultiAgent::Runner.new(
+      main_agent: source,
+      handoffs: [handoff]
+    ).invoke("Transfer this request")
+
+    expect(result[:agent]).to equal(target)
+    expect(result[:output]).to eq("Completed by target.")
+    expect(recorder.calls.length).to eq(2)
+    target_text = recorder.last_messages
+      .map { |message| message["content"] }
+      .compact
+      .join("\n")
+    expect(target_text).to include("POLICY_GENERATED_HISTORY_MARKER")
+  end
 end

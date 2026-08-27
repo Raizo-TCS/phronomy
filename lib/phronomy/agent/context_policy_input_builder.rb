@@ -26,7 +26,7 @@ module Phronomy
         conversation = []
 
         Array(candidates).each do |candidate|
-          case semantic_category(candidate.category)
+          case semantic_category(candidate)
           when :instruction
             instruction_items << instruction_item(candidate)
           when :knowledge
@@ -61,7 +61,18 @@ module Phronomy
 
       private
 
-      def semantic_category(kind)
+      def semantic_category(candidate)
+        explicit = candidate.metadata["context_policy_semantic_category"] ||
+          candidate.metadata[:context_policy_semantic_category]
+        if explicit
+          normalized = explicit.to_sym
+          return normalized if %i[instruction knowledge conversation].include?(normalized)
+
+          raise ArgumentError,
+            "unsupported Context Policy semantic category metadata: #{explicit.inspect}"
+        end
+
+        kind = candidate.category
         normalized = kind.to_sym
         return :instruction if normalized == :instruction || normalized == :handoff_responsibility
         return :knowledge if KNOWLEDGE_KINDS.include?(normalized)

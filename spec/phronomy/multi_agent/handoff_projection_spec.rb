@@ -334,4 +334,39 @@ RSpec.describe Phronomy::MultiAgent::HandoffProjection do
     expect(groups.length).to eq(1)
     expect(groups.values.first.fetch(:segments).map(&:position)).to eq([0, 1])
   end
+  it "classifies current-format semantic Conversation as Handoff history independently of kind" do
+    source = build_agent("projection-semantic-conversation-source")
+    target = build_agent("projection-semantic-conversation-target")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      policy: policy
+    )
+    content_ref = source.persistence.contents.put_text("APPLICATION_CONVERSATION_MARKER")
+    source_manifest = manifest(source.persistence, [
+      segment(
+        position: 0,
+        category: :application_note,
+        content_ref: content_ref,
+        metadata: {
+          "context_policy_semantic_category" => "conversation",
+          "context_policy_conversation_group_id" => "conversation:1:0"
+        }
+      )
+    ])
+
+    context = described_class.new.build(
+      request: request(handoff),
+      manifest: source_manifest,
+      persistence: source.persistence,
+      source_agent: source
+    )
+
+    expect(context.items.length).to eq(1)
+    expect(context.items.first.policy_category).to eq(:history)
+    expect(context.items.first.candidate_category).to eq(:application_note)
+    expect(context.items.first.content).to eq("APPLICATION_CONVERSATION_MARKER")
+    expect(context.items.first.metadata["context_policy_semantic_category"])
+      .to eq("conversation")
+  end
 end

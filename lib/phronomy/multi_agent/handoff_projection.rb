@@ -52,7 +52,7 @@ module Phronomy
           }
           if group[:policy_category] != policy_category
             raise Phronomy::HandoffError,
-              "one Selection unit spans incompatible Handoff policy categories"
+              "one Handoff projection group spans incompatible policy categories"
           end
           group[:segments] << segment
         end
@@ -64,6 +64,19 @@ module Phronomy
           segment.metadata[:handoff_policy_category]
         return explicit.to_sym if explicit
 
+        semantic_category =
+          segment.metadata["context_policy_semantic_category"] ||
+          segment.metadata[:context_policy_semantic_category]
+        case semantic_category&.to_sym
+        when :instruction
+          return nil
+        when :knowledge
+          return :knowledge
+        when :conversation
+          return :current_request if segment.delivery.to_sym == :ask_argument
+          return :history
+        end
+
         return :current_request if segment.delivery.to_sym == :ask_argument
         return nil if CONTROL_CATEGORIES.include?(segment.category.to_sym)
         return :knowledge if segment.category.to_sym == :knowledge
@@ -73,7 +86,7 @@ module Phronomy
 
         case segment.category.to_sym
         when :external_message, :assistant_message, :tool_message,
-             :memory, :summary, :structured_state
+             :conversation, :memory, :summary, :structured_state
           :history
         end
       end

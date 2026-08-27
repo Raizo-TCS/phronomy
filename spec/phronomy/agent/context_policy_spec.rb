@@ -280,6 +280,87 @@ RSpec.describe "Context Policy semantic API" do
     }.not_to raise_error
   end
 
+  it "rejects reserved kinds used through the wrong semantic item type" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = knowledge_item(
+          content: {
+            "role" => "assistant",
+            "content" => "wrong semantic category"
+          },
+          kind: :assistant_message
+        )
+        plan(instruction: input.instruction, knowledge: [generated])
+      end
+    end
+    policy_input = input
+    invalid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+    }.to raise_error(ArgumentError, /assistant_message.*conversation/)
+  end
+
+  it "allows Application-specific kinds inside their typed semantic category" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: "application-defined conversational material",
+          role: :user,
+          kind: :application_note
+        )
+        plan(instruction: input.instruction, conversation: [[generated]])
+      end
+    end
+    policy_input = input
+    valid = policy_class.new.call(policy_input)
+
+    expect {
+      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: valid)
+    }.not_to raise_error
+  end
+
+  it "records semantic category metadata when a ContextPlan is finalized" do
+    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+      def call(input)
+        generated = conversation_item(
+          content: "semantic-category-marker",
+          role: :user,
+          kind: :application_note
+        )
+        plan(instruction: input.instruction, conversation: [[generated]])
+      end
+    end
+    policy_input = input
+    selected_plan = policy_class.new.call(policy_input)
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "context-policy-semantic-metadata", version: 1
+    end
+    agent = agent_class.new
+    assembler = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: agent.persistence
+    )
+    prepared = Phronomy::Agent::ContextAssembler::Prepared.new(
+      input: policy_input,
+      plan: selected_plan,
+      model_config: {},
+      call_sequence: 1,
+      call_mode: :complete
+    )
+
+    manifest, = assembler.finalize(prepared)
+    generated_segment = manifest.segments.find do |segment|
+      segment.category.to_sym == :application_note
+    end
+
+    expect(generated_segment).not_to be_nil
+    expect(generated_segment.metadata["context_policy_semantic_category"])
+      .to eq("conversation")
+    expect(generated_segment.metadata["context_policy_conversation_group_id"])
+      .to eq("conversation:1:0")
+  end
+
   it "traces only the ContextPolicy invocation boundary by default" do
     events = []
     tracer = Object.new

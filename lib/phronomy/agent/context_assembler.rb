@@ -7,6 +7,7 @@ module Phronomy
       SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
       POLICY_ORIGIN_METADATA_KEY = "context_policy_origin"
       POLICY_ITEM_ID_METADATA_KEY = "context_policy_item_id"
+      SEMANTIC_CATEGORY_METADATA_KEY = "context_policy_semantic_category"
       CONVERSATION_GROUP_ID_METADATA_KEY = "context_policy_conversation_group_id"
       HANDOFF_POLICY_CATEGORY_METADATA_KEY = "handoff_policy_category"
       BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
@@ -215,13 +216,22 @@ module Phronomy
         plan = ContextPlanValidator.new.validate!(input: prepared.input, plan: prepared.plan)
         segments = []
         plan.instruction.each do |item|
-          segments << segment_from_content_item(item, persistence: persistence)
+          segments << segment_from_content_item(
+            item,
+            persistence: persistence,
+            additional_metadata: {SEMANTIC_CATEGORY_METADATA_KEY => "instruction"}
+          )
         end
         plan.knowledge.each do |item|
-          segments << segment_from_content_item(item, persistence: persistence)
+          segments << segment_from_content_item(
+            item,
+            persistence: persistence,
+            additional_metadata: {SEMANTIC_CATEGORY_METADATA_KEY => "knowledge"}
+          )
         end
         plan.conversation.each_with_index do |group, group_index|
           group_metadata = {
+            SEMANTIC_CATEGORY_METADATA_KEY => "conversation",
             CONVERSATION_GROUP_ID_METADATA_KEY =>
               "conversation:#{prepared.call_sequence}:#{group_index}"
           }

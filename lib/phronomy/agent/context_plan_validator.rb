@@ -3,6 +3,22 @@
 module Phronomy
   module Agent
     class ContextPlanValidator
+      RESERVED_KIND_CATEGORIES = {
+        instruction: :instruction,
+        handoff_responsibility: :instruction,
+        knowledge: :knowledge,
+        memory: :knowledge,
+        summary: :knowledge,
+        structured_state: :knowledge,
+        external_message: :conversation,
+        assistant_message: :conversation,
+        tool_message: :conversation,
+        current_input: :conversation,
+        current_request: :conversation,
+        conversation: :conversation,
+        tool_result: :conversation
+      }.freeze
+
       def validate!(input:, plan:)
         unless input.is_a?(ContextPolicyInput)
           raise ArgumentError, "ContextPlanValidator expected ContextPolicyInput"
@@ -47,6 +63,8 @@ module Phronomy
               "ContextPlan #{label} contains #{item.class}; expected #{item_class}"
           end
 
+          validate_semantic_kind!(item, label)
+
           source = input_by_id[item.id]
           if source
             unless source == item
@@ -80,6 +98,8 @@ module Phronomy
             raise ArgumentError, "ContextPlan conversation group contains a non-ConversationItem"
           end
 
+          group.each { |item| validate_semantic_kind!(item, :conversation) }
+
           ids = group.map(&:id)
           matching = input_by_group_ids[ids]
           if matching
@@ -111,6 +131,17 @@ module Phronomy
         raise Phronomy::ContextBudgetExceededError,
           "ContextPlan omitted required conversation group(s): " \
           "#{missing_groups.map { |group| group.map(&:id) }.inspect}"
+      end
+
+      def validate_semantic_kind!(item, semantic_category)
+        return unless item.respond_to?(:kind)
+
+        reserved_category = RESERVED_KIND_CATEGORIES[item.kind.to_sym]
+        return unless reserved_category && reserved_category != semantic_category
+
+        raise ArgumentError,
+          "ContextPlan #{semantic_category} item #{item.id.inspect} uses reserved " \
+          "#{item.kind.inspect} kind for #{reserved_category}"
       end
 
       def validate_generated_conversation_group!(group)
