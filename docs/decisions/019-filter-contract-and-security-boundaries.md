@@ -147,7 +147,7 @@ Current code uses `Filter::Base`, `FilterBlockError`, and explicit
 
 ### 8. Historical Guardrail documentation remains historical
 
-`spec/design/09_guardrails.md` records the removed Guardrail design. It is
+`docs/archive/design/archived/09_guardrails.md` records the removed Guardrail design. It is
 non-normative and is not rewritten into current Filter architecture.
 
 Its physical move to the repository archive is part of the final
@@ -167,6 +167,23 @@ This decision deliberately does not settle the broader Filter/Security Boundary 
 
 Those questions must not be smuggled into the current Filter contract by
 changing call-site semantics implicitly.
+
+## Follow-up security-boundary review
+
+The subsequent D02-F02 reconciliation review closed the Context-inspection
+question without broadening the Filter SPI:
+
+- no fourth `context_filter` / `add_context_filter` call site is added;
+- Application `ContextPolicy` is the semantic trust/selection authority for
+  one LLM Call's typed Context;
+- Framework validation remains structural/integrity validation rather than
+  arbitrary semantic filtering;
+- Tool approval remains authorization rather than sanitization or sandboxing;
+- OS/process/container/filesystem/network isolation remains an
+  Application/deployment concern.
+
+The current explanatory boundary is
+[`docs/architecture/security-boundaries.md`](../architecture/security-boundaries.md).
 
 ## Supersession
 

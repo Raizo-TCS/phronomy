@@ -141,6 +141,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 
 - [Getting started](docs/getting-started.md) — installation, RubyLLM setup, Agent/Workflow basics, persistence, streaming.
 - [Features and API stability](docs/features.md) — public feature matrix and stability labels.
+- [Architecture](docs/architecture.md) — canonical current explanatory architecture entry and authority navigation.
 - [Runtime and concurrency](docs/runtime-and-concurrency.md) — EventLoop, FSMSession, Task, OffloadPool, cancellation, observability.
 - [MCP client](docs/mcp-client.md) — Model Context Protocol (MCP) integration and supported schema subset.
 - [Migration from 0.15-era APIs](docs/migrations/0.15.md).

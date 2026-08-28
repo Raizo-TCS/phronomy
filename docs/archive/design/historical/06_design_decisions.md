@@ -1,3 +1,10 @@
+> **HISTORICAL / non-normative snapshot**
+>
+> Preserved as design history. This document does not define current Phronomy
+> architecture or public compatibility. Start at
+> [docs/architecture.md](../../../architecture.md) and the
+> [ADR index](../../../decisions/README.md).
+
 # Phronomy — Design Decision Log
 
 A record of design decisions and their rationale. Use this as a reference when revisiting decisions later.

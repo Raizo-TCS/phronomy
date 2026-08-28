@@ -1,3 +1,10 @@
+> **ARCHIVED / non-normative**
+>
+> This removed/obsolete design is retained only as historical reference. It is
+> not a current architecture or public-API contract. Start at
+> [docs/architecture.md](../../../architecture.md) and the
+> [ADR index](../../../decisions/README.md).
+
 # Phronomy — Public API Design
 
 > **ARCHIVED — Early Design Draft**
