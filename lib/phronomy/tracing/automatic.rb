@@ -54,6 +54,7 @@ module Phronomy
         end
         nil
       rescue => trace_error
+        # simplecov:disable
         report_failure(
           :finish,
           handle&.name || "unknown",
@@ -61,6 +62,7 @@ module Phronomy
           include_message: handle ? handle.trace_pii : false
         )
         nil
+        # simplecov:enable
       end
 
       def observe_task(task, name, input: nil, **metadata)
