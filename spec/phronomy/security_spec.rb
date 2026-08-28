@@ -304,13 +304,9 @@ RSpec.describe "Security specs (Issue #214)" do
   end
 
   # -------------------------------------------------------------------------
-  # Section 6: trace_pii: false redacts the agent-level input span (Issue #248)
-  #
-  # Extends Section 1 to verify that when trace_pii is false the agent span
-  # input never leaks any user-provided value — even when tools are involved
-  # in the same trace context.
+  # Section 6: trace_pii: false redacts Framework automatic Agent spans
   # -------------------------------------------------------------------------
-  describe "trace_pii: false — agent span redaction completeness" do
+  describe "trace_pii: false — automatic agent span redaction completeness" do
     before do
       Phronomy.configure do |c|
         c.tracer = recording_tracer
@@ -318,33 +314,28 @@ RSpec.describe "Security specs (Issue #214)" do
       end
     end
 
-    it "does not include any portion of the user input in the agent span" do
+    it "does not expose Agent input or output payload to the tracer" do
       sensitive_input = "my SSN is 123-45-6789"
+      sensitive_output = "customer SSN is 123-45-6789"
 
-      # Filter rejects the input so we never need a real LLM.
-      reject_all = Class.new(Phronomy::Filter::Base) do
-        def call(_input, **_ctx)
-          block!("always blocked")
-        end
-      end.new
+      handle = Phronomy::Tracing::Automatic.start(
+        "agent.execution",
+        input: sensitive_input,
+        agent_id: "test-agent-210",
+        execution_id: "execution-210",
+        mode: :invoke
+      )
+      Phronomy::Tracing::Automatic.finish(
+        handle,
+        output: sensitive_output
+      )
 
-      agent = Class.new(Phronomy::Agent::Base) {
-        agent_definition id: "test-agent-210", version: 1
-        model "test-model"
-      }.new
-      agent.add_input_filter(reject_all)
-
-      begin
-        agent.invoke(sensitive_input)
-      rescue Phronomy::FilterBlockError
-        # expected
-      end
-
-      agent_span = recorded_spans.find { |s| s[:name] == "agent.invoke" }
+      agent_span = recorded_spans.find { |s| s[:name] == "agent.execution" }
       expect(agent_span).not_to be_nil
-      # The input forwarded to the tracer must be [REDACTED], not the real value.
       expect(agent_span[:input]).to eq("[REDACTED]")
+      expect(agent_span[:output]).to eq("[REDACTED]")
       expect(agent_span[:input].to_s).not_to include("123-45-6789")
+      expect(agent_span[:output].to_s).not_to include("123-45-6789")
     end
   end
 

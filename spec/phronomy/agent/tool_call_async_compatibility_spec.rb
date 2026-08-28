@@ -6,9 +6,12 @@ RSpec.describe "Tool#call_async compatibility" do
   ToolCallStub = Struct.new(:id, :name, :arguments)
 
   def build_ready_invocation(tool:, arguments:, config: {})
+    agent_dbl = instance_double(Phronomy::Agent::Base)
+    allow(agent_dbl).to receive(:agent_id).and_return("test-agent")
+    allow(agent_dbl).to receive(:send).with(:_build_caller_meta, anything).and_return({})
     invocation = Phronomy::Agent::ToolInvocation.new(
       execution_id: "execution-1",
-      agent: instance_double(Phronomy::Agent::Base),
+      agent: agent_dbl,
       tool: tool,
       tool_call: ToolCallStub.new("call-1", tool.name, arguments),
       config: config

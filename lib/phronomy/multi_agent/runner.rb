@@ -19,6 +19,15 @@ module Phronomy
 
       # @api public
       def invoke(input, config: {})
+        trace_handle = Phronomy::Tracing::Automatic.start(
+          "multi_agent.turn",
+          input: input,
+          main_agent_id: @main_agent.agent_id,
+          **@main_agent.send(:_build_caller_meta, config)
+        )
+        result = nil
+        operation_error = nil
+
         @coordinator = Coordinator.attach(
           main_agent: @main_agent,
           handoffs: @handoffs
@@ -28,11 +37,11 @@ module Phronomy
         handoffs_taken = 0
         current_input = input
 
-        loop do
+        result = loop do
           state = @coordinator.snapshot
           active_agent = state.active_agent
           bindings = @coordinator.outgoing_bindings(active_agent)
-          result = active_agent.invoke(
+          agent_result = active_agent.invoke(
             current_input,
             config: config.merge(
               phronomy_handoff_bindings: bindings,
@@ -40,15 +49,15 @@ module Phronomy
             )
           )
 
-          request = result[:handoff_request]
-          return public_result(result, active_agent) unless request
+          request = agent_result[:handoff_request]
+          break public_result(agent_result, active_agent) unless request
 
           if handoffs_taken >= MAX_HANDOFFS
             raise Phronomy::HandoffError,
               "Exceeded maximum Handoffs (#{MAX_HANDOFFS}) in one user turn"
           end
 
-          manifest = result.fetch(:_phronomy_handoff_manifest)
+          manifest = agent_result.fetch(:_phronomy_handoff_manifest)
           context = HandoffProjection.new.build(
             request: request,
             manifest: manifest,
@@ -59,8 +68,22 @@ module Phronomy
           current_input = request.responsibility
           handoffs_taken += 1
         end
+        result
+      rescue => error
+        operation_error = error
+        raise
       ensure
         runtime&.__release_multi_agent(@coordinator) if defined?(@coordinator)
+        trace_output = if result.is_a?(Hash)
+          result[:output] || result["output"]
+        else
+          result
+        end
+        Phronomy::Tracing::Automatic.finish(
+          trace_handle,
+          output: trace_output,
+          error: operation_error
+        )
       end
 
       private

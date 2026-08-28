@@ -241,8 +241,19 @@ module Phronomy
           return self
         end
 
+        trace_handle = nil
         case @tool.class.execution_mode
         when :cooperative, :offloaded
+          trace_handle = Phronomy::Tracing::Automatic.start(
+            "tool.execute",
+            input: @arguments || @raw_arguments,
+            agent_id: @agent.agent_id,
+            execution_id: @execution_id,
+            tool_invocation_id: @id,
+            tool_call_id: @tool_call_id,
+            tool_name: @tool_name,
+            **@agent.send(:_build_caller_meta, @config)
+          )
           operation = start_async_tool_operation(runtime)
           unless operation.respond_to?(:on_complete)
             raise Phronomy::ToolError,
@@ -253,6 +264,11 @@ module Phronomy
           evaluator = self.class
           tool_invocation_id = @id.to_s.freeze
           operation.on_complete do |result, error|
+            Phronomy::Tracing::Automatic.finish(
+              trace_handle,
+              output: result,
+              error: error
+            )
             callback.call(
               evaluator.send(:build_execution_outcome, tool_invocation_id, result, error)
             )
@@ -267,6 +283,7 @@ module Phronomy
         end
         self
       rescue => error
+        Phronomy::Tracing::Automatic.finish(trace_handle, error: error)
         callback.call(
           self.class.send(:build_execution_outcome, @id.to_s, nil, error)
         )

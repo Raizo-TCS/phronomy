@@ -251,7 +251,6 @@
       "redaction_policy",
       "task_id",
       "token_budget",
-      "tracer_span",
       "user_id"
     ],
     "public_class_methods": []

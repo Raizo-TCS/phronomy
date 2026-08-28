@@ -298,7 +298,7 @@ module Phronomy
         agent, runtime, event_sink, invocation, projection,
         streaming:, replace_messages:
       )
-        call_context = nil
+        call_context = trace_handle = nil
         config = invocation.config
         agent.send(:check_cancellation!, config, "invocation cancelled before LLM call")
         if replace_messages
@@ -319,6 +319,16 @@ module Phronomy
         )
         message = projection.ask_message
         chat = invocation.chat
+        trace_handle = Phronomy::Tracing::Automatic.start(
+          "llm.call",
+          input: message,
+          agent_id: agent.agent_id,
+          execution_id: invocation.execution_id,
+          llm_call_id: call_context.fetch(:llm_call_id),
+          mode: invocation.mode,
+          streaming: streaming,
+          **agent.send(:_build_caller_meta, config)
+        )
 
         operation = if streaming
           Phronomy.configuration.llm_adapter.stream_async(
@@ -345,9 +355,11 @@ module Phronomy
           operation,
           event_sink,
           call_context,
+          trace_handle,
           streaming: streaming
         )
       rescue => error
+        finish_provider_trace(trace_handle, nil, error)
         if call_context
           post_llm_result(
             event_sink,
@@ -362,8 +374,15 @@ module Phronomy
       end
       private_class_method :start_provider_call
 
-      def self.observe_manifest_call(operation, event_sink, call_context, streaming:)
+      def self.observe_manifest_call(
+        operation,
+        event_sink,
+        call_context,
+        trace_handle,
+        streaming:
+      )
         operation.on_complete do |response, error|
+          finish_provider_trace(trace_handle, response, error)
           post_llm_result(
             event_sink,
             call_context,
@@ -374,6 +393,24 @@ module Phronomy
         end
       end
       private_class_method :observe_manifest_call
+
+      def self.finish_provider_trace(trace_handle, response, error)
+        control_transfer = error.is_a?(ToolCallIntercepted)
+        trace_output = control_transfer ?
+          (error.assistant_outcome || error.assistant_message) : response
+        trace_error = control_transfer ? nil : error
+        usage_source = control_transfer ? error.assistant_message : response
+        usage = if usage_source&.respond_to?(:tokens)
+          Phronomy::TokenUsage.from_tokens(usage_source.tokens)
+        end
+        Phronomy::Tracing::Automatic.finish(
+          trace_handle,
+          output: trace_output,
+          usage: usage,
+          error: trace_error
+        )
+      end
+      private_class_method :finish_provider_trace
 
       def self.post_llm_result(event_sink, call_context, response, error, streaming:)
         result = LLMOperationResult.new(

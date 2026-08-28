@@ -19,10 +19,10 @@ module Phronomy
     # and must protect mutable shared state they own.
     #
     # This contract does not guarantee a particular OS thread, EventLoop,
-    # OffloadPool worker, or async-context affinity. It also does not promise
-    # that every LLM, Tool, Workflow, or child-Agent operation automatically
-    # creates a distinct span. Automatic coverage and correlation semantics are
-    # separate architecture concerns.
+    # OffloadPool worker, or async-context affinity. Framework-owned automatic
+    # instrumentation uses this same start_span / finish_span SPI for a small
+    # set of logical operations. Phronomy guarantees portable semantic
+    # correlation metadata, not one backend-native parent/child span tree.
     class Base
       # Wraps a block in a span. Yields the span to the block.
       # Calls #finish_span with the output on success or with the error on failure.
