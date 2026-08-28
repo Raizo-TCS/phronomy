@@ -12,6 +12,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+---
+
+## [0.23.0] - 2026-08-29
+
 ### Four-category Context Policy SPI and transaction boundary (ACS-04)
 
 #### Added
