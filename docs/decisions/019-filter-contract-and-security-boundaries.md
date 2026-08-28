@@ -153,9 +153,10 @@ non-normative and is not rewritten into current Filter architecture.
 The physical move to the repository archive was completed by ACS-02
 (canonical architecture documentation lifecycle migration).
 
-### 9. Deferred security-boundary questions remain deferred
+### 9. Security-boundary questions deferred at ADR acceptance
 
-This decision deliberately does not settle the broader Filter/Security Boundary review, including:
+At the time this ADR was accepted, this decision deliberately did not
+settle the broader Filter/Security Boundary review, including:
 
 - whether and where all untrusted Context candidates require inspection;
 - whether a dedicated pre-Manifest Context inspection stage is needed;
