@@ -145,19 +145,18 @@ output_guardrail
 Current code uses `Filter::Base`, `FilterBlockError`, and explicit
 `*_filter` registration APIs.
 
-### 8. Historical Guardrail documentation remains historical
+### 8. Historical Guardrail documentation
 
-`spec/design/09_guardrails.md` records the removed Guardrail design. It is
+`docs/archive/design/archived/09_guardrails.md` records the removed Guardrail design. It is
 non-normative and is not rewritten into current Filter architecture.
 
-Its physical move to the repository archive is part of the final
-documentation-lifecycle migration. Until that move, the file must carry an
-explicit ARCHIVED/non-normative notice so retrieval does not mistake it for
-current architecture.
+The physical move to the repository archive was completed by ACS-02
+(canonical architecture documentation lifecycle migration).
 
-### 9. Deferred security-boundary questions remain deferred
+### 9. Security-boundary questions deferred at ADR acceptance
 
-This decision deliberately does not settle the broader Filter/Security Boundary review, including:
+At the time this ADR was accepted, this decision deliberately did not
+settle the broader Filter/Security Boundary review, including:
 
 - whether and where all untrusted Context candidates require inspection;
 - whether a dedicated pre-Manifest Context inspection stage is needed;
@@ -167,6 +166,23 @@ This decision deliberately does not settle the broader Filter/Security Boundary 
 
 Those questions must not be smuggled into the current Filter contract by
 changing call-site semantics implicitly.
+
+## Follow-up security-boundary review
+
+The subsequent D02-F02 reconciliation review closed the Context-inspection
+question without broadening the Filter SPI:
+
+- no fourth `context_filter` / `add_context_filter` call site is added;
+- Application `ContextPolicy` is the semantic trust/selection authority for
+  one LLM Call's typed Context;
+- Framework validation remains structural/integrity validation rather than
+  arbitrary semantic filtering;
+- Tool approval remains authorization rather than sanitization or sandboxing;
+- OS/process/container/filesystem/network isolation remains an
+  Application/deployment concern.
+
+The current explanatory boundary is
+[`docs/architecture/security-boundaries.md`](../architecture/security-boundaries.md).
 
 ## Supersession
 
@@ -192,8 +208,6 @@ policy and its later prompt-injection exception.
 
 ### Trade-offs
 
-- historical documentation continues to contain old Guardrail names until the
-  documentation archive migration physically moves it;
 - applications needing PII/domain policy continue to supply that policy
   themselves; and
 - the built-in PromptInjectionFilter remains intentionally modest rather than

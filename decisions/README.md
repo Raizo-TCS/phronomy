@@ -64,10 +64,10 @@ resolved explicitly.
 | [`013-journal-backed-knowledge-as-context-candidates`](013-journal-backed-knowledge-as-context-candidates.md) | Accepted | Yes | Current persistent Knowledge authority. |
 | [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md) | Accepted | Yes | Durable-backend and live-owner/no-reload intent remains current; live Agent execution mutation is refined by ADR-024, same-process Agent identity/admission ownership by ADR-025, and same-process Workflow admission/terminal-barrier ordering by ADR-026. Workflow identity terminology is superseded by ADR-020, generic `InvocationContext` / Agent correlation semantics by ADR-021, and concrete FSMSession/Agent-Tool routing identity by ADR-023. |
 | [`015-tool-public-facade-and-rbs-boundary`](015-tool-public-facade-and-rbs-boundary.md) | Accepted | Yes | Current Tool façade / extension-SPI / RBS boundary. |
-| [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Accepted | Yes | Current Handoff intent; implementation reconciliation may remain open without changing this status silently. |
+| [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Accepted | Yes | Current semantic Handoff intent; runtime/context-transfer reconciliation is implemented and reflected in current architecture documentation. |
 | [`017-design-authority-and-adr-governance`](017-design-authority-and-adr-governance.md) | Accepted | Yes | Repository-wide architecture authority and ADR governance. |
 | [`018-durability-guarantees-and-failure-model`](018-durability-guarantees-and-failure-model.md) | Accepted | Yes | Repository-wide durability/concurrency/external-effect guarantee vocabulary and F0-F4/X0 failure model. |
-| [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block contract, bounded PromptInjectionFilter baseline, and security/isolation negative boundaries; supersedes ADR-006. |
+| [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block and bounded PromptInjectionFilter/isolation boundaries; the follow-up review adds no fourth Context Filter call site and places semantic Context trust in Application ContextPolicy. |
 | [`020-canonical-workflow-instance-identity`](020-canonical-workflow-instance-identity.md) | Accepted | Yes | Canonical logical/durable Workflow identity and CG-01 clean-break migration. |
 | [`021-generic-agent-invocation-identity-removal`](021-generic-agent-invocation-identity-removal.md) | Accepted | Yes | Removes generic Agent/InvocationContext identity and canonical Journal `correlation_id`; CG-02 is closed, with targeted legacy durable-key read compatibility and no eager rewrite. |
 | [`022-agent-execution-parent-identity-and-runtime-routing-boundary`](022-agent-execution-parent-identity-and-runtime-routing-boundary.md) | Accepted | Yes | Canonicalizes Agent-owned Tool/approval logical parent as `execution_id`; CG-03a is reconciled, ADR-023 supplies incarnation routing, and ADR-024 supplies EventLoop result/live-state authority. |
@@ -164,7 +164,8 @@ documentation as if they were normative decisions.
 ADRs record normative decisions. Explanatory architecture documents describe
 the current reconciled system but do not supersede ADRs merely by being newer.
 
-The final current/non-current documentation layout is handled separately by the
-architecture-documentation migration work. Until that migration is complete,
-files under legacy `spec/design/` must not be assumed to be normative solely
-because they exist in the repository.
+Current explanatory architecture starts at
+[`docs/architecture.md`](../architecture.md). Non-current design snapshots are
+segregated under `docs/archive/design/` and are non-normative. Explanatory
+architecture documents describe the reconciled current system but do not
+supersede ADRs merely by being newer.
