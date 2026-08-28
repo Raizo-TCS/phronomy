@@ -144,12 +144,12 @@ RSpec.describe "EventLoop-first architecture regression guards" do
 
   it "keeps the Unreleased changelog migration direction correct" do
     changelog = File.read(File.expand_path("../../CHANGELOG.md", __dir__))
-    unreleased = changelog
-      .split("## [Unreleased]", 2)
+    released = changelog
+      .split("## [0.23.0]", 2)
       .fetch(1)
-      .split("\n---", 2)
+      .split("## [0.16.0]", 2)
       .first
-    offload = unreleased
+    offload = released
       .split("### OffloadPool execution model", 2)
       .fetch(1)
       .split("### EventLoop-first runtime cleanup", 2)
