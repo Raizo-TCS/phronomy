@@ -20,7 +20,7 @@ module Phronomy
   #
   # @api public
   class InvocationContext
-    attr_reader :user_id, :cancellation_token, :deadline, :tracer_span,
+    attr_reader :user_id, :cancellation_token, :deadline,
       :token_budget, :approval_policy, :redaction_policy, :task_id,
       :parent_task_id
 
@@ -29,7 +29,6 @@ module Phronomy
       user_id: nil,
       cancellation_token: nil,
       deadline: nil,
-      tracer_span: nil,
       token_budget: nil,
       approval_policy: nil,
       redaction_policy: nil,
@@ -39,7 +38,6 @@ module Phronomy
       @user_id = user_id
       @cancellation_token = cancellation_token
       @deadline = deadline
-      @tracer_span = tracer_span
       @token_budget = token_budget
       @approval_policy = approval_policy
       @redaction_policy = redaction_policy
@@ -53,7 +51,6 @@ module Phronomy
         user_id: overrides.fetch(:user_id, @user_id),
         cancellation_token: overrides.fetch(:cancellation_token, @cancellation_token),
         deadline: overrides.fetch(:deadline, @deadline),
-        tracer_span: overrides.fetch(:tracer_span, @tracer_span),
         token_budget: overrides.fetch(:token_budget, @token_budget),
         approval_policy: overrides.fetch(:approval_policy, @approval_policy),
         redaction_policy: overrides.fetch(:redaction_policy, @redaction_policy),

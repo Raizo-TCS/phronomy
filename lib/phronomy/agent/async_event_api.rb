@@ -22,15 +22,12 @@ module Phronomy
         _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
         config = _prepare_invocation_config(config, invocation_context)
         _check_event_loop_reentrancy(:invoke, :invoke_async)
-        trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          result = _start_agent_operation(
-            input,
-            config: config,
-            mode: :invoke,
-            listener: _phronomy_event_listener
-          ).wait_result
-          [result, result[:usage]]
-        end
+        _start_agent_operation(
+          input,
+          config: config,
+          mode: :invoke,
+          listener: _phronomy_event_listener
+        ).wait_result
       end
 
       def invoke_async(
@@ -61,15 +58,12 @@ module Phronomy
         listener = _required_stream_listener!(:stream)
         config = _prepare_invocation_config(config, invocation_context)
         _check_event_loop_reentrancy(:stream, :stream_async)
-        trace("agent.stream", input: input, **_build_caller_meta(config)) do |_span|
-          result = _start_agent_operation(
-            input,
-            config: config,
-            mode: :stream,
-            listener: listener
-          ).wait_result
-          [result, result[:usage]]
-        end
+        _start_agent_operation(
+          input,
+          config: config,
+          mode: :stream,
+          listener: listener
+        ).wait_result
       end
 
       def stream_async(

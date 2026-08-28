@@ -102,14 +102,7 @@ module Phronomy
 
     def invoke(input, config: {})
       ensure_blocking_call_allowed!(:invoke, :invoke_async)
-      caller_meta = {}
-      caller_meta[:user_id] = config[:user_id] if config[:user_id]
-      caller_meta[:session_id] = config[:session_id] if config[:session_id]
-
-      trace("workflow.invoke", input: input.inspect, **caller_meta) do |_span|
-        result = start_new_execution(input, config).wait_result
-        [result, nil]
-      end
+      start_new_execution(input, config).wait_result
     end
 
     def invoke_deferred(input, config: {})
@@ -189,6 +182,19 @@ module Phronomy
 
     private
 
+    def workflow_trace_metadata(config)
+      metadata = {}
+      metadata[:user_id] = config[:user_id] if config[:user_id]
+      metadata[:session_id] = config[:session_id] if config[:session_id]
+      if (invocation_context = config[:invocation_context])
+        metadata[:task_id] = invocation_context.task_id if invocation_context.task_id
+        if invocation_context.parent_task_id
+          metadata[:parent_task_id] = invocation_context.parent_task_id
+        end
+      end
+      metadata
+    end
+
     # CG-01 is a clean break. Reject the removed Workflow config key instead of
     # silently generating a new Workflow identity and branching durable history.
     # This is a migration error path, not a compatibility alias.
@@ -213,6 +219,14 @@ module Phronomy
       result_task = Phronomy::Task.deferred(name: "workflow:preparing")
       explicit_workflow_instance_id = !config[:workflow_instance_id].nil?
       workflow_instance_id = (config[:workflow_instance_id] || SecureRandom.uuid).to_s.freeze
+      Phronomy::Tracing::Automatic.observe_task(
+        result_task,
+        "workflow.execution",
+        input: input,
+        workflow_instance_id: workflow_instance_id,
+        mode: stable_observer ? :stream : :invoke,
+        **workflow_trace_metadata(config)
+      )
       command = StartCommand.new(
         runner: self,
         input: input,
@@ -234,6 +248,14 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       workflow_instance_id = state.workflow_instance_id.to_s.freeze
       result_task = Phronomy::Task.deferred(name: "workflow-resume:#{workflow_instance_id}")
+      Phronomy::Tracing::Automatic.observe_task(
+        result_task,
+        "workflow.execution",
+        input: input,
+        workflow_instance_id: workflow_instance_id,
+        mode: :resume,
+        event: event_name
+      )
       command = ResumeCommand.new(
         runner: self,
         state: state,

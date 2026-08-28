@@ -198,10 +198,10 @@ RSpec.describe "Agent streaming" do
     end
 
     [StreamingBasicAgent, StreamingReactAgent].each do |klass|
-      it "creates a span named agent.stream for #{klass}" do
+      it "creates a span named agent.execution for #{klass}" do
         klass.new(on_event: ->(_event) {}).stream("hello")
         expect(recording_tracer.spans.map { |span| span[:name] })
-          .to include("agent.stream")
+          .to include("agent.execution")
       end
     end
   end

@@ -297,6 +297,20 @@ module Phronomy
           # simplecov:enable
         end
 
+        def observe_recovery_execution(task, execution)
+          Phronomy::Tracing::Automatic.observe_task(
+            task,
+            "agent.execution",
+            agent_id: agent.agent_id,
+            execution_id: execution.execution_id,
+            mode: (
+              execution.metadata[
+                RecoverySupport::INVOCATION_MODE_KEY
+              ] || "invoke"
+            ).to_sym
+          )
+        end
+
         def continue_resumable_on_event_loop(
           execution,
           invocation,
@@ -320,6 +334,7 @@ module Phronomy
             internal_task = Phronomy::Task.deferred(
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
+            observe_recovery_execution(internal_task, execution)
             event_loop.mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
@@ -337,6 +352,7 @@ module Phronomy
             internal_task = Phronomy::Task.deferred(
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
+            observe_recovery_execution(internal_task, execution)
             event_loop.mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
@@ -359,6 +375,7 @@ module Phronomy
             internal_task = Phronomy::Task.deferred(
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
+            observe_recovery_execution(internal_task, execution)
             event_loop.mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
@@ -385,6 +402,7 @@ module Phronomy
             internal_task = Phronomy::Task.deferred(
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
+            observe_recovery_execution(internal_task, execution)
             state = event_loop.agent_execution_state(
               execution.execution_id
             )

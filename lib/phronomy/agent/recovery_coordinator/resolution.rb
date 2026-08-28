@@ -533,6 +533,7 @@ module Phronomy
               }.freeze
             )
           when :provider_completed
+            observe_recovery_execution(request.completion, result.execution)
             continue_provider_completed_after_resolution(
               event_loop,
               state,
@@ -540,6 +541,7 @@ module Phronomy
               request.completion
             )
           when :tools_completed
+            observe_recovery_execution(request.completion, result.execution)
             continue_tools_completed_after_resolution(
               event_loop,
               state,
@@ -547,6 +549,7 @@ module Phronomy
               request.completion
             )
           when :failed_terminal
+            observe_recovery_execution(request.completion, result.execution)
             continue_failed_after_resolution(
               event_loop,
               state,

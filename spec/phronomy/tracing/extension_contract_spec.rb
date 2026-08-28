@@ -8,17 +8,17 @@ RSpec.describe "Tracing extension contract (ACS-05)" do
 
   after { Phronomy.reset_configuration! }
 
-  it "documents shared/concurrent use without claiming automatic span coverage" do
+  it "documents shared/concurrent use and the small automatic coverage boundary" do
     source = File.read(File.join(root, "lib/phronomy/tracing/base.rb"))
 
     expect(source).not_to include("Chain and Agent")
     expect(source).to include("may therefore be entered concurrently")
     expect(source).to include("must not assume exclusive single-operation use")
     expect(source).to include("does not guarantee a particular OS thread")
-    expect(source).to include("does not promise")
-    expect(source).to include(
-      "Automatic coverage and correlation semantics are"
-    )
+    expect(source).to include("Framework-owned automatic")
+    expect(source).to include("small")
+    expect(source).to include("portable semantic")
+    expect(source).to include("backend-native parent/child")
   end
 
   it "allows the same configured custom tracer instance to receive overlapping calls" do

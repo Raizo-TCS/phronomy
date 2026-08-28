@@ -822,6 +822,15 @@ module Phronomy
       def register_initial_session_on_event_loop(request, prepared)
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
+        Phronomy::Tracing::Automatic.observe_task(
+          request.result_task,
+          "agent.execution",
+          input: request.input,
+          agent_id: @agent.agent_id,
+          execution_id: prepared.execution.execution_id,
+          mode: request.mode,
+          **@agent.send(:_build_caller_meta, prepared.config)
+        )
         effective_config = prepared.config.merge(
           phronomy_execution_coordinator: self,
           phronomy_runtime_projection: prepared.runtime_projection,
@@ -1517,6 +1526,22 @@ module Phronomy
         event_loop.register_agent_completion_waiter(
           operation.execution_id,
           request.result_task
+        )
+        trace_config = state.invocation ?
+          state.invocation.config.merge(request.config) : request.config
+        trace_mode = state.invocation&.mode ||
+          (
+            ready.result.execution.metadata[
+              RecoverySupport::INVOCATION_MODE_KEY
+            ] || "invoke"
+          ).to_sym
+        Phronomy::Tracing::Automatic.observe_task(
+          request.result_task,
+          "agent.execution",
+          agent_id: @agent.agent_id,
+          execution_id: operation.execution_id,
+          mode: trace_mode,
+          **@agent.send(:_build_caller_meta, trace_config)
         )
         start_resume_on_event_loop(
           operation.execution_id,
