@@ -325,18 +325,18 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+87
+88
+89
+90
+91
+92
 93
 94
-95
-96
-97
-98
-99
-100
-101</pre>
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 93</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 87</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:approve</span><span class='comma'>,</span> <span class='symbol'>:approve_async</span><span class='rparen'>)</span>
@@ -367,6 +367,12 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+97
+98
+99
+100
+101
+102
 103
 104
 105
@@ -375,16 +381,10 @@ listeners or listener blocks;</li>
 108
 109
 110
-111
-112
-113
-114
-115
-116
-117</pre>
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 103</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__reject_removed_generic_identity_keys!'>_reject_removed_generic_identity_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -437,10 +437,7 @@ listeners or listener blocks;</li>
 28
 29
 30
-31
-32
-33
-34</pre>
+31</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 15</span>
@@ -455,15 +452,12 @@ listeners or listener blocks;</li>
   <span class='id identifier rubyid__reject_removed_invocation_listener_arguments!'>_reject_removed_invocation_listener_arguments!</span><span class='lparen'>(</span><span class='id identifier rubyid_removed_options'>removed_options</span><span class='comma'>,</span> <span class='id identifier rubyid_removed_block'>removed_block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__prepare_invocation_config'>_prepare_invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-      <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
-      <span class='label'>listener:</span> <span class='id identifier rubyid__phronomy_event_listener'>_phronomy_event_listener</span>
-    <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
-    <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
+    <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
+    <span class='label'>listener:</span> <span class='id identifier rubyid__phronomy_event_listener'>_phronomy_event_listener</span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -485,6 +479,9 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+33
+34
+35
 36
 37
 38
@@ -497,13 +494,10 @@ listeners or listener blocks;</li>
 45
 46
 47
-48
-49
-50
-51</pre>
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -541,6 +535,12 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+113
+114
+115
+116
+117
+118
 119
 120
 121
@@ -552,16 +552,10 @@ listeners or listener blocks;</li>
 127
 128
 129
-130
-131
-132
-133
-134
-135
-136</pre>
+130</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 119</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -601,6 +595,12 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+132
+133
+134
+135
+136
+137
 138
 139
 140
@@ -611,16 +611,10 @@ listeners or listener blocks;</li>
 145
 146
 147
-148
-149
-150
-151
-152
-153
-154</pre>
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 132</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve_async'>resolve_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -659,6 +653,9 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+50
+51
+52
 53
 54
 55
@@ -673,16 +670,10 @@ listeners or listener blocks;</li>
 64
 65
 66
-67
-68
-69
-70
-71
-72
-73</pre>
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -695,15 +686,12 @@ listeners or listener blocks;</li>
   <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid__required_stream_listener!'>_required_stream_listener!</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__prepare_invocation_config'>_prepare_invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='comma'>,</span> <span class='symbol'>:stream_async</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.stream</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-      <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='label'>mode:</span> <span class='symbol'>:stream</span><span class='comma'>,</span>
-      <span class='label'>listener:</span> <span class='id identifier rubyid_listener'>listener</span>
-    <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
-    <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid__start_agent_operation'>_start_agent_operation</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
+    <span class='label'>mode:</span> <span class='symbol'>:stream</span><span class='comma'>,</span>
+    <span class='label'>listener:</span> <span class='id identifier rubyid_listener'>listener</span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -725,6 +713,12 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
+69
+70
+71
+72
+73
+74
 75
 76
 77
@@ -735,16 +729,10 @@ listeners or listener blocks;</li>
 82
 83
 84
-85
-86
-87
-88
-89
-90
-91</pre>
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -773,7 +761,7 @@ listeners or listener blocks;</li>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 27 13:28:33 2026 by
+  Generated on Fri Aug 28 01:45:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

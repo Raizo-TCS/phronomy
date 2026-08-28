@@ -455,12 +455,44 @@
 61
 62
 63
-64</pre>
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/runner.rb', line 21</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_trace_handle'>trace_handle</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tracing/Automatic.html" title="Phronomy::Tracing::Automatic (module)">Automatic</a></span></span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="../Tracing/Automatic.html#start-class_method" title="Phronomy::Tracing::Automatic.start (method)">start</a></span></span><span class='lparen'>(</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>multi_agent.turn</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+    <span class='label'>main_agent_id:</span> <span class='ivar'>@main_agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+    <span class='op'>**</span><span class='ivar'>@main_agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_build_caller_meta</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_operation_error'>operation_error</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
   <span class='ivar'>@coordinator</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Coordinator.html" title="Phronomy::MultiAgent::Coordinator (class)">Coordinator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_attach'><span class='object_link'><a href="Coordinator.html#attach-class_method" title="Phronomy::MultiAgent::Coordinator.attach (method)">attach</a></span></span><span class='lparen'>(</span>
     <span class='label'>main_agent:</span> <span class='ivar'>@main_agent</span><span class='comma'>,</span>
     <span class='label'>handoffs:</span> <span class='ivar'>@handoffs</span>
@@ -470,11 +502,11 @@
   <span class='id identifier rubyid_handoffs_taken'>handoffs_taken</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='id identifier rubyid_current_input'>current_input</span> <span class='op'>=</span> <span class='id identifier rubyid_input'>input</span>
 
-  <span class='id identifier rubyid_loop'>loop</span> <span class='kw'>do</span>
+  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_loop'>loop</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='ivar'>@coordinator</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'>snapshot</span>
     <span class='id identifier rubyid_active_agent'>active_agent</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_active_agent'>active_agent</span>
     <span class='id identifier rubyid_bindings'>bindings</span> <span class='op'>=</span> <span class='ivar'>@coordinator</span><span class='period'>.</span><span class='id identifier rubyid_outgoing_bindings'>outgoing_bindings</span><span class='lparen'>(</span><span class='id identifier rubyid_active_agent'>active_agent</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_active_agent'>active_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_agent_result'>agent_result</span> <span class='op'>=</span> <span class='id identifier rubyid_active_agent'>active_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
       <span class='id identifier rubyid_current_input'>current_input</span><span class='comma'>,</span>
       <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span>
         <span class='label'>phronomy_handoff_bindings:</span> <span class='id identifier rubyid_bindings'>bindings</span><span class='comma'>,</span>
@@ -482,15 +514,15 @@
       <span class='rparen'>)</span>
     <span class='rparen'>)</span>
 
-    <span class='id identifier rubyid_request'>request</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:handoff_request</span><span class='rbracket'>]</span>
-    <span class='kw'>return</span> <span class='id identifier rubyid_public_result'>public_result</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_active_agent'>active_agent</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_request'>request</span>
+    <span class='id identifier rubyid_request'>request</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_result'>agent_result</span><span class='lbracket'>[</span><span class='symbol'>:handoff_request</span><span class='rbracket'>]</span>
+    <span class='kw'>break</span> <span class='id identifier rubyid_public_result'>public_result</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_result'>agent_result</span><span class='comma'>,</span> <span class='id identifier rubyid_active_agent'>active_agent</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_request'>request</span>
 
     <span class='kw'>if</span> <span class='id identifier rubyid_handoffs_taken'>handoffs_taken</span> <span class='op'>&gt;=</span> <span class='const'><span class='object_link'><a href="#MAX_HANDOFFS-constant" title="Phronomy::MultiAgent::Runner::MAX_HANDOFFS (constant)">MAX_HANDOFFS</a></span></span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../HandoffError.html" title="Phronomy::HandoffError (class)">HandoffError</a></span></span><span class='comma'>,</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Exceeded maximum Handoffs (</span><span class='embexpr_beg'>#{</span><span class='const'><span class='object_link'><a href="#MAX_HANDOFFS-constant" title="Phronomy::MultiAgent::Runner::MAX_HANDOFFS (constant)">MAX_HANDOFFS</a></span></span><span class='embexpr_end'>}</span><span class='tstring_content'>) in one user turn</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
 
-    <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:_phronomy_handoff_manifest</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_result'>agent_result</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:_phronomy_handoff_manifest</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="HandoffProjection.html" title="Phronomy::MultiAgent::HandoffProjection (class)">HandoffProjection</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="HandoffProjection.html#build-instance_method" title="Phronomy::MultiAgent::HandoffProjection#build (method)">build</a></span></span><span class='lparen'>(</span>
       <span class='label'>request:</span> <span class='id identifier rubyid_request'>request</span><span class='comma'>,</span>
       <span class='label'>manifest:</span> <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span>
@@ -501,8 +533,22 @@
     <span class='id identifier rubyid_current_input'>current_input</span> <span class='op'>=</span> <span class='id identifier rubyid_request'>request</span><span class='period'>.</span><span class='id identifier rubyid_responsibility'>responsibility</span>
     <span class='id identifier rubyid_handoffs_taken'>handoffs_taken</span> <span class='op'>+=</span> <span class='int'>1</span>
   <span class='kw'>end</span>
+  <span class='id identifier rubyid_result'>result</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_operation_error'>operation_error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>ensure</span>
   <span class='id identifier rubyid_runtime'>runtime</span><span class='op'>&amp;.</span><span class='id identifier rubyid___release_multi_agent'>__release_multi_agent</span><span class='lparen'>(</span><span class='ivar'>@coordinator</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='kw'>defined?</span><span class='lparen'>(</span><span class='ivar'>@coordinator</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_trace_output'>trace_output</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>output</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+  <span class='kw'>else</span>
+    <span class='id identifier rubyid_result'>result</span>
+  <span class='kw'>end</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tracing/Automatic.html" title="Phronomy::Tracing::Automatic (module)">Automatic</a></span></span><span class='period'>.</span><span class='id identifier rubyid_finish'><span class='object_link'><a href="../Tracing/Automatic.html#finish-class_method" title="Phronomy::Tracing::Automatic.finish (method)">finish</a></span></span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_trace_handle'>trace_handle</span><span class='comma'>,</span>
+    <span class='label'>output:</span> <span class='id identifier rubyid_trace_output'>trace_output</span><span class='comma'>,</span>
+    <span class='label'>error:</span> <span class='id identifier rubyid_operation_error'>operation_error</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -514,7 +560,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 27 13:28:35 2026 by
+  Generated on Fri Aug 28 01:45:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

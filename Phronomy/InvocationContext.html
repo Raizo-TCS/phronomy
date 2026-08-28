@@ -330,33 +330,6 @@ metadata instead.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#tracer_span-instance_method" title="#tracer_span (instance method)">#<strong>tracer_span</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#user_id-instance_method" title="#user_id (instance method)">#<strong>user_id</strong>  &#x21d2; Object </a>
     
 
@@ -441,7 +414,7 @@ metadata instead.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(user_id: nil, cancellation_token: nil, deadline: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
     
 
     
@@ -494,7 +467,7 @@ metadata instead.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
+    #<strong>initialize</strong>(user_id: nil, cancellation_token: nil, deadline: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
   
 
   
@@ -533,9 +506,7 @@ metadata instead.</p>
 43
 44
 45
-46
-47
-48</pre>
+46</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 28</span>
@@ -544,7 +515,6 @@ metadata instead.</p>
   <span class='label'>user_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>deadline:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>tracer_span:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>approval_policy:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>redaction_policy:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -554,7 +524,6 @@ metadata instead.</p>
   <span class='ivar'>@user_id</span> <span class='op'>=</span> <span class='id identifier rubyid_user_id'>user_id</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span>
-  <span class='ivar'>@tracer_span</span> <span class='op'>=</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
   <span class='ivar'>@token_budget</span> <span class='op'>=</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
   <span class='ivar'>@approval_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@redaction_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
@@ -861,47 +830,6 @@ metadata instead.</p>
       
       <span id=""></span>
       <div class="method_details ">
-  <h3 class="signature " id="tracer_span-instance_method">
-  
-    #<strong>tracer_span</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-23
-24
-25</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
-  <span class='ivar'>@tracer_span</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
   <h3 class="signature " id="user_id-instance_method">
   
     #<strong>user_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
@@ -975,12 +903,12 @@ metadata instead.</p>
       <pre class="lines">
 
 
-66
-67
-68</pre>
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_cancellation_token'>effective_cancellation_token</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -1018,17 +946,17 @@ metadata instead.</p>
       <pre class="lines">
 
 
+68
+69
+70
 71
 72
 73
 74
-75
-76
-77
-78</pre>
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
   <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
@@ -1071,6 +999,8 @@ metadata instead.</p>
       <pre class="lines">
 
 
+49
+50
 51
 52
 53
@@ -1080,20 +1010,16 @@ metadata instead.</p>
 57
 58
 59
-60
-61
-62
-63</pre>
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_overrides'>overrides</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>user_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:user_id</span><span class='comma'>,</span> <span class='ivar'>@user_id</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:cancellation_token</span><span class='comma'>,</span> <span class='ivar'>@cancellation_token</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>deadline:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:deadline</span><span class='comma'>,</span> <span class='ivar'>@deadline</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>tracer_span:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:tracer_span</span><span class='comma'>,</span> <span class='ivar'>@tracer_span</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>token_budget:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:token_budget</span><span class='comma'>,</span> <span class='ivar'>@token_budget</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>approval_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:approval_policy</span><span class='comma'>,</span> <span class='ivar'>@approval_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>redaction_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:redaction_policy</span><span class='comma'>,</span> <span class='ivar'>@redaction_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
@@ -1111,7 +1037,7 @@ metadata instead.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 27 13:28:35 2026 by
+  Generated on Fri Aug 28 01:45:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
