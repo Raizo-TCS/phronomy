@@ -69,15 +69,13 @@ RSpec.describe "Filter architecture regression contract (ACS-03)" do
     )
   end
 
-  it "marks the old Guardrail design non-normative without performing ACS-02 path migration" do
-    legacy_path = File.join(root, "spec/design/09_guardrails.md")
+  it "keeps the old Guardrail design only in the non-normative archive" do
+    legacy_path = File.join(root, "docs/archive/design/archived/09_guardrails.md")
     expect(File).to exist(legacy_path)
+    expect(File).not_to exist(File.join(root, "spec/design/09_guardrails.md"))
 
     legacy = File.read(legacy_path)
     expect(legacy).to start_with("> **ARCHIVED / non-normative**")
-    expect(legacy).to include(
-      "docs/archive/design/archived/09_guardrails.md"
-    )
   end
 
   it "keeps active spec filenames and current feature catalog free of legacy Guardrail naming" do
@@ -108,20 +106,20 @@ RSpec.describe "Filter architecture regression contract (ACS-03)" do
     )
   end
 
-  it "does not broaden raw input filtering into universal Context inspection" do
+  it "keeps raw input filtering explicit and closes Context inspection through ContextPolicy" do
     coordinator = File.read(
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
-    adr = File.read(
-      File.join(root, "docs/decisions/019-filter-contract-and-security-boundaries.md")
+    security = File.read(
+      File.join(root, "docs/architecture/security-boundaries.md")
     )
 
     expect(coordinator).to include("run_input_filters!")
-    expect(adr).to include(
-      "does **not** automatically inspect every value that may later contribute"
+    expect(security).to include(
+      "does **not** add a fourth `context_filter`"
     )
-    expect(adr).to include(
-      "broader Filter/Security Boundary review"
+    expect(security).to include(
+      "Application-defined `ContextPolicy` owns semantic trust decisions"
     )
   end
 end

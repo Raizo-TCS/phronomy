@@ -28,7 +28,7 @@ for production deployments.
 | **`PromptInjectionFilter`** — Built-in pattern-based prompt-injection filter | Beta |
 | **Capability redaction/result-size controls** — `redact_params` and `max_result_size` | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
-| **Tracing** — Pluggable span-based observability | Stable |
+| **Tracing** — Pluggable logical-operation span observability with bounded automatic coverage | Stable |
 | **Error Taxonomy** — Provider errors translated to Phronomy transport/authentication/rate-limit/context errors | Beta |
 
 Agent definition lineage is separate from Agent instance identity. A named
@@ -59,7 +59,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions; single writer for Phronomy-managed live Agent execution state | Beta |
 | **Agent execution result authority** — Session-local routing plus current FSM state and purpose-specific semantic IDs (`llm_call_id`, `tool_invocation_id`) reject stale async results | Beta |
 | **Agent live ownership/admission** — Runtime owns one mutable live Agent per `agent_id`; EventLoop rejects competing same-Agent top-level executions while suspension retains the logical execution slot; Persistence admission remains durable defense | Beta |
-| **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from load through terminal save; admission-owner representation remains Runtime-internal and is reconciled separately | Beta |
+| **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from pre-hydration admission through the durable terminal/halted save barrier; admission-owner representation is Runtime-internal | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
 | **Agent async events** — one Runtime-only `on_event` listener is bound at Agent `new` / `create` / `load`; invoke/stream operations publish through that listener and streaming additionally emits `:token` | Beta |
 | **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |
@@ -69,7 +69,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | **CancellationToken** — Cooperative cancellation with explicit `cancel!`, lazy monotonic deadlines, and callback registration | Experimental |
 | **Tool `execution_mode`** — `:cooperative` for short EventLoop-safe work; `:offloaded` for synchronous work that must stay off EventLoop | Experimental |
 | **OffloadPool sizing** — `offload_pool_size` / `offload_queue_size`; named pools available for application-owned isolation | Beta |
-| **InvocationContext** — Explicit cancellation/deadline/policy/tracing context for Agent and Workflow invocations | Beta |
+| **InvocationContext** — Explicit cancellation/deadline/policy plus observability-correlation context for Agent and Workflow invocations | Beta |
 | **Metrics** — OffloadPool active/queue/abandoned metrics plus EventLoop queue/lag metrics | Beta |
 | **Runtime lifecycle** — Runtime-owned EventLoop and terminal `Runtime#shutdown` | Beta |
 
@@ -121,6 +121,10 @@ records or EventLoop Agent execution entries.
 `Phronomy::StateStore` is no longer a public backend abstraction. Workflow
 durability is provided through `Phronomy::Persistence#workflow_states`; see the
 0.19 migration guide when upgrading code that used `state_store:`.
+
+For current architecture/authority boundaries, start at
+[Architecture](architecture.md). Archived historical design material is not a
+current compatibility contract.
 
 ## Advanced and internal APIs
 

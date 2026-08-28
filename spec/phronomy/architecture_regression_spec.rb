@@ -210,4 +210,15 @@ RSpec.describe "EventLoop-first architecture regression guards" do
 
     expect(dispatch_section).not_to include("Thread.new")
   end
+  it "keeps architecture documentation in the canonical current/archive lifecycle" do
+    root = File.expand_path("../..", __dir__)
+
+    expect(File).to exist(File.join(root, "docs/architecture.md"))
+    expect(File).to exist(File.join(root, "docs/architecture/context-management.md"))
+    expect(File).to exist(File.join(root, "docs/architecture/security-boundaries.md"))
+    expect(File).to exist(File.join(root, "docs/architecture/tracing.md"))
+    expect(File).to exist(File.join(root, "docs/architecture/multi-agent-handoff.md"))
+    expect(File).to exist(File.join(root, "docs/architecture/persistence.md"))
+    expect(Dir.glob(File.join(root, "spec/design/**/*"), File::FNM_DOTMATCH)).to eq([])
+  end
 end

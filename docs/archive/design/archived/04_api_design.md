@@ -1,3 +1,10 @@
+> **ARCHIVED / non-normative**
+>
+> This removed/obsolete design is retained only as historical reference. It is
+> not a current architecture or public-API contract. Start at
+> [docs/architecture.md](../../../architecture.md) and the
+> [ADR index](../../../decisions/README.md).
+
 # Phronomy — Public API Design
 
 > **ARCHIVED — Early Design Draft**
@@ -5,7 +12,7 @@
 > This file reflects the intended API as of the initial design phase and has
 > not been updated to track the released implementation. Many examples below
 > use APIs that have been renamed, removed, or changed since this document
-> was written. For the current public API, see [README.md](../../README.md).
+> was written. For the current public API, see [README.md](../../../../README.md).
 >
 > Known divergences (non-exhaustive):
 > - `after :state, to: :next` DSL → current DSL: `transition from: :state, to: :next`

@@ -152,9 +152,10 @@ Manifest, Context Policy and persistent Knowledge model. ADR-010 defines the
 EventLoop/FSMSession, Task, and OffloadPool execution boundary. ADR-015 defines
 the Tool public façade, extension-SPI boundary, and RBS ownership rules.
 
-Legacy `spec/design/*` files must not be assumed to be normative merely because
-they remain in the repository. Their final CURRENT/HISTORICAL/ARCHIVED
-migration is a separate documentation-lifecycle change.
+Current explanatory architecture starts at [`docs/architecture.md`](docs/architecture.md).
+Non-current design snapshots live under `docs/archive/design/` and are
+non-normative. Do not treat archived/historical material as a current contract
+merely because it remains searchable in the repository.
 
 ### Durability, recovery, and failure vocabulary
 
