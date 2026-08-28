@@ -145,15 +145,13 @@ output_guardrail
 Current code uses `Filter::Base`, `FilterBlockError`, and explicit
 `*_filter` registration APIs.
 
-### 8. Historical Guardrail documentation remains historical
+### 8. Historical Guardrail documentation
 
 `docs/archive/design/archived/09_guardrails.md` records the removed Guardrail design. It is
 non-normative and is not rewritten into current Filter architecture.
 
-Its physical move to the repository archive is part of the final
-documentation-lifecycle migration. Until that move, the file must carry an
-explicit ARCHIVED/non-normative notice so retrieval does not mistake it for
-current architecture.
+The physical move to the repository archive was completed by ACS-02
+(canonical architecture documentation lifecycle migration).
 
 ### 9. Deferred security-boundary questions remain deferred
 
@@ -209,8 +207,6 @@ policy and its later prompt-injection exception.
 
 ### Trade-offs
 
-- historical documentation continues to contain old Guardrail names until the
-  documentation archive migration physically moves it;
 - applications needing PII/domain policy continue to supply that policy
   themselves; and
 - the built-in PromptInjectionFilter remains intentionally modest rather than

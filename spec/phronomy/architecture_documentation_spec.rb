@@ -102,4 +102,24 @@ RSpec.describe "ACS-02 architecture documentation lifecycle" do
       end
     end
   end
+
+  it "keeps relative links in ARCHIVED and HISTORICAL documents resolvable" do
+    pattern = /\[[^\]]+\]\(([^)]+)\)/
+    archive_docs = Dir.glob(File.join(root, "docs/archive/**/*.md"))
+
+    archive_docs.each do |path|
+      relative_path = path.delete_prefix("#{root}/")
+      File.read(path).scan(pattern).flatten.each do |target|
+        next if target.match?(/\A[a-z][a-z0-9+.-]*:/i)
+        next if target.start_with?("#")
+
+        relative_target = target.split("#", 2).first
+        next if relative_target.nil? || relative_target.empty?
+
+        resolved = File.expand_path(relative_target, File.dirname(path))
+        expect(File).to exist(resolved),
+          "#{relative_path} contains broken relative link #{target.inspect}"
+      end
+    end
+  end
 end
