@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Amended
 
 ## Context
 
@@ -40,3 +40,28 @@ object. The framework replaces the current state with the returned value.
 - Node authors must remember to return the new state; forgetting to do so
   discards the update silently. (Future work: frozen state objects or
   a strict return type could catch this at dev time.)
+
+## Amendment — EventLoop-owned direct field mutation
+
+The original Decision remains normative for `WorkflowContext#merge`, but its
+statement that **all field writers** return a new `WorkflowContext` is amended.
+
+Current semantics are:
+
+1. `WorkflowContext#merge` remains a non-mutating, new-instance operation. It
+   applies each field's merge policy and returns a replacement
+   `WorkflowContext`.
+2. Direct generated field writers are controlled mutation APIs. They update the
+   current `WorkflowContext` instance only when code is executing under
+   Phronomy's Runtime/EventLoop write authority.
+3. A direct field write outside EventLoop dispatch authority fails with
+   `Phronomy::WorkflowContextOwnershipError`.
+4. EventLoop write authority and Ruby object immutability are distinct
+   state-management concerns. The single-writer rule does not require every live
+   state transition to allocate a replacement Ruby object.
+5. This amendment does not introduce or redefine Workflow identity. Durable
+   Workflow identity remains `workflow_instance_id`.
+
+The original rationale for value-style `merge` remains useful: application code
+can construct replacement state without mutating the source context, while
+Runtime-owned event processing may use guarded direct writers when appropriate.

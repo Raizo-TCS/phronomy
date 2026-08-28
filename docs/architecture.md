@@ -21,6 +21,26 @@ There is no universal "newest artifact wins" rule. When architecture intent,
 public contract, and implementation reality disagree, the discrepancy must be
 reviewed explicitly rather than resolved by recency.
 
+## Design principles
+
+These are design heuristics for new and revised architecture. They do not
+override an Accepted ADR, an established public/extension contract, or an
+explicit compatibility decision.
+
+- **Ruby-idiomatic application surface.** Prefer Ruby-idiomatic Application APIs
+  and DSLs over mechanical translation of conventions from another language or
+  framework.
+- **Progressive adoption.** Keep Phronomy building blocks independently
+  adoptable where their semantics allow it. Applications should be able to
+  introduce Agent, Tool, Persistence, Workflow, Multi-Agent, and related
+  capabilities according to need rather than being forced through the legacy
+  Chain/Memory maturity-level model. This does not promise that a subsystem has
+  no explicit dependencies required by its own contract.
+- **Small and explicit core dependency surface.** Prefer a small and explicit
+  core dependency surface. This is an engineering preference, not a hard invariant:
+  dependency minimization must not weaken accepted durability,
+  ownership, security-boundary, or extension contracts.
+
 ## Current architecture
 
 | Area | Current document |
