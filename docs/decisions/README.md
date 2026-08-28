@@ -48,8 +48,8 @@ resolved explicitly.
 
 | Canonical decision key | Status | Normative now? | Supersession / note |
 |---|---|---:|---|
-| [`001-rubyllm-as-provider-layer`](001-rubyllm-as-provider-layer.md) | Accepted | Yes | Current intent; implementation-boundary reconciliation may be tracked separately. |
-| [`002-workflow-context-immutability`](002-workflow-context-immutability.md) | Accepted | Yes | Current immutability intent; ownership details may be refined separately. |
+| [`001-rubyllm-as-provider-layer`](001-rubyllm-as-provider-layer.md) | Superseded | No | Superseded by [`027-llm-adapter-provider-boundary`](027-llm-adapter-provider-boundary.md); historical RubyLLM adoption rationale retained. |
+| [`002-workflow-context-immutability`](002-workflow-context-immutability.md) | Amended | Yes | `WorkflowContext#merge` remains new-instance semantics; direct generated field writers are EventLoop-owned guarded mutation APIs. |
 | [`003-event-loop-singleton`](003-event-loop-singleton.md) | Accepted | Yes | Current until explicitly superseded/refined. |
 | [`004-invoke-timeout-is-not-cancellation`](004-invoke-timeout-is-not-cancellation.md) | Superseded | No | Superseded by [`011-delegate-transport-policy-to-adapters`](011-delegate-transport-policy-to-adapters.md). |
 | [`005-static-knowledge-class-level-cache`](005-static-knowledge-class-level-cache.md) | Superseded | No | Superseded by [`013-journal-backed-knowledge-as-context-candidates`](013-journal-backed-knowledge-as-context-candidates.md). |
@@ -75,6 +75,7 @@ resolved explicitly.
 | [`024-event-loop-single-writer-agent-runtime`](024-event-loop-single-writer-agent-runtime.md) | Accepted | Yes | EventLoop is the single writer of Phronomy-managed live Agent execution state; removes Activation/ActivationRegistry and defines operation-specific Offload result application with current FSM + semantic-ID authority. |
 | [`025-process-local-agent-ownership-and-runtime-admission`](025-process-local-agent-ownership-and-runtime-admission.md) | Accepted | Yes | One mutable live Agent owner per `agent_id` per Runtime; EventLoop is the primary same-process top-level admission authority while Persistence admission remains durable defense. |
 | [`026-workflow-runtime-admission-and-durable-terminal-barrier`](026-workflow-runtime-admission-and-durable-terminal-barrier.md) | Accepted | Yes | EventLoop-owned opaque Workflow admission owner, admission-before-hydration ordering, and FSMSession-integrated durable terminal save barrier with fail-closed uncertain outcomes. |
+| [`027-llm-adapter-provider-boundary`](027-llm-adapter-provider-boundary.md) | Accepted | Yes | Phronomy-owned Provider-call extension boundary; RubyLLM is the default adapter/integration while current input materialization remains RubyLLM-specific. |
 
 ## Legacy duplicate `011`
 

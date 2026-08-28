@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Superseded
+
+Superseded by
+[`027-llm-adapter-provider-boundary`](027-llm-adapter-provider-boundary.md).
+The historical rationale for adopting RubyLLM is preserved below; the direct
+Provider-call boundary described by this ADR is no longer normative.
 
 ## Context
 
