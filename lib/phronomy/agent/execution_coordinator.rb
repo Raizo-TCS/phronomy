@@ -1008,10 +1008,12 @@ module Phronomy
       rescue => error
         # simplecov:disable
         begin
-          release_initial_preparation_recovery_runtime_state(
-            event_loop,
-            execution.execution_id
-          ) if defined?(event_loop) && event_loop.current?
+          if defined?(event_loop) && event_loop.current?
+            release_initial_preparation_recovery_runtime_state(
+              event_loop,
+              execution.execution_id
+            )
+          end
         rescue
           nil
         end
@@ -1153,7 +1155,7 @@ module Phronomy
           ready.load_completion.complete(@agent)
         else
           error = Phronomy::ExecutionRehydrationRequiredError.new(
-            "unexpected initial preparation Recovery outcome: "               "#{result.admission_outcome.inspect}"
+            "unexpected initial preparation Recovery outcome: #{result.admission_outcome.inspect}"
           )
           release_initial_preparation_recovery_runtime_state(
             event_loop,
