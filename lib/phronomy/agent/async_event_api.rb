@@ -168,6 +168,7 @@ module Phronomy
       end
 
       def _start_agent_operation(input, config:, mode:, listener:)
+        config = _snapshot_durable_context(config)
         approval = _approval_configuration_snapshot(nil)
         execution_coordinator_for(config).start(
           input,
@@ -177,6 +178,22 @@ module Phronomy
           approval_listener: nil,
           on_event: listener
         )
+      end
+
+      def _snapshot_durable_context(config)
+        return config unless config.key?(:durable_context)
+
+        value = config[:durable_context]
+        unless value.is_a?(Hash)
+          raise ArgumentError,
+            "config[:durable_context] must be a canonical JSON-compatible Hash"
+        end
+
+        bytes = Phronomy::CanonicalJSON.dump(value)
+        snapshot = Phronomy::Agent::Immutable.copy(
+          Phronomy::CanonicalJSON.load(bytes)
+        )
+        config.merge(durable_context: snapshot)
       end
 
       def _required_stream_listener!(method_name)

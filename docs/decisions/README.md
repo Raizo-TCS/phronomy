@@ -76,6 +76,7 @@ resolved explicitly.
 | [`025-process-local-agent-ownership-and-runtime-admission`](025-process-local-agent-ownership-and-runtime-admission.md) | Accepted | Yes | One mutable live Agent owner per `agent_id` per Runtime; EventLoop is the primary same-process top-level admission authority while Persistence admission remains durable defense. |
 | [`026-workflow-runtime-admission-and-durable-terminal-barrier`](026-workflow-runtime-admission-and-durable-terminal-barrier.md) | Accepted | Yes | EventLoop-owned opaque Workflow admission owner, admission-before-hydration ordering, and FSMSession-integrated durable terminal save barrier with fail-closed uncertain outcomes. |
 | [`027-llm-adapter-provider-boundary`](027-llm-adapter-provider-boundary.md) | Accepted | Yes | Phronomy-owned Provider-call extension boundary; RubyLLM is the default adapter/integration while current input materialization remains RubyLLM-specific. |
+| [`028-preparing-recovery-replay-contract`](028-preparing-recovery-replay-contract.md) | Accepted | Yes | Adds replay-safe same-`execution_id` recovery for durably admitted Agent `:preparing` executions when replayability is durably established; unsupported Runtime-only dependencies fail closed. |
 
 ## Legacy duplicate `011`
 

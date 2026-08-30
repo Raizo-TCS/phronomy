@@ -19,7 +19,7 @@ module Phronomy
 
       # EventLoop -> Offload operation-specific immutable snapshots.
       InitialPreparationCommand = Data.define(
-        :root, :journal_records, :input, :config
+        :root, :journal_records, :input, :config, :preparation_replayable
       )
       ProviderDispatchPreparationCommand = Data.define(
         :execution_id, :fsm_session_id, :expected_execution_revision,
@@ -82,6 +82,10 @@ module Phronomy
 
       InitialPreparationReady = Data.define(
         :coordinator, :request, :result, :error
+      )
+      InitialPreparationRecoveryReady = Data.define(
+        :coordinator, :execution_id, :expected_execution_revision,
+        :result_task, :load_completion, :result, :error
       )
       ProviderDispatchPreparationReady = Data.define(
         :coordinator, :operation, :result, :error
@@ -361,6 +365,8 @@ module Phronomy
           begin_start_on_event_loop(command)
         when InitialPreparationReady
           apply_initial_preparation_on_event_loop(command)
+        when InitialPreparationRecoveryReady
+          apply_initial_preparation_recovery_on_event_loop(command)
         when ProviderDispatchPreparationReady
           apply_provider_dispatch_preparation_on_event_loop(command)
         when ToolDispatchPreparationReady
@@ -419,7 +425,12 @@ module Phronomy
           root: root,
           journal_records: @agent.send(:_journal_records_snapshot),
           input: request.input,
-          config: request.config
+          config: request.config,
+          preparation_replayable: initial_preparation_replayable?(
+            request.input,
+            request.config,
+            request.approval_policy
+          )
         )
         task = runtime.offload.submit(on_full: :raise) do
           perform_initial_preparation(operation)
@@ -472,7 +483,9 @@ module Phronomy
           execution, active_root = admit_execution(
             raw_message,
             root: operation.root,
-            mode: (operation.config[:phronomy_recovery_mode] || :invoke).to_sym
+            mode: (operation.config[:phronomy_recovery_mode] || :invoke).to_sym,
+            config: operation.config,
+            preparation_replayable: operation.preparation_replayable
           )
         rescue Phronomy::AgentBusyError => error
           # A durable busy conflict proves that another nonterminal logical
@@ -517,15 +530,31 @@ module Phronomy
           )
         end
 
+        perform_admitted_initial_preparation(
+          input: operation.input,
+          config: operation.config,
+          execution: execution,
+          active_root: active_root,
+          journal_records: operation.journal_records
+        )
+      end
+
+      def perform_admitted_initial_preparation(
+        input:,
+        config:,
+        execution:,
+        active_root:,
+        journal_records:
+      )
         current_execution = execution
         begin
-          effective_config = operation.config
+          effective_config = config
           @agent.send(
             :check_cancellation!,
             effective_config,
             "invocation cancelled before input filtering"
           )
-          filtered_input = @agent.send(:run_input_filters!, operation.input)
+          filtered_input = @agent.send(:run_input_filters!, input)
           @agent.send(
             :check_cancellation!,
             effective_config,
@@ -559,7 +588,7 @@ module Phronomy
           assembler = ContextAssembler.new(
             agent: @agent,
             persistence: @agent.persistence,
-            journal_records: operation.journal_records
+            journal_records: journal_records
           )
           prepared = assembler.prepare_initial(
             input: filtered_input,
@@ -625,7 +654,7 @@ module Phronomy
             root: failure.fetch(:root),
             runtime_projection: nil,
             filtered_input: nil,
-            config: operation.config,
+            config: config,
             appended_records: failure.fetch(:appended_records),
             error: failure.fetch(:error),
             admission_outcome: :terminal
@@ -633,7 +662,13 @@ module Phronomy
         end
       end
 
-      def admit_execution(raw_message, root:, mode: :invoke)
+      def admit_execution(
+        raw_message,
+        root:,
+        mode: :invoke,
+        config: {},
+        preparation_replayable: false
+      )
         if root.lifecycle_status == :closed
           raise Phronomy::Error,
             "agent is closed: #{@agent.agent_id}"
@@ -646,6 +681,9 @@ module Phronomy
 
         @agent.persistence.transaction do |tx|
           input_ref = tx.contents.put_text(raw_message)
+          durable_context_ref = if config.key?(:durable_context)
+            tx.contents.put_json(config.fetch(:durable_context))
+          end
           input_record = JournalRecord.new(
             agent_id: @agent.agent_id,
             kind: :input_received,
@@ -660,6 +698,8 @@ module Phronomy
             input_record: input_record,
             metadata: {
               "current_input_ref" => input_ref,
+              "durable_context_ref" => durable_context_ref,
+              "preparation_replayable" => !!preparation_replayable,
               RecoverySupport::CONTRACT_VERSION_KEY =>
                 RecoverySupport::CONTRACT_VERSION,
               RecoverySupport::INVOCATION_MODE_KEY => mode.to_s,
@@ -690,6 +730,23 @@ module Phronomy
           )
         end
         [execution, next_root]
+      end
+
+      def initial_preparation_replayable?(input, config, approval_policy)
+        return false unless input.is_a?(String)
+        return false unless approval_policy.nil?
+        if config.key?(:phronomy_handoff_bindings) ||
+            config.key?(:phronomy_handoff_context)
+          return false
+        end
+
+        invocation_context = config[:invocation_context]
+        return true unless invocation_context
+
+        %i[approval_policy redaction_policy token_budget].none? do |name|
+          invocation_context.respond_to?(name) &&
+            !invocation_context.public_send(name).nil?
+        end
       end
 
       def commit_preparation_failure(execution, root, error)
@@ -895,6 +952,241 @@ module Phronomy
           terminal_event_type(error),
           nil,
           error
+        )
+      end
+
+      # Restarts only the replay-safe initial preparation region of an already
+      # durably admitted logical Execution. Runtime-only caller state is not
+      # reconstructed here; the durable preparation inputs are authoritative.
+      # @api private
+      def start_initial_preparation_recovery_on_event_loop(
+        execution,
+        result_task,
+        load_completion:
+      )
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
+        assert_event_loop!(event_loop)
+        state = event_loop.agent_execution_state(execution.execution_id)
+        unless state && state.agent.equal?(@agent) &&
+            state.execution.execution_revision == execution.execution_revision &&
+            state.execution.status == :preparing &&
+            state.execution.phase.to_sym == :preparing
+          error = Phronomy::ExecutionRehydrationRequiredError.new(
+            "stale :preparing Recovery installation for #{execution.execution_id}"
+          )
+          fail_task(result_task, error)
+          load_completion.fail(error)
+          return
+        end
+
+        root = @agent.agent_root
+        journal_records = @agent.send(:_journal_records_snapshot)
+        task = runtime.offload.submit(on_full: :raise) do
+          perform_initial_preparation_recovery(
+            execution,
+            root: root,
+            journal_records: journal_records
+          )
+        end
+        task.on_complete do |result, error|
+          ready = InitialPreparationRecoveryReady.new(
+            coordinator: self,
+            execution_id: execution.execution_id.to_s.freeze,
+            expected_execution_revision: execution.execution_revision,
+            result_task: result_task,
+            load_completion: load_completion,
+            result: result,
+            error: error
+          )
+          unless post_control(runtime, ready)
+            rejected = runtime_rejected_error(:initial_preparation_recovery)
+            fail_task(result_task, rejected)
+            load_completion.fail(rejected)
+          end
+        end
+      rescue => error
+        # simplecov:disable
+        begin
+          release_initial_preparation_recovery_runtime_state(
+            event_loop,
+            execution.execution_id
+          ) if defined?(event_loop) && event_loop.current?
+        rescue
+          nil
+        end
+        translated_error = translated(error)
+        fail_task(result_task, translated_error)
+        load_completion.fail(translated_error)
+        # simplecov:enable
+      end
+
+      def perform_initial_preparation_recovery(
+        execution,
+        root:,
+        journal_records:
+      )
+        unless execution.metadata["preparation_replayable"] == true
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "execution #{execution.execution_id} has no replay-safe initial preparation contract"
+        end
+
+        input_ref = execution.metadata.fetch("current_input_ref")
+        input = @agent.persistence.contents.fetch_text(input_ref)
+        mode = (
+          execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] || "invoke"
+        ).to_sym
+        config = {phronomy_recovery_mode: mode}
+
+        if execution.metadata.key?("durable_context_ref")
+          durable_context_ref = execution.metadata.fetch("durable_context_ref")
+          durable_context = @agent.persistence.contents.fetch_json(
+            durable_context_ref
+          )
+          unless durable_context.is_a?(Hash)
+            raise Phronomy::ExecutionRehydrationRequiredError,
+              "execution #{execution.execution_id} has a non-Hash durable_context"
+          end
+          Phronomy::Agent::Immutable.validate_canonical_json!(
+            durable_context,
+            label: "Recovered durable_context"
+          )
+          config[:durable_context] =
+            Phronomy::Agent::Immutable.copy(durable_context)
+        end
+
+        perform_admitted_initial_preparation(
+          input: input,
+          config: config.freeze,
+          execution: execution,
+          active_root: root,
+          journal_records: journal_records
+        )
+      end
+
+      def apply_initial_preparation_recovery_on_event_loop(ready)
+        event_loop = Phronomy::Runtime.instance.event_loop
+        state = event_loop.agent_execution_state(ready.execution_id)
+        unless state && state.agent.equal?(@agent) &&
+            state.execution.execution_revision == ready.expected_execution_revision &&
+            state.execution.status == :preparing &&
+            state.execution.phase.to_sym == :preparing
+          error = Phronomy::ExecutionRehydrationRequiredError.new(
+            "stale initial preparation Recovery result for #{ready.execution_id}"
+          )
+          fail_task(ready.result_task, error)
+          ready.load_completion.fail(error)
+          return
+        end
+
+        if ready.error
+          release_initial_preparation_recovery_runtime_state(
+            event_loop,
+            ready.execution_id
+          )
+          error = translated(ready.error)
+          fail_task(ready.result_task, error)
+          ready.load_completion.fail(error)
+          return
+        end
+
+        result = ready.result
+        case result.admission_outcome
+        when :terminal
+          apply_agent_live_state(
+            root: result.root,
+            appended_records: result.appended_records
+          )
+          event_loop.replace_agent_execution(
+            ready.execution_id,
+            execution: result.execution
+          )
+          event_loop.release_agent_execution(ready.execution_id)
+          event_loop.release_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: ready.execution_id
+          )
+          event_type = terminal_event_type(result.error)
+          callback_error = deliver_terminal(
+            @agent.send(:_phronomy_event_listener),
+            event_type,
+            error: result.error
+          )
+          settle_after_terminal(
+            ready.result_task,
+            callback_error,
+            event_type,
+            nil,
+            result.error
+          )
+          ready.load_completion.complete(@agent)
+        when :active
+          apply_agent_live_state(
+            root: result.root,
+            appended_records: result.appended_records
+          )
+          event_loop.release_agent_execution(ready.execution_id)
+          mode = (
+            result.execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] ||
+              "invoke"
+          ).to_sym
+          request = StartCommand.new(
+            coordinator: self,
+            input: result.filtered_input,
+            config: result.config,
+            mode: mode,
+            approval_policy: nil,
+            approval_listener: nil,
+            on_event: @agent.send(:_phronomy_event_listener),
+            result_task: ready.result_task,
+            admission_token: Object.new.freeze
+          )
+          begin
+            register_initial_session_on_event_loop(request, result)
+          rescue => error
+            begin_terminal_without_session_on_event_loop(
+              request: request,
+              prepared: result,
+              error: error
+            )
+          end
+          ready.load_completion.complete(@agent)
+        else
+          error = Phronomy::ExecutionRehydrationRequiredError.new(
+            "unexpected initial preparation Recovery outcome: "               "#{result.admission_outcome.inspect}"
+          )
+          release_initial_preparation_recovery_runtime_state(
+            event_loop,
+            ready.execution_id
+          )
+          fail_task(ready.result_task, error)
+          ready.load_completion.fail(error)
+        end
+      rescue => error
+        # simplecov:disable
+        begin
+          release_initial_preparation_recovery_runtime_state(
+            event_loop,
+            ready.execution_id
+          )
+        rescue
+          nil
+        end
+        translated_error = translated(error)
+        fail_task(ready.result_task, translated_error)
+        ready.load_completion.fail(translated_error)
+        # simplecov:enable
+      end
+
+      def release_initial_preparation_recovery_runtime_state(
+        event_loop,
+        execution_id
+      )
+        state = event_loop.agent_execution_state(execution_id)
+        event_loop.release_agent_execution(execution_id) if state
+        event_loop.release_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: execution_id
         )
       end
 

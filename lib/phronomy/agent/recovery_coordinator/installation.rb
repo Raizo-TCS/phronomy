@@ -39,6 +39,19 @@ module Phronomy
         end
 
         def classify(execution)
+          if execution.status == :preparing &&
+              execution.phase.to_sym == :preparing
+            unless execution.metadata["preparation_replayable"] == true
+              raise Phronomy::ExecutionRehydrationRequiredError,
+                "execution #{execution.execution_id} is :preparing but replay safety " \
+                  "was not durably established"
+            end
+            return Phronomy::Recovery::Classification.new(
+              disposition: Phronomy::Recovery::RESUMABLE,
+              reason: :initial_preparation
+            )
+          end
+
           if execution.status == :suspended &&
               execution.phase.to_sym == :approval
             return Phronomy::Recovery::Classification.new(
@@ -321,6 +334,22 @@ module Phronomy
           main = agent.send(:execution_coordinator)
 
           case execution.phase.to_sym
+          when :preparing
+            internal_task = Phronomy::Task.deferred(
+              name: "agent-recovery-auto:#{execution.execution_id}"
+            )
+            observe_recovery_execution(internal_task, execution)
+            event_loop.mark_agent_execution_admission(
+              agent.agent_id,
+              execution_id: execution.execution_id,
+              state: :executing
+            )
+            main.send(
+              :start_initial_preparation_recovery_on_event_loop,
+              execution,
+              internal_task,
+              load_completion: completion
+            )
           when :resuming
             approved = execution.approval_request &&
               (
