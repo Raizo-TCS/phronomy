@@ -287,11 +287,10 @@ module Phronomy
           loop do
             current = read_execution(id)
             return terminal_value(current) if current.terminal?
-            if (saved_failure = durable_saved_failure(current))
-              return terminal_value(finish_error(id, saved_failure))
-            end
-            token.cancel! if current.metadata["cancel_requested"]
-            if current.phase == "coordinator"
+            token.cancel! if cancellation_requested?(current)
+            action, subject = next_run_action(current)
+            case action
+            when :coordinator
               outcome = run_child(current, current.coordinator, coordinator_class(id),
                 persistence.contents.fetch_text(current.input_ref), "coordinator", config, token)
               update(id) do |fresh, _tx|
@@ -299,11 +298,9 @@ module Phronomy
                   "state" => outcome[:status].to_s, "result_ref" => outcome[:result_ref], "error_ref" => outcome[:error_ref]
                 ))
               end
-              return terminal_value(finish_error(id, outcome[:error])) if outcome[:error] && !token.cancelled?
               next
-            end
-            unfinished = current.assignments.find { |entry| entry.fetch("state") == "reserved" }
-            if unfinished
+            when :assignment
+              unfinished = subject
               worker = current.workers.fetch(unfinished.fetch("worker"))
               task = current.tasks.find { |item| item.fetch("id") == unfinished.fetch("task_id") }
               outcome = run_child(current, worker.merge("execution_id" => unfinished.fetch("execution_id")),
@@ -311,17 +308,13 @@ module Phronomy
               saved = record_assignment(id, unfinished, outcome)
               entry = assignment_values(saved).find { |item| item.fetch(:task).fetch(:id) == task.fetch("id") }
               yield entry.merge(type: outcome[:error] ? :task_failed : :task_completed) if block_given?
-              if outcome[:error] && current.metadata.fetch("definition").fetch("on_error") == "raise" && !token.cancelled?
-                return terminal_value(finish_error(id, outcome[:error]))
-              end
               next
-            end
-            if token.cancelled?
+            when :failed
+              return terminal_value(finish_error(id, persistence.contents.fetch_json(subject.fetch("error_ref"))))
+            when :cancelled
               return terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"))
-            end
-            task = current.tasks.find { |item| current.assignments.none? { |a| a.fetch("task_id") == item.fetch("id") } }
-            if task
-              reserve_assignment(current, task)
+            when :reserve
+              reserve_assignment(current, subject)
               next
             end
             values = assignment_values(current)
@@ -343,22 +336,43 @@ module Phronomy
         rescue Phronomy::CancellationError
           # An absent reserved child is not started just to cancel it. Keep its
           # identity in the terminal Team record for discovery.
-          terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"))
+          if (failed = failed_child(read_execution(id)))
+            terminal_value(finish_error(id, persistence.contents.fetch_json(failed.fetch("error_ref"))))
+          else
+            terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"))
+          end
         ensure
           external&.send(:unregister_cancel_callback, callback)
           @tokens_mutex.synchronize { @tokens.delete(id) }
         end
       end
 
-      def durable_saved_failure(execution)
-        coordinator_error_ref = execution.coordinator["error_ref"]
-        if coordinator_error_ref
-          return persistence.contents.fetch_json(coordinator_error_ref)
-        end
+      # Interpret only durable child states. Normal execution returns here after
+      # each child commit, just as resume does after losing its Runtime observer.
+      # Reconcile reservations before claiming completion; a cancelled absent
+      # child is handled by run_child without dispatching it.
+      def next_run_action(execution)
+        return [:coordinator, nil] if execution.phase == "coordinator"
+        unfinished = execution.assignments.find { |entry| entry.fetch("state") == "reserved" }
+        return [:assignment, unfinished] if unfinished
+        failed = failed_child(execution)
+        return [:failed, failed] if failed
+        return [:cancelled, nil] if cancellation_requested?(execution)
+
+        task = execution.tasks.find { |item| execution.assignments.none? { |entry| entry.fetch("task_id") == item.fetch("id") } }
+        task ? [:reserve, task] : [:aggregate, nil]
+      end
+
+      def failed_child(execution)
+        return execution.coordinator if execution.coordinator.fetch("state") == "failed"
         return unless execution.metadata.dig("definition", "on_error") == "raise"
 
-        failed = execution.assignments.find { |entry| entry["error_ref"] }
-        failed && persistence.contents.fetch_json(failed.fetch("error_ref"))
+        execution.assignments.find { |entry| entry.fetch("state") == "failed" }
+      end
+
+      def cancellation_requested?(execution)
+        execution.metadata["cancel_requested"] || execution.coordinator.fetch("state") == "cancelled" ||
+          execution.assignments.any? { |entry| entry.fetch("state") == "cancelled" }
       end
 
       def run_child(current, slot, klass, input, purpose, config, token)

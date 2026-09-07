@@ -37,19 +37,6 @@ module Phronomy
             updated_at: execution.updated_at, metadata: metadata))
         end
 
-        def prepare_saved_provider_calls(execution, invocation)
-          return false unless execution.metadata["framework_calls_pending"]
-          record = RecoverySupport.latest_assistant_record(execution)
-          message = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence).materialize_journal_record(record)
-          calls = message.tool_calls.respond_to?(:values) ? message.tool_calls.values : Array(message.tool_calls)
-          framework_calls = calls.select { |call| agent.__framework_call?(call.name) }
-          if framework_calls.empty?
-            raise Phronomy::ExecutionRehydrationRequiredError, "Saved framework call wiring is missing"
-          end
-          invocation.accept_tool_calls!(framework_calls, llm_call_id: record.llm_call_id)
-          true
-        end
-
         def prepare_plan(execution)
           root = agent.agent_root
           manifest_ref = execution.metadata["manifest_ref"]
@@ -176,60 +163,9 @@ module Phronomy
           bound = true
 
           invocation = nil
-          if execution.status == :suspended || framework_batch?(execution) ||
-              execution.phase.to_sym == :resuming
-            invocation =
-              RecoverySupport.build_invocation_for_suspended(
-                agent,
-                execution,
-                plan.projection,
-                main,
-                agent.send(:_phronomy_event_listener)
-              )
-          elsif execution.phase.to_sym ==
-              :recovery_tools_completed
-            invocation =
-              RecoverySupport.build_chat_for_recovery(
-                agent,
-                execution,
-                plan.projection,
-                main,
-                agent.send(:_phronomy_event_listener)
-              )
-          elsif execution.phase.to_sym ==
-              :recovery_provider_completed
-            invocation =
-              RecoverySupport.build_chat_for_recovery(
-                agent,
-                execution,
-                plan.projection,
-                main,
-                agent.send(:_phronomy_event_listener)
-              )
-            output, usage =
-              RecoverySupport.provider_output_and_usage(
-                agent,
-                execution
-              )
-            invocation.output = output
-            invocation.usage = usage
-          elsif execution.phase.to_sym ==
-              :recovery_resolved_failed
-            invocation = Phronomy::Agent::AgentInvocation.new(
-              agent: agent,
-              input: nil,
-              config: {
-                execution_id: execution.execution_id,
-                phronomy_execution_coordinator: main
-              },
-              event_listener:
-                agent.send(:_phronomy_event_listener),
-              mode: (
-                execution.metadata[
-                  RecoverySupport::INVOCATION_MODE_KEY
-                ] || "invoke"
-              ).to_sym,
-              execution_id: execution.execution_id
+          if execution.status == :suspended || execution.phase.to_sym == :resuming
+            invocation = RecoverySupport.build_invocation_for_suspended(
+              agent, execution, plan.projection, main, agent.send(:_phronomy_event_listener)
             )
           end
 
@@ -312,7 +248,6 @@ module Phronomy
           when Phronomy::Recovery::RESUMABLE
             continue_resumable_on_event_loop(
               execution,
-              invocation,
               completion: command.completion
             )
           else
@@ -371,7 +306,6 @@ module Phronomy
 
         def continue_resumable_on_event_loop(
           execution,
-          invocation,
           completion:
         )
           # simplecov:disable
@@ -380,8 +314,7 @@ module Phronomy
 
           if framework_batch?(execution)
             internal = Phronomy::Task.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
-            event_loop.register_agent_completion_waiter(execution.execution_id, internal)
-            main.send(:start_framework_tools_on_event_loop, execution.execution_id, internal)
+            continue_recovery_on_event_loop(execution, internal)
             completion.complete(agent)
             return
           end
@@ -430,70 +363,9 @@ module Phronomy
               config: {}
             )
             completion.complete(agent)
-          when :recovery_tools_completed
-            internal_task = Phronomy::Task.deferred(
-              name: "agent-recovery-auto:#{execution.execution_id}"
-            )
-            observe_recovery_execution(internal_task, execution)
-            event_loop.mark_agent_execution_admission(
-              agent.agent_id,
-              execution_id: execution.execution_id,
-              state: :executing
-            )
-            start_followup_session(
-              event_loop,
-              main,
-              execution,
-              invocation,
-              internal_task
-            )
-            completion.complete(agent)
-          when :recovery_provider_completed
-            unless prepare_saved_provider_calls(execution, invocation)
-              AgentInvocationSessionBuilder.send(:output_filtering_action, agent, invocation)
-            end
-            internal_task = Phronomy::Task.deferred(
-              name: "agent-recovery-auto:#{execution.execution_id}"
-            )
-            observe_recovery_execution(internal_task, execution)
-            event_loop.mark_agent_execution_admission(
-              agent.agent_id,
-              execution_id: execution.execution_id,
-              state: :executing
-            )
-            start_output_completion_session(
-              event_loop,
-              main,
-              execution,
-              invocation,
-              internal_task
-            )
-            completion.complete(agent)
-          when :recovery_resolved_failed
-            failure = (
-              execution.metadata[
-                RecoverySupport::RECOVERY_METADATA_KEY
-              ] || {}
-            )["failure"] || {
-              "class" => "Phronomy::Error",
-              "message" => "Recovery-resolved failure"
-            }
-            error = RecoverySupport.error_from_failure(failure)
-            internal_task = Phronomy::Task.deferred(
-              name: "agent-recovery-auto:#{execution.execution_id}"
-            )
-            observe_recovery_execution(internal_task, execution)
-            state = event_loop.agent_execution_state(
-              execution.execution_id
-            )
-            main.send(
-              :begin_terminal_commit_on_event_loop,
-              state,
-              internal_task,
-              invocation,
-              error,
-              fsm_session_id: nil
-            )
+          when :recovery_tools_completed, :recovery_provider_completed, :recovery_resolved_failed
+            internal_task = Phronomy::Task.deferred(name: "agent-recovery-auto:#{execution.execution_id}")
+            continue_recovery_on_event_loop(execution, internal_task)
             completion.complete(agent)
           else
             raise Phronomy::ExecutionRehydrationRequiredError,

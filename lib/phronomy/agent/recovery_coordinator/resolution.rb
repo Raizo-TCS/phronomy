@@ -146,13 +146,7 @@ module Phronomy
                 RecoverySupport::RECOVERY_METADATA_KEY => recovery
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :failed
             recovery = {
@@ -166,13 +160,7 @@ module Phronomy
                   recovery
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: operation.failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :succeeded
             # simplecov:disable
@@ -217,10 +205,8 @@ module Phronomy
                   llm_call_id,
                   outcome
                 )
-              framework_subjects = subjects.select { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
-              external_subjects = subjects.reject { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
-              framework_calls_only = !subjects.empty? && external_subjects.empty?
-              next_phase = (external_subjects.empty?) ?
+              framework_subjects, external_subjects = subjects.partition { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
+              next_phase = external_subjects.empty? ?
                 :recovery_provider_completed : :recovery_tools
               metadata = current.metadata.dup
               metadata.delete(
@@ -229,7 +215,8 @@ module Phronomy
               metadata.delete(
                 RecoverySupport::PENDING_LLM_STARTED_AT_KEY
               )
-              metadata["framework_calls_pending"] = true if framework_calls_only || (!framework_subjects.empty? && !external_subjects.empty?)
+              metadata.delete("framework_calls_pending")
+              metadata["framework_calls_pending"] = true unless framework_subjects.empty?
               if subjects.any? && Array(metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).empty?
                 metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] = subjects.map do |entry|
                   {
@@ -265,18 +252,7 @@ module Phronomy
                 expected_revision: current.execution_revision,
                 execution: updated
               )
-              ResolutionResult.new(
-                execution: updated,
-                root: operation.root,
-                continuation: (
-                  (updated.phase.to_sym ==
-                    :recovery_provider_completed) ?
-                      :provider_completed :
-                      :resolution_required
-                ),
-                failure: nil,
-                appended_records: [].freeze
-              )
+              ResolutionResult.new(execution: updated)
             end
             # simplecov:enable
           end
@@ -337,13 +313,7 @@ module Phronomy
                   resolved_recovery
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :failed
             recovery_with_failure =
@@ -363,13 +333,7 @@ module Phronomy
                   recovery_with_failure
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: operation.failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :succeeded
             updated = nil
@@ -447,18 +411,7 @@ module Phronomy
                 expected_revision: current.execution_revision,
                 execution: updated
               )
-              ResolutionResult.new(
-                execution: updated,
-                root: operation.root,
-                continuation: (
-                  (updated.phase.to_sym ==
-                    :recovery_tools_completed) ?
-                      :tools_completed :
-                      :resolution_required
-                ),
-                failure: nil,
-                appended_records: [].freeze
-              )
+              ResolutionResult.new(execution: updated)
             end
           end
         end
@@ -532,70 +485,7 @@ module Phronomy
             execution: result.execution
           )
 
-          case result.continuation
-          when :resolution_required
-            if framework_batch?(result.execution)
-              current = result.execution
-              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
-              _manifest, projection = RecoverySupport.materialize_projection(agent, current.metadata.fetch("manifest_ref"))
-              invocation = RecoverySupport.build_invocation_for_suspended(agent, current, projection, main, agent.send(:_phronomy_event_listener))
-              event_loop.replace_agent_execution(current.execution_id, execution: current, invocation: invocation, runtime_projection: projection, fsm_session_id: nil)
-              main.send(:start_framework_tools_on_event_loop, current.execution_id, request.completion)
-              return
-            end
-            event_loop.mark_agent_execution_admission(
-              agent.agent_id,
-              execution_id: request.execution_id,
-              state: :recovery_required
-            )
-            descriptor =
-              coordination_recovery_descriptor(
-                result.execution
-              )
-            deliver_resolution_required(
-              result.execution,
-              descriptor
-            )
-            request.completion.complete(
-              {
-                execution_id: request.execution_id,
-                execution_revision:
-                  result.execution.execution_revision,
-                recovery: :resolution_required
-              }.freeze
-            )
-          when :provider_completed
-            observe_recovery_execution(request.completion, result.execution)
-            continue_provider_completed_after_resolution(
-              event_loop,
-              state,
-              result.execution,
-              request.completion
-            )
-          when :tools_completed
-            observe_recovery_execution(request.completion, result.execution)
-            continue_tools_completed_after_resolution(
-              event_loop,
-              state,
-              result.execution,
-              request.completion
-            )
-          when :failed_terminal
-            observe_recovery_execution(request.completion, result.execution)
-            continue_failed_after_resolution(
-              event_loop,
-              state,
-              result.execution,
-              request.completion,
-              result.failure
-            )
-          else
-            request.completion.fail(
-              Phronomy::Error.new(
-                "unknown Recovery continuation: #{result.continuation.inspect}"
-              )
-            )
-          end
+          continue_recovery_on_event_loop(result.execution, request.completion)
         rescue => caught
           request.completion.fail(caught)
         end
@@ -624,14 +514,7 @@ module Phronomy
               coordinator: self,
               request: request,
               operation: ready.operation,
-              result: intended_result.class.new(
-                execution: current,
-                root: intended_result.root,
-                continuation: intended_result.continuation,
-                failure: intended_result.failure,
-                appended_records:
-                  intended_result.appended_records
-              ),
+              result: ResolutionResult.new(execution: current),
               error: nil
             )
             apply_resolve_on_event_loop(synthetic)

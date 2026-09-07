@@ -37,9 +37,7 @@ module Phronomy
       ResolutionOperation = Data.define(
         :execution, :root, :subject, :outcome, :result, :failure
       )
-      ResolutionResult = Data.define(
-        :execution, :root, :continuation, :failure, :appended_records
-      )
+      ResolutionResult = Data.define(:execution)
       RecoveryPlan = Data.define(
         :execution, :root, :manifest, :base_manifest,
         :projection, :classification
