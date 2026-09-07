@@ -88,6 +88,9 @@ module Phronomy
               main,
               agent.send(:_phronomy_event_listener)
             )
+          if execution.metadata["framework_calls_pending"]
+            prepare_saved_provider_calls(execution, invocation)
+          end
           event_loop.replace_agent_execution(
             execution.execution_id,
             execution: execution,
@@ -100,13 +103,23 @@ module Phronomy
             execution_id: execution.execution_id,
             state: :executing
           )
-          start_followup_session(
-            event_loop,
-            main,
-            execution,
-            invocation,
-            completion
-          )
+          if execution.metadata["framework_calls_pending"]
+            start_output_completion_session(
+              event_loop,
+              main,
+              execution,
+              invocation,
+              completion
+            )
+          else
+            start_followup_session(
+              event_loop,
+              main,
+              execution,
+              invocation,
+              completion
+            )
+          end
         end
 
         def continue_failed_after_resolution(

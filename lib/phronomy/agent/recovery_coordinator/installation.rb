@@ -42,10 +42,11 @@ module Phronomy
           record = RecoverySupport.latest_assistant_record(execution)
           message = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence).materialize_journal_record(record)
           calls = message.tool_calls.respond_to?(:values) ? message.tool_calls.values : Array(message.tool_calls)
-          unless calls.all? { |call| agent.__framework_call?(call.name) }
+          framework_calls = calls.select { |call| agent.__framework_call?(call.name) }
+          if framework_calls.empty?
             raise Phronomy::ExecutionRehydrationRequiredError, "Saved framework call wiring is missing"
           end
-          invocation.accept_tool_calls!(calls, llm_call_id: record.llm_call_id)
+          invocation.accept_tool_calls!(framework_calls, llm_call_id: record.llm_call_id)
           true
         end
 

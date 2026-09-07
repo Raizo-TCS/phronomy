@@ -287,6 +287,9 @@ module Phronomy
           loop do
             current = read_execution(id)
             return terminal_value(current) if current.terminal?
+            if (saved_failure = durable_saved_failure(current))
+              return terminal_value(finish_error(id, saved_failure))
+            end
             token.cancel! if current.metadata["cancel_requested"]
             if current.phase == "coordinator"
               outcome = run_child(current, current.coordinator, coordinator_class(id),
@@ -345,6 +348,17 @@ module Phronomy
           external&.send(:unregister_cancel_callback, callback)
           @tokens_mutex.synchronize { @tokens.delete(id) }
         end
+      end
+
+      def durable_saved_failure(execution)
+        coordinator_error_ref = execution.coordinator["error_ref"]
+        if coordinator_error_ref
+          return persistence.contents.fetch_json(coordinator_error_ref)
+        end
+        return unless execution.metadata.dig("definition", "on_error") == "raise"
+
+        failed = execution.assignments.find { |entry| entry["error_ref"] }
+        failed && persistence.contents.fetch_json(failed.fetch("error_ref"))
       end
 
       def run_child(current, slot, klass, input, purpose, config, token)

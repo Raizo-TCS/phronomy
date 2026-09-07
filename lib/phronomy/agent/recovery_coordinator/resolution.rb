@@ -217,8 +217,10 @@ module Phronomy
                   llm_call_id,
                   outcome
                 )
-              framework_calls = !subjects.empty? && subjects.all? { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
-              next_phase = (subjects.empty? || framework_calls) ?
+              framework_subjects = subjects.select { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
+              external_subjects = subjects.reject { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
+              framework_calls_only = !subjects.empty? && external_subjects.empty?
+              next_phase = (external_subjects.empty?) ?
                 :recovery_provider_completed : :recovery_tools
               metadata = current.metadata.dup
               metadata.delete(
@@ -227,8 +229,20 @@ module Phronomy
               metadata.delete(
                 RecoverySupport::PENDING_LLM_STARTED_AT_KEY
               )
-              metadata["framework_calls_pending"] = true if framework_calls
-              if subjects.empty? || framework_calls
+              metadata["framework_calls_pending"] = true if framework_calls_only || (!framework_subjects.empty? && !external_subjects.empty?)
+              if subjects.any? && Array(metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).empty?
+                metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] = subjects.map do |entry|
+                  {
+                    "tool_invocation_id" => entry.fetch("tool_invocation_id"),
+                    "llm_call_id" => entry.fetch("llm_call_id"),
+                    "tool_call_id" => entry.fetch("tool_call_id"),
+                    "tool_name" => entry.fetch("tool_name"),
+                    "arguments" => RecoverySupport.canonical_copy(entry.fetch("arguments", {})),
+                    "status" => "authorized"
+                  }.freeze
+                end.freeze
+              end
+              if external_subjects.empty?
                 metadata.delete(
                   RecoverySupport::RECOVERY_METADATA_KEY
                 )
@@ -236,7 +250,7 @@ module Phronomy
                 metadata[
                   RecoverySupport::RECOVERY_METADATA_KEY
                 ] = RecoverySupport.build_recovery_hash(
-                  subjects
+                  external_subjects
                 )
               end
               updated = current.with(
@@ -410,6 +424,13 @@ module Phronomy
                 RecoverySupport.unresolved_subjects(
                   next_recovery
                 )
+              tool_batch = Array(current.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).map do |entry|
+                if entry.fetch("tool_invocation_id") == subject_entry.fetch("tool_invocation_id")
+                  entry.merge("status" => "completed", "result" => operation.result)
+                else
+                  entry
+                end
+              end
               next_phase = unresolved.empty? ?
                 :recovery_tools_completed : :recovery_tools
               updated = current.with(
@@ -418,13 +439,7 @@ module Phronomy
                   current.working_records + records,
                 metadata: current.metadata.merge(
                   RecoverySupport::RECOVERY_METADATA_KEY => next_recovery,
-                  RecoverySupport::TOOL_BATCH_METADATA_KEY => Array(current.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).map do |entry|
-                    if entry.fetch("tool_invocation_id") == subject_entry.fetch("tool_invocation_id")
-                      entry.merge("status" => "completed", "result" => operation.result)
-                    else
-                      entry
-                    end
-                  end
+                  RecoverySupport::TOOL_BATCH_METADATA_KEY => tool_batch
                 )
               )
               tx.executions.save(
