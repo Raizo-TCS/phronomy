@@ -42,12 +42,33 @@ RSpec.describe Phronomy::Tools::Agent do
         task
       end
     end
+
+    class RetrieverTool < Phronomy::Agent::Base
+      agent_definition id: "retriever-tool", version: 1
+      model "openai/gpt-4o-mini"
+      instructions "You retrieve passages."
+
+      def invoke(_input, config: {}, **_options)
+        {output: "retrieved", messages: [], usage: nil}
+      end
+
+      def invoke_async(input, config: {}, **options)
+        task = Phronomy::Task.deferred(name: "retriever-tool")
+        task.complete(invoke(input, config: config, **options))
+        task
+      end
+    end
   end
 
   describe ".from_agent" do
     it "raises ArgumentError when agent_class is not a Class" do
       expect { described_class.from_agent("NotAClass") }
         .to raise_error(ArgumentError, /agent_class must be a Class/)
+    end
+
+    it "raises ArgumentError when agent_class does not inherit from Agent::Base" do
+      expect { described_class.from_agent(Class.new) }
+        .to raise_error(ArgumentError, /must inherit from Phronomy::Agent::Base/)
     end
 
     it "returns a Class (subclass of Agent)" do
@@ -75,6 +96,21 @@ RSpec.describe Phronomy::Tools::Agent do
       it "accepts an explicit tool_name override" do
         klass = described_class.from_agent(EchoAgent, tool_name: "my_echo")
         expect(klass.new.name).to eq("my_echo")
+      end
+
+      it "strips trailing Tool suffix from class name" do
+        klass = described_class.from_agent(Nested::RetrieverTool)
+        expect(klass.new.name).to eq("retriever")
+      end
+
+      it "falls back to agent_tool when class has no name" do
+        anonymous = Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "anonymous-agent", version: 1
+          model "openai/gpt-4o-mini"
+        end
+
+        klass = described_class.from_agent(anonymous)
+        expect(klass.new.name).to eq("agent_tool")
       end
     end
 
@@ -147,6 +183,62 @@ RSpec.describe Phronomy::Tools::Agent do
         end
 
         expect(klass.new.call_async({"input" => "anything"}).wait_result).to eq("")
+      end
+
+      it "returns a schema error message when required input is missing" do
+        klass = described_class.from_agent(EchoAgent)
+
+        result = klass.new.call_async({}).wait_result
+
+        expect(result).to include("Schema validation failed")
+      end
+
+      it "raises ToolError for schema validation when on_schema_error is :raise" do
+        klass = described_class.from_agent(EchoAgent)
+        klass.on_schema_error :raise
+
+        expect { klass.new.call_async({}).wait_result }
+          .to raise_error(Phronomy::ToolError, /schema error/i)
+      end
+
+      it "suppresses generic async errors when on_error is :suppress" do
+        klass = described_class.from_agent(EchoAgent)
+        klass.on_error :suppress
+        allow_any_instance_of(EchoAgent).to receive(:invoke_async).and_raise(RuntimeError, "boom")
+
+        result = klass.new.call_async({"input" => "anything"}).wait_result
+
+        expect(result).to eq("Tool error suppressed: boom")
+      end
+
+      it "wraps generic async errors when on_error is :raise" do
+        klass = described_class.from_agent(EchoAgent)
+        klass.on_error :raise
+        allow_any_instance_of(EchoAgent).to receive(:invoke_async).and_raise(RuntimeError, "boom")
+
+        expect { klass.new.call_async({"input" => "anything"}).wait_result }
+          .to raise_error(Phronomy::ToolError, /execution failed: boom/)
+      end
+
+      it "passes through execution rehydration errors without wrapping" do
+        klass = described_class.from_agent(EchoAgent)
+        allow_any_instance_of(EchoAgent).to receive(:invoke_async) do
+          Phronomy::Task.deferred(name: "rehydration").tap do |task|
+            task.fail(Phronomy::ExecutionRehydrationRequiredError.new("rehydrate"))
+          end
+        end
+
+        expect { klass.new.call_async({"input" => "anything"}).wait_result }
+          .to raise_error(Phronomy::ExecutionRehydrationRequiredError, /rehydrate/)
+      end
+
+      it "propagates cancellation raised before validation" do
+        klass = described_class.from_agent(EchoAgent)
+        token = Phronomy::Concurrency::CancellationToken.new
+        token.cancel!
+
+        expect { klass.new.call_async({"input" => "anything"}, cancellation_token: token).wait_result }
+          .to raise_error(Phronomy::CancellationError)
       end
     end
 

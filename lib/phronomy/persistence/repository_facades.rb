@@ -204,6 +204,13 @@ module Phronomy
           end.freeze
         end
 
+        def list(agent_id, after: nil, limit: 100)
+          raise ArgumentError, "limit must be a positive Integer" unless limit.is_a?(Integer) && limit.positive?
+          Array(@backend_repository.list(agent_id.to_s, after: after&.to_s, limit: limit)).map do |record|
+            decode_for_execution(record, nil, agent_id: agent_id)
+          end.freeze
+        end
+
         def delete(execution_id)
           @backend_repository.delete(execution_id.to_s)
         end
@@ -237,6 +244,215 @@ module Phronomy
               "backend returned Execution active=#{execution.active?}; expected #{active}"
           end
           execution
+        end
+      end
+
+      class Teams
+        def initialize(backend_repository)
+          @backend_repository = backend_repository
+        end
+
+        def create(root)
+          record = DurableCodec.encode_team_root(root)
+          stored = @backend_repository.create(
+            team_id: root.team_id.to_s,
+            team_revision: Integer(root.team_revision),
+            record: record
+          )
+          decode_for_team(stored, root.team_id, revision: root.team_revision)
+        end
+
+        def load(team_id)
+          decode_for_team(@backend_repository.load(team_id.to_s), team_id)
+        end
+
+        def save(team_id, expected_revision:, root:)
+          expected = Integer(expected_revision)
+          next_revision = Integer(root.team_revision)
+          unless next_revision == expected + 1
+            raise Phronomy::Persistence::ConflictError,
+              "agent save must advance revision exactly once: " \
+              "expected #{expected + 1}, got #{next_revision}"
+          end
+          unless root.team_id.to_s == team_id.to_s
+            raise Phronomy::Persistence::SerializationError,
+              "Team root identity mismatch: #{root.team_id} != #{team_id}"
+          end
+
+          record = DurableCodec.encode_team_root(root)
+          stored = @backend_repository.save(
+            team_id.to_s,
+            expected_revision: expected,
+            next_revision: next_revision,
+            record: record
+          )
+          decode_for_team(stored, team_id, revision: next_revision)
+        end
+
+        def delete(team_id)
+          @backend_repository.delete(team_id.to_s)
+        end
+
+        private
+
+        def decode_for_team(record, team_id, revision: nil)
+          root = DurableCodec.decode_team_root(record)
+          unless root.team_id == team_id.to_s
+            raise Phronomy::Persistence::SerializationError,
+              "backend returned Team root for #{root.team_id.inspect}; expected #{team_id.to_s.inspect}"
+          end
+          if revision && root.team_revision != revision
+            raise Phronomy::Persistence::SerializationError,
+              "backend returned Team revision #{root.team_revision}; expected #{revision}"
+          end
+          root
+        end
+      end
+
+      class TeamExecutions
+        def initialize(backend_repository)
+          @backend_repository = backend_repository
+        end
+
+        def create_active(execution)
+          unless execution.active?
+            raise Phronomy::Persistence::SerializationError,
+              "create_active requires an active TeamExecution"
+          end
+          record = DurableCodec.encode_team_execution(execution)
+          stored = @backend_repository.create_active(
+            team_execution_id: execution.team_execution_id.to_s,
+            team_id: execution.team_id.to_s,
+            execution_revision: Integer(execution.execution_revision),
+            record: record
+          )
+          decode_for_execution(
+            stored,
+            execution.team_execution_id,
+            team_id: execution.team_id,
+            revision: execution.execution_revision,
+            active: true
+          )
+        end
+
+        def load(team_execution_id)
+          decode_for_execution(@backend_repository.load(team_execution_id.to_s), team_execution_id)
+        end
+
+        def save(team_execution_id, expected_revision:, execution:)
+          expected = Integer(expected_revision)
+          next_revision = Integer(execution.execution_revision)
+          unless next_revision == expected + 1
+            raise Phronomy::Persistence::ConflictError,
+              "execution save must advance revision exactly once: " \
+              "expected #{expected + 1}, got #{next_revision}"
+          end
+          unless execution.team_execution_id.to_s == team_execution_id.to_s
+            raise Phronomy::Persistence::SerializationError,
+              "Execution identity mismatch: #{execution.team_execution_id} != #{team_execution_id}"
+          end
+
+          record = DurableCodec.encode_team_execution(execution)
+          stored = @backend_repository.save(
+            team_execution_id.to_s,
+            expected_revision: expected,
+            next_revision: next_revision,
+            team_id: execution.team_id.to_s,
+            active: execution.active?,
+            record: record
+          )
+          decode_for_execution(
+            stored,
+            team_execution_id,
+            team_id: execution.team_id,
+            revision: next_revision,
+            active: execution.active?
+          )
+        end
+
+        def list_active(team_id)
+          Array(@backend_repository.list_active(team_id.to_s)).map do |record|
+            decode_for_execution(record, nil, team_id: team_id, active: true)
+          end.freeze
+        end
+
+        def list(team_id, after: nil, limit: 100)
+          raise ArgumentError, "limit must be a positive Integer" unless limit.is_a?(Integer) && limit.positive?
+          Array(@backend_repository.list(team_id.to_s, after: after&.to_s, limit: limit)).map do |record|
+            decode_for_execution(record, nil, team_id: team_id)
+          end.freeze
+        end
+
+        def delete(team_execution_id)
+          @backend_repository.delete(team_execution_id.to_s)
+        end
+
+        def delete_for_team(team_id)
+          @backend_repository.delete_for_team(team_id.to_s)
+        end
+
+        def assert_idle!(team_id)
+          @backend_repository.assert_idle!(team_id.to_s)
+        end
+
+        private
+
+        def decode_for_execution(record, team_execution_id, team_id: nil, revision: nil, active: nil)
+          execution = DurableCodec.decode_team_execution(record)
+          if team_execution_id && execution.team_execution_id != team_execution_id.to_s
+            raise Phronomy::Persistence::SerializationError,
+              "backend returned Execution #{execution.team_execution_id.inspect}; expected #{team_execution_id.to_s.inspect}"
+          end
+          if team_id && execution.team_id != team_id.to_s
+            raise Phronomy::Persistence::SerializationError,
+              "backend returned Execution for Agent #{execution.team_id.inspect}; expected #{team_id.to_s.inspect}"
+          end
+          if revision && execution.execution_revision != revision
+            raise Phronomy::Persistence::SerializationError,
+              "backend returned Execution revision #{execution.execution_revision}; expected #{revision}"
+          end
+          if !active.nil? && execution.active? != active
+            raise Phronomy::Persistence::SerializationError,
+              "backend returned Execution active=#{execution.active?}; expected #{active}"
+          end
+          execution
+        end
+      end
+
+      class HandoffStates
+        def initialize(backend_repository) = @backend_repository = backend_repository
+
+        def load(main_agent_id)
+          record = @backend_repository.load(main_agent_id.to_s)
+          record && decode(record, main_agent_id)
+        end
+
+        def save(main_agent_id, expected_revision:, state:)
+          expected = expected_revision.nil? ? nil : Integer(expected_revision)
+          next_revision = expected.nil? ? 1 : expected + 1
+          unless state.main_agent_id == main_agent_id.to_s && state.handoff_revision == next_revision
+            raise Phronomy::Persistence::SerializationError, "Handoff identity/revision mismatch"
+          end
+          record = @backend_repository.save(main_agent_id.to_s,
+            expected_revision: expected, next_revision: next_revision,
+            active_agent_id: state.active_agent_id, record: DurableCodec.encode_handoff_state(state))
+          decode(record, main_agent_id, revision: next_revision)
+        end
+
+        def delete(main_agent_id, expected_revision:)
+          @backend_repository.delete(main_agent_id.to_s, expected_revision: Integer(expected_revision))
+        end
+
+        private
+
+        def decode(record, main_agent_id, revision: nil)
+          state = DurableCodec.decode_handoff_state(record)
+          identity_matches = state.main_agent_id == main_agent_id.to_s
+          revision_matches = revision.nil? || state.handoff_revision == revision
+          unless identity_matches && revision_matches
+            raise Phronomy::Persistence::SerializationError, "Backend returned another Handoff identity/revision"
+          end
+          state
         end
       end
 
@@ -292,14 +508,17 @@ module Phronomy
       # repositories. Backend implementations can use this through
       # Persistence#build_transaction_view without duplicating facade logic.
       class View
-        attr_reader :contents, :agents, :journals, :executions, :workflow_states
+        attr_reader :contents, :agents, :journals, :executions, :workflow_states, :handoff_states, :teams, :team_executions
 
-        def initialize(contents:, agents:, journals:, executions:, workflow_states:, watermark:)
+        def initialize(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:, watermark:)
           @contents = contents
           @agents = Agents.new(agents)
           @journals = Journals.new(journals)
           @executions = Executions.new(executions)
           @workflow_states = WorkflowStates.new(workflow_states)
+          @handoff_states = HandoffStates.new(handoff_states)
+          @teams = Teams.new(teams)
+          @team_executions = TeamExecutions.new(team_executions)
           @watermark = watermark
         end
 

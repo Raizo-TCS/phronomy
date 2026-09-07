@@ -58,6 +58,66 @@ module Phronomy
 
       module_function
 
+      def encode_handoff_state(value)
+        payload = value.to_h
+        Phronomy::Agent::HandoffState.from_h(payload)
+        build_record("phronomy.handoff_state", "0.1", payload)
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        serialization_error("cannot encode HandoffState", error)
+      end
+
+      def decode_handoff_state(record)
+        payload = current_payload!(record, record_type: "phronomy.handoff_state",
+          format_version: "0.1", keys: Phronomy::Agent::HandoffState::ATTRIBUTES, label: "HandoffState")
+        Phronomy::Agent::HandoffState.from_h(payload)
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        serialization_error("cannot decode HandoffState", error)
+      end
+
+      def encode_team_root(value)
+        payload = value.to_h
+        Phronomy::MultiAgent::TeamRoot.from_h(payload)
+        build_record("phronomy.team_root", "0.1", payload)
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        serialization_error("cannot encode TeamRoot", error)
+      end
+
+      def decode_team_root(record)
+        payload = current_payload!(record, record_type: "phronomy.team_root",
+          format_version: "0.1", keys: Phronomy::MultiAgent::TeamRoot::ATTRIBUTES, label: "TeamRoot")
+        Phronomy::MultiAgent::TeamRoot.from_h(payload)
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        serialization_error("cannot decode TeamRoot", error)
+      end
+
+      def encode_team_execution(value)
+        payload = value.to_h
+        Phronomy::MultiAgent::TeamExecution.from_h(payload)
+        build_record("phronomy.team_execution", "0.1", payload)
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        serialization_error("cannot encode TeamExecution", error)
+      end
+
+      def decode_team_execution(record)
+        payload = current_payload!(record, record_type: "phronomy.team_execution",
+          format_version: "0.1", keys: Phronomy::MultiAgent::TeamExecution::ATTRIBUTES, label: "TeamExecution")
+        Phronomy::MultiAgent::TeamExecution.from_h(payload)
+      rescue Phronomy::Persistence::SerializationError
+        raise
+      rescue => error
+        serialization_error("cannot decode TeamExecution", error)
+      end
+
       def encode_agent_root(root)
         payload = top_level_string_keys(root.to_h, label: "AgentRoot payload")
         payload["lifecycle_status"] = root.lifecycle_status.to_s

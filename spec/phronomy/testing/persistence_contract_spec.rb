@@ -35,23 +35,26 @@ RSpec.describe "Persistence contract test support" do
 
   it "loads and executes the complete contract suite through the public entry point" do
     source = <<~RUBY
-      require "phronomy/testing/persistence_contract"
+        require "phronomy/testing/persistence_contract"
 
-      abort "RSpec was not loaded" unless defined?(RSpec)
-      abort "contract namespace missing" unless defined?(Phronomy::Testing::PersistenceContract)
+        abort "RSpec was not loaded" unless defined?(RSpec)
+        abort "contract namespace missing" unless defined?(Phronomy::Testing::PersistenceContract)
 
-      RSpec.describe "external Persistence contract smoke" do
-        let(:persistence) { Phronomy::Persistence::InMemory.new }
+        RSpec.describe "external Persistence contract smoke" do
+          let(:persistence) { Phronomy::Persistence::InMemory.new }
 
-        it_behaves_like "a persistence content store"
-        it_behaves_like "an Agent repository"
-        it_behaves_like "a Journal repository"
-        it_behaves_like "an Execution repository"
-        it_behaves_like "a workflow state repository"
-        it_behaves_like "a Persistence backend"
-      end
+          it_behaves_like "a persistence content store"
+          it_behaves_like "an Agent repository"
+          it_behaves_like "a Journal repository"
+          it_behaves_like "an Execution repository"
+          it_behaves_like "a workflow state repository"
+      it_behaves_like "a Handoff state repository"
+      it_behaves_like "a Team repository"
+      it_behaves_like "a Team execution repository"
+          it_behaves_like "a Persistence backend"
+        end
 
-      exit RSpec::Core::Runner.run(["--format", "progress"])
+        exit RSpec::Core::Runner.run(["--format", "progress"])
     RUBY
 
     stdout, stderr, status = run_isolated_ruby(project_root, source)

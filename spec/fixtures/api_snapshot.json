@@ -3,6 +3,11 @@
     "name": "Phronomy::Agent::Base",
     "type": "class",
     "public_instance_methods": [
+      "__coordination_config",
+      "__framework_call?",
+      "__framework_tool_replayable?",
+      "__invocation_config",
+      "__prepare_coordination_record",
       "__replace_root",
       "add_input_filter",
       "add_knowledge",
@@ -318,8 +323,8 @@
       "merge",
       "phase",
       "set_graph_metadata",
-      "workflow_instance_id",
-      "to_h"
+      "to_h",
+      "workflow_instance_id"
     ]
   },
   {
@@ -349,7 +354,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::MultiAgent::Handoff",
+    "name": "Phronomy::Agent::Handoff",
     "type": "class",
     "public_instance_methods": [
       "description",
@@ -360,7 +365,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::MultiAgent::HandoffPolicy",
+    "name": "Phronomy::Agent::HandoffPolicy",
     "type": "class",
     "public_instance_methods": [
       "default_include?",
@@ -373,16 +378,19 @@
     ],
     "public_class_methods": [
       "default",
-      "define"
+      "define",
+      "from_h"
     ]
   },
   {
-    "name": "Phronomy::MultiAgent::Runner",
+    "name": "Phronomy::Agent::HandoffRunner",
     "type": "class",
     "public_instance_methods": [
+      "cancel",
       "handoffs",
       "invoke",
-      "main_agent"
+      "main_agent",
+      "result"
     ],
     "public_class_methods": []
   },
@@ -390,6 +398,11 @@
     "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [
+      "__coordination_config",
+      "__framework_call?",
+      "__framework_tool_replayable?",
+      "__invocation_config",
+      "__prepare_coordination_record",
       "__replace_root",
       "add_input_filter",
       "add_knowledge",
@@ -417,6 +430,7 @@
       "reset_context!",
       "resolve",
       "resolve_async",
+      "resume",
       "stream",
       "stream_async",
       "subagent",
@@ -433,6 +447,7 @@
       "agent_definition",
       "before_llm_input",
       "cache_instructions",
+      "context_policy",
       "context_window",
       "create",
       "get",
@@ -457,8 +472,14 @@
     "name": "Phronomy::MultiAgent::TeamCoordinator",
     "type": "class",
     "public_instance_methods": [
+      "cancel",
+      "executions",
       "invoke",
-      "stream"
+      "persistence",
+      "result",
+      "resume",
+      "stream",
+      "team_id"
     ],
     "public_class_methods": [
       "_aggregator",
@@ -473,8 +494,12 @@
       "coordinator_instructions",
       "coordinator_model",
       "coordinator_provider",
+      "create",
+      "get",
+      "load",
       "pool",
-      "schedule"
+      "schedule",
+      "team_definition"
     ]
   },
   {

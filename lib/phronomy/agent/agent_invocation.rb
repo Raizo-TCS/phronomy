@@ -458,7 +458,7 @@ module Phronomy
           key = :"include_#{category}"
           result[category] = args[key] if args.key?(key)
         end
-        Phronomy::MultiAgent::HandoffRequest.new(
+        Phronomy::Agent::HandoffRequest.new(
           handoff: handoff,
           responsibility: args.fetch(:responsibility),
           selection_intent: selection,

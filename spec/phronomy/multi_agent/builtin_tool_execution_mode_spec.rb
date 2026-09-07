@@ -10,24 +10,25 @@ RSpec.describe "framework-owned short Tool execution modes" do
     end
     source = agent_class.new
     target = agent_class.new
-    handoff = Phronomy::MultiAgent::Handoff.new(
+    handoff = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
-    binding = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff)
+    binding = Phronomy::Agent::HandoffCapabilityFactory.build(handoff)
 
     expect(binding.tool_class.execution_mode).to eq(:cooperative)
   end
 
-  it "marks TeamCoordinator queue-management Tools cooperative" do
-    coordinator = Phronomy::MultiAgent::TeamCoordinator.new
-    queue = []
-
-    enqueue_tool = coordinator.send(:build_enqueue_tool, queue)
-    finalize_tool = coordinator.send(:build_finalize_tool, queue)
-
-    expect(enqueue_tool.execution_mode).to eq(:cooperative)
-    expect(finalize_tool.execution_mode).to eq(:cooperative)
+  it "gives Team operations async completion over cooperative Tool sessions" do
+    team_class = Class.new(Phronomy::MultiAgent::TeamCoordinator) do
+      team_definition id: "builtin-team", version: 1
+    end
+    team = team_class.new
+    %i[enqueue_task finalize].each do |operation|
+      tool = team.send(:build_operation_tool, "run", operation)
+      expect(tool.execution_mode).to eq(:cooperative)
+      expect(tool.instance_method(:call_async).owner).to eq(tool)
+    end
   end
 
   it "marks SharedState in-memory knowledge Tools cooperative" do

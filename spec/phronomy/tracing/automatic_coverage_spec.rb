@@ -171,7 +171,7 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     llm = File.read(File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb"))
     tool = File.read(File.join(root, "lib/phronomy/agent/tool_invocation.rb"))
     workflow = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
-    multi = File.read(File.join(root, "lib/phronomy/multi_agent/runner.rb"))
+    multi = File.read(File.join(root, "lib/phronomy/agent/handoff_runner.rb"))
 
     expect(async_api).not_to include('trace("agent.invoke"')
     expect(async_api).not_to include('trace("agent.stream"')

@@ -113,7 +113,7 @@ module Phronomy
         @tool_call_id = tool_call.respond_to?(:id) ? tool_call.id : nil
         raw_arguments = tool_call.respond_to?(:arguments) ? (tool_call.arguments || {}) : {}
         @raw_arguments = immutable_copy(raw_arguments)
-        @config = config
+        @config = config.dup.freeze
         @approval_policy = approval_policy
         @approval_context = immutable_copy(approval_context || {})
         @origin = tool&.respond_to?(:tool_origin) ? tool.tool_origin.to_sym : :local
@@ -560,10 +560,12 @@ module Phronomy
             on_full: :raise
           )
         else
+          tool_config = @tool.class.respond_to?(:__framework_owned_operation?) ?
+            @config.merge(phronomy_tool_invocation_id: @id, execution_id: @execution_id).freeze : @config
           @tool.call_async(
             @arguments,
             cancellation_token: @config[:cancellation_token],
-            config: @config
+            config: tool_config
           )
         end
       end

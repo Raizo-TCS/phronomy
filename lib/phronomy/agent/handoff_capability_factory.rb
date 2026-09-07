@@ -1,13 +1,8 @@
 # frozen_string_literal: true
 
-require "weakref"
-
 module Phronomy
-  module MultiAgent
+  module Agent
     class HandoffCapabilityFactory
-      REGISTRY_MUTEX = Mutex.new
-      private_constant :REGISTRY_MUTEX
-
       Binding = Data.define(:handoff, :tool_class, :tool_name) do
         def initialize(handoff:, tool_class:, tool_name:)
           super(handoff: handoff, tool_class: tool_class, tool_name: tool_name.to_s.freeze)
@@ -17,9 +12,7 @@ module Phronomy
 
       def self.build(handoff)
         key = handoff.send(:transport_key)
-        source_name = class_slug(handoff.source_agent.class)
-        target_name = class_slug(handoff.target_agent.class)
-        tool_name = "phronomy_handoff_#{source_name}_to_#{target_name}_#{key}"
+        tool_name = "phronomy_handoff_#{key}"
         description = handoff.description
         policy = handoff.policy
 
@@ -45,43 +38,8 @@ module Phronomy
           end
         end
 
-        binding = Binding.new(handoff: handoff, tool_class: klass, tool_name: tool_name)
-        registry_mutex.synchronize { registry[tool_name] = WeakRef.new(binding) }
-        binding
+        Binding.new(handoff: handoff, tool_class: klass, tool_name: tool_name)
       end
-
-      def self.lookup(tool_name)
-        key = tool_name.to_s
-        registry_mutex.synchronize do
-          reference = registry[key]
-          return nil unless reference
-
-          begin
-            reference.__getobj__
-          rescue WeakRef::RefError
-            registry.delete(key)
-            nil
-          end
-        end
-      end
-
-      def self.registry
-        @registry ||= {}
-      end
-      private_class_method :registry
-
-      def self.registry_mutex
-        REGISTRY_MUTEX
-      end
-      private_class_method :registry_mutex
-
-      def self.class_slug(klass)
-        raw = (klass.name || "agent").gsub("::", "_")
-        raw.gsub(/([a-z\d])([A-Z])/, '\\1_\\2')
-          .gsub(/[^a-zA-Z0-9_]/, "_")
-          .downcase
-      end
-      private_class_method :class_slug
     end
   end
 end

@@ -71,7 +71,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
 
   it "keeps live Handoff Agent references outside the terminal worker snapshot" do
     coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
-    multi = source("lib/phronomy/multi_agent/execution_coordinator.rb")
+    multi = source("lib/phronomy/agent/handoff_execution_coordinator.rb")
     terminal_view = coordinator
       .split("HandoffTerminalView = Data.define", 2).fetch(1)
       .split("TerminalView = Data.define", 2).first

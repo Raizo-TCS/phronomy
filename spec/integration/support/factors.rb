@@ -656,9 +656,9 @@ module IntegrationFactors
       instructions "You are a worker agent."
 
       if failing
-        define_method(:invoke) do |input, thread_id: nil, config: {}, **|
-          raise "worker_error"
-        end
+        input_filter Class.new(Phronomy::Filter::Base) {
+          def call(_value, **_context) = raise("worker_error")
+        }
       end
     end
   end
@@ -668,6 +668,7 @@ module IntegrationFactors
     err = on_error
 
     Class.new(Phronomy::MultiAgent::TeamCoordinator) do
+      team_definition id: "integration-team", version: 1
       coordinator_model LM_MODEL_32
       coordinator_provider :openai
       coordinator_instructions "You are a task coordinator. Use enqueue_task to " \

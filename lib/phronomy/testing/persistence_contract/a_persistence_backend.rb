@@ -36,6 +36,7 @@ RSpec.shared_examples "a Persistence backend" do
         :journals,
         :executions,
         :workflow_states,
+        :handoff_states, :teams, :team_executions,
         :assert_agent_watermark!
       )
     end

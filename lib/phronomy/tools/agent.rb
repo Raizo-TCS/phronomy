@@ -161,7 +161,7 @@ module Phronomy
       end
 
       def settle_async_error(task, error)
-        if error.is_a?(Phronomy::ToolError) || error.is_a?(Phronomy::CancellationError)
+        if error.is_a?(Phronomy::ToolError) || error.is_a?(Phronomy::CancellationError) || error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
           task.fail(error)
           return task
         end

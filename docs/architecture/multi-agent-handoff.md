@@ -20,19 +20,19 @@ returns control to the caller. Handoff changes the active Agent for the current
 coordination lifetime.
 
 Normative Handoff intent is
-[ADR-016](../decisions/016-semantic-multi-agent-handoff.md).
+[ADR-030](../decisions/030-agent-handoff-domain-and-durable-responsibility.md).
 
 ## 2. Public API
 
 ```ruby
-handoff = Phronomy::MultiAgent::Handoff.new(
+handoff = Phronomy::Agent::Handoff.new(
   source_agent: triage,
   target_agent: billing,
   description: "Transfer billing responsibility",
   policy: policy
 )
 
-runner = Phronomy::MultiAgent::Runner.new(
+runner = Phronomy::Agent::HandoffRunner.new(
   main_agent: triage,
   handoffs: [handoff]
 )
@@ -113,40 +113,35 @@ state changes only through normal Target-owned execution/mutation paths.
 A Target Agent execution has its own `execution_id`; Source execution identity is
 provenance/audit context, not Target execution identity.
 
-## 9. Next-turn continuity and durability
+## 9. Persisted responsibility and recovery
 
-The same `main_agent` instance plus the same Runtime define one coordination
-lifetime.
+The original main Agent ID anchors `HandoffState`; the active Agent is retained
+across compatible Runtime restarts. The graph must use one Persistence instance.
+Source `handed_off`, its journal/root transition, immutable HandoffContext and the
+reserved Target execution ID commit atomically. The Target is admitted under
+that ID only after an authoritative absence read and the usual Agent admission.
+An active exact Target uses Agent Recovery; a terminal Target result is reused.
+Target terminal settlement and routing stabilization share a transaction.
 
-Within that lifetime, the active Target remains active on later turns and across
-Runner-facade recreation. Runtime admission rejects racing concurrent turns for
-the same coordination lifetime.
+A new Runtime supplies the graph/current definitions again. Tool transport names
+are deterministic from stable Source/Target Agent IDs and are resolved from that
+graph, without a global class registry. Persisted Context is not reprojected under
+current policy. Missing graph edges/definitions or a different Persistence domain
+fail before semantic continuation.
 
-Active routing is **not durably rehydrated**. Runtime/process reset starts a new
-coordination lifetime at `main_agent`. Historical Handoff audit facts do not
-reconstruct active Target ownership.
+`HandoffRunner#result(source_execution_id)` follows retained transfer links.
+`cancel(execution_id)` records a request against that exact turn; pending absent
+Targets are stopped without admission, active Targets use their existing Agent
+cancellation token, terminal outcomes remain immutable. No cancellation or
+observer loss rewinds active responsibility to the main Agent. Cancellation is
+not compensation for external effects; unresolved X0 still needs Agent Recovery.
 
-## 10. Cancellation and tracing
+F1 commit response loss is resolved by exact readback. Read/decode failure is not
+absence. F4 recovery requires retained storage and compatible current wiring.
+`on_event` is Runtime-only; terminal results can be read without redelivery.
 
-Handoff does not create a separate cancellation domain; active Agent execution
-uses normal Agent semantics.
-
-One Runner user turn is automatically observable as `multi_agent.turn`. Source
-and Target Agent/LLM/Tool logical operations keep their own automatic spans and
-semantic IDs. Handoff adds no generic correlation identity or cross-Runtime
-parent-span guarantee.
-
-See [Tracing](tracing.md).
-
-## 11. Safety and removed API
-
-`Phronomy::MultiAgent::Runner::MAX_HANDOFFS` bounds transfers in one user turn.
-
-Not current contracts:
-
-- sentinel Handoff Tool results;
-- `Phronomy::Agent::Runner`;
-- `agents:` / `routes:` Runner configuration;
-- Agent-owned Handoff Tool registration;
-- generated Tool-name identity;
-- blanket Source history/Knowledge copying.
+Current graph objects and observers are not durably rehydrated; Application
+supplies compatible wiring. Source execution identity links each completed
+transfer to its exact reserved Target execution, independently of later turns.
+`Persistence#handoff_result(source_execution_id)` reads that turn without loading
+Agent owners, graph definitions, or listeners.

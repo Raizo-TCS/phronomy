@@ -37,9 +37,7 @@ module Phronomy
       ResolutionOperation = Data.define(
         :execution, :root, :subject, :outcome, :result, :failure
       )
-      ResolutionResult = Data.define(
-        :execution, :root, :continuation, :failure, :appended_records
-      )
+      ResolutionResult = Data.define(:execution)
       RecoveryPlan = Data.define(
         :execution, :root, :manifest, :base_manifest,
         :projection, :classification
@@ -65,6 +63,11 @@ module Phronomy
         unless execution.agent_id.to_s == agent.agent_id.to_s
           raise Phronomy::Persistence::ConflictError,
             "active AgentExecution belongs to another Agent: #{execution.agent_id}"
+        end
+
+        coordination = execution.metadata["coordination"]
+        if coordination && agent.__coordination_config.empty?
+          return agent
         end
 
         plan = prepare_plan(execution)

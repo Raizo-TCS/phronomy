@@ -36,7 +36,7 @@ module Phronomy
           end
 
           descriptor =
-            RecoverySupport.recovery_descriptor(current)
+            coordination_recovery_descriptor(current)
           unless descriptor &&
               Phronomy::Recovery.subject_equal?(
                 descriptor.fetch(:subject),
@@ -146,13 +146,7 @@ module Phronomy
                 RecoverySupport::RECOVERY_METADATA_KEY => recovery
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :failed
             recovery = {
@@ -166,13 +160,7 @@ module Phronomy
                   recovery
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: operation.failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :succeeded
             # simplecov:disable
@@ -182,7 +170,7 @@ module Phronomy
               )
             updated = nil
             with_resolution_f1_capture do |tx|
-              main = agent.send(:execution_coordinator)
+              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
               snapshot = {
                 llm_results: [{
                   llm_call_id: llm_call_id,
@@ -217,7 +205,8 @@ module Phronomy
                   llm_call_id,
                   outcome
                 )
-              next_phase = subjects.empty? ?
+              framework_subjects, external_subjects = subjects.partition { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
+              next_phase = external_subjects.empty? ?
                 :recovery_provider_completed : :recovery_tools
               metadata = current.metadata.dup
               metadata.delete(
@@ -226,7 +215,21 @@ module Phronomy
               metadata.delete(
                 RecoverySupport::PENDING_LLM_STARTED_AT_KEY
               )
-              if subjects.empty?
+              metadata.delete("framework_calls_pending")
+              metadata["framework_calls_pending"] = true unless framework_subjects.empty?
+              if subjects.any? && Array(metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).empty?
+                metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] = subjects.map do |entry|
+                  {
+                    "tool_invocation_id" => entry.fetch("tool_invocation_id"),
+                    "llm_call_id" => entry.fetch("llm_call_id"),
+                    "tool_call_id" => entry.fetch("tool_call_id"),
+                    "tool_name" => entry.fetch("tool_name"),
+                    "arguments" => RecoverySupport.canonical_copy(entry.fetch("arguments", {})),
+                    "status" => "authorized"
+                  }.freeze
+                end.freeze
+              end
+              if external_subjects.empty?
                 metadata.delete(
                   RecoverySupport::RECOVERY_METADATA_KEY
                 )
@@ -234,7 +237,7 @@ module Phronomy
                 metadata[
                   RecoverySupport::RECOVERY_METADATA_KEY
                 ] = RecoverySupport.build_recovery_hash(
-                  subjects
+                  external_subjects
                 )
               end
               updated = current.with(
@@ -249,18 +252,7 @@ module Phronomy
                 expected_revision: current.execution_revision,
                 execution: updated
               )
-              ResolutionResult.new(
-                execution: updated,
-                root: operation.root,
-                continuation: (
-                  (updated.phase.to_sym ==
-                    :recovery_provider_completed) ?
-                      :provider_completed :
-                      :resolution_required
-                ),
-                failure: nil,
-                appended_records: [].freeze
-              )
+              ResolutionResult.new(execution: updated)
             end
             # simplecov:enable
           end
@@ -321,13 +313,7 @@ module Phronomy
                   resolved_recovery
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :failed
             recovery_with_failure =
@@ -347,18 +333,12 @@ module Phronomy
                   recovery_with_failure
               )
             )
-            intended = ResolutionResult.new(
-              execution: updated,
-              root: operation.root,
-              continuation: :failed_terminal,
-              failure: operation.failure,
-              appended_records: [].freeze
-            )
+            intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :succeeded
             updated = nil
             with_resolution_f1_capture do |tx|
-              main = agent.send(:execution_coordinator)
+              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
               result_ref = main.send(
                 :put_runtime_content,
                 tx,
@@ -408,6 +388,13 @@ module Phronomy
                 RecoverySupport.unresolved_subjects(
                   next_recovery
                 )
+              tool_batch = Array(current.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).map do |entry|
+                if entry.fetch("tool_invocation_id") == subject_entry.fetch("tool_invocation_id")
+                  entry.merge("status" => "completed", "result" => operation.result)
+                else
+                  entry
+                end
+              end
               next_phase = unresolved.empty? ?
                 :recovery_tools_completed : :recovery_tools
               updated = current.with(
@@ -415,8 +402,8 @@ module Phronomy
                 working_records:
                   current.working_records + records,
                 metadata: current.metadata.merge(
-                  RecoverySupport::RECOVERY_METADATA_KEY =>
-                    next_recovery
+                  RecoverySupport::RECOVERY_METADATA_KEY => next_recovery,
+                  RecoverySupport::TOOL_BATCH_METADATA_KEY => tool_batch
                 )
               )
               tx.executions.save(
@@ -424,18 +411,7 @@ module Phronomy
                 expected_revision: current.execution_revision,
                 execution: updated
               )
-              ResolutionResult.new(
-                execution: updated,
-                root: operation.root,
-                continuation: (
-                  (updated.phase.to_sym ==
-                    :recovery_tools_completed) ?
-                      :tools_completed :
-                      :resolution_required
-                ),
-                failure: nil,
-                appended_records: [].freeze
-              )
+              ResolutionResult.new(execution: updated)
             end
           end
         end
@@ -509,61 +485,7 @@ module Phronomy
             execution: result.execution
           )
 
-          case result.continuation
-          when :resolution_required
-            event_loop.mark_agent_execution_admission(
-              agent.agent_id,
-              execution_id: request.execution_id,
-              state: :recovery_required
-            )
-            descriptor =
-              RecoverySupport.recovery_descriptor(
-                result.execution
-              )
-            deliver_resolution_required(
-              result.execution,
-              descriptor
-            )
-            request.completion.complete(
-              {
-                execution_id: request.execution_id,
-                execution_revision:
-                  result.execution.execution_revision,
-                recovery: :resolution_required
-              }.freeze
-            )
-          when :provider_completed
-            observe_recovery_execution(request.completion, result.execution)
-            continue_provider_completed_after_resolution(
-              event_loop,
-              state,
-              result.execution,
-              request.completion
-            )
-          when :tools_completed
-            observe_recovery_execution(request.completion, result.execution)
-            continue_tools_completed_after_resolution(
-              event_loop,
-              state,
-              result.execution,
-              request.completion
-            )
-          when :failed_terminal
-            observe_recovery_execution(request.completion, result.execution)
-            continue_failed_after_resolution(
-              event_loop,
-              state,
-              result.execution,
-              request.completion,
-              result.failure
-            )
-          else
-            request.completion.fail(
-              Phronomy::Error.new(
-                "unknown Recovery continuation: #{result.continuation.inspect}"
-              )
-            )
-          end
+          continue_recovery_on_event_loop(result.execution, request.completion)
         rescue => caught
           request.completion.fail(caught)
         end
@@ -592,14 +514,7 @@ module Phronomy
               coordinator: self,
               request: request,
               operation: ready.operation,
-              result: intended_result.class.new(
-                execution: current,
-                root: intended_result.root,
-                continuation: intended_result.continuation,
-                failure: intended_result.failure,
-                appended_records:
-                  intended_result.appended_records
-              ),
+              result: ResolutionResult.new(execution: current),
               error: nil
             )
             apply_resolve_on_event_loop(synthetic)

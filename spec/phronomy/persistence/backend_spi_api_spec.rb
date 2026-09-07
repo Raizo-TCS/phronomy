@@ -42,6 +42,7 @@ RSpec.describe "Persistence Backend SPI public contract" do
       :journals,
       :executions,
       :workflow_states,
+      :handoff_states, :teams, :team_executions,
       :transaction,
       :build_transaction_view,
       :assert_agent_watermark!
@@ -64,7 +65,8 @@ RSpec.describe "Persistence Backend SPI public contract" do
       agents: agents,
       journals: unused,
       executions: unused,
-      workflow_states: unused
+      workflow_states: unused,
+      handoff_states: unused, teams: unused, team_executions: unused
     )
 
     root = Phronomy::Agent::AgentRoot.create(
@@ -102,7 +104,8 @@ RSpec.describe "Persistence Backend SPI public contract" do
       agents: raw_agents,
       journals: raw,
       executions: raw,
-      workflow_states: raw
+      workflow_states: raw,
+      handoff_states: raw, teams: raw, team_executions: raw
     )
 
     view = backend.build_transaction_view(
@@ -111,6 +114,7 @@ RSpec.describe "Persistence Backend SPI public contract" do
       journals: raw,
       executions: raw,
       workflow_states: raw,
+      handoff_states: raw, teams: raw, team_executions: raw,
       watermark: watermark
     )
 
@@ -144,7 +148,8 @@ RSpec.describe "Persistence Backend SPI public contract" do
         agents: repository,
         journals: repository,
         executions: repository,
-        workflow_states: repository
+        workflow_states: repository,
+        handoff_states: repository, teams: repository, team_executions: repository
       )
     end.to raise_error(
       Phronomy::Persistence::UnsupportedBackendError,

@@ -6,6 +6,8 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff", :integration do
   after { LLMStub.deactivate }
+  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence::InMemory.new } }
+  after { Phronomy.configure { |c| c.persistence = nil } }
 
   def build_agent(definition_id, instructions, persistence: nil)
     klass = Class.new(Phronomy::Agent::Base) do
@@ -21,7 +23,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     main = build_agent("cg05-main-no-handoff", "Main agent")
     LLMStub.activate(responses: ["Handled by main."])
 
-    runner = Phronomy::MultiAgent::Runner.new(main_agent: main)
+    runner = Phronomy::Agent::HandoffRunner.new(main_agent: main)
     result = runner.invoke("Hello")
 
     expect(result[:output]).to eq("Handled by main.")
@@ -31,12 +33,12 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "transfers responsibility without a sentinel Tool result" do
     source = build_agent("cg05-source-once", "Triage agent")
     target = build_agent("cg05-target-once", "Billing agent")
-    handoff = Phronomy::MultiAgent::Handoff.new(
+    handoff = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target,
       description: "Transfer billing responsibility"
     )
-    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
 
     LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -46,7 +48,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Billing investigation complete."
     ])
 
-    runner = Phronomy::MultiAgent::Runner.new(
+    runner = Phronomy::Agent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     )
@@ -62,18 +64,18 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     a = build_agent("cg05-multihop-a", "Entry agent")
     b = build_agent("cg05-multihop-b", "Intermediate agent")
     c = build_agent("cg05-multihop-c", "Final agent")
-    a_to_b = Phronomy::MultiAgent::Handoff.new(
+    a_to_b = Phronomy::Agent::Handoff.new(
       source_agent: a,
       target_agent: b,
       description: "Transfer to B"
     )
-    b_to_c = Phronomy::MultiAgent::Handoff.new(
+    b_to_c = Phronomy::Agent::Handoff.new(
       source_agent: b,
       target_agent: c,
       description: "Transfer to C"
     )
-    a_to_b_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(a_to_b).tool_name
-    b_to_c_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(b_to_c).tool_name
+    a_to_b_name = Phronomy::Agent::HandoffCapabilityFactory.build(a_to_b).tool_name
+    b_to_c_name = Phronomy::Agent::HandoffCapabilityFactory.build(b_to_c).tool_name
 
     recorder = LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -87,7 +89,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Completed by C."
     ])
 
-    runner = Phronomy::MultiAgent::Runner.new(
+    runner = Phronomy::Agent::HandoffRunner.new(
       main_agent: a,
       handoffs: [a_to_b, b_to_c]
     )
@@ -103,11 +105,11 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "keeps the Target active for the next user turn in the same Runtime" do
     source = build_agent("cg05-source-continuity", "Triage agent")
     target = build_agent("cg05-target-continuity", "Billing agent")
-    handoff = Phronomy::MultiAgent::Handoff.new(
+    handoff = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
-    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
 
     LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -118,7 +120,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Second billing answer."
     ])
 
-    runner = Phronomy::MultiAgent::Runner.new(
+    runner = Phronomy::Agent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     )
@@ -134,11 +136,11 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "preserves the active Agent when only the Runner facade is recreated" do
     source = build_agent("cg05-source-recreate", "Triage agent")
     target = build_agent("cg05-target-recreate", "Billing agent")
-    handoff = Phronomy::MultiAgent::Handoff.new(
+    handoff = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
-    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
 
     LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -149,12 +151,12 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Continued by billing."
     ])
 
-    Phronomy::MultiAgent::Runner.new(
+    Phronomy::Agent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("Start")
 
-    recreated = Phronomy::MultiAgent::Runner.new(
+    recreated = Phronomy::Agent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     )
@@ -164,45 +166,12 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     expect(result[:output]).to eq("Continued by billing.")
   end
 
-  it "can transfer Context between Agents backed by different Persistence instances" do
-    source_persistence = Phronomy::Persistence::InMemory.new
-    target_persistence = Phronomy::Persistence::InMemory.new
-    source = build_agent(
-      "cg05-source-separate-persistence",
-      "Source agent",
-      persistence: source_persistence
-    )
-    target = build_agent(
-      "cg05-target-separate-persistence",
-      "Target agent",
-      persistence: target_persistence
-    )
-    source.add_knowledge("SOURCE_KNOWLEDGE_MARKER")
-    handoff = Phronomy::MultiAgent::Handoff.new(
-      source_agent: source,
-      target_agent: target
-    )
-    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
-
-    recorder = LLMStub.activate(responses: [
-      LLMStub.tool_call_response(
-        transport_name,
-        {
-          responsibility: "Use the transferred source knowledge",
-          include_knowledge: true
-        }
-      ),
-      "Target completed."
-    ])
-
-    result = Phronomy::MultiAgent::Runner.new(
-      main_agent: source,
-      handoffs: [handoff]
-    ).invoke("Please use the stored knowledge")
-
-    expect(source.persistence).not_to equal(target.persistence)
-    expect(result[:agent]).to equal(target)
-    target_text = recorder.last_messages.map { |message| message["content"] }.compact.join("\n")
-    expect(target_text).to include("SOURCE_KNOWLEDGE_MARKER")
+  it "rejects different Persistence domains before invoking either Agent" do
+    source = build_agent("domain-source", "Source", persistence: Phronomy::Persistence::InMemory.new)
+    target = build_agent("domain-target", "Target", persistence: Phronomy::Persistence::InMemory.new)
+    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
+    expect do
+      Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge])
+    end.to raise_error(Phronomy::ConfigurationError, /Persistence instance/)
   end
 end

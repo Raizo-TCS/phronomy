@@ -1,91 +1,50 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../../integration/support/llm_stub"
 
-RSpec.describe Phronomy::MultiAgent::Runner do
+RSpec.describe Phronomy::Agent::HandoffRunner do
+  let(:store) { Phronomy::Persistence::InMemory.new }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "runner-unit-test-agent", version: 1
-      model "stub-model"
+      agent_definition id: "runner-unit", version: 1
+      model "gpt-4o-mini"
+      provider :openai
     end
   end
+  before do
+    RubyLLM.configure { |c|
+      c.openai_api_key = "test"
+      c.openai_api_base = "https://example.test/v1"
+    }
+    Phronomy.configure { |c| c.default_output_reserve = 4096 }
+  end
+  after { LLMStub.deactivate }
 
-  it "returns the main-agent result when no Handoff is requested" do
-    main = agent_class.new
-    runner = described_class.new(main_agent: main)
-    allow(main).to receive(:invoke).and_return({output: "direct answer"})
-
-    result = runner.invoke("question")
-
+  it "returns the durable result and active Agent without internal transport fields" do
+    main = agent_class.create(persistence: store)
+    LLMStub.activate(responses: ["direct answer"])
+    result = described_class.new(main_agent: main).invoke("question")
     expect(result[:output]).to eq("direct answer")
     expect(result[:agent]).to equal(main)
+    expect(result.keys.grep(/phronomy_handoff/)).to be_empty
     expect(result).not_to have_key(:handoff_request)
+    expect(store.executions.load(result[:execution_id]).status).to eq(:completed)
   end
 
-  it "strips internal phronomy keys from the public result" do
-    main = agent_class.new
-    runner = described_class.new(main_agent: main)
-    allow(main).to receive(:invoke).and_return(
-      {output: "answer", _phronomy_handoff_manifest: "internal"}
-    )
-
-    result = runner.invoke("question")
-
-    expect(result[:output]).to eq("answer")
-    expect(result).not_to have_key(:_phronomy_handoff_manifest)
-  end
-
-  it "raises HandoffError when MAX_HANDOFFS is exceeded" do
-    source = agent_class.new
-    target = agent_class.new
-    edge = Phronomy::MultiAgent::Handoff.new(
-      source_agent: source,
-      target_agent: target,
-      policy: Phronomy::MultiAgent::HandoffPolicy.define do
-        required :current_request
-        selectable :history, default: :include
-        selectable :knowledge, default: :exclude
-        selectable :tool_exchanges, default: :include
-      end
-    )
-    reverse_edge = Phronomy::MultiAgent::Handoff.new(
-      source_agent: target,
-      target_agent: source,
-      policy: Phronomy::MultiAgent::HandoffPolicy.define do
-        required :current_request
-        selectable :history, default: :include
-        selectable :knowledge, default: :exclude
-        selectable :tool_exchanges, default: :include
-      end
-    )
-
-    runner = described_class.new(main_agent: source, handoffs: [edge, reverse_edge])
-
-    fake_source_request = Phronomy::MultiAgent::HandoffRequest.new(
-      handoff: edge,
-      responsibility: "continue",
-      selection_intent: {}
-    )
-    fake_target_request = Phronomy::MultiAgent::HandoffRequest.new(
-      handoff: reverse_edge,
-      responsibility: "back",
-      selection_intent: {}
-    )
-
-    allow(source).to receive(:invoke).and_return(
-      {output: nil, handoff_request: fake_source_request, _phronomy_handoff_manifest: nil}
-    )
-    allow(target).to receive(:invoke).and_return(
-      {output: nil, handoff_request: fake_target_request, _phronomy_handoff_manifest: nil}
-    )
-
-    # Stub HandoffProjection so no real Context transfer is attempted.
-    stub_context = Phronomy::MultiAgent::HandoffContext.new(responsibility: "stub")
-    allow_any_instance_of(Phronomy::MultiAgent::HandoffProjection)
-      .to receive(:build).and_return(stub_context)
-
+  it "bounds a cyclic graph without discarding the last committed responsibility" do
+    source = agent_class.create(persistence: store)
+    target = agent_class.create(persistence: store)
+    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
+    reverse = Phronomy::Agent::Handoff.new(source_agent: target, target_agent: source)
+    names = [edge, reverse].map { |h| Phronomy::Agent::HandoffCapabilityFactory.build(h).tool_name }
+    stub_const("Phronomy::Agent::HandoffRunner::MAX_HANDOFFS", 1)
+    LLMStub.activate(responses: names.map { |name| LLMStub.tool_call_response(name, {responsibility: "continue"}) })
     expect do
-      runner.invoke("ping")
+      described_class.new(main_agent: source, handoffs: [edge, reverse]).invoke("ping")
     end.to raise_error(Phronomy::HandoffError, /Exceeded maximum Handoffs/)
+    routing = store.handoff_states.load(source.agent_id)
+    expect(routing.active_agent_id).to eq(source.agent_id)
+    expect(routing.phase).to eq("target_pending")
   end
 end

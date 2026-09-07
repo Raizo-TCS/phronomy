@@ -12,6 +12,9 @@ RSpec.describe "Persistence backend contract" do
     it_behaves_like "a Journal repository"
     it_behaves_like "an Execution repository"
     it_behaves_like "a workflow state repository"
+    it_behaves_like "a Handoff state repository"
+    it_behaves_like "a Team repository"
+    it_behaves_like "a Team execution repository"
     it_behaves_like "a Persistence backend"
   end
 end

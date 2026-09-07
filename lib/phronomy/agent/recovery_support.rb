@@ -306,7 +306,7 @@ module Phronomy
       end
 
       def build_invocation_for_suspended(agent, execution, projection, main_coordinator, listener)
-        request = Phronomy::Agent::ToolApprovalRequest.from_h(
+        request = execution.approval_request && Phronomy::Agent::ToolApprovalRequest.from_h(
           execution.approval_request
         )
         assistant_record = latest_assistant_record(execution)
@@ -327,7 +327,11 @@ module Phronomy
           execution_id: execution.execution_id,
           phronomy_execution_coordinator: main_coordinator,
           phronomy_runtime_projection: projection
-        }
+        }.merge(agent.__coordination_config)
+        config = agent.__invocation_config(config)
+        if execution.metadata["coordination_cancel_requested"]
+          config = config.merge(cancellation_token: Phronomy::Concurrency::CancellationToken.new.cancel!)
+        end
         invocation = Phronomy::Agent::AgentInvocation.new(
           agent: agent,
           input: projection.ask_message,
@@ -359,7 +363,7 @@ module Phronomy
           assistant_record.llm_call_id&.to_s
         )
 
-        by_id = request.items.to_h do |item|
+        by_id = (request ? request.items : []).to_h do |item|
           [item.tool_invocation_id.to_s, item]
         end
         snapshots = Array(execution.metadata[TOOL_BATCH_METADATA_KEY])
@@ -450,7 +454,11 @@ module Phronomy
           execution_id: execution.execution_id,
           phronomy_execution_coordinator: main_coordinator,
           phronomy_runtime_projection: projection
-        }
+        }.merge(agent.__coordination_config)
+        config = agent.__invocation_config(config)
+        if execution.metadata["coordination_cancel_requested"]
+          config = config.merge(cancellation_token: Phronomy::Concurrency::CancellationToken.new.cancel!)
+        end
         invocation = Phronomy::Agent::AgentInvocation.new(
           agent: agent,
           input: projection.ask_message,
