@@ -24,7 +24,7 @@ module Phronomy
               agent,
               manifest_ref
             )
-          main = agent.send(:execution_coordinator)
+          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
           invocation =
             RecoverySupport.build_chat_for_recovery(
               agent,
@@ -40,11 +40,9 @@ module Phronomy
             )
           invocation.output = output
           invocation.usage = usage
-          AgentInvocationSessionBuilder.send(
-            :output_filtering_action,
-            agent,
-            invocation
-          )
+          unless prepare_saved_provider_calls(execution, invocation)
+            AgentInvocationSessionBuilder.send(:output_filtering_action, agent, invocation)
+          end
 
           event_loop.replace_agent_execution(
             execution.execution_id,
@@ -81,7 +79,7 @@ module Phronomy
               agent,
               manifest_ref
             )
-          main = agent.send(:execution_coordinator)
+          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
           invocation =
             RecoverySupport.build_chat_for_recovery(
               agent,
@@ -118,7 +116,7 @@ module Phronomy
           completion,
           failure
         )
-          main = agent.send(:execution_coordinator)
+          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
           invocation = Phronomy::Agent::AgentInvocation.new(
             agent: agent,
             input: nil,
@@ -164,8 +162,8 @@ module Phronomy
           session =
             AgentInvocationSessionBuilder.build_for_resume(
               agent_invocation: invocation,
-              resume_event: :state_completed,
-              resume_phase: :output_filtering,
+              resume_event: execution.metadata["framework_calls_pending"] ? :llm_completed : :state_completed,
+              resume_phase: execution.metadata["framework_calls_pending"] ? :calling_llm : :output_filtering,
               runtime: Phronomy::Runtime.instance
             )
           event_loop.replace_agent_execution(

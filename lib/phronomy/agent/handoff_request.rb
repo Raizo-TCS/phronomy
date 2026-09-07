@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module MultiAgent
+  module Agent
     # Typed private control request produced from one intercepted Handoff capability.
     # @api private
     HandoffRequest = Data.define(
@@ -11,7 +11,7 @@ module Phronomy
         responsibility = responsibility.to_s.strip
         raise ArgumentError, "Handoff responsibility must not be empty" if responsibility.empty?
         unless handoff.is_a?(Handoff)
-          raise ArgumentError, "handoff must be a Phronomy::MultiAgent::Handoff"
+          raise ArgumentError, "handoff must be a Phronomy::Agent::Handoff"
         end
 
         normalized = handoff.policy.selectable_categories.to_h do |category|

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module MultiAgent
+  module Agent
     class HandoffPolicy
       CATEGORIES = %i[current_request history knowledge tool_exchanges].freeze
       MODES = %i[required forbidden selectable].freeze
@@ -75,6 +75,12 @@ module Phronomy
         builder = Builder.new
         builder.instance_eval(&block)
         builder.build
+      end
+
+      # Reconstructs a value-only operation snapshot, not Application code.
+      # @api private
+      def self.from_h(value)
+        new(value.map { |category, rule| Rule.new(category: category, **rule.transform_keys(&:to_sym)) })
       end
 
       def self.default

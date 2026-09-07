@@ -34,9 +34,9 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Runnable,
   Phronomy::Agent::Context::Instruction::PromptTemplate,
   # Beta
-  Phronomy::MultiAgent::Handoff,
-  Phronomy::MultiAgent::HandoffPolicy,
-  Phronomy::MultiAgent::Runner,
+  Phronomy::Agent::Handoff,
+  Phronomy::Agent::HandoffPolicy,
+  Phronomy::Agent::HandoffRunner,
   Phronomy::MultiAgent::Orchestrator,
   Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Filter::Base,

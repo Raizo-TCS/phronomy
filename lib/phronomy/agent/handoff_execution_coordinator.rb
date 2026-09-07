@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
+require "digest"
+
 module Phronomy
-  module MultiAgent
+  module Agent
     # Handoff-aware specialization of the normal Agent execution coordinator.
     # It changes only the durable terminal semantics of an invocation that
     # produced a typed HandoffRequest. EventLoop ownership/apply remains entirely
     # in Agent::ExecutionCoordinator.
-    class ExecutionCoordinator < Phronomy::Agent::ExecutionCoordinator
+    class HandoffExecutionCoordinator < Phronomy::Agent::ExecutionCoordinator
       private
 
       def compute_terminal(operation)
@@ -17,7 +19,9 @@ module Phronomy
             view.callback_failure.to_stream_callback_error
           )
         end
-        return commit_failed_outcome(operation, view.source_error) if view.source_error
+        error = view.source_error || view.block_error || view.invocation_error
+        raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+        return commit_failed_outcome(operation, error) if error
         return commit_suspended(operation) if view.phase == :suspended
 
         raise view.block_error if view.input_blocked || view.output_blocked
@@ -27,7 +31,7 @@ module Phronomy
 
         commit_completed(operation)
       rescue => caught
-        commit_failed_outcome(operation, caught)
+        reconcile_terminal_error(operation, caught)
       end
 
       def commit_handed_off(operation)
@@ -38,6 +42,27 @@ module Phronomy
         handed_off = next_root = appended = nil
 
         @agent.persistence.transaction do |tx|
+          coordination = current.metadata.fetch("coordination")
+          main_id = coordination.fetch("main_agent_id")
+          routing = tx.handoff_states.load(main_id)
+          unless routing && routing.active_agent_id == @agent.agent_id && routing.handoff_revision == coordination.fetch("handoff_revision")
+            raise Phronomy::Persistence::ConflictError, "Handoff routing changed before Source transfer"
+          end
+          if Array(routing.metadata["cancelled_execution_ids"]).include?(current.execution_id)
+            raise Phronomy::CancellationError, "Handoff Source turn was cancelled"
+          end
+          manifest = RecoverySupport.manifest_from_ref(@agent, current.metadata.fetch("manifest_ref"))
+          context = HandoffProjection.new.build_terminal(view: request, manifest: manifest,
+            persistence: tx, source_agent_id: @agent.agent_id)
+          context_ref = tx.contents.put_json(context.to_h)
+          target_id = "handoff-target-#{Digest::SHA256.hexdigest([current.execution_id, request.target_agent_id].join("\0"))}"
+          target_root = tx.agents.load(request.target_agent_id)
+          target_definition = {"id" => target_root.agent_definition_id, "version" => target_root.agent_definition_version}
+          transfer = routing.with(active_agent_id: request.target_agent_id,
+            active_handoff_context_ref: context_ref, phase: "target_pending",
+            pending_source_execution_id: current.execution_id, pending_target_execution_id: target_id,
+            metadata: routing.metadata.merge("target_definition" => target_definition))
+          tx.handoff_states.save(main_id, expected_revision: routing.handoff_revision, state: transfer)
           encoded_records, call_records = encode_runtime_records(
             current,
             tx: tx,
@@ -79,7 +104,9 @@ module Phronomy
             working_records: [],
             llm_calls: current.llm_calls + call_records,
             approval_request: nil,
-            terminal_reason: "handed_off"
+            terminal_reason: "handed_off",
+            metadata: current.metadata.merge("handoff_target_agent_id" => request.target_agent_id,
+              "handoff_target_execution_id" => target_id, "handoff_context_ref" => context_ref)
           )
           tx.executions.save(
             current.execution_id,

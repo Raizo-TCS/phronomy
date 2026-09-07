@@ -105,14 +105,8 @@ module Phronomy
 
         expected_definitions = fetch_json(manifest.tool_definitions_ref)
         additional = @additional_tools
-        if additional.empty? && defined?(Phronomy::MultiAgent::HandoffCapabilityFactory)
-          ordinary_names = ToolDefinitionSet.build(@agent).definitions
-            .map { |definition| definition.fetch("name") }
-          additional = Array(expected_definitions).filter_map do |definition|
-            name = definition.fetch("name")
-            next if ordinary_names.include?(name)
-            Phronomy::MultiAgent::HandoffCapabilityFactory.lookup(name)&.tool_class
-          end
+        if additional.empty?
+          additional = Array(@agent.__coordination_config[:phronomy_handoff_bindings]).map(&:tool_class)
         end
 
         ToolDefinitionSet.build(@agent, additional_tools: additional)

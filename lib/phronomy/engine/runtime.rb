@@ -4,6 +4,7 @@ require_relative "runtime/timer_queue"
 require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
 require_relative "runtime/agent_ownership_registry"
+require_relative "runtime/team_ownership_registry"
 
 module Phronomy
   class Runtime
@@ -65,6 +66,7 @@ module Phronomy
       )
       @multi_agent_admissions = Phronomy::MultiAgent::AdmissionRegistry.new
       @agent_ownership_registry = AgentOwnershipRegistry.new(runtime: self)
+      @team_ownership_registry = TeamOwnershipRegistry.new
       @lifecycle_mutex = Mutex.new
       @shutdown_mutex = Mutex.new
       @state = :running
@@ -107,6 +109,16 @@ module Phronomy
     def __agent_execution_owner(execution_id)
       loop_instance = @lifecycle_mutex.synchronize { @event_loop }
       loop_instance&.agent_execution_owner(execution_id)
+    end
+
+    # @api private
+    def __team_owner(id, klass:, create:, persistence:, &block)
+      @team_ownership_registry.fetch(id, klass: klass, create: create, persistence: persistence, &block)
+    end
+
+    # @api private
+    def __get_team(id, klass:)
+      @team_ownership_registry.get(id.to_s, klass: klass)
     end
 
     # @api private
@@ -226,9 +238,11 @@ module Phronomy
         end
         loop_instance&.begin_draining
         @agent_ownership_registry.begin_draining
+        @team_ownership_registry.begin_draining
 
         admission_idle = @multi_agent_admissions.wait_until_idle(drain_deadline)
         agent_ownership_stable = @agent_ownership_registry.wait_until_stable(drain_deadline)
+        team_ownership_stable = @team_ownership_registry.wait_until_stable(drain_deadline)
         loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
 
         @lifecycle_mutex.synchronize do
@@ -243,7 +257,7 @@ module Phronomy
         end
 
         subsystem_error = shutdown_pools_and_timer
-        cleanup_complete = admission_idle && agent_ownership_stable && loop_idle &&
+        cleanup_complete = admission_idle && agent_ownership_stable && team_ownership_stable && loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           subsystem_error.nil?
@@ -256,6 +270,7 @@ module Phronomy
         end
 
         @agent_ownership_registry.shutdown! if cleanup_complete
+        @team_ownership_registry.shutdown! if cleanup_complete
 
         result = ShutdownResult.new(
           runtime_outcome: runtime_outcome,

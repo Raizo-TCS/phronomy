@@ -64,7 +64,7 @@ resolved explicitly.
 | [`013-journal-backed-knowledge-as-context-candidates`](013-journal-backed-knowledge-as-context-candidates.md) | Accepted | Yes | Current persistent Knowledge authority. |
 | [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md) | Accepted | Yes | Durable-backend and live-owner/no-reload intent remains current; live Agent execution mutation is refined by ADR-024, same-process Agent identity/admission ownership by ADR-025, and same-process Workflow admission/terminal-barrier ordering by ADR-026. Workflow identity terminology is superseded by ADR-020, generic `InvocationContext` / Agent correlation semantics by ADR-021, and concrete FSMSession/Agent-Tool routing identity by ADR-023. |
 | [`015-tool-public-facade-and-rbs-boundary`](015-tool-public-facade-and-rbs-boundary.md) | Accepted | Yes | Current Tool façade / extension-SPI / RBS boundary. |
-| [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Accepted | Yes | Current semantic Handoff intent; runtime/context-transfer reconciliation is implemented and reflected in current architecture documentation. |
+| [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Superseded | No | Superseded by [ADR-030](030-agent-handoff-domain-and-durable-responsibility.md), including Agent-domain ownership and exact Target recovery. |
 | [`017-design-authority-and-adr-governance`](017-design-authority-and-adr-governance.md) | Accepted | Yes | Repository-wide architecture authority and ADR governance. |
 | [`018-durability-guarantees-and-failure-model`](018-durability-guarantees-and-failure-model.md) | Accepted | Yes | Repository-wide durability/concurrency/external-effect guarantee vocabulary and F0-F4/X0 failure model. |
 | [`019-filter-contract-and-security-boundaries`](019-filter-contract-and-security-boundaries.md) | Accepted | Yes | Current Filter transform/block and bounded PromptInjectionFilter/isolation boundaries; the follow-up review adds no fourth Context Filter call site and places semantic Context trust in Application ContextPolicy. |
@@ -77,6 +77,9 @@ resolved explicitly.
 | [`026-workflow-runtime-admission-and-durable-terminal-barrier`](026-workflow-runtime-admission-and-durable-terminal-barrier.md) | Accepted | Yes | EventLoop-owned opaque Workflow admission owner, admission-before-hydration ordering, and FSMSession-integrated durable terminal save barrier with fail-closed uncertain outcomes. |
 | [`027-llm-adapter-provider-boundary`](027-llm-adapter-provider-boundary.md) | Accepted | Yes | Phronomy-owned Provider-call extension boundary; RubyLLM is the default adapter/integration while current input materialization remains RubyLLM-specific. |
 | [`028-preparing-recovery-replay-contract`](028-preparing-recovery-replay-contract.md) | Accepted | Yes | Adds replay-safe same-`execution_id` recovery for durably admitted Agent `:preparing` executions when replayability is durably established; unsupported Runtime-only dependencies fail closed. |
+| [`029-semantic-completion-and-application-effect-boundary`](029-semantic-completion-and-application-effect-boundary.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
+| [`030-agent-handoff-domain-and-durable-responsibility`](030-agent-handoff-domain-and-durable-responsibility.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
+| [`031-durable-multi-agent-coordination`](031-durable-multi-agent-coordination.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
 
 ## Legacy duplicate `011`
 

@@ -45,6 +45,89 @@ module Phronomy
     # @api public
     attr_reader :workflow_states
 
+    # Purpose-specific durable Handoff and Team repositories in atomic_all.
+    # @api public
+    attr_reader :handoff_states, :teams, :team_executions
+
+    # Read-only exact Agent execution result; never creates a live Agent owner.
+    # Result is nil until a result_ref exists; errors remain canonical data.
+    # @api public
+    def execution_result(execution_id)
+      assert_observation_thread!
+      execution = executions.load(execution_id)
+      {
+        execution_id: execution.execution_id, agent_id: execution.agent_id,
+        status: execution.status, phase: execution.phase,
+        result_ref: execution.result_ref, error_ref: execution.error_ref,
+        result: execution.result_ref && contents.fetch_text(execution.result_ref),
+        error: execution.error_ref && contents.fetch_json(execution.error_ref)
+      }.then { |value| Phronomy::Agent::Immutable.copy(value) }
+    end
+
+    # Follows one exact Handoff turn without loading any Agent or graph.
+    # A committed absent Target reservation remains active; failed reads raise.
+    # @api public
+    def handoff_result(execution_id, main_agent_id: nil)
+      assert_observation_thread!
+      anchor = main_agent_id&.to_s
+      seen = {}
+      current = execution_id.to_s
+      reserved_agent_id = nil
+      loop do
+        raise Phronomy::Persistence::SerializationError, "Cyclic durable Handoff chain" if seen[current]
+        seen[current] = true
+        begin
+          execution = executions.load(current)
+        rescue Phronomy::Persistence::NotFoundError
+          routing = handoff_states.load(anchor)
+          if routing && Array(routing.metadata["cancelled_execution_ids"]).include?(current)
+            return {execution_id: current, agent_id: reserved_agent_id, status: :cancelled, result: nil, error: nil}.freeze
+          end
+          if reserved_agent_id && routing && routing.phase != "stable" && routing.pending_target_execution_id == current
+            return {execution_id: current, agent_id: reserved_agent_id, status: :active,
+                    phase: :target_pending, reserved: true, result: nil, error: nil}.freeze
+          end
+          raise
+        end
+        anchor ||= execution.metadata.dig("coordination", "main_agent_id")
+        unless anchor && execution.metadata.dig("coordination", "main_agent_id") == anchor
+          raise Phronomy::Persistence::ConflictError, "Execution does not belong to this Handoff anchor"
+        end
+        return execution_result(current) unless execution.status == :handed_off
+        reserved_agent_id = execution.metadata.fetch("handoff_target_agent_id")
+        current = execution.metadata.fetch("handoff_target_execution_id")
+      end
+    end
+
+    # Lists retained active and terminal executions in lexical ID order.
+    # after is an exclusive ID cursor; discovery does not imply request dedup.
+    # @api public
+    def list_executions(agent_id, after: nil, limit: 100)
+      assert_observation_thread!
+      executions.list(agent_id, after: after, limit: limit)
+    end
+
+    # Read-only exact Team result, independent of current Team class/Proc wiring.
+    # @api public
+    def team_execution_result(team_execution_id)
+      assert_observation_thread!
+      execution = team_executions.load(team_execution_id)
+      {
+        team_execution_id: execution.team_execution_id, team_id: execution.team_id,
+        status: execution.status, phase: execution.phase,
+        result_ref: execution.result_ref, error_ref: execution.error_ref,
+        result: execution.result_ref && contents.fetch_json(execution.result_ref),
+        error: execution.error_ref && contents.fetch_json(execution.error_ref)
+      }.then { |value| Phronomy::Agent::Immutable.copy(value) }
+    end
+
+    # Lists retained Team runs; no continuation or callback delivery occurs.
+    # @api public
+    def list_team_executions(team_id, after: nil, limit: 100)
+      assert_observation_thread!
+      team_executions.list(team_id, after: after, limit: limit)
+    end
+
     # Initializes a Persistence backend from record-oriented storage
     # repositories.
     #
@@ -74,12 +157,15 @@ module Phronomy
     # advertised.
     #
     # @api public
-    def initialize(contents:, agents:, journals:, executions:, workflow_states:)
+    def initialize(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:)
       @contents = contents
       @agents = RepositoryFacades::Agents.new(agents)
       @journals = RepositoryFacades::Journals.new(journals)
       @executions = RepositoryFacades::Executions.new(executions)
       @workflow_states = RepositoryFacades::WorkflowStates.new(workflow_states)
+      @handoff_states = RepositoryFacades::HandoffStates.new(handoff_states)
+      @teams = RepositoryFacades::Teams.new(teams)
+      @team_executions = RepositoryFacades::TeamExecutions.new(team_executions)
       validate_capabilities!
     end
 
@@ -141,6 +227,7 @@ module Phronomy
       journals:,
       executions:,
       workflow_states:,
+      handoff_states:, teams:, team_executions:,
       watermark:
     )
       RepositoryFacades::View.new(
@@ -149,6 +236,7 @@ module Phronomy
         journals: journals,
         executions: executions,
         workflow_states: workflow_states,
+        handoff_states: handoff_states, teams: teams, team_executions: team_executions,
         watermark: watermark
       )
     end
@@ -168,6 +256,12 @@ module Phronomy
     end
 
     private
+
+    def assert_observation_thread!
+      if Phronomy::Runtime.in_event_loop_context?
+        raise Phronomy::EventLoopReentrancyError, "Persistence observation cannot block EventLoop"
+      end
+    end
 
     def validate_capabilities!
       missing = REQUIRED_CAPABILITIES.reject do |key, value|

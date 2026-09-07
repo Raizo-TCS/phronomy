@@ -28,10 +28,10 @@ module Phronomy
       ].freeze
       attr_reader(*ATTRIBUTES)
 
-      def self.start(agent_root:, input_record:, metadata: {})
+      def self.start(agent_root:, input_record:, metadata: {}, execution_id: SecureRandom.uuid)
         now = Time.now.utc.iso8601(6)
         new(
-          execution_id: SecureRandom.uuid,
+          execution_id: execution_id.to_s,
           agent_id: agent_root.agent_id,
           execution_revision: 0,
           status: :preparing,

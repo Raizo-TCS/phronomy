@@ -1,39 +1,35 @@
 module Phronomy
   module MultiAgent
-    class Handoff
-      attr_reader source_agent: ::Phronomy::Agent::Base
-      attr_reader target_agent: ::Phronomy::Agent::Base
-      attr_reader policy: HandoffPolicy
-      attr_reader description: String
-
-      def initialize: (source_agent: ::Phronomy::Agent::Base, target_agent: ::Phronomy::Agent::Base, ?policy: HandoffPolicy, ?description: String?) -> void
+    class Orchestrator < ::Phronomy::Agent::Base
+      def self.subagent: (Symbol | String name, singleton(::Phronomy::Agent::Base) agent_class, ?on_error: Symbol, ?inherit_knowledge: bool) -> untyped
+      def self.registered_subagents: () -> Hash[Symbol | String, untyped]
+      def resume: (String execution_id, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
+      def dispatch_parallel: (*Hash[Symbol, untyped] tasks, ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> Array[untyped]
+      def dispatch_parallel_async: (*Hash[Symbol, untyped] tasks, ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> ::Phronomy::Task[untyped]
+      def fan_out: (agent: singleton(::Phronomy::Agent::Base), inputs: Array[untyped], ?config: Hash[Symbol, untyped], ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> Array[untyped]
+      def fan_out_async: (agent: singleton(::Phronomy::Agent::Base), inputs: Array[untyped], ?config: Hash[Symbol, untyped], ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> ::Phronomy::Task[untyped]
     end
 
-    class HandoffPolicy
-      CATEGORIES: Array[Symbol]
-      MODES: Array[Symbol]
-      DEFAULTS: Array[Symbol]
-
-      def self.define: () { () -> void } -> HandoffPolicy
-      def self.default: () -> HandoffPolicy
-
-      def rule: (Symbol | String) -> untyped
-      def required?: (Symbol | String) -> bool
-      def forbidden?: (Symbol | String) -> bool
-      def selectable?: (Symbol | String) -> bool
-      def default_include?: (Symbol | String) -> bool
-      def selectable_categories: () -> Array[Symbol]
-      def to_h: () -> Hash[String, Hash[String, String]]
-    end
-
-    class Runner
-      MAX_HANDOFFS: Integer
-
-      attr_reader main_agent: ::Phronomy::Agent::Base
-      attr_reader handoffs: Array[Handoff]
-
-      def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[Handoff]) -> void
-      def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
+    class TeamCoordinator
+      attr_reader team_id: String
+      attr_reader persistence: ::Phronomy::Persistence
+      def self.team_definition: (?id: String?, ?version: Integer?) -> Hash[Symbol, String | Integer]
+      def self.coordinator_model: (?String? value) -> String?
+      def self.coordinator_instructions: (?String? value) -> String?
+      def self.coordinator_provider: (?Symbol? value) -> Symbol?
+      def self.pool: (size: Integer, agent: singleton(::Phronomy::Agent::Base), ?on_error: Symbol) -> untyped
+      def self.schedule: () { (Array[untyped]) -> untyped } -> untyped
+      def self.aggregate: () { (Array[Hash[Symbol, untyped]]) -> untyped } -> untyped
+      def self.new: (?team_id: String, ?persistence: ::Phronomy::Persistence?, ?metadata: Hash[String, untyped], ?on_event: ^(untyped) -> untyped) -> instance
+      def self.create: (**untyped options) -> instance
+      def self.load: (String team_id, persistence: ::Phronomy::Persistence, ?on_event: ^(untyped) -> untyped) -> instance
+      def self.get: (String team_id) -> instance?
+      def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> untyped
+      def stream: (untyped input, ?config: Hash[Symbol, untyped]) ?{ (Hash[Symbol, untyped]) -> untyped } -> untyped
+      def resume: (String team_execution_id, ?config: Hash[Symbol, untyped]) -> untyped
+      def result: (String team_execution_id) -> Hash[Symbol, untyped]
+      def executions: (?after: String?, ?limit: Integer) -> Array[untyped]
+      def cancel: (String team_execution_id) -> Hash[Symbol, untyped]
     end
   end
 end

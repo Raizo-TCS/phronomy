@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::MultiAgent::HandoffPolicy do
+RSpec.describe Phronomy::Agent::HandoffPolicy do
   it "defines the four initial Handoff policy categories" do
     expect(described_class::CATEGORIES).to eq(
       %i[current_request history knowledge tool_exchanges]
@@ -70,7 +70,7 @@ RSpec.describe Phronomy::MultiAgent::HandoffPolicy do
   end
 end
 
-RSpec.describe Phronomy::MultiAgent::Handoff do
+RSpec.describe Phronomy::Agent::Handoff do
   let(:source_klass) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "handoff-source", version: 1
@@ -99,7 +99,7 @@ RSpec.describe Phronomy::MultiAgent::Handoff do
   it "represents one explicit Source to Target edge" do
     expect(handoff.source_agent).to equal(source)
     expect(handoff.target_agent).to equal(target)
-    expect(handoff.policy).to equal(Phronomy::MultiAgent::HandoffPolicy.default)
+    expect(handoff.policy).to equal(Phronomy::Agent::HandoffPolicy.default)
     expect(handoff.description).to eq("Transfer billing responsibility")
   end
 
@@ -117,7 +117,7 @@ RSpec.describe Phronomy::MultiAgent::Handoff do
   end
 end
 
-RSpec.describe Phronomy::MultiAgent::HandoffCapabilityFactory do
+RSpec.describe Phronomy::Agent::HandoffCapabilityFactory do
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "handoff-capability-agent", version: 1
@@ -128,7 +128,7 @@ RSpec.describe Phronomy::MultiAgent::HandoffCapabilityFactory do
   it "creates a cooperative private capability without making its Tool name the Handoff identity" do
     source = agent_class.new
     target = agent_class.new
-    edge = Phronomy::MultiAgent::Handoff.new(
+    edge = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
@@ -136,7 +136,7 @@ RSpec.describe Phronomy::MultiAgent::HandoffCapabilityFactory do
     binding = described_class.build(edge)
     expect(binding.handoff).to equal(edge)
     expect(binding.tool_class.execution_mode).to eq(:cooperative)
-    expect(described_class.lookup(binding.tool_name)).to equal(binding)
+    expect(described_class.build(edge).tool_name).to eq(binding.tool_name)
     expect(edge).not_to respond_to(:tool_name)
   end
 end
@@ -152,17 +152,17 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   end
 
   def build_binding(source, target)
-    edge = Phronomy::MultiAgent::Handoff.new(
+    edge = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target,
-      policy: Phronomy::MultiAgent::HandoffPolicy.define do
+      policy: Phronomy::Agent::HandoffPolicy.define do
         required :current_request
         selectable :history, default: :include
         selectable :knowledge, default: :exclude
         selectable :tool_exchanges, default: :include
       end
     )
-    Phronomy::MultiAgent::HandoffCapabilityFactory.build(edge)
+    Phronomy::Agent::HandoffCapabilityFactory.build(edge)
   end
 
   it "turns one intercepted Handoff capability into a typed HandoffRequest" do
@@ -231,90 +231,5 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     expect(invocation.handoff_failed?).to be(true)
     expect(invocation.error).to be_a(Phronomy::HandoffError)
     expect(invocation.error.message).to match(/multiple Handoffs|mix Handoff/)
-  end
-end
-
-RSpec.describe Phronomy::MultiAgent::Coordinator do
-  let(:agent_class) do
-    Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "handoff-coordination-agent", version: 1
-      model "stub-model"
-    end
-  end
-
-  it "rejects duplicate Source to Target edges" do
-    source = agent_class.new
-    target = agent_class.new
-    first = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
-    second = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
-
-    expect do
-      described_class.new(main_agent: source, handoffs: [first, second])
-    end.to raise_error(ArgumentError, /duplicate/)
-  end
-
-  it "starts a new coordination lifetime at the main Agent" do
-    source = agent_class.new
-    target = agent_class.new
-    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
-    coordinator = described_class.new(main_agent: source, handoffs: [edge])
-
-    expect(coordinator.snapshot.active_agent).to equal(source)
-    expect(coordinator.snapshot.active_handoff_context).to be_nil
-  end
-
-  it "rejects an incompatible recreated Runner graph for the same main Agent" do
-    source = agent_class.new
-    first_target = agent_class.new
-    second_target = agent_class.new
-    first = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: first_target)
-    second = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: second_target)
-
-    described_class.attach(main_agent: source, handoffs: [first])
-
-    expect do
-      described_class.attach(main_agent: source, handoffs: [second])
-    end.to raise_error(Phronomy::ConfigurationError, /different Handoff graph/)
-  end
-
-  it "admits only one active Multi-Agent turn for one coordination lifetime" do
-    source = agent_class.new
-    target = agent_class.new
-    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
-    coordinator = described_class.attach(main_agent: source, handoffs: [edge])
-    runtime = Phronomy::Runtime.instance
-
-    runtime.__admit_multi_agent(coordinator)
-    begin
-      expect do
-        runtime.__admit_multi_agent(coordinator)
-      end.to raise_error(Phronomy::HandoffError, /already active/)
-    ensure
-      runtime.__release_multi_agent(coordinator)
-    end
-  end
-
-  it "does not carry active-Agent continuation across a Runtime reset" do
-    source = agent_class.new
-    target = agent_class.new
-    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
-    coordinator = described_class.attach(main_agent: source, handoffs: [edge])
-    request = Phronomy::MultiAgent::HandoffRequest.new(
-      handoff: edge,
-      responsibility: "Continue elsewhere",
-      selection_intent: {}
-    )
-    context = Phronomy::MultiAgent::HandoffContext.new(
-      responsibility: "Continue elsewhere"
-    )
-
-    coordinator.transition!(request, context)
-    expect(coordinator.snapshot.active_agent).to equal(target)
-
-    Phronomy.reset_runtime!
-
-    recreated = described_class.attach(main_agent: source, handoffs: [edge])
-    expect(recreated.snapshot.active_agent).to equal(source)
-    expect(recreated.snapshot.active_handoff_context).to be_nil
   end
 end

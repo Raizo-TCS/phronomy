@@ -267,6 +267,28 @@ module Phronomy
         end
       end
 
+      # @api private
+      def __coordination_config
+        @_phronomy_coordination_config || {}.freeze
+      end
+
+      # Framework-owned idempotent Tool operations opt into exact replay.
+      # @api private
+      def __framework_tool_replayable?(_name) = false
+
+      # @api private
+      def __framework_call?(name)
+        __framework_tool_replayable?(name) || Array(__coordination_config[:phronomy_handoff_bindings]).any? { |binding| binding.tool_name == name }
+      end
+
+      # Captured Tool wiring is supplied explicitly; this hook only writes semantic values.
+      # @api private
+      def __prepare_coordination_record(execution, tx:) = execution
+
+      # Runtime configuration only; no value returned here is serialized.
+      # @api private
+      def __invocation_config(config) = config
+
       attr_reader :agent_id, :persistence
 
       def initialize(
@@ -438,6 +460,12 @@ module Phronomy
         begin
           persistence.transaction do |tx|
             tx.executions.assert_idle!(agent_id)
+            if (routing = tx.handoff_states.load(agent_id))
+              unless routing.phase == "stable" && tx.executions.list_active(routing.active_agent_id).empty?
+                raise Phronomy::AgentBusyError, "Handoff anchor #{agent_id} owns an unfinished turn"
+              end
+              tx.handoff_states.delete(agent_id, expected_revision: routing.handoff_revision)
+            end
             tx.journals.delete(agent_id)
             tx.executions.delete_for_agent(agent_id)
             tx.agents.delete(agent_id)

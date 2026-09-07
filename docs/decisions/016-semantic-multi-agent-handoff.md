@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted.
+Superseded by [ADR-030](030-agent-handoff-domain-and-durable-responsibility.md).
+The semantic Context-transfer rationale is retained in ADR-030; the namespace and
+Runtime-only routing contract below are historical.
 
 ## Context
 

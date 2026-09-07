@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module MultiAgent
+  module Agent
     class HandoffContext
       Provenance = Data.define(
         :origin_agent_id,
@@ -77,6 +77,31 @@ module Phronomy
           ))
           freeze
         end
+      end
+
+      def to_h
+        {
+          "responsibility" => responsibility,
+          "items" => items.map do |item|
+            item.to_h.transform_keys(&:to_s).merge(
+              "candidate_category" => item.candidate_category.to_s,
+              "policy_category" => item.policy_category.to_s,
+              "role" => item.role&.to_s,
+              "content_format" => item.content_format.to_s,
+              "provenance" => item.provenance.to_h
+            )
+          end
+        }.freeze
+      end
+
+      def self.from_h(value)
+        source = value.transform_keys(&:to_s)
+        raise ArgumentError, "HandoffContext schema mismatch" unless source.keys.sort == %w[items responsibility]
+        new(responsibility: source.fetch("responsibility"), items: source.fetch("items").map do |raw|
+          values = raw.transform_keys(&:to_sym)
+          values[:provenance] = Provenance.new(**values.fetch(:provenance).transform_keys(&:to_sym))
+          Item.new(**values)
+        end)
       end
 
       attr_reader :responsibility, :items

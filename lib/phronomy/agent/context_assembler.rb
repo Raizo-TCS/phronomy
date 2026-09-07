@@ -552,7 +552,7 @@ module Phronomy
       def merge_handoff_candidates(candidates, handoff_context, execution:)
         return Array(candidates).freeze unless handoff_context
 
-        unless handoff_context.is_a?(Phronomy::MultiAgent::HandoffContext)
+        unless handoff_context.is_a?(Phronomy::Agent::HandoffContext)
           raise ArgumentError, "phronomy_handoff_context must be a HandoffContext"
         end
 

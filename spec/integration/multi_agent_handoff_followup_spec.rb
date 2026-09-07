@@ -6,6 +6,8 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration do
   after { LLMStub.deactivate }
+  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence::InMemory.new } }
+  after { Phronomy.configure { |c| c.persistence = nil } }
 
   it "keeps the current user request in the current_request Handoff category" do
     lookup_tool = Class.new(Phronomy::Tool::Base) do
@@ -36,19 +38,19 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
 
     source = source_class.new
     target = target_class.new
-    policy = Phronomy::MultiAgent::HandoffPolicy.define do
+    policy = Phronomy::Agent::HandoffPolicy.define do
       required :current_request
       forbidden :history
       selectable :knowledge, default: :exclude
       selectable :tool_exchanges, default: :include
     end
-    handoff = Phronomy::MultiAgent::Handoff.new(
+    handoff = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy,
       description: "Transfer the case after the lookup"
     )
-    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
 
     recorder = LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -62,7 +64,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::MultiAgent::Runner.new(
+    result = Phronomy::Agent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("ORIGINAL_CURRENT_REQUEST_MARKER: investigate case-42")
@@ -111,19 +113,19 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
 
     source = source_class.new
     target = target_class.new
-    handoff_policy = Phronomy::MultiAgent::HandoffPolicy.define do
+    handoff_policy = Phronomy::Agent::HandoffPolicy.define do
       required :current_request
       selectable :history, default: :include
       selectable :knowledge, default: :exclude
       selectable :tool_exchanges, default: :exclude
     end
-    handoff = Phronomy::MultiAgent::Handoff.new(
+    handoff = Phronomy::Agent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: handoff_policy,
       description: "Transfer to the target Agent"
     )
-    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
 
     recorder = LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -133,7 +135,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::MultiAgent::Runner.new(
+    result = Phronomy::Agent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("Transfer this request")

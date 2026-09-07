@@ -6,7 +6,7 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
   let(:root) { File.expand_path("../../..", __dir__) }
 
   it "does not expose the removed sentinel Handoff encoding" do
-    source = File.read(File.join(root, "lib/phronomy/multi_agent/handoff.rb"))
+    source = File.read(File.join(root, "lib/phronomy/agent/handoff.rb"))
     expect(source).not_to include("SENTINEL_PREFIX")
     expect(source).not_to include("def sentinel")
     expect(source).not_to include("def to_tool_class")
@@ -28,12 +28,12 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
   it "does not restore the removed Agent::Runner public surface" do
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/runner.rb"))
     expect(Phronomy::Agent.const_defined?(:Runner, false)).to be(false)
-    expect(Phronomy::MultiAgent::Runner).to be_a(Class)
+    expect(Phronomy::Agent::HandoffRunner).to be_a(Class)
   end
 
   it "keeps Handoff control out of ordinary Tool results" do
-    request = File.read(File.join(root, "lib/phronomy/multi_agent/handoff_request.rb"))
-    coordinator = File.read(File.join(root, "lib/phronomy/multi_agent/execution_coordinator.rb"))
+    request = File.read(File.join(root, "lib/phronomy/agent/handoff_request.rb"))
+    coordinator = File.read(File.join(root, "lib/phronomy/agent/handoff_execution_coordinator.rb"))
     expect(request).to include("HandoffRequest")
     expect(coordinator).to include(":handed_off")
     expect(coordinator).not_to include("sentinel_map")

@@ -43,12 +43,12 @@ module Phronomy
       )
       HandoffTerminalView = Data.define(
         :target_agent_id, :responsibility, :selection_intent,
-        :llm_call_id, :tool_call_id
+        :llm_call_id, :tool_call_id, :policy
       )
       TerminalView = Data.define(
         :phase, :output, :usage, :approval_request, :rejected,
         :input_blocked, :output_blocked, :block_error,
-        :invocation_error, :handoff, :callback_failure, :source_error
+        :invocation_error, :handoff, :callback_failure, :source_error, :cancel_requested
       )
       TerminalCommitCommand = Data.define(
         :execution_id, :fsm_session_id, :expected_execution_revision,
@@ -139,7 +139,7 @@ module Phronomy
         command = StartCommand.new(
           coordinator: self,
           input: input,
-          config: config.dup.freeze,
+          config: @agent.__invocation_config(config).dup.freeze,
           mode: mode.to_sym,
           approval_policy: approval_policy,
           approval_listener: approval_listener,
@@ -696,7 +696,9 @@ module Phronomy
           execution = AgentExecution.start(
             agent_root: root,
             input_record: input_record,
+            execution_id: config[:phronomy_reserved_execution_id] || SecureRandom.uuid,
             metadata: {
+              "coordination" => config[:phronomy_coordination],
               "current_input_ref" => input_ref,
               "durable_context_ref" => durable_context_ref,
               "preparation_replayable" => !!preparation_replayable,
@@ -718,6 +720,7 @@ module Phronomy
             execution_revision: 0,
             working_records: [input_record]
           )
+          validate_coordination_admission!(tx, execution)
           tx.executions.create_active(execution)
           next_root = root.with(
             agent_revision: root.agent_revision + 1,
@@ -732,12 +735,57 @@ module Phronomy
         [execution, next_root]
       end
 
+      def validate_coordination_admission!(tx, execution)
+        owner = execution.metadata["coordination"]
+        return unless owner
+        case owner.fetch("kind")
+        when "team"
+          team = tx.team_executions.load(owner.fetch("team_execution_id"))
+          unless team.team_id == owner.fetch("team_id") && team.active? && !team.metadata["cancel_requested"]
+            raise Phronomy::CancellationError, "Team run is no longer dispatchable"
+          end
+          slot = if owner.fetch("slot") == "coordinator"
+            team.coordinator
+          else
+            assignment = team.assignments.find { |entry| entry.fetch("task_id") == owner.fetch("slot") }
+            worker = assignment && team.workers.fetch(assignment.fetch("worker"))
+            worker&.merge("execution_id" => assignment.fetch("execution_id"))
+          end
+          unless slot && slot.fetch("execution_id") == execution.execution_id && slot.fetch("agent_id") == execution.agent_id
+            raise Phronomy::Persistence::ConflictError, "Team reserved child identity mismatch"
+          end
+        when "subagent"
+          parent = tx.executions.load(owner.fetch("parent_execution_id"))
+          unless parent.agent_id == owner.fetch("parent_agent_id") && parent.active? && !parent.metadata["coordination_cancel_requested"]
+            raise Phronomy::CancellationError, "Parent run is no longer dispatchable"
+          end
+          snapshot = tx.contents.fetch_json(parent.metadata.fetch("multi_agent_coordination_ref"))
+          slot = snapshot.fetch("children").find { |entry| entry.fetch("slot") == owner.fetch("slot") }
+          unless slot && slot.fetch("agent_id") == execution.agent_id && slot.fetch("execution_id") == execution.execution_id
+            raise Phronomy::Persistence::ConflictError, "Parent reserved child identity mismatch"
+          end
+        when "handoff"
+          routing = tx.handoff_states.load(owner.fetch("main_agent_id"))
+          unless routing && routing.active_agent_id == execution.agent_id
+            raise Phronomy::Persistence::ConflictError, "Handoff responsibility changed before admission"
+          end
+          if Array(routing.metadata["cancelled_execution_ids"]).include?(execution.execution_id)
+            raise Phronomy::CancellationError, "Handoff reservation was cancelled"
+          end
+          if routing.phase != "stable" && routing.pending_target_execution_id != execution.execution_id
+            raise Phronomy::Persistence::ConflictError, "Handoff reserved Target identity mismatch"
+          end
+        else
+          raise Phronomy::ConfigurationError, "Unknown coordination owner kind"
+        end
+      end
+
       def initial_preparation_replayable?(input, config, approval_policy)
         return false unless input.is_a?(String)
         return false unless approval_policy.nil?
         if config.key?(:phronomy_handoff_bindings) ||
             config.key?(:phronomy_handoff_context)
-          return false
+          return false unless config[:phronomy_coordination]&.fetch("kind", nil) == "handoff"
         end
 
         invocation_context = config[:invocation_context]
@@ -1038,7 +1086,7 @@ module Phronomy
         mode = (
           execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] || "invoke"
         ).to_sym
-        config = {phronomy_recovery_mode: mode}
+        config = {phronomy_recovery_mode: mode}.merge(@agent.__coordination_config)
 
         if execution.metadata.key?("durable_context_ref")
           durable_context_ref = execution.metadata.fetch("durable_context_ref")
@@ -1267,6 +1315,7 @@ module Phronomy
                 "manifest_refs" => refs
               )
             )
+            updated = @agent.__prepare_coordination_record(updated, tx: tx)
             tx.executions.save(
               operation.execution.execution_id,
               expected_revision: operation.execution.execution_revision,
@@ -1316,6 +1365,7 @@ module Phronomy
             metadata.delete(RecoverySupport::PENDING_LLM_ID_KEY)
             metadata.delete(RecoverySupport::PENDING_LLM_STARTED_AT_KEY)
             metadata.delete(RecoverySupport::RECOVERY_METADATA_KEY)
+            metadata.delete("framework_calls_pending")
             metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] =
               RecoverySupport.canonical_copy(operation.tool_batch_snapshot)
             metadata[RecoverySupport::CONTRACT_VERSION_KEY] =
@@ -1326,6 +1376,7 @@ module Phronomy
               llm_calls: operation.execution.llm_calls + call_records,
               metadata: metadata
             )
+            updated = @agent.__prepare_coordination_record(updated, tx: tx)
             tx.executions.save(
               operation.execution.execution_id,
               expected_revision: operation.execution.execution_revision,
@@ -1909,6 +1960,27 @@ module Phronomy
         end
       end
 
+      def start_framework_tools_on_event_loop(execution_id, result_task)
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
+        state = event_loop.agent_execution_state(execution_id)
+        invocation = state.invocation
+        session = AgentInvocationSessionBuilder.build_for_resume(agent_invocation: invocation,
+          resume_event: :resume, resume_phase: :suspended, runtime: runtime)
+        event_loop.replace_agent_execution(execution_id, invocation: invocation, fsm_session_id: session.id)
+        event_loop.mark_agent_execution_admission(@agent.agent_id, execution_id: execution_id, state: :executing)
+        source = Phronomy::Task.deferred(name: "framework-tool-recovery-source")
+        source.on_complete do |result, error|
+          finish_on_event_loop(execution_id, result_task, result || session.context, error, fsm_session_id: session.id)
+        end
+        event_loop.register(session, completion: source)
+        invocation.tool_invocations.select(&:authorized?).each do |child|
+          child_session = ToolInvocationSessionBuilder.build_for_resume(tool_invocation: child,
+            parent_event_sink: session.event_sink, resume_event: :dispatch, resume_phase: :authorized, runtime: runtime)
+          register_child(event_loop, child, child_session, session.event_sink)
+        end
+      end
+
       def register_child(event_loop, child, session, parent_event_sink)
         completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
         completion.on_complete do |_result, error|
@@ -2143,7 +2215,8 @@ module Phronomy
           invocation_error: invocation&.error,
           handoff: handoff_terminal_view(invocation&.handoff_request),
           callback_failure: invocation&.callback_failure,
-          source_error: source_error
+          source_error: source_error,
+          cancel_requested: invocation&.config&.fetch(:cancellation_token, nil)&.cancelled? || false
         )
       end
 
@@ -2157,7 +2230,8 @@ module Phronomy
             [category.to_s.freeze, !!included]
           end.freeze,
           llm_call_id: request.llm_call_id&.to_s&.freeze,
-          tool_call_id: request.tool_call_id&.to_s&.freeze
+          tool_call_id: request.tool_call_id&.to_s&.freeze,
+          policy: Immutable.copy(request.handoff.policy.to_h)
         )
       end
 
@@ -2167,22 +2241,77 @@ module Phronomy
 
       def compute_terminal(operation)
         view = operation.terminal_view
-        if view.callback_failure
-          return commit_failed_outcome(
-            operation,
-            view.callback_failure.to_stream_callback_error
-          )
+        error = view.callback_failure&.to_stream_callback_error || view.source_error ||
+          view.block_error || view.invocation_error
+        if operation.execution.metadata["multi_agent_coordination_ref"] &&
+            (error.is_a?(Phronomy::ExecutionRehydrationRequiredError) || view.cancel_requested)
+          waiting = commit_coordination_wait(operation, error)
+          return waiting if waiting
         end
-        return commit_failed_outcome(operation, view.source_error) if view.source_error
-        if view.phase == :suspended
-          return commit_suspended(operation)
-        end
-        raise view.block_error if view.input_blocked || view.output_blocked
-        raise view.invocation_error if view.invocation_error
-
+        raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+        return commit_failed_outcome(operation, error) if error
+        return commit_suspended(operation) if view.phase == :suspended
         commit_completed(operation)
       rescue => caught
-        commit_failed_outcome(operation, caught)
+        reconcile_terminal_error(operation, caught)
+      end
+
+      # Reuse the Agent barrier to retain unfinished owned children. This is an
+      # active AgentExecution snapshot, not a second scheduler or terminal state.
+      def commit_coordination_wait(operation, error)
+        current = operation.execution
+        waiting = nil
+        @agent.persistence.transaction do |tx|
+          refreshed = @agent.__prepare_coordination_record(current, tx: tx)
+          snapshot = tx.contents.fetch_json(refreshed.metadata.fetch("multi_agent_coordination_ref"))
+          unresolved = snapshot.fetch("children").any? do |child|
+            !%w[completed failed cancelled rejected blocked handed_off].include?(child.fetch("state")) &&
+              !(operation.terminal_view.cancel_requested && child.fetch("state") == "reserved")
+          end
+          next unless unresolved
+          waiting = current.with(metadata: refreshed.metadata.merge(
+            "coordination_cancel_requested" => operation.terminal_view.cancel_requested || current.metadata["coordination_cancel_requested"] == true
+          ))
+          tx.executions.save(current.execution_id, expected_revision: current.execution_revision, execution: waiting)
+        end
+        return unless waiting
+        coordination_wait_outcome(operation, waiting, error)
+      rescue => failure
+        confirmed = @agent.persistence.executions.load(current.execution_id)
+        raise failure unless waiting && confirmed.to_h == waiting.to_h
+        coordination_wait_outcome(operation, confirmed, error)
+      end
+
+      def coordination_wait_outcome(operation, execution, error)
+        TerminalOutcome.new(type: :coordination_wait, execution: execution, root: operation.root,
+          appended_records: [].freeze, result: nil,
+          error: error.is_a?(Phronomy::ExecutionRehydrationRequiredError) ? error :
+            Phronomy::ExecutionRehydrationRequiredError.new("Execution #{execution.execution_id} retains unfinished children for cancellation/recovery"),
+          approval_request: nil)
+      end
+
+      # F1: terminal atomicity alone does not establish commit outcome certainty.
+      # Reuse an exact committed outcome; an absent/active/read-failed result is
+      # never permission to write a second terminal transition.
+      def reconcile_terminal_error(operation, error)
+        confirmed = @agent.persistence.executions.load(operation.execution_id)
+        raise error unless confirmed.terminal? &&
+          confirmed.agent_id == @agent.agent_id &&
+          confirmed.execution_revision == operation.expected_execution_revision + 1
+        root = @agent.persistence.agents.load(@agent.agent_id)
+        records = @agent.persistence.journals.read(@agent.agent_id,
+          after: operation.root.journal_position, limit: root.journal_position - operation.root.journal_position)
+        result = @agent.persistence.execution_result(confirmed.execution_id)
+        failure = result[:error] && RecoverySupport.error_from_failure(result[:error])
+        type = if failure
+          :failed
+        else
+          ((confirmed.status == :handed_off) ? :handed_off : :completed)
+        end
+        TerminalOutcome.new(type: type, execution: confirmed, root: root,
+          appended_records: records.freeze,
+          result: failure ? nil : result_base(confirmed, root).merge(output: result[:result]).freeze,
+          error: failure, approval_request: nil)
       end
 
       def commit_suspended(operation)
@@ -2247,6 +2376,18 @@ module Phronomy
         )
       end
 
+      def synchronize_handoff_target(tx, execution)
+        coordination = execution.metadata["coordination"]
+        return unless coordination && coordination["kind"] == "handoff"
+        routing = tx.handoff_states.load(coordination.fetch("main_agent_id"))
+        return unless routing && routing.pending_target_execution_id == execution.execution_id && routing.phase != "stable"
+        unless routing.active_agent_id == execution.agent_id
+          raise Phronomy::Persistence::ConflictError, "Handoff Target owner mismatch"
+        end
+        tx.handoff_states.save(routing.main_agent_id, expected_revision: routing.handoff_revision,
+          state: routing.with(phase: "stable"))
+      end
+
       def commit_completed(operation)
         current = operation.execution
         root = operation.root
@@ -2298,6 +2439,8 @@ module Phronomy
             result_ref: output_ref,
             terminal_reason: view.rejected ? "rejected" : "completed"
           )
+          completed = @agent.__prepare_coordination_record(completed, tx: tx)
+          synchronize_handoff_target(tx, completed)
           tx.executions.save(
             current.execution_id,
             expected_revision: current.execution_revision,
@@ -2391,6 +2534,8 @@ module Phronomy
             error_ref: error_ref,
             terminal_reason: translated_error.class.name
           )
+          failed = @agent.__prepare_coordination_record(failed, tx: tx)
+          synchronize_handoff_target(tx, failed)
           tx.executions.save(
             current.execution_id,
             expected_revision: current.execution_revision,
@@ -2436,6 +2581,14 @@ module Phronomy
         end
 
         if ready.error
+          if operation.execution.metadata["coordination"] || operation.execution.metadata["multi_agent_coordination_ref"]
+            event_loop.release_agent_execution(operation.execution_id) if state
+            event_loop.release_agent_execution_admission(@agent.agent_id, execution_id: operation.execution_id)
+            event_loop.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each do |task|
+              task.fail(ready.error)
+            end
+            return
+          end
           event_loop.mark_agent_execution_admission(
             @agent.agent_id,
             execution_id: operation.execution_id,
@@ -2463,6 +2616,10 @@ module Phronomy
         end
 
         case outcome.type
+        when :coordination_wait
+          event_loop.release_agent_execution(operation.execution_id) if state
+          event_loop.release_agent_execution_admission(@agent.agent_id, execution_id: operation.execution_id)
+          event_loop.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| task.fail(outcome.error) }
         when :suspended
           event_loop.mark_agent_execution_admission(
             @agent.agent_id,
@@ -2480,6 +2637,9 @@ module Phronomy
             :approval_required,
             outcome.result
           )
+          Array(state&.invocation&.config&.fetch(:phronomy_exact_observers, [])).each do |task|
+            task.fail(Phronomy::ExecutionRehydrationRequiredError.new("Execution #{operation.execution_id} requires approval"))
+          end
         when :completed
           event_loop.release_agent_execution(operation.execution_id) if state
           event_loop.release_agent_execution_admission(
@@ -2644,6 +2804,9 @@ module Phronomy
             llm_call_id = payload[:llm_call_id] || payload["llm_call_id"]
             tool_call_id = payload.fetch(:tool_call_id).to_s
             tool_name = payload.fetch(:tool_name).to_s
+            next if execution.working_records.any? do |record|
+              record.kind == :tool_message && record.causation_id.to_s == tool_call_id && record.llm_call_id.to_s == llm_call_id.to_s
+            end
             result_ref = put_runtime_content(tx, payload.fetch(:tool_result))
             records << JournalRecord.new(
               agent_id: @agent.agent_id,

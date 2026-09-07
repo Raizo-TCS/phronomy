@@ -67,6 +67,11 @@ module Phronomy
             "active AgentExecution belongs to another Agent: #{execution.agent_id}"
         end
 
+        coordination = execution.metadata["coordination"]
+        if coordination && agent.__coordination_config.empty?
+          return agent
+        end
+
         plan = prepare_plan(execution)
         classification = plan.classification
         if classification.disposition ==

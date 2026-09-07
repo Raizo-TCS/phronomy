@@ -17,7 +17,7 @@ require_relative "support/llm_stub"
 #   Coordinator LLM calls are stubbed with a fixed enqueue_task → finalize →
 #   text-response sequence.  Worker LLM calls are stubbed with text responses.
 #   Failing-worker scenarios (on_error: :skip) use a worker subclass that
-#   overrides #invoke to raise, bypassing LLM entirely.
+#   raises from an input filter inside the normal Agent execution engine.
 #
 # Coordinator LLM call sequence (N tasks):
 #   Calls 0..N-1 : tool_call "enqueue_task", {description: "Task K"}
@@ -120,7 +120,7 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
     it "records errors for both tasks" do
       result = team_class.new.invoke("Process tasks")
       expect(result.size).to eq(2)
-      expect(result.map { |a| a[:error] }).to all(be_a(RuntimeError))
+      expect(result.map { |a| a["error"] }).to all(include("message" => "worker_error"))
     end
   end
 
@@ -201,13 +201,13 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     it "both workers are used" do
       result = team_class.new.invoke("Process tasks")
-      worker_indices = result.map { |a| a[:worker] }.uniq.sort
+      worker_indices = result.map { |a| a["worker"] }.uniq.sort
       expect(worker_indices).to eq([0, 1])
     end
 
     it "all assignments have nil :error" do
       result = team_class.new.invoke("Process tasks")
-      expect(result.map { |a| a[:error] }).to all(be_nil)
+      expect(result.map { |a| a["error"] }).to all(be_nil)
     end
   end
 
@@ -244,7 +244,7 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     it "the assignment has the correct worker index (0)" do
       result = team_class.new.invoke("Process tasks")
-      expect(result.first[:worker]).to eq(0)
+      expect(result.first["worker"]).to eq(0)
     end
 
     it "the assignment has nil :error" do

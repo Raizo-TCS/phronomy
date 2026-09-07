@@ -226,7 +226,7 @@ module Phronomy
         return execution_coordinator unless multi_agent
 
         @multi_agent_execution_coordinator ||=
-          Phronomy::MultiAgent::ExecutionCoordinator.new(self)
+          Phronomy::Agent::HandoffExecutionCoordinator.new(self)
       end
     end
   end

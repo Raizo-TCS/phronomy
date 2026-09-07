@@ -36,7 +36,7 @@ module Phronomy
           end
 
           descriptor =
-            RecoverySupport.recovery_descriptor(current)
+            coordination_recovery_descriptor(current)
           unless descriptor &&
               Phronomy::Recovery.subject_equal?(
                 descriptor.fetch(:subject),
@@ -182,7 +182,7 @@ module Phronomy
               )
             updated = nil
             with_resolution_f1_capture do |tx|
-              main = agent.send(:execution_coordinator)
+              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
               snapshot = {
                 llm_results: [{
                   llm_call_id: llm_call_id,
@@ -217,7 +217,8 @@ module Phronomy
                   llm_call_id,
                   outcome
                 )
-              next_phase = subjects.empty? ?
+              framework_calls = !subjects.empty? && subjects.all? { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
+              next_phase = (subjects.empty? || framework_calls) ?
                 :recovery_provider_completed : :recovery_tools
               metadata = current.metadata.dup
               metadata.delete(
@@ -226,7 +227,8 @@ module Phronomy
               metadata.delete(
                 RecoverySupport::PENDING_LLM_STARTED_AT_KEY
               )
-              if subjects.empty?
+              metadata["framework_calls_pending"] = true if framework_calls
+              if subjects.empty? || framework_calls
                 metadata.delete(
                   RecoverySupport::RECOVERY_METADATA_KEY
                 )
@@ -358,7 +360,7 @@ module Phronomy
           when :succeeded
             updated = nil
             with_resolution_f1_capture do |tx|
-              main = agent.send(:execution_coordinator)
+              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
               result_ref = main.send(
                 :put_runtime_content,
                 tx,
@@ -415,8 +417,14 @@ module Phronomy
                 working_records:
                   current.working_records + records,
                 metadata: current.metadata.merge(
-                  RecoverySupport::RECOVERY_METADATA_KEY =>
-                    next_recovery
+                  RecoverySupport::RECOVERY_METADATA_KEY => next_recovery,
+                  RecoverySupport::TOOL_BATCH_METADATA_KEY => Array(current.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).map do |entry|
+                    if entry.fetch("tool_invocation_id") == subject_entry.fetch("tool_invocation_id")
+                      entry.merge("status" => "completed", "result" => operation.result)
+                    else
+                      entry
+                    end
+                  end
                 )
               )
               tx.executions.save(
@@ -511,13 +519,22 @@ module Phronomy
 
           case result.continuation
           when :resolution_required
+            if framework_batch?(result.execution)
+              current = result.execution
+              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
+              _manifest, projection = RecoverySupport.materialize_projection(agent, current.metadata.fetch("manifest_ref"))
+              invocation = RecoverySupport.build_invocation_for_suspended(agent, current, projection, main, agent.send(:_phronomy_event_listener))
+              event_loop.replace_agent_execution(current.execution_id, execution: current, invocation: invocation, runtime_projection: projection, fsm_session_id: nil)
+              main.send(:start_framework_tools_on_event_loop, current.execution_id, request.completion)
+              return
+            end
             event_loop.mark_agent_execution_admission(
               agent.agent_id,
               execution_id: request.execution_id,
               state: :recovery_required
             )
             descriptor =
-              RecoverySupport.recovery_descriptor(
+              coordination_recovery_descriptor(
                 result.execution
               )
             deliver_resolution_required(

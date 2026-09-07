@@ -27,6 +27,9 @@ module Phronomy
         "a Journal repository",
         "an Execution repository",
         "a workflow state repository",
+        "a Handoff state repository",
+        "a Team repository",
+        "a Team execution repository",
         "a Persistence backend"
       ].freeze
     end
@@ -39,3 +42,5 @@ require_relative "persistence_contract/a_journal_repository"
 require_relative "persistence_contract/an_execution_repository"
 require_relative "persistence_contract/a_workflow_state_repository"
 require_relative "persistence_contract/a_persistence_backend"
+
+require_relative "persistence_contract/coordination_repositories"

@@ -25,6 +25,7 @@ module Phronomy
     def load: (String execution_id) -> untyped
     def save: (String execution_id, expected_revision: Integer, execution: untyped) -> untyped
     def list_active: (String agent_id) -> Array[untyped]
+    def list: (String agent_id, ?after: String?, ?limit: Integer) -> Array[untyped]
     def delete: (String execution_id) -> untyped
     def delete_for_agent: (String agent_id) -> untyped
     def assert_idle!: (String agent_id) -> untyped
@@ -58,6 +59,7 @@ module Phronomy
     def load: (String execution_id) -> Persistence::DurableRecord
     def save: (String execution_id, expected_revision: Integer, next_revision: Integer, agent_id: String, active: bool, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def list_active: (String agent_id) -> Array[Persistence::DurableRecord]
+    def list: (String agent_id, ?after: String?, ?limit: Integer) -> Array[Persistence::DurableRecord]
     def delete: (String execution_id) -> untyped
     def delete_for_agent: (String agent_id) -> untyped
     def assert_idle!: (String agent_id) -> untyped
@@ -67,6 +69,54 @@ module Phronomy
     def load: (String workflow_instance_id) -> Persistence::DurableRecord?
     def save: (String workflow_instance_id, expected_revision: Integer?, next_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
     def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _HandoffStateRepository
+    def load: (String main_agent_id) -> untyped
+    def save: (String main_agent_id, expected_revision: Integer?, state: untyped) -> untyped
+    def delete: (String main_agent_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _TeamRepository
+    def create: (untyped root) -> untyped
+    def load: (String team_id) -> untyped
+    def save: (String team_id, expected_revision: Integer, root: untyped) -> untyped
+    def delete: (String team_id) -> untyped
+  end
+
+  interface _TeamExecutionRepository
+    def create_active: (untyped execution) -> untyped
+    def load: (String team_execution_id) -> untyped
+    def save: (String team_execution_id, expected_revision: Integer, execution: untyped) -> untyped
+    def list_active: (String team_id) -> Array[untyped]
+    def list: (String team_id, ?after: String?, ?limit: Integer) -> Array[untyped]
+    def delete: (String team_execution_id) -> untyped
+    def delete_for_team: (String team_id) -> untyped
+    def assert_idle!: (String team_id) -> untyped
+  end
+
+  interface _BackendHandoffStateRecordRepository
+    def load: (String main_agent_id) -> Persistence::DurableRecord?
+    def save: (String main_agent_id, expected_revision: Integer?, next_revision: Integer, active_agent_id: String, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def delete: (String main_agent_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _BackendTeamRecordRepository
+    def create: (team_id: String, team_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def load: (String team_id) -> Persistence::DurableRecord
+    def save: (String team_id, expected_revision: Integer, next_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def delete: (String team_id) -> untyped
+  end
+
+  interface _BackendTeamExecutionRecordRepository
+    def create_active: (team_execution_id: String, team_id: String, execution_revision: Integer, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def load: (String team_execution_id) -> Persistence::DurableRecord
+    def save: (String team_execution_id, expected_revision: Integer, next_revision: Integer, team_id: String, active: bool, record: Persistence::DurableRecord) -> Persistence::DurableRecord
+    def list_active: (String team_id) -> Array[Persistence::DurableRecord]
+    def list: (String team_id, ?after: String?, ?limit: Integer) -> Array[Persistence::DurableRecord]
+    def delete: (String team_execution_id) -> untyped
+    def delete_for_team: (String team_id) -> untyped
+    def assert_idle!: (String team_id) -> untyped
   end
 
   interface _BackendWatermark
@@ -79,6 +129,9 @@ module Phronomy
     def journals: () -> _JournalRepository
     def executions: () -> _ExecutionRepository
     def workflow_states: () -> _WorkflowStateRepository
+    def handoff_states: () -> _HandoffStateRepository
+    def teams: () -> _TeamRepository
+    def team_executions: () -> _TeamExecutionRepository
     def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
   end
 
@@ -118,11 +171,19 @@ module Phronomy
     attr_reader journals: _JournalRepository
     attr_reader executions: _ExecutionRepository
     attr_reader workflow_states: _WorkflowStateRepository
+    attr_reader handoff_states: _HandoffStateRepository
+    attr_reader teams: _TeamRepository
+    attr_reader team_executions: _TeamExecutionRepository
+    def handoff_result: (String execution_id, ?main_agent_id: String?) -> Hash[Symbol, untyped]
+    def execution_result: (String execution_id) -> Hash[Symbol, untyped]
+    def list_executions: (String agent_id, ?after: String?, ?limit: Integer) -> Array[untyped]
+    def team_execution_result: (String team_execution_id) -> Hash[Symbol, untyped]
+    def list_team_executions: (String team_id, ?after: String?, ?limit: Integer) -> Array[untyped]
 
-    def initialize: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository) -> void
+    def initialize: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, handoff_states: _BackendHandoffStateRecordRepository, teams: _BackendTeamRecordRepository, team_executions: _BackendTeamExecutionRecordRepository) -> void
     def capabilities: () -> Hash[Symbol, bool]
     def transaction: () { (_PersistenceTransactionView) -> untyped } -> untyped
-    def build_transaction_view: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, watermark: _BackendWatermark) -> _PersistenceTransactionView
+    def build_transaction_view: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, handoff_states: _BackendHandoffStateRecordRepository, teams: _BackendTeamRecordRepository, team_executions: _BackendTeamExecutionRecordRepository, watermark: _BackendWatermark) -> _PersistenceTransactionView
     def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
   end
 end

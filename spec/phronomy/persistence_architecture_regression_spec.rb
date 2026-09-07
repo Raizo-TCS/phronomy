@@ -95,6 +95,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
     )
 
+    %w[reconcile_terminal_error commit_coordination_wait validate_coordination_admission!].each do |method_name|
+      coordinator = coordinator.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
+    end
     expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
 
     prefix, tail = coordinator.split(

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "securerandom"
+require "digest"
 
 module Phronomy
-  module MultiAgent
+  module Agent
     # Application-defined semantic edge for transferring active responsibility
     # from one live Agent instance to another.
     class Handoff
@@ -19,14 +19,14 @@ module Phronomy
           raise ArgumentError, "Handoff source_agent and target_agent must be different instances"
         end
         unless policy.is_a?(HandoffPolicy)
-          raise ArgumentError, "policy must be a Phronomy::MultiAgent::HandoffPolicy"
+          raise ArgumentError, "policy must be a Phronomy::Agent::HandoffPolicy"
         end
 
         @source_agent = source_agent
         @target_agent = target_agent
         @policy = policy
         @description = (description || default_description).to_s.freeze
-        @transport_key = SecureRandom.hex(8).freeze
+        @transport_key = Digest::SHA256.hexdigest([source_agent.agent_id, target_agent.agent_id].join("\0"))[0, 32].freeze
         freeze
       end
 
