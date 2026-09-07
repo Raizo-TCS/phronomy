@@ -69,18 +69,30 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="_Unreleased_">[Unreleased]</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
-<li>Run recovered output filtering inside the ordinary Agent FSM so filter
+<li>
+<p>Add runtime dependency constraint <code>json &lt; 3</code> to prevent Faraday/RubyLLM JSON
+parser incompatibilities from resolving in consumer environments.</p>
+</li>
+<li>
+<p>Run recovered output filtering inside the ordinary Agent FSM so filter
 exceptions commit a failed execution and release admission, including after
-another restart. Preserve explicit filter blocking as the <code>blocked</code> status.</li>
-<li>Propagate a coordinator's blocked outcome, and a worker's blocked outcome
+another restart. Preserve explicit filter blocking as the <code>blocked</code> status.</p>
+</li>
+<li>
+<p>Propagate a coordinator's blocked outcome, and a worker's blocked outcome
 under <code>on_error: :raise</code>, to Team failure. Preserve skipped worker errors and
-committed failure precedence over later cancellation across restart.</li>
-<li>Keep Recovery content materialization, approval restoration reads, and F1
+committed failure precedence over later cancellation across restart.</p>
+</li>
+<li>
+<p>Keep Recovery content materialization, approval restoration reads, and F1
 resolution readback off EventLoop. Apply prepared invocation state only on
 EventLoop, reject stale results, and retain confirmed resolution facts when
-later content reads fail.</li>
-<li>Avoid reading Orchestrator Knowledge again while constructing invocation-owned
-Tools; those children inherit the Knowledge already saved with their slots.</li>
+later content reads fail.</p>
+</li>
+<li>
+<p>Avoid reading Orchestrator Knowledge again while constructing invocation-owned
+Tools; those children inherit the Knowledge already saved with their slots.</p>
+</li>
 </ul>
 <hr />
 <h2 id="_0_23_0____2026_08_29">[0.23.0] - 2026-08-29</h2>
@@ -697,7 +709,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Sep  7 13:23:54 2026 by
+  Generated on Mon Sep  7 14:37:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
