@@ -69,6 +69,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="_Unreleased_">[Unreleased]</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
+<li>Run recovered output filtering inside the ordinary Agent FSM so filter
+exceptions commit a failed execution and release admission, including after
+another restart. Preserve explicit filter blocking as the <code>blocked</code> status.</li>
+<li>Propagate a coordinator's blocked outcome, and a worker's blocked outcome
+under <code>on_error: :raise</code>, to Team failure. Preserve skipped worker errors and
+committed failure precedence over later cancellation across restart.</li>
 <li>Keep Recovery content materialization, approval restoration reads, and F1
 resolution readback off EventLoop. Apply prepared invocation state only on
 EventLoop, reject stale results, and retain confirmed resolution facts when
@@ -691,7 +697,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Sep  7 09:09:19 2026 by
+  Generated on Mon Sep  7 10:40:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
