@@ -364,10 +364,11 @@ module Phronomy
       end
 
       def failed_child(execution)
-        return execution.coordinator if execution.coordinator.fetch("state") == "failed"
-        return unless execution.metadata.dig("definition", "on_error") == "raise"
-
-        execution.assignments.find { |entry| entry.fetch("state") == "failed" }
+        children = [execution.coordinator]
+        children += execution.assignments if execution.metadata.dig("definition", "on_error") == "raise"
+        # Filters deliberately block an Agent with a distinct terminal status.
+        # Team treats this as a child failure while retaining the blocked fact.
+        children.find { |entry| %w[failed blocked].include?(entry.fetch("state")) }
       end
 
       def cancellation_requested?(execution)

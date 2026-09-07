@@ -14,6 +14,12 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Run recovered output filtering inside the ordinary Agent FSM so filter
+  exceptions commit a failed execution and release admission, including after
+  another restart. Preserve explicit filter blocking as the `blocked` status.
+- Propagate a coordinator's blocked outcome, and a worker's blocked outcome
+  under `on_error: :raise`, to Team failure. Preserve skipped worker errors and
+  committed failure precedence over later cancellation across restart.
 - Keep Recovery content materialization, approval restoration reads, and F1
   resolution readback off EventLoop. Apply prepared invocation state only on
   EventLoop, reject stale results, and retain confirmed resolution facts when

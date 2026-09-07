@@ -75,7 +75,6 @@ module Phronomy
               invocation.output, invocation.usage = material.output, material.usage
             end
             prepare_saved_provider_calls(execution, invocation, material.assistant_message) if action == :framework_calls
-            AgentInvocationSessionBuilder.send(:output_filtering_action, agent, invocation) if action == :output
           end
 
           event_loop.replace_agent_execution(execution.execution_id, execution: execution,
@@ -95,12 +94,11 @@ module Phronomy
           when :framework_tools
             event_loop.register_agent_completion_waiter(execution.execution_id, completion)
             main.send(:start_framework_tools_on_event_loop, execution.execution_id, completion)
-          when :framework_calls
+          when :framework_calls, :output
+            # Re-enter the ordinary FSM before output filtering so its failures
+            # settle through the same durable terminal barrier as a live call.
             start_recovery_session(event_loop, main, execution, invocation, completion,
               resume_event: :llm_completed, resume_phase: :calling_llm)
-          when :output
-            start_recovery_session(event_loop, main, execution, invocation, completion,
-              resume_event: :state_completed, resume_phase: :output_filtering)
           when :followup
             start_recovery_session(event_loop, main, execution, invocation, completion,
               resume_event: :state_completed, resume_phase: :recording_tool_results)
