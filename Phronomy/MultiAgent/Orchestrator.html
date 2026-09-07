@@ -217,6 +217,72 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__framework_tool_replayable%3F-instance_method" title="#__framework_tool_replayable? (instance method)">#<strong>__framework_tool_replayable?</strong>(name)  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#__invocation_config-instance_method" title="#__invocation_config (instance method)">#<strong>__invocation_config</strong>(config)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Own one live cancellation token shared with this invocation's static children, including when Recovery reconstructs the invocation.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#__prepare_coordination_record-instance_method" title="#__prepare_coordination_record (instance method)">#<strong>__prepare_coordination_record</strong>(execution, tx:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Reserve child identity/input/knowledge in the parent's existing Agent transaction.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#dispatch_parallel-instance_method" title="#dispatch_parallel (instance method)">#<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, invocation_context: nil, inherit_knowledge: true)  &#x21d2; Object </a>
     
 
@@ -305,6 +371,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#resume-instance_method" title="#resume (instance method)">#<strong>resume</strong>(execution_id, config: {})  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Resumes retained static child coordination with current class wiring.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#subagent-instance_method" title="#subagent (instance method)">#<strong>subagent</strong>(agent_class, input, config: nil, inherit_knowledge: true)  &#x21d2; Object </a>
     
 
@@ -339,7 +427,7 @@
   
   
   <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../Agent/Base.html" title="Phronomy::Agent::Base (class)">Agent::Base</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../Agent/Base.html#__replace_root-instance_method" title="Phronomy::Agent::Base#__replace_root (method)">#__replace_root</a></span>, <span class='object_link'><a href="../Agent/Base.html#add_knowledge-instance_method" title="Phronomy::Agent::Base#add_knowledge (method)">#add_knowledge</a></span>, <span class='object_link'><a href="../Agent/Base.html#agent_definition-class_method" title="Phronomy::Agent::Base.agent_definition (method)">agent_definition</a></span>, <span class='object_link'><a href="../Agent/Base.html#agent_root-instance_method" title="Phronomy::Agent::Base#agent_root (method)">#agent_root</a></span>, <span class='object_link'><a href="../Agent/Base.html#cache_instructions-class_method" title="Phronomy::Agent::Base.cache_instructions (method)">cache_instructions</a></span>, <span class='object_link'><a href="../Agent/Base.html#clear_knowledge!-instance_method" title="Phronomy::Agent::Base#clear_knowledge! (method)">#clear_knowledge!</a></span>, <span class='object_link'><a href="../Agent/Base.html#clear_transcript!-instance_method" title="Phronomy::Agent::Base#clear_transcript! (method)">#clear_transcript!</a></span>, <span class='object_link'><a href="../Agent/Base.html#close!-instance_method" title="Phronomy::Agent::Base#close! (method)">#close!</a></span>, <span class='object_link'><a href="../Agent/Base.html#context_policy-class_method" title="Phronomy::Agent::Base.context_policy (method)">context_policy</a></span>, <span class='object_link'><a href="../Agent/Base.html#context_window-class_method" title="Phronomy::Agent::Base.context_window (method)">context_window</a></span>, <span class='object_link'><a href="../Agent/Base.html#create-class_method" title="Phronomy::Agent::Base.create (method)">create</a></span>, <span class='object_link'><a href="../Agent/Base.html#get-class_method" title="Phronomy::Agent::Base.get (method)">get</a></span>, <span class='object_link'><a href="../Agent/Base.html#initialize-instance_method" title="Phronomy::Agent::Base#initialize (method)">#initialize</a></span>, <span class='object_link'><a href="../Agent/Base.html#instructions-class_method" title="Phronomy::Agent::Base.instructions (method)">instructions</a></span>, <span class='object_link'><a href="../Agent/Base.html#journal_projection-instance_method" title="Phronomy::Agent::Base#journal_projection (method)">#journal_projection</a></span>, <span class='object_link'><a href="../Agent/Base.html#live_for_execution-class_method" title="Phronomy::Agent::Base.live_for_execution (method)">live_for_execution</a></span>, <span class='object_link'><a href="../Agent/Base.html#load-class_method" title="Phronomy::Agent::Base.load (method)">load</a></span>, <span class='object_link'><a href="../Agent/Base.html#max_iterations-class_method" title="Phronomy::Agent::Base.max_iterations (method)">max_iterations</a></span>, <span class='object_link'><a href="../Agent/Base.html#max_output_tokens-class_method" title="Phronomy::Agent::Base.max_output_tokens (method)">max_output_tokens</a></span>, <span class='object_link'><a href="../Agent/Base.html#model-class_method" title="Phronomy::Agent::Base.model (method)">model</a></span>, <span class='object_link'><a href="../Agent/Base.html#provider-class_method" title="Phronomy::Agent::Base.provider (method)">provider</a></span>, <span class='object_link'><a href="../Agent/Base.html#purge!-instance_method" title="Phronomy::Agent::Base#purge! (method)">#purge!</a></span>, <span class='object_link'><a href="../Agent/Base.html#reset_context!-instance_method" title="Phronomy::Agent::Base#reset_context! (method)">#reset_context!</a></span>, <span class='object_link'><a href="../Agent/Base.html#temperature-class_method" title="Phronomy::Agent::Base.temperature (method)">temperature</a></span>, <span class='object_link'><a href="../Agent/Base.html#tool_aliases-class_method" title="Phronomy::Agent::Base.tool_aliases (method)">tool_aliases</a></span>, <span class='object_link'><a href="../Agent/Base.html#tool_approval_policy-instance_method" title="Phronomy::Agent::Base#tool_approval_policy (method)">#tool_approval_policy</a></span>, <span class='object_link'><a href="../Agent/Base.html#tools-class_method" title="Phronomy::Agent::Base.tools (method)">tools</a></span>, <span class='object_link'><a href="../Agent/Base.html#transcript-instance_method" title="Phronomy::Agent::Base#transcript (method)">#transcript</a></span></p>
+  <p class="inherited"><span class='object_link'><a href="../Agent/Base.html#__coordination_config-instance_method" title="Phronomy::Agent::Base#__coordination_config (method)">#__coordination_config</a></span>, <span class='object_link'><a href="../Agent/Base.html#__framework_call%3F-instance_method" title="Phronomy::Agent::Base#__framework_call? (method)">#__framework_call?</a></span>, <span class='object_link'><a href="../Agent/Base.html#__replace_root-instance_method" title="Phronomy::Agent::Base#__replace_root (method)">#__replace_root</a></span>, <span class='object_link'><a href="../Agent/Base.html#add_knowledge-instance_method" title="Phronomy::Agent::Base#add_knowledge (method)">#add_knowledge</a></span>, <span class='object_link'><a href="../Agent/Base.html#agent_definition-class_method" title="Phronomy::Agent::Base.agent_definition (method)">agent_definition</a></span>, <span class='object_link'><a href="../Agent/Base.html#agent_root-instance_method" title="Phronomy::Agent::Base#agent_root (method)">#agent_root</a></span>, <span class='object_link'><a href="../Agent/Base.html#cache_instructions-class_method" title="Phronomy::Agent::Base.cache_instructions (method)">cache_instructions</a></span>, <span class='object_link'><a href="../Agent/Base.html#clear_knowledge!-instance_method" title="Phronomy::Agent::Base#clear_knowledge! (method)">#clear_knowledge!</a></span>, <span class='object_link'><a href="../Agent/Base.html#clear_transcript!-instance_method" title="Phronomy::Agent::Base#clear_transcript! (method)">#clear_transcript!</a></span>, <span class='object_link'><a href="../Agent/Base.html#close!-instance_method" title="Phronomy::Agent::Base#close! (method)">#close!</a></span>, <span class='object_link'><a href="../Agent/Base.html#context_policy-class_method" title="Phronomy::Agent::Base.context_policy (method)">context_policy</a></span>, <span class='object_link'><a href="../Agent/Base.html#context_window-class_method" title="Phronomy::Agent::Base.context_window (method)">context_window</a></span>, <span class='object_link'><a href="../Agent/Base.html#create-class_method" title="Phronomy::Agent::Base.create (method)">create</a></span>, <span class='object_link'><a href="../Agent/Base.html#get-class_method" title="Phronomy::Agent::Base.get (method)">get</a></span>, <span class='object_link'><a href="../Agent/Base.html#initialize-instance_method" title="Phronomy::Agent::Base#initialize (method)">#initialize</a></span>, <span class='object_link'><a href="../Agent/Base.html#instructions-class_method" title="Phronomy::Agent::Base.instructions (method)">instructions</a></span>, <span class='object_link'><a href="../Agent/Base.html#journal_projection-instance_method" title="Phronomy::Agent::Base#journal_projection (method)">#journal_projection</a></span>, <span class='object_link'><a href="../Agent/Base.html#live_for_execution-class_method" title="Phronomy::Agent::Base.live_for_execution (method)">live_for_execution</a></span>, <span class='object_link'><a href="../Agent/Base.html#load-class_method" title="Phronomy::Agent::Base.load (method)">load</a></span>, <span class='object_link'><a href="../Agent/Base.html#max_iterations-class_method" title="Phronomy::Agent::Base.max_iterations (method)">max_iterations</a></span>, <span class='object_link'><a href="../Agent/Base.html#max_output_tokens-class_method" title="Phronomy::Agent::Base.max_output_tokens (method)">max_output_tokens</a></span>, <span class='object_link'><a href="../Agent/Base.html#model-class_method" title="Phronomy::Agent::Base.model (method)">model</a></span>, <span class='object_link'><a href="../Agent/Base.html#provider-class_method" title="Phronomy::Agent::Base.provider (method)">provider</a></span>, <span class='object_link'><a href="../Agent/Base.html#purge!-instance_method" title="Phronomy::Agent::Base#purge! (method)">#purge!</a></span>, <span class='object_link'><a href="../Agent/Base.html#reset_context!-instance_method" title="Phronomy::Agent::Base#reset_context! (method)">#reset_context!</a></span>, <span class='object_link'><a href="../Agent/Base.html#temperature-class_method" title="Phronomy::Agent::Base.temperature (method)">temperature</a></span>, <span class='object_link'><a href="../Agent/Base.html#tool_aliases-class_method" title="Phronomy::Agent::Base.tool_aliases (method)">tool_aliases</a></span>, <span class='object_link'><a href="../Agent/Base.html#tool_approval_policy-instance_method" title="Phronomy::Agent::Base#tool_approval_policy (method)">#tool_approval_policy</a></span>, <span class='object_link'><a href="../Agent/Base.html#tools-class_method" title="Phronomy::Agent::Base.tools (method)">tools</a></span>, <span class='object_link'><a href="../Agent/Base.html#transcript-instance_method" title="Phronomy::Agent::Base#transcript (method)">#transcript</a></span></p>
 
   
   
@@ -422,12 +510,12 @@
       <pre class="lines">
 
 
-86
-87
-88</pre>
+121
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid__subagent_tool_classes'>_subagent_tool_classes</span>
   <span class='ivar'>@_subagent_tool_classes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -452,12 +540,12 @@
       <pre class="lines">
 
 
-90
-91
-92</pre>
+125
+126
+127</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 125</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span>
   <span class='ivar'>@registered_subagents</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -482,27 +570,6 @@
       <pre class="lines">
 
 
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
 30
 31
 32
@@ -557,16 +624,52 @@
 81
 82
 83
-84</pre>
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>inherit_knowledge:</span> <span class='kw'>true</span><span class='rparen'>)</span>
   <span class='comment'># A subagent Tool is logically asynchronous: ToolInvocation starts the
 </span>  <span class='comment'># child Agent and resumes when its completion Task settles. It must not
 </span>  <span class='comment'># occupy an OffloadPool worker while waiting for the child.
 </span>  <span class='id identifier rubyid_tool_class'>tool_class</span> <span class='op'>=</span> <span class='const'>Class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tools.html" title="Phronomy::Tools (module)">Tools</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tools/Agent.html" title="Phronomy::Tools::Agent (class)">Agent</a></span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid___framework_owned_operation?'>__framework_owned_operation?</span> <span class='op'>=</span> <span class='kw'>true</span>
     <span class='id identifier rubyid_tool_name'>tool_name</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>dispatch_to_</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Dispatch work to the </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> subagent (</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
 
@@ -578,6 +681,20 @@
         <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
         <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
       <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+    <span class='kw'>end</span>
+
+    <span class='comment'># Enter exact child reconciliation even when the parent token is
+</span>    <span class='comment'># cancelled: an already admitted child must be settled, not forgotten.
+</span>    <span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:call_async</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='op'>|</span>
+      <span class='kw'>if</span> <span class='ivar'>@_orchestrator_context</span><span class='op'>&amp;.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:parent</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_tool_invocation_id</span><span class='rbracket'>]</span>
+        <span class='id identifier rubyid_validated'>validated</span><span class='comma'>,</span> <span class='id identifier rubyid_schema_error'>schema_error</span> <span class='op'>=</span> <span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:validate_and_coerce</span><span class='comma'>,</span> <span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span><span class='comma'>,</span> <span class='id identifier rubyid_schema_error'>schema_error</span> <span class='kw'>if</span> <span class='id identifier rubyid_schema_error'>schema_error</span>
+        <span class='id identifier rubyid_execute_async'>execute_async</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_validated'>validated</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+      <span class='kw'>else</span>
+        <span class='kw'>super</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+    <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>subagent-dispatch-failed</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_task'>task</span><span class='op'>|</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
     <span class='kw'>end</span>
 
     <span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute_async</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='op'>|</span>
@@ -594,20 +711,19 @@
         <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='id identifier rubyid_child_ic'>child_ic</span><span class='rparen'>)</span>
       <span class='kw'>end</span>
 
+      <span class='id identifier rubyid_parent'>parent</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='lbracket'>[</span><span class='symbol'>:parent</span><span class='rbracket'>]</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_parent'>parent</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_tool_invocation_id</span><span class='rbracket'>]</span>
+        <span class='kw'>return</span> <span class='const'><span class='object_link'><a href="DurableSubagentCoordinator.html" title="Phronomy::MultiAgent::DurableSubagentCoordinator (class)">DurableSubagentCoordinator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="DurableSubagentCoordinator.html#start-class_method" title="Phronomy::MultiAgent::DurableSubagentCoordinator.start (method)">start</a></span></span><span class='lparen'>(</span><span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='comma'>,</span>
+          <span class='label'>tool_invocation_id:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:phronomy_tool_invocation_id</span><span class='rparen'>)</span><span class='comma'>,</span>
+          <span class='label'>parent_execution_id:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:execution_id</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
       <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
       <span class='kw'>if</span> <span class='id identifier rubyid_inherit_knowledge'>inherit_knowledge</span>
         <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='lbracket'>[</span><span class='symbol'>:knowledge</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span>
-          <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span>
-            <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:content</span><span class='rparen'>)</span><span class='comma'>,</span>
-            <span class='label'>metadata:</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:metadata</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-          <span class='rparen'>)</span>
+          <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:content</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:metadata</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span>
         <span class='kw'>end</span>
       <span class='kw'>end</span>
-
-      <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
-        <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-        <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span>
-      <span class='rparen'>)</span>
+      <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
         <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>subagent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
       <span class='rparen'>)</span>
@@ -650,7 +766,150 @@
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="dispatch_parallel-instance_method">
+  <h3 class="signature first" id="__framework_tool_replayable?-instance_method">
+  
+    #<strong>__framework_tool_replayable?</strong>(name)  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+252
+253
+254</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 252</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___framework_tool_replayable?'>__framework_tool_replayable?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_key'>key</span><span class='op'>|</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>dispatch_to_</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='op'>==</span> <span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__invocation_config-instance_method">
+  
+    #<strong>__invocation_config</strong>(config)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Own one live cancellation token shared with this invocation's static
+children, including when Recovery reconstructs the invocation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+12
+13
+14</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 12</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___invocation_config'>__invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__prepare_coordination_record-instance_method">
+  
+    #<strong>__prepare_coordination_record</strong>(execution, tx:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Reserve child identity/input/knowledge in the parent's existing Agent transaction.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+258
+259
+260</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 258</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___prepare_coordination_record'>__prepare_coordination_record</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='label'>tx:</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="DurableSubagentCoordinator.html" title="Phronomy::MultiAgent::DurableSubagentCoordinator (class)">DurableSubagentCoordinator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_prepare'><span class='object_link'><a href="DurableSubagentCoordinator.html#prepare-class_method" title="Phronomy::MultiAgent::DurableSubagentCoordinator.prepare (method)">prepare</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='label'>tx:</span> <span class='id identifier rubyid_tx'>tx</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="dispatch_parallel-instance_method">
   
     #<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, invocation_context: nil, inherit_knowledge: true)  &#x21d2; <tt>Object</tt> 
   
@@ -664,32 +923,32 @@
       <pre class="lines">
 
 
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116</pre>
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -734,39 +993,39 @@
       <pre class="lines">
 
 
-118
-119
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147</pre>
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 118</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 153</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel_async'>dispatch_parallel_async</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -818,32 +1077,32 @@
       <pre class="lines">
 
 
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171</pre>
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 149</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 184</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -888,32 +1147,32 @@
       <pre class="lines">
 
 
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195</pre>
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 208</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fan_out_async'>fan_out_async</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -944,6 +1203,74 @@
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="resume-instance_method">
+  
+    #<strong>resume</strong>(execution_id, config: {})  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Resumes retained static child coordination with current class wiring.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../Persistence/ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">Phronomy::Persistence::ConflictError</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 18</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="../Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Orchestrator#resume cannot block EventLoop</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence/ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Parent execution owner mismatch</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_id'>agent_id</span>
+  <span class='id identifier rubyid_input'>input</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_text'>fetch_text</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_ref</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/ExactExecution.html" title="Phronomy::Agent::ExactExecution (class)">ExactExecution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="../Agent/ExactExecution.html#start-class_method" title="Phronomy::Agent::ExactExecution.start (method)">start</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='kw'>self</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/RecoverySupport.html" title="Phronomy::Agent::RecoverySupport (module)">RecoverySupport</a></span></span><span class='period'>.</span><span class='id identifier rubyid_error_from_failure'><span class='object_link'><a href="../Agent/RecoverySupport.html#error_from_failure-class_method" title="Phronomy::Agent::RecoverySupport.error_from_failure (method)">error_from_failure</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_result'>result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="subagent-instance_method">
   
     #<strong>subagent</strong>(agent_class, input, config: nil, inherit_knowledge: true)  &#x21d2; <tt>Object</tt> 
@@ -958,27 +1285,27 @@
       <pre class="lines">
 
 
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214</pre>
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 197</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 232</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span>
@@ -1008,7 +1335,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:52 2026 by
+  Generated on Mon Sep  7 07:59:43 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

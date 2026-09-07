@@ -50,7 +50,7 @@ explicit compatibility decision.
 | Journal-backed Knowledge and retrieval integration | [Knowledge and RAG](architecture/knowledge-and-rag.md) |
 | Filter, Context trust policy, approval, and isolation boundaries | [Security Boundaries](architecture/security-boundaries.md) |
 | Automatic logical-operation tracing and custom tracer SPI | [Tracing](architecture/tracing.md) |
-| Semantic Source-to-Target responsibility transfer | [Multi-Agent Handoff](architecture/multi-agent-handoff.md) |
+| Durable Agent-domain responsibility transfer | [Multi-Agent Handoff](architecture/multi-agent-handoff.md) |
 | Durable state, Runtime ownership, recovery, and codec boundaries | [Persistence](architecture/persistence.md) |
 | Request-scoped pre-Manifest customization | [before_llm_input](architecture/before-llm-input.md) |
 | Removed Agent Context / Memory architectures that must not return | [Removed Agent Context Architecture](architecture/removed/agent-context.md) |
@@ -80,3 +80,10 @@ It must not be used as a current implementation or compatibility contract.
 
 The old `spec/design/` documentation location is not part of the current
 documentation architecture.
+
+Durable multi-agent coordination is described by [ADR-029](decisions/029-semantic-completion-and-application-effect-boundary.md),
+[ADR-030](decisions/030-agent-handoff-domain-and-durable-responsibility.md) and
+[ADR-031](decisions/031-durable-multi-agent-coordination.md).
+TeamExecution is a purpose-specific CAS authority delegating coordinator/workers
+to ordinary Agents, with no Team FSMSession or second Workflow engine.
+Static subagent reservation lives in the existing parent AgentExecution metadata.

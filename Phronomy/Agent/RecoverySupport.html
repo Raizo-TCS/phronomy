@@ -744,10 +744,6 @@
       <pre class="lines">
 
 
-448
-449
-450
-451
 452
 453
 454
@@ -785,17 +781,29 @@
 486
 487
 488
-489</pre>
+489
+490
+491
+492
+493
+494
+495
+496
+497</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 448</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 452</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_chat_for_recovery'>build_chat_for_recovery</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_projection'>projection</span><span class='comma'>,</span> <span class='id identifier rubyid_main_coordinator'>main_coordinator</span><span class='comma'>,</span> <span class='id identifier rubyid_listener'>listener</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='lbrace'>{</span>
     <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
     <span class='label'>phronomy_execution_coordinator:</span> <span class='id identifier rubyid_main_coordinator'>main_coordinator</span><span class='comma'>,</span>
     <span class='label'>phronomy_runtime_projection:</span> <span class='id identifier rubyid_projection'>projection</span>
-  <span class='rbrace'>}</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___coordination_config'>__coordination_config</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___invocation_config'>__invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>coordination_cancel_requested</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span><span class='period'>.</span><span class='id identifier rubyid_cancel!'><span class='object_link'><a href="../Concurrency/CancellationToken.html#cancel!-instance_method" title="Phronomy::Concurrency::CancellationToken#cancel! (method)">cancel!</a></span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_invocation'>invocation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="AgentInvocation.html" title="Phronomy::Agent::AgentInvocation (class)">AgentInvocation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AgentInvocation.html#initialize-instance_method" title="Phronomy::Agent::AgentInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span>
     <span class='label'>input:</span> <span class='id identifier rubyid_projection'>projection</span><span class='period'>.</span><span class='id identifier rubyid_ask_message'>ask_message</span><span class='comma'>,</span>
@@ -955,13 +963,17 @@
 408
 409
 410
-411</pre>
+411
+412
+413
+414
+415</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 308</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_invocation_for_suspended'>build_invocation_for_suspended</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_projection'>projection</span><span class='comma'>,</span> <span class='id identifier rubyid_main_coordinator'>main_coordinator</span><span class='comma'>,</span> <span class='id identifier rubyid_listener'>listener</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_request'>request</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ToolApprovalRequest.html" title="Phronomy::Agent::ToolApprovalRequest (class)">ToolApprovalRequest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="ToolApprovalRequest.html#from_h-class_method" title="Phronomy::Agent::ToolApprovalRequest.from_h (method)">from_h</a></span></span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_request'>request</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_approval_request'>approval_request</span> <span class='op'>&amp;&amp;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ToolApprovalRequest.html" title="Phronomy::Agent::ToolApprovalRequest (class)">ToolApprovalRequest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="ToolApprovalRequest.html#from_h-class_method" title="Phronomy::Agent::ToolApprovalRequest.from_h (method)">from_h</a></span></span><span class='lparen'>(</span>
     <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_approval_request'>approval_request</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_assistant_record'>assistant_record</span> <span class='op'>=</span> <span class='id identifier rubyid_latest_assistant_record'>latest_assistant_record</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
@@ -982,7 +994,11 @@
     <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
     <span class='label'>phronomy_execution_coordinator:</span> <span class='id identifier rubyid_main_coordinator'>main_coordinator</span><span class='comma'>,</span>
     <span class='label'>phronomy_runtime_projection:</span> <span class='id identifier rubyid_projection'>projection</span>
-  <span class='rbrace'>}</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___coordination_config'>__coordination_config</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___invocation_config'>__invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>coordination_cancel_requested</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span><span class='period'>.</span><span class='id identifier rubyid_cancel!'><span class='object_link'><a href="../Concurrency/CancellationToken.html#cancel!-instance_method" title="Phronomy::Concurrency::CancellationToken#cancel! (method)">cancel!</a></span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_invocation'>invocation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="AgentInvocation.html" title="Phronomy::Agent::AgentInvocation (class)">AgentInvocation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AgentInvocation.html#initialize-instance_method" title="Phronomy::Agent::AgentInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span>
     <span class='label'>input:</span> <span class='id identifier rubyid_projection'>projection</span><span class='period'>.</span><span class='id identifier rubyid_ask_message'>ask_message</span><span class='comma'>,</span>
@@ -1014,7 +1030,7 @@
     <span class='id identifier rubyid_assistant_record'>assistant_record</span><span class='period'>.</span><span class='id identifier rubyid_llm_call_id'>llm_call_id</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='rparen'>)</span>
 
-  <span class='id identifier rubyid_by_id'>by_id</span> <span class='op'>=</span> <span class='id identifier rubyid_request'>request</span><span class='period'>.</span><span class='id identifier rubyid_items'>items</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_item'>item</span><span class='op'>|</span>
+  <span class='id identifier rubyid_by_id'>by_id</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span> <span class='op'>?</span> <span class='id identifier rubyid_request'>request</span><span class='period'>.</span><span class='id identifier rubyid_items'>items</span> <span class='op'>:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_item'>item</span><span class='op'>|</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_item'>item</span><span class='period'>.</span><span class='id identifier rubyid_tool_invocation_id'>tool_invocation_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_item'>item</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_snapshots'>snapshots</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="#TOOL_BATCH_METADATA_KEY-constant" title="Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY (constant)">TOOL_BATCH_METADATA_KEY</a></span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
@@ -1850,14 +1866,6 @@
       <pre class="lines">
 
 
-491
-492
-493
-494
-495
-496
-497
-498
 499
 500
 501
@@ -1868,10 +1876,18 @@
 506
 507
 508
-509</pre>
+509
+510
+511
+512
+513
+514
+515
+516
+517</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 491</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 499</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_provider_output_and_usage'>provider_output_and_usage</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assistant'>assistant</span> <span class='op'>=</span> <span class='id identifier rubyid_latest_assistant_record'>latest_assistant_record</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
@@ -2038,10 +2054,6 @@
       <pre class="lines">
 
 
-413
-414
-415
-416
 417
 418
 419
@@ -2071,10 +2083,14 @@
 443
 444
 445
-446</pre>
+446
+447
+448
+449
+450</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 413</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_support.rb', line 417</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_restore_tool_snapshot!'>restore_tool_snapshot!</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='comma'>,</span> <span class='id identifier rubyid_entry'>entry</span><span class='comma'>,</span> <span class='id identifier rubyid_approval_items'>approval_items</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>status</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
@@ -2314,7 +2330,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:49 2026 by
+  Generated on Mon Sep  7 07:59:39 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

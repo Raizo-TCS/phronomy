@@ -104,7 +104,7 @@
 
 <div id="subclasses">
   <h2>Direct Known Subclasses</h2>
-  <p class="children"><span class='object_link'><a href="../MultiAgent/ExecutionCoordinator.html" title="Phronomy::MultiAgent::ExecutionCoordinator (class)">MultiAgent::ExecutionCoordinator</a></span></p>
+  <p class="children"><span class='object_link'><a href="HandoffExecutionCoordinator.html" title="Phronomy::Agent::HandoffExecutionCoordinator (class)">HandoffExecutionCoordinator</a></span></p>
 </div>
 <h2>Defined Under Namespace</h2>
 <p class="children">
@@ -839,7 +839,7 @@ and sends only that snapshot to OffloadPool.</p>
   <span class='id identifier rubyid_command'>command</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/StartCommand.html" title="Phronomy::Agent::ExecutionCoordinator::StartCommand (class)">StartCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>coordinator:</span> <span class='kw'>self</span><span class='comma'>,</span>
     <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid___invocation_config'>__invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
     <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='comma'>,</span>
     <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span><span class='comma'>,</span>
     <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval_listener'>approval_listener</span><span class='comma'>,</span>
@@ -1153,7 +1153,7 @@ and sends only that snapshot to OffloadPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:53 2026 by
+  Generated on Mon Sep  7 07:59:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

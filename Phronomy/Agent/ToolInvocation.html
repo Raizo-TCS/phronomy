@@ -1419,7 +1419,7 @@
   <span class='ivar'>@tool_call_id</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:id</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span> <span class='op'>:</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_raw_arguments'>raw_arguments</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:arguments</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='lparen'>(</span><span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_arguments'>arguments</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@raw_arguments</span> <span class='op'>=</span> <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_arguments'>raw_arguments</span><span class='rparen'>)</span>
-  <span class='ivar'>@config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span>
+  <span class='ivar'>@config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='ivar'>@approval_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_context</span> <span class='op'>=</span> <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span><span class='id identifier rubyid_approval_context'>approval_context</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='ivar'>@origin</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:tool_origin</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_tool_origin'>tool_origin</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='op'>:</span> <span class='symbol'>:local</span>
@@ -3596,7 +3596,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:51 2026 by
+  Generated on Mon Sep  7 07:59:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

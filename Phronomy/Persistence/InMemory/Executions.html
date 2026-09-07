@@ -232,6 +232,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#list-instance_method" title="#list (instance method)">#<strong>list</strong>(agent_id, after: nil, limit: 100)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#list_active-instance_method" title="#list_active (instance method)">#<strong>list_active</strong>(agent_id)  &#x21d2; Object </a>
     
 
@@ -359,21 +381,21 @@
       <pre class="lines">
 
 
-281
-282
-283
-284
-285
-286
-287
-288
-289
 290
 291
-292</pre>
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 281</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 290</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_idle!'>assert_idle!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -507,16 +529,16 @@
       <pre class="lines">
 
 
-260
-261
-262
-263
-264
-265
-266</pre>
+269
+270
+271
+272
+273
+274
+275</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 260</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 269</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -545,21 +567,21 @@
       <pre class="lines">
 
 
-268
-269
-270
-271
-272
-273
-274
-275
-276
 277
 278
-279</pre>
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 268</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 277</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_delete_for_agent'>delete_for_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -571,6 +593,46 @@
       <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
       <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="list-instance_method">
+  
+    #<strong>list</strong>(agent_id, after: nil, limit: 100)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+260
+261
+262
+263
+264
+265
+266
+267</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 260</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_list'>list</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>100</span><span class='rparen'>)</span>
+  <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ids'>ids</span> <span class='op'>=</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:execution_metadata</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_filter_map'>filter_map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='op'>|</span>
+      <span class='id identifier rubyid_id'>id</span> <span class='kw'>if</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='op'>&amp;&amp;</span> <span class='lparen'>(</span><span class='op'>!</span><span class='id identifier rubyid_after'>after</span> <span class='op'>||</span> <span class='id identifier rubyid_id'>id</span> <span class='op'>&gt;</span> <span class='id identifier rubyid_after'>after</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
+    <span class='kw'>end</span><span class='period'>.</span><span class='id identifier rubyid_sort'>sort</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_ids'>ids</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='op'>|</span> <span class='ivar'>@owner</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='lbracket'>[</span><span class='symbol'>:executions</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_copy'>copy</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -765,7 +827,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:52 2026 by
+  Generated on Mon Sep  7 07:59:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

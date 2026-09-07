@@ -227,6 +227,33 @@
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#handoff_states-instance_method" title="#handoff_states (instance method)">#<strong>handoff_states</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Purpose-specific durable Handoff and Team repositories in atomic_all.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#journals-instance_method" title="#journals (instance method)">#<strong>journals</strong>  &#x21d2; Object </a>
     
 
@@ -247,6 +274,60 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Runtime/domain-facing append-only Agent Journal repository.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#team_executions-instance_method" title="#team_executions (instance method)">#<strong>team_executions</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Purpose-specific durable Handoff and Team repositories in atomic_all.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#teams-instance_method" title="#teams (instance method)">#<strong>teams</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Purpose-specific durable Handoff and Team repositories in atomic_all.</p></div></span>
   
 </li>
 
@@ -316,7 +397,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#build_transaction_view-instance_method" title="#build_transaction_view (instance method)">#<strong>build_transaction_view</strong>(contents:, agents:, journals:, executions:, workflow_states:, watermark:)  &#x21d2; Object </a>
+      <a href="#build_transaction_view-instance_method" title="#build_transaction_view (instance method)">#<strong>build_transaction_view</strong>(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:, watermark:)  &#x21d2; Object </a>
     
 
     
@@ -360,7 +441,51 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:)  &#x21d2; Persistence </a>
+      <a href="#execution_result-instance_method" title="#execution_result (instance method)">#<strong>execution_result</strong>(execution_id)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Read-only exact Agent execution result; never creates a live Agent owner.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handoff_result-instance_method" title="#handoff_result (instance method)">#<strong>handoff_result</strong>(execution_id, main_agent_id: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Follows one exact Handoff turn without loading any Agent or graph.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:)  &#x21d2; Persistence </a>
     
 
     
@@ -377,6 +502,72 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Initializes a Persistence backend from record-oriented storage repositories.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#list_executions-instance_method" title="#list_executions (instance method)">#<strong>list_executions</strong>(agent_id, after: nil, limit: 100)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Lists retained active and terminal executions in lexical ID order.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#list_team_executions-instance_method" title="#list_team_executions (instance method)">#<strong>list_team_executions</strong>(team_id, after: nil, limit: 100)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Lists retained Team runs; no continuation or callback delivery occurs.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#team_execution_result-instance_method" title="#team_execution_result (instance method)">#<strong>team_execution_result</strong>(team_execution_id)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Read-only exact Team result, independent of current Team class/Proc wiring.</p></div></span>
   
 </li>
 
@@ -413,7 +604,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></tt> 
+    #<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></tt> 
   
 
   
@@ -458,24 +649,30 @@ advertised.</p>
       <pre class="lines">
 
 
-77
-78
-79
-80
-81
-82
-83
-84</pre>
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 160</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>workflow_states:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>workflow_states:</span><span class='comma'>,</span> <span class='label'>handoff_states:</span><span class='comma'>,</span> <span class='label'>teams:</span><span class='comma'>,</span> <span class='label'>team_executions:</span><span class='rparen'>)</span>
   <span class='ivar'>@contents</span> <span class='op'>=</span> <span class='id identifier rubyid_contents'>contents</span>
   <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Agents.html" title="Phronomy::Persistence::RepositoryFacades::Agents (class)">Agents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Agents.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Agents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_agents'>agents</span><span class='rparen'>)</span>
   <span class='ivar'>@journals</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Journals.html" title="Phronomy::Persistence::RepositoryFacades::Journals (class)">Journals</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Journals.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Journals#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_journals'>journals</span><span class='rparen'>)</span>
   <span class='ivar'>@executions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Executions.html" title="Phronomy::Persistence::RepositoryFacades::Executions (class)">Executions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Executions.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Executions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_executions'>executions</span><span class='rparen'>)</span>
   <span class='ivar'>@workflow_states</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/WorkflowStates.html" title="Phronomy::Persistence::RepositoryFacades::WorkflowStates (class)">WorkflowStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/WorkflowStates.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::WorkflowStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_states'>workflow_states</span><span class='rparen'>)</span>
+  <span class='ivar'>@handoff_states</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/HandoffStates.html" title="Phronomy::Persistence::RepositoryFacades::HandoffStates (class)">HandoffStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/HandoffStates.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::HandoffStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_handoff_states'>handoff_states</span><span class='rparen'>)</span>
+  <span class='ivar'>@teams</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/Teams.html" title="Phronomy::Persistence::RepositoryFacades::Teams (class)">Teams</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/Teams.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Teams#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_teams'>teams</span><span class='rparen'>)</span>
+  <span class='ivar'>@team_executions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/TeamExecutions.html" title="Phronomy::Persistence::RepositoryFacades::TeamExecutions (class)">TeamExecutions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/TeamExecutions.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::TeamExecutions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_team_executions'>team_executions</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_capabilities!'>validate_capabilities!</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -655,6 +852,47 @@ codec/canonicalization boundary and is not wrapped in DurableRecord.</p>
       
       <span id=""></span>
       <div class="method_details ">
+  <h3 class="signature " id="handoff_states-instance_method">
+  
+    #<strong>handoff_states</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Purpose-specific durable Handoff and Team repositories in atomic_all.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+50
+51
+52</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 50</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_handoff_states'>handoff_states</span>
+  <span class='ivar'>@handoff_states</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
   <h3 class="signature " id="journals-instance_method">
   
     #<strong>journals</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
@@ -700,6 +938,88 @@ codec/canonicalization boundary and is not wrapped in DurableRecord.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_journals'>journals</span>
   <span class='ivar'>@journals</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="team_executions-instance_method">
+  
+    #<strong>team_executions</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Purpose-specific durable Handoff and Team repositories in atomic_all.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+50
+51
+52</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 50</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_team_executions'>team_executions</span>
+  <span class='ivar'>@team_executions</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="teams-instance_method">
+  
+    #<strong>teams</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Purpose-specific durable Handoff and Team repositories in atomic_all.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+50
+51
+52</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 50</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_teams'>teams</span>
+  <span class='ivar'>@teams</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -809,13 +1129,13 @@ writes in the surrounding transaction.</p>
       <pre class="lines">
 
 
-165
-166
-167
-168</pre>
+253
+254
+255
+256</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 165</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 253</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></span><span class='comma'>,</span>
@@ -829,7 +1149,7 @@ writes in the surrounding transaction.</p>
       <div class="method_details ">
   <h3 class="signature " id="build_transaction_view-instance_method">
   
-    #<strong>build_transaction_view</strong>(contents:, agents:, journals:, executions:, workflow_states:, watermark:)  &#x21d2; <tt>Object</tt> 
+    #<strong>build_transaction_view</strong>(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:, watermark:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -857,26 +1177,28 @@ instantiate RepositoryFacades directly.</p>
       <pre class="lines">
 
 
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154</pre>
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 224</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_transaction_view'>build_transaction_view</span><span class='lparen'>(</span>
   <span class='label'>contents:</span><span class='comma'>,</span>
@@ -884,6 +1206,7 @@ instantiate RepositoryFacades directly.</p>
   <span class='label'>journals:</span><span class='comma'>,</span>
   <span class='label'>executions:</span><span class='comma'>,</span>
   <span class='label'>workflow_states:</span><span class='comma'>,</span>
+  <span class='label'>handoff_states:</span><span class='comma'>,</span> <span class='label'>teams:</span><span class='comma'>,</span> <span class='label'>team_executions:</span><span class='comma'>,</span>
   <span class='label'>watermark:</span>
 <span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades.html" title="Phronomy::Persistence::RepositoryFacades (module)">RepositoryFacades</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/RepositoryFacades/View.html" title="Phronomy::Persistence::RepositoryFacades::View (class)">View</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/RepositoryFacades/View.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::View#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -892,6 +1215,7 @@ instantiate RepositoryFacades directly.</p>
     <span class='label'>journals:</span> <span class='id identifier rubyid_journals'>journals</span><span class='comma'>,</span>
     <span class='label'>executions:</span> <span class='id identifier rubyid_executions'>executions</span><span class='comma'>,</span>
     <span class='label'>workflow_states:</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span><span class='comma'>,</span>
+    <span class='label'>handoff_states:</span> <span class='id identifier rubyid_handoff_states'>handoff_states</span><span class='comma'>,</span> <span class='label'>teams:</span> <span class='id identifier rubyid_teams'>teams</span><span class='comma'>,</span> <span class='label'>team_executions:</span> <span class='id identifier rubyid_team_executions'>team_executions</span><span class='comma'>,</span>
     <span class='label'>watermark:</span> <span class='id identifier rubyid_watermark'>watermark</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
@@ -947,16 +1271,16 @@ Journal position checks provide compare-and-swap conflict detection.</li>
       <pre class="lines">
 
 
-99
-100
-101
-102
-103
-104
-105</pre>
+185
+186
+187
+188
+189
+190
+191</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 99</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 185</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_capabilities'>capabilities</span>
   <span class='lbrace'>{</span>
@@ -964,6 +1288,296 @@ Journal position checks provide compare-and-swap conflict detection.</li>
     <span class='label'>atomic_admission:</span> <span class='kw'>false</span><span class='comma'>,</span>
     <span class='label'>optimistic_revision:</span> <span class='kw'>false</span>
   <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="execution_result-instance_method">
+  
+    #<strong>execution_result</strong>(execution_id)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Read-only exact Agent execution result; never creates a live Agent owner.
+Result is nil until a result_ref exists; errors remain canonical data.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 55</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_execution_result'>execution_result</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_observation_thread!'>assert_observation_thread!</span>
+  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+  <span class='lbrace'>{</span>
+    <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>agent_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+    <span class='label'>status:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='comma'>,</span>
+    <span class='label'>result_ref:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_result_ref'>result_ref</span><span class='comma'>,</span> <span class='label'>error_ref:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_error_ref'>error_ref</span><span class='comma'>,</span>
+    <span class='label'>result:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_result_ref'>result_ref</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_text'>fetch_text</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_result_ref'>result_ref</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>error:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_error_ref'>error_ref</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_error_ref'>error_ref</span><span class='rparen'>)</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_then'>then</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Immutable.html" title="Phronomy::Agent::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="Agent/Immutable.html#copy-class_method" title="Phronomy::Agent::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="handoff_result-instance_method">
+  
+    #<strong>handoff_result</strong>(execution_id, main_agent_id: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Follows one exact Handoff turn without loading any Agent or graph.
+A committed absent Target reservation remains active; failed reads raise.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 70</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_handoff_result'>handoff_result</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>main_agent_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_observation_thread!'>assert_observation_thread!</span>
+  <span class='id identifier rubyid_anchor'>anchor</span> <span class='op'>=</span> <span class='id identifier rubyid_main_agent_id'>main_agent_id</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_seen'>seen</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_reserved_agent_id'>reserved_agent_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_loop'>loop</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Cyclic durable Handoff chain</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_seen'>seen</span><span class='lbracket'>[</span><span class='id identifier rubyid_current'>current</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_seen'>seen</span><span class='lbracket'>[</span><span class='id identifier rubyid_current'>current</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>true</span>
+    <span class='kw'>begin</span>
+      <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span>
+    <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></span>
+      <span class='id identifier rubyid_routing'>routing</span> <span class='op'>=</span> <span class='id identifier rubyid_handoff_states'>handoff_states</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_anchor'>anchor</span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_routing'>routing</span> <span class='op'>&amp;&amp;</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_routing'>routing</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancelled_execution_ids</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span>
+        <span class='kw'>return</span> <span class='lbrace'>{</span><span class='label'>execution_id:</span> <span class='id identifier rubyid_current'>current</span><span class='comma'>,</span> <span class='label'>agent_id:</span> <span class='id identifier rubyid_reserved_agent_id'>reserved_agent_id</span><span class='comma'>,</span> <span class='label'>status:</span> <span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+      <span class='kw'>end</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_reserved_agent_id'>reserved_agent_id</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_routing'>routing</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_routing'>routing</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stable</span><span class='tstring_end'>&quot;</span></span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_routing'>routing</span><span class='period'>.</span><span class='id identifier rubyid_pending_target_execution_id'>pending_target_execution_id</span> <span class='op'>==</span> <span class='id identifier rubyid_current'>current</span>
+        <span class='kw'>return</span> <span class='lbrace'>{</span><span class='label'>execution_id:</span> <span class='id identifier rubyid_current'>current</span><span class='comma'>,</span> <span class='label'>agent_id:</span> <span class='id identifier rubyid_reserved_agent_id'>reserved_agent_id</span><span class='comma'>,</span> <span class='label'>status:</span> <span class='symbol'>:active</span><span class='comma'>,</span>
+                <span class='label'>phase:</span> <span class='symbol'>:target_pending</span><span class='comma'>,</span> <span class='label'>reserved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+      <span class='kw'>end</span>
+      <span class='id identifier rubyid_raise'>raise</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_anchor'>anchor</span> <span class='op'>||=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_dig'>dig</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>coordination</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>main_agent_id</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_anchor'>anchor</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_dig'>dig</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>coordination</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>main_agent_id</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_anchor'>anchor</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution does not belong to this Handoff anchor</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>return</span> <span class='id identifier rubyid_execution_result'>execution_result</span><span class='lparen'>(</span><span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span> <span class='op'>==</span> <span class='symbol'>:handed_off</span>
+    <span class='id identifier rubyid_reserved_agent_id'>reserved_agent_id</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>handoff_target_agent_id</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>handoff_target_execution_id</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="list_executions-instance_method">
+  
+    #<strong>list_executions</strong>(agent_id, after: nil, limit: 100)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Lists retained active and terminal executions in lexical ID order.
+after is an exclusive ID cursor; discovery does not imply request dedup.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+105
+106
+107
+108</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 105</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_list_executions'>list_executions</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>100</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_observation_thread!'>assert_observation_thread!</span>
+  <span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_list'>list</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='id identifier rubyid_after'>after</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="list_team_executions-instance_method">
+  
+    #<strong>list_team_executions</strong>(team_id, after: nil, limit: 100)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Lists retained Team runs; no continuation or callback delivery occurs.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+126
+127
+128
+129</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 126</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_list_team_executions'>list_team_executions</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>100</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_observation_thread!'>assert_observation_thread!</span>
+  <span class='id identifier rubyid_team_executions'>team_executions</span><span class='period'>.</span><span class='id identifier rubyid_list'>list</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='id identifier rubyid_after'>after</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="team_execution_result-instance_method">
+  
+    #<strong>team_execution_result</strong>(team_execution_id)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Read-only exact Team result, independent of current Team class/Proc wiring.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 112</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_team_execution_result'>team_execution_result</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_observation_thread!'>assert_observation_thread!</span>
+  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_team_executions'>team_executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='rparen'>)</span>
+  <span class='lbrace'>{</span>
+    <span class='label'>team_execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='comma'>,</span> <span class='label'>team_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span>
+    <span class='label'>status:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='comma'>,</span>
+    <span class='label'>result_ref:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_result_ref'>result_ref</span><span class='comma'>,</span> <span class='label'>error_ref:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_error_ref'>error_ref</span><span class='comma'>,</span>
+    <span class='label'>result:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_result_ref'>result_ref</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_result_ref'>result_ref</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>error:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_error_ref'>error_ref</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_error_ref'>error_ref</span><span class='rparen'>)</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_then'>then</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Immutable.html" title="Phronomy::Agent::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="Agent/Immutable.html#copy-class_method" title="Phronomy::Agent::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1048,12 +1662,12 @@ exactly-once semantics for such failures.</p>
       <pre class="lines">
 
 
-122
-123
-124</pre>
+208
+209
+210</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 122</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 208</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transaction'>transaction</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'> does not provide atomic_all</span><span class='tstring_end'>&quot;</span></span>
@@ -1068,7 +1682,7 @@ exactly-once semantics for such failures.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:50 2026 by
+  Generated on Mon Sep  7 07:59:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

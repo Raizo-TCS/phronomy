@@ -208,7 +208,88 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#handoff_states-instance_method" title="#handoff_states (instance method)">#<strong>handoff_states</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#journals-instance_method" title="#journals (instance method)">#<strong>journals</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#team_executions-instance_method" title="#team_executions (instance method)">#<strong>team_executions</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#teams-instance_method" title="#teams (instance method)">#<strong>teams</strong>  &#x21d2; Object </a>
     
 
     
@@ -297,7 +378,7 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:, watermark:)  &#x21d2; View </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:, watermark:)  &#x21d2; View </a>
     
 
     
@@ -328,7 +409,7 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:, watermark:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Persistence::RepositoryFacades::View (class)">View</a></span></tt> 
+    #<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:, watermark:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Persistence::RepositoryFacades::View (class)">View</a></span></tt> 
   
 
   
@@ -353,24 +434,30 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-297
-298
-299
-300
-301
-302
-303
-304</pre>
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 297</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 513</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>workflow_states:</span><span class='comma'>,</span> <span class='label'>watermark:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>workflow_states:</span><span class='comma'>,</span> <span class='label'>handoff_states:</span><span class='comma'>,</span> <span class='label'>teams:</span><span class='comma'>,</span> <span class='label'>team_executions:</span><span class='comma'>,</span> <span class='label'>watermark:</span><span class='rparen'>)</span>
   <span class='ivar'>@contents</span> <span class='op'>=</span> <span class='id identifier rubyid_contents'>contents</span>
   <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Agents.html" title="Phronomy::Persistence::RepositoryFacades::Agents (class)">Agents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agents.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Agents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_agents'>agents</span><span class='rparen'>)</span>
   <span class='ivar'>@journals</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Journals.html" title="Phronomy::Persistence::RepositoryFacades::Journals (class)">Journals</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Journals.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Journals#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_journals'>journals</span><span class='rparen'>)</span>
   <span class='ivar'>@executions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Executions.html" title="Phronomy::Persistence::RepositoryFacades::Executions (class)">Executions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Executions.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Executions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_executions'>executions</span><span class='rparen'>)</span>
   <span class='ivar'>@workflow_states</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="WorkflowStates.html" title="Phronomy::Persistence::RepositoryFacades::WorkflowStates (class)">WorkflowStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="WorkflowStates.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::WorkflowStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_states'>workflow_states</span><span class='rparen'>)</span>
+  <span class='ivar'>@handoff_states</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="HandoffStates.html" title="Phronomy::Persistence::RepositoryFacades::HandoffStates (class)">HandoffStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="HandoffStates.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::HandoffStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_handoff_states'>handoff_states</span><span class='rparen'>)</span>
+  <span class='ivar'>@teams</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Teams.html" title="Phronomy::Persistence::RepositoryFacades::Teams (class)">Teams</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Teams.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::Teams#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_teams'>teams</span><span class='rparen'>)</span>
+  <span class='ivar'>@team_executions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="TeamExecutions.html" title="Phronomy::Persistence::RepositoryFacades::TeamExecutions (class)">TeamExecutions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="TeamExecutions.html#initialize-instance_method" title="Phronomy::Persistence::RepositoryFacades::TeamExecutions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_team_executions'>team_executions</span><span class='rparen'>)</span>
   <span class='ivar'>@watermark</span> <span class='op'>=</span> <span class='id identifier rubyid_watermark'>watermark</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -413,12 +500,12 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-295
-296
-297</pre>
+511
+512
+513</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 295</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agents'>agents</span>
   <span class='ivar'>@agents</span>
@@ -458,12 +545,12 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-295
-296
-297</pre>
+511
+512
+513</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 295</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_contents'>contents</span>
   <span class='ivar'>@contents</span>
@@ -503,15 +590,60 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-295
-296
-297</pre>
+511
+512
+513</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 295</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_executions'>executions</span>
   <span class='ivar'>@executions</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="handoff_states-instance_method">
+  
+    #<strong>handoff_states</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+511
+512
+513</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_handoff_states'>handoff_states</span>
+  <span class='ivar'>@handoff_states</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -548,15 +680,105 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-295
-296
-297</pre>
+511
+512
+513</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 295</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_journals'>journals</span>
   <span class='ivar'>@journals</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="team_executions-instance_method">
+  
+    #<strong>team_executions</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+511
+512
+513</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_team_executions'>team_executions</span>
+  <span class='ivar'>@team_executions</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="teams-instance_method">
+  
+    #<strong>teams</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+511
+512
+513</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_teams'>teams</span>
+  <span class='ivar'>@teams</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -593,12 +815,12 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-295
-296
-297</pre>
+511
+512
+513</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 295</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 511</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span>
   <span class='ivar'>@workflow_states</span>
@@ -643,16 +865,16 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
       <pre class="lines">
 
 
-306
-307
-308
-309
-310
-311
-312</pre>
+525
+526
+527
+528
+529
+530
+531</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 306</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 525</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
   <span class='ivar'>@watermark</span><span class='period'>.</span><span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span>
@@ -671,7 +893,7 @@ Persistence#build_transaction_view without duplicating facade logic.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:55 2026 by
+  Generated on Mon Sep  7 07:59:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

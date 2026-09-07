@@ -12,14 +12,16 @@
 `Phronomy::Persistence` is the single durable-state backend abstraction for
 stateful Agents and durable Workflows.
 
-```text
-Persistence
-├─ contents
-├─ agents
-├─ journals
-├─ executions
-└─ workflow_states
-```
+| Repository | Durable authority |
+|---|---|
+| `contents` | Immutable content and manifests |
+| `agents` | AgentRoot |
+| `journals` | Append-only Agent journal |
+| `executions` | AgentExecution and owned child coordination |
+| `workflow_states` | Workflow snapshots |
+| `handoff_states` | Active responsibility and exact Target reservation |
+| `teams` | TeamRoot |
+| `team_executions` | Team tasks, assignments and outcomes |
 
 Persistence stores defined durable logical state. It is not serialization of the
 currently running Runtime object graph.
@@ -173,3 +175,12 @@ Therefore:
 
 InMemory implementation mechanisms do not become requirements for external
 backends unless the Backend SPI states the corresponding semantic property.
+
+## Durable semantic coordination extension
+
+ADR-031 extends the single transaction domain to `handoff_states`, `teams` and
+`team_executions`, alongside the existing five repositories. Current root and
+transaction views require all eight. Explicit identity/revision/admission metadata
+remains separate from opaque DurableRecord payloads. See the normative
+[backend contract](../persistence-backends.md) and
+[recovery clarifications](../design/durable-semantic-coordination/RECOVERY_CONTRACT_CLARIFICATIONS.md).

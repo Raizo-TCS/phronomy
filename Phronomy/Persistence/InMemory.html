@@ -110,7 +110,7 @@
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="InMemory/Agents.html" title="Phronomy::Persistence::InMemory::Agents (class)">Agents</a></span>, <span class='object_link'><a href="InMemory/Contents.html" title="Phronomy::Persistence::InMemory::Contents (class)">Contents</a></span>, <span class='object_link'><a href="InMemory/Executions.html" title="Phronomy::Persistence::InMemory::Executions (class)">Executions</a></span>, <span class='object_link'><a href="InMemory/Journals.html" title="Phronomy::Persistence::InMemory::Journals (class)">Journals</a></span>, <span class='object_link'><a href="InMemory/WorkflowStates.html" title="Phronomy::Persistence::InMemory::WorkflowStates (class)">WorkflowStates</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="InMemory/Agents.html" title="Phronomy::Persistence::InMemory::Agents (class)">Agents</a></span>, <span class='object_link'><a href="InMemory/Contents.html" title="Phronomy::Persistence::InMemory::Contents (class)">Contents</a></span>, <span class='object_link'><a href="InMemory/Executions.html" title="Phronomy::Persistence::InMemory::Executions (class)">Executions</a></span>, <span class='object_link'><a href="InMemory/HandoffStates.html" title="Phronomy::Persistence::InMemory::HandoffStates (class)">HandoffStates</a></span>, <span class='object_link'><a href="InMemory/Journals.html" title="Phronomy::Persistence::InMemory::Journals (class)">Journals</a></span>, <span class='object_link'><a href="InMemory/TeamExecutions.html" title="Phronomy::Persistence::InMemory::TeamExecutions (class)">TeamExecutions</a></span>, <span class='object_link'><a href="InMemory/Teams.html" title="Phronomy::Persistence::InMemory::Teams (class)">Teams</a></span>, <span class='object_link'><a href="InMemory/WorkflowStates.html" title="Phronomy::Persistence::InMemory::WorkflowStates (class)">WorkflowStates</a></span>
     
   
 </p>
@@ -327,35 +327,39 @@
       <pre class="lines">
 
 
-349
-350
-351
-352
-353
-354
-355
-356
-357
-358
-359
-360
-361
-362
-363
-364
-365
-366
-367
-368
-369
-370
-371
-372
-373
-374</pre>
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 349</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 607</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@monitor</span> <span class='op'>=</span> <span class='const'>Monitor</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -368,7 +372,9 @@
     <span class='label'>executions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
     <span class='label'>execution_metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
     <span class='label'>workflow_states:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
-    <span class='label'>workflow_revisions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+    <span class='label'>workflow_revisions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>handoff_states:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>handoff_revisions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>teams:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>team_revisions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>team_executions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>team_execution_metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='rbrace'>}</span>
   <span class='ivar'>@contents_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Contents.html" title="Phronomy::Persistence::InMemory::Contents (class)">Contents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Contents.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Contents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
   <span class='ivar'>@agents_backend</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InMemory/Agents.html" title="Phronomy::Persistence::InMemory::Agents (class)">Agents</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Agents.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Agents#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
@@ -380,7 +386,9 @@
     <span class='label'>agents:</span> <span class='ivar'>@agents_backend</span><span class='comma'>,</span>
     <span class='label'>journals:</span> <span class='ivar'>@journals_backend</span><span class='comma'>,</span>
     <span class='label'>executions:</span> <span class='ivar'>@executions_backend</span><span class='comma'>,</span>
-    <span class='label'>workflow_states:</span> <span class='ivar'>@workflow_states_backend</span>
+    <span class='label'>workflow_states:</span> <span class='ivar'>@workflow_states_backend</span><span class='comma'>,</span>
+    <span class='label'>handoff_states:</span> <span class='const'><span class='object_link'><a href="InMemory/HandoffStates.html" title="Phronomy::Persistence::InMemory::HandoffStates (class)">HandoffStates</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/HandoffStates.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::HandoffStates#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>teams:</span> <span class='const'><span class='object_link'><a href="InMemory/Teams.html" title="Phronomy::Persistence::InMemory::Teams (class)">Teams</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Teams.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::Teams#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>team_executions:</span> <span class='const'><span class='object_link'><a href="InMemory/TeamExecutions.html" title="Phronomy::Persistence::InMemory::TeamExecutions (class)">TeamExecutions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/TeamExecutions.html#initialize-instance_method" title="Phronomy::Persistence::InMemory::TeamExecutions#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -419,12 +427,12 @@
       <pre class="lines">
 
 
-347
-348
-349</pre>
+605
+606
+607</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 347</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 605</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@state</span>
@@ -456,31 +464,31 @@
       <pre class="lines">
 
 
-380
-381
-382
-383
-384
-385
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396
-397
-398
-399
-400
-401</pre>
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 380</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 642</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -524,12 +532,12 @@
       <pre class="lines">
 
 
-376
-377
-378</pre>
+638
+639
+640</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 376</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 638</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_capabilities'>capabilities</span>
   <span class='lbrace'>{</span><span class='label'>atomic_all:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>atomic_admission:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>optimistic_revision:</span> <span class='kw'>true</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -580,15 +588,15 @@
       <pre class="lines">
 
 
-420
-421
-422
-423
-424
-425</pre>
+682
+683
+684
+685
+686
+687</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 420</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 682</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_durable_record!'>require_durable_record!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_record'>record</span> <span class='kw'>if</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DurableRecord.html" title="Phronomy::Persistence::DurableRecord (class)">DurableRecord</a></span></span><span class='rparen'>)</span>
@@ -616,12 +624,12 @@
       <pre class="lines">
 
 
-415
-416
-417</pre>
+677
+678
+679</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 415</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 677</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_synchronize'>synchronize</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@monitor</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -646,20 +654,20 @@
       <pre class="lines">
 
 
-403
-404
-405
-406
-407
-408
-409
-410
-411
-412
-413</pre>
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 403</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/in_memory.rb', line 665</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transaction'>transaction</span>
   <span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -682,7 +690,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:52 2026 by
+  Generated on Mon Sep  7 07:59:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

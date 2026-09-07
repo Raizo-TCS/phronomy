@@ -255,12 +255,12 @@
       <pre class="lines">
 
 
-244
-245
-246</pre>
+460
+461
+462</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 244</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 460</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_backend_repository'>backend_repository</span><span class='rparen'>)</span>
   <span class='ivar'>@backend_repository</span> <span class='op'>=</span> <span class='id identifier rubyid_backend_repository'>backend_repository</span>
@@ -305,15 +305,15 @@
       <pre class="lines">
 
 
-283
-284
-285
-286
-287
-288</pre>
+499
+500
+501
+502
+503
+504</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 499</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span> <span class='label'>expected_revision:</span><span class='rparen'>)</span>
   <span class='ivar'>@backend_repository</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span>
@@ -354,18 +354,18 @@
       <pre class="lines">
 
 
-248
-249
-250
-251
-252
-253
-254
-255
-256</pre>
+464
+465
+466
+467
+468
+469
+470
+471
+472</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 248</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 464</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@backend_repository</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
@@ -409,33 +409,33 @@
       <pre class="lines">
 
 
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281</pre>
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 258</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/repository_facades.rb', line 474</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span> <span class='label'>expected_revision:</span><span class='comma'>,</span> <span class='label'>snapshot:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_expected'>expected</span> <span class='op'>=</span> <span class='id identifier rubyid_expected_revision'>expected_revision</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>?</span> <span class='kw'>nil</span> <span class='op'>:</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_expected_revision'>expected_revision</span><span class='rparen'>)</span>
@@ -471,7 +471,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:55 2026 by
+  Generated on Mon Sep  7 07:59:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

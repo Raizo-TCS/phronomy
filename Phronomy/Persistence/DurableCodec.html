@@ -613,7 +613,73 @@ payload fields to rediscover Phronomy semantics.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#decode_handoff_state-class_method" title="decode_handoff_state (class method)">.<strong>decode_handoff_state</strong>(record)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#decode_journal_record-class_method" title="decode_journal_record (class method)">.<strong>decode_journal_record</strong>(record)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#decode_team_execution-class_method" title="decode_team_execution (class method)">.<strong>decode_team_execution</strong>(record)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#decode_team_root-class_method" title="decode_team_root (class method)">.<strong>decode_team_root</strong>(record)  &#x21d2; Object </a>
     
 
     
@@ -701,7 +767,73 @@ payload fields to rediscover Phronomy semantics.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#encode_handoff_state-class_method" title="encode_handoff_state (class method)">.<strong>encode_handoff_state</strong>(value)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#encode_journal_record-class_method" title="encode_journal_record (class method)">.<strong>encode_journal_record</strong>(journal_record)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#encode_team_execution-class_method" title="encode_team_execution (class method)">.<strong>encode_team_execution</strong>(value)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#encode_team_root-class_method" title="encode_team_root (class method)">.<strong>encode_team_root</strong>(value)  &#x21d2; Object </a>
     
 
     
@@ -1277,12 +1409,12 @@ payload fields to rediscover Phronomy semantics.</p>
       <pre class="lines">
 
 
-613
-614
-615</pre>
+673
+674
+675</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 613</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 673</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_boolean?'>boolean?</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='kw'>true</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='kw'>false</span><span class='rparen'>)</span>
@@ -1320,16 +1452,16 @@ payload fields to rediscover Phronomy semantics.</p>
       <pre class="lines">
 
 
-617
-618
-619
-620
-621
-622
-623</pre>
+677
+678
+679
+680
+681
+682
+683</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 617</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 677</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_record'>build_record</span><span class='lparen'>(</span><span class='id identifier rubyid_record_type'>record_type</span><span class='comma'>,</span> <span class='id identifier rubyid_format_version'>format_version</span><span class='comma'>,</span> <span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DurableRecord.html" title="Phronomy::Persistence::DurableRecord (class)">DurableRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="DurableRecord.html#initialize-instance_method" title="Phronomy::Persistence::DurableRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1373,21 +1505,21 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-487
-488
-489
-490
-491
-492
-493
-494
-495
-496
-497
-498</pre>
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 487</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 547</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_canonicalize_workflow_snapshot'>canonicalize_workflow_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_top_level_string_keys'>top_level_string_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow snapshot</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -1434,35 +1566,35 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-500
-501
-502
-503
-504
-505
-506
-507
-508
-509
-510
-511
-512
-513
-514
-515
-516
-517
-518
-519
-520
-521
-522
-523
-524
-525</pre>
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 500</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 560</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_canonicalize_workflow_value'>canonicalize_workflow_value</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
@@ -1523,27 +1655,27 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-404
-405
-406
-407
-408
-409
-410
-411
-412
-413
-414
-415
-416
-417
-418
-419
-420
-421</pre>
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 404</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 464</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='label'>record_type:</span><span class='comma'>,</span> <span class='label'>format_version:</span><span class='comma'>,</span> <span class='label'>keys:</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DurableRecord.html" title="Phronomy::Persistence::DurableRecord (class)">DurableRecord</a></span></span><span class='rparen'>)</span>
@@ -1596,24 +1728,24 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124</pre>
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 170</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decode_agent_execution'>decode_agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span>
@@ -1663,24 +1795,24 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86</pre>
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 132</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decode_agent_root'>decode_agent_root</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span>
@@ -1696,6 +1828,61 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
   <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot decode AgentRoot</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="decode_handoff_state-class_method">
+  
+    .<strong>decode_handoff_state</strong>(record)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+71
+72
+73
+74
+75
+76
+77
+78
+79</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 71</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_decode_handoff_state'>decode_handoff_state</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='label'>record_type:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy.handoff_state</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>format_version:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>keys:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/HandoffState.html" title="Phronomy::Agent::HandoffState (class)">HandoffState</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/HandoffState.html#ATTRIBUTES-constant" title="Phronomy::Agent::HandoffState::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>HandoffState</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/HandoffState.html" title="Phronomy::Agent::HandoffState (class)">HandoffState</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../Agent/HandoffState.html#from_h-class_method" title="Phronomy::Agent::HandoffState.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot decode HandoffState</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1730,24 +1917,24 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149</pre>
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 135</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 195</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decode_journal_record'>decode_journal_record</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span>
@@ -1763,6 +1950,116 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
   <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot decode JournalRecord</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="decode_team_execution-class_method">
+  
+    .<strong>decode_team_execution</strong>(record)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+111
+112
+113
+114
+115
+116
+117
+118
+119</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 111</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_decode_team_execution'>decode_team_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='label'>record_type:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy.team_execution</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>format_version:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>keys:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamExecution.html" title="Phronomy::MultiAgent::TeamExecution (class)">TeamExecution</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamExecution.html#ATTRIBUTES-constant" title="Phronomy::MultiAgent::TeamExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>TeamExecution</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamExecution.html" title="Phronomy::MultiAgent::TeamExecution (class)">TeamExecution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../MultiAgent/TeamExecution.html#from_h-class_method" title="Phronomy::MultiAgent::TeamExecution.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot decode TeamExecution</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="decode_team_root-class_method">
+  
+    .<strong>decode_team_root</strong>(record)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+91
+92
+93
+94
+95
+96
+97
+98
+99</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 91</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_decode_team_root'>decode_team_root</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='label'>record_type:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy.team_root</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+    <span class='label'>format_version:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>keys:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamRoot.html" title="Phronomy::MultiAgent::TeamRoot (class)">TeamRoot</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamRoot.html#ATTRIBUTES-constant" title="Phronomy::MultiAgent::TeamRoot::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>TeamRoot</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamRoot.html" title="Phronomy::MultiAgent::TeamRoot (class)">TeamRoot</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../MultiAgent/TeamRoot.html#from_h-class_method" title="Phronomy::MultiAgent::TeamRoot.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot decode TeamRoot</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1797,35 +2094,35 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198</pre>
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 233</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decode_workflow_state'>decode_workflow_state</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='label'>expected_workflow_instance_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_current_payload!'>current_payload!</span><span class='lparen'>(</span>
@@ -1886,30 +2183,30 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108</pre>
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_encode_agent_execution'>encode_agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_top_level_string_keys'>top_level_string_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentExecution payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -1965,19 +2262,19 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70</pre>
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_encode_agent_root'>encode_agent_root</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_top_level_string_keys'>top_level_string_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentRoot payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -1988,6 +2285,61 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
   <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot encode AgentRoot</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="encode_handoff_state-class_method">
+  
+    .<strong>encode_handoff_state</strong>(value)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+61
+62
+63
+64
+65
+66
+67
+68
+69</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 61</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_encode_handoff_state'>encode_handoff_state</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/HandoffState.html" title="Phronomy::Agent::HandoffState (class)">HandoffState</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../Agent/HandoffState.html#from_h-class_method" title="Phronomy::Agent::HandoffState.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_record'>build_record</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy.handoff_state</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot encode HandoffState</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2022,17 +2374,17 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-126
-127
-128
-129
-130
-131
-132
-133</pre>
+186
+187
+188
+189
+190
+191
+192
+193</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 126</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 186</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_encode_journal_record'>encode_journal_record</span><span class='lparen'>(</span><span class='id identifier rubyid_journal_record'>journal_record</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_journal_payload'>journal_payload</span><span class='lparen'>(</span><span class='id identifier rubyid_journal_record'>journal_record</span><span class='comma'>,</span> <span class='label'>require_sequence:</span> <span class='kw'>true</span><span class='rparen'>)</span>
@@ -2041,6 +2393,116 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
   <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot encode JournalRecord</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="encode_team_execution-class_method">
+  
+    .<strong>encode_team_execution</strong>(value)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+101
+102
+103
+104
+105
+106
+107
+108
+109</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 101</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_encode_team_execution'>encode_team_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamExecution.html" title="Phronomy::MultiAgent::TeamExecution (class)">TeamExecution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../MultiAgent/TeamExecution.html#from_h-class_method" title="Phronomy::MultiAgent::TeamExecution.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_record'>build_record</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy.team_execution</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot encode TeamExecution</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="encode_team_root-class_method">
+  
+    .<strong>encode_team_root</strong>(value)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+81
+82
+83
+84
+85
+86
+87
+88
+89</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 81</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_encode_team_root'>encode_team_root</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent/TeamRoot.html" title="Phronomy::MultiAgent::TeamRoot (class)">TeamRoot</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="../MultiAgent/TeamRoot.html#from_h-class_method" title="Phronomy::MultiAgent::TeamRoot.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_record'>build_record</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy.team_root</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cannot encode TeamRoot</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2075,30 +2537,30 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171</pre>
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 151</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 211</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_encode_workflow_state'>encode_workflow_state</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span><span class='comma'>,</span> <span class='label'>workflow_revision:</span><span class='comma'>,</span> <span class='label'>snapshot:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_normalized_snapshot'>normalized_snapshot</span> <span class='op'>=</span> <span class='id identifier rubyid_canonicalize_workflow_snapshot'>canonicalize_workflow_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='rparen'>)</span>
@@ -2154,23 +2616,23 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-625
-626
-627
-628
-629
-630
-631
-632
-633
-634
-635
-636
-637
-638</pre>
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 625</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 685</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
@@ -2219,18 +2681,18 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-527
-528
-529
-530
-531
-532
-533
-534
-535</pre>
+587
+588
+589
+590
+591
+592
+593
+594
+595</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 527</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 587</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_journal_payload'>journal_payload</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='label'>require_sequence:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_top_level_string_keys'>top_level_string_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>JournalRecord payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -2274,15 +2736,15 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-537
-538
-539
-540
-541
-542</pre>
+597
+598
+599
+600
+601
+602</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 537</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 597</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_llm_call_payload'>llm_call_payload</span><span class='lparen'>(</span><span class='id identifier rubyid_call'>call</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_top_level_string_keys'>top_level_string_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_call'>call</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLMCallRecord payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -2336,16 +2798,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-584
-585
-586
-587
-588
-589
-590</pre>
+644
+645
+646
+647
+648
+649
+650</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 584</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 644</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_boolean!'>require_boolean!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2387,21 +2849,21 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-600
-601
-602
-603
-604
-605
-606
-607
-608
-609
-610
-611</pre>
+660
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 600</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 660</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_canonical_hash!'>require_canonical_hash!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2461,16 +2923,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-592
-593
-594
-595
-596
-597
-598</pre>
+652
+653
+654
+655
+656
+657
+658</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 592</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 652</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_enum_string!'>require_enum_string!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid_allowed'>allowed</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2525,16 +2987,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-560
-561
-562
-563
-564
-565
-566</pre>
+620
+621
+622
+623
+624
+625
+626</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 560</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 620</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_integer!'>require_integer!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2589,16 +3051,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-544
-545
-546
-547
-548
-549
-550</pre>
+604
+605
+606
+607
+608
+609
+610</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 544</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 604</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_nonempty_string!'>require_nonempty_string!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2653,16 +3115,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-576
-577
-578
-579
-580
-581
-582</pre>
+636
+637
+638
+639
+640
+641
+642</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 576</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 636</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_nonnegative_integer!'>require_nonnegative_integer!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2717,16 +3179,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-552
-553
-554
-555
-556
-557
-558</pre>
+612
+613
+614
+615
+616
+617
+618</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 552</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 612</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_optional_string!'>require_optional_string!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2781,16 +3243,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-568
-569
-570
-571
-572
-573
-574</pre>
+628
+629
+630
+631
+632
+633
+634</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 568</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 628</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_require_positive_integer!'>require_positive_integer!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
@@ -2845,13 +3307,13 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-640
-641
-642
-643</pre>
+700
+701
+702
+703</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 640</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 700</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_serialization_error'>serialization_error</span><span class='lparen'>(</span><span class='id identifier rubyid_prefix'>prefix</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span></span><span class='comma'>,</span>
@@ -2890,26 +3352,26 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-466
-467
-468
-469
-470
-471
-472
-473
-474
-475
-476
-477
-478
-479
-480
-481
-482</pre>
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 466</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 526</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_top_level_string_keys'>top_level_string_keys</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
@@ -2961,73 +3423,73 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-221
-222
-223
-224
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239
-240
-241
-242
-243
-244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
 281
 282
 283
-284</pre>
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 221</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 281</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_agent_execution_payload!'>validate_agent_execution_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="#AGENT_EXECUTION_KEYS-constant" title="Phronomy::Persistence::DurableCodec::AGENT_EXECUTION_KEYS (constant)">AGENT_EXECUTION_KEYS</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentExecution payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -3126,29 +3588,29 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219</pre>
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 200</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 260</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_agent_root_payload!'>validate_agent_root_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="#AGENT_ROOT_KEYS-constant" title="Phronomy::Persistence::DurableCodec::AGENT_ROOT_KEYS (constant)">AGENT_ROOT_KEYS</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AgentRoot payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -3216,29 +3678,29 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-423
-424
-425
-426
-427
-428
-429
-430
-431
-432
-433
-434
-435
-436
-437
-438
-439
-440
-441
-442</pre>
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 423</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 483</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_allowed_keys!'>validate_allowed_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='label'>required_keys:</span><span class='comma'>,</span> <span class='label'>optional_keys:</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
@@ -3293,49 +3755,49 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-337
-338
-339
-340
-341
-342
-343
-344
-345
-346
-347
-348
-349
-350
-351
-352
-353
-354
-355
-356
-357
-358
-359
-360
-361
-362
-363
-364
-365
-366
-367
-368
-369
-370
-371
-372
-373
-374
-375
-376</pre>
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 337</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 397</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_approval_request!'>validate_approval_request!</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='id identifier rubyid_request'>request</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -3423,30 +3885,30 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-444
-445
-446
-447
-448
-449
-450
-451
-452
-453
-454
-455
-456
-457
-458
-459
-460
-461
-462
-463
-464</pre>
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 444</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 504</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='comma'>,</span> <span class='id identifier rubyid_expected_keys'>expected_keys</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
@@ -3502,38 +3964,38 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302
-303
-304
-305
-306
-307
-308
-309
-310
-311
-312
-313
-314</pre>
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 286</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 346</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_journal_payload!'>validate_journal_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='label'>label:</span><span class='comma'>,</span> <span class='label'>require_sequence:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="#JOURNAL_RECORD_KEYS-constant" title="Phronomy::Persistence::DurableCodec::JOURNAL_RECORD_KEYS (constant)">JOURNAL_RECORD_KEYS</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span><span class='rparen'>)</span>
@@ -3597,29 +4059,29 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-316
-317
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331
-332
-333
-334
-335</pre>
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 316</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 376</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_llm_call_payload!'>validate_llm_call_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='label'>label:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="#LLM_CALL_RECORD_KEYS-constant" title="Phronomy::Persistence::DurableCodec::LLM_CALL_RECORD_KEYS (constant)">LLM_CALL_RECORD_KEYS</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='id identifier rubyid_label'>label</span><span class='rparen'>)</span>
@@ -3674,26 +4136,26 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396
-397
-398
-399
-400
-401
-402</pre>
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 386</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 446</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_workflow_snapshot!'>validate_workflow_snapshot!</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="#WORKFLOW_SNAPSHOT_KEYS-constant" title="Phronomy::Persistence::DurableCodec::WORKFLOW_SNAPSHOT_KEYS (constant)">WORKFLOW_SNAPSHOT_KEYS</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow snapshot</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -3745,16 +4207,16 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
       <pre class="lines">
 
 
-378
-379
-380
-381
-382
-383
-384</pre>
+438
+439
+440
+441
+442
+443
+444</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 378</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/durable_codec.rb', line 438</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_workflow_state_payload!'>validate_workflow_state_payload!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_exact_keys!'>validate_exact_keys!</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="#WORKFLOW_STATE_KEYS-constant" title="Phronomy::Persistence::DurableCodec::WORKFLOW_STATE_KEYS (constant)">WORKFLOW_STATE_KEYS</a></span></span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow state payload</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -3773,7 +4235,7 @@ isolated here instead of applying Symbol#to_s generically to every codec.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:49 2026 by
+  Generated on Mon Sep  7 07:59:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

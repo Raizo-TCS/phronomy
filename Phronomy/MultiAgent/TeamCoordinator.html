@@ -104,7 +104,9 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Coordinator/worker multi-agent pattern with persistent worker Agent state.</p>
+    <p>Durable purpose-specific task allocation. Agent owns every Provider/Tool
+execution; TeamExecution owns queue, assignments and aggregate facts.
+Scheduling and aggregation must be pure, replay-safe result calculations.</p>
 
   </div>
 </div>
@@ -114,6 +116,65 @@
 </div>
 
 
+
+  <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#persistence-instance_method" title="#persistence (instance method)">#<strong>persistence</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#team_id-instance_method" title="#team_id (instance method)">#<strong>team_id</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+  </ul>
 
 
 
@@ -140,7 +201,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -162,7 +223,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -184,7 +245,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -206,7 +267,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -228,7 +289,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -250,7 +311,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -272,7 +333,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -294,7 +355,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -393,6 +454,94 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#create-class_method" title="create (class method)">.<strong>create</strong>(**options)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#get-class_method" title="get (class method)">.<strong>get</strong>(team_id)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#load-class_method" title="load (class method)">.<strong>load</strong>(team_id, persistence:, on_event: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Hydrates Team facts only; use resume with the exact run ID to continue.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#new-class_method" title="new (class method)">.<strong>new</strong>(team_id: SecureRandom.uuid, persistence: nil, metadata: {}, on_event: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#pool-class_method" title="pool (class method)">.<strong>pool</strong>(size:, agent:, on_error: :raise)  &#x21d2; Object </a>
     
 
@@ -434,6 +583,28 @@
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#team_definition-class_method" title="team_definition (class method)">.<strong>team_definition</strong>(id: nil, version: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -447,7 +618,95 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#cancel-instance_method" title="#cancel (instance method)">#<strong>cancel</strong>(team_execution_id)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Requests cancellation of this run only.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#executions-instance_method" title="#executions (instance method)">#<strong>executions</strong>(after: nil, limit: 100)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(team_input, config: {})  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#result-instance_method" title="#result (instance method)">#<strong>result</strong>(team_execution_id)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>No live Agent loading or callbacks are needed for result discovery.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#resume-instance_method" title="#resume (instance method)">#<strong>resume</strong>(team_execution_id, config: {})  &#x21d2; Object </a>
     
 
     
@@ -483,7 +742,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Callback events are observations of committed assignments, never an outbox.</p></div></span>
   
 </li>
 
@@ -492,6 +751,93 @@
     
   
 
+
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id=""></span>
+      <div class="method_details first">
+  <h3 class="signature first" id="persistence-instance_method">
+  
+    #<strong>persistence</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+107
+108
+109</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 107</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_persistence'>persistence</span>
+  <span class='ivar'>@persistence</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="team_id-instance_method">
+  
+    #<strong>team_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+107
+108
+109</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 107</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_team_id'>team_id</span>
+  <span class='ivar'>@team_id</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
 
   <div id="class_method_details" class="method_details_list">
@@ -507,16 +853,29 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-59</pre>
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 88</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__aggregator'>_aggregator</span> <span class='op'>=</span> <span class='ivar'>@aggregator</span></pre>
     </td>
@@ -533,18 +892,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-53</pre>
+76
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 76</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__coordinator_instructions'>_coordinator_instructions</span> <span class='op'>=</span> <span class='ivar'>@coordinator_instructions</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__coordinator_instructions'>_coordinator_instructions</span> <span class='op'>=</span> <span class='ivar'>@coordinator_instructions</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -559,18 +933,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-52</pre>
+74
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 74</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__coordinator_model'>_coordinator_model</span> <span class='op'>=</span> <span class='ivar'>@coordinator_model</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__coordinator_model'>_coordinator_model</span> <span class='op'>=</span> <span class='ivar'>@coordinator_model</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -585,18 +974,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-54</pre>
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 78</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__coordinator_provider'>_coordinator_provider</span> <span class='op'>=</span> <span class='ivar'>@coordinator_provider</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__coordinator_provider'>_coordinator_provider</span> <span class='op'>=</span> <span class='ivar'>@coordinator_provider</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -611,18 +1015,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-57</pre>
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 84</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__on_error'>_on_error</span> <span class='op'>=</span> <span class='ivar'>@on_error</span> <span class='op'>||</span> <span class='symbol'>:raise</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__on_error'>_on_error</span> <span class='op'>=</span> <span class='ivar'>@on_error</span> <span class='op'>||</span> <span class='symbol'>:raise</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -637,18 +1056,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-55</pre>
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 80</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__pool_size'>_pool_size</span> <span class='op'>=</span> <span class='ivar'>@pool_size</span> <span class='op'>||</span> <span class='int'>1</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__pool_size'>_pool_size</span> <span class='op'>=</span> <span class='ivar'>@pool_size</span> <span class='op'>||</span> <span class='int'>1</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -663,18 +1097,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-58</pre>
+86
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 86</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__scheduler'>_scheduler</span> <span class='op'>=</span> <span class='ivar'>@scheduler</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__scheduler'>_scheduler</span> <span class='op'>=</span> <span class='ivar'>@scheduler</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -689,18 +1138,33 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-56</pre>
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 82</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid__worker_agent'>_worker_agent</span> <span class='op'>=</span> <span class='ivar'>@worker_agent</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid__worker_agent'>_worker_agent</span> <span class='op'>=</span> <span class='ivar'>@worker_agent</span>
+<span class='comment'># @api private</span></pre>
     </td>
   </tr>
 </table>
@@ -730,16 +1194,12 @@
       <pre class="lines">
 
 
-48
-49
 50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 50</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span></pre>
     </td>
   </tr>
 </table>
@@ -769,16 +1229,14 @@
       <pre class="lines">
 
 
-26
-27
-28</pre>
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 35</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_instructions'>coordinator_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_instructions</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_instructions</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_instructions'>coordinator_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_instructions</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_instructions</span>
+<span class='comment'># @api public</span></pre>
     </td>
   </tr>
 </table>
@@ -808,16 +1266,14 @@
       <pre class="lines">
 
 
-21
-22
-23</pre>
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 33</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_model'>coordinator_model</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_model</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_model</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_model'>coordinator_model</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_model</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_model</span>
+<span class='comment'># @api public</span></pre>
     </td>
   </tr>
 </table>
@@ -847,15 +1303,167 @@
       <pre class="lines">
 
 
-31
-32
-33</pre>
+37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 37</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_provider'>coordinator_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_provider</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_provider'>coordinator_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_provider</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="create-class_method">
+  
+    .<strong>create</strong>(**options)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+58</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 58</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="get-class_method">
+  
+    .<strong>get</strong>(team_id)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+71</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 71</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_get'>get</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid___get_team'>__get_team</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='label'>klass:</span> <span class='kw'>self</span><span class='rparen'>)</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="load-class_method">
+  
+    .<strong>load</strong>(team_id, persistence:, on_event: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Hydrates Team facts only; use resume with the exact run ID to continue.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+62
+63
+64
+65
+66
+67
+68</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 62</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='id identifier rubyid_get'>get</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_owner'>owner</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_on_event'>on_event</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Team </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_team_id'>team_id</span><span class='embexpr_end'>}</span><span class='tstring_content'> is already live; listener cannot be rebound</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_construct'>construct</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='label'>create:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="new-class_method">
+  
+    .<strong>new</strong>(team_id: SecureRandom.uuid, persistence: nil, metadata: {}, on_event: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+53
+54
+55</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 53</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>team_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_construct'>construct</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='comma'>,</span> <span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='label'>create:</span> <span class='kw'>true</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -879,6 +1487,19 @@
 </div>
 <div class="tags">
   
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -886,19 +1507,21 @@
       <pre class="lines">
 
 
-36
-37
-38
-39
-40</pre>
+40
+41
+42
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='label'>size:</span><span class='comma'>,</span> <span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span>
-  <span class='ivar'>@pool_size</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_size'>size</span><span class='rparen'>)</span>
-  <span class='ivar'>@worker_agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
-  <span class='ivar'>@on_error</span> <span class='op'>=</span> <span class='id identifier rubyid_on_error'>on_error</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool size must be positive</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_size'>size</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_positive?'>positive?</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>on_error must be :raise or :skip</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>raise</span><span class='words_sep'> </span><span class='tstring_content'>skip</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_on_error'>on_error</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool agent must be an Agent class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Class</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_agent'>agent</span> <span class='op'>&lt;=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
+  <span class='ivar'>@pool_size</span><span class='comma'>,</span> <span class='ivar'>@worker_agent</span><span class='comma'>,</span> <span class='ivar'>@on_error</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_size'>size</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_on_error'>on_error</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -929,15 +1552,66 @@
       <pre class="lines">
 
 
-43
-44
-45</pre>
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 48</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
+<span class='comment'># @api public</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="team_definition-class_method">
+  
+    .<strong>team_definition</strong>(id: nil, version: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 21</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_team_definition'>team_definition</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>version:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_id'>id</span> <span class='op'>||</span> <span class='id identifier rubyid_version'>version</span>
+    <span class='id identifier rubyid_definition_id'>definition_id</span> <span class='op'>=</span> <span class='id identifier rubyid_id'>id</span> <span class='op'>||</span> <span class='id identifier rubyid_name'>name</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_definition_id'>definition_id</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_definition_id'>definition_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_version'>version</span> <span class='op'>&amp;&amp;</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_version'>version</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_positive?'>positive?</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>team_definition requires id and positive version</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@team_definition</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>id:</span> <span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span> <span class='op'>||</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span> <span class='label'>version:</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_version'>version</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@team_definition</span> <span class='op'>||</span> <span class='id identifier rubyid_raise'>raise</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Team must declare team_definition id: ..., version: ...</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -951,7 +1625,102 @@
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="invoke-instance_method">
+  <h3 class="signature first" id="cancel-instance_method">
+  
+    #<strong>cancel</strong>(team_execution_id)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Requests cancellation of this run only. Existing Agent cancellation and
+Recovery settle admitted children; reserved absent children are not started.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 146</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_cancel'>cancel</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assert_caller!'>assert_caller!</span>
+  <span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='id identifier rubyid_update'>update</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_current'>current</span><span class='comma'>,</span> <span class='id identifier rubyid__tx'>_tx</span><span class='op'>|</span>
+    <span class='kw'>next</span> <span class='id identifier rubyid_current'>current</span> <span class='kw'>unless</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_active?'>active?</span>
+    <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span><span class='label'>metadata:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancel_requested</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='kw'>true</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='ivar'>@tokens_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tokens</span><span class='lbracket'>[</span><span class='id identifier rubyid_id'>id</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_token'>token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
+  <span class='id identifier rubyid_result'>result</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="executions-instance_method">
+  
+    #<strong>executions</strong>(after: nil, limit: 100)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+139
+140
+141</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 139</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_executions'>executions</span><span class='lparen'>(</span><span class='label'>after:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>100</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_list_team_executions'>list_team_executions</span><span class='lparen'>(</span><span class='id identifier rubyid_team_id'>team_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='id identifier rubyid_after'>after</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="invoke-instance_method">
   
     #<strong>invoke</strong>(team_input, config: {})  &#x21d2; <tt>Object</tt> 
   
@@ -974,29 +1743,21 @@
       <pre class="lines">
 
 
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72</pre>
+110
+111
+112
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 110</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='kw'>unless</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__worker_agent'>_worker_agent</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool :agent must be configured before invoking</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_with_admission'>with_admission</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_admit'>admit</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_task_queue'>task_queue</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_run_coordinator'>run_coordinator</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='id identifier rubyid_task_queue'>task_queue</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_assignments'>assignments</span> <span class='op'>=</span> <span class='id identifier rubyid_run_workers'>run_workers</span><span class='lparen'>(</span><span class='id identifier rubyid_task_queue'>task_queue</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_finalize_result'>finalize_result</span><span class='lparen'>(</span><span class='id identifier rubyid_assignments'>assignments</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1004,9 +1765,50 @@
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="stream-instance_method">
+  <h3 class="signature " id="result-instance_method">
   
-    #<strong>stream</strong>(team_input, config: {}, &amp;block)  &#x21d2; <tt>Object</tt> 
+    #<strong>result</strong>(team_execution_id)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>No live Agent loading or callbacks are needed for result discovery.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+133
+134
+135
+136</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 133</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_result'>result</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_read_execution'>read_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_team_execution_result'>team_execution_result</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="resume-instance_method">
+  
+    #<strong>resume</strong>(team_execution_id, config: {})  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1027,33 +1829,60 @@
       <pre class="lines">
 
 
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86</pre>
+127
+128
+129</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 127</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_with_admission'>with_admission</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="stream-instance_method">
+  
+    #<strong>stream</strong>(team_input, config: {}, &amp;block)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Callback events are observations of committed assignments, never an outbox.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+119
+120
+121
+122
+123
+124</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/team_coordinator.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
-
-  <span class='kw'>unless</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__worker_agent'>_worker_agent</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool :agent must be configured before invoking</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_with_admission'>with_admission</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_admit'>admit</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_team_execution_id'>team_execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_task_queue'>task_queue</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_run_coordinator'>run_coordinator</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='id identifier rubyid_task_queue'>task_queue</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_assignments'>assignments</span> <span class='op'>=</span> <span class='id identifier rubyid_run_workers'>run_workers</span><span class='lparen'>(</span><span class='id identifier rubyid_task_queue'>task_queue</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_finalize_result'>finalize_result</span><span class='lparen'>(</span><span class='id identifier rubyid_assignments'>assignments</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1065,7 +1894,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:54 2026 by
+  Generated on Mon Sep  7 07:59:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -44,7 +44,7 @@ contract.
 
 ## Required root surface
 
-A Persistence backend exposes five durable repositories:
+A Persistence backend exposes eight durable repositories:
 
 ```text
 contents
@@ -52,6 +52,9 @@ agents
 journals
 executions
 workflow_states
+handoff_states
+teams
+team_executions
 ```
 
 and two root operations:
@@ -66,7 +69,7 @@ persistence.assert_agent_watermark!(
 ```
 
 The object yielded by `transaction` is a transaction-scoped Persistence view. It
-must respond to all five repository accessors and
+must respond to all eight repository accessors and
 `assert_agent_watermark!`. It may be the Persistence instance itself, but SQL
 backends may instead yield an object bound to a checked-out connection or
 transaction session.
@@ -90,7 +93,7 @@ this requirement.
 
 All durable repositories must be able to participate in one atomic transaction
 domain. A transaction may change `contents`, `agents`, `journals`, `executions`,
-and `workflow_states` and then either commit all changes or roll them all back.
+`workflow_states`, `handoff_states`, `teams`, and `team_executions`, and then either commit all changes or roll them all back.
 
 This requirement deliberately does not claim exactly-once semantics after an
 indeterminate database/network failure. If the underlying database cannot tell
@@ -269,6 +272,7 @@ def create_active(execution)
 def load(execution_id)
 def save(execution_id, expected_revision:, execution:)
 def list_active(agent_id)
+def list(agent_id, after: nil, limit: 100)
 def delete(execution_id)
 def delete_for_agent(agent_id)
 def assert_idle!(agent_id)
@@ -521,6 +525,9 @@ RSpec.describe MyPersistenceBackend do
   it_behaves_like "a Journal repository"
   it_behaves_like "an Execution repository"
   it_behaves_like "a workflow state repository"
+  it_behaves_like "a Handoff state repository"
+  it_behaves_like "a Team repository"
+  it_behaves_like "a Team execution repository"
   it_behaves_like "a Persistence backend"
 end
 ```
@@ -552,3 +559,35 @@ may use combinations of:
 
 Backend-specific database exceptions should be translated to the Phronomy error
 contract where their meaning is known.
+
+## V2 coordination Backend SPI (clean break)
+
+Both `Persistence.new` and `build_transaction_view` require all eight raw
+repositories. Five-repository fallback is removed. Existing record formats remain
+`0.1`; three additional record types are `phronomy.handoff_state`,
+`phronomy.team_root`, and `phronomy.team_execution`. Backend index metadata is
+explicit and MUST NOT be reconstructed by parsing DurableRecord payloads.
+
+| Raw repository | Required operations and explicit metadata |
+|---|---|
+| `handoff_states` | `load(main_agent_id)`; `save(main_agent_id, expected_revision:, next_revision:, active_agent_id:, record:)`; `delete(main_agent_id, expected_revision:)` |
+| `teams` | `create(team_id:, team_revision:, record:)`; `load(team_id)`; `save(team_id, expected_revision:, next_revision:, record:)`; `delete(team_id)` |
+| `team_executions` | `create_active(team_execution_id:, team_id:, execution_revision:, record:)`; `load(id)`; `save(id, expected_revision:, next_revision:, team_id:, active:, record:)`; `list_active(team_id)`; `list(team_id, after: nil, limit: 100)`; `delete(id)`; `delete_for_team(team_id)`; `assert_idle!(team_id)` |
+| `executions` extension | `list(agent_id, after: nil, limit: 100)` for retained active and terminal records |
+
+Handoff starts at revision 1 with expected revision nil; later saves advance
+exactly one revision. Team roots and executions begin at revision 0. Team
+admission has the existing `AgentBusyError` contract for an already active owner;
+stale CAS/duplicate identity uses `ConflictError`. Missing Team/execution loads
+raise `NotFoundError`; absent Handoff state returns nil. Unavailable reads and
+codec errors must propagate separately.
+
+Lists sort IDs lexically, use an exclusive ID cursor, return at most the positive
+integer limit, include only the requested owner, and return immutable copies.
+Backends define retention; enumeration does not implement input correlation or
+request deduplication. Terminal-to-active rewrites are invalid.
+
+For F1, atomic commit does not imply a known response. Phronomy reads back the
+same intended ID/fact before advancing. A backend must provide authoritative
+reads/CAS; failure of readback is returned without new semantic work. No callback
+ACK/index is part of the SPI. Existing cross-process exclusion limitations remain.

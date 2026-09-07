@@ -78,7 +78,7 @@ tracking <code>main</code> directly.</p>
 <li><strong>Persistence</strong> — unified durable backend for Agent state and Workflow <code>workflow_states</code>.</li>
 <li><strong>Workflow</strong> — state-machine-driven application workflow with explicit events and wait states.</li>
 <li><strong>Tool / Capability</strong> — callable application capability exposed to an Agent; application-defined Tools subclass <code>Phronomy::Tool::Base</code>.</li>
-<li><strong>Multi-Agent Handoff</strong> — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and Runtime-local active-Agent continuity.</li>
+<li><strong>Multi-Agent Handoff</strong> — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.</li>
 <li><strong>EventLoop + FSMSession</strong> — the framework control plane for logical lifecycle coordination.</li>
 <li><strong>OffloadPool</strong> — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.</li>
 <li><strong>Task</strong> — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.</li>
@@ -209,7 +209,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Aug 30 06:11:49 2026 by
+  Generated on Mon Sep  7 07:59:39 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

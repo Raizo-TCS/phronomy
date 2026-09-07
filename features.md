@@ -78,7 +78,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | Feature | Stability |
 |---|---|
 | **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |
-| **Semantic Multi-Agent Handoff** — `MultiAgent::Handoff` transfers active responsibility from an explicit Source Agent to a Target Agent, projects policy-bounded Context with provenance, keeps the Target active across user turns within the same Runtime/main-Agent lifetime, and does not claim durable continuation across Runtime reset | Beta |
+| **Durable Agent Handoff** — `Agent::Handoff` and `Agent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
@@ -140,3 +140,37 @@ current compatibility contract.
 
 For runtime ownership and the distinction between public lifecycle APIs and
 private execution machinery, see [Runtime and concurrency](runtime-and-concurrency.md).
+
+### Durable semantic coordination (V2 revision 2)
+
+Static `Orchestrator.subagent` Tools invoked inside a parent AgentExecution reserve
+child Agent/execution identities before dispatch and reuse retained outcomes.
+Direct `dispatch_parallel` / `fan_out` calls remain Runtime-only convenience APIs.
+`Orchestrator#resume(execution_id)` continues retained parent coordination.
+
+`TeamCoordinator` requires `team_definition id:, version:` and provides
+`create`, `load`, `get`, `resume`, `executions`, `result` and scoped `cancel`.
+Team tasks, worker assignments, exact child identities and aggregate outcomes
+are durable facts. Workers still execute sequentially through the existing Agent
+engine. `schedule` and `aggregate` must be pure and replay-safe; aggregate returns
+canonical JSON data. Default assignment results have string keys and error data
+contains class/message strings. Arbitrary Ruby objects are not durable results.
+
+`Persistence#execution_result` / `team_execution_result` read exact results;
+`list_executions` / `list_team_executions` discover retained active and terminal
+runs by known owner ID. Reads do not load Runtime owners or deliver callbacks.
+The cursor is an exclusive lexical execution ID and limit must be positive.
+Retention and request correlation remain Application/backend policy.
+
+Guarantee: confirmed outcomes are reused, unfinished work keeps its semantic ID,
+and external outcome uncertainty uses Agent Recovery. For F1/F4 this is
+conditional on a conforming retained Persistence domain and compatible current
+wiring. InMemory provides transaction/CAS semantics but is not durable disk storage.
+Callbacks/streams/Tasks are Runtime observations; there is no restart-spanning
+notification outbox, ACK, synthetic fan-out execution or external exactly-once
+claim. See [the migration](migrations/durable-semantic-coordination-v2.md).
+
+`Persistence#handoff_result(source_execution_id)` also resolves the exact Handoff
+turn read-only, including a current absent-but-reserved Target, without graph or
+Agent hydration. Purging an idle main Agent removes its Handoff anchor; pending
+coordination rejects purge rather than discarding its reservation.
