@@ -14,6 +14,9 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Add runtime dependency constraint `json < 3` to prevent Faraday/RubyLLM JSON
+  parser incompatibilities from resolving in consumer environments.
+
 - Run recovered output filtering inside the ordinary Agent FSM so filter
   exceptions commit a failed execution and release admission, including after
   another restart. Preserve explicit filter blocking as the `blocked` status.

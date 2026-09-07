@@ -41,6 +41,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"
+  spec.add_dependency "json", "< 3"
 
   # For more information and examples on how to make a new gem, check out our
   # guide at: https://guides.rubygems.org/specification-reference/
