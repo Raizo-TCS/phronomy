@@ -94,6 +94,41 @@ Handoff terminal-commit organization remains outside this change.
 
 ## Regression coverage
 
+### Persistence I/O boundary follow-up
+
+Recovery follows ADR-014/024's prepare/apply boundary. `prepare_plan` reads the
+restart inputs at the existing synchronous load boundary, outside EventLoop.
+Resolution commit, bounded F1 readback, and subsequent content materialization
+run in the existing resolution OffloadPool operation. Approval restoration also
+receives its assistant message as prepared material. Invocation and Tool state,
+chat wiring, output filtering, and session registration remain on EventLoop.
+
+`RecoveryMaterial` and `ResolutionPreparation` are private, operation-local
+results. They are not persisted and carry no alternative continuation decision.
+Prepared messages transfer to the new invocation; there is no shared content
+cache or new durable identity. The current saved execution still determines
+the continuation for both resolution and restart.
+
+If content materialization fails after a confirmed resolution commit, EventLoop
+retains the confirmed execution and fails the observer without inventing a
+semantic failure or replaying the Provider/Tool. Restart can prepare the same
+saved execution again. If F1 readback itself fails or returns conflicting facts,
+the observer fails and no continuation starts. A late preparation result must
+still match its captured live execution and owner before it can be applied.
+Callbacks post back to the originating Runtime; shutdown never grants a worker
+permission to mutate live state.
+
+Invocation-owned Orchestrator Tools use the existing durable child Knowledge
+snapshot. Tool construction does not read that Knowledge again on EventLoop.
+Standalone Tool construction retains its existing caller-side snapshot behavior.
+
+The shared F1/F4 fixture now rejects EventLoop content reads, execution loads,
+and transactions. `recovery_io_boundary_spec.rb` additionally covers resolved
+output, restart, approval allow/reject, content/readback failures, stale apply,
+shutdown, and unrelated Agent progress while content or readback I/O is blocked.
+These tests use synchronous InMemory operations and explicit queue barriers;
+they do not establish disk durability or production-adapter latency bounds.
+
 `spec/phronomy/multi_agent/durable_continuation_spec.rb` adds 27 examples:
 
 | Coverage | Examples |

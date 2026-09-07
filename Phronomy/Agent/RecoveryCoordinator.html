@@ -132,7 +132,7 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="RecoveryCoordinator/InstallCommand.html" title="Phronomy::Agent::RecoveryCoordinator::InstallCommand (class)">InstallCommand</a></span>, <span class='object_link'><a href="RecoveryCoordinator/RecoveryPlan.html" title="Phronomy::Agent::RecoveryCoordinator::RecoveryPlan (class)">RecoveryPlan</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolutionOperation.html" title="Phronomy::Agent::RecoveryCoordinator::ResolutionOperation (class)">ResolutionOperation</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolutionResult.html" title="Phronomy::Agent::RecoveryCoordinator::ResolutionResult (class)">ResolutionResult</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolveCommand.html" title="Phronomy::Agent::RecoveryCoordinator::ResolveCommand (class)">ResolveCommand</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolveReady.html" title="Phronomy::Agent::RecoveryCoordinator::ResolveReady (class)">ResolveReady</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="RecoveryCoordinator/InstallCommand.html" title="Phronomy::Agent::RecoveryCoordinator::InstallCommand (class)">InstallCommand</a></span>, <span class='object_link'><a href="RecoveryCoordinator/RecoveryMaterial.html" title="Phronomy::Agent::RecoveryCoordinator::RecoveryMaterial (class)">RecoveryMaterial</a></span>, <span class='object_link'><a href="RecoveryCoordinator/RecoveryPlan.html" title="Phronomy::Agent::RecoveryCoordinator::RecoveryPlan (class)">RecoveryPlan</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolutionOperation.html" title="Phronomy::Agent::RecoveryCoordinator::ResolutionOperation (class)">ResolutionOperation</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolutionPreparation.html" title="Phronomy::Agent::RecoveryCoordinator::ResolutionPreparation (class)">ResolutionPreparation</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolutionResult.html" title="Phronomy::Agent::RecoveryCoordinator::ResolutionResult (class)">ResolutionResult</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolveCommand.html" title="Phronomy::Agent::RecoveryCoordinator::ResolveCommand (class)">ResolveCommand</a></span>, <span class='object_link'><a href="RecoveryCoordinator/ResolveReady.html" title="Phronomy::Agent::RecoveryCoordinator::ResolveReady (class)">ResolveReady</a></span>
     
   
 </p>
@@ -329,15 +329,17 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-48
-49
-50</pre>
+50
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
+  <span class='ivar'>@runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -379,12 +381,12 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-46
-47
-48</pre>
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@agent</span>
@@ -429,9 +431,6 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-170
-171
-172
 173
 174
 175
@@ -441,10 +440,13 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 179
 180
 181
-182</pre>
+182
+183
+184
+185</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 170</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 173</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver_on_event_loop'>deliver_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_command'>command</span>
@@ -492,9 +494,6 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-52
-53
-54
 55
 56
 57
@@ -547,10 +546,13 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 104
 105
 106
-107</pre>
+107
+108
+109
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_recover_on_load!'>recover_on_load!</span>
   <span class='id identifier rubyid_active'>active</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
@@ -641,9 +643,6 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-109
-110
-111
 112
 113
 114
@@ -700,10 +699,13 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 165
 166
 167
-168</pre>
+168
+169
+170
+171</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery_coordinator.rb', line 112</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -775,7 +777,7 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep  7 07:59:44 2026 by
+  Generated on Mon Sep  7 09:09:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
