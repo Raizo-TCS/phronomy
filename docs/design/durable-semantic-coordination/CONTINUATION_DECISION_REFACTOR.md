@@ -56,14 +56,16 @@ Decision order:
 
 1. Reconcile the coordinator or an existing reserved assignment through exact
    Agent execution identity and the existing cancellation/recovery machinery.
-2. Preserve a coordinator `failed` outcome, or a worker `failed` outcome when
-   `on_error: :raise` is saved.
+2. Preserve a coordinator `failed` or `blocked` outcome, or either worker
+   outcome when `on_error: :raise` is saved.
 3. Honor the saved cancellation request or a child's explicit `cancelled` state.
 4. Reserve unassigned work, or aggregate when no work remains.
 
 `error_ref` contains diagnostic material; the child `state` defines whether its
-outcome is failure or cancellation. A failed worker under `on_error: :skip`
-remains a failed assignment available to aggregation. A later Team cancellation
+outcome is failure or cancellation. An Agent filter's explicit `blocked` status
+is a Team failure with its diagnostic error, while approval `rejected` remains
+an ordinary result rather than an exception. A failed or blocked worker under
+`on_error: :skip` retains its original assignment state for aggregation. A later Team cancellation
 does not rewrite that assignment. A non-skipped committed failure remains a
 Team failure even if cancellation is subsequently requested.
 
@@ -93,6 +95,36 @@ framework has been model-checked. In particular, ordinary execution versus
 Handoff terminal-commit organization remains outside this change.
 
 ## Regression coverage
+
+### Output filtering and blocked child outcomes follow-up
+
+The review of main `d938426faf267b5f229f2819b631edf4bcfbc58b` found two gaps.
+Recovery applied output filtering before installing the ordinary FSM session;
+an ordinary filter exception therefore bypassed the terminal barrier and left
+the execution active. Team's centralized failure decision recognized `failed`
+but omitted the separate `blocked` Agent terminal state.
+
+Resolved output now enters the normal FSM at `calling_llm` with an
+`llm_completed` event. It does not invoke the Provider again. Output filtering,
+explicit blocking, exceptions, terminal persistence, and admission release
+follow the same path as an ordinary invocation. Prepared Recovery content
+still crosses the existing Offload/EventLoop boundary; this change introduces
+no Persistence reads on EventLoop.
+
+`recovery_output_filter_spec.rb` covers 18 combinations: ordinary execution,
+explicit factual resolution, and restart after resolution; output transformation,
+explicit blocking, and a raised exception; invoke and stream modes. Streaming
+uses a minimal text SSE response. The tests assert durable status, exact-once
+filter application within each execution attempt, no Provider replay during
+Recovery, and successful subsequent invocation on the same Agent. Filters
+remain replay-safe application functions, not exactly-once external effects.
+
+`team_blocked_outcome_spec.rb` covers four coordinator/worker and raise/skip
+combinations. Each resumes snapshots before and after Team records the child
+outcome, with and without a subsequent cancellation request. The child retains
+`blocked`; the Team fails for a blocked coordinator or non-skipped worker, and
+aggregation receives the error for a skipped worker. A later cancellation
+cannot replace a non-skipped committed failure.
 
 ### Persistence I/O boundary follow-up
 
