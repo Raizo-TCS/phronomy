@@ -9,7 +9,7 @@ module Phronomy
         private
 
         def begin_resolve_on_event_loop(request)
-          event_loop = Phronomy::Runtime.instance.event_loop
+          event_loop = @runtime.event_loop
           state = event_loop.agent_execution_state(
             request.execution_id
           )
@@ -74,10 +74,10 @@ module Phronomy
             execution_id: current.execution_id,
             state: :recovery_required
           )
-          task = Phronomy::Runtime.instance.offload.submit(
+          task = @runtime.offload.submit(
             on_full: :raise
           ) do
-            perform_resolution(operation)
+            prepare_resolution(operation)
           end
           task.on_complete do |result, error|
             ready = ResolveReady.new(
@@ -456,93 +456,54 @@ module Phronomy
           end
         end
 
-        def apply_resolve_on_event_loop(ready)
-          request = ready.request
-          event_loop = Phronomy::Runtime.instance.event_loop
-          state = event_loop.agent_execution_state(
-            request.execution_id
-          )
-          unless state && state.agent.equal?(agent)
-            request.completion.fail(
-              Phronomy::ExecutionRehydrationRequiredError.new(
-                "recovered execution disappeared before resolution apply"
-              )
-            )
-            return
-          end
-
-          if ready.error
-            reconcile_resolution_f1_on_event_loop(
-              ready,
-              state
-            )
-            return
-          end
-
-          result = ready.result
-          event_loop.replace_agent_execution(
-            request.execution_id,
-            execution: result.execution
-          )
-
-          continue_recovery_on_event_loop(result.execution, request.completion)
-        rescue => caught
-          request.completion.fail(caught)
+        # Commit/readback and materialization share one worker operation. A read
+        # failure after a confirmed commit must retain that committed execution;
+        # it must not be mistaken for another uncertain resolution write.
+        def prepare_resolution(operation)
+          result = resolve_with_readback(operation)
+          material = prepare_recovery_material(result.execution)
+          ResolutionPreparation.new(execution: result.execution, material: material, error: nil)
+        rescue => error
+          ResolutionPreparation.new(execution: result&.execution, material: nil, error: error)
         end
 
-        def reconcile_resolution_f1_on_event_loop(ready, state)
+        def resolve_with_readback(operation)
+          perform_resolution(operation)
+        rescue => error
+          intended = error.intended_result.execution if error.is_a?(ResolutionOutcomeUnknownError)
+          current = agent.persistence.executions.load(operation.execution.execution_id)
+          return ResolutionResult.new(execution: current) if intended && current.to_h == intended.to_h
+
+          if current.to_h == operation.execution.to_h
+            raise(error.is_a?(ResolutionOutcomeUnknownError) ? error.original_error : error)
+          end
+          raise Phronomy::Persistence::ConflictError,
+            "Recovery resolution durable outcome conflicts with both expected pre-state and intended post-state"
+        end
+
+        def apply_resolve_on_event_loop(ready)
           request = ready.request
-          intended_result = ready.result
-          if intended_result.nil? &&
-              ready.error.is_a?(ResolutionOutcomeUnknownError)
-            intended_result = ready.error.intended_result
+          event_loop = @runtime.event_loop
+          state = event_loop.agent_execution_state(request.execution_id)
+          unless state && state.agent.equal?(agent)
+            raise Phronomy::ExecutionRehydrationRequiredError,
+              "recovered execution disappeared before resolution apply"
           end
-          intended = intended_result&.execution
-          current = agent.persistence.executions.load(
-            request.execution_id
-          )
-
-          if intended &&
-              current.execution_revision ==
-                  intended.execution_revision &&
-              current.to_h == intended.to_h
-            Phronomy::Runtime.instance.event_loop.replace_agent_execution(
-              request.execution_id,
-              execution: current
-            )
-            synthetic = ResolveReady.new(
-              coordinator: self,
-              request: request,
-              operation: ready.operation,
-              result: ResolutionResult.new(execution: current),
-              error: nil
-            )
-            apply_resolve_on_event_loop(synthetic)
-            return
+          unless state.execution.equal?(ready.operation.execution) && state.fsm_session_id.nil?
+            raise Phronomy::Persistence::ConflictError,
+              "Recovery execution changed before resolution apply"
           end
+          raise ready.error if ready.error
 
-          if current.execution_revision ==
-              ready.operation.execution.execution_revision &&
-              current.to_h ==
-                  ready.operation.execution.to_h
-            failure = if ready.error.is_a?(
-              ResolutionOutcomeUnknownError
-            )
-              ready.error.original_error
-            else
-              ready.error
-            end
-            request.completion.fail(failure)
-            return
+          result = ready.result
+          if result.execution
+            event_loop.replace_agent_execution(request.execution_id, execution: result.execution)
           end
+          raise result.error if result.error
 
-          request.completion.fail(
-            Phronomy::Persistence::ConflictError.new(
-              "Recovery resolution durable outcome conflicts with both expected pre-state and intended post-state"
-            )
-          )
-        rescue => reconciliation_error
-          request.completion.fail(reconciliation_error)
+          continue_recovery_on_event_loop(result.execution, request.completion, material: result.material)
+        rescue => caught
+          request.completion.fail(caught)
         end
       end
     end

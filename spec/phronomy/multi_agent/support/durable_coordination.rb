@@ -6,9 +6,30 @@ RSpec.shared_context "durable coordination runtime" do
   # Captures committed DurableRecords, then materializes them in a new backend
   # and Runtime. This models F4 without retaining any Agent/Task/Class handles.
   class CoordinationFaultStore < Phronomy::Persistence::InMemory
-    attr_accessor :after_commit
+    attr_accessor :after_commit, :before_io
+
+    def initialize
+      super
+      owner = self
+      {contents => :fetch, executions => :load}.each do |repository, operation|
+        repository.define_singleton_method(operation) do |*args|
+          owner.check_io_thread!(operation)
+          super(*args)
+        end
+      end
+    end
+
+    # The full F1/F4 matrix enforces the synchronous Persistence SPI boundary.
+    # InMemory speed must not hide reads accidentally performed by EventLoop.
+    def check_io_thread!(operation)
+      if Phronomy::Runtime.instance.event_loop.current?
+        raise "Persistence #{operation} must not run on EventLoop"
+      end
+      before_io&.call(operation)
+    end
 
     def transaction
+      check_io_thread!(:transaction)
       value = super { |tx| yield tx }
       hook = after_commit
       if hook && !Thread.current[:coordination_fault_hook]
