@@ -38,15 +38,18 @@ module Phronomy
         :execution, :root, :subject, :outcome, :result, :failure
       )
       ResolutionResult = Data.define(:execution)
+      ResolutionPreparation = Data.define(:execution, :material, :error)
+      RecoveryMaterial = Data.define(:projection, :messages, :assistant_message, :output, :usage)
       RecoveryPlan = Data.define(
         :execution, :root, :manifest, :base_manifest,
-        :projection, :classification
+        :projection, :classification, :material
       )
 
       attr_reader :agent
 
       def initialize(agent)
         @agent = agent
+        @runtime = Phronomy::Runtime.instance
       end
 
       def recover_on_load!
@@ -184,7 +187,7 @@ module Phronomy
       private
 
       def post_control(command)
-        Phronomy::Runtime.instance.event_loop.post(
+        @runtime.event_loop.post(
           Phronomy::Event.new(
             type: :agent_control,
             target_id:

@@ -24,8 +24,28 @@ module Phronomy
           end
         end
 
-        def continue_recovery_on_event_loop(execution, completion)
-          event_loop = Phronomy::Runtime.instance.event_loop
+        # Read durable inputs before entering EventLoop. The returned messages are
+        # operation-local projections transferred to the new invocation, never a
+        # shared cache or a second source of continuation decisions.
+        def prepare_recovery_material(execution, projection: nil)
+          action = recovery_action(execution)
+          suspended = execution.status == :suspended || execution.phase.to_sym == :resuming
+          return if !suspended && %i[resolution_required failed_terminal].include?(action)
+
+          unless projection
+            _manifest, projection = RecoverySupport.materialize_projection(agent, execution.metadata.fetch("manifest_ref"))
+          end
+          records = execution.working_records.select { |record| %i[assistant_message tool_message].include?(record.kind.to_sym) }
+          materializer = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence)
+          messages = records.map { |record| materializer.materialize_journal_record(record) }.freeze
+          assistant = messages.reverse.find { |message| message.role.to_sym == :assistant }
+          output, usage = RecoverySupport.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
+          RecoveryMaterial.new(projection: projection, messages: messages,
+            assistant_message: assistant, output: output, usage: usage)
+        end
+
+        def continue_recovery_on_event_loop(execution, completion, material:)
+          event_loop = @runtime.event_loop
           action = recovery_action(execution)
           if action == :resolution_required
             event_loop.mark_agent_execution_admission(agent.agent_id,
@@ -43,18 +63,18 @@ module Phronomy
           if action == :failed_terminal
             invocation = build_failed_recovery_invocation(execution, main)
           else
-            _manifest, projection = RecoverySupport.materialize_projection(agent, execution.metadata.fetch("manifest_ref"))
+            projection = material.projection
             invocation = if action == :framework_tools
               RecoverySupport.build_invocation_for_suspended(agent, execution, projection, main,
-                agent.send(:_phronomy_event_listener))
+                agent.send(:_phronomy_event_listener), assistant_message: material.assistant_message)
             else
               RecoverySupport.build_chat_for_recovery(agent, execution, projection, main,
-                agent.send(:_phronomy_event_listener))
+                agent.send(:_phronomy_event_listener), messages: material.messages)
             end
             if execution.phase.to_sym == :recovery_provider_completed
-              invocation.output, invocation.usage = RecoverySupport.provider_output_and_usage(agent, execution)
+              invocation.output, invocation.usage = material.output, material.usage
             end
-            prepare_saved_provider_calls(execution, invocation) if action == :framework_calls
+            prepare_saved_provider_calls(execution, invocation, material.assistant_message) if action == :framework_calls
             AgentInvocationSessionBuilder.send(:output_filtering_action, agent, invocation) if action == :output
           end
 
@@ -87,9 +107,8 @@ module Phronomy
           end
         end
 
-        def prepare_saved_provider_calls(execution, invocation)
+        def prepare_saved_provider_calls(execution, invocation, message)
           record = RecoverySupport.latest_assistant_record(execution)
-          message = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence).materialize_journal_record(record)
           calls = message.tool_calls.respond_to?(:values) ? message.tool_calls.values : Array(message.tool_calls)
           framework_calls = calls.select { |call| agent.__framework_call?(call.name) }
           if framework_calls.empty?
@@ -108,7 +127,7 @@ module Phronomy
 
         def start_recovery_session(event_loop, main, execution, invocation, completion, resume_event:, resume_phase:)
           session = AgentInvocationSessionBuilder.build_for_resume(agent_invocation: invocation,
-            resume_event: resume_event, resume_phase: resume_phase, runtime: Phronomy::Runtime.instance)
+            resume_event: resume_event, resume_phase: resume_phase, runtime: @runtime)
           event_loop.replace_agent_execution(execution.execution_id, invocation: invocation, fsm_session_id: session.id)
           event_loop.register_agent_completion_waiter(execution.execution_id, completion)
           source = Phronomy::Task.deferred(name: "#{completion.name}-source")

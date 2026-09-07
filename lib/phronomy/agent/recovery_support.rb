@@ -305,7 +305,7 @@ module Phronomy
         end
       end
 
-      def build_invocation_for_suspended(agent, execution, projection, main_coordinator, listener)
+      def build_invocation_for_suspended(agent, execution, projection, main_coordinator, listener, assistant_message:)
         request = execution.approval_request && Phronomy::Agent::ToolApprovalRequest.from_h(
           execution.approval_request
         )
@@ -314,14 +314,6 @@ module Phronomy
           raise Phronomy::ExecutionRehydrationRequiredError,
             "suspended execution #{execution.execution_id} has no durable assistant Tool Call message"
         end
-
-        materializer = Phronomy::Agent::RubyLLMMaterializer.new(
-          agent: agent,
-          persistence: agent.persistence
-        )
-        assistant_message = materializer.materialize_journal_record(
-          assistant_record
-        )
 
         config = {
           execution_id: execution.execution_id,
@@ -449,7 +441,7 @@ module Phronomy
         child
       end
 
-      def build_chat_for_recovery(agent, execution, projection, main_coordinator, listener)
+      def build_chat_for_recovery(agent, execution, projection, main_coordinator, listener, messages:)
         config = {
           execution_id: execution.execution_id,
           phronomy_execution_coordinator: main_coordinator,
@@ -481,15 +473,7 @@ module Phronomy
           )
         end
 
-        materializer = Phronomy::Agent::RubyLLMMaterializer.new(
-          agent: agent,
-          persistence: agent.persistence
-        )
-        Array(execution.working_records).each do |record|
-          next unless %i[assistant_message tool_message].include?(record.kind.to_sym)
-
-          chat.messages << materializer.materialize_journal_record(record)
-        end
+        messages.each { |message| chat.messages << message }
 
         invocation.chat = chat
         invocation.user_message_sent = true

@@ -12,6 +12,15 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep Recovery content materialization, approval restoration reads, and F1
+  resolution readback off EventLoop. Apply prepared invocation state only on
+  EventLoop, reject stale results, and retain confirmed resolution facts when
+  later content reads fail.
+- Avoid reading Orchestrator Knowledge again while constructing invocation-owned
+  Tools; those children inherit the Knowledge already saved with their slots.
+
 ---
 
 ## [0.23.0] - 2026-08-29

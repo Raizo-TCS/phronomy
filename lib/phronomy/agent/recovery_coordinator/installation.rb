@@ -63,7 +63,8 @@ module Phronomy
             manifest: manifest,
             base_manifest: base_manifest,
             projection: projection,
-            classification: classification
+            classification: classification,
+            material: prepare_recovery_material(execution, projection: projection)
           )
         end
 
@@ -142,7 +143,7 @@ module Phronomy
         end
 
         def install_on_event_loop(command)
-          event_loop = Phronomy::Runtime.instance.event_loop
+          event_loop = @runtime.event_loop
           plan = command.plan
           execution = plan.execution
           main = agent.send(:execution_coordinator_for, agent.__coordination_config)
@@ -165,7 +166,8 @@ module Phronomy
           invocation = nil
           if execution.status == :suspended || execution.phase.to_sym == :resuming
             invocation = RecoverySupport.build_invocation_for_suspended(
-              agent, execution, plan.projection, main, agent.send(:_phronomy_event_listener)
+              agent, execution, plan.projection, main, agent.send(:_phronomy_event_listener),
+              assistant_message: plan.material.assistant_message
             )
           end
 
@@ -248,7 +250,7 @@ module Phronomy
           when Phronomy::Recovery::RESUMABLE
             continue_resumable_on_event_loop(
               execution,
-              completion: command.completion
+              completion: command.completion, material: plan.material
             )
           else
             raise Phronomy::Error,
@@ -306,15 +308,15 @@ module Phronomy
 
         def continue_resumable_on_event_loop(
           execution,
-          completion:
+          completion:, material:
         )
           # simplecov:disable
-          event_loop = Phronomy::Runtime.instance.event_loop
+          event_loop = @runtime.event_loop
           main = agent.send(:execution_coordinator_for, agent.__coordination_config)
 
           if framework_batch?(execution)
             internal = Phronomy::Task.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
-            continue_recovery_on_event_loop(execution, internal)
+            continue_recovery_on_event_loop(execution, internal, material: material)
             completion.complete(agent)
             return
           end
@@ -365,7 +367,7 @@ module Phronomy
             completion.complete(agent)
           when :recovery_tools_completed, :recovery_provider_completed, :recovery_resolved_failed
             internal_task = Phronomy::Task.deferred(name: "agent-recovery-auto:#{execution.execution_id}")
-            continue_recovery_on_event_loop(execution, internal_task)
+            continue_recovery_on_event_loop(execution, internal_task, material: material)
             completion.complete(agent)
           else
             raise Phronomy::ExecutionRehydrationRequiredError,

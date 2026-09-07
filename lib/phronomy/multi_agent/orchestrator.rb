@@ -272,7 +272,9 @@ module Phronomy
         inherits_knowledge = registration ? registration.fetch(:inherit_knowledge, true) : true
 
         captured_context = {parent: self}
-        captured_context[:knowledge] = active_knowledge_snapshot if inherits_knowledge
+        # Invocation-owned Tools inherit the durable child slot's knowledge,
+        # captured by the existing preparation transaction off EventLoop.
+        captured_context[:knowledge] = active_knowledge_snapshot if inherits_knowledge && !invocation
         if invocation
           captured_context[:config] = invocation.config
           captured_context[:invocation_context] = invocation.config[:invocation_context]
