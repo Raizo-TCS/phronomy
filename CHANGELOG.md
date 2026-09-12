@@ -12,8 +12,14 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Added
+
+- Public `Task.completed` / `Task.failed` factories for application-owned settled results.
+- `Blocking.call_async` for non-waiting submission of synchronous application work.
+
 ### Fixed
 
+- Reject waiting OffloadPool admission from EventLoop before creating an operation.
 - Add runtime dependency constraint `json < 3` to prevent Faraday/RubyLLM JSON
   parser incompatibilities from resolving in consumer environments.
 

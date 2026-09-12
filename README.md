@@ -23,6 +23,8 @@ tracking `main` directly.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
 - **OffloadPool** — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.
 - **Task** — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.
+- **Task.completed / Task.failed** — already-settled application results without starting execution.
+- **Blocking.call_async** — submits synchronous application work to the existing bounded OffloadPool without waiting for queue space.
 - **Journal / Context Policy / Manifest** — canonical history plus per-LLM-call context selection.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.

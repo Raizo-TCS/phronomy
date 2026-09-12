@@ -23,6 +23,29 @@ module Phronomy
       new(name: name, parent: parent)
     end
 
+    # Public factories for already-settled values. No execution is started.
+    # Always create a base Task: there is no physical worker to supervise.
+    # @param value [Object] already available result
+    # @param name [String, nil] optional diagnostic name
+    # @return [Phronomy::Task] a completed base Task
+    # @api public
+    def self.completed(value = nil, name: nil)
+      Phronomy::Task.deferred(name: name).tap { |task| task.complete(value) }
+    end
+
+    # Represents an already known failure without raising the stored error.
+    # Observation through wait_result raises it; on_complete receives it.
+    # @param error [Exception] original failure object
+    # @param name [String, nil] optional diagnostic name
+    # @return [Phronomy::Task] a failed base Task
+    # @raise [ArgumentError] if error is not an Exception
+    # @api public
+    def self.failed(error, name: nil)
+      raise ArgumentError, "error must be an Exception" unless error.is_a?(Exception)
+
+      Phronomy::Task.deferred(name: name).tap { |task| task.fail(error) }
+    end
+
     attr_reader :name, :parent
 
     # @api private
