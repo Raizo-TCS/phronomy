@@ -347,6 +347,9 @@ module Phronomy
       # Synchronous queue admission may delay return from this method when
       # +on_full: :wait+ is used. EventLoop-owned framework paths therefore submit
       # with +on_full: :raise+ and handle backpressure asynchronously.
+      # EventLoop callers requesting a waiting policy are rejected before any
+      # operation, timer, or cancellation subscription is created. Application
+      # code should use Phronomy::Blocking.call_async.
       #
       # @param timeout [Numeric, nil] operation-wide deadline in seconds
       # @param cancellation_token [CancellationToken, nil] operation-wide token
@@ -359,6 +362,7 @@ module Phronomy
       # @raise [Phronomy::PoolShutdownError] when the pool has been shut down
       # @raise [Phronomy::BackpressureError] when +on_full: :raise+ and queue is full
       # @raise [Phronomy::TimeoutError] when +on_full: :timeout+ exceeds +full_timeout+
+      # @raise [Phronomy::EventLoopReentrancyError] for waiting admission on EventLoop
       # @api private
       def submit(
         timeout: nil,
@@ -367,6 +371,10 @@ module Phronomy
         full_timeout: nil,
         &block
       )
+        if Phronomy::Runtime.in_event_loop_context? && on_full != :raise
+          raise Phronomy::EventLoopReentrancyError,
+            "OffloadPool admission cannot wait on EventLoop; use on_full: :raise"
+        end
         raise Phronomy::PoolShutdownError, "pool has been shut down" if @shutdown
 
         submitted_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)

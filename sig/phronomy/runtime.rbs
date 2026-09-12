@@ -1,5 +1,8 @@
 module Phronomy
   class Task[A]
+    def self.completed: [V] (V value, ?name: String?) -> Task[V]
+                      | (?name: String?) -> Task[nil]
+    def self.failed: (Exception error, ?name: String?) -> Task[untyped]
     attr_reader name: String?
     attr_reader parent: Task[untyped]?
 
@@ -36,5 +39,11 @@ module Phronomy
     attr_reader parent_task_id: String?
 
     def initialize: (?user_id: String?, ?cancellation_token: Concurrency::CancellationToken?, ?deadline: untyped, ?token_budget: Integer?, ?approval_policy: untyped, ?redaction_policy: untyped, ?task_id: String?, ?parent_task_id: String?) -> void
+  end
+end
+
+module Phronomy
+  module Blocking
+    def self.call_async: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?) { () -> V } -> Task[V]
   end
 end
