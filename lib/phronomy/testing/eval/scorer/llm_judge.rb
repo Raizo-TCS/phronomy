@@ -17,8 +17,10 @@ module Phronomy
             Score:
           PROMPT
 
-          def initialize(model:, prompt_template: DEFAULT_PROMPT, raise_on_error: false)
+          def initialize(model:, provider: nil, assume_model_exists: false, prompt_template: DEFAULT_PROMPT, raise_on_error: false)
             @model = model
+            @provider = provider
+            @assume_model_exists = assume_model_exists
             @prompt_template = prompt_template
             @raise_on_error = raise_on_error
           end
@@ -31,8 +33,8 @@ module Phronomy
               actual: actual.to_s
             )
             response = Phronomy::Runtime.instance.offload.submit do
-              RubyLLM.chat(model: @model).ask(prompt)
-            end.blocking_wait
+              RubyLLM.chat(model: @model, provider: @provider, assume_model_exists: @assume_model_exists).ask(prompt)
+            end.wait_result
             response.content.to_s.strip.scan(/-?\d+\.?\d*/).first.to_f.clamp(0.0, 1.0)
           rescue => error
             raise if @raise_on_error
