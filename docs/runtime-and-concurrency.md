@@ -410,11 +410,12 @@ The method uses the existing bounded OffloadPool. It does not create a new threa
 or scheduler. Capacity and backpressure semantics are inherited from the pool
 configuration (`offload_pool_size` / `offload_queue_size`).
 
-`Blocking.call_async` must not be called from within the EventLoop thread. The
-admission path for a waiting queue slot is rejected with
-`Phronomy::EventLoopReentrancyError` when called from EventLoop context, before
-any operation record is created. Use cooperative execution mode or a nested
-lifecycle instead.
+`Blocking.call_async` always uses non-waiting admission (`on_full: :raise`) and can
+be called from within the EventLoop thread. Admission `StandardError` failures (for
+example `BackpressureError` when the queue is full) are caught and returned as a
+failed `Task`. Accepted work retains the pool's original `Task` unchanged. Do not
+call `Task#wait_result` on the returned `Task` from within the EventLoop — waiting
+for a `Task` that requires EventLoop progress will deadlock.
 
 ## OffloadPool
 
@@ -451,10 +452,14 @@ Framework-owned EventLoop-origin submissions must not wait for a free worker
 queue slot. They use non-blocking admission (`on_full: :raise`) and route
 `BackpressureError` through the ordinary FSM/Task completion path.
 
-Any submission that would wait for a free queue slot is **rejected before the
-Operation is created** when the caller is on the EventLoop thread. The rejection
-produces a failed `Task` with `EventLoopReentrancyError`; it does not leave a
-partial Operation record or a half-registered cancellation callback.
+Any internal `OffloadPool#submit` call that requests waiting admission
+(`on_full: :wait` or `:timeout`) is **rejected before the Operation is created**
+when the caller is on the EventLoop thread. The rejection raises
+`Phronomy::EventLoopReentrancyError` directly; it does not create an Operation,
+timer, cancellation subscription, or Task. The public `Phronomy::Blocking.call_async`
+always uses `on_full: :raise` and therefore does not trigger this guard; it converts
+admission `StandardError` (such as `BackpressureError`) into a failed `Task` at the
+public-API layer.
 
 External management threads may choose a blocking admission policy when blocking
 the caller is acceptable.
