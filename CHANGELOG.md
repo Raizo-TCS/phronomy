@@ -12,6 +12,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+---
+
+## [0.25.0] - 2026-09-12
+
 ### Added
 
 - Public `Task.completed` / `Task.failed` factories for application-owned settled results.
