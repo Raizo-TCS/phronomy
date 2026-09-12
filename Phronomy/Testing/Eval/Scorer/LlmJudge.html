@@ -148,7 +148,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(model:, prompt_template: DEFAULT_PROMPT, raise_on_error: false)  &#x21d2; LlmJudge </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(model:, provider: nil, assume_model_exists: false, prompt_template: DEFAULT_PROMPT, raise_on_error: false)  &#x21d2; LlmJudge </a>
     
 
     
@@ -208,7 +208,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(model:, prompt_template: DEFAULT_PROMPT, raise_on_error: false)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Testing::Eval::Scorer::LlmJudge (class)">LlmJudge</a></span></tt> 
+    #<strong>initialize</strong>(model:, provider: nil, assume_model_exists: false, prompt_template: DEFAULT_PROMPT, raise_on_error: false)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Testing::Eval::Scorer::LlmJudge (class)">LlmJudge</a></span></tt> 
   
 
   
@@ -233,13 +233,17 @@
 21
 22
 23
-24</pre>
+24
+25
+26</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/scorer/llm_judge.rb', line 20</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model:</span><span class='comma'>,</span> <span class='label'>prompt_template:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_PROMPT-constant" title="Phronomy::Testing::Eval::Scorer::LlmJudge::DEFAULT_PROMPT (constant)">DEFAULT_PROMPT</a></span></span><span class='comma'>,</span> <span class='label'>raise_on_error:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model:</span><span class='comma'>,</span> <span class='label'>provider:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>assume_model_exists:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>prompt_template:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_PROMPT-constant" title="Phronomy::Testing::Eval::Scorer::LlmJudge::DEFAULT_PROMPT (constant)">DEFAULT_PROMPT</a></span></span><span class='comma'>,</span> <span class='label'>raise_on_error:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='ivar'>@model</span> <span class='op'>=</span> <span class='id identifier rubyid_model'>model</span>
+  <span class='ivar'>@provider</span> <span class='op'>=</span> <span class='id identifier rubyid_provider'>provider</span>
+  <span class='ivar'>@assume_model_exists</span> <span class='op'>=</span> <span class='id identifier rubyid_assume_model_exists'>assume_model_exists</span>
   <span class='ivar'>@prompt_template</span> <span class='op'>=</span> <span class='id identifier rubyid_prompt_template'>prompt_template</span>
   <span class='ivar'>@raise_on_error</span> <span class='op'>=</span> <span class='id identifier rubyid_raise_on_error'>raise_on_error</span>
 <span class='kw'>end</span></pre>
@@ -270,8 +274,6 @@
       <pre class="lines">
 
 
-26
-27
 28
 29
 30
@@ -285,10 +287,12 @@
 38
 39
 40
-41</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/scorer/llm_judge.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/scorer/llm_judge.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_score'>score</span><span class='lparen'>(</span><span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>expected:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_prompt'>prompt</span> <span class='op'>=</span> <span class='id identifier rubyid_format'>format</span><span class='lparen'>(</span>
@@ -298,8 +302,8 @@
     <span class='label'>actual:</span> <span class='id identifier rubyid_actual'>actual</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../../../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span> <span class='kw'>do</span>
-    <span class='const'><span class='object_link'><a href="../../../../RubyLLM.html" title="RubyLLM (module)">RubyLLM</a></span></span><span class='period'>.</span><span class='id identifier rubyid_chat'>chat</span><span class='lparen'>(</span><span class='label'>model:</span> <span class='ivar'>@model</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_prompt'>prompt</span><span class='rparen'>)</span>
-  <span class='kw'>end</span><span class='period'>.</span><span class='id identifier rubyid_blocking_wait'>blocking_wait</span>
+    <span class='const'><span class='object_link'><a href="../../../../RubyLLM.html" title="RubyLLM (module)">RubyLLM</a></span></span><span class='period'>.</span><span class='id identifier rubyid_chat'>chat</span><span class='lparen'>(</span><span class='label'>model:</span> <span class='ivar'>@model</span><span class='comma'>,</span> <span class='label'>provider:</span> <span class='ivar'>@provider</span><span class='comma'>,</span> <span class='label'>assume_model_exists:</span> <span class='ivar'>@assume_model_exists</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_prompt'>prompt</span><span class='rparen'>)</span>
+  <span class='kw'>end</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
   <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_strip'>strip</span><span class='period'>.</span><span class='id identifier rubyid_scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>-?\d+\.?\d*</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='period'>.</span><span class='id identifier rubyid_clamp'>clamp</span><span class='lparen'>(</span><span class='float'>0.0</span><span class='comma'>,</span> <span class='float'>1.0</span><span class='rparen'>)</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='kw'>if</span> <span class='ivar'>@raise_on_error</span>
@@ -316,7 +320,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 14:23:47 2026 by
+  Generated on Sat Sep 12 15:28:29 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
