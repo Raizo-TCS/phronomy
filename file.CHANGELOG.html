@@ -67,8 +67,16 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li>Public <code>Task.completed</code> / <code>Task.failed</code> factories for application-owned settled results.</li>
+<li><code>Blocking.call_async</code> for non-waiting submission of synchronous application work.</li>
+</ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
+<li>
+<p>Reject waiting OffloadPool admission from EventLoop before creating an operation.</p>
+</li>
 <li>
 <p>Add runtime dependency constraint <code>json &lt; 3</code> to prevent Faraday/RubyLLM JSON
 parser incompatibilities from resolving in consumer environments.</p>
@@ -709,7 +717,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Sep  7 14:37:28 2026 by
+  Generated on Sat Sep 12 14:14:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -82,6 +82,8 @@ tracking <code>main</code> directly.</p>
 <li><strong>EventLoop + FSMSession</strong> — the framework control plane for logical lifecycle coordination.</li>
 <li><strong>OffloadPool</strong> — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.</li>
 <li><strong>Task</strong> — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.</li>
+<li><strong>Task.completed / Task.failed</strong> — already-settled application results without starting execution.</li>
+<li><strong>Blocking.call_async</strong> — submits synchronous application work to the existing bounded OffloadPool without waiting for queue space.</li>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
@@ -209,7 +211,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Mon Sep  7 14:37:28 2026 by
+  Generated on Sat Sep 12 14:14:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

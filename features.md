@@ -66,6 +66,8 @@ rather than implicitly inheriting the parent revision. The Stable
 | **`stream_callback_error_policy`** — Terminal event callback error policy (`:report` / `:fail_task`) | Beta |
 | **Task completion contract** — `Task` is the common caller-facing completion handle for EventLoop/FSMSession lifecycles and OffloadPool work | Beta |
 | **`Task#map`** — Application-level Task result transformation and error propagation | Stable |
+| **Settled Task factories** — Public `Task.completed` / `Task.failed` represent already available application results without starting execution | Beta |
+| **Blocking.call_async** — Public non-waiting admission of synchronous application work to the existing OffloadPool, returning a Task | Beta |
 | **CancellationToken** — Cooperative cancellation with explicit `cancel!`, lazy monotonic deadlines, and callback registration | Experimental |
 | **Tool `execution_mode`** — `:cooperative` for short EventLoop-safe work; `:offloaded` for synchronous work that must stay off EventLoop | Experimental |
 | **OffloadPool sizing** — `offload_pool_size` / `offload_queue_size`; named pools available for application-owned isolation | Beta |
