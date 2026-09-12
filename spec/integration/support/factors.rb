@@ -296,7 +296,7 @@ module IntegrationFactors
     case label
     when "exact_match" then Phronomy::Testing::Eval::Scorer::ExactMatch.new
     when "includes_scorer" then Phronomy::Testing::Eval::Scorer::IncludesScorer.new
-    when "llm_judge" then Phronomy::Testing::Eval::Scorer::LlmJudge.new(model: model)
+    when "llm_judge" then Phronomy::Testing::Eval::Scorer::LlmJudge.new(model: model, provider: :openai, assume_model_exists: true)
     else raise ArgumentError, "Unknown eval_scorer_type label: #{label}"
     end
   end

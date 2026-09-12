@@ -376,6 +376,46 @@ operation-wide cancellation through the `CancellationToken` accepted by the API
 that created the Task. Task settlement never propagates backwards to cancel a
 shared CancellationToken.
 
+### Settled Task factories
+
+`Task.completed(value)` and `Task.failed(error)` create Tasks that are already
+settled. They are useful when application code has a result or an error in hand
+and needs to present it through the same `Task` contract as a lifecycle-backed
+completion:
+
+```ruby
+# Already-computed value — no execution started.
+task = Phronomy::Task.completed("cached result")
+
+# Known failure — no execution started.
+task = Phronomy::Task.failed(StandardError.new("precondition not met"))
+```
+
+Settled Tasks satisfy `Task#wait_result`, `Task#on_complete`, and `Task#map` with
+the same contract as a normally-completed Task.
+
+## Blocking
+
+`Phronomy::Blocking.call_async(&block)` submits a synchronous block to the
+existing default Runtime OffloadPool and returns a `Task`. It is the public
+application entry point for one-off synchronous work that should not block the
+caller:
+
+```ruby
+task = Phronomy::Blocking.call_async { expensive_io_call }
+result = task.wait_result
+```
+
+The method uses the existing bounded OffloadPool. It does not create a new thread
+or scheduler. Capacity and backpressure semantics are inherited from the pool
+configuration (`offload_pool_size` / `offload_queue_size`).
+
+`Blocking.call_async` must not be called from within the EventLoop thread. The
+admission path for a waiting queue slot is rejected with
+`Phronomy::EventLoopReentrancyError` when called from EventLoop context, before
+any operation record is created. Use cooperative execution mode or a nested
+lifecycle instead.
+
 ## OffloadPool
 
 `OffloadPool` is a bounded worker pool for synchronous work that must not execute
@@ -410,6 +450,11 @@ Phronomy API to expose the same Task completion contract.
 Framework-owned EventLoop-origin submissions must not wait for a free worker
 queue slot. They use non-blocking admission (`on_full: :raise`) and route
 `BackpressureError` through the ordinary FSM/Task completion path.
+
+Any submission that would wait for a free queue slot is **rejected before the
+Operation is created** when the caller is on the EventLoop thread. The rejection
+produces a failed `Task` with `EventLoopReentrancyError`; it does not leave a
+partial Operation record or a half-registered cancellation callback.
 
 External management threads may choose a blocking admission policy when blocking
 the caller is acceptable.

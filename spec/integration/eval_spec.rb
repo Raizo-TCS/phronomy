@@ -165,8 +165,7 @@ RSpec.describe "Evaluation framework", :integration do
 
     expect(results.size).to eq(1)
     score = results.first.score
-    expect(score).to be_a(Float)
-    expect(score).to be_between(0.0, 1.0)
+    expect(score).to eq(0.9)
   ensure
     LLMStub.deactivate
   end
@@ -185,7 +184,7 @@ RSpec.describe "Evaluation framework", :integration do
     summary = metrics.to_h
 
     expect(summary[:total]).to eq(3)
-    expect(summary[:average_score]).to be_between(0.0, 1.0)
+    expect(summary[:average_score]).to eq(0.9)
     expect(summary[:average_latency_ms]).to be >= 0
   ensure
     LLMStub.deactivate
@@ -203,10 +202,9 @@ RSpec.describe "Evaluation framework", :integration do
     pairs = Timeout.timeout(90) { comparison.compare(dataset, perfect_callable, wrong_callable) }
 
     expect(pairs.size).to eq(1)
-    expect(pairs.first.result_a.score).to be_between(0.0, 1.0)
-    expect(pairs.first.result_b.score).to be_between(0.0, 1.0)
-    # perfect callable should score higher than wrong callable
-    expect(pairs.first.result_a.score).to be >= pairs.first.result_b.score
+    expect(pairs.first.result_a.score).to eq(0.9)
+    expect(pairs.first.result_b.score).to eq(0.1)
+    expect(pairs.first.result_a.score).to be > pairs.first.result_b.score
   ensure
     LLMStub.deactivate
   end
