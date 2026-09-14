@@ -4,7 +4,7 @@ require_relative "../../../integration/support/llm_stub"
 
 RSpec.shared_context "durable coordination runtime" do
   # Captures committed DurableRecords, then materializes them in a new backend
-  # and Runtime. This models F4 without retaining any Agent/Task/Class handles.
+  # and Runtime. This models F4 without retaining any Agent/TaskResult/Class handles.
   class CoordinationFaultStore < Phronomy::Persistence::InMemory
     attr_accessor :after_commit, :before_io
 

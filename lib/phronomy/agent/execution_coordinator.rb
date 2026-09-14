@@ -135,7 +135,15 @@ module Phronomy
       )
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
-        result_task = Phronomy::Task.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
+        result_task = Phronomy::TaskResult.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
+        if config[:invocation_context]
+          binding = Phronomy::Execution.__operation_binding(
+            invocation_context: config[:invocation_context],
+            cancellation_token: config[:cancellation_token]
+          )
+          binding.bind(result_task)
+          config = config.merge(cancellation_token: binding.token)
+        end
         command = StartCommand.new(
           coordinator: self,
           input: input,
@@ -164,7 +172,7 @@ module Phronomy
       )
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
-        result_task = Phronomy::Task.deferred(
+        result_task = Phronomy::TaskResult.deferred(
           name: "agent-approval-resume:#{execution_id}"
         )
         command = ResumeCommand.new(
@@ -397,6 +405,11 @@ module Phronomy
       def begin_start_on_event_loop(request)
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
+        scope = request.config[:invocation_context]&.__execution_scope
+        if scope && (!scope.__open? || request.config[:cancellation_token]&.cancelled?)
+          deliver_start_failure_on_event_loop(request, scope.__cancellation_error)
+          return
+        end
         root = @agent.agent_root
         if root.lifecycle_status == :closed
           deliver_start_failure_on_event_loop(
@@ -966,7 +979,7 @@ module Phronomy
           prepared.execution.execution_id,
           request.result_task
         )
-        source_task = Phronomy::Task.deferred(name: "#{request.result_task.name}-source")
+        source_task = Phronomy::TaskResult.deferred(name: "#{request.result_task.name}-source")
         source_task.on_complete do |invocation, error|
           finish_on_event_loop(
             prepared.execution.execution_id,
@@ -1927,7 +1940,7 @@ module Phronomy
           invocation: invocation,
           fsm_session_id: parent_session.id
         )
-        source_task = Phronomy::Task.deferred(name: "#{result_task.name}-source")
+        source_task = Phronomy::TaskResult.deferred(name: "#{result_task.name}-source")
         source_task.on_complete do |completed, error|
           finish_on_event_loop(
             execution_id,
@@ -1969,7 +1982,7 @@ module Phronomy
           resume_event: :resume, resume_phase: :suspended, runtime: runtime)
         event_loop.replace_agent_execution(execution_id, invocation: invocation, fsm_session_id: session.id)
         event_loop.mark_agent_execution_admission(@agent.agent_id, execution_id: execution_id, state: :executing)
-        source = Phronomy::Task.deferred(name: "framework-tool-recovery-source")
+        source = Phronomy::TaskResult.deferred(name: "framework-tool-recovery-source")
         source.on_complete do |result, error|
           finish_on_event_loop(execution_id, result_task, result || session.context, error, fsm_session_id: session.id)
         end
@@ -1982,7 +1995,7 @@ module Phronomy
       end
 
       def register_child(event_loop, child, session, parent_event_sink)
-        completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
+        completion = Phronomy::TaskResult.deferred(name: "tool-session:#{child.id}")
         completion.on_complete do |_result, error|
           next unless error
 
@@ -2170,7 +2183,7 @@ module Phronomy
         )
         task = runtime.offload.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
-          # worker boundary. Task/listener delivery state stays outside it.
+          # worker boundary. TaskResult/listener delivery state stays outside it.
           compute_terminal(operation)
         end
         task.on_complete do |outcome, error|

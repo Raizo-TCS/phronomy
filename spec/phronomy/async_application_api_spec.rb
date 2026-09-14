@@ -3,57 +3,57 @@
 require "spec_helper"
 require "timeout"
 
-RSpec.describe "Application Task and synchronous-work APIs" do
+RSpec.describe "Application TaskResult and synchronous-work APIs" do
   it "creates settled base Tasks without initializing Runtime or copying values" do
     expect(Phronomy::Runtime).not_to receive(:instance)
     value = {output: "answer"}
-    task = Phronomy::Task.completed(value, name: "cached")
+    task = Phronomy::TaskResult.completed(value, name: "cached")
     seen = []
     task.on_complete { |result, error| seen << [result, error] }
 
-    expect(task).to be_instance_of(Phronomy::Task)
+    expect(task).to be_instance_of(Phronomy::TaskResult)
     expect(task.name).to eq("cached")
     expect(task.wait_result).to equal(value)
     expect(seen).to eq([[value, nil]])
-    expect(Phronomy::Task.completed.wait_result).to be_nil
+    expect(Phronomy::TaskResult.completed.wait_result).to be_nil
   end
 
   it "preserves the original failure for late callbacks and wait_result" do
     error = RuntimeError.new("already failed")
-    task = Phronomy::Task.failed(error, name: "cached-error")
+    task = Phronomy::TaskResult.failed(error, name: "cached-error")
     seen = nil
     task.on_complete { |_value, failure| seen = failure }
 
     expect(task.status).to eq(:failed)
     expect(seen).to equal(error)
     expect { task.wait_result }.to raise_error { |failure| expect(failure).to equal(error) }
-    expect { Phronomy::Task.failed(nil) }.to raise_error(ArgumentError)
-    expect { Phronomy::Task.failed("error") }.to raise_error(ArgumentError)
+    expect { Phronomy::TaskResult.failed(nil) }.to raise_error(ArgumentError)
+    expect { Phronomy::TaskResult.failed("error") }.to raise_error(ArgumentError)
   end
 
   it "does not create an unsettled physical handle when factories are inherited" do
     klass = Phronomy::Concurrency::PhysicalCompletionTask
-    expect(klass.completed(1)).to be_instance_of(Phronomy::Task)
-    expect(klass.failed(RuntimeError.new("failed"))).to be_instance_of(Phronomy::Task)
+    expect(klass.completed(1)).to be_instance_of(Phronomy::TaskResult)
+    expect(klass.failed(RuntimeError.new("failed"))).to be_instance_of(Phronomy::TaskResult)
   end
 
   it "keeps map transformation and failure semantics for settled Tasks" do
-    expect(Phronomy::Task.completed(21).map { |value| value * 2 }.wait_result).to eq(42)
-    transformed = Phronomy::Task.completed(1).map { raise "invalid result" }
+    expect(Phronomy::TaskResult.completed(21).map { |value| value * 2 }.wait_result).to eq(42)
+    transformed = Phronomy::TaskResult.completed(1).map { raise "invalid result" }
     expect { transformed.wait_result }.to raise_error(RuntimeError, "invalid result")
     original = RuntimeError.new("source failed")
-    mapped = Phronomy::Task.failed(original).map { raise "must not transform" }
+    mapped = Phronomy::TaskResult.failed(original).map { raise "must not transform" }
     expect { mapped.wait_result }.to raise_error { |error| expect(error).to equal(original) }
   end
 
-  it "runs Blocking work on an existing worker and retains its physical Task" do
+  it "runs Blocking work on an existing worker and retains its physical TaskResult" do
     caller = Thread.current
     task = Phronomy::Blocking.call_async { Thread.current }
     expect(task).to be_a(Phronomy::Concurrency::PhysicalCompletionTask)
     expect(task.wait_result(timeout: 2)).not_to be(caller)
   end
 
-  it "returns a failed Task when admission fails instead of waiting for capacity" do
+  it "returns a failed TaskResult when admission fails instead of waiting for capacity" do
     Phronomy.configure do |configuration|
       configuration.offload_pool_size = 1
       configuration.offload_queue_size = 1
@@ -68,7 +68,7 @@ RSpec.describe "Application Task and synchronous-work APIs" do
     queued = Phronomy::Blocking.call_async { :queued }
     rejected = Timeout.timeout(2) { Phronomy::Blocking.call_async { :never } }
 
-    expect(rejected).to be_instance_of(Phronomy::Task)
+    expect(rejected).to be_instance_of(Phronomy::TaskResult)
     expect { rejected.wait_result }.to raise_error(Phronomy::BackpressureError)
     release << true
     expect(first.wait_result(timeout: 2)).to be(true)
@@ -77,7 +77,7 @@ RSpec.describe "Application Task and synchronous-work APIs" do
     release << true if release
   end
 
-  it "reports Runtime shutdown through a failed Task" do
+  it "reports Runtime shutdown through a failed TaskResult" do
     runtime = Phronomy::Runtime.instance
     runtime.shutdown(timeout: 2)
     task = Phronomy::Blocking.call_async { :never }

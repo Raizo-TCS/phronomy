@@ -70,7 +70,9 @@ def snapshot_entry(klass)
       "public_instance_methods" => own_methods
     }
   else
-    instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS).sort
+    internal_context_methods = (klass == Phronomy::InvocationContext) ?
+      %i[__bind_execution __execution_scope] : []
+    instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS - internal_context_methods).sort
     class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS).sort
     {
       "name" => klass.name,

@@ -257,7 +257,7 @@ RSpec.describe "Agent async event contract" do
     expect(cancellation_events).to eq([:cancelled])
   end
 
-  it "delivers the terminal event before settling the returned Task" do
+  it "delivers the terminal event before settling the returned TaskResult" do
     order = []
     agent = SymmetricAsyncEventAgent.new(
       on_event: ->(event) {
@@ -271,7 +271,7 @@ RSpec.describe "Agent async event contract" do
     expect(order).to eq([:done, :task_completed])
   end
 
-  it "keeps Task#on_complete active when the Agent listener is configured" do
+  it "keeps TaskResult#on_complete active when the Agent listener is configured" do
     callback_result = Queue.new
     agent = SymmetricAsyncEventAgent.new(on_event: ->(_event) {})
     task = agent.invoke_async("hello")
@@ -321,7 +321,7 @@ RSpec.describe "Agent async event contract" do
         "hello",
         invocation_context: ic
       )
-      result.wait_result if result.is_a?(Phronomy::Task)
+      result.wait_result if result.is_a?(Phronomy::TaskResult)
       expect(events).to include(:done)
     end
   end

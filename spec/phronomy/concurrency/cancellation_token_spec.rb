@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "timeout"
 
 RSpec.describe Phronomy::Concurrency::CancellationToken do
   describe "#initialize" do
@@ -138,7 +139,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
@@ -179,70 +180,61 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     let(:orchestrator_class) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
-    def token_capturing_agent
-      received_tokens = []
+    it "connects a shared token to private child tokens without reverse cancellation" do
+      started = Queue.new
+      release = Queue.new
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-94", version: 1
-        define_method(:invoke) do |_input, config: {}, invocation_context: nil, on_event: nil|
-          received_tokens << config[:cancellation_token]
-          {output: "ok", messages: []}
-        end
-        define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
-          Thread.new do
-            t.complete(invoke(input, config: config,
-              invocation_context: invocation_context, on_event: on_event))
-          rescue => e
-            t.fail(e)
+        define_method(:invoke_async) do |_input, config: {}, **_kwargs|
+          Phronomy::Blocking.call_async(cancellation_token: config[:cancellation_token]) do
+            started << config[:cancellation_token]
+            release.pop
           end
-          t
         end
       end
-      [agent_class, received_tokens]
-    end
-
-    it "propagates cancellation_token: to each worker task via config" do
-      agent_class, received_tokens = token_capturing_agent
       token = described_class.new
-
-      orchestrator.dispatch_parallel(
-        {agent: agent_class, input: "t1"},
-        {agent: agent_class, input: "t2"},
+      result = orchestrator.dispatch_parallel_async(
+        {agent: agent_class, input: "t1"}, {agent: agent_class, input: "t2"},
         cancellation_token: token
       )
-
-      expect(received_tokens).to all(be token)
+      received = Timeout.timeout(2) { [started.pop, started.pop] }
+      expect(received).to all(be_a(described_class))
+      expect(received).not_to include(token)
+      token.cancel!
+      expect { result.wait_result(timeout: 2) }.to raise_error(Phronomy::ExecutionCancellationError)
+      expect(received).to all(be_cancelled)
+    ensure
+      2.times { release << true } if release
     end
 
-    it "does not override a token already set in the task config" do
+    it "preserves an individual token as well as the dispatch token" do
+      started = Queue.new
+      release = Queue.new
       task_token = described_class.new
       shared_token = described_class.new
-      received_tokens = []
-
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-95", version: 1
-        define_method(:invoke) do |_input, config: {}, invocation_context: nil, on_event: nil|
-          received_tokens << config[:cancellation_token]
-          {output: "ok", messages: []}
-        end
-        define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
-          Thread.new do
-            t.complete(invoke(input, config: config,
-              invocation_context: invocation_context, on_event: on_event))
-          rescue => e
-            t.fail(e)
+        define_method(:invoke_async) do |input, config: {}, **_kwargs|
+          Phronomy::Blocking.call_async(cancellation_token: config[:cancellation_token]) do
+            started << true
+            release.pop
+            {output: input}
           end
-          t
         end
       end
-
-      orchestrator.dispatch_parallel(
-        {agent: agent_class, input: "t1", config: {cancellation_token: task_token}},
-        cancellation_token: shared_token
+      result = orchestrator.dispatch_parallel_async(
+        {agent: agent_class, input: "cancel", config: {cancellation_token: task_token}},
+        {agent: agent_class, input: "keep"},
+        cancellation_token: shared_token, on_error: :skip
       )
-
-      expect(received_tokens.first).to be task_token
+      Timeout.timeout(2) { 2.times { started.pop } }
+      task_token.cancel!
+      expect(shared_token).not_to be_cancelled
+      expect(result).not_to be_done
+      2.times { release << true }
+      expect(result.wait_result(timeout: 2)).to eq([nil, {output: "keep"}])
+    ensure
+      2.times { release << true } if release
     end
 
     it "raises CancellationError when the shared token is pre-cancelled" do

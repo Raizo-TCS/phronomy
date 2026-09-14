@@ -13,7 +13,7 @@ module Phronomy
     # synchronous call. Phronomy deliberately does not classify the workload by
     # cause; the application decides whether a unit of work is EventLoop-safe.
     #
-    # Logical waits are different. Waiting for another Phronomy Task, Agent,
+    # Logical waits are different. Waiting for another Phronomy TaskResult, Agent,
     # Workflow, ToolInvocation, timer, or FSMSession must remain an explicit
     # EventLoop/FSMSession continuation and must not consume an OffloadPool worker.
     # See ADR-010.
@@ -22,7 +22,7 @@ module Phronomy
     #
     # 1. The total number of worker OS threads is capped.
     # 2. Queue depth is bounded (backpressure when the pool is saturated).
-    # 3. Per-operation timeouts and cancellation settle the caller-facing Task.
+    # 3. Per-operation timeouts and cancellation settle the caller-facing TaskResult.
     # 4. Operations that settle after worker execution has started are tracked as
     #    abandoned until that worker returns.
     # 5. Metrics expose active work, queue depth, cumulative abandonment,
@@ -43,7 +43,7 @@ module Phronomy
     class OffloadPool
       # Private execution record for one submitted synchronous operation.
       #
-      # Caller-facing completion is represented exclusively by {Phronomy::Task}.
+      # Caller-facing completion is represented exclusively by {Phronomy::TaskResult}.
       # This object owns only OffloadPool-specific execution state: queue timing,
       # worker-start linearization, submit timeout/cancellation, abandonment, and
       # the submitted block itself.
@@ -77,6 +77,7 @@ module Phronomy
           @submitted_at = submitted_at ||
             Process.clock_gettime(Process::CLOCK_MONOTONIC)
           @mutex = Mutex.new
+          @timer_subscriptions = Subscriptions.new
 
           # Explicit submit cancellation is operation-wide. Deadline-only tokens are
           # promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
@@ -92,19 +93,26 @@ module Phronomy
           @mutex.synchronize { @settled }
         end
 
-        # @return [Boolean] true when the submit-time deadline settled the Task
+        # Registration can race logical completion. Dispose the timer even when
+        # settlement occurred while schedule was returning.
+        def schedule(timer_queue, seconds:, &callback)
+          timer_queue.schedule(seconds: seconds, &callback)
+          @timer_subscriptions.add { timer_queue.cancel(callback) }
+        end
+
+        # @return [Boolean] true when the submit-time deadline settled the TaskResult
         # @api private
         def timed_out?
           @mutex.synchronize { @timed_out }
         end
 
-        # @return [Boolean] true when submit cancellation settled the Task
+        # @return [Boolean] true when submit cancellation settled the TaskResult
         # @api private
         def cancelled?
           @mutex.synchronize { @cancelled }
         end
 
-        # @return [Boolean] true when timeout/cancellation settled the Task after
+        # @return [Boolean] true when timeout/cancellation settled the TaskResult after
         #   worker execution had started. The worker is not forcibly interrupted.
         # @api private
         def abandoned?
@@ -117,7 +125,7 @@ module Phronomy
           @wait_time || 0.0
         end
 
-        # Settles the caller-facing Task with a submit-time timeout.
+        # Settles the caller-facing TaskResult with a submit-time timeout.
         #
         # The worker is not interrupted. If execution has already started, the
         # operation is marked abandoned and the worker's eventual result is discarded.
@@ -132,7 +140,7 @@ module Phronomy
           end
         end
 
-        # Settles the caller-facing Task because its submit cancellation token was
+        # Settles the caller-facing TaskResult because its submit cancellation token was
         # cancelled. Cancellation never injects Thread#raise into the worker.
         #
         # @return [Boolean] true when this call won settlement
@@ -201,7 +209,7 @@ module Phronomy
             complete_with_value!(@block.call)
           rescue Exception => e # rubocop:disable Lint/RescueException
             # Rescue all Exception subclasses so non-StandardError raises still
-            # settle the Task and unblock waiters.
+            # settle the TaskResult and unblock waiters.
             complete_with_error!(e)
             raise if e.is_a?(SignalException) || e.is_a?(SystemExit)
           end
@@ -280,6 +288,7 @@ module Phronomy
         end
 
         def detach_submit_cancellation
+          @timer_subscriptions.close
           return unless @cancellation_token && @cancellation_callback
 
           @cancellation_token.send(
@@ -325,20 +334,20 @@ module Phronomy
 
       # Submits synchronous off-EventLoop work to the pool.
       #
-      # Returns a {Phronomy::Task} immediately after queue admission; the block
+      # Returns a {Phronomy::TaskResult} immediately after queue admission; the block
       # runs on a worker thread. Do not submit logical waits (for example waiting
-      # for a child Agent Task) merely to make them asynchronous; those belong to
+      # for a child Agent TaskResult) merely to make them asynchronous; those belong to
       # FSMSession/EventLoop completion events.
       #
       # A submit-time +timeout+ is an operation-wide deadline measured from the
-      # start of this method, including queue wait. The timer settles the Task and
+      # start of this method, including queue wait. The timer settles the TaskResult and
       # notifies +on_complete+ without forcibly interrupting a running worker. If
       # the deadline fires before worker execution starts, the block is skipped.
       # If it fires after execution starts, the private Operation is marked
       # abandoned and the eventual worker result is discarded.
       #
       # The submit +cancellation_token+ is also operation-wide. Explicit
-      # cancellation settles the Task immediately. A token with a monotonic
+      # cancellation settles the TaskResult immediately. A token with a monotonic
       # deadline is attached to the Runtime timer queue so deadline expiry becomes
       # explicit cancellation without adding a polling Thread. Cancellation before
       # execution skips the block; cancellation after execution starts abandons
@@ -356,7 +365,7 @@ module Phronomy
       # @param on_full [Symbol] +:wait+, +:raise+, or +:timeout+
       # @param full_timeout [Numeric, nil] queue-admission timeout for +on_full: :timeout+
       # @yield block containing synchronous work
-      # @return [Phronomy::Task]
+      # @return [Phronomy::TaskResult]
       # @raise [Phronomy::ConfigurationError] when a timer is required but no
       #   timer queue provider is configured
       # @raise [Phronomy::PoolShutdownError] when the pool has been shut down
@@ -421,7 +430,7 @@ module Phronomy
 
             # Arm before queue admission so the deadline includes time spent waiting
             # for a queue slot.
-            timer_queue.schedule(seconds: remaining) { operation.fire_timeout! }
+            operation.schedule(timer_queue, seconds: remaining) { operation.fire_timeout! }
           end
 
           if cancellation_remaining
@@ -431,7 +440,7 @@ module Phronomy
               cancellation_token.cancel!
               return task
             end
-            timer_queue.schedule(seconds: remaining) { cancellation_token.cancel! }
+            operation.schedule(timer_queue, seconds: remaining) { cancellation_token.cancel! }
           end
 
           # Cancellation/timeout can race with timer registration. Do not enqueue

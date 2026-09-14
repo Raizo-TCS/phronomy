@@ -156,12 +156,12 @@ RSpec.describe Phronomy::Agent::Base do
       end.new
     end
 
-    it "returns a Task" do
+    it "returns a TaskResult" do
       allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
+        Phronomy::TaskResult.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
       end
       task = agent.invoke_async("hi")
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       task.wait_result
     end
 
@@ -172,7 +172,7 @@ RSpec.describe Phronomy::Agent::Base do
         m.call(*a, **kw)
       end
       allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
+        Phronomy::TaskResult.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
       end
       agent.invoke_async("hi").wait_result
       expect(invoke_called).to be(false)
@@ -180,7 +180,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "registers the task with Runtime so shutdown can drain it" do
       allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
+        Phronomy::TaskResult.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
       end
       task = agent.invoke_async("hi")
       expect(task.wait_result[:output]).to eq("ok")
@@ -268,7 +268,7 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     captured = {}
     allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do |_coord, _input, config: {}, **|
       captured = config
-      Phronomy::Task.new(name: "stub-ic").tap { |t| t.complete({output: "ok"}) }
+      Phronomy::TaskResult.new(name: "stub-ic").tap { |t| t.complete({output: "ok"}) }
     end
     block.call
     captured
@@ -294,20 +294,22 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     }.to raise_error(ArgumentError, /thread_id/)
   end
 
-  it "derives cancellation_token from InvocationContext.cancellation_token" do
+  it "passes context cancellation to admission without creating another token in Base" do
     token = Phronomy::Concurrency::CancellationToken.new
     ic = Phronomy::InvocationContext.new(cancellation_token: token)
     config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
-    expect(config[:cancellation_token]).to be(token)
+    expect(config[:invocation_context].cancellation_token).to be(token)
+    expect(config).not_to have_key(:cancellation_token)
   end
 
-  it "derives cancellation_token from InvocationContext.deadline" do
+  it "passes a context deadline to admission without arming a duplicate timer in Base" do
     ic = Phronomy::InvocationContext.new(deadline: Phronomy::Concurrency::Deadline.in(30))
     config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
-    expect(config[:cancellation_token]).to be_a(Phronomy::Concurrency::CancellationToken)
+    expect(config[:invocation_context].deadline).to be(ic.deadline)
+    expect(config).not_to have_key(:cancellation_token)
   end
 
-  it "existing config[:cancellation_token] takes precedence over ic" do
+  it "passes the explicit token alongside context for the admission layer to combine" do
     explicit_token = Phronomy::Concurrency::CancellationToken.new
     ic = Phronomy::InvocationContext.new(deadline: Phronomy::Concurrency::Deadline.in(30))
     config = capture_config(agent) { agent.invoke("hi", config: {cancellation_token: explicit_token}, invocation_context: ic) }

@@ -18,7 +18,7 @@ RSpec.describe "Agent-as-Tool blocking-pool independence" do
       define_method(:invoke_async) do |input, **_options|
         launch_thread_names << Thread.current.name
 
-        result_task = Phronomy::Task.deferred(name: "child-agent")
+        result_task = Phronomy::TaskResult.deferred(name: "child-agent")
         operation = pool.submit(on_full: :raise) do
           {output: "child:#{input}"}
         end

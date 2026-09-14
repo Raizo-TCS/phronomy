@@ -13,7 +13,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       agent_definition id: "test-agent-96", version: 1
       define_method(:invoke) { |*| {output: out, messages: []} }
       define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new {
           begin
             t.complete(invoke(input))
@@ -39,7 +39,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
             {output: "task#{i}", messages: []}
           end
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -70,7 +70,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
           raise e
         }
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))
@@ -86,7 +86,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
         e = error_2
         define_method(:invoke) { |*| raise e }
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))
@@ -126,7 +126,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))

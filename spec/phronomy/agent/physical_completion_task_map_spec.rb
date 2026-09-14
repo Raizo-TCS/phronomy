@@ -35,7 +35,7 @@ RSpec.describe Phronomy::Concurrency::PhysicalCompletionTask do
     pool&.shutdown(drain_timeout: 1)
   end
 
-  it "does not mark the mapped Task physically complete while the mapping callback is still running" do
+  it "does not mark the mapped TaskResult physically complete while the mapping callback is still running" do
     mapping_started = Queue.new
     mapping_release = Queue.new
     pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 2)

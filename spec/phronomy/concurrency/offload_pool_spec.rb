@@ -20,7 +20,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
   end
 
   describe "#submit" do
-    it "executes synchronous work on a worker and returns a Task" do
+    it "executes synchronous work on a worker and returns a TaskResult" do
       caller_thread = Thread.current
       worker_thread = nil
       task = pool.submit do
@@ -28,7 +28,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
         42
       end
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect(task.wait_result).to eq(42)
       expect(worker_thread).not_to be(caller_thread)
       expect(worker_thread.name).to include("phronomy-offload-pool")
@@ -47,7 +47,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       expect(task.status).to eq(:failed)
     end
 
-    it "exposes done? through the shared Task completion contract" do
+    it "exposes done? through the shared TaskResult completion contract" do
       release = Queue.new
       task = pool.submit do
         release.pop
@@ -102,7 +102,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
   end
 
   describe "submit-time timeout" do
-    it "settles the Task without interrupting running work" do
+    it "settles the TaskResult without interrupting running work" do
       started = Queue.new
       release = Queue.new
       completed = Queue.new
@@ -166,7 +166,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
   end
 
   describe "waiter-local timeout" do
-    it "does not settle or abandon the Task" do
+    it "does not settle or abandon the TaskResult" do
       release = Queue.new
       task = pool.submit do
         release.pop
@@ -214,7 +214,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       expect(executed).to be(false)
     end
 
-    it "settles a queued Task immediately and skips it when cancellation wins before start" do
+    it "settles a queued TaskResult immediately and skips it when cancellation wins before start" do
       tiny_pool = described_class.new(
         pool_size: 1,
         queue_size: 2,
@@ -368,7 +368,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       expect(task.wait_result).to eq(:done)
     end
 
-    it "cancels every Task sharing a token even when one completion callback raises" do
+    it "cancels every TaskResult sharing a token even when one completion callback raises" do
       token = Phronomy::Concurrency::CancellationToken.new
       started = Array.new(2) { Queue.new }
       release = Queue.new
@@ -403,7 +403,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
     end
   end
 
-  describe "Task#on_complete" do
+  describe "TaskResult#on_complete" do
     it "delivers success" do
       events = []
       task = pool.submit { 42 }

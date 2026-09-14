@@ -6,8 +6,8 @@ require "securerandom"
 
 # Group 13: Subgraph nesting / Agent-as-Tool.
 #
-# Nested Workflow completion is integrated through the generic Task contract:
-# the application registers Task#on_complete and maps it to a parent Workflow
+# Nested Workflow completion is integrated through the generic TaskResult contract:
+# the application registers TaskResult#on_complete and maps it to a parent Workflow
 # event. The parent entry action returns synchronously and is not implicitly
 # awaited by Phronomy.
 RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
@@ -139,7 +139,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     expect(final.step).to eq(2)
   end
 
-  it "TC-002: maps a linear sub-workflow Task into parent events" do
+  it "TC-002: maps a linear sub-workflow TaskResult into parent events" do
     subworkflow = linear_subworkflow
     completion_mapper = method(:signal_subworkflow_completion)
     parent_workflow = nil
@@ -208,7 +208,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     expect(final.step).to eq(2)
   end
 
-  it "TC-003: maps a branching sub-workflow Task into parent events" do
+  it "TC-003: maps a branching sub-workflow TaskResult into parent events" do
     subworkflow = branching_subworkflow
     completion_mapper = method(:signal_subworkflow_completion)
     parent_workflow = nil

@@ -216,7 +216,7 @@ module Phronomy
     def start_new_execution(input, config, stable_observer: nil)
       reject_legacy_workflow_identity_key!(config)
       runtime = Phronomy::Runtime.instance
-      result_task = Phronomy::Task.deferred(name: "workflow:preparing")
+      result_task = Phronomy::TaskResult.deferred(name: "workflow:preparing")
       explicit_workflow_instance_id = !config[:workflow_instance_id].nil?
       workflow_instance_id = (config[:workflow_instance_id] || SecureRandom.uuid).to_s.freeze
       Phronomy::Tracing::Automatic.observe_task(
@@ -247,7 +247,7 @@ module Phronomy
     def start_resume_execution(state, input:, event_name:, current_phase:)
       runtime = Phronomy::Runtime.instance
       workflow_instance_id = state.workflow_instance_id.to_s.freeze
-      result_task = Phronomy::Task.deferred(name: "workflow-resume:#{workflow_instance_id}")
+      result_task = Phronomy::TaskResult.deferred(name: "workflow-resume:#{workflow_instance_id}")
       Phronomy::Tracing::Automatic.observe_task(
         result_task,
         "workflow.execution",
@@ -582,7 +582,7 @@ module Phronomy
         fsm_session_id: session.id
       )
 
-      source_task = Phronomy::Task.deferred(name: "workflow-source:#{session.id}")
+      source_task = Phronomy::TaskResult.deferred(name: "workflow-source:#{session.id}")
       source_task.on_complete do |result, error|
         finalize_execution(
           execution: execution,
@@ -797,7 +797,7 @@ module Phronomy
     end
 
     def failed_task(name, error)
-      task = Phronomy::Task.deferred(name: name)
+      task = Phronomy::TaskResult.deferred(name: name)
       fail_task(task, error)
       task
     end

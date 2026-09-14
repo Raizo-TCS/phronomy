@@ -33,7 +33,7 @@ RSpec.describe "Workflow transition actions" do
   end
 
   def completed_task(value)
-    task = Phronomy::Task.deferred(name: "completed-transition-action")
+    task = Phronomy::TaskResult.deferred(name: "completed-transition-action")
     task.complete(value)
     task
   end
@@ -343,8 +343,8 @@ RSpec.describe "Workflow transition actions" do
     expect(wait_bounded(task).answer).to eq("async-result")
   end
 
-  it "rejects pending, completed, and mapped Task return values" do
-    pending = Phronomy::Task.deferred(name: "pending-transition-action")
+  it "rejects pending, completed, and mapped TaskResult return values" do
+    pending = Phronomy::TaskResult.deferred(name: "pending-transition-action")
     completed = completed_task("completed")
     mapped = completed_task("source").map { |value| value.upcase }
 

@@ -27,7 +27,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         {output: out, messages: []}
       end
       define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new do
           t.complete(invoke(input))
         rescue => e
@@ -46,7 +46,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         raise "subagent_failure"
       end
       define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new do
           t.complete(invoke(input))
         rescue => e
@@ -158,7 +158,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input))
           rescue => e
@@ -215,7 +215,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
 
     it "returns a one-element result array" do
       agent = stub_agent_class("fan_out_result")
-      results = orch.fan_out(agent: agent, inputs: ["input_a"])
+      results = orch.dispatch_parallel({agent: agent, input: "input_a"})
       expect(results.map { |r| r[:output] }).to eq(["fan_out_result"])
     end
   end
@@ -240,7 +240,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           {output: "echo:#{input}", messages: []}
         end
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input))
           rescue => e
@@ -250,7 +250,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         end
       end
 
-      results = orch.fan_out(agent: capture_class, inputs: %w[alpha beta gamma])
+      results = orch.dispatch_parallel(*%w[alpha beta gamma].map { |input| {agent: capture_class, input: input} })
 
       expect(received.sort).to eq(%w[alpha beta gamma])
       # fan_out uses dispatch_parallel which preserves order.
@@ -267,7 +267,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config))
           rescue => e
@@ -277,9 +277,10 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         end
       end
 
-      orch.fan_out(agent: agent, inputs: %w[x y], config: {user_id: "u99"})
+      orch.dispatch_parallel(*%w[x y].map { |input| {agent: agent, input: input, config: {user_id: "u99"}} })
 
-      expect(configs).to all(eq({user_id: "u99"}))
+      expect(configs).to all(match(user_id: "u99",
+        cancellation_token: an_instance_of(Phronomy::Concurrency::CancellationToken)))
     end
   end
 

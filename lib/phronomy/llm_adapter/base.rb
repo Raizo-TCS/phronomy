@@ -52,7 +52,7 @@ module Phronomy
       # Transport timeout and retry remain the responsibility of the adapter or
       # provider client; Phronomy does not attach an additional operation timeout.
       #
-      # @return [Phronomy::Task] caller-facing completion handle
+      # @return [Phronomy::TaskResult] caller-facing completion handle
       # @api private
       def complete_async(chat, message, config: {}, pool: default_pool)
         token = config[:cancellation_token]
@@ -68,7 +68,7 @@ module Phronomy
       # application callbacks must never be passed directly to this method.
       #
       # @yield [chunk] streaming chunk on the worker thread
-      # @return [Phronomy::Task] caller-facing completion handle
+      # @return [Phronomy::TaskResult] caller-facing completion handle
       # @api private
       def stream_async(chat, message, config: {}, pool: default_pool, &block)
         raise ArgumentError, "stream_async requires a block" unless block

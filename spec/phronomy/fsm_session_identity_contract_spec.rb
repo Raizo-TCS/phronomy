@@ -99,11 +99,10 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
     expect(methods).not_to include(:parent_agent_invocation_id, :session_id)
   end
 
-  it "does not inject Agent, Tool, or FanOut domain IDs into FSMSession constructors" do
+  it "does not inject Agent or Tool domain IDs into FSMSession constructors" do
     %w[
       lib/phronomy/agent/agent_invocation_session_builder.rb
       lib/phronomy/agent/tool_invocation_session_builder.rb
-      lib/phronomy/multi_agent/fan_out_session_builder.rb
     ].each do |relative|
       source = File.read(File.join(root, relative))
       expect(fsm_session_constructor_keyword_names(source)).not_to include(:id)

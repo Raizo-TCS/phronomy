@@ -102,7 +102,7 @@ stub_agent_class = Class.new(Phronomy::Agent::Base) do
   end
 
   define_method(:invoke_async) do |input, **_kw|
-    task = Phronomy::Task.deferred(name: "bench-stub")
+    task = Phronomy::TaskResult.deferred(name: "bench-stub")
     begin
       task.complete(invoke(input))
     rescue => error

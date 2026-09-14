@@ -22,7 +22,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       end
 
       define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-        t = Phronomy::Task.new(name: "knowledge-capture")
+        t = Phronomy::TaskResult.new(name: "knowledge-capture")
         Thread.new do
           t.complete(invoke(input, config: config,
             invocation_context: invocation_context, on_event: on_event))
@@ -177,14 +177,13 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
     end
   end
 
-  describe "#fan_out" do
+  describe "#dispatch_parallel with homogeneous inputs" do
     it "inherits parent Knowledge for every generated subagent" do
       child_class, received = knowledge_capturing_agent
       orchestrator = build_orchestrator
 
-      orchestrator.fan_out(
-        agent: child_class,
-        inputs: %w[a b]
+      orchestrator.dispatch_parallel(
+        *%w[a b].map { |input| {agent: child_class, input: input} }
       )
 
       expect(received.length).to eq(2)
@@ -197,9 +196,8 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       orchestrator = build_orchestrator
       expect(orchestrator).not_to receive(:active_knowledge_snapshot)
 
-      orchestrator.fan_out(
-        agent: child_class,
-        inputs: %w[a b],
+      orchestrator.dispatch_parallel(
+        *%w[a b].map { |input| {agent: child_class, input: input} },
         inherit_knowledge: false
       )
 

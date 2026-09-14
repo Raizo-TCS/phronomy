@@ -110,8 +110,8 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
   end
 
   describe "entry action validation" do
-    it "raises InvalidAsyncEntryActionError when an entry action returns a Task" do
-      task_action = ->(_ctx) { Phronomy::Task.deferred(name: "bad-action") }
+    it "raises InvalidAsyncEntryActionError when an entry action returns a TaskResult" do
+      task_action = ->(_ctx) { Phronomy::TaskResult.deferred(name: "bad-action") }
       klass = described_class.new(
         entry_actions: {filtering_input: [task_action]}
       ).build

@@ -30,31 +30,31 @@ RSpec.describe "VectorStore async convenience" do
   describe "OffloadPool delegation" do
     let(:store) { make_sync_store }
 
-    it "search_async returns a Task that resolves to the search result" do
+    it "search_async returns a TaskResult that resolves to the search result" do
       task = store.search_async(query_embedding: [0.1, 0.2])
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect(task.wait_result).to eq([{id: "doc1", score: 0.9, metadata: {}}])
     end
 
-    it "add_async returns a Task" do
+    it "add_async returns a TaskResult" do
       task = store.add_async(id: "x", embedding: [0.1, 0.2])
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect { task.wait_result }.not_to raise_error
     end
 
-    it "remove_async returns a Task" do
+    it "remove_async returns a TaskResult" do
       task = store.remove_async(id: "x")
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect { task.wait_result }.not_to raise_error
     end
 
-    it "clear_async returns a Task" do
+    it "clear_async returns a TaskResult" do
       task = store.clear_async
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect { task.wait_result }.not_to raise_error
     end
 
@@ -90,10 +90,10 @@ RSpec.describe "VectorStore async convenience" do
       instance
     end
 
-    it "search_async resolves through OffloadPool as a Task" do
+    it "search_async resolves through OffloadPool as a TaskResult" do
       task = store.search_async(query_embedding: [1.0, 0.0], k: 1)
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       result = task.wait_result
       expect(result.first[:id]).to eq("a")
     end

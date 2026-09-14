@@ -4,15 +4,15 @@ module Phronomy
   module Agent
     # Routes Tool work according to the Tool execution contract.
     #
-    # Both execution modes return {Phronomy::Task}; only the execution mechanism
+    # Both execution modes return {Phronomy::TaskResult}; only the execution mechanism
     # differs.
     #
     # :cooperative Tool calls execute inline and must return quickly. call_async
-    # wraps their result in an already-settled Task and never consumes an
+    # wraps their result in an already-settled TaskResult and never consumes an
     # OffloadPool worker.
     #
     # :offloaded Tool calls route synchronous work through OffloadPool, whose
-    # caller-facing completion handle is also a Task. Phronomy does not distinguish
+    # caller-facing completion handle is also a TaskResult. Phronomy does not distinguish
     # whether the reason is blocking I/O, CPU-bound work, or another long
     # synchronous operation.
     module ToolExecutor
@@ -28,7 +28,7 @@ module Phronomy
 
         case mode
         when :cooperative
-          task = Phronomy::Task.deferred(name: "tool-#{tool.name}")
+          task = Phronomy::TaskResult.deferred(name: "tool-#{tool.name}")
           begin
             task.complete(
               tool.call(args, cancellation_token: cancellation_token)

@@ -75,7 +75,7 @@ The same principle applies to Workflow run/resume operations.
 One active Agent run/resume segment.
 
 The span starts after `execution_id` has been established and the active segment
-is about to run. It ends when that segment's caller-facing Task settles.
+is about to run. It ends when that segment's caller-facing TaskResult settles.
 
 Suspension closes the active span. Later approval/recovery continuation creates a
 new `agent.execution` span correlated by the same logical `execution_id`.
@@ -85,7 +85,7 @@ execution.
 
 ### `workflow.execution`
 
-One Workflow run/resume operation, ending with that operation's Task settlement.
+One Workflow run/resume operation, ending with that operation's TaskResult settlement.
 The durable identity is `workflow_instance_id`.
 
 ### `llm.call`
@@ -131,7 +131,7 @@ API, EventLoop span registry, or durable span state.
 A backend such as OpenTelemetry may preserve natural lexical nesting where its
 own context is active. That adapter behavior does not establish a Phronomy-wide
 guarantee that automatic spans form one backend-native parent/child tree across
-Task/EventLoop/Offload/Runtime boundaries.
+TaskResult/EventLoop/Offload/Runtime boundaries.
 
 ## 8. `trace_pii`
 

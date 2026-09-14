@@ -5,9 +5,7 @@ module Phronomy
       def self.registered_subagents: () -> Hash[Symbol | String, untyped]
       def resume: (String execution_id, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
       def dispatch_parallel: (*Hash[Symbol, untyped] tasks, ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> Array[untyped]
-      def dispatch_parallel_async: (*Hash[Symbol, untyped] tasks, ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> ::Phronomy::Task[untyped]
-      def fan_out: (agent: singleton(::Phronomy::Agent::Base), inputs: Array[untyped], ?config: Hash[Symbol, untyped], ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> Array[untyped]
-      def fan_out_async: (agent: singleton(::Phronomy::Agent::Base), inputs: Array[untyped], ?config: Hash[Symbol, untyped], ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> ::Phronomy::Task[untyped]
+      def dispatch_parallel_async: (*Hash[Symbol, untyped] tasks, ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> ::Phronomy::TaskResult[untyped]
     end
 
     class TeamCoordinator

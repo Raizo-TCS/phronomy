@@ -102,13 +102,13 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     expect(span[:error]).to equal(error)
   end
 
-  it "observes a Task without changing its result" do
+  it "observes a TaskResult without changing its result" do
     Phronomy.configure do |config|
       config.tracer = recording_tracer
       config.trace_pii = false
     end
 
-    task = Phronomy::Task.deferred(name: "automatic-tracing-test")
+    task = Phronomy::TaskResult.deferred(name: "automatic-tracing-test")
     usage = Phronomy::TokenUsage.new(input: 3, output: 4)
     Phronomy::Tracing::Automatic.observe_task(
       task,

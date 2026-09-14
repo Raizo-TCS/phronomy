@@ -41,7 +41,7 @@ RSpec.describe Phronomy::EventLoop, "queue observability" do
   def block_dispatcher
     started = Queue.new
     release = Queue.new
-    completion = Phronomy::Task.deferred(name: "event-loop-queue-observability")
+    completion = Phronomy::TaskResult.deferred(name: "event-loop-queue-observability")
     session = QueueObservabilitySession.new(
       id: "queue-observability-session",
       event_loop: event_loop,

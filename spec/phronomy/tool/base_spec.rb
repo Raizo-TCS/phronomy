@@ -1135,7 +1135,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   # Issue #293 — Tool#call_async must respect the execution_mode DSL setting.
-  # :cooperative tools should run directly in a Task; :offloaded tools should
+  # :cooperative tools should run directly in a TaskResult; :offloaded tools should
   # be routed through OffloadPool when a Runtime is present.
   describe "#call_async execution_mode routing (Issue #293)", :issue_293 do
     after { Phronomy::Runtime.instance_variable_set(:@instance, nil) }
@@ -1164,7 +1164,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
     end
 
-    it "cooperative tool: call_async returns an already-settled Task without using OffloadPool" do
+    it "cooperative tool: call_async returns an already-settled TaskResult without using OffloadPool" do
       pool = Phronomy::Runtime.instance.offload
       called = false
       allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
@@ -1187,7 +1187,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
 
       awaitable = blocking_tool_class.new.call_async({"x" => "io"})
-      expect(awaitable).to be_a(Phronomy::Task)
+      expect(awaitable).to be_a(Phronomy::TaskResult)
       expect(awaitable.wait_result).to eq("block:io")
       expect(called).to be(true)
     end
@@ -1218,7 +1218,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     it "delegates to Phronomy::Agent::ToolExecutor (not unqualified ToolExecutor)" do
       expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
-      expect(result).to be_a(Phronomy::Task)
+      expect(result).to be_a(Phronomy::TaskResult)
     end
   end
 

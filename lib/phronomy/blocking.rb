@@ -7,27 +7,34 @@ module Phronomy
   module Blocking
     # Submits synchronous application work to the default Runtime OffloadPool.
     # Admission never waits for queue space. Admission StandardError failures
-    # become failed Tasks; accepted work retains the pool's Task unchanged.
-    # A timeout/cancellation can settle that Task before a running worker exits.
-    # The block must not wait for another Agent, Workflow, or Task.
+    # become failed results; accepted work retains the pool's TaskResult unchanged.
+    # A timeout/cancellation can settle that TaskResult before a running worker exits.
+    # The block must not wait for another Agent, Workflow, or TaskResult.
     # @param timeout [Numeric, nil] operation deadline, including queue time
     # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
+    # @param invocation_context [Phronomy::InvocationContext, nil] explicit context/scope
     # @yield synchronous application work
-    # @return [Phronomy::Task] original accepted Task or failed admission Task
+    # @return [Phronomy::TaskResult] original accepted TaskResult or failed admission TaskResult
     # @raise [ArgumentError] if no block is supplied
     # @api public
-    def self.call_async(timeout: nil, cancellation_token: nil, &block)
+    def self.call_async(timeout: nil, cancellation_token: nil, invocation_context: nil, &block)
       raise ArgumentError, "Blocking.call_async requires a block" unless block
 
       begin
-        Phronomy::Runtime.instance.offload.submit(
+        unless invocation_context.nil?
+          binding = Execution.__operation_binding(invocation_context: invocation_context,
+            cancellation_token: cancellation_token)
+        end
+        result = Phronomy::Runtime.instance.offload.submit(
           on_full: :raise,
           timeout: timeout,
-          cancellation_token: cancellation_token,
+          cancellation_token: binding ? binding.token : cancellation_token,
           &block
         )
+        binding ? binding.bind(result) : result
       rescue => error
-        Phronomy::Task.failed(error, name: "blocking-admission-failed")
+        result = Phronomy::TaskResult.failed(error, name: "blocking-admission-failed")
+        binding ? binding.bind(result) : result
       end
     end
   end

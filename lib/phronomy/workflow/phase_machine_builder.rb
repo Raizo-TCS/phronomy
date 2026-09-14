@@ -139,7 +139,7 @@ module Phronomy
               machine.context,
               machine.current_event
             )
-            if result.is_a?(Phronomy::Task)
+            if result.is_a?(Phronomy::TaskResult)
               raise Phronomy::InvalidAsyncTransitionActionError,
                 transition_task_error_message(metadata)
             end
@@ -151,9 +151,9 @@ module Phronomy
       def build_entry_callback(callable, state_name)
         ->(machine) {
           result = callable.call(machine.context)
-          if result.is_a?(Phronomy::Task)
+          if result.is_a?(Phronomy::TaskResult)
             raise Phronomy::InvalidAsyncEntryActionError,
-              "Entry action for state #{state_name.inspect} returned Phronomy::Task. " \
+              "Entry action for state #{state_name.inspect} returned Phronomy::TaskResult. " \
               "Start the asynchronous operation, register its callback/listener, " \
               "and return the WorkflowContext or nil."
           end
@@ -164,9 +164,9 @@ module Phronomy
       def build_exit_callback(callable, state_name)
         ->(machine) {
           result = callable.call(machine.context)
-          if result.is_a?(Phronomy::Task)
+          if result.is_a?(Phronomy::TaskResult)
             raise Phronomy::InvalidAsyncEntryActionError,
-              "Exit action for state #{state_name.inspect} returned Phronomy::Task. " \
+              "Exit action for state #{state_name.inspect} returned Phronomy::TaskResult. " \
               "Exit actions are synchronous Run-to-Completion callbacks."
           end
         }
@@ -196,7 +196,7 @@ module Phronomy
       def transition_task_error_message(metadata)
         "Transition action " \
           "#{metadata[:from].inspect} --#{metadata[:event].inspect}--> " \
-          "#{metadata[:to].inspect} returned Phronomy::Task. " \
+          "#{metadata[:to].inspect} returned Phronomy::TaskResult. " \
           "Start the asynchronous operation, register its callback/listener, " \
           "and return the WorkflowContext or nil."
       end

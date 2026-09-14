@@ -7,7 +7,7 @@ module Phronomy
       #
       # Concrete implementations override {#embed}. Phronomy owns the async
       # bridge: {#embed_async} routes the synchronous implementation through the
-      # bounded OffloadPool and returns a {Phronomy::Task}.
+      # bounded OffloadPool and returns a {Phronomy::TaskResult}.
       #
       # @api public
       class Base
@@ -27,7 +27,7 @@ module Phronomy
         # @param text               [String]
         # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
         # @param timeout            [Numeric, nil] operation-wide submit timeout
-        # @return [Phronomy::Task]
+        # @return [Phronomy::TaskResult]
         # @api public
         def embed_async(text, cancellation_token = nil, timeout: nil)
           Phronomy::Runtime.instance.offload.submit(

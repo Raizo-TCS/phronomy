@@ -15,11 +15,11 @@ RSpec.describe Phronomy::Tools::Agent do
     end
 
     def invoke_async(input, config: {}, **options)
-      task = Phronomy::Task.deferred(name: "echo-agent")
+      task = Phronomy::TaskResult.deferred(name: "echo-agent")
       task.complete(invoke(input, config: config, **options))
       task
     rescue => error
-      task ||= Phronomy::Task.deferred(name: "echo-agent")
+      task ||= Phronomy::TaskResult.deferred(name: "echo-agent")
       task.fail(error)
       task
     end
@@ -37,7 +37,7 @@ RSpec.describe Phronomy::Tools::Agent do
       end
 
       def invoke_async(input, config: {}, **options)
-        task = Phronomy::Task.deferred(name: "summarizer-agent")
+        task = Phronomy::TaskResult.deferred(name: "summarizer-agent")
         task.complete(invoke(input, config: config, **options))
         task
       end
@@ -53,7 +53,7 @@ RSpec.describe Phronomy::Tools::Agent do
       end
 
       def invoke_async(input, config: {}, **options)
-        task = Phronomy::Task.deferred(name: "retriever-tool")
+        task = Phronomy::TaskResult.deferred(name: "retriever-tool")
         task.complete(invoke(input, config: config, **options))
         task
       end
@@ -169,7 +169,7 @@ RSpec.describe Phronomy::Tools::Agent do
 
         task = klass.new.call_async({"input" => "hello"})
 
-        expect(task).to be_a(Phronomy::Task)
+        expect(task).to be_a(Phronomy::TaskResult)
         expect(task.wait_result).to eq("echo: hello")
         expect(Phronomy::Agent::ToolExecutor).not_to have_received(:call_async)
       end
@@ -177,7 +177,7 @@ RSpec.describe Phronomy::Tools::Agent do
       it "returns an empty String for a nil asynchronous Agent output" do
         klass = described_class.from_agent(EchoAgent)
         allow_any_instance_of(EchoAgent).to receive(:invoke_async) do
-          Phronomy::Task.deferred(name: "nil-output").tap do |task|
+          Phronomy::TaskResult.deferred(name: "nil-output").tap do |task|
             task.complete({output: nil, messages: []})
           end
         end
@@ -223,7 +223,7 @@ RSpec.describe Phronomy::Tools::Agent do
       it "passes through execution rehydration errors without wrapping" do
         klass = described_class.from_agent(EchoAgent)
         allow_any_instance_of(EchoAgent).to receive(:invoke_async) do
-          Phronomy::Task.deferred(name: "rehydration").tap do |task|
+          Phronomy::TaskResult.deferred(name: "rehydration").tap do |task|
             task.fail(Phronomy::ExecutionRehydrationRequiredError.new("rehydrate"))
           end
         end

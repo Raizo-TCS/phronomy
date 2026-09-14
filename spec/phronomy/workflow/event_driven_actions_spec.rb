@@ -78,12 +78,12 @@ RSpec.describe "event-driven Workflow actions" do
     expect(result.events).to eq([:generation_completed])
   end
 
-  it "rejects Task-returning entry actions instead of awaiting them" do
+  it "rejects TaskResult-returning entry actions instead of awaiting them" do
     workflow = Phronomy::Workflow.define(context_class) do
       initial :invalid
 
       state :invalid, action: ->(_context) {
-        task = Phronomy::Task.new(name: "not-implicitly-awaited")
+        task = Phronomy::TaskResult.new(name: "not-implicitly-awaited")
         Thread.new { task.complete("not implicitly awaited") }
         task
       }

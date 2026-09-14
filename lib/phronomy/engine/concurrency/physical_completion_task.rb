@@ -2,16 +2,16 @@
 
 module Phronomy
   module Concurrency
-    # Private Task specialization used when logical completion and physical
+    # Private TaskResult specialization used when logical completion and physical
     # completion are intentionally different boundaries.
     #
-    # Offload cancellation/timeout may settle the caller-facing Task while a
+    # Offload cancellation/timeout may settle the caller-facing TaskResult while a
     # worker is still executing. EventLoop supervision must observe the later
     # physical-completion boundary without adding domain-specific state to the
-    # public Phronomy::Task contract.
+    # public Phronomy::TaskResult contract.
     #
     # @api private
-    class PhysicalCompletionTask < Phronomy::Task
+    class PhysicalCompletionTask < Phronomy::TaskResult
       # @api private
       def initialize(name: nil, parent: nil)
         super
@@ -61,64 +61,6 @@ module Phronomy
         end
         callbacks.each { |callback| deliver_physical_callback(callback) }
         self
-      end
-
-      # Preserves the physical-completion boundary across Task#map.
-      #
-      # A mapped PhysicalCompletionTask is physically complete only after both:
-      # 1. the source Task's underlying physical work is complete; and
-      # 2. the mapping callback itself has finished running.
-      #
-      # The second condition is required because Task completion callbacks may run
-      # on the OffloadPool worker that settles the source Task. Propagating the
-      # source physical signal immediately could otherwise let EventLoop declare
-      # the owning Execution quiescent while the mapping callback is still active.
-      #
-      # Logical success/failure semantics intentionally remain the same as
-      # Phronomy::Task#map.
-      #
-      # @api public
-      def map(&block)
-        raise ArgumentError, "map requires a block" unless block
-
-        mapped = self.class.deferred(name: "#{name}-mapped", parent: parent)
-        propagation_mutex = Mutex.new
-        source_physical_complete = physical_complete?
-        mapping_complete = false
-
-        mark_mapped_physical_if_ready = lambda do
-          ready = propagation_mutex.synchronize do
-            source_physical_complete && mapping_complete
-          end
-          mapped.mark_physical_complete! if ready
-        end
-
-        on_physical_complete do
-          propagation_mutex.synchronize { source_physical_complete = true }
-          mark_mapped_physical_if_ready.call
-        end
-
-        on_complete do |value, error|
-          if error
-            propagation_mutex.synchronize { mapping_complete = true }
-            mark_mapped_physical_if_ready.call
-            mapped.fail(error)
-            next
-          end
-
-          begin
-            transformed = block.call(value)
-            propagation_mutex.synchronize { mapping_complete = true }
-            mark_mapped_physical_if_ready.call
-            mapped.complete(transformed)
-          rescue => mapped_error
-            propagation_mutex.synchronize { mapping_complete = true }
-            mark_mapped_physical_if_ready.call
-            mapped.fail(mapped_error)
-          end
-        end
-
-        mapped
       end
 
       private

@@ -542,7 +542,7 @@ module Phronomy
       end
 
       def self.register_child_session(runtime, child, session, parent_event_sink)
-        completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
+        completion = Phronomy::TaskResult.deferred(name: "tool-session:#{child.id}")
         completion.on_complete do |_result, error|
           next unless error
 

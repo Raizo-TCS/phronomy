@@ -48,7 +48,7 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(adr).not_to include("BlockingAdapterPool")
   end
 
-  it "documents Task settlement and waiter-local timeout without Thread#raise" do
+  it "documents TaskResult settlement and waiter-local timeout without Thread#raise" do
     adr = File.read(
       File.expand_path("../../docs/decisions/010-cooperative-first-concurrency.md", __dir__)
     )
@@ -58,22 +58,22 @@ RSpec.describe "EventLoop-first architecture regression guards" do
       .split("## CPU-bound work", 2)
       .first
 
-    expect(cancellation).to include("settles the caller-facing Task")
+    expect(cancellation).to include("settles the caller-facing TaskResult")
     expect(cancellation).to include("worker may continue")
-    expect(cancellation).to include("`Task#wait_result(timeout:)`")
-    expect(cancellation).to match(/does\s+not settle the Task/)
+    expect(cancellation).to include("`TaskResult#wait_result(timeout:)`")
+    expect(cancellation).to match(/does\s+not settle the TaskResult/)
     expect(cancellation).to include("does not use `Thread#raise`")
     expect(cancellation).not_to include("wait_result(cancellation_token:")
   end
 
-  it "keeps OffloadPool execution state private behind Task completion" do
+  it "keeps OffloadPool execution state private behind TaskResult completion" do
     source = File.read(
       File.expand_path("../../lib/phronomy/engine/concurrency/offload_pool.rb", __dir__)
     )
 
     expect(source).to include("class Operation")
     expect(source).to include("private_constant :Operation")
-    # ACS-16 replaced Task.deferred with the private PhysicalCompletionTask subclass.
+    # ACS-16 replaced TaskResult.deferred with the private PhysicalCompletionTask subclass.
     expect(source).to include("@task = Phronomy::Concurrency::PhysicalCompletionTask.deferred")
     expect(source).not_to include("class PendingOperation")
   end
@@ -103,7 +103,7 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     )
 
     expect(source).to include("Phronomy::Runtime.instance.offload.submit")
-    expect(source).to include("@return [Phronomy::Task]")
+    expect(source).to include("@return [Phronomy::TaskResult]")
     expect(source).not_to include("PendingOperation")
     expect(source).not_to include("Override to use a native async driver")
   end

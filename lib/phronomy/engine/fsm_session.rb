@@ -6,7 +6,7 @@ module Phronomy
   # Event-driven execution wrapper for a single FSM session.
   #
   # All public methods are called from the Runtime-owned EventLoop thread.
-  # FSMSession owns FSM execution only; it does not own external Task handles,
+  # FSMSession owns FSM execution only; it does not own external TaskResult handles,
   # activity tokens, callback correlation, or domain-specific stale-event policy.
   class FSMSession
     class IdentityReservation
@@ -195,9 +195,9 @@ module Phronomy
     end
 
     def apply_synchronous_action_result!(result, state_name)
-      if result.is_a?(Phronomy::Task)
+      if result.is_a?(Phronomy::TaskResult)
         raise Phronomy::InvalidAsyncEntryActionError,
-          "Entry action for state #{state_name.inspect} returned Phronomy::Task. " \
+          "Entry action for state #{state_name.inspect} returned Phronomy::TaskResult. " \
           "Start the asynchronous operation, register its callback/listener, " \
           "and return the WorkflowContext or nil."
       end

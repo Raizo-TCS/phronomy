@@ -21,7 +21,7 @@ module Phronomy
       def name: () -> String
       def params_schema: () -> untyped
       def call: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?) -> untyped
-      def call_async: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped]) -> Task[untyped]
+      def call_async: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped]) -> TaskResult[untyped]
       def requires_approval?: () -> untyped
       def tool_origin: () -> Symbol
       def approval_metadata: () -> Hash[untyped, untyped]

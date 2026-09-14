@@ -20,7 +20,7 @@ require_relative "support/llm_stub"
 #   raises from an input filter inside the normal Agent execution engine.
 #
 # Coordinator LLM call sequence (N tasks):
-#   Calls 0..N-1 : tool_call "enqueue_task", {description: "Task K"}
+#   Calls 0..N-1 : tool_call "enqueue_task", {description: "TaskResult K"}
 #   Call  N      : tool_call "finalize", {summary: ""}
 #   Call  N+1    : text "Coordinator done."
 # Worker LLM call sequence (per successful task):
@@ -56,7 +56,7 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     before do
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
+        enqueue_call("TaskResult A"),
         finalize_call,
         "Coordinator done.",
         "Result A"
@@ -101,8 +101,8 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
     before do
       # Failing worker never calls LLM; coordinator still needs its sequence.
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
-        enqueue_call("Task B"),
+        enqueue_call("TaskResult A"),
+        enqueue_call("TaskResult B"),
         finalize_call,
         "Coordinator done."
       ])
@@ -142,8 +142,8 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     before do
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
-        enqueue_call("Task B"),
+        enqueue_call("TaskResult A"),
+        enqueue_call("TaskResult B"),
         finalize_call,
         "Coordinator done."
       ])
@@ -182,9 +182,9 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     before do
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
-        enqueue_call("Task B"),
-        enqueue_call("Task C"),
+        enqueue_call("TaskResult A"),
+        enqueue_call("TaskResult B"),
+        enqueue_call("TaskResult C"),
         finalize_call,
         "Coordinator done.",
         "Result A",
@@ -229,7 +229,7 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     before do
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
+        enqueue_call("TaskResult A"),
         finalize_call,
         "Coordinator done.",
         "Result A"
@@ -270,8 +270,8 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     before do
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
-        enqueue_call("Task B"),
+        enqueue_call("TaskResult A"),
+        enqueue_call("TaskResult B"),
         finalize_call,
         "Coordinator done.",
         "Result A",
@@ -319,8 +319,8 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
     before do
       # 2 enqueue + finalize + coordinator text + 2 worker tasks = 6 LLM calls.
       @llm = LLMStub.activate(responses: [
-        enqueue_call("Task A"),
-        enqueue_call("Task B"),
+        enqueue_call("TaskResult A"),
+        enqueue_call("TaskResult B"),
         finalize_call,
         "Coordinator done.",
         "Result A",
@@ -330,8 +330,8 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     it "the second worker LLM call receives messages accumulated from the first task" do
       team_class.new.invoke("Process tasks")
-      # Call index 4: Worker processes Task A (prior messages: empty).
-      # Call index 5: Worker processes Task B (prior messages: Task A's history).
+      # Call index 4: Worker processes TaskResult A (prior messages: empty).
+      # Call index 5: Worker processes TaskResult B (prior messages: TaskResult A's history).
       # Count only non-system/non-developer messages to avoid sensitivity to
       # RubyLLM version differences in how the system prompt role is named.
       user_roles = %w[user assistant]

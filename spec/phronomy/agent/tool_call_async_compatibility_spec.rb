@@ -60,7 +60,7 @@ RSpec.describe "Tool#call_async compatibility" do
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
     allow(event_loop_dbl).to receive(:supervise_agent_operation)
-    operation = Phronomy::Task.deferred(name: "offloaded-tool")
+    operation = Phronomy::TaskResult.deferred(name: "offloaded-tool")
     operation.complete("ok")
 
     expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
@@ -91,7 +91,7 @@ RSpec.describe "Tool#call_async compatibility" do
       end
 
       def call_async(args, cancellation_token: nil, config: {})
-        task = Phronomy::Task.deferred(name: "custom-async-tool")
+        task = Phronomy::TaskResult.deferred(name: "custom-async-tool")
         task.complete("#{args.fetch(:value)}:#{config.fetch(:suffix, "done")}")
         task
       end

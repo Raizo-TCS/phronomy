@@ -180,7 +180,7 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
     end
   end
 
-  describe Phronomy::Task do
+  describe Phronomy::TaskResult do
     it "join with a limit returns nil on timeout" do
       task = described_class.new(name: "join-timeout")
       result = task.join(0.001)
