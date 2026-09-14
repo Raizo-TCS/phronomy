@@ -71,12 +71,12 @@
   <dl>
     <dt>Inherits:</dt>
     <dd>
-      <span class="inheritName"><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span>
+      <span class="inheritName"><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span>
       
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next"><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></li>
+            <li class="next"><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></li>
           
             <li class="next">Phronomy::Concurrency::PhysicalCompletionTask</li>
           
@@ -110,12 +110,12 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Private Task specialization used when logical completion and physical
+<p>Private TaskResult specialization used when logical completion and physical
 completion are intentionally different boundaries.</p>
-<p>Offload cancellation/timeout may settle the caller-facing Task while a
+<p>Offload cancellation/timeout may settle the caller-facing TaskResult while a
 worker is still executing. EventLoop supervision must observe the later
 physical-completion boundary without adding domain-specific state to the
-public Phronomy::Task contract.</p>
+public Phronomy::TaskResult contract.</p>
 
   </div>
 </div>
@@ -128,16 +128,16 @@ public Phronomy::Task contract.</p>
   <h2>Constant Summary</h2>
   
   <h3 class="inherited">Constants inherited
-     from <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../Task.html#STATES-constant" title="Phronomy::Task::STATES (constant)">Task::STATES</a></span></p>
+     from <span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../TaskResult.html#STATES-constant" title="Phronomy::TaskResult::STATES (constant)">TaskResult::STATES</a></span></p>
 
 
 
 
   <h2>Instance Attribute Summary</h2>
   
-  <h3 class="inherited">Attributes inherited from <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../Task.html#name-instance_method" title="Phronomy::Task#name (method)">#name</a></span>, <span class='object_link'><a href="../Task.html#parent-instance_method" title="Phronomy::Task#parent (method)">#parent</a></span></p>
+  <h3 class="inherited">Attributes inherited from <span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../TaskResult.html#name-instance_method" title="Phronomy::TaskResult#name (method)">#name</a></span>, <span class='object_link'><a href="../TaskResult.html#parent-instance_method" title="Phronomy::TaskResult#parent (method)">#parent</a></span></p>
 
 
   
@@ -168,28 +168,6 @@ public Phronomy::Task contract.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of PhysicalCompletionTask.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#map-instance_method" title="#map (instance method)">#<strong>map</strong>(&amp;block)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Preserves the physical-completion boundary across Task#map.</p></div></span>
   
 </li>
 
@@ -274,8 +252,8 @@ public Phronomy::Task contract.</p>
   
   
   
-  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../Task.html#alive%3F-instance_method" title="Phronomy::Task#alive? (method)">#alive?</a></span>, <span class='object_link'><a href="../Task.html#cancel!-instance_method" title="Phronomy::Task#cancel! (method)">#cancel!</a></span>, <span class='object_link'><a href="../Task.html#complete-instance_method" title="Phronomy::Task#complete (method)">#complete</a></span>, <span class='object_link'><a href="../Task.html#completed-class_method" title="Phronomy::Task.completed (method)">completed</a></span>, <span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span>, <span class='object_link'><a href="../Task.html#done%3F-instance_method" title="Phronomy::Task#done? (method)">#done?</a></span>, <span class='object_link'><a href="../Task.html#fail-instance_method" title="Phronomy::Task#fail (method)">#fail</a></span>, <span class='object_link'><a href="../Task.html#failed-class_method" title="Phronomy::Task.failed (method)">failed</a></span>, <span class='object_link'><a href="../Task.html#join-instance_method" title="Phronomy::Task#join (method)">#join</a></span>, <span class='object_link'><a href="../Task.html#on_complete-instance_method" title="Phronomy::Task#on_complete (method)">#on_complete</a></span>, <span class='object_link'><a href="../Task.html#status-instance_method" title="Phronomy::Task#status (method)">#status</a></span>, <span class='object_link'><a href="../Task.html#wait_result-instance_method" title="Phronomy::Task#wait_result (method)">#wait_result</a></span></p>
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../TaskResult.html#__bind_execution-instance_method" title="Phronomy::TaskResult#__bind_execution (method)">#__bind_execution</a></span>, <span class='object_link'><a href="../TaskResult.html#__execution_scope-instance_method" title="Phronomy::TaskResult#__execution_scope (method)">#__execution_scope</a></span>, <span class='object_link'><a href="../TaskResult.html#__snapshot-instance_method" title="Phronomy::TaskResult#__snapshot (method)">#__snapshot</a></span>, <span class='object_link'><a href="../TaskResult.html#__unsubscribe-instance_method" title="Phronomy::TaskResult#__unsubscribe (method)">#__unsubscribe</a></span>, <span class='object_link'><a href="../TaskResult.html#alive%3F-instance_method" title="Phronomy::TaskResult#alive? (method)">#alive?</a></span>, <span class='object_link'><a href="../TaskResult.html#all_settled-class_method" title="Phronomy::TaskResult.all_settled (method)">all_settled</a></span>, <span class='object_link'><a href="../TaskResult.html#cancel!-instance_method" title="Phronomy::TaskResult#cancel! (method)">#cancel!</a></span>, <span class='object_link'><a href="../TaskResult.html#complete-instance_method" title="Phronomy::TaskResult#complete (method)">#complete</a></span>, <span class='object_link'><a href="../TaskResult.html#completed-class_method" title="Phronomy::TaskResult.completed (method)">completed</a></span>, <span class='object_link'><a href="../TaskResult.html#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span>, <span class='object_link'><a href="../TaskResult.html#done%3F-instance_method" title="Phronomy::TaskResult#done? (method)">#done?</a></span>, <span class='object_link'><a href="../TaskResult.html#fail-instance_method" title="Phronomy::TaskResult#fail (method)">#fail</a></span>, <span class='object_link'><a href="../TaskResult.html#failed-class_method" title="Phronomy::TaskResult.failed (method)">failed</a></span>, <span class='object_link'><a href="../TaskResult.html#flat_map-instance_method" title="Phronomy::TaskResult#flat_map (method)">#flat_map</a></span>, <span class='object_link'><a href="../TaskResult.html#join-instance_method" title="Phronomy::TaskResult#join (method)">#join</a></span>, <span class='object_link'><a href="../TaskResult.html#map-instance_method" title="Phronomy::TaskResult#map (method)">#map</a></span>, <span class='object_link'><a href="../TaskResult.html#on_complete-instance_method" title="Phronomy::TaskResult#on_complete (method)">#on_complete</a></span>, <span class='object_link'><a href="../TaskResult.html#status-instance_method" title="Phronomy::TaskResult#status (method)">#status</a></span>, <span class='object_link'><a href="../TaskResult.html#wait_result-instance_method" title="Phronomy::TaskResult#wait_result (method)">#wait_result</a></span></p>
 <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
@@ -336,148 +314,7 @@ public Phronomy::Task contract.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="map-instance_method">
-  
-    #<strong>map</strong>(&amp;block)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Preserves the physical-completion boundary across Task#map.</p>
-<p>A mapped PhysicalCompletionTask is physically complete only after both:</p>
-<ol>
-<li>the source Task's underlying physical work is complete; and</li>
-<li>the mapping callback itself has finished running.</li>
-</ol>
-<p>The second condition is required because Task completion callbacks may run
-on the OffloadPool worker that settles the source Task. Propagating the
-source physical signal immediately could otherwise let EventLoop declare
-the owning Execution quiescent while the mapping callback is still active.</p>
-<p>Logical success/failure semantics intentionally remain the same as
-Phronomy::Task#map.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/physical_completion_task.rb', line 81</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>map requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
-
-  <span class='id identifier rubyid_mapped'>mapped</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_deferred'>deferred</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>-mapped</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_propagation_mutex'>propagation_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='id identifier rubyid_source_physical_complete'>source_physical_complete</span> <span class='op'>=</span> <span class='id identifier rubyid_physical_complete?'>physical_complete?</span>
-  <span class='id identifier rubyid_mapping_complete'>mapping_complete</span> <span class='op'>=</span> <span class='kw'>false</span>
-
-  <span class='id identifier rubyid_mark_mapped_physical_if_ready'>mark_mapped_physical_if_ready</span> <span class='op'>=</span> <span class='id identifier rubyid_lambda'>lambda</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_ready'>ready</span> <span class='op'>=</span> <span class='id identifier rubyid_propagation_mutex'>propagation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-      <span class='id identifier rubyid_source_physical_complete'>source_physical_complete</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_mapping_complete'>mapping_complete</span>
-    <span class='kw'>end</span>
-    <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_mark_physical_complete!'>mark_physical_complete!</span> <span class='kw'>if</span> <span class='id identifier rubyid_ready'>ready</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_on_physical_complete'>on_physical_complete</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_propagation_mutex'>propagation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_source_physical_complete'>source_physical_complete</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
-    <span class='id identifier rubyid_mark_mapped_physical_if_ready'>mark_mapped_physical_if_ready</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
-      <span class='id identifier rubyid_propagation_mutex'>propagation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_mapping_complete'>mapping_complete</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
-      <span class='id identifier rubyid_mark_mapped_physical_if_ready'>mark_mapped_physical_if_ready</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
-      <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
-      <span class='kw'>next</span>
-    <span class='kw'>end</span>
-
-    <span class='kw'>begin</span>
-      <span class='id identifier rubyid_transformed'>transformed</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_propagation_mutex'>propagation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_mapping_complete'>mapping_complete</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
-      <span class='id identifier rubyid_mark_mapped_physical_if_ready'>mark_mapped_physical_if_ready</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
-      <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_transformed'>transformed</span><span class='rparen'>)</span>
-    <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_mapped_error'>mapped_error</span>
-      <span class='id identifier rubyid_propagation_mutex'>propagation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_mapping_complete'>mapping_complete</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
-      <span class='id identifier rubyid_mark_mapped_physical_if_ready'>mark_mapped_physical_if_ready</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
-      <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_mapped_error'>mapped_error</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_mapped'>mapped</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="mark_physical_complete!-instance_method">
+  <h3 class="signature first" id="mark_physical_complete!-instance_method">
   
     #<strong>mark_physical_complete!</strong>  &#x21d2; <tt>self</tt> 
   
@@ -703,7 +540,7 @@ can no longer affect the owning execution.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:09 2026 by
+  Generated on Mon Sep 14 11:47:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

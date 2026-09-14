@@ -2,7 +2,7 @@
 
 Phronomy uses an **EventLoop / FSMSession first** architecture for framework
 lifecycle coordination. `FSMSession` represents explicit lifecycle state and
-events. `Phronomy::Task` is the common caller-facing completion handle, not an
+events. `Phronomy::TaskResult` is the common caller-facing completion handle, not an
 execution backend. Synchronous work that must stay off EventLoop is isolated in
 the bounded `OffloadPool`.
 
@@ -46,7 +46,7 @@ Runtime
 └─ EventLoop-driven timers
 
 EventLoop / FSMSession ─┐
-                       ├─> Task = completion handle
+                       ├─> TaskResult = completion handle
 OffloadPool ────────────┘
 ```
 
@@ -254,7 +254,7 @@ lifecycle. Logical halt/completion first enters a private
 `persisting_terminal` lifecycle condition; the FSMSession remains nonterminal
 while WorkflowRunner saves the terminal snapshot through OffloadPool. Only a
 known-successful save result returned to that same FSMSession permits
-`HALTED`/`COMPLETED`, admission release, and caller Task settlement.
+`HALTED`/`COMPLETED`, admission release, and caller TaskResult settlement.
 
 ```text
 RUNNING
@@ -282,10 +282,10 @@ remain durable conflict defense rather than distributed ownership.
 Phronomy exposes two execution modes for capabilities:
 
 - `:cooperative` — short EventLoop-safe work, or specialized asynchronous work
-  that starts another Phronomy lifecycle and returns a Task immediately;
+  that starts another Phronomy lifecycle and returns a TaskResult immediately;
 - `:offloaded` — synchronous work that must not run to completion on EventLoop.
 
-Both paths return `Phronomy::Task`. The execution mechanism differs; the
+Both paths return `Phronomy::TaskResult`. The execution mechanism differs; the
 completion abstraction does not.
 
 Phronomy does not classify application work into framework-level I/O/CPU/process
@@ -310,7 +310,7 @@ Correct shape:
 parent FSMSession
   → start child lifecycle
   → return immediately
-  → child Task settles
+  → child TaskResult settles
   → post parent EventLoop event
 ```
 
@@ -326,7 +326,7 @@ Agent preparation/commit and Workflow hydrate/save operations are submitted to
 
 A durable barrier may pause one logical lifecycle without blocking EventLoop.
 Persistence does not implement async repository variants and must not depend on
-EventLoop, FSMSession, Task settlement internals, or private OffloadPool operation
+EventLoop, FSMSession, TaskResult settlement internals, or private OffloadPool operation
 records.
 
 ## Sync versus async application APIs
@@ -336,7 +336,7 @@ records.
 | Top-level application code | `agent.invoke(...)` when blocking the caller is acceptable |
 | Top-level explicit async | `task = agent.invoke_async(...)`; optionally `task.wait_result` outside EventLoop |
 | Workflow entry/transition action | Start async work and continue through `Workflow#signal` |
-| EventLoop callback | Never block waiting for a Task that requires EventLoop progress |
+| EventLoop callback | Never block waiting for a TaskResult that requires EventLoop progress |
 | Top-level streaming | `agent.stream(...)` |
 | Non-blocking streaming | `agent.stream_async(...)` |
 | Approval from EventLoop callback | Resolve with `live_for_execution`, call `agent.approve_async(...)`, and return immediately |
@@ -345,59 +345,64 @@ Blocking synchronous APIs reject EventLoop re-entry with
 `Phronomy::EventLoopReentrancyError` when waiting would stall the same EventLoop
 needed for progress.
 
-## Task
+## TaskResult
 
-`Phronomy::Task` is thread-free. It represents one terminal result:
+`Phronomy::TaskResult` is thread-free. It represents one terminal result:
 
 - completed value;
 - failure;
 - cancellation.
 
-Task is the common completion abstraction for logical EventLoop/FSMSession
+TaskResult is the common completion abstraction for logical EventLoop/FSMSession
 lifecycles and OffloadPool-backed synchronous work.
 
-`Task#wait_result(timeout:)` is a bridge for external synchronous callers. Its
-timeout is waiter-local: it does not settle/cancel the Task or alter OffloadPool
+`TaskResult#wait_result(timeout:)` is a bridge for external synchronous callers. Its
+timeout is waiter-local: it does not settle/cancel the TaskResult or alter OffloadPool
 abandonment state.
 
-`Task#on_complete` registers an independent notification callback. Callback
+`TaskResult#on_complete` registers an independent notification callback. Callback
 execution thread is not guaranteed. A callback may be delivered by an OffloadPool
 worker, a timer/cancellation caller, an EventLoop-related control path, or the
 thread that registers after settlement. Callbacks must therefore be thread-safe
 and should complete quickly. Framework lifecycle code normally converts worker
 completion into an explicit EventLoop event before applying live state.
 
-`Task#map` is application-level composition. A transformation exception settles
-the mapped Task as failed.
+`TaskResult#map` is application-level composition. A transformation exception settles
+the mapped TaskResult as failed.
 
-Framework components own Task settlement. Application code should not use
-`Task#complete`, `Task#fail`, or `Task#cancel!` as operation-control APIs. Request
+`flat_map` connects a returned TaskResult's completion, while `all_settled`
+observes an input-order list of results. `Execution.run_async` starts and joins
+JOBs under whole-execution controls. See [Result composition and Execution](async-composition.md)
+for the complete contracts, ownership boundaries and development-release migration.
+
+Framework components own TaskResult settlement. Application code should not use
+`TaskResult#complete`, `TaskResult#fail`, or `TaskResult#cancel!` as operation-control APIs. Request
 operation-wide cancellation through the `CancellationToken` accepted by the API
-that created the Task. Task settlement never propagates backwards to cancel a
+that created the TaskResult. TaskResult settlement never propagates backwards to cancel a
 shared CancellationToken.
 
-### Settled Task factories
+### Settled TaskResult factories
 
-`Task.completed(value)` and `Task.failed(error)` create Tasks that are already
+`TaskResult.completed(value)` and `TaskResult.failed(error)` create results that are already
 settled. They are useful when application code has a result or an error in hand
-and needs to present it through the same `Task` contract as a lifecycle-backed
+and needs to present it through the same `TaskResult` contract as a lifecycle-backed
 completion:
 
 ```ruby
 # Already-computed value — no execution started.
-task = Phronomy::Task.completed("cached result")
+task = Phronomy::TaskResult.completed("cached result")
 
 # Known failure — no execution started.
-task = Phronomy::Task.failed(StandardError.new("precondition not met"))
+task = Phronomy::TaskResult.failed(StandardError.new("precondition not met"))
 ```
 
-Settled Tasks satisfy `Task#wait_result`, `Task#on_complete`, and `Task#map` with
-the same contract as a normally-completed Task.
+Settled results satisfy `TaskResult#wait_result`, `TaskResult#on_complete`, and `TaskResult#map` with
+the same contract as a normally-completed TaskResult.
 
 ## Blocking
 
 `Phronomy::Blocking.call_async(&block)` submits a synchronous block to the
-existing default Runtime OffloadPool and returns a `Task`. It is the public
+existing default Runtime OffloadPool and returns a `TaskResult`. It is the public
 application entry point for one-off synchronous work that should not block the
 caller:
 
@@ -406,6 +411,11 @@ task = Phronomy::Blocking.call_async { expensive_io_call }
 result = task.wait_result
 ```
 
+The optional `invocation_context:` connects this operation to an Execution
+scope or an existing invocation context. Context controls and the optional
+individual `cancellation_token:` both apply, without reverse cancellation of
+shared controls. The application chooses when synchronous work needs OffloadPool.
+
 The method uses the existing bounded OffloadPool. It does not create a new thread
 or scheduler. Capacity and backpressure semantics are inherited from the pool
 configuration (`offload_pool_size` / `offload_queue_size`).
@@ -413,9 +423,9 @@ configuration (`offload_pool_size` / `offload_queue_size`).
 `Blocking.call_async` always uses non-waiting admission (`on_full: :raise`) and can
 be called from within the EventLoop thread. Admission `StandardError` failures (for
 example `BackpressureError` when the queue is full) are caught and returned as a
-failed `Task`. Accepted work retains the pool's original `Task` unchanged. Do not
-call `Task#wait_result` on the returned `Task` from within the EventLoop — waiting
-for a `Task` that requires EventLoop progress will deadlock.
+failed `TaskResult`. Accepted work retains the pool's original `TaskResult` unchanged. Do not
+call `TaskResult#wait_result` on the returned `TaskResult` from within the EventLoop — waiting
+for a `TaskResult` that requires EventLoop progress will deadlock.
 
 ## OffloadPool
 
@@ -432,7 +442,7 @@ Its guarantees include:
 - runtime metrics;
 - shutdown/drain behavior.
 
-`OffloadPool#submit` returns a `Phronomy::Task`. OffloadPool does not expose its
+`OffloadPool#submit` returns a `Phronomy::TaskResult`. OffloadPool does not expose its
 execution record as a caller-facing future/promise. Its private `Operation` owns:
 
 - the submitted block;
@@ -444,21 +454,21 @@ execution record as a caller-facing future/promise. Its private `Operation` owns
 - metrics state needed by the pool.
 
 This separation keeps execution details private while allowing every asynchronous
-Phronomy API to expose the same Task completion contract.
+Phronomy API to expose the same TaskResult completion contract.
 
 ### EventLoop queue admission
 
 Framework-owned EventLoop-origin submissions must not wait for a free worker
 queue slot. They use non-blocking admission (`on_full: :raise`) and route
-`BackpressureError` through the ordinary FSM/Task completion path.
+`BackpressureError` through the ordinary FSM/TaskResult completion path.
 
 Any internal `OffloadPool#submit` call that requests waiting admission
 (`on_full: :wait` or `:timeout`) is **rejected before the Operation is created**
 when the caller is on the EventLoop thread. The rejection raises
 `Phronomy::EventLoopReentrancyError` directly; it does not create an Operation,
-timer, cancellation subscription, or Task. The public `Phronomy::Blocking.call_async`
+timer, cancellation subscription, or TaskResult. The public `Phronomy::Blocking.call_async`
 always uses `on_full: :raise` and therefore does not trigger this guard; it converts
-admission `StandardError` (such as `BackpressureError`) into a failed `Task` at the
+admission `StandardError` (such as `BackpressureError`) into a failed `TaskResult` at the
 public-API layer.
 
 External management threads may choose a blocking admission policy when blocking
@@ -466,14 +476,14 @@ the caller is acceptable.
 
 ## Submit timeout and cancellation
 
-Submit-time timeout and submit cancellation settle the caller-facing Task. They
+Submit-time timeout and submit cancellation settle the caller-facing TaskResult. They
 do **not** asynchronously interrupt an already-running synchronous worker.
 
 ### Before worker start
 
 If timeout/cancellation wins before execution starts:
 
-- the Task settles (`TimeoutError` failure or cancellation);
+- the TaskResult settles (`TimeoutError` failure or cancellation);
 - the submitted block does not run;
 - the private Operation is not counted as abandoned.
 
@@ -481,7 +491,7 @@ If timeout/cancellation wins before execution starts:
 
 If timeout/cancellation wins after execution starts:
 
-- the Task settles immediately;
+- the TaskResult settles immediately;
 - the private Operation is marked abandoned;
 - the worker continues until its synchronous call returns;
 - the eventual worker result is discarded.
@@ -497,7 +507,7 @@ requiring callback delivery promote the deadline to explicit `cancel!` through
 the Runtime timer queue. OffloadPool does this for its submit cancellation token.
 
 A CancellationToken may be shared by multiple operations. For that reason,
-settling or cancelling one Task does not cancel the token in the reverse
+settling or cancelling one TaskResult does not cancel the token in the reverse
 direction.
 
 ## Native async boundary
@@ -505,7 +515,7 @@ direction.
 A genuine native-async driver that does not create a Phronomy-owned OS Thread and
 does not block EventLoop need not consume an OffloadPool worker. If Phronomy
 formally exposes such an extension point, it must adapt completion to
-`Phronomy::Task` rather than exposing a provider-specific future or a private
+`Phronomy::TaskResult` rather than exposing a provider-specific future or a private
 Runtime type.
 
 The current Persistence, VectorStore, Embeddings, and LLM call-extension
@@ -523,8 +533,8 @@ Two metrics answer different operational questions:
 - `offload_pool_abandoned_active` — current number of abandoned operations whose
   synchronous workers still occupy pool capacity.
 
-The abandonment state belongs to the private OffloadPool Operation, not to Task.
-Task reports only caller-facing settlement.
+The abandonment state belongs to the private OffloadPool Operation, not to TaskResult.
+TaskResult reports only caller-facing settlement.
 
 ## EventLoop metrics
 

@@ -112,7 +112,7 @@ operations that would otherwise occupy the EventLoop for too long. The work
 may be blocking I/O, CPU-bound Ruby processing, or another application-defined
 synchronous call. Phronomy deliberately does not classify the workload by
 cause; the application decides whether a unit of work is EventLoop-safe.</p>
-<p>Logical waits are different. Waiting for another Phronomy Task, Agent,
+<p>Logical waits are different. Waiting for another Phronomy TaskResult, Agent,
 Workflow, ToolInvocation, timer, or FSMSession must remain an explicit
 EventLoop/FSMSession continuation and must not consume an OffloadPool worker.
 See ADR-010.</p>
@@ -120,7 +120,7 @@ See ADR-010.</p>
 <ol>
 <li>The total number of worker OS threads is capped.</li>
 <li>Queue depth is bounded (backpressure when the pool is saturated).</li>
-<li>Per-operation timeouts and cancellation settle the caller-facing Task.</li>
+<li>Per-operation timeouts and cancellation settle the caller-facing TaskResult.</li>
 <li>Operations that settle after worker execution has started are tracked as
 abandoned until that worker returns.</li>
 <li>Metrics expose active work, queue depth, cumulative abandonment,
@@ -413,7 +413,7 @@ resource isolation may use named pools via <span class='object_link'><a href="..
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#submit-instance_method" title="#submit (instance method)">#<strong>submit</strong>(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil) { ... } &#x21d2; Phronomy::Task </a>
+      <a href="#submit-instance_method" title="#submit (instance method)">#<strong>submit</strong>(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil) { ... } &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -553,15 +553,6 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-302
-303
-304
-305
-306
-307
-308
-309
-310
 311
 312
 313
@@ -575,10 +566,19 @@ cancellation token is used.</p></div>
 321
 322
 323
-324</pre>
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 302</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 311</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span>
@@ -655,12 +655,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-544
-545
-546</pre>
+553
+554
+555</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 544</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 553</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -712,12 +712,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-538
-539
-540</pre>
+547
+548
+549</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 538</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 547</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -769,12 +769,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-541
-542
-543</pre>
+550
+551
+552</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 541</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 550</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -837,12 +837,12 @@ capacity at this instant</p></div>
       <pre class="lines">
 
 
-521
-522
-523</pre>
+530
+531
+532</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 521</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 530</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_active_count'>abandoned_active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_active_operation_ids</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
@@ -898,12 +898,12 @@ or cancellation settled after worker execution had started</p></div>
       <pre class="lines">
 
 
-514
-515
-516</pre>
+523
+524
+525</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 514</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 523</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -957,12 +957,12 @@ or cancellation settled after worker execution had started</p></div>
       <pre class="lines">
 
 
-501
-502
-503</pre>
+510
+511
+512</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 501</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 510</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -1014,16 +1014,16 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-529
-530
-531
-532
-533
-534
-535</pre>
+538
+539
+540
+541
+542
+543
+544</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 529</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 538</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1081,12 +1081,12 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-507
-508
-509</pre>
+516
+517
+518</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 507</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 516</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -1160,15 +1160,15 @@ remaining items, without blocking on a full-queue push.</p>
       <pre class="lines">
 
 
-490
-491
-492
-493
-494
-495</pre>
+499
+500
+501
+502
+503
+504</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 490</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 499</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -1184,7 +1184,7 @@ remaining items, without blocking on a full-queue push.</p>
       <div class="method_details ">
   <h3 class="signature " id="submit-instance_method">
   
-    #<strong>submit</strong>(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil) { ... } &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>submit</strong>(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil) { ... } &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -1197,18 +1197,18 @@ remaining items, without blocking on a full-queue push.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Submits synchronous off-EventLoop work to the pool.</p>
-<p>Returns a <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> immediately after queue admission; the block
+<p>Returns a <span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span> immediately after queue admission; the block
 runs on a worker thread. Do not submit logical waits (for example waiting
-for a child Agent Task) merely to make them asynchronous; those belong to
+for a child Agent TaskResult) merely to make them asynchronous; those belong to
 FSMSession/EventLoop completion events.</p>
 <p>A submit-time <code>timeout</code> is an operation-wide deadline measured from the
-start of this method, including queue wait. The timer settles the Task and
+start of this method, including queue wait. The timer settles the TaskResult and
 notifies <code>on_complete</code> without forcibly interrupting a running worker. If
 the deadline fires before worker execution starts, the block is skipped.
 If it fires after execution starts, the private Operation is marked
 abandoned and the eventual worker result is discarded.</p>
 <p>The submit <code>cancellation_token</code> is also operation-wide. Explicit
-cancellation settles the Task immediately. A token with a monotonic
+cancellation settles the TaskResult immediately. A token with a monotonic
 deadline is attached to the Runtime timer queue so deadline expiry becomes
 explicit cancellation without adding a polling Thread. Cancellation before
 execution skips the block; cancellation after execution starts abandons
@@ -1314,7 +1314,7 @@ code should use Phronomy::Blocking.call_async.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
@@ -1393,15 +1393,6 @@ timer queue provider is configured</p></div>
       <pre class="lines">
 
 
-367
-368
-369
-370
-371
-372
-373
-374
-375
 376
 377
 378
@@ -1505,10 +1496,19 @@ timer queue provider is configured</p></div>
 476
 477
 478
-479</pre>
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 367</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 376</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
   <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -1567,7 +1567,7 @@ timer queue provider is configured</p></div>
 
       <span class='comment'># Arm before queue admission so the deadline includes time spent waiting
 </span>      <span class='comment'># for a queue slot.
-</span>      <span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span> <span class='rbrace'>}</span>
+</span>      <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='comma'>,</span> <span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span> <span class='rbrace'>}</span>
     <span class='kw'>end</span>
 
     <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_remaining'>cancellation_remaining</span>
@@ -1577,7 +1577,7 @@ timer queue provider is configured</p></div>
         <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
         <span class='kw'>return</span> <span class='id identifier rubyid_task'>task</span>
       <span class='kw'>end</span>
-      <span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
+      <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='comma'>,</span> <span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
     <span class='kw'>end</span>
 
     <span class='comment'># Cancellation/timeout can race with timer registration. Do not enqueue
@@ -1633,7 +1633,7 @@ timer queue provider is configured</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:09 2026 by
+  Generated on Mon Sep 14 11:47:22 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

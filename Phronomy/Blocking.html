@@ -115,7 +115,7 @@ waits, persist work, force-stop a running block, or create a scheduler.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#call_async-class_method" title="call_async (class method)">.<strong>call_async</strong>(timeout: nil, cancellation_token: nil) { ... } &#x21d2; Phronomy::Task </a>
+      <a href="#call_async-class_method" title="call_async (class method)">.<strong>call_async</strong>(timeout: nil, cancellation_token: nil, invocation_context: nil) { ... } &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -147,7 +147,7 @@ waits, persist work, force-stop a running block, or create a scheduler.</p>
       <div class="method_details first">
   <h3 class="signature first" id="call_async-class_method">
   
-    .<strong>call_async</strong>(timeout: nil, cancellation_token: nil) { ... } &#x21d2; <tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    .<strong>call_async</strong>(timeout: nil, cancellation_token: nil, invocation_context: nil) { ... } &#x21d2; <tt><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -157,9 +157,9 @@ waits, persist work, force-stop a running block, or create a scheduler.</p>
   <div class="discussion">
     <p>Submits synchronous application work to the default Runtime OffloadPool.
 Admission never waits for queue space. Admission StandardError failures
-become failed Tasks; accepted work retains the pool's Task unchanged.
-A timeout/cancellation can settle that Task before a running worker exits.
-The block must not wait for another Agent, Workflow, or Task.</p>
+become failed results; accepted work retains the pool's TaskResult unchanged.
+A timeout/cancellation can settle that TaskResult before a running worker exits.
+The block must not wait for another Agent, Workflow, or TaskResult.</p>
 
   </div>
 </div>
@@ -196,6 +196,22 @@ The block must not wait for another Agent, Workflow, or Task.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>invocation_context</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>explicit context/scope</p></div>
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Yields:</p>
@@ -220,12 +236,12 @@ The block must not wait for another Agent, Workflow, or Task.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>original accepted Task or failed admission Task</p></div>
+        <div class='inline'><p>original accepted TaskResult or failed admission TaskResult</p></div>
       
     </li>
   
@@ -253,7 +269,6 @@ The block must not wait for another Agent, Workflow, or Task.</p>
       <pre class="lines">
 
 
-19
 20
 21
 22
@@ -266,23 +281,36 @@ The block must not wait for another Agent, Workflow, or Task.</p>
 29
 30
 31
-32</pre>
+32
+33
+34
+35
+36
+37
+38
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking.rb', line 20</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Blocking.call_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
   <span class='kw'>begin</span>
-    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+      <span class='id identifier rubyid_binding'>binding</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid___operation_binding'><span class='object_link'><a href="Execution.html#__operation_binding-class_method" title="Phronomy::Execution.__operation_binding (method)">__operation_binding</a></span></span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span>
+        <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
       <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='comma'>,</span>
       <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
-      <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+      <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_binding'>binding</span> <span class='op'>?</span> <span class='id identifier rubyid_binding'>binding</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span> <span class='op'>:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
       <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
     <span class='rparen'>)</span>
+    <span class='id identifier rubyid_binding'>binding</span> <span class='op'>?</span> <span class='id identifier rubyid_binding'>binding</span><span class='period'>.</span><span class='id identifier rubyid_bind'>bind</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_result'>result</span>
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
-    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_failed'><span class='object_link'><a href="Task.html#failed-class_method" title="Phronomy::Task.failed (method)">failed</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking-admission-failed</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_failed'><span class='object_link'><a href="TaskResult.html#failed-class_method" title="Phronomy::TaskResult.failed (method)">failed</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking-admission-failed</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_binding'>binding</span> <span class='op'>?</span> <span class='id identifier rubyid_binding'>binding</span><span class='period'>.</span><span class='id identifier rubyid_bind'>bind</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_result'>result</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -295,7 +323,7 @@ The block must not wait for another Agent, Workflow, or Task.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:04 2026 by
+  Generated on Mon Sep 14 11:47:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

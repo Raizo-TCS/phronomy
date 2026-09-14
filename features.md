@@ -46,8 +46,8 @@ rather than implicitly inheriting the parent revision. The Stable
 |---|---|
 | **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`, selected per LLM call by Context Policy | Beta |
 | **`VectorStore#size`** — Document count for InMemory, RedisSearch, and Pgvector backends | Beta |
-| **VectorStore async convenience** — `add_async` / `search_async` / `remove_async` / `clear_async` offload the synchronous Backend SPI through Phronomy and return `Task`; native async override is not part of the current Backend SPI | Beta |
-| **Embedding async convenience** — `embed_async` offloads synchronous `embed` through Phronomy and returns `Task` | Beta |
+| **VectorStore async convenience** — `add_async` / `search_async` / `remove_async` / `clear_async` offload the synchronous Backend SPI through Phronomy and return `TaskResult`; native async override is not part of the current Backend SPI | Beta |
+| **Embedding async convenience** — `embed_async` offloads synchronous `embed` through Phronomy and returns `TaskResult` | Beta |
 | **Model Context Protocol (MCP) Tool** — `Phronomy::Tools::Mcp` integration through the official `mcp` gem | Beta |
 | **Agent Tool** — `Phronomy::Tools::Agent.from_agent` exposes a child Agent as a Tool without occupying a worker while waiting | Beta |
 | **Vector Search Tool** — `Phronomy::Tools::VectorSearch` wraps VectorStore and Embeddings adapters | Beta |
@@ -64,10 +64,12 @@ rather than implicitly inheriting the parent revision. The Stable
 | **Agent async events** — one Runtime-only `on_event` listener is bound at Agent `new` / `create` / `load`; invoke/stream operations publish through that listener and streaming additionally emits `:token` | Beta |
 | **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |
 | **`stream_callback_error_policy`** — Terminal event callback error policy (`:report` / `:fail_task`) | Beta |
-| **Task completion contract** — `Task` is the common caller-facing completion handle for EventLoop/FSMSession lifecycles and OffloadPool work | Beta |
-| **`Task#map`** — Application-level Task result transformation and error propagation | Stable |
-| **Settled Task factories** — Public `Task.completed` / `Task.failed` represent already available application results without starting execution | Beta |
-| **Blocking.call_async** — Public non-waiting admission of synchronous application work to the existing OffloadPool, returning a Task | Beta |
+| **TaskResult completion contract** — `TaskResult` is the common caller-facing completion handle for EventLoop/FSMSession lifecycles and OffloadPool work | Beta |
+| **`TaskResult#map`** — Application-level TaskResult result transformation and error propagation | Stable |
+| **`TaskResult#flat_map` / `.all_settled`** — Asynchronous chaining and input-order observation of terminal results | Beta |
+| **`Execution.run_async` / `.run`** — Common runtime fan-out/fan-in with whole-execution controls and immutable outcome snapshots | Beta |
+| **Settled TaskResult factories** — Public `TaskResult.completed` / `TaskResult.failed` represent already available application results without starting execution | Beta |
+| **Blocking.call_async** — Public non-waiting admission of synchronous application work to the existing OffloadPool, returning a TaskResult | Beta |
 | **CancellationToken** — Cooperative cancellation with explicit `cancel!`, lazy monotonic deadlines, and callback registration | Experimental |
 | **Tool `execution_mode`** — `:cooperative` for short EventLoop-safe work; `:offloaded` for synchronous work that must stay off EventLoop | Experimental |
 | **OffloadPool sizing** — `offload_pool_size` / `offload_queue_size`; named pools available for application-owned isolation | Beta |
@@ -107,11 +109,11 @@ visibility still follows the intended calling model. `@api private` means
 declaration; some internal methods remain Ruby-public because Phronomy components
 call them through explicit receivers.
 
-`Task` is the caller-facing completion abstraction. Framework components own
+`TaskResult` is the caller-facing completion abstraction. Framework components own
 settlement (`complete` / `fail` / `cancel!`); application code observes Tasks via
 `wait_result`, `on_complete`, `map`, and state readers. Operation-wide cancellation
 is requested through the `CancellationToken` accepted by the API that created the
-Task.
+TaskResult.
 
 Persistence Backend SPI methods, LLMAdapter methods, and other documented
 extension contracts are deliberate exceptions to the ordinary
@@ -147,7 +149,8 @@ private execution machinery, see [Runtime and concurrency](runtime-and-concurren
 
 Static `Orchestrator.subagent` Tools invoked inside a parent AgentExecution reserve
 child Agent/execution identities before dispatch and reuse retained outcomes.
-Direct `dispatch_parallel` / `fan_out` calls remain Runtime-only convenience APIs.
+Direct `dispatch_parallel` calls retain Agent-specific policy and use the common
+runtime Execution engine. The redundant `fan_out` / `fan_out_async` APIs are removed.
 `Orchestrator#resume(execution_id)` continues retained parent coordination.
 
 `TeamCoordinator` requires `team_definition id:, version:` and provides

@@ -42,7 +42,7 @@ results without hydration/callbacks. `Persistence#handoff_result(source_id)`
 follows the exact transfer chain without constructing a graph or Agent owners. `Orchestrator#resume(id)` continues existing
 static subagent coordination. There is no global generic class registry.
 
-Observer Task wait timeouts and shutdown do not request cancellation. Team's
+Observer TaskResult wait timeouts and shutdown do not request cancellation. Team's
 `cancel(run_id)` persists a run-scoped request before forwarding its live token;
 resume settles exact children or returns the existing rehydration error. Handoff's
 `cancel(execution_id)` follows only that turn. A cancellation token passed to

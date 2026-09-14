@@ -32,7 +32,7 @@ the following as part of this SPI:
 - EventLoop Agent execution-directory entries;
 - `AgentInvocation`;
 - `FSMSession`;
-- `Task` or callbacks;
+- `TaskResult` or callbacks;
 - EventLoop queue contents;
 - Runtime Workflow admission entries;
 - in-flight provider operations.

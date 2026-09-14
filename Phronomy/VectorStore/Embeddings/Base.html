@@ -107,7 +107,7 @@
     <p>Public extension SPI for embedding adapters.</p>
 <p>Concrete implementations override <span class='object_link'><a href="#embed-instance_method" title="Phronomy::VectorStore::Embeddings::Base#embed (method)">#embed</a></span>. Phronomy owns the async
 bridge: <span class='object_link'><a href="#embed_async-instance_method" title="Phronomy::VectorStore::Embeddings::Base#embed_async (method)">#embed_async</a></span> routes the synchronous implementation through the
-bounded OffloadPool and returns a <span class='object_link'><a href="../../Task.html" title="Phronomy::Task (class)">Task</a></span>.</p>
+bounded OffloadPool and returns a <span class='object_link'><a href="../../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>.</p>
 
   </div>
 </div>
@@ -158,7 +158,7 @@ bounded OffloadPool and returns a <span class='object_link'><a href="../../Task.
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#embed_async-instance_method" title="#embed_async (instance method)">#<strong>embed_async</strong>(text, cancellation_token = nil, timeout: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#embed_async-instance_method" title="#embed_async (instance method)">#<strong>embed_async</strong>(text, cancellation_token = nil, timeout: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -291,7 +291,7 @@ bounded OffloadPool and returns a <span class='object_link'><a href="../../Task.
       <div class="method_details ">
   <h3 class="signature " id="embed_async-instance_method">
   
-    #<strong>embed_async</strong>(text, cancellation_token = nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>embed_async</strong>(text, cancellation_token = nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -355,7 +355,7 @@ bounded OffloadPool and returns a <span class='object_link'><a href="../../Task.
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
@@ -401,7 +401,7 @@ bounded OffloadPool and returns a <span class='object_link'><a href="../../Task.
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:09 2026 by
+  Generated on Mon Sep 14 11:47:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

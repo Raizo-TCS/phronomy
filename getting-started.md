@@ -180,13 +180,13 @@ Supplying both `on_event:` and a construction block is an error. If `load`
 resolves an already-live same-process Agent, supplying any new listener/block
 is also an error; the existing binding is immutable for that Runtime incarnation.
 
-`Phronomy::Task` is the common caller-facing completion handle for asynchronous
+`Phronomy::TaskResult` is the common caller-facing completion handle for asynchronous
 Phronomy work. Logical lifecycle progress is driven by EventLoop/FSMSession;
 synchronous work that must execute away from EventLoop is submitted to
-OffloadPool. Both paths expose completion as a `Task`.
+OffloadPool. Both paths expose completion as a `TaskResult`.
 
-`Task#wait_result` is for an external caller. Do not block EventLoop waiting for
-a Task that can only complete through that same EventLoop.
+`TaskResult#wait_result` is for an external caller. Do not block EventLoop waiting for
+a TaskResult that can only complete through that same EventLoop.
 
 Streaming uses the same Agent-incarnation listener:
 
@@ -208,7 +208,7 @@ EventLoop and therefore should return quickly.
 ## Human-in-the-loop approval
 
 A Tool requiring approval suspends the durable logical execution without
-settling the original execution Task. Approval notification is delivered
+settling the original execution TaskResult. Approval notification is delivered
 through the same Agent listener as `:approval_required`:
 
 ```ruby
@@ -349,7 +349,7 @@ workflow = Phronomy::Workflow.define(AnswerContext) do
 end
 ```
 
-Returning a `Phronomy::Task` from a Workflow entry/transition action is not an
+Returning a `Phronomy::TaskResult` from a Workflow entry/transition action is not an
 implicit await mechanism and is rejected.
 
 ## Agent as Tool

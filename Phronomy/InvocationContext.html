@@ -370,6 +370,50 @@ metadata instead.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__bind_execution-instance_method" title="#__bind_execution (instance method)">#<strong>__bind_execution</strong>(execution)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Framework-owned metadata; not inferred from the executing Ruby thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#__execution_scope-instance_method" title="#__execution_scope (instance method)">#<strong>__execution_scope</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#effective_cancellation_token-instance_method" title="#effective_cancellation_token (instance method)">#<strong>effective_cancellation_token</strong>  &#x21d2; Object </a>
     
 
@@ -876,7 +920,95 @@ metadata instead.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="effective_cancellation_token-instance_method">
+  <h3 class="signature first" id="__bind_execution-instance_method">
+  
+    #<strong>__bind_execution</strong>(execution)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Framework-owned metadata; not inferred from the executing Ruby thread.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+64
+65
+66
+67</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 64</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___bind_execution'>__bind_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
+  <span class='ivar'>@execution_scope</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__execution_scope-instance_method">
+  
+    #<strong>__execution_scope</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+70
+71
+72</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 70</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___execution_scope'>__execution_scope</span>
+  <span class='ivar'>@execution_scope</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="effective_cancellation_token-instance_method">
   
     #<strong>effective_cancellation_token</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -903,12 +1035,12 @@ metadata instead.</p>
       <pre class="lines">
 
 
-63
-64
-65</pre>
+75
+76
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_cancellation_token'>effective_cancellation_token</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -946,17 +1078,17 @@ metadata instead.</p>
       <pre class="lines">
 
 
-68
-69
-70
-71
-72
-73
-74
-75</pre>
+80
+81
+82
+83
+84
+85
+86
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
   <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
@@ -1025,7 +1157,7 @@ metadata instead.</p>
     <span class='label'>redaction_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:redaction_policy</span><span class='comma'>,</span> <span class='ivar'>@redaction_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>task_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:task_id</span><span class='comma'>,</span> <span class='ivar'>@task_id</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>parent_task_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:parent_task_id</span><span class='comma'>,</span> <span class='ivar'>@parent_task_id</span><span class='rparen'>)</span>
-  <span class='rparen'>)</span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid___bind_execution'><span class='object_link'><a href="#__bind_execution-instance_method" title="Phronomy::InvocationContext#__bind_execution (method)">__bind_execution</a></span></span><span class='lparen'>(</span><span class='ivar'>@execution_scope</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1037,7 +1169,7 @@ metadata instead.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:06 2026 by
+  Generated on Mon Sep 14 11:47:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

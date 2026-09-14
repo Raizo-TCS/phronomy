@@ -812,7 +812,7 @@ happens by short event dispatches on this thread.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Registers a caller-facing Task that observes the authoritative terminal outcome of one logical Agent execution.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Registers a caller-facing TaskResult that observes the authoritative terminal outcome of one logical Agent execution.</p></div></span>
   
 </li>
 
@@ -2964,7 +2964,7 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 116</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_current?'>current?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_completion'>completion</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_current?'>current?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_completion'>completion</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Cannot call a synchronous invocation API from an EventLoop action. </span><span class='tstring_end'>&quot;</span></span> \
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Schedule work asynchronously instead.</span><span class='tstring_end'>&quot;</span></span>
@@ -3020,7 +3020,7 @@ revoked result authority but execution-owned physical work is still live.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Registers a caller-facing Task that observes the authoritative terminal
+<p>Registers a caller-facing TaskResult that observes the authoritative terminal
 outcome of one logical Agent execution. Waiters are Runtime-only and are
 never persisted or rehydrated.</p>
 
@@ -3054,8 +3054,8 @@ never persisted or rehydrated.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register_agent_completion_waiter'>register_agent_completion_waiter</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
-  <span class='kw'>unless</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent completion waiter must be a Phronomy::Task</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent completion waiter must be a Phronomy::TaskResult</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -3656,7 +3656,7 @@ ordinary completion mean that no residual execution-affecting work remains.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Atomically detaches all process-local completion waiters at authoritative
-terminal delivery. A fallback Task is included for pre-install terminal
+terminal delivery. A fallback TaskResult is included for pre-install terminal
 paths that never acquired a live execution directory entry.</p>
 
   </div>
@@ -3949,7 +3949,7 @@ paths that never acquired a live execution directory entry.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:06 2026 by
+  Generated on Mon Sep 14 11:47:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -81,8 +81,10 @@ tracking <code>main</code> directly.</p>
 <li><strong>Multi-Agent Handoff</strong> — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.</li>
 <li><strong>EventLoop + FSMSession</strong> — the framework control plane for logical lifecycle coordination.</li>
 <li><strong>OffloadPool</strong> — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.</li>
-<li><strong>Task</strong> — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.</li>
-<li><strong>Task.completed / Task.failed</strong> — already-settled application results without starting execution.</li>
+<li><strong>TaskResult</strong> — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.</li>
+<li><strong>TaskResult.completed / TaskResult.failed</strong> — already-settled application results without starting execution.</li>
+<li><strong>TaskResult.map / flat_map / all_settled</strong> — result transformation, asynchronous chaining and ordered all-settled observation.</li>
+<li><strong>Execution.run_async / run</strong> — start application JOBs and join their final results under a whole-execution timeout and cancellation scope.</li>
 <li><strong>Blocking.call_async</strong> — submits synchronous application work to the existing bounded OffloadPool without waiting for queue space.</li>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
@@ -129,8 +131,8 @@ dependencies, stateful Agent setup, streaming, and Workflow examples.</p>
 class. The legacy <code>Phronomy::Agent::Context::Capability::Base</code> constant remains
 valid for compatibility.</p>
 <p>For non-blocking top-level use, call <code>invoke_async</code> and keep the returned
-<code>Phronomy::Task</code>. Inside Phronomy lifecycle callbacks, do not block waiting for
-another Task; continue through explicit events instead.</p>
+<code>Phronomy::TaskResult</code>. Inside Phronomy lifecycle callbacks, do not block waiting for
+another TaskResult; continue through explicit events instead.</p>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research Ruby AI frameworks</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>   <span class='comment'># top-level/external caller only
 </span></code></pre>
@@ -161,13 +163,13 @@ Public per-invocation <code>on_event:</code> / listener blocks are removed.</p>
 └─ EventLoop-driven timers
 
 EventLoop / FSMSession ─┐
-                       ├─&gt; Task = completion handle
+                       ├─&gt; TaskResult = completion handle
 OffloadPool ────────────┘
 </code></pre>
 <p>Logical waiting remains in EventLoop/FSMSession state. Synchronous work that
 would block EventLoop uses the bounded OffloadPool. OffloadPool-specific queue,
 worker, timeout, and abandonment state remains private runtime machinery; callers
-observe completion through <code>Phronomy::Task</code>. See
+observe completion through <code>Phronomy::TaskResult</code>. See
 <a href="docs/runtime-and-concurrency.md">Runtime and concurrency</a> for the detailed
 contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <h2 id="Documentation">Documentation</h2>
@@ -175,7 +177,8 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <li><a href="docs/getting-started.md">Getting started</a> — installation, RubyLLM setup, Agent/Workflow basics, persistence, streaming.</li>
 <li><a href="docs/features.md">Features and API stability</a> — public feature matrix and stability labels.</li>
 <li><a href="docs/architecture.md">Architecture</a> — canonical current explanatory architecture entry and authority navigation.</li>
-<li><a href="docs/runtime-and-concurrency.md">Runtime and concurrency</a> — EventLoop, FSMSession, Task, OffloadPool, cancellation, observability.</li>
+<li><a href="docs/runtime-and-concurrency.md">Runtime and concurrency</a> — EventLoop, FSMSession, TaskResult, OffloadPool, cancellation, observability.</li>
+<li><a href="docs/async-composition.md">Result composition and Execution</a> — application JOBs, map/flat_map, fan-in snapshots, context ownership and migration.</li>
 <li><a href="docs/mcp-client.md">MCP client</a> — Model Context Protocol (MCP) integration and supported schema subset.</li>
 <li><a href="docs/migrations/0.15.md">Migration from 0.15-era APIs</a>.</li>
 <li><a href="docs/migrations/0.16.md">0.16 cleanup migration</a>.</li>
@@ -211,7 +214,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:04 2026 by
+  Generated on Mon Sep 14 11:47:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

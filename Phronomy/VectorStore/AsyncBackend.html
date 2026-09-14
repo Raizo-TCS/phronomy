@@ -105,7 +105,7 @@ Phronomy's bounded OffloadPool. This keeps OS-thread creation, queue
 backpressure, submit timeout/cancellation, and completion semantics owned by
 the framework rather than by each backend.</p>
 <p>A future genuine native-async backend may adapt its completion into a
-<span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> without an OffloadPool worker, but native async override is
+<span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span> without an OffloadPool worker, but native async override is
 not part of the current backend SPI.</p>
 
   </div>
@@ -131,7 +131,7 @@ not part of the current backend SPI.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#add_async-instance_method" title="#add_async (instance method)">#<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#add_async-instance_method" title="#add_async (instance method)">#<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -153,7 +153,7 @@ not part of the current backend SPI.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#clear_async-instance_method" title="#clear_async (instance method)">#<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#clear_async-instance_method" title="#clear_async (instance method)">#<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -175,7 +175,7 @@ not part of the current backend SPI.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#remove_async-instance_method" title="#remove_async (instance method)">#<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#remove_async-instance_method" title="#remove_async (instance method)">#<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -197,7 +197,7 @@ not part of the current backend SPI.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#search_async-instance_method" title="#search_async (instance method)">#<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#search_async-instance_method" title="#search_async (instance method)">#<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -229,7 +229,7 @@ not part of the current backend SPI.</p>
       <div class="method_details first">
   <h3 class="signature first" id="add_async-instance_method">
   
-    #<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -314,7 +314,7 @@ not part of the current backend SPI.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
@@ -358,7 +358,7 @@ not part of the current backend SPI.</p>
       <div class="method_details ">
   <h3 class="signature " id="clear_async-instance_method">
   
-    #<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -408,7 +408,7 @@ not part of the current backend SPI.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
@@ -452,7 +452,7 @@ not part of the current backend SPI.</p>
       <div class="method_details ">
   <h3 class="signature " id="remove_async-instance_method">
   
-    #<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -513,7 +513,7 @@ not part of the current backend SPI.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
@@ -557,7 +557,7 @@ not part of the current backend SPI.</p>
       <div class="method_details ">
   <h3 class="signature " id="search_async-instance_method">
   
-    #<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -631,7 +631,7 @@ not part of the current backend SPI.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
@@ -677,7 +677,7 @@ not part of the current backend SPI.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:05 2026 by
+  Generated on Mon Sep 14 11:47:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

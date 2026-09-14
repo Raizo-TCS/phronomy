@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Task
+  Class: Phronomy::TaskResult
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Task";
+  pathId = "Phronomy::TaskResult";
   relpath = '../';
 </script>
 
@@ -41,7 +41,7 @@
     <a href="../_index.html">Index (T)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
-    <span class="title">Task</span>
+    <span class="title">TaskResult</span>
   
 </div>
 
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Task
+      <div id="content"><h1>Class: Phronomy::TaskResult
   
   
   
@@ -76,7 +76,7 @@
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next">Phronomy::Task</li>
+            <li class="next">Phronomy::TaskResult</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/engine/task.rb
+    <dd>lib/phronomy/engine/task_result.rb
 </dd>
   </dl>
   
@@ -105,14 +105,14 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>A thread-free asynchronous completion handle.</p>
-<p>Task does not execute work. Execution belongs to EventLoop/FSMSession or
-OffloadPool. Task represents completion, failure, cancellation, callbacks,
+<p>TaskResult does not execute work. Execution belongs to EventLoop/FSMSession or
+OffloadPool. TaskResult represents completion, failure, cancellation, callbacks,
 and a blocking wait for callers outside EventLoop.</p>
-<p>Framework components own Task settlement. Application code should observe a
-Task through <span class='object_link'><a href="#wait_result-instance_method" title="Phronomy::Task#wait_result (method)">#wait_result</a></span>, <span class='object_link'><a href="#on_complete-instance_method" title="Phronomy::Task#on_complete (method)">#on_complete</a></span>, <span class='object_link'><a href="#map-instance_method" title="Phronomy::Task#map (method)">#map</a></span>, and state readers rather
-than calling <span class='object_link'><a href="#complete-instance_method" title="Phronomy::Task#complete (method)">#complete</a></span>, <span class='object_link'><a href="#fail-instance_method" title="Phronomy::Task#fail (method)">#fail</a></span>, or <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::Task#cancel! (method)">#cancel!</a></span>. Operation-wide cancellation
+<p>Framework components own TaskResult settlement. Application code should observe a
+TaskResult through <span class='object_link'><a href="#wait_result-instance_method" title="Phronomy::TaskResult#wait_result (method)">#wait_result</a></span>, <span class='object_link'><a href="#on_complete-instance_method" title="Phronomy::TaskResult#on_complete (method)">#on_complete</a></span>, <span class='object_link'><a href="#map-instance_method" title="Phronomy::TaskResult#map (method)">#map</a></span>, and state readers rather
+than calling <span class='object_link'><a href="#complete-instance_method" title="Phronomy::TaskResult#complete (method)">#complete</a></span>, <span class='object_link'><a href="#fail-instance_method" title="Phronomy::TaskResult#fail (method)">#fail</a></span>, or <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::TaskResult#cancel! (method)">#cancel!</a></span>. Operation-wide cancellation
 is supplied through the CancellationToken accepted by the API that created
-the Task.</p>
+the TaskResult.</p>
 
   </div>
 </div>
@@ -123,6 +123,16 @@ the Task.</p>
   <h2>Direct Known Subclasses</h2>
   <p class="children"><span class='object_link'><a href="Concurrency/PhysicalCompletionTask.html" title="Phronomy::Concurrency::PhysicalCompletionTask (class)">Concurrency::PhysicalCompletionTask</a></span></p>
 </div>
+<h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">Outcome</a></span>
+    
+  
+</p>
 
   
     <h2>
@@ -216,7 +226,29 @@ the Task.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#completed-class_method" title="completed (class method)">.<strong>completed</strong>(value = nil, name: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#all_settled-class_method" title="all_settled (class method)">.<strong>all_settled</strong>(results)  &#x21d2; TaskResult&lt;Array&lt;Outcome&gt;&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Observe already-created results without taking ownership of their work.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#completed-class_method" title="completed (class method)">.<strong>completed</strong>(value = nil, name: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -260,7 +292,7 @@ the Task.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#failed-class_method" title="failed (class method)">.<strong>failed</strong>(error, name: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#failed-class_method" title="failed (class method)">.<strong>failed</strong>(error, name: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
     
@@ -292,6 +324,94 @@ the Task.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__bind_execution-instance_method" title="#__bind_execution (instance method)">#<strong>__bind_execution</strong>(execution)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Bound at admission, before application code can attach continuations.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#__execution_scope-instance_method" title="#__execution_scope (instance method)">#<strong>__execution_scope</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#__snapshot-instance_method" title="#__snapshot (instance method)">#<strong>__snapshot</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Atomic state observation and removable framework subscriptions.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#__unsubscribe-instance_method" title="#__unsubscribe (instance method)">#<strong>__unsubscribe</strong>(callback)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#alive%3F-instance_method" title="#alive? (instance method)">#<strong>alive?</strong>  &#x21d2; Boolean </a>
     
 
@@ -306,7 +426,7 @@ the Task.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Whether the Task has not yet reached a terminal state.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Whether the TaskResult has not yet reached a terminal state.</p></div></span>
   
 </li>
 
@@ -314,7 +434,7 @@ the Task.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#cancel!-instance_method" title="#cancel! (instance method)">#<strong>cancel!</strong>(error = Phronomy::CancellationError.new(&quot;Task cancelled&quot;))  &#x21d2; Object </a>
+      <a href="#cancel!-instance_method" title="#cancel! (instance method)">#<strong>cancel!</strong>(error = Phronomy::CancellationError.new(&quot;TaskResult cancelled&quot;))  &#x21d2; Object </a>
     
 
     
@@ -328,7 +448,7 @@ the Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Settles this Task as cancelled.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Settles this TaskResult as cancelled.</p></div></span>
   
 </li>
 
@@ -350,7 +470,7 @@ the Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Settles this Task successfully.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Settles this TaskResult successfully.</p></div></span>
   
 </li>
 
@@ -372,7 +492,7 @@ the Task.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Whether the Task has reached a terminal state.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Whether the TaskResult has reached a terminal state.</p></div></span>
   
 </li>
 
@@ -394,7 +514,7 @@ the Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Settles this Task with a failure.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Settles this TaskResult with a failure.</p></div></span>
   
 </li>
 
@@ -402,7 +522,29 @@ the Task.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(name: nil, parent: nil)  &#x21d2; Task </a>
+      <a href="#flat_map-instance_method" title="#flat_map (instance method)">#<strong>flat_map</strong>(&amp;block)  &#x21d2; TaskResult </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Transform a successful value into the result of another asynchronous step.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(name: nil, parent: nil)  &#x21d2; TaskResult </a>
     
 
     
@@ -418,7 +560,7 @@ the Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>A new instance of Task.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>A new instance of TaskResult.</p></div></span>
   
 </li>
 
@@ -440,7 +582,7 @@ the Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Compatibility wait that does not re-raise the Task error.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Compatibility wait that does not re-raise the TaskResult error.</p></div></span>
   
 </li>
 
@@ -462,7 +604,7 @@ the Task.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Creates a derived Task by transforming this Task's successful result.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Creates a derived TaskResult by transforming this TaskResult's successful result.</p></div></span>
   
 </li>
 
@@ -543,7 +685,7 @@ the Task.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(name: nil, parent: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Task (class)">Task</a></span></tt> 
+    #<strong>initialize</strong>(name: nil, parent: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></tt> 
   
 
   
@@ -555,7 +697,7 @@ the Task.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns a new instance of Task.</p>
+<p>Returns a new instance of TaskResult.</p>
 
   </div>
 </div>
@@ -568,21 +710,21 @@ the Task.</p>
       <pre class="lines">
 
 
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63</pre>
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 86</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@name</span> <span class='op'>=</span> <span class='id identifier rubyid_name'>name</span>
@@ -632,12 +774,12 @@ the Task.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+83
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 83</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -673,12 +815,12 @@ the Task.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+83
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 83</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent'>parent</span>
   <span class='ivar'>@parent</span>
@@ -696,9 +838,121 @@ the Task.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="completed-class_method">
+  <h3 class="signature first" id="all_settled-class_method">
   
-    .<strong>completed</strong>(value = nil, name: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    .<strong>all_settled</strong>(results)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">Outcome</a></span>&gt;&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Observe already-created results without taking ownership of their work.
+Invalid inputs are rejected before any completion subscription is added.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>results</span>
+      
+      
+        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span>&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">Outcome</a></span>&gt;&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>TypeError</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>for a non-Array list or non-TaskResult element</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 36</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_all_settled'>all_settled</span><span class='lparen'>(</span><span class='id identifier rubyid_results'>results</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>results must be an Array</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_results'>results</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Array</span><span class='rparen'>)</span>
+
+  <span class='id identifier rubyid_inputs'>inputs</span> <span class='op'>=</span> <span class='id identifier rubyid_results'>results</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_index'>index</span><span class='op'>|</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>results[</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_index'>index</span><span class='embexpr_end'>}</span><span class='tstring_content'>] must be a Phronomy::TaskResult</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_combined'>combined</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>all-settled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_collector'>collector</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/ResultCollector.html" title="Phronomy::Concurrency::ResultCollector (class)">ResultCollector</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/ResultCollector.html#initialize-instance_method" title="Phronomy::Concurrency::ResultCollector#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__'>_</span><span class='comma'>,</span> <span class='id identifier rubyid_outcomes'>outcomes</span><span class='op'>|</span>
+    <span class='id identifier rubyid_combined'>combined</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_outcomes'>outcomes</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_index'>index</span><span class='op'>|</span> <span class='id identifier rubyid_collector'>collector</span><span class='period'>.</span><span class='id identifier rubyid_watch'>watch</span><span class='lparen'>(</span><span class='id identifier rubyid_index'>index</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_collector'>collector</span><span class='period'>.</span><span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_combined'>combined</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="completed-class_method">
+  
+    .<strong>completed</strong>(value = nil, name: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -707,7 +961,7 @@ the Task.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Public factories for already-settled values. No execution is started.
-Always create a base Task: there is no physical worker to supervise.</p>
+Always create a base TaskResult: there is no physical worker to supervise.</p>
 
   </div>
 </div>
@@ -755,12 +1009,12 @@ Always create a base Task: there is no physical worker to supervise.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>a completed base Task</p></div>
+        <div class='inline'><p>a completed base TaskResult</p></div>
       
     </li>
   
@@ -772,15 +1026,15 @@ Always create a base Task: there is no physical worker to supervise.</p>
       <pre class="lines">
 
 
-32
-33
-34</pre>
+66
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_completed'>completed</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_task'>task</span><span class='op'>|</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_task'>task</span><span class='op'>|</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -815,12 +1069,12 @@ Always create a base Task: there is no physical worker to supervise.</p>
       <pre class="lines">
 
 
-22
-23
-24</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_deferred'>deferred</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='rparen'>)</span>
@@ -833,7 +1087,7 @@ Always create a base Task: there is no physical worker to supervise.</p>
       <div class="method_details ">
   <h3 class="signature " id="failed-class_method">
   
-    .<strong>failed</strong>(error, name: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    .<strong>failed</strong>(error, name: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
   
 
   
@@ -888,12 +1142,12 @@ Observation through wait_result raises it; on_complete receives it.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>a failed base Task</p></div>
+        <div class='inline'><p>a failed base TaskResult</p></div>
       
     </li>
   
@@ -921,19 +1175,19 @@ Observation through wait_result raises it; on_complete receives it.</p>
       <pre class="lines">
 
 
-43
-44
-45
-46
-47</pre>
+77
+78
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_failed'>failed</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>error must be an Exception</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Exception</span><span class='rparen'>)</span>
 
-  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_task'>task</span><span class='op'>|</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_task'>task</span><span class='op'>|</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -947,7 +1201,181 @@ Observation through wait_result raises it; on_complete receives it.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="alive?-instance_method">
+  <h3 class="signature first" id="__bind_execution-instance_method">
+  
+    #<strong>__bind_execution</strong>(execution)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Bound at admission, before application code can attach continuations.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+265
+266
+267
+268</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 265</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___bind_execution'>__bind_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
+  <span class='ivar'>@execution_scope</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__execution_scope-instance_method">
+  
+    #<strong>__execution_scope</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+271
+272
+273</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 271</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___execution_scope'>__execution_scope</span>
+  <span class='ivar'>@execution_scope</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__snapshot-instance_method">
+  
+    #<strong>__snapshot</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Atomic state observation and removable framework subscriptions.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+254
+255
+256</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 254</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___snapshot'>__snapshot</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lbracket'>[</span><span class='ivar'>@status</span><span class='comma'>,</span> <span class='ivar'>@value</span><span class='comma'>,</span> <span class='ivar'>@error</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__unsubscribe-instance_method">
+  
+    #<strong>__unsubscribe</strong>(callback)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+259
+260
+261</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 259</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___unsubscribe'>__unsubscribe</span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@on_complete_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="alive?-instance_method">
   
     #<strong>alive?</strong>  &#x21d2; <tt>Boolean</tt> 
   
@@ -957,7 +1385,7 @@ Observation through wait_result raises it; on_complete receives it.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns whether the Task has not yet reached a terminal state.</p>
+    <p>Returns whether the TaskResult has not yet reached a terminal state.</p>
 
   </div>
 </div>
@@ -974,7 +1402,7 @@ Observation through wait_result raises it; on_complete receives it.</p>
       
       
         &mdash;
-        <div class='inline'><p>whether the Task has not yet reached a terminal state</p></div>
+        <div class='inline'><p>whether the TaskResult has not yet reached a terminal state</p></div>
       
     </li>
   
@@ -986,12 +1414,12 @@ Observation through wait_result raises it; on_complete receives it.</p>
       <pre class="lines">
 
 
-79
-80
-81</pre>
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='op'>!</span><span class='id identifier rubyid_done?'>done?</span>
@@ -1004,7 +1432,7 @@ Observation through wait_result raises it; on_complete receives it.</p>
       <div class="method_details ">
   <h3 class="signature " id="cancel!-instance_method">
   
-    #<strong>cancel!</strong>(error = Phronomy::CancellationError.new(&quot;Task cancelled&quot;))  &#x21d2; <tt>Object</tt> 
+    #<strong>cancel!</strong>(error = Phronomy::CancellationError.new(&quot;TaskResult cancelled&quot;))  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1016,9 +1444,9 @@ Observation through wait_result raises it; on_complete receives it.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Settles this Task as cancelled. Framework-owned settlement API.</p>
+<p>Settles this TaskResult as cancelled. Framework-owned settlement API.</p>
 <p>This method does not propagate backwards into a CancellationToken that may
-have been used to create the Task. Tokens can be shared across operations;
+have been used to create the TaskResult. Tokens can be shared across operations;
 operation-wide cancellation is owned by the creating API.</p>
 
   </div>
@@ -1032,23 +1460,23 @@ operation-wide cancellation is owned by the creating API.</p>
       <pre class="lines">
 
 
-190
-191
-192
-193
-194
-195
-196
-197</pre>
+224
+225
+226
+227
+228
+229
+230
+231</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 190</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 224</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>TaskResult cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_changed'>changed</span> <span class='op'>=</span> <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_changed'>changed</span>
     <span class='id identifier rubyid_children'>children</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@children</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
-    <span class='id identifier rubyid_children'>children</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:cancel!</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_children'>children</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_child'>child</span><span class='op'>|</span> <span class='id identifier rubyid_child'>child</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
   <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
@@ -1072,7 +1500,7 @@ operation-wide cancellation is owned by the creating API.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Settles this Task successfully. Framework-owned settlement API.</p>
+<p>Settles this TaskResult successfully. Framework-owned settlement API.</p>
 
   </div>
 </div>
@@ -1085,12 +1513,12 @@ operation-wide cancellation is owned by the creating API.</p>
       <pre class="lines">
 
 
-173
-174
-175</pre>
+207
+208
+209</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 207</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
@@ -1111,7 +1539,7 @@ operation-wide cancellation is owned by the creating API.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns whether the Task has reached a terminal state.</p>
+    <p>Returns whether the TaskResult has reached a terminal state.</p>
 
   </div>
 </div>
@@ -1128,7 +1556,7 @@ operation-wide cancellation is owned by the creating API.</p>
       
       
         &mdash;
-        <div class='inline'><p>whether the Task has reached a terminal state</p></div>
+        <div class='inline'><p>whether the TaskResult has reached a terminal state</p></div>
       
     </li>
   
@@ -1140,12 +1568,12 @@ operation-wide cancellation is owned by the creating API.</p>
       <pre class="lines">
 
 
-73
-74
-75</pre>
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='const'>TERMINAL_STATES</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -1170,7 +1598,7 @@ operation-wide cancellation is owned by the creating API.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Settles this Task with a failure. Framework-owned settlement API.</p>
+<p>Settles this TaskResult with a failure. Framework-owned settlement API.</p>
 
   </div>
 </div>
@@ -1196,17 +1624,88 @@ operation-wide cancellation is owned by the creating API.</p>
       <pre class="lines">
 
 
-179
-180
-181
-182</pre>
+213
+214
+215
+216</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 179</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 213</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>error is required</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:failed</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="flat_map-instance_method">
+  
+    #<strong>flat_map</strong>(&amp;block)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Transform a successful value into the result of another asynchronous step.
+The block must return a TaskResult. No implicit wrapping or nested value
+flattening is performed by map.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::TaskResult (class)">TaskResult</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+246
+247
+248
+249
+250</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 246</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_flat_map'>flat_map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>flat_map requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
+
+  <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/ResultComposition.html" title="Phronomy::Concurrency::ResultComposition (class)">ResultComposition</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/ResultComposition.html#initialize-instance_method" title="Phronomy::Concurrency::ResultComposition#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='label'>flatten:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="Concurrency/ResultComposition.html#start-instance_method" title="Phronomy::Concurrency::ResultComposition#start (method)">start</a></span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1228,7 +1727,7 @@ operation-wide cancellation is owned by the creating API.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Compatibility wait that does not re-raise the Task error.
+<p>Compatibility wait that does not re-raise the TaskResult error.
 Returns self when settled, nil on timeout.</p>
 
   </div>
@@ -1242,34 +1741,34 @@ Returns self when settled, nil on timeout.</p>
       <pre class="lines">
 
 
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143</pre>
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 124</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 158</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_done?'>done?</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task#join cannot block the EventLoop thread; continue via an event</span><span class='tstring_end'>&quot;</span></span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>TaskResult#join cannot block the EventLoop thread; continue via an event</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_limit'>limit</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='id identifier rubyid_limit'>limit</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
@@ -1302,7 +1801,7 @@ Returns self when settled, nil on timeout.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Creates a derived Task by transforming this Task's successful result.</p>
+    <p>Creates a derived TaskResult by transforming this TaskResult's successful result.</p>
 
   </div>
 </div>
@@ -1328,45 +1827,19 @@ Returns self when settled, nil on timeout.</p>
       <pre class="lines">
 
 
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218</pre>
+235
+236
+237
+238
+239</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 201</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 235</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>map requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
-  <span class='id identifier rubyid_mapped'>mapped</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_deferred'>deferred</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='ivar'>@name</span><span class='embexpr_end'>}</span><span class='tstring_content'>-mapped</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='ivar'>@parent</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
-      <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
-      <span class='kw'>next</span>
-    <span class='kw'>end</span>
-
-    <span class='kw'>begin</span>
-      <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_mapped_error'>mapped_error</span>
-      <span class='id identifier rubyid_mapped'>mapped</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_mapped_error'>mapped_error</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
-  <span class='id identifier rubyid_mapped'>mapped</span>
+  <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/ResultComposition.html" title="Phronomy::Concurrency::ResultComposition (class)">ResultComposition</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/ResultComposition.html#initialize-instance_method" title="Phronomy::Concurrency::ResultComposition#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='label'>flatten:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="Concurrency/ResultComposition.html#start-instance_method" title="Phronomy::Concurrency::ResultComposition#start (method)">start</a></span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1389,7 +1862,7 @@ Returns self when settled, nil on timeout.</p>
 registers after settlement, an OffloadPool worker, or a framework control
 thread. Callbacks must therefore be thread-safe and should complete quickly.
 A callback failure is logged and does not suppress delivery to other
-completion callbacks or change the Task's already-settled result.</p>
+completion callbacks or change the TaskResult's already-settled result.</p>
 
   </div>
 </div>
@@ -1441,23 +1914,23 @@ completion callbacks or change the Task's already-settled result.</p>
       <pre class="lines">
 
 
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169</pre>
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 156</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 190</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>on_complete requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
@@ -1518,12 +1991,12 @@ completion callbacks or change the Task's already-settled result.</p>
       <pre class="lines">
 
 
-67
-68
-69</pre>
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_status'>status</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@status</span> <span class='rbrace'>}</span>
@@ -1545,9 +2018,9 @@ completion callbacks or change the Task's already-settled result.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Blocks the calling thread until settlement.</p>
-<p>EventLoop is never allowed to wait for a Task; framework continuation must
+<p>EventLoop is never allowed to wait for a TaskResult; framework continuation must
 proceed through explicit events. The optional timeout is waiter-local: it
-does not settle or cancel the Task.</p>
+does not settle or cancel the TaskResult.</p>
 
   </div>
 </div>
@@ -1612,7 +2085,7 @@ does not settle or cancel the Task.</p>
       
       
         &mdash;
-        <div class='inline'><p>the error that settled the Task</p></div>
+        <div class='inline'><p>the error that settled the TaskResult</p></div>
       
     </li>
   
@@ -1624,40 +2097,40 @@ does not settle or cancel the Task.</p>
       <pre class="lines">
 
 
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119</pre>
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task_result.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_result'>wait_result</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_done?'>done?</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task#wait_result cannot block the EventLoop thread; continue via an event</span><span class='tstring_end'>&quot;</span></span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>TaskResult#wait_result cannot block the EventLoop thread; continue via an event</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
@@ -1667,7 +2140,7 @@ does not settle or cancel the Task.</p>
         <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span>
         <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
           <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span>
-            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for Task </span><span class='embexpr_beg'>#{</span><span class='ivar'>@name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(unnamed)</span><span class='tstring_end'>&quot;</span></span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for TaskResult </span><span class='embexpr_beg'>#{</span><span class='ivar'>@name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(unnamed)</span><span class='tstring_end'>&quot;</span></span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
         <span class='kw'>end</span>
         <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span><span class='lparen'>(</span><span class='ivar'>@mutex</span><span class='comma'>,</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span>
       <span class='kw'>else</span>
@@ -1690,7 +2163,7 @@ does not settle or cancel the Task.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:05 2026 by
+  Generated on Mon Sep 14 11:47:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

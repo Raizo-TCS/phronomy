@@ -89,13 +89,13 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Routes Tool work according to the Tool execution contract.</p>
-<p>Both execution modes return <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span>; only the execution mechanism
+<p>Both execution modes return <span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>; only the execution mechanism
 differs.</p>
 <p>:cooperative Tool calls execute inline and must return quickly. call_async
-wraps their result in an already-settled Task and never consumes an
+wraps their result in an already-settled TaskResult and never consumes an
 OffloadPool worker.</p>
 <p>:offloaded Tool calls route synchronous work through OffloadPool, whose
-caller-facing completion handle is also a Task. Phronomy does not distinguish
+caller-facing completion handle is also a TaskResult. Phronomy does not distinguish
 whether the reason is blocking I/O, CPU-bound work, or another long
 synchronous operation.</p>
 
@@ -216,7 +216,7 @@ synchronous operation.</p>
 
   <span class='kw'>case</span> <span class='id identifier rubyid_mode'>mode</span>
   <span class='kw'>when</span> <span class='symbol'>:cooperative</span>
-    <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../TaskResult.html#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
     <span class='kw'>begin</span>
       <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span>
         <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
@@ -248,7 +248,7 @@ synchronous operation.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 12 16:22:04 2026 by
+  Generated on Mon Sep 14 11:47:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
