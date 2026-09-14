@@ -12,6 +12,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+---
+
+## [0.26.0] - 2026-09-14
+
 ### Changed
 
 - Rename the public completion type to `Phronomy::TaskResult`; remove `Task`
