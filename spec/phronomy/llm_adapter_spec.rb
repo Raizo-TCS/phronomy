@@ -19,7 +19,7 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     describe "#complete_async" do
-      it "submits synchronous complete to OffloadPool and returns a Task" do
+      it "submits synchronous complete to OffloadPool and returns a TaskResult" do
         pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         concrete = Class.new(described_class) do
           def complete(_chat, message, config: {})
@@ -28,7 +28,7 @@ RSpec.describe "LLMAdapter abstraction" do
         end.new
 
         task = concrete.complete_async(double, "ping", config: {}, pool: pool)
-        expect(task).to be_a(Phronomy::Task)
+        expect(task).to be_a(Phronomy::TaskResult)
         expect(task.wait_result).to eq("response:ping")
       ensure
         pool&.shutdown
@@ -36,7 +36,7 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     describe "#stream_async" do
-      it "submits synchronous stream to OffloadPool and returns a Task" do
+      it "submits synchronous stream to OffloadPool and returns a TaskResult" do
         pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         received_chunks = []
         concrete = Class.new(described_class) do
@@ -50,7 +50,7 @@ RSpec.describe "LLMAdapter abstraction" do
         task = concrete.stream_async(double, "ping", config: {}, pool: pool) do |chunk|
           received_chunks << chunk
         end
-        expect(task).to be_a(Phronomy::Task)
+        expect(task).to be_a(Phronomy::TaskResult)
         expect(task.wait_result).to eq("done")
         expect(received_chunks).to eq(%w[chunk1 chunk2])
       ensure

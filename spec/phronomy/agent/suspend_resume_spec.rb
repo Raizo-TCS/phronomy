@@ -20,7 +20,7 @@ end
 FAKE_HITL_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(10, 5, 0, 0)
 
 def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
-  tool_call_id: "call_001", final_response: "Task complete.",
+  tool_call_id: "call_001", final_response: "TaskResult complete.",
   messages_list: [], tools_hash: {})
   stored_hook = nil
   fake_tc = double(
@@ -86,7 +86,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     [agent, approvals, events]
   end
 
-  describe "Execution-scoped Task suspension semantics" do
+  describe "Execution-scoped TaskResult suspension semantics" do
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
@@ -96,10 +96,10 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       [agent, task, approvals.pop, events]
     end
 
-    it "keeps the original Task pending while durable execution is suspended" do
+    it "keeps the original TaskResult pending while durable execution is suspended" do
       agent, task, request, = invoke_and_capture_approval
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect(task).not_to be_done
       expect(request.execution_id).to be_a(String)
       expect(request.execution_id).not_to be_empty
@@ -110,7 +110,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       expect(durable.approval_request).not_to have_key("agent_invocation_id")
     end
 
-    it "delivers approval_required through on_event without settling the original Task" do
+    it "delivers approval_required through on_event without settling the original TaskResult" do
       _agent, task, request, events = invoke_and_capture_approval
       event = events.pop
       event = events.pop until event.type == :approval_required
@@ -130,13 +130,13 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
 
       original_result = task.wait_result
       approval_result = approval_task.wait_result
-      expect(original_result[:output]).to eq("Task complete.")
-      expect(approval_result[:output]).to eq("Task complete.")
+      expect(original_result[:output]).to eq("TaskResult complete.")
+      expect(approval_result[:output]).to eq("TaskResult complete.")
       expect(approval_result[:execution_id]).to eq(original_result[:execution_id])
       expect(agent.persistence.executions.list_active(agent.agent_id)).to be_empty
     end
 
-    it "keeps the original Task pending when a stale approval fails" do
+    it "keeps the original TaskResult pending when a stale approval fails" do
       agent, task, request, = invoke_and_capture_approval
 
       stale = agent.approve_async(
@@ -151,7 +151,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
         request.execution_id,
         approval_request_id: request.id
       ).wait_result
-      expect(task.wait_result[:output]).to eq("Task complete.")
+      expect(task.wait_result[:output]).to eq("TaskResult complete.")
     end
 
     it "does NOT suspend when tool_approval_policy returns :allow" do
@@ -160,7 +160,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       allow(tool_instance).to receive(:call).and_return("executed: hello")
       result = agent.invoke("run tool")
       expect(result[:suspended]).to be_falsy
-      expect(result[:output]).to eq("Task complete.")
+      expect(result[:output]).to eq("TaskResult complete.")
     end
   end
 

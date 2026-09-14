@@ -128,7 +128,7 @@ module Phronomy
             resume_event: resume_event, resume_phase: resume_phase, runtime: @runtime)
           event_loop.replace_agent_execution(execution.execution_id, invocation: invocation, fsm_session_id: session.id)
           event_loop.register_agent_completion_waiter(execution.execution_id, completion)
-          source = Phronomy::Task.deferred(name: "#{completion.name}-source")
+          source = Phronomy::TaskResult.deferred(name: "#{completion.name}-source")
           source.on_complete do |completed, error|
             main.send(:finish_on_event_loop, execution.execution_id, completion,
               completed || session.context, error, fsm_session_id: session.id)

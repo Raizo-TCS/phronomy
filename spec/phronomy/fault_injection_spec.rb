@@ -144,7 +144,7 @@ RSpec.describe "Fault injection (Issue #213)" do
         agent_definition id: "test-agent-107", version: 1
         define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))
@@ -162,7 +162,7 @@ RSpec.describe "Fault injection (Issue #213)" do
         agent_definition id: "test-agent-108", version: 1
         define_method(:invoke) { |*| raise "simulated failure" }
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))
@@ -209,7 +209,7 @@ RSpec.describe "Fault injection (Issue #213)" do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))

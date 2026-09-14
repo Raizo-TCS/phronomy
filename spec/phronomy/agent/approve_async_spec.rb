@@ -113,7 +113,7 @@ RSpec.describe Phronomy::Agent::Base do
       [original, approvals.pop]
     end
 
-    it "returns a distinct pending Task that joins the same terminal execution" do
+    it "returns a distinct pending TaskResult that joins the same terminal execution" do
       original, request = invoke_and_suspend(agent, approvals)
       allow(tool_instance).to receive(:call).and_return("done")
 
@@ -121,7 +121,7 @@ RSpec.describe Phronomy::Agent::Base do
         request.execution_id,
         approval_request_id: request.id
       )
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect(task).not_to equal(original)
 
       approval_result = task.wait_result
@@ -159,21 +159,21 @@ RSpec.describe Phronomy::Agent::Base do
         request.execution_id,
         approval_request_id: request.id
       )
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
 
       allow(event_loop).to receive(:current?).and_call_original
       expect(task.wait_result[:output]).to eq("resumed")
       expect(original.wait_result[:output]).to eq("resumed")
     end
 
-    it "returns a failed Task requiring durable rehydration when execution_id has no live owner" do
+    it "returns a failed TaskResult requiring durable rehydration when execution_id has no live owner" do
       task = agent.approve_async("nonexistent-exec", approval_request_id: "none")
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect { task.wait_result }
         .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
 
-    it "fails only the approval Task when another Agent instance attempts resume" do
+    it "fails only the approval TaskResult when another Agent instance attempts resume" do
       original, request = invoke_and_suspend(agent, approvals)
       other = HITLAgentForApproveAsync.new
 

@@ -502,7 +502,7 @@ module Phronomy
           value.is_a?(Phronomy::WorkflowRunner) ||
           value.is_a?(Phronomy::WorkflowContext) ||
           value.is_a?(Phronomy::Runtime) ||
-          value.is_a?(Phronomy::Task) ||
+          value.is_a?(Phronomy::TaskResult) ||
           value.is_a?(Phronomy::EventLoop) ||
           value.is_a?(Phronomy::FSMSession) ||
           value.is_a?(Phronomy::FSMSession::EventSink) ||

@@ -238,7 +238,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   it "keeps standalone fan-out Runtime-only without admitting an Orchestrator execution" do
     parent = parent_class.create(persistence: store)
     LLMStub.activate(responses: ["worker-result"])
-    expect(parent.fan_out(agent: worker, inputs: ["one"]).size).to eq(1)
+    expect(parent.dispatch_parallel({agent: worker, input: "one"}).size).to eq(1)
     expect(store.list_executions(parent.agent_id)).to be_empty
   end
 

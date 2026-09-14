@@ -133,7 +133,7 @@ reconcilable
 resolution_required
 ```
 
-Recovery does not restore the old Ruby object graph or old Task callbacks. It
+Recovery does not restore the old Ruby object graph or old TaskResult callbacks. It
 reconstructs current logical state from durable evidence and continues only
 when authority and outcome certainty permit it.
 

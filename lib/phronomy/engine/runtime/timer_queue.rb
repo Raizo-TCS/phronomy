@@ -44,6 +44,17 @@ module Phronomy
         end
       end
 
+      # Remove this registration without changing another user's timers. A
+      # callback already taken by fire_due may still run; owners arbitrate once.
+      # @api private
+      def cancel(callback)
+        @mutex.synchronize do
+          before = @heap.length
+          @heap.delete_if { |(_, registered)| registered == callback }
+          before != @heap.length
+        end
+      end
+
       # Executes all callbacks whose deadline is due. Must be called by EventLoop.
       def fire_due
         callbacks = @mutex.synchronize do

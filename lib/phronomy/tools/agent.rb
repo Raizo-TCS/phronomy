@@ -106,7 +106,7 @@ module Phronomy
             "#{self.class.name} asynchronous execution must return a completion handle"
         end
 
-        result_task = Phronomy::Task.deferred(name: "agent-tool-#{name}")
+        result_task = Phronomy::TaskResult.deferred(name: "agent-tool-#{name}")
         source.on_complete do |result, error|
           if error
             settle_async_error(result_task, error)
@@ -123,7 +123,7 @@ module Phronomy
       rescue Phronomy::ToolError, Phronomy::CancellationError => error
         failed_task(error)
       rescue => error
-        result_task = Phronomy::Task.deferred(name: "agent-tool-#{name}")
+        result_task = Phronomy::TaskResult.deferred(name: "agent-tool-#{name}")
         settle_async_error(result_task, error)
         result_task
       end
@@ -133,7 +133,7 @@ module Phronomy
       # Subclasses created by .from_agent and Orchestrator override this method.
       # It deliberately remains private so it is not part of the public Tool API.
       def execute_async(input:, cancellation_token: nil, config: {})
-        task = Phronomy::Task.deferred(name: "agent-tool-#{name}-fallback")
+        task = Phronomy::TaskResult.deferred(name: "agent-tool-#{name}-fallback")
         begin
           task.complete(execute(input: input, cancellation_token: cancellation_token))
         rescue => error
@@ -143,7 +143,7 @@ module Phronomy
       end
 
       def schema_error_task(schema_error)
-        task = Phronomy::Task.deferred(name: "agent-tool-#{name}-schema")
+        task = Phronomy::TaskResult.deferred(name: "agent-tool-#{name}-schema")
         if self.class.on_schema_error == :raise
           task.fail(Phronomy::ToolError.new(
             "#{self.class.name} schema error: #{schema_error}"
@@ -155,7 +155,7 @@ module Phronomy
       end
 
       def failed_task(error)
-        Phronomy::Task.deferred(name: "agent-tool-#{name}-failed").tap do |task|
+        Phronomy::TaskResult.deferred(name: "agent-tool-#{name}-failed").tap do |task|
           task.fail(error)
         end
       end

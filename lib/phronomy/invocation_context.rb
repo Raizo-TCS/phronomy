@@ -56,7 +56,19 @@ module Phronomy
         redaction_policy: overrides.fetch(:redaction_policy, @redaction_policy),
         task_id: overrides.fetch(:task_id, @task_id),
         parent_task_id: overrides.fetch(:parent_task_id, @parent_task_id)
-      )
+      ).__bind_execution(@execution_scope)
+    end
+
+    # Framework-owned metadata; not inferred from the executing Ruby thread.
+    # @api private
+    def __bind_execution(execution)
+      @execution_scope = execution
+      self
+    end
+
+    # @api private
+    def __execution_scope
+      @execution_scope
     end
 
     # @api private

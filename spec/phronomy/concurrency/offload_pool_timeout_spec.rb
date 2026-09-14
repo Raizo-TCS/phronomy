@@ -19,7 +19,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     nil
   end
 
-  it "fires a registered Task on_complete callback before the worker completes" do
+  it "fires a registered TaskResult on_complete callback before the worker completes" do
     started = Queue.new
     release = Queue.new
     events = []
@@ -169,7 +169,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     expect(pool.abandoned_count).to eq(0)
   end
 
-  it "treats Task#wait_result(timeout:) as a waiter-local timeout" do
+  it "treats TaskResult#wait_result(timeout:) as a waiter-local timeout" do
     release = Queue.new
     task = pool.submit do
       release.pop
@@ -199,7 +199,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     expect(executed).to be(false)
   end
 
-  it "still settles the Task when the private abandonment observer raises" do
+  it "still settles the TaskResult when the private abandonment observer raises" do
     operation_class = described_class.const_get(:Operation, false)
     started = Queue.new
     release = Queue.new

@@ -799,18 +799,12 @@ module Phronomy
       def _prepare_invocation_config(config, invocation_context)
         __assert_live_agent!
         _reject_removed_generic_identity_keys!(config)
-        effective_config = invocation_context ?
+        invocation_context ?
           config.merge(invocation_context: invocation_context) : config
 
-        if invocation_context && effective_config[:cancellation_token].nil?
-          if (tok = invocation_context.effective_timeout_token)
-            effective_config = effective_config.merge(
-              cancellation_token: tok,
-              phronomy_timeout_deadline: invocation_context.deadline
-            )
-          end
-        end
-        effective_config
+        # ExecutionCoordinator connects context and individual controls together
+        # at admission, before returning the result. Do not arm a second timer
+        # here or replace one cancellation source with another.
       end
 
       def _reject_removed_generic_identity_keys!(config)

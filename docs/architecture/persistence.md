@@ -38,7 +38,7 @@ Durable examples include AgentRoot, Journal records, AgentExecution records,
 content/Manifest references, and durable Workflow snapshots.
 
 Runtime-only examples include FSMSession objects/IDs, AgentInvocation objects,
-Task instances/callbacks, EventLoop entries, Runtime admission entries, and
+TaskResult instances/callbacks, EventLoop entries, Runtime admission entries, and
 in-flight Provider/Tool operation objects.
 
 Runtime/process loss removes Runtime-only objects but does not imply confirmed
@@ -85,7 +85,7 @@ The canonical logical/durable Workflow identity is `workflow_instance_id`, which
 is separate from one Runtime `fsm_session_id`.
 
 Workflow same-process admission is acquired before durable hydration and retained
-through the authoritative terminal/halted save barrier. The caller-facing Task
+through the authoritative terminal/halted save barrier. The caller-facing TaskResult
 settles after that authoritative durable barrier.
 
 See

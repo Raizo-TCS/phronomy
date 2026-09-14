@@ -12,7 +12,7 @@ module Phronomy
     # the framework rather than by each backend.
     #
     # A future genuine native-async backend may adapt its completion into a
-    # {Phronomy::Task} without an OffloadPool worker, but native async override is
+    # {Phronomy::TaskResult} without an OffloadPool worker, but native async override is
     # not part of the current backend SPI.
     #
     # @api private
@@ -24,7 +24,7 @@ module Phronomy
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [Phronomy::Task]
+      # @return [Phronomy::TaskResult]
       # @api public
       def add_async(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(
@@ -42,7 +42,7 @@ module Phronomy
       # @param k                  [Integer]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [Phronomy::Task]
+      # @return [Phronomy::TaskResult]
       # @api public
       def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(
@@ -59,7 +59,7 @@ module Phronomy
       # @param id                 [String]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [Phronomy::Task]
+      # @return [Phronomy::TaskResult]
       # @api public
       def remove_async(id:, cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(
@@ -75,7 +75,7 @@ module Phronomy
       #
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [Phronomy::Task]
+      # @return [Phronomy::TaskResult]
       # @api public
       def clear_async(cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(

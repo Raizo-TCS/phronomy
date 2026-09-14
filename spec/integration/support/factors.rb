@@ -795,7 +795,7 @@ module IntegrationFactors
       agent_definition id: "test-agent-30", version: 1
       define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
       define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new do
           t.complete(invoke(input))
         rescue => e
@@ -808,7 +808,7 @@ module IntegrationFactors
       agent_definition id: "test-agent-31", version: 1
       define_method(:invoke) { |*| raise "task_error" }
       define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new do
           t.complete(invoke(input))
         rescue => e

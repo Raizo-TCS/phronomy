@@ -1,17 +1,44 @@
 module Phronomy
-  class Task[A]
-    def self.completed: [V] (V value, ?name: String?) -> Task[V]
-                      | (?name: String?) -> Task[nil]
-    def self.failed: (Exception error, ?name: String?) -> Task[untyped]
+  class TaskResult[A]
+    class Outcome[V]
+      attr_reader index: Integer
+      attr_reader status: (:completed | :failed | :cancelled | :unfinished)
+      attr_reader value: V?
+      attr_reader error: Exception?
+    end
+
+    def self.completed: [V] (V value, ?name: String?) -> TaskResult[V]
+                      | (?name: String?) -> TaskResult[nil]
+    def self.failed: (Exception error, ?name: String?) -> TaskResult[untyped]
+    def self.all_settled: [V] (Array[TaskResult[V]] results) -> TaskResult[Array[Outcome[V]]]
     attr_reader name: String?
-    attr_reader parent: Task[untyped]?
+    attr_reader parent: TaskResult[untyped]?
 
     def status: () -> (:pending | :completed | :failed | :cancelled)
     def done?: () -> bool
     def alive?: () -> bool
     def wait_result: (?timeout: Numeric?) -> A
     def on_complete: () { (A?, Exception?) -> void } -> self
-    def map: [B] () { (A) -> B } -> Task[B]
+    def map: [B] () { (A) -> B } -> TaskResult[B]
+    def flat_map: [B] () { (A) -> TaskResult[B] } -> TaskResult[B]
+  end
+
+  class Execution
+    attr_reader invocation_context: InvocationContext
+
+    def self.run_async: [I, V] (Array[I] inputs, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?) { (I, Execution) -> TaskResult[V] } -> TaskResult[Array[TaskResult::Outcome[V]]]
+    def self.run: [I, V] (Array[I] inputs, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?) { (I, Execution) -> TaskResult[V] } -> Array[TaskResult::Outcome[V]]
+    def observe: [V] (TaskResult[V] source_result) -> TaskResult[V]
+  end
+
+  class ExecutionTimeoutError < TimeoutError
+    attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+  end
+
+  class ExecutionCancellationError < CancellationError
+    attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
   end
 
   module Concurrency
@@ -44,6 +71,6 @@ end
 
 module Phronomy
   module Blocking
-    def self.call_async: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?) { () -> V } -> Task[V]
+    def self.call_async: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?) { () -> V } -> TaskResult[V]
   end
 end

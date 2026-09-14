@@ -213,18 +213,18 @@ module Phronomy
       # Public operation methods no longer accept per-invocation event listeners
       # or event-listener blocks.
       def invoke: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Hash[Symbol, untyped]
-      def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Task[Hash[Symbol, untyped]]
+      def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> TaskResult[Hash[Symbol, untyped]]
       def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Hash[Symbol, untyped]
-      def stream_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Task[Hash[Symbol, untyped]]
+      def stream_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> TaskResult[Hash[Symbol, untyped]]
 
       def approve: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> untyped
-      def approve_async: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> Task[untyped]
+      def approve_async: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> TaskResult[untyped]
 
       # Resolves a factual Recovery ambiguity. result: is meaningful for
       # :succeeded; error: is required for :failed; neither is used by
       # :not_performed.
       def resolve: (String execution_id, expected_execution_revision: Integer, subject: Hash[Symbol, untyped], outcome: Symbol, ?result: untyped, ?error: Exception) -> untyped
-      def resolve_async: (String execution_id, expected_execution_revision: Integer, subject: Hash[Symbol, untyped], outcome: Symbol, ?result: untyped, ?error: Exception) -> Task[untyped]
+      def resolve_async: (String execution_id, expected_execution_revision: Integer, subject: Hash[Symbol, untyped], outcome: Symbol, ?result: untyped, ?error: Exception) -> TaskResult[untyped]
 
       def transcript: () -> Array[untyped]
       def add_knowledge: (untyped content, ?metadata: Hash[untyped, untyped]) -> self

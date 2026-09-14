@@ -264,7 +264,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # TC-008: operation_timeout — Timed-out operation is marked abandoned
   # -------------------------------------------------------------------------
   describe "TC-008: operation_timeout — timed-out operation is tracked as abandoned" do
-    it "fails the Task with TimeoutError and increments pool abandoned metrics after an in-flight timeout" do
+    it "fails the TaskResult with TimeoutError and increments pool abandoned metrics after an in-flight timeout" do
       started = Queue.new
       release = Queue.new
       released = false

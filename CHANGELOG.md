@@ -12,6 +12,33 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Rename the public completion type to `Phronomy::TaskResult`; remove `Task`
+  without a compatibility alias in this development release.
+- Remove `Orchestrator#fan_out` and `#fan_out_async`. Use `dispatch_parallel`
+  for Agent-specific construction/knowledge/concurrency policy, or Execution
+  for application-defined JOB composition.
+- Preserve cancelled states and original cancellation errors across result
+  transformations, independently of failures that carry CancellationError.
+
+### Added
+
+- `TaskResult#flat_map`, `.all_settled`, and immutable input-order Outcome records.
+- `Execution.run_async` / `.run` for shared runtime fan-out/fan-in, explicit
+  invocation context, whole-execution timeout/cancellation and partial snapshots.
+- `Execution#observe` for scoped continuations of externally owned results.
+- Optional `invocation_context:` on `Blocking.call_async`, with one-way combined
+  context and individual controls shared with Agent admission.
+
+### Fixed
+
+- Dispose finished execution subscriptions and timers while retaining required
+  physical completion tracking. Orchestrator reuses the common Execution engine.
+
+See [Result composition and Execution](docs/async-composition.md) for migration,
+completion boundaries, cancellation and application responsibilities.
+
 ---
 
 ## [0.25.0] - 2026-09-12

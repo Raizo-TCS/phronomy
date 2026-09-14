@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe Phronomy::Task do
+RSpec.describe Phronomy::TaskResult do
   it "completes without creating an execution thread" do
     before = Thread.list.length
     task = described_class.deferred(name: "result")
@@ -27,7 +27,7 @@ RSpec.describe Phronomy::Task do
     expect(mapped.wait_result).to eq(42)
   end
 
-  it "uses waiter-local timeout without settling the Task" do
+  it "uses waiter-local timeout without settling the TaskResult" do
     task = described_class.deferred(name: "later")
 
     expect { task.wait_result(timeout: 0.01) }
@@ -84,7 +84,7 @@ RSpec.describe Phronomy::Task do
     expect(task.wait_result).to eq(:ok)
   end
 
-  it "registers itself with a parent Task" do
+  it "registers itself with a parent TaskResult" do
     parent = described_class.deferred(name: "parent")
     child = described_class.deferred(name: "child", parent: parent)
 
@@ -111,7 +111,7 @@ RSpec.describe Phronomy::Task do
     expect { task.on_complete }.to raise_error(ArgumentError, /on_complete requires a block/)
   end
 
-  it "map propagates failures from the source Task" do
+  it "map propagates failures from the source TaskResult" do
     source = described_class.deferred
     mapped = source.map { |v| v * 2 }
     error = RuntimeError.new("source failure")
@@ -121,7 +121,7 @@ RSpec.describe Phronomy::Task do
     expect { mapped.wait_result }.to raise_error(error)
   end
 
-  it "map wraps block errors as Task failure" do
+  it "map wraps block errors as TaskResult failure" do
     source = described_class.deferred
     mapped = source.map { |_| raise "transform error" }
 

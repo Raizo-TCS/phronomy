@@ -193,7 +193,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     resolution = resolve_output(loaded, event)
     Timeout.timeout(3) { entered.pop }
     event_loop = Phronomy::Runtime.instance.event_loop
-    applied = Phronomy::Task.deferred(name: "replace-recovery-state")
+    applied = Phronomy::TaskResult.deferred(name: "replace-recovery-state")
     # Model a newer lifecycle update while the old worker is materializing.
     handler = Object.new
     handler.define_singleton_method(:deliver_on_event_loop) do |_command|

@@ -6,6 +6,9 @@ module Phronomy
     class Orchestrator < Agent::Base
       agent_definition id: "orchestrator", version: 1
 
+      ParallelChild = Data.define(:index, :agent, :input, :config)
+      private_constant :ParallelChild
+
       # Own one live cancellation token shared with this invocation's static
       # children, including when Recovery reconstructs the invocation.
       # @api private
@@ -29,7 +32,7 @@ module Phronomy
 
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
         # A subagent Tool is logically asynchronous: ToolInvocation starts the
-        # child Agent and resumes when its completion Task settles. It must not
+        # child Agent and resumes when its completion TaskResult settles. It must not
         # occupy an OffloadPool worker while waiting for the child.
         tool_class = Class.new(Phronomy::Tools::Agent) do
           def self.__framework_owned_operation? = true
@@ -57,7 +60,7 @@ module Phronomy
               super(args, cancellation_token: cancellation_token, config: config)
             end
           rescue => error
-            Phronomy::Task.deferred(name: "subagent-dispatch-failed").tap { |task| task.fail(error) }
+            Phronomy::TaskResult.deferred(name: "subagent-dispatch-failed").tap { |task| task.fail(error) }
           end
 
           define_method(:execute_async) do |input:, cancellation_token: nil, config: {}|
@@ -87,7 +90,7 @@ module Phronomy
               end
             end
             source = agent.invoke_async(input, config: task_config)
-            result_task = Phronomy::Task.deferred(
+            result_task = Phronomy::TaskResult.deferred(
               name: "subagent-tool-#{name}"
             )
             source.on_complete do |result, error|
@@ -99,7 +102,7 @@ module Phronomy
             end
             result_task
           rescue => error
-            result_task ||= Phronomy::Task.deferred(
+            result_task ||= Phronomy::TaskResult.deferred(
               name: "subagent-tool-#{name}"
             )
             (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
@@ -160,73 +163,38 @@ module Phronomy
         inherit_knowledge: true
       )
         validate_parallel_options!(tasks, max_concurrency, on_error)
-        return Phronomy::Task.deferred(name: "fan-out-empty").tap { |task| task.complete([]) } if tasks.empty?
-
         children = build_fan_out_children(
           tasks,
-          cancellation_token: cancellation_token,
-          invocation_context: invocation_context,
+          cancellation_token: nil,
+          invocation_context: nil,
           inherit_knowledge: inherit_knowledge
         )
-        invocation = FanOutInvocation.new(
-          children: children,
-          max_concurrency: max_concurrency || children.length,
-          on_error: on_error
-        )
-        effective_token = cancellation_token || invocation_context&.cancellation_token
-        FanOutSessionBuilder.start(
-          invocation: invocation,
-          timeout: timeout,
-          cancellation_token: effective_token
-        )
-      end
+        Phronomy::Execution.send(:__run_async, children,
+          timeout: timeout, cancellation_token: cancellation_token,
+          invocation_context: invocation_context, concurrency_limit: max_concurrency) do |child, execution|
+          # Preserve a child-specific context as well as this dispatch's controls.
+          # Agent admission adds that context's constraints to the supplied token.
+          binding = Phronomy::Execution.__operation_binding(
+            invocation_context: execution.invocation_context,
+            cancellation_token: child.config[:cancellation_token]
+          )
+          child_context = child.config[:invocation_context] ||
+            execution.invocation_context.merge(parent_task_id: invocation_context&.task_id)
+          begin
+            source = child.agent.invoke_async(child.input,
+              config: child.config.merge(cancellation_token: binding.token),
+              invocation_context: child_context)
+            binding.track(source)
+          rescue
+            binding.close
+            raise
+          end
+        end.map do |outcomes|
+          failure = outcomes.find { |outcome| outcome.status != :completed }
+          raise failure.error if failure && on_error == :raise
 
-      def fan_out(
-        agent:,
-        inputs:,
-        config: {},
-        max_concurrency: nil,
-        on_error: :raise,
-        timeout: nil,
-        cancellation_token: nil,
-        invocation_context: nil,
-        inherit_knowledge: true
-      )
-        dispatch_parallel(
-          *inputs.map do |input|
-            {agent: agent, input: input, config: config}
-          end,
-          max_concurrency: max_concurrency,
-          on_error: on_error,
-          timeout: timeout,
-          cancellation_token: cancellation_token,
-          invocation_context: invocation_context,
-          inherit_knowledge: inherit_knowledge
-        )
-      end
-
-      def fan_out_async(
-        agent:,
-        inputs:,
-        config: {},
-        max_concurrency: nil,
-        on_error: :raise,
-        timeout: nil,
-        cancellation_token: nil,
-        invocation_context: nil,
-        inherit_knowledge: true
-      )
-        dispatch_parallel_async(
-          *inputs.map do |input|
-            {agent: agent, input: input, config: config}
-          end,
-          max_concurrency: max_concurrency,
-          on_error: on_error,
-          timeout: timeout,
-          cancellation_token: cancellation_token,
-          invocation_context: invocation_context,
-          inherit_knowledge: inherit_knowledge
-        )
+          outcomes.map { |outcome| (outcome.status == :completed) ? outcome.value : nil }
+        end
       end
 
       def subagent(
@@ -366,7 +334,7 @@ module Phronomy
             knowledge_snapshot: knowledge_snapshot
           )
 
-          FanOutInvocation::Child.new(
+          ParallelChild.new(
             index: index,
             agent: child_agent,
             input: task.fetch(:input),

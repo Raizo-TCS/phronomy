@@ -70,7 +70,7 @@ RSpec.describe "CG-02 generic invocation identity removal" do
   end
 
   it "removes generic identity from MultiAgent public/child contracts" do
-    %i[fan_out fan_out_async subagent].each do |method_name|
+    %i[dispatch_parallel dispatch_parallel_async subagent].each do |method_name|
       keys = Phronomy::MultiAgent::Orchestrator
         .instance_method(method_name)
         .parameters
@@ -78,7 +78,7 @@ RSpec.describe "CG-02 generic invocation identity removal" do
       expect(keys).not_to include(:thread_id)
     end
 
-    expect(Phronomy::MultiAgent::FanOutInvocation::Child.members)
+    expect(Phronomy::MultiAgent::Orchestrator.const_get(:ParallelChild).members)
       .not_to include(:thread_id)
   end
 

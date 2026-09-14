@@ -98,16 +98,16 @@ Do not change Ruby visibility merely to make it match an `@api` annotation.
 
 ### Async completion boundary
 
-`Phronomy::Task` is the caller-facing completion handle. EventLoop/FSMSession and
+`Phronomy::TaskResult` is the caller-facing completion handle. EventLoop/FSMSession and
 OffloadPool are execution/continuation mechanisms, not competing completion
 abstractions.
 
 Synchronous work that requires execution away from EventLoop must use an
 OffloadPool. Do not create production worker Threads in adapters, backends, or
 Tools to emulate asynchronous behavior. Logical waits between Phronomy
-lifecycles stay on EventLoop/FSMSession and settle a Task later.
+lifecycles stay on EventLoop/FSMSession and settle a TaskResult later.
 
-The framework owns Task settlement (`complete`, `fail`, and framework-driven
+The framework owns TaskResult settlement (`complete`, `fail`, and framework-driven
 cancellation). Application code should observe Tasks through `wait_result`,
 `on_complete`, `map`, and settlement state. Operation-wide cancellation of
 OffloadPool work is supplied through `CancellationToken`.
@@ -149,7 +149,7 @@ ambiguous. Do not renumber historical ADRs to repair that legacy collision.
 
 For Agent Context work, ADR-012 and ADR-013 define the current Journal,
 Manifest, Context Policy and persistent Knowledge model. ADR-010 defines the
-EventLoop/FSMSession, Task, and OffloadPool execution boundary. ADR-015 defines
+EventLoop/FSMSession, TaskResult, and OffloadPool execution boundary. ADR-015 defines
 the Tool public façade, extension-SPI boundary, and RBS ownership rules.
 
 Current explanatory architecture starts at [`docs/architecture.md`](docs/architecture.md).

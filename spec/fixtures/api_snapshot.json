@@ -420,8 +420,6 @@
       "close!",
       "dispatch_parallel",
       "dispatch_parallel_async",
-      "fan_out",
-      "fan_out_async",
       "invoke",
       "invoke_async",
       "journal_projection",

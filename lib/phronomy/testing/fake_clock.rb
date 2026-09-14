@@ -13,10 +13,13 @@ module Phronomy
       end
 
       def advance(seconds)
-        @mutex.synchronize do
+        fired = @mutex.synchronize do
           @now += seconds.to_f
-          fire_expired_callbacks!
+          due, @callbacks = @callbacks.partition { |(t, _)| t <= @now }
+          due
         end
+        # Match TimerQueue: callbacks may dispose or register timers themselves.
+        fired.sort_by { |(t, _)| t }.each { |(_, callback)| callback.call }
         self
       end
 
@@ -27,6 +30,14 @@ module Phronomy
 
       def schedule(seconds:, &block)
         at(@now + seconds.to_f, &block)
+      end
+
+      def cancel(callback)
+        @mutex.synchronize do
+          before = @callbacks.length
+          @callbacks.delete_if { |(_, registered)| registered == callback }
+          before != @callbacks.length
+        end
       end
 
       def pending_callbacks
@@ -49,13 +60,6 @@ module Phronomy
             {fire_at: time, description: nil}
           end
         end
-      end
-
-      private
-
-      def fire_expired_callbacks!
-        fired, @callbacks = @callbacks.partition { |(t, _)| t <= @now }
-        fired.sort_by { |(t, _)| t }.each { |(_, callback)| callback.call }
       end
     end
   end

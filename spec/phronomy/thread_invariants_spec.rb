@@ -46,7 +46,7 @@ RSpec.describe "production thread confinement" do
       "Fiber used in production source:\n#{violations.join("\n")}"
   end
 
-  it "contains no production Runtime#spawn or Task.spawn call" do
+  it "contains no production Runtime#spawn or TaskResult.spawn call" do
     lib_root = File.expand_path("../../lib", __dir__)
     project_root = File.expand_path("..", lib_root)
     patterns = [/Runtime(?:\.instance)?\.spawn/, /\bTask\.spawn/]

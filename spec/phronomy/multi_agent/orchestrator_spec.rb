@@ -11,7 +11,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         {output: out, messages: []}
       end
       define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new do
           t.complete(invoke(input, config: config,
             invocation_context: invocation_context, on_event: on_event))
@@ -32,7 +32,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         {output: "echo:#{input}", messages: []}
       end
       define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-        t = Phronomy::Task.new(name: "stub-async")
+        t = Phronomy::TaskResult.new(name: "stub-async")
         Thread.new do
           t.complete(invoke(input, config: config,
             invocation_context: invocation_context, on_event: on_event))
@@ -78,7 +78,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
@@ -93,10 +93,10 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         {agent: agent_class, input: "task", config: {user_id: "u1"}}
       )
 
-      expect(configs_received.first).to eq({user_id: "u1"})
+      expect(configs_received.first).to match(user_id: "u1", cancellation_token: an_instance_of(Phronomy::Concurrency::CancellationToken))
     end
 
-    it "uses an empty config hash when :config is omitted" do
+    it "supplies runtime cancellation without adding application config when :config is omitted" do
       configs_received = []
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-127", version: 1
@@ -105,7 +105,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
@@ -118,7 +118,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
 
       orchestrator.dispatch_parallel({agent: agent_class, input: "task"})
 
-      expect(configs_received.first).to eq({})
+      expect(configs_received.first).to match(cancellation_token: an_instance_of(Phronomy::Concurrency::CancellationToken))
     end
 
     it "re-raises exceptions from subagents" do
@@ -126,7 +126,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         agent_definition id: "test-agent-128", version: 1
         define_method(:invoke) { |*| raise "subagent exploded" }
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))
@@ -188,7 +188,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-129", version: 1
           define_method(:invoke) { |*| raise "boom" }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -225,7 +225,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
             {output: "counted", messages: []}
           end
           define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new do
               t.complete(invoke(input, config: config,
                 invocation_context: invocation_context, on_event: on_event))
@@ -239,7 +239,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-131", version: 1
           define_method(:invoke) { |*| raise "task failed" }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -272,7 +272,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           error_0_ref = error_0
           define_method(:invoke) { |*| raise error_0_ref }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -288,7 +288,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           error_2_ref = error_2
           define_method(:invoke) { |*| raise error_2_ref }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -343,14 +343,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
     end
   end
 
-  describe "#fan_out" do
+  describe "#dispatch_parallel with homogeneous inputs" do
     let(:orchestrator_class) { Class.new(described_class) { agent_definition id: "orchestrator", version: 1 } }
     subject(:orchestrator) { orchestrator_class.new }
 
     it "runs the same agent against every input and returns results in order" do
       agent_class, received = capturing_agent
 
-      results = orchestrator.fan_out(agent: agent_class, inputs: %w[a b c])
+      results = orchestrator.dispatch_parallel(*%w[a b c].map { |input| {agent: agent_class, input: input} })
 
       expect(received.sort).to eq(%w[a b c])
       expect(results.map { |r| r[:output] }.sort).to eq(%w[echo:a echo:b echo:c])
@@ -365,7 +365,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))
@@ -376,15 +376,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         end
       end
 
-      orchestrator.fan_out(agent: agent_class, inputs: %w[x y], config: {user_id: "u2"})
+      orchestrator.dispatch_parallel(*%w[x y].map { |input| {agent: agent_class, input: input, config: {user_id: "u2"}} })
 
-      expect(configs_received).to all(eq({user_id: "u2"}))
+      expect(configs_received).to all(match(user_id: "u2", cancellation_token: an_instance_of(Phronomy::Concurrency::CancellationToken)))
     end
 
     it "forwards max_concurrency: to dispatch_parallel (Issue #99)" do
-      results = orchestrator.fan_out(
-        agent: stub_agent("ok"),
-        inputs: %w[a b c],
+      results = orchestrator.dispatch_parallel(
+        *%w[a b c].map { |input| {agent: stub_agent("ok"), input: input} },
         max_concurrency: 1
       )
       expect(results.map { |r| r[:output] }).to eq(%w[ok ok ok])
@@ -395,7 +394,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         agent_definition id: "test-agent-135", version: 1
         define_method(:invoke) { |*| raise "oops" }
         define_method(:invoke_async) do |input, **_kw|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new {
             begin
               t.complete(invoke(input))
@@ -407,9 +406,8 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         end
       end
 
-      results = orchestrator.fan_out(
-        agent: bad,
-        inputs: %w[a b],
+      results = orchestrator.dispatch_parallel(
+        *%w[a b].map { |input| {agent: bad, input: input} },
         on_error: :skip
       )
       expect(results).to eq([nil, nil])
@@ -451,7 +449,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         subagent :helper, Class.new(Phronomy::Agent::Base) {
           define_method(:invoke) { |*| {output: "help", messages: []} }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -476,7 +474,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-136", version: 1
           define_method(:invoke) { |*| raise "boom" }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -505,7 +503,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-137", version: 1
           define_method(:invoke) { |*| raise "boom" }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -535,7 +533,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         subagent :base_worker, Class.new(Phronomy::Agent::Base) {
           define_method(:invoke) { |*| {output: "base", messages: []} }
           define_method(:invoke_async) do |input, **_kw|
-            t = Phronomy::Task.new(name: "stub-async")
+            t = Phronomy::TaskResult.new(name: "stub-async")
             Thread.new {
               begin
                 t.complete(invoke(input))
@@ -581,7 +579,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "never", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          t = Phronomy::Task.new(name: "stub-async")
+          t = Phronomy::TaskResult.new(name: "stub-async")
           Thread.new do
             t.complete(invoke(input, config: config,
               invocation_context: invocation_context, on_event: on_event))

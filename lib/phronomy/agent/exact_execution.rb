@@ -4,7 +4,7 @@ module Phronomy
   module Agent
     # Observes a reserved execution using ordinary Agent admission and Recovery.
     # Durable reads/materialization run off EventLoop. Workers never wait for a
-    # child lifecycle: the existing EventLoop completion waiter settles Task.
+    # child lifecycle: the existing EventLoop completion waiter settles TaskResult.
     # @api private
     class ExactExecution
       Wait = Data.define(:coordinator, :agent, :execution_id)
@@ -17,7 +17,7 @@ module Phronomy
       def initialize(agent, execution_id, input, config)
         @agent, @id, @input, @config = agent, execution_id.to_s.freeze, input, config.freeze
         @runtime = Phronomy::Runtime.instance
-        @completion = Phronomy::Task.deferred(name: "exact-execution:#{@id}")
+        @completion = Phronomy::TaskResult.deferred(name: "exact-execution:#{@id}")
       end
 
       def start
@@ -92,7 +92,7 @@ module Phronomy
         end
         observers = Array(state.invocation.config[:phronomy_exact_observers])
         state.invocation.merge_config!(phronomy_exact_observers: (observers + [@completion]).uniq.freeze)
-        waiter = Phronomy::Task.deferred(name: "exact-wait:#{@id}")
+        waiter = Phronomy::TaskResult.deferred(name: "exact-wait:#{@id}")
         waiter.on_complete { |_result, failure| reconcile(failure) }
         @runtime.event_loop.register_agent_completion_waiter(@id, waiter)
       rescue => failure

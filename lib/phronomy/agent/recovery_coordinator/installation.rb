@@ -315,7 +315,7 @@ module Phronomy
           main = agent.send(:execution_coordinator_for, agent.__coordination_config)
 
           if framework_batch?(execution)
-            internal = Phronomy::Task.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
+            internal = Phronomy::TaskResult.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
             continue_recovery_on_event_loop(execution, internal, material: material)
             completion.complete(agent)
             return
@@ -323,7 +323,7 @@ module Phronomy
 
           case execution.phase.to_sym
           when :preparing
-            internal_task = Phronomy::Task.deferred(
+            internal_task = Phronomy::TaskResult.deferred(
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
             observe_recovery_execution(internal_task, execution)
@@ -348,7 +348,7 @@ module Phronomy
               raise Phronomy::ExecutionRehydrationRequiredError,
                 "approved resuming execution requires Tool outcome resolution"
             end
-            internal_task = Phronomy::Task.deferred(
+            internal_task = Phronomy::TaskResult.deferred(
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
             observe_recovery_execution(internal_task, execution)
@@ -366,7 +366,7 @@ module Phronomy
             )
             completion.complete(agent)
           when :recovery_tools_completed, :recovery_provider_completed, :recovery_resolved_failed
-            internal_task = Phronomy::Task.deferred(name: "agent-recovery-auto:#{execution.execution_id}")
+            internal_task = Phronomy::TaskResult.deferred(name: "agent-recovery-auto:#{execution.execution_id}")
             continue_recovery_on_event_loop(execution, internal_task, material: material)
             completion.complete(agent)
           else

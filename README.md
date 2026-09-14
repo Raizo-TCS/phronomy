@@ -22,8 +22,10 @@ tracking `main` directly.
 - **Multi-Agent Handoff** — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
 - **OffloadPool** — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.
-- **Task** — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.
-- **Task.completed / Task.failed** — already-settled application results without starting execution.
+- **TaskResult** — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.
+- **TaskResult.completed / TaskResult.failed** — already-settled application results without starting execution.
+- **TaskResult.map / flat_map / all_settled** — result transformation, asynchronous chaining and ordered all-settled observation.
+- **Execution.run_async / run** — start application JOBs and join their final results under a whole-execution timeout and cancellation scope.
 - **Blocking.call_async** — submits synchronous application work to the existing bounded OffloadPool without waiting for queue space.
 - **Journal / Context Policy / Manifest** — canonical history plus per-LLM-call context selection.
 
@@ -86,8 +88,8 @@ class. The legacy `Phronomy::Agent::Context::Capability::Base` constant remains
 valid for compatibility.
 
 For non-blocking top-level use, call `invoke_async` and keep the returned
-`Phronomy::Task`. Inside Phronomy lifecycle callbacks, do not block waiting for
-another Task; continue through explicit events instead.
+`Phronomy::TaskResult`. Inside Phronomy lifecycle callbacks, do not block waiting for
+another TaskResult; continue through explicit events instead.
 
 ```ruby
 task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks")
@@ -128,14 +130,14 @@ Runtime
 └─ EventLoop-driven timers
 
 EventLoop / FSMSession ─┐
-                       ├─> Task = completion handle
+                       ├─> TaskResult = completion handle
 OffloadPool ────────────┘
 ```
 
 Logical waiting remains in EventLoop/FSMSession state. Synchronous work that
 would block EventLoop uses the bounded OffloadPool. OffloadPool-specific queue,
 worker, timeout, and abandonment state remains private runtime machinery; callers
-observe completion through `Phronomy::Task`. See
+observe completion through `Phronomy::TaskResult`. See
 [Runtime and concurrency](docs/runtime-and-concurrency.md) for the detailed
 contracts, timeout/cancellation semantics, metrics, and callback rules.
 
@@ -144,7 +146,8 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [Getting started](docs/getting-started.md) — installation, RubyLLM setup, Agent/Workflow basics, persistence, streaming.
 - [Features and API stability](docs/features.md) — public feature matrix and stability labels.
 - [Architecture](docs/architecture.md) — canonical current explanatory architecture entry and authority navigation.
-- [Runtime and concurrency](docs/runtime-and-concurrency.md) — EventLoop, FSMSession, Task, OffloadPool, cancellation, observability.
+- [Runtime and concurrency](docs/runtime-and-concurrency.md) — EventLoop, FSMSession, TaskResult, OffloadPool, cancellation, observability.
+- [Result composition and Execution](docs/async-composition.md) — application JOBs, map/flat_map, fan-in snapshots, context ownership and migration.
 - [MCP client](docs/mcp-client.md) — Model Context Protocol (MCP) integration and supported schema subset.
 - [Migration from 0.15-era APIs](docs/migrations/0.15.md).
 - [0.16 cleanup migration](docs/migrations/0.16.md).

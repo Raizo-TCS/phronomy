@@ -93,7 +93,7 @@ module Phronomy
       #
       # Entry actions are synchronous Run-to-Completion callbacks. To start
       # asynchronous work, register its listener/callback inside the action and
-      # return the context or nil. Returning Phronomy::Task is an error.
+      # return the context or nil. Returning Phronomy::TaskResult is an error.
       def state(name, action: nil)
         @declared_states << name
         entry(name, action) if action
@@ -117,7 +117,7 @@ module Phronomy
       # Transition actions are synchronous Run-to-Completion callbacks executed
       # after the source exit callbacks and before the target entry callbacks.
       # They may start asynchronous work and register listeners, but returning
-      # Phronomy::Task is an error; completion must arrive as a later event.
+      # Phronomy::TaskResult is an error; completion must arrive as a later event.
       def transition(from:, to:, guard: nil, on: nil, action: nil)
         destination = (to == :__finish__) ? FINISH : to
         @transitions << {

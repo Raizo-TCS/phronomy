@@ -89,7 +89,7 @@ module Phronomy
             "load must register on_event"
         end
 
-        completion = Phronomy::Task.deferred(
+        completion = Phronomy::TaskResult.deferred(
           name: "agent-recovery-load:#{execution.execution_id}"
         )
         command = InstallCommand.new(
@@ -140,7 +140,7 @@ module Phronomy
         failure = error_present ?
           RecoverySupport.resolution_failure(error) : nil
 
-        completion = Phronomy::Task.deferred(
+        completion = Phronomy::TaskResult.deferred(
           name: "agent-recovery-resolve:#{execution_id}"
         )
         command = ResolveCommand.new(
@@ -163,7 +163,7 @@ module Phronomy
         end
         completion
       rescue => caught
-        completion ||= Phronomy::Task.deferred(
+        completion ||= Phronomy::TaskResult.deferred(
           name: "agent-recovery-resolve:#{execution_id}"
         )
         completion.fail(caught)

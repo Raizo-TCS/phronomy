@@ -103,7 +103,7 @@ def build_acs16_cancellation_chat(tool_instance)
   chat
 end
 
-RSpec.describe "ACS-16 Task settlement and physical quiescence" do
+RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
   after do
     Phronomy.reset_runtime!
   rescue
@@ -168,7 +168,7 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
     let(:tool_instance) { ACS16BlockingTool.new }
     let(:agent) { ACS16CancellationAgent.new }
 
-    it "keeps the Execution Task and Agent admission nonterminal until abandoned Tool work is quiescent" do
+    it "keeps the Execution TaskResult and Agent admission nonterminal until abandoned Tool work is quiescent" do
       started = Queue.new
       release = Queue.new
       ACS16BlockingTool.started_queue = started
@@ -193,7 +193,7 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       token.cancel!
 
       # Logical result authority is revoked immediately, but the owning Tool
-      # block is still physically live, so the top-level Task cannot settle and
+      # block is still physically live, so the top-level TaskResult cannot settle and
       # the Agent admission cannot be reused.
       expect(original).not_to be_done
       competing = agent.invoke_async("competing top-level execution")
@@ -216,7 +216,7 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
   end
 
   describe "nonterminal recovery boundary" do
-    it "keeps the Execution Task pending when terminal durability requires recovery" do
+    it "keeps the Execution TaskResult pending when terminal durability requires recovery" do
       persistence = Phronomy::Persistence::InMemory.new
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
       allow(persistence.executions).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
@@ -248,7 +248,7 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
         .to raise_error(Phronomy::AgentBusyError)
     end
 
-    it "does not encode stale terminal-result rejection as parent Task settlement" do
+    it "does not encode stale terminal-result rejection as parent TaskResult settlement" do
       source = File.read(
         File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
       )
@@ -277,7 +277,7 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       )
 
       # A closed agent delivers :error through the already-bound Agent listener
-      # before Task settlement.
+      # before TaskResult settlement.
       agent.send(:close!)
       task = agent.invoke_async("closed agent invoke")
       expect { task.wait_result }.to raise_error(Phronomy::Error, /agent is closed/)
@@ -392,7 +392,7 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       )
 
       # The canonical Agent listener is allowed to fail on a nonterminal
-      # :approval_required notification without settling the execution Task.
+      # :approval_required notification without settling the execution TaskResult.
       task = agent.invoke_async("run hitl tool")
 
       Timeout.timeout(2) do
@@ -406,19 +406,19 @@ RSpec.describe "ACS-16 Task settlement and physical quiescence" do
       expect(task).not_to be_done
     end
 
-    it "handles supervise_agent_operation on an operation without physical_complete? (plain Task)" do
-      # A cooperative tool that returns a pre-completed plain Phronomy::Task.
+    it "handles supervise_agent_operation on an operation without physical_complete? (plain TaskResult)" do
+      # A cooperative tool that returns a pre-completed plain Phronomy::TaskResult.
       # This exercises the `elsif operation.respond_to?(:done?)` branch in
       # supervise_agent_operation, which fires when the operation lacks
       # physical_complete? but has done?.
       cooperative_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "acs16_cooperative_tool"
-        description "Cooperative tool returning a plain Task"
+        description "Cooperative tool returning a plain TaskResult"
         execution_mode :cooperative
         param :value, type: :string, desc: "Value"
 
         def call_async(args, cancellation_token: nil, config: {})
-          task = Phronomy::Task.deferred(name: "acs16-plain-task")
+          task = Phronomy::TaskResult.deferred(name: "acs16-plain-task")
           task.complete("coop:#{args.fetch(:value, "x")}")
           task
         end

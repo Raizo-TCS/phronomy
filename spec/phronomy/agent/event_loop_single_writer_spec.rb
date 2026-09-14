@@ -51,7 +51,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     expect(worker_sections).not_to include("acknowledge_runtime_snapshot")
   end
 
-  it "keeps Task/listener delivery state outside the terminal worker command" do
+  it "keeps TaskResult/listener delivery state outside the terminal worker command" do
     coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
     command = coordinator
       .split("TerminalCommitCommand = Data.define", 2).fetch(1)

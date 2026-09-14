@@ -4,7 +4,7 @@ require "securerandom"
 
 module Phronomy
   module MultiAgent
-    # Agent-owned transactions reserve child work; Task callbacks only wake observers.
+    # Agent-owned transactions reserve child work; TaskResult callbacks only wake observers.
     # @api private
     class DurableSubagentCoordinator
       KEY = "multi_agent_coordination_ref"
@@ -47,7 +47,7 @@ module Phronomy
 
       def self.start(parent:, tool_invocation_id:, parent_execution_id:, config:)
         runtime = Phronomy::Runtime.instance
-        completion = Phronomy::Task.deferred(name: "durable-subagent:#{tool_invocation_id}")
+        completion = Phronomy::TaskResult.deferred(name: "durable-subagent:#{tool_invocation_id}")
         preparation = runtime.offload.submit(on_full: :raise) do
           current = parent.persistence.executions.load(parent_execution_id)
           raise Phronomy::Persistence::ConflictError, "Parent owner mismatch" unless current.agent_id == parent.agent_id
@@ -125,7 +125,7 @@ module Phronomy
         end
         completion
       rescue => error
-        completion ||= Phronomy::Task.deferred(name: "durable-subagent")
+        completion ||= Phronomy::TaskResult.deferred(name: "durable-subagent")
         completion.fail(error)
         completion
       end

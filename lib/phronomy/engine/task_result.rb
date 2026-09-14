@@ -3,19 +3,53 @@
 module Phronomy
   # A thread-free asynchronous completion handle.
   #
-  # Task does not execute work. Execution belongs to EventLoop/FSMSession or
-  # OffloadPool. Task represents completion, failure, cancellation, callbacks,
+  # TaskResult does not execute work. Execution belongs to EventLoop/FSMSession or
+  # OffloadPool. TaskResult represents completion, failure, cancellation, callbacks,
   # and a blocking wait for callers outside EventLoop.
   #
-  # Framework components own Task settlement. Application code should observe a
-  # Task through {#wait_result}, {#on_complete}, {#map}, and state readers rather
+  # Framework components own TaskResult settlement. Application code should observe a
+  # TaskResult through {#wait_result}, {#on_complete}, {#map}, and state readers rather
   # than calling {#complete}, {#fail}, or {#cancel!}. Operation-wide cancellation
   # is supplied through the CancellationToken accepted by the API that created
-  # the Task.
-  class Task
+  # the TaskResult.
+  class TaskResult
     STATES = %i[pending completed failed cancelled].freeze
     TERMINAL_STATES = %i[completed failed cancelled].freeze
     private_constant :TERMINAL_STATES
+
+    # A shallow immutable input-position record. Application values are retained
+    # by reference; they are neither copied nor frozen by this record.
+    # @api public
+    class Outcome < Struct.new(:index, :status, :value, :error)
+      def initialize(**fields)
+        super
+        freeze
+      end
+    end
+
+    # Observe already-created results without taking ownership of their work.
+    # Invalid inputs are rejected before any completion subscription is added.
+    # @param results [Array<TaskResult>]
+    # @return [TaskResult<Array<Outcome>>]
+    # @raise [TypeError] for a non-Array list or non-TaskResult element
+    # @api public
+    def self.all_settled(results)
+      raise TypeError, "results must be an Array" unless results.is_a?(Array)
+
+      inputs = results.dup
+      inputs.each_with_index do |result, index|
+        unless result.is_a?(Phronomy::TaskResult)
+          raise TypeError, "results[#{index}] must be a Phronomy::TaskResult"
+        end
+      end
+      combined = Phronomy::TaskResult.deferred(name: "all-settled")
+      collector = Concurrency::ResultCollector.new(inputs.length) do |_, outcomes|
+        combined.complete(outcomes)
+      end
+      inputs.each_with_index { |result, index| collector.watch(index, result) }
+      collector.finish(:completed)
+      combined
+    end
 
     # Creates an unsettled completion handle for framework-owned execution.
     # @api private
@@ -24,26 +58,26 @@ module Phronomy
     end
 
     # Public factories for already-settled values. No execution is started.
-    # Always create a base Task: there is no physical worker to supervise.
+    # Always create a base TaskResult: there is no physical worker to supervise.
     # @param value [Object] already available result
     # @param name [String, nil] optional diagnostic name
-    # @return [Phronomy::Task] a completed base Task
+    # @return [Phronomy::TaskResult] a completed base TaskResult
     # @api public
     def self.completed(value = nil, name: nil)
-      Phronomy::Task.deferred(name: name).tap { |task| task.complete(value) }
+      Phronomy::TaskResult.deferred(name: name).tap { |task| task.complete(value) }
     end
 
     # Represents an already known failure without raising the stored error.
     # Observation through wait_result raises it; on_complete receives it.
     # @param error [Exception] original failure object
     # @param name [String, nil] optional diagnostic name
-    # @return [Phronomy::Task] a failed base Task
+    # @return [Phronomy::TaskResult] a failed base TaskResult
     # @raise [ArgumentError] if error is not an Exception
     # @api public
     def self.failed(error, name: nil)
       raise ArgumentError, "error must be an Exception" unless error.is_a?(Exception)
 
-      Phronomy::Task.deferred(name: name).tap { |task| task.fail(error) }
+      Phronomy::TaskResult.deferred(name: name).tap { |task| task.fail(error) }
     end
 
     attr_reader :name, :parent
@@ -68,13 +102,13 @@ module Phronomy
       @mutex.synchronize { @status }
     end
 
-    # @return [Boolean] whether the Task has reached a terminal state
+    # @return [Boolean] whether the TaskResult has reached a terminal state
     # @api public
     def done?
       @mutex.synchronize { TERMINAL_STATES.include?(@status) }
     end
 
-    # @return [Boolean] whether the Task has not yet reached a terminal state
+    # @return [Boolean] whether the TaskResult has not yet reached a terminal state
     # @api public
     def alive?
       !done?
@@ -82,19 +116,19 @@ module Phronomy
 
     # Blocks the calling thread until settlement.
     #
-    # EventLoop is never allowed to wait for a Task; framework continuation must
+    # EventLoop is never allowed to wait for a TaskResult; framework continuation must
     # proceed through explicit events. The optional timeout is waiter-local: it
-    # does not settle or cancel the Task.
+    # does not settle or cancel the TaskResult.
     #
     # @param timeout [Numeric, nil] maximum seconds this caller will block
     # @return [Object] the completed value
     # @raise [Phronomy::TimeoutError] when the waiter-local timeout expires
-    # @raise [Exception] the error that settled the Task
+    # @raise [Exception] the error that settled the TaskResult
     # @api public
     def wait_result(timeout: nil)
       if Phronomy::Runtime.in_event_loop_context? && !done?
         raise Phronomy::EventLoopReentrancyError,
-          "Task#wait_result cannot block the EventLoop thread; continue via an event"
+          "TaskResult#wait_result cannot block the EventLoop thread; continue via an event"
       end
 
       deadline = timeout && monotonic_now + timeout.to_f
@@ -104,7 +138,7 @@ module Phronomy
             remaining = deadline - monotonic_now
             if remaining <= 0
               raise Phronomy::TimeoutError,
-                "timed out waiting for Task #{@name || "(unnamed)"}"
+                "timed out waiting for TaskResult #{@name || "(unnamed)"}"
             end
             @cond.wait(@mutex, remaining)
           else
@@ -118,13 +152,13 @@ module Phronomy
       value
     end
 
-    # Compatibility wait that does not re-raise the Task error.
+    # Compatibility wait that does not re-raise the TaskResult error.
     # Returns self when settled, nil on timeout.
     # @api private
     def join(limit = nil)
       if Phronomy::Runtime.in_event_loop_context? && !done?
         raise Phronomy::EventLoopReentrancyError,
-          "Task#join cannot block the EventLoop thread; continue via an event"
+          "TaskResult#join cannot block the EventLoop thread; continue via an event"
       end
 
       deadline = limit && monotonic_now + limit.to_f
@@ -148,7 +182,7 @@ module Phronomy
     # registers after settlement, an OffloadPool worker, or a framework control
     # thread. Callbacks must therefore be thread-safe and should complete quickly.
     # A callback failure is logged and does not suppress delivery to other
-    # completion callbacks or change the Task's already-settled result.
+    # completion callbacks or change the TaskResult's already-settled result.
     #
     # @yield [value, error]
     # @return [self]
@@ -168,53 +202,74 @@ module Phronomy
       self
     end
 
-    # Settles this Task successfully. Framework-owned settlement API.
+    # Settles this TaskResult successfully. Framework-owned settlement API.
     # @api private
     def complete(value = nil)
       settle!(:completed, value: value)
     end
 
-    # Settles this Task with a failure. Framework-owned settlement API.
+    # Settles this TaskResult with a failure. Framework-owned settlement API.
     # @api private
     def fail(error)
       raise ArgumentError, "error is required" unless error
       settle!(:failed, error: error)
     end
 
-    # Settles this Task as cancelled. Framework-owned settlement API.
+    # Settles this TaskResult as cancelled. Framework-owned settlement API.
     #
     # This method does not propagate backwards into a CancellationToken that may
-    # have been used to create the Task. Tokens can be shared across operations;
+    # have been used to create the TaskResult. Tokens can be shared across operations;
     # operation-wide cancellation is owned by the creating API.
     # @api private
-    def cancel!(error = Phronomy::CancellationError.new("Task cancelled"))
+    def cancel!(error = Phronomy::CancellationError.new("TaskResult cancelled"))
       changed = settle!(:cancelled, error: error)
       if changed
         children = @mutex.synchronize { @children.dup }
-        children.each(&:cancel!)
+        children.each { |child| child.cancel!(error) }
       end
       self
     end
 
-    # Creates a derived Task by transforming this Task's successful result.
+    # Creates a derived TaskResult by transforming this TaskResult's successful result.
     # @api public
     def map(&block)
       raise ArgumentError, "map requires a block" unless block
 
-      mapped = self.class.deferred(name: "#{@name}-mapped", parent: @parent)
-      on_complete do |value, error|
-        if error
-          mapped.fail(error)
-          next
-        end
+      Concurrency::ResultComposition.new(self, flatten: false, &block).start
+    end
 
-        begin
-          mapped.complete(block.call(value))
-        rescue => mapped_error
-          mapped.fail(mapped_error)
-        end
-      end
-      mapped
+    # Transform a successful value into the result of another asynchronous step.
+    # The block must return a TaskResult. No implicit wrapping or nested value
+    # flattening is performed by map.
+    # @return [TaskResult]
+    # @api public
+    def flat_map(&block)
+      raise ArgumentError, "flat_map requires a block" unless block
+
+      Concurrency::ResultComposition.new(self, flatten: true, &block).start
+    end
+
+    # Atomic state observation and removable framework subscriptions.
+    # @api private
+    def __snapshot
+      @mutex.synchronize { [@status, @value, @error] }
+    end
+
+    # @api private
+    def __unsubscribe(callback)
+      @mutex.synchronize { @on_complete_callbacks.delete(callback) }
+    end
+
+    # Bound at admission, before application code can attach continuations.
+    # @api private
+    def __bind_execution(execution)
+      @execution_scope = execution
+      self
+    end
+
+    # @api private
+    def __execution_scope
+      @execution_scope
     end
 
     protected
@@ -250,7 +305,7 @@ module Phronomy
       callback.call(value, error)
     rescue => callback_error
       Phronomy.configuration.logger&.error do
-        "[Task] on_complete callback raised #{callback_error.class}: #{callback_error.message}"
+        "[TaskResult] on_complete callback raised #{callback_error.class}: #{callback_error.message}"
       end
     end
 

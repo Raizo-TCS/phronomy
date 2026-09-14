@@ -124,7 +124,7 @@ RSpec.describe "Agent terminal stream callback error policy" do
       expect(events).to include(:done)
     end
 
-    it "fails the Task with StreamCallbackError under :fail_task" do
+    it "fails the TaskResult with StreamCallbackError under :fail_task" do
       Phronomy.configuration.stream_callback_error_policy = :fail_task
       callback_error = RuntimeError.new("delivery failed")
       events = []

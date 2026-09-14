@@ -11,7 +11,7 @@ module Phronomy
     def self.define: (Class context_class, ?persistence: Persistence?) { () -> void } -> Workflow
 
     def invoke: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> untyped
-    def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Task[untyped]
+    def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> TaskResult[untyped]
     def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) { (untyped) -> void } -> untyped
     def resume: (state: untyped, ?input: untyped) -> untyped
     def send_event: (state: untyped, event: Symbol, ?input: untyped) -> untyped

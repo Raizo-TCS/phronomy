@@ -8,12 +8,12 @@ require_relative "support/llm_stub"
 #
 # ACS-16 / CG-09 contract:
 # - SUSPENDED is a nonterminal Agent execution state.
-# - The original invoke_async Task remains pending through suspension.
+# - The original invoke_async TaskResult remains pending through suspension.
 # - approval-required notification is delivered through the Agent-incarnation
 #   on_event listener and carries execution_id/request id.
-# - An accepted approve_async Task is distinct but observes the same logical
+# - An accepted approve_async TaskResult is distinct but observes the same logical
 #   execution's terminal outcome.
-# - Invalid approval fails only that approval Task.
+# - Invalid approval fails only that approval TaskResult.
 
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
@@ -72,7 +72,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       expect(approval_result[:execution_id]).to eq(original_result[:execution_id])
     end
 
-    it "fails a stale approval without settling the original invocation Task" do
+    it "fails a stale approval without settling the original invocation TaskResult" do
       original = agent.invoke_async("Please use the approval tool")
       request = approvals.pop
 

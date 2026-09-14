@@ -20,7 +20,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
 
       define_method(:__invoke_async_with_event_sink) do |input, on_event:, **_keywords|
         observed << on_event unless observed.nil?
-        t = Phronomy::Task.new(name: "generator-verifier-stub")
+        t = Phronomy::TaskResult.new(name: "generator-verifier-stub")
         Thread.new do
           sleep(delay) if delay.positive?
           result = invoke(input)
@@ -49,7 +49,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-115", version: 1
       define_method(:__invoke_async_with_event_sink) do |_input, on_event:, **_keywords|
-        t = Phronomy::Task.new(name: "generator-verifier-failure")
+        t = Phronomy::TaskResult.new(name: "generator-verifier-failure")
         Thread.new do
           error = RuntimeError.new(message)
           on_event&.call(

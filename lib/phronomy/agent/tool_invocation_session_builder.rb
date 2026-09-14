@@ -181,9 +181,9 @@ module Phronomy
       def self.build_entry_callback(callable, state_name)
         ->(machine) {
           result = callable.call(machine.context)
-          if result.is_a?(Phronomy::Task)
+          if result.is_a?(Phronomy::TaskResult)
             raise Phronomy::InvalidAsyncEntryActionError,
-              "Tool entry action for #{state_name.inspect} returned Phronomy::Task"
+              "Tool entry action for #{state_name.inspect} returned Phronomy::TaskResult"
           end
           machine.context = result if result.respond_to?(:set_graph_metadata)
         }

@@ -17,7 +17,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
   let(:pool_double) do
     pool = instance_double(Phronomy::Concurrency::OffloadPool)
     allow(pool).to receive(:submit) do |cancellation_token: nil, on_full: :raise, **_kw, &block|
-      task = Phronomy::Task.deferred(name: "offload-double")
+      task = Phronomy::TaskResult.deferred(name: "offload-double")
       begin
         task.complete(block.call)
       rescue => error
@@ -33,7 +33,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
   end
 
   describe "cooperative routing" do
-    it "executes inline and returns an already-settled Task without using OffloadPool" do
+    it "executes inline and returns an already-settled TaskResult without using OffloadPool" do
       tool = make_tool(:cooperative)
       task = described_class.call_async(
         tool: tool,
@@ -41,7 +41,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
         runtime: runtime_with_pool
       )
 
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::TaskResult)
       expect(task).to be_done
       expect(task.wait_result).to eq("cooperative:hi")
       expect(pool_double).not_to have_received(:submit)

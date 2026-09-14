@@ -114,7 +114,7 @@ module Phronomy
     end
 
     def register(fsm_session, completion: nil)
-      if current? && !completion.is_a?(Phronomy::Task)
+      if current? && !completion.is_a?(Phronomy::TaskResult)
         raise Phronomy::Error,
           "Cannot call a synchronous invocation API from an EventLoop action. " \
           "Schedule work asynchronously instead."
@@ -413,14 +413,14 @@ module Phronomy
       end
     end
 
-    # Registers a caller-facing Task that observes the authoritative terminal
+    # Registers a caller-facing TaskResult that observes the authoritative terminal
     # outcome of one logical Agent execution. Waiters are Runtime-only and are
     # never persisted or rehydrated.
     # @api private
     def register_agent_completion_waiter(execution_id, task)
       assert_event_loop_thread!
-      unless task.is_a?(Phronomy::Task)
-        raise ArgumentError, "Agent completion waiter must be a Phronomy::Task"
+      unless task.is_a?(Phronomy::TaskResult)
+        raise ArgumentError, "Agent completion waiter must be a Phronomy::TaskResult"
       end
 
       key = execution_id.to_s
@@ -432,7 +432,7 @@ module Phronomy
     end
 
     # Atomically detaches all process-local completion waiters at authoritative
-    # terminal delivery. A fallback Task is included for pre-install terminal
+    # terminal delivery. A fallback TaskResult is included for pre-install terminal
     # paths that never acquired a live execution directory entry.
     # @api private
     def take_agent_completion_waiters(execution_id, fallback: nil)
@@ -1027,7 +1027,7 @@ module Phronomy
       if pending_waiters.any?
         error = Phronomy::ExecutionRehydrationRequiredError.new(
           "Runtime terminated while Agent execution remained nonterminal; " \
-          "process-local Task handles are not rehydrated"
+          "process-local TaskResult handles are not rehydrated"
         )
         pending_waiters.each { |waiter| complete_waiter(waiter, error) }
       end
@@ -1037,7 +1037,7 @@ module Phronomy
     def complete_waiter(waiter, payload)
       return unless waiter
 
-      if waiter.is_a?(Phronomy::Task)
+      if waiter.is_a?(Phronomy::TaskResult)
         payload.is_a?(Exception) ? waiter.fail(payload) : waiter.complete(payload)
       else
         waiter.push(payload)
