@@ -72,8 +72,6 @@ module Phronomy
     public
 
     class Builder
-      FINISH = Phronomy::WorkflowRunner::FINISH
-
       def initialize(context_class, persistence: nil)
         @context_class = context_class
         @persistence = persistence
@@ -119,7 +117,7 @@ module Phronomy
       # They may start asynchronous work and register listeners, but returning
       # Phronomy::TaskResult is an error; completion must arrive as a later event.
       def transition(from:, to:, guard: nil, on: nil, action: nil)
-        destination = (to == :__finish__) ? FINISH : to
+        destination = (to == :__finish__) ? FSMProtocol::FINISH : to
         @transitions << {
           from: from,
           to: destination,
@@ -184,7 +182,7 @@ module Phronomy
 
         undefined_targets = @transitions
           .map { |transition| transition[:to] }
-          .reject { |target| target == FINISH } - all_states
+          .reject { |target| target == FSMProtocol::FINISH } - all_states
         unless undefined_targets.empty?
           raise ArgumentError,
             "Workflow transition(s) reference undefined state(s): " \
@@ -205,7 +203,7 @@ module Phronomy
           current = queue.shift
           @transitions.each do |transition|
             next unless transition[:from] == current
-            next if transition[:to] == FINISH
+            next if transition[:to] == FSMProtocol::FINISH
             next if reachable.include?(transition[:to])
 
             reachable.add(transition[:to])

@@ -8,6 +8,7 @@ loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
 loader.inflector.inflect("rag" => "RAG")
 loader.inflector.inflect("fsm_session" => "FSMSession")
+loader.inflector.inflect("fsm_protocol" => "FSMProtocol")
 loader.inflector.inflect("llm_adapter" => "LLMAdapter")
 loader.inflector.inflect("llm_operation_result" => "LLMOperationResult")
 loader.inflector.inflect("ruby_llm" => "RubyLLM")

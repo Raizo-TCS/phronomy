@@ -18,8 +18,6 @@ module Phronomy
   class WorkflowRunner
     include Phronomy::Runnable
 
-    FINISH = :__end__
-
     Execution = Data.define(
       :context,
       :workflow_instance_id,

@@ -41,6 +41,25 @@ explicit compatibility decision.
   dependency minimization must not weaken accepted durability,
   ownership, security-boundary, or extension contracts.
 
+## Responsibility groups and dependency graphs
+
+Dependency views describe a directed graph of responsibility groups, not a
+tree or a single pipeline. Several distinct groups may share one horizontal
+band. A band's height expresses a proposed abstraction level; it does not imply
+that its groups are independent or that every valid dependency points down.
+
+Assess each dependency by the referenced contract and its owner. Shared value
+types, extension contracts, and collaboration within a component can justify
+dependencies between groups. A directory containing both shared definitions and
+concrete orchestration must be examined by responsibility before assigning it a
+single position. Cycles and upward arrows are review evidence, not defect counts.
+
+The FSM terminal marker illustrates this distinction. `FSMProtocol::FINISH`
+owns the internal `:__end__` marker used by the session and Workflow compilers.
+The public Workflow DSL continues to use `:__finish__`. The execution session
+and phase compiler do not depend on `WorkflowRunner` for this shared vocabulary;
+the Workflow builder still legitimately creates its runner.
+
 ## Current architecture
 
 | Area | Current document |

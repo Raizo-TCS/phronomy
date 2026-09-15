@@ -60,8 +60,6 @@ module Phronomy
       end
     end
 
-    FINISH = WorkflowRunner::FINISH
-
     attr_reader :id, :context, :event_sink
 
     # Returns the live current Workflow phase. During an active FSM transition
@@ -261,7 +259,7 @@ module Phronomy
     end
 
     def advance_or_halt
-      return finish! if @current_state == FINISH
+      return finish! if @current_state == FSMProtocol::FINISH
 
       # A wait state is the logical end of this Workflow execution segment. Its
       # public stable-state notification is therefore part of terminalization
@@ -324,7 +322,7 @@ module Phronomy
     def finish!(notify_stable: false)
       request_terminal!(
         :finished,
-        phase: :__end__,
+        phase: FSMProtocol::FINISH,
         notify_stable: notify_stable
       )
     end
