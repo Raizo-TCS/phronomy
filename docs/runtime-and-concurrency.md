@@ -547,6 +547,36 @@ Use these to distinguish worker saturation from EventLoop backlog/latency.
 Runtime-owned EventLoop, then closes pools and timers according to the Runtime
 shutdown contract.
 
+Internal subsystems can register one shutdown participant per Runtime-local key
+through `Runtime#__register_shutdown_participant`. This is an internal lifecycle
+contract, not a public extension API or an execution registry. Runtime does not
+construct participants or interpret their admission rules.
+
+Each participant implements two operations:
+
+- `begin_draining` closes admission under the participant's admission lock. It
+  must be idempotent, short and nonblocking, and must not call back into Runtime.
+  Runtime invokes it under its lifecycle lock when shutdown starts or EventLoop
+  fails, so no participant can be registered after closure begins.
+- `wait_until_idle(deadline)` returns whether admitted calls have finished before
+  the shared absolute monotonic deadline. Runtime closes every participant before
+  waiting, and waits without holding its lifecycle lock. A timeout or failed hook
+  makes cleanup incomplete; other participants, pools and timers still receive
+  their shutdown calls. Incomplete cleanup prevents default Runtime replacement.
+
+`MultiAgent::AdmissionRegistry.for(runtime)` constructs and registers the shared
+coordination admission registry. HandoffRunner and TeamCoordinator retain that
+registry, admit each synchronous call directly and release it in `ensure` after
+successful admission. The registry closes admission atomically with respect to
+`admit!`; a call admitted before closure is included in the wait, and a call after
+closure raises `RuntimeShutdownError`, including after EventLoop failure. The
+existing `HandoffError` for duplicate admission remains unchanged.
+
+This tracks the current synchronous Handoff/Team call, not the lifetime or
+completion of a durable AgentExecution or TeamExecution. Multi-Agent policy stays
+in `multi_agent`; Runtime depends only on the shutdown operations. Application
+authors do not register these participants themselves.
+
 Workflow durable admission participates in EventLoop idleness: a Workflow whose
 FSMSession has ended but whose durable save is still in flight remains owned until
 that save completes and owner-aware admission is released.

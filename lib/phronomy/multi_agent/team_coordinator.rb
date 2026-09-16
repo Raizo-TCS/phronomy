@@ -159,6 +159,7 @@ module Phronomy
 
       def initialize(id, store, metadata, listener, runtime, create:)
         @team_id, @persistence, @listener, @runtime = id, store, listener, runtime
+        @admissions = AdmissionRegistry.for(@runtime)
         @tokens_mutex, @tokens = Mutex.new, {}
         @coordinator_classes = {}
         definition = self.class.team_definition
@@ -189,11 +190,11 @@ module Phronomy
 
       def with_admission
         assert_caller!
-        @runtime.__admit_multi_agent(self)
+        @admissions.admit!(self)
         admitted = true
         yield
       ensure
-        @runtime.__release_multi_agent(self) if admitted
+        @admissions.release!(self) if admitted
       end
 
       def read_execution(id)

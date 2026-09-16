@@ -26,6 +26,7 @@ module Phronomy
         end
         @bindings = @handoffs.group_by { |h| h.source_agent.agent_id }.transform_values { |edges| edges.map { |h| HandoffCapabilityFactory.build(h) }.freeze }.freeze
         @runtime = Phronomy::Runtime.instance
+        @admissions = Phronomy::MultiAgent::AdmissionRegistry.for(@runtime)
       end
 
       # @api public
@@ -41,7 +42,7 @@ module Phronomy
           raise Phronomy::RuntimeShutdownError, "HandoffRunner belongs to a previous Runtime"
         end
         config = config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)
-        @runtime.__admit_multi_agent(main_agent)
+        @admissions.admit!(main_agent)
         admitted = true
         state = load_state
         count = 0
@@ -101,7 +102,7 @@ module Phronomy
         operation_error = error
         raise
       ensure
-        @runtime.__release_multi_agent(main_agent) if admitted
+        @admissions.release!(main_agent) if admitted
         Phronomy::Tracing::Automatic.finish(trace_handle, output: result && result[:output], error: operation_error)
       end
 

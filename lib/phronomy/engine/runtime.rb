@@ -64,7 +64,8 @@ module Phronomy
       @pool_registry = Phronomy::Concurrency::PoolRegistry.new(
         timer_queue_provider: -> { timer_queue }
       )
-      @multi_agent_admissions = Phronomy::MultiAgent::AdmissionRegistry.new
+      @shutdown_participants = {}
+      @shutdown_participant_error = nil
       @agent_ownership_registry = AgentOwnershipRegistry.new(runtime: self)
       @team_ownership_registry = TeamOwnershipRegistry.new
       @lifecycle_mutex = Mutex.new
@@ -167,19 +168,24 @@ module Phronomy
       loop_instance&.agent_execution_admitted?(agent_id) || false
     end
 
+    # Shares one internal participant per key for this Runtime's lifetime.
+    # begin_draining must be idempotent, nonblocking and must not call Runtime:
+    # admission closes under the same lifecycle lock as registration.
+    # wait_until_idle receives an absolute monotonic deadline and returns a Boolean.
+    # This is a shutdown contract, not an application extension point.
     # @api private
-    def __admit_multi_agent(coordinator)
-      current_state = @lifecycle_mutex.synchronize { @state }
-      unless current_state == :running
-        raise Phronomy::RuntimeShutdownError,
-          "Runtime is #{current_state}; new Multi-Agent turns are not accepted"
+    def __register_shutdown_participant(key:, participant:)
+      unless participant.respond_to?(:begin_draining) && participant.respond_to?(:wait_until_idle)
+        raise ArgumentError, "shutdown participant must implement begin_draining and wait_until_idle"
       end
-      @multi_agent_admissions.admit!(coordinator)
-    end
 
-    # @api private
-    def __release_multi_agent(coordinator)
-      @multi_agent_admissions.release!(coordinator)
+      @lifecycle_mutex.synchronize do
+        unless @state == :running
+          raise Phronomy::RuntimeShutdownError,
+            "Runtime is #{@state}; shutdown participants cannot be registered"
+        end
+        @shutdown_participants[key] ||= participant
+      end
     end
 
     def event_loop
@@ -214,6 +220,7 @@ module Phronomy
 
         @failure ||= error
         @state = :failed
+        begin_draining_participants
       end
     end
 
@@ -232,15 +239,16 @@ module Phronomy
         return @shutdown_result if @shutdown_result
 
         drain_deadline = monotonic_now + timeout
-        loop_instance = @lifecycle_mutex.synchronize do
+        loop_instance, participants = @lifecycle_mutex.synchronize do
           @state = :draining unless @state == :failed
-          @event_loop
+          begin_draining_participants
+          [@event_loop, @shutdown_participants.values]
         end
         loop_instance&.begin_draining
         @agent_ownership_registry.begin_draining
         @team_ownership_registry.begin_draining
 
-        admission_idle = @multi_agent_admissions.wait_until_idle(drain_deadline)
+        participants_idle = wait_for_participants(participants, drain_deadline)
         agent_ownership_stable = @agent_ownership_registry.wait_until_stable(drain_deadline)
         team_ownership_stable = @team_ownership_registry.wait_until_stable(drain_deadline)
         loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
@@ -257,12 +265,14 @@ module Phronomy
         end
 
         subsystem_error = shutdown_pools_and_timer
-        cleanup_complete = admission_idle && agent_ownership_stable && team_ownership_stable && loop_idle &&
+        failure, participant_error = @lifecycle_mutex.synchronize { [@failure, @shutdown_participant_error] }
+        failure ||= subsystem_error
+        cleanup_complete = participants_idle && participant_error.nil? &&
+          agent_ownership_stable && team_ownership_stable && loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           subsystem_error.nil?
 
-        failure = @lifecycle_mutex.synchronize { @failure } || subsystem_error
         runtime_outcome = if failure || event_loop_status == :failed
           :failed
         else
@@ -289,6 +299,33 @@ module Phronomy
     end
 
     private
+
+    # Called with the lifecycle lock held; participants only close their gates.
+    def begin_draining_participants
+      @shutdown_participants.each_value do |participant|
+        participant.begin_draining
+      rescue => error
+        record_participant_failure(error)
+      end
+    end
+
+    # All gates are already closed. Wait without holding the lifecycle lock and
+    # give every participant the same deadline, even if an earlier wait fails.
+    def wait_for_participants(participants, deadline)
+      participants.map do |participant|
+        participant.wait_until_idle(deadline) == true
+      rescue => error
+        @lifecycle_mutex.synchronize { record_participant_failure(error) }
+        false
+      end.all?
+    end
+
+    # Called with the lifecycle lock held. Failed hooks make cleanup uncertain.
+    def record_participant_failure(error)
+      @shutdown_participant_error ||= error
+      @failure ||= error
+      @state = :failed
+    end
 
     def ensure_accepting_work!
       current_state = @lifecycle_mutex.synchronize { @state }
