@@ -954,8 +954,7 @@ module Phronomy
           "model" => self.class.model,
           "provider" => self.class.provider,
           "temperature" => self.class.temperature,
-          "max_output_tokens" => self.class.max_output_tokens,
-          "parallel_tool_execution" => Phronomy.configuration.parallel_tool_execution
+          "max_output_tokens" => self.class.max_output_tokens
         }
         opts = {}
         model = config["model"]
@@ -965,9 +964,7 @@ module Phronomy
           opts[:provider] = provider.to_sym
           opts[:assume_model_exists] = true
         end
-        parallel_class = config["parallel_tool_execution"] ?
-          Phronomy::MultiAgent::ParallelToolChat : nil
-        chat = parallel_class ? parallel_class.new(**opts) : RubyLLM.chat(**opts)
+        chat = RubyLLM.chat(**opts)
         chat.with_temperature(config["temperature"]) if config["temperature"]
         if config["max_output_tokens"] && chat.respond_to?(:with_max_output_tokens)
           chat.with_max_output_tokens(config["max_output_tokens"])

@@ -12,7 +12,6 @@ module Phronomy
     attr_accessor :before_llm_input
     attr_accessor :default_output_reserve
     attr_accessor :recursion_limit
-    attr_accessor :parallel_tool_execution
     attr_accessor :trace_pii
     attr_accessor :logger
     attr_accessor :event_loop_stop_grace_seconds
@@ -42,7 +41,6 @@ module Phronomy
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
       @trace_pii = false
-      @parallel_tool_execution = false
       @event_loop_stop_grace_seconds = 5
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
       @event_loop_starvation_threshold_seconds = nil

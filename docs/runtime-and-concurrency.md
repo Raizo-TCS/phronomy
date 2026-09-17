@@ -279,6 +279,24 @@ remain durable conflict defense rather than distributed ownership.
 
 ## Tool execution modes
 
+Agent uses ordinary `RubyLLM::Chat` for both complete and streaming Provider
+calls. The `before_tool_call` callback takes the complete assistant Tool-call
+batch before RubyLLM executes the first Tool body. `AgentInvocation` then owns
+authorization, dispatch, approval suspension and result collection. Offloaded
+Tools can overlap within Runtime capacity; short cooperative Tools run according
+to their existing execution contract.
+
+On successful batch completion, Agent records one Tool result per call ID in
+request order and includes the whole exchange in the next Provider request.
+Worker completion order does not split the conversation or trigger a partial
+Provider continuation. Failure, cancellation and approval keep their existing
+Agent lifecycle semantics.
+
+There is no separate Chat execution path or `parallel_tool_execution` switch.
+The removed internal `MultiAgent::ParallelToolChat` class is not replaced by an
+alias. See the [Chat migration guide](migrations/parallel-tool-chat-removal.md)
+for application configuration and existing stored model-config records.
+
 Phronomy exposes two execution modes for capabilities:
 
 - `:cooperative` — short EventLoop-safe work, or specialized asynchronous work

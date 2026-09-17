@@ -79,6 +79,12 @@ rather than implicitly inheriting the parent revision. The Stable
 
 ## Agent and workflow patterns
 
+Agent Tool batches use a single ordinary RubyLLM chat path. Agent owns Tool
+authorization, dispatch and the barrier before the next Provider request;
+concurrency remains governed by Tool execution modes and Runtime capacity.
+The obsolete `parallel_tool_execution` configuration accessor has been removed.
+See the [migration guide](migrations/parallel-tool-chat-removal.md).
+
 | Feature | Stability |
 |---|---|
 | **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |

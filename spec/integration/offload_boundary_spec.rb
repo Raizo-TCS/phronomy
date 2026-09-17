@@ -25,7 +25,7 @@ module PoolSpy
     counts = []
     original = pool.method(:submit)
     pool.define_singleton_method(:submit) do |**kwargs, &blk|
-      counts << true
+      counts << caller(1, 1).first
       original.call(**kwargs, &blk)
     end
     yield counts
@@ -91,12 +91,8 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
     end
 
     before do
-      # Enable parallel_tool_execution so ParallelToolChat is used as the chat class.
-      # This makes Phase 2 (pool.submit dispatch) active for :offloaded tools.
-      Phronomy.configure { |c| c.parallel_tool_execution = true }
-
-      # Two tool calls in a single response trigger Phase 2 (parallel dispatch)
-      # in ParallelToolChat#handle_tool_calls, which routes each via pool.submit.
+      # Agent intercepts both calls from ordinary RubyLLM chat and dispatches
+      # each through ToolInvocation / ToolExecutor after authorization.
       two_calls = {
         "id" => "chatcmpl-stub-0", "object" => "chat.completion", "created" => 0,
         "model" => "stub-model",
@@ -126,10 +122,8 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       PoolSpy.instrument(pool) do |counts|
         result = agent_class.new.invoke("run tools")
         expect(result[:output]).to be_a(String)
-        # Phase 2 submits each :offloaded tool via pool.submit,
-        # plus the LLM call itself routes via pool.submit (complete_async).
-        # With 2 tool calls: at minimum 1 (complete_async) + 2 (tool dispatch) = 3.
-        expect(counts.size).to be >= 2
+        tool_dispatches = counts.grep(%r{agent/tool_executor\.rb})
+        expect(tool_dispatches.size).to eq(2)
       end
     end
   end
@@ -166,8 +160,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       result = agent_class.new.invoke("run cooperative tool")
       expect(result[:output]).to be_a(String)
 
-      # None of the pool.submit callers should originate from parallel_tool_chat.
-      tool_dispatches = calls_before_tool.select { |loc| loc.include?("parallel_tool_chat") }
+      tool_dispatches = calls_before_tool.grep(%r{agent/tool_executor\.rb})
       expect(tool_dispatches).to be_empty
     ensure
       class << pool

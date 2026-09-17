@@ -66,8 +66,7 @@ RSpec.describe "ACS-17 causal durability" do
       "model" => "local-model",
       "context_window" => 4096,
       "max_output_tokens" => 512,
-      "cache_instructions" => false,
-      "parallel_tool_execution" => !!Phronomy.configuration.parallel_tool_execution
+      "cache_instructions" => false
     )
     tool_ref = persistence.contents.put_json([])
     manifest = Phronomy::Agent::LLMInputManifest.new(

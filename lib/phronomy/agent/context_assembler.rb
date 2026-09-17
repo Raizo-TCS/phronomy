@@ -475,8 +475,7 @@ module Phronomy
           "temperature" => @agent.class.temperature,
           "max_output_tokens" => @agent.class.max_output_tokens,
           "context_window" => @agent.class.context_window,
-          "cache_instructions" => !!@agent.class.cache_instructions,
-          "parallel_tool_execution" => !!Phronomy.configuration.parallel_tool_execution
+          "cache_instructions" => !!@agent.class.cache_instructions
         }.compact
       end
 

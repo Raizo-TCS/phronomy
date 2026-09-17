@@ -197,12 +197,9 @@ module Phronomy
             "Agent-owned Tool execution requires RubyLLM >= 1.15 (before_tool_call callback)"
         end
 
-        if chat.respond_to?(:on_tool_call_batch)
-          chat.on_tool_call_batch do |tool_calls|
-            raise build_tool_interception(chat, tool_calls, llm_call_id)
-          end
-        end
-
+        # RubyLLM has recorded the complete assistant message at this point.
+        # Intercept every Tool call in that message before the first Tool body
+        # runs; AgentInvocation owns authorization, dispatch and result collection.
         chat.before_tool_call do |tool_call|
           raise build_tool_interception(chat, [tool_call], llm_call_id)
         end
