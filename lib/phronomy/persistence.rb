@@ -61,7 +61,7 @@ module Phronomy
         result_ref: execution.result_ref, error_ref: execution.error_ref,
         result: execution.result_ref && contents.fetch_text(execution.result_ref),
         error: execution.error_ref && contents.fetch_json(execution.error_ref)
-      }.then { |value| Phronomy::Agent::Immutable.copy(value) }
+      }.then { |value| Phronomy::Values::Immutable.copy(value) }
     end
 
     # Follows one exact Handoff turn without loading any Agent or graph.
@@ -118,7 +118,7 @@ module Phronomy
         result_ref: execution.result_ref, error_ref: execution.error_ref,
         result: execution.result_ref && contents.fetch_json(execution.result_ref),
         error: execution.error_ref && contents.fetch_json(execution.error_ref)
-      }.then { |value| Phronomy::Agent::Immutable.copy(value) }
+      }.then { |value| Phronomy::Values::Immutable.copy(value) }
     end
 
     # Lists retained Team runs; no continuation or callback delivery occurs.

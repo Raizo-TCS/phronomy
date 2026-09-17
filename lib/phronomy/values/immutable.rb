@@ -1,10 +1,15 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
+  module Values
+    # Shared value operations for snapshots, recovery facts, and result views.
+    # Hash, Array, and String trees are copied and frozen; other values retain
+    # their identity. Canonical JSON validation is a separate operation.
+    # @api private
     module Immutable
       module_function
 
+      # @api private
       def copy(value)
         case value
         when Hash
@@ -20,6 +25,7 @@ module Phronomy
         end
       end
 
+      # @api private
       def validate_canonical_json!(value, label: "value")
         Phronomy::CanonicalJSON.dump(value)
         true

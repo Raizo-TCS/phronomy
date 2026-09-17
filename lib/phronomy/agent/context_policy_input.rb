@@ -50,8 +50,8 @@ module Phronomy
           knowledge: normalized_knowledge,
           tools: normalized_tools,
           conversation: normalized_conversation,
-          model_config: Immutable.copy(values[:model_config] || {}),
-          metadata: Immutable.copy(values[:metadata] || {})
+          model_config: Phronomy::Values::Immutable.copy(values[:model_config] || {}),
+          metadata: Phronomy::Values::Immutable.copy(values[:metadata] || {})
         ))
         freeze
       end
@@ -145,7 +145,7 @@ module Phronomy
       ) do
         def initialize(**values)
           provenance = ContextPolicyInput.send(:normalize_provenance, values[:provenance])
-          definition = Immutable.copy(values.fetch(:definition))
+          definition = Phronomy::Values::Immutable.copy(values.fetch(:definition))
           unless definition.is_a?(Hash) && definition["name"].to_s != ""
             raise ArgumentError, "ContextPolicyInput ToolItem definition requires a non-empty name"
           end
@@ -156,7 +156,7 @@ module Phronomy
             estimated_tokens: ContextPolicyInput.send(:normalize_estimated_tokens, values[:estimated_tokens]),
             required: !!values[:required],
             provenance: provenance,
-            metadata: Immutable.copy(values[:metadata] || {})
+            metadata: Phronomy::Values::Immutable.copy(values[:metadata] || {})
           )
           raise ArgumentError, "ContextPolicyInput ToolItem id must not be empty" if id.empty?
           freeze
@@ -212,12 +212,12 @@ module Phronomy
             id: id,
             kind: kind,
             role: role,
-            content: Immutable.copy(values[:content]),
+            content: Phronomy::Values::Immutable.copy(values[:content]),
             content_format: content_format,
             estimated_tokens: normalize_estimated_tokens(values[:estimated_tokens]),
             required: !!values[:required],
             provenance: normalize_provenance(values[:provenance]),
-            metadata: Immutable.copy(values[:metadata] || {})
+            metadata: Phronomy::Values::Immutable.copy(values[:metadata] || {})
           }
         end
 

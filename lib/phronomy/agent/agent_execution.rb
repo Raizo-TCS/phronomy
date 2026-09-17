@@ -55,13 +55,13 @@ module Phronomy
         ATTRIBUTES.each do |name|
           value = attributes.fetch(name)
           value = value.to_sym if %i[status phase].include?(name)
-          instance_variable_set("@#{name}", Immutable.copy(value))
+          instance_variable_set("@#{name}", Phronomy::Values::Immutable.copy(value))
         end
         raise ArgumentError, "unknown execution status: #{status.inspect}" unless TRANSITIONS.key?(status)
         raise ArgumentError, "execution_revision must be non-negative" if execution_revision.negative?
-        Immutable.validate_canonical_json!(metadata, label: "Execution metadata")
+        Phronomy::Values::Immutable.validate_canonical_json!(metadata, label: "Execution metadata")
         if approval_request
-          Immutable.validate_canonical_json!(approval_request, label: "Approval request")
+          Phronomy::Values::Immutable.validate_canonical_json!(approval_request, label: "Approval request")
         end
         freeze
       end

@@ -43,7 +43,7 @@ module Phronomy
           messages: materialize_message_segments(message_segments).freeze,
           tool_classes: tool_set.runtime_tools,
           ask_message: ask_message,
-          model_config: Immutable.copy(model_config),
+          model_config: Phronomy::Values::Immutable.copy(model_config),
           manifest: manifest,
           manifest_ref: manifest_ref
         )

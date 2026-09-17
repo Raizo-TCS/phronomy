@@ -12,6 +12,14 @@
 `Phronomy::Persistence` is the single durable-state backend abstraction for
 stateful Agents and durable Workflows.
 
+Shared value copying belongs to `Values::Immutable` in `values/`. Agent records,
+Team records, Recovery classifications, and Persistence result views use this
+internal helper without borrowing an Agent implementation. It copies and freezes
+Hash, Array, and String trees; other values pass through unchanged. Its separate
+canonical JSON check delegates to `CanonicalJSON`. DurableCodec still owns record
+schema, key normalization, identity, and revision validation. Moving this helper
+does not change record formats, transaction ownership, or recovery guarantees.
+
 | Repository | Durable authority |
 |---|---|
 | `contents` | Immutable content and manifests |

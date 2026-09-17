@@ -41,9 +41,9 @@ module Phronomy
         ATTRIBUTES.each do |name|
           value = values.fetch(name)
           value = value.to_sym if %i[kind channel role visibility].include?(name) && value
-          instance_variable_set("@#{name}", Immutable.copy(value))
+          instance_variable_set("@#{name}", Phronomy::Values::Immutable.copy(value))
         end
-        Immutable.validate_canonical_json!(metadata, label: "Journal metadata")
+        Phronomy::Values::Immutable.validate_canonical_json!(metadata, label: "Journal metadata")
         freeze
       end
 

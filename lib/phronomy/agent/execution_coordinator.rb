@@ -1110,12 +1110,12 @@ module Phronomy
             raise Phronomy::ExecutionRehydrationRequiredError,
               "execution #{execution.execution_id} has a non-Hash durable_context"
           end
-          Phronomy::Agent::Immutable.validate_canonical_json!(
+          Phronomy::Values::Immutable.validate_canonical_json!(
             durable_context,
             label: "Recovered durable_context"
           )
           config[:durable_context] =
-            Phronomy::Agent::Immutable.copy(durable_context)
+            Phronomy::Values::Immutable.copy(durable_context)
         end
 
         perform_admitted_initial_preparation(
@@ -2244,7 +2244,7 @@ module Phronomy
           end.freeze,
           llm_call_id: request.llm_call_id&.to_s&.freeze,
           tool_call_id: request.tool_call_id&.to_s&.freeze,
-          policy: Immutable.copy(request.handoff.policy.to_h)
+          policy: Phronomy::Values::Immutable.copy(request.handoff.policy.to_h)
         )
       end
 

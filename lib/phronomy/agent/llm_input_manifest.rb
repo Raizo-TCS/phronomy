@@ -18,7 +18,7 @@ module Phronomy
           if delivery.nil? || !SEGMENT_DELIVERIES.include?(delivery.to_s)
             raise ArgumentError, "unknown Segment delivery: #{delivery.inspect}"
           end
-          super(**values.merge(metadata: Immutable.copy(values[:metadata] || {})))
+          super(**values.merge(metadata: Phronomy::Values::Immutable.copy(values[:metadata] || {})))
           freeze
         end
 

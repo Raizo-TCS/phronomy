@@ -36,7 +36,7 @@ module Phronomy
           reason: reason.to_sym,
           subject: subject && Phronomy::Recovery.normalize_subject(subject),
           allowed_outcomes: Array(allowed_outcomes).map(&:to_sym).freeze,
-          facts: Phronomy::Agent::Immutable.copy(facts || {})
+          facts: Phronomy::Values::Immutable.copy(facts || {})
         )
       end
     end

@@ -9,7 +9,7 @@ module Phronomy
       :config, :call_sequence
     ) do
       def initialize(**values)
-        super(**values.merge(config: Immutable.copy(values.fetch(:config, {}))))
+        super(**values.merge(config: Phronomy::Values::Immutable.copy(values.fetch(:config, {}))))
         freeze
       end
     end

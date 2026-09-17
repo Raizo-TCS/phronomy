@@ -21,7 +21,7 @@ module Phronomy
           knowledge: Array(knowledge).freeze,
           tools: Array(tools).freeze,
           conversation: Array(conversation).map { |group| Array(group).freeze }.freeze,
-          metadata: Immutable.copy(metadata || {})
+          metadata: Phronomy::Values::Immutable.copy(metadata || {})
         )
         freeze
       end

@@ -47,13 +47,13 @@ module Phronomy
 
       def initialize(runtime_tools:, definitions:)
         @runtime_tools = Array(runtime_tools).freeze
-        @definitions = Immutable.copy(definitions)
+        @definitions = Phronomy::Values::Immutable.copy(definitions)
         validate_unique_names!
         freeze
       end
 
       def select_definitions(expected_definitions)
-        expected = Immutable.copy(Array(expected_definitions))
+        expected = Phronomy::Values::Immutable.copy(Array(expected_definitions))
         current_by_name = definitions.each_with_index.to_h do |definition, index|
           [definition.fetch("name"), [definition, runtime_tools.fetch(index)]]
         end

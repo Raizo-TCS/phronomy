@@ -31,11 +31,11 @@ module Phronomy
         ATTRIBUTES.each do |name|
           value = values.fetch(name)
           value = value.to_sym if name == :status
-          instance_variable_set("@#{name}", Immutable.copy(value))
+          instance_variable_set("@#{name}", Phronomy::Values::Immutable.copy(value))
         end
         raise ArgumentError, "unknown LLM Call status: #{status.inspect}" unless STATUSES.include?(status)
         raise ArgumentError, "LLM Call sequence must be positive" unless sequence.positive?
-        Immutable.validate_canonical_json!(metadata, label: "LLM Call metadata")
+        Phronomy::Values::Immutable.validate_canonical_json!(metadata, label: "LLM Call metadata")
         freeze
       end
 

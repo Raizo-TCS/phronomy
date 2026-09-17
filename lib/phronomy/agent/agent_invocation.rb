@@ -540,7 +540,7 @@ module Phronomy
         # listener receives the notification event separately.
         @runtime_events << StreamEvent.new(
           type: event.type,
-          payload: Immutable.copy(event.payload)
+          payload: Phronomy::Values::Immutable.copy(event.payload)
         )
         listener = @callback_failure ? nil : @event_listener
         return unless listener

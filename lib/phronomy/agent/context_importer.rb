@@ -8,8 +8,8 @@ module Phronomy
       ) do
         def initialize(**values)
           super(**values.merge(
-            content: Immutable.copy(values[:content]),
-            metadata: Immutable.copy(values[:metadata] || {})
+            content: Phronomy::Values::Immutable.copy(values[:content]),
+            metadata: Phronomy::Values::Immutable.copy(values[:metadata] || {})
           ))
           freeze
         end

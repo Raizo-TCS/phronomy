@@ -128,7 +128,7 @@ module Phronomy
           allowed_outcomes: Array(
             descriptor.fetch(:allowed_outcomes)
           ).map(&:to_sym).freeze,
-          facts: Phronomy::Agent::Immutable.copy(
+          facts: Phronomy::Values::Immutable.copy(
             descriptor.fetch(:facts, {})
           )
         }.freeze
@@ -435,7 +435,7 @@ module Phronomy
 
         item = approval_items[child.id.to_s]
         if item
-          child.instance_variable_set(:@facts, Phronomy::Agent::Immutable.copy(item.facts))
+          child.instance_variable_set(:@facts, Phronomy::Values::Immutable.copy(item.facts))
           child.instance_variable_set(:@authorization_reason, item.reason)
         end
         child

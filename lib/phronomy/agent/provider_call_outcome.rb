@@ -72,15 +72,15 @@ module Phronomy
       def initialize(role:, content:, tool_calls:, usage: {}, metadata: {})
         super(
           role: role&.to_sym,
-          content: Immutable.copy(content),
-          tool_calls: Immutable.copy(Array(tool_calls)),
-          usage: Immutable.copy(usage || {}),
-          metadata: Immutable.copy(metadata || {})
+          content: Phronomy::Values::Immutable.copy(content),
+          tool_calls: Phronomy::Values::Immutable.copy(Array(tool_calls)),
+          usage: Phronomy::Values::Immutable.copy(usage || {}),
+          metadata: Phronomy::Values::Immutable.copy(metadata || {})
         )
-        Immutable.validate_canonical_json!(content, label: "Provider assistant content")
-        Immutable.validate_canonical_json!(tool_calls, label: "Provider Tool Calls")
-        Immutable.validate_canonical_json!(usage, label: "Provider usage")
-        Immutable.validate_canonical_json!(metadata, label: "Provider outcome metadata")
+        Phronomy::Values::Immutable.validate_canonical_json!(content, label: "Provider assistant content")
+        Phronomy::Values::Immutable.validate_canonical_json!(tool_calls, label: "Provider Tool Calls")
+        Phronomy::Values::Immutable.validate_canonical_json!(usage, label: "Provider usage")
+        Phronomy::Values::Immutable.validate_canonical_json!(metadata, label: "Provider outcome metadata")
         freeze
       end
 

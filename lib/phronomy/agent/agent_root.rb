@@ -36,7 +36,7 @@ module Phronomy
         ATTRIBUTES.each do |name|
           value = attributes.fetch(name)
           value = value.to_sym if name == :lifecycle_status
-          instance_variable_set("@#{name}", Immutable.copy(value))
+          instance_variable_set("@#{name}", Phronomy::Values::Immutable.copy(value))
         end
         unless LIFECYCLE_STATUSES.include?(lifecycle_status)
           raise ArgumentError, "unknown Agent lifecycle status: #{lifecycle_status.inspect}"
@@ -44,7 +44,7 @@ module Phronomy
         raise ArgumentError, "agent_revision must be non-negative" if agent_revision.negative?
         raise ArgumentError, "context_revision must be non-negative" if context_revision.negative?
         raise ArgumentError, "journal_position must be non-negative" if journal_position.negative?
-        Immutable.validate_canonical_json!(metadata, label: "Agent metadata")
+        Phronomy::Values::Immutable.validate_canonical_json!(metadata, label: "Agent metadata")
         freeze
       end
 

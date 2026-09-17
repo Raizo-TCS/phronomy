@@ -7,8 +7,8 @@ module Phronomy
     LLMInputPatch = Data.define(:model_config_patch, :segment_candidates) do
       def initialize(model_config_patch: nil, segment_candidates: nil)
         super(
-          model_config_patch: model_config_patch && Immutable.copy(model_config_patch),
-          segment_candidates: segment_candidates && Immutable.copy(Array(segment_candidates))
+          model_config_patch: model_config_patch && Phronomy::Values::Immutable.copy(model_config_patch),
+          segment_candidates: segment_candidates && Phronomy::Values::Immutable.copy(Array(segment_candidates))
         )
         freeze
       end

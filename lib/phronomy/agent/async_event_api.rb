@@ -190,7 +190,7 @@ module Phronomy
         end
 
         bytes = Phronomy::CanonicalJSON.dump(value)
-        snapshot = Phronomy::Agent::Immutable.copy(
+        snapshot = Phronomy::Values::Immutable.copy(
           Phronomy::CanonicalJSON.load(bytes)
         )
         config.merge(durable_context: snapshot)
