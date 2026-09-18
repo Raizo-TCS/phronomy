@@ -80,7 +80,8 @@ resolved explicitly.
 | [`029-semantic-completion-and-application-effect-boundary`](029-semantic-completion-and-application-effect-boundary.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
 | [`030-agent-handoff-domain-and-durable-responsibility`](030-agent-handoff-domain-and-durable-responsibility.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
 | [`031-durable-multi-agent-coordination`](031-durable-multi-agent-coordination.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
-| [`032-storage-backend-composition`](032-storage-backend-composition.md) | Accepted | Yes | Separates raw Storage contracts/backends from domain Persistence by composition; replaces the Persistence subclass SPI and its facade-building helper. ADR-014 single transaction domain and ownership guarantees remain. |
+| [`032-storage-backend-composition`](032-storage-backend-composition.md) | Accepted | Yes | Separates raw Storage contracts/backends from domain Persistence by composition; replaces the Persistence subclass SPI and its facade-building helper. ADR-014 single transaction domain and ownership guarantees remain; [033-domain-persistence-ownership](033-domain-persistence-ownership.md) refines codec/repository ownership. |
+| [`033-domain-persistence-ownership`](033-domain-persistence-ownership.md) | Accepted | Yes | Domain-owned codecs, repositories, and result queries over the unchanged Storage SPI; explicit composition preserves one transaction domain. |
 
 ## Legacy duplicate `011`
 

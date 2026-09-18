@@ -1,6 +1,7 @@
 # 032: Compose domain persistence over a storage backend
 
 - Status: Accepted
+- Domain ownership refined by: [033-domain-persistence-ownership](033-domain-persistence-ownership.md)
 - Date: 2026-09-17
 - Refines: [014-unified-persistence-durable-state](014-unified-persistence-durable-state.md)
 

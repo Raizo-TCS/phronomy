@@ -77,7 +77,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect(record).to be_a(Phronomy::Storage::DurableRecord)
     expect(record.record_type).to eq("phronomy.agent_root")
     expect(record.format_version).to eq("0.1")
-    expect(Phronomy::Persistence::DurableCodec.decode_agent_root(record).agent_id)
+    expect(Phronomy::Agent::Persistence::Codec.decode_agent_root(record).agent_id)
       .to eq(root.agent_id)
   end
 
@@ -110,7 +110,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     legacy = current.to_h.merge("correlation_id" => "legacy-correlation")
 
     record = described_class.journal_record(legacy)
-    restored = Phronomy::Persistence::DurableCodec.decode_journal_record(record)
+    restored = Phronomy::Agent::Persistence::Codec.decode_journal_record(record)
 
     expect(restored.to_h).not_to have_key("correlation_id")
     expect(restored.record_id).to eq("record-1")
@@ -185,7 +185,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     legacy.fetch("working_records").first["correlation_id"] = "legacy"
 
     record = described_class.agent_execution(legacy)
-    restored = Phronomy::Persistence::DurableCodec.decode_agent_execution(record)
+    restored = Phronomy::Agent::Persistence::Codec.decode_agent_execution(record)
 
     expect(restored.approval_request).to include("execution_id" => "execution-1")
     expect(restored.approval_request).not_to have_key("agent_invocation_id")
@@ -295,7 +295,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
   it "returns nil for a nil approval_request in agent_execution migration" do
     legacy = build_execution_without_approval.to_h
     record = described_class.agent_execution(legacy)
-    restored = Phronomy::Persistence::DurableCodec.decode_agent_execution(record)
+    restored = Phronomy::Agent::Persistence::Codec.decode_agent_execution(record)
     expect(restored.approval_request).to be_nil
   end
 

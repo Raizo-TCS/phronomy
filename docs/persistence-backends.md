@@ -82,7 +82,7 @@ facades over exactly that raw view. Persistence builds those facades inside the
 backend transaction block, so conversion failures and caller exceptions reach
 the backend before commit. Both transaction methods return the block result.
 A raw backend must not call the removed `build_transaction_view` helper or build
-private `Persistence::RepositoryFacades` itself.
+private `PersistenceComposition::Repositories` or domain repositories itself.
 
 Root `Persistence.new(backend:)` validates the required capabilities before
 exposing domain repositories. `persistence.backend` returns the selected raw

@@ -47,7 +47,7 @@ module Phronomy
         end
 
         # Backend-side Agent record repository. DurableRecord is opaque here;
-        # identity/revision metadata is supplied explicitly by RepositoryFacades.
+        # identity/revision metadata is supplied explicitly by domain repository wrappers.
         class Agents
           def initialize(owner) = @owner = owner
 

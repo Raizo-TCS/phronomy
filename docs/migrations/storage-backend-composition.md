@@ -69,7 +69,7 @@ In its transaction implementation:
 
 `Persistence#transaction` constructs the corresponding domain facades inside
 that block. SQL code no longer calls `build_transaction_view` or private
-`RepositoryFacades`. Application/bootstrap code creates the raw SQL backend,
+`PersistenceComposition::Repositories` or domain repository wrappers. Application/bootstrap code creates the raw SQL backend,
 then passes it to `Persistence.new(backend:)`.
 
 The SQLite and PostgreSQL implementations in `phronomy-examples` at `231d253`

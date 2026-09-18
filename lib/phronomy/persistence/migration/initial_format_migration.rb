@@ -32,7 +32,7 @@ module Phronomy
             PRE_S3_AGENT_ROOT_KEYS,
             label: "pre-S3 AgentRoot"
           )
-          DurableCodec.encode_agent_root(
+          Phronomy::Agent::Persistence::Codec.encode_agent_root(
             Phronomy::Agent::AgentRoot.from_h(source)
           )
         rescue Phronomy::Storage::SerializationError
@@ -68,7 +68,7 @@ module Phronomy
             execution_id: source.fetch("execution_id")
           )
           execution = Phronomy::Agent::AgentExecution.from_h(source)
-          DurableCodec.encode_agent_execution(execution)
+          Phronomy::Agent::Persistence::Codec.encode_agent_execution(execution)
         rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
@@ -77,7 +77,7 @@ module Phronomy
 
         def journal_record(hash)
           source = normalize_legacy_journal_record(hash, label: "pre-S3 JournalRecord")
-          DurableCodec.encode_journal_record(
+          Phronomy::Agent::Persistence::Codec.encode_journal_record(
             Phronomy::Agent::JournalRecord.from_h(source)
           )
         rescue Phronomy::Storage::SerializationError
@@ -87,7 +87,7 @@ module Phronomy
         end
 
         def workflow_state(workflow_instance_id:, revision:, snapshot:)
-          DurableCodec.encode_workflow_state(
+          Phronomy::Workflow::Persistence::Codec.encode_workflow_state(
             workflow_instance_id: workflow_instance_id,
             workflow_revision: Integer(revision),
             snapshot: snapshot

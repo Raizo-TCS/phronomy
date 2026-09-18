@@ -86,7 +86,7 @@ module Phronomy
       end
 
       # Current semantic payload representation. Persistence format identity and
-      # compatibility validation are owned by Persistence::DurableCodec.
+      # compatibility validation are owned by Agent::Persistence::Codec.
       # @api public
       def to_h
         ATTRIBUTES.to_h do |name|
