@@ -7,7 +7,7 @@ module Phronomy
     # Normal Runtime load is current-format-only. Historical conversion belongs
     # to explicit migration code and must never be attempted here.
     #
-    # The codec owns durable schema meaning. Backends receive DurableRecord plus
+    # The codec owns durable schema meaning. Backends receive Phronomy::Storage::DurableRecord plus
     # explicit index/CAS metadata from RepositoryFacades; they must not inspect
     # payload fields to rediscover Phronomy semantics.
     #
@@ -62,7 +62,7 @@ module Phronomy
         payload = value.to_h
         Phronomy::Agent::HandoffState.from_h(payload)
         build_record("phronomy.handoff_state", "0.1", payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode HandoffState", error)
@@ -72,7 +72,7 @@ module Phronomy
         payload = current_payload!(record, record_type: "phronomy.handoff_state",
           format_version: "0.1", keys: Phronomy::Agent::HandoffState::ATTRIBUTES, label: "HandoffState")
         Phronomy::Agent::HandoffState.from_h(payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode HandoffState", error)
@@ -82,7 +82,7 @@ module Phronomy
         payload = value.to_h
         Phronomy::MultiAgent::TeamRoot.from_h(payload)
         build_record("phronomy.team_root", "0.1", payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode TeamRoot", error)
@@ -92,7 +92,7 @@ module Phronomy
         payload = current_payload!(record, record_type: "phronomy.team_root",
           format_version: "0.1", keys: Phronomy::MultiAgent::TeamRoot::ATTRIBUTES, label: "TeamRoot")
         Phronomy::MultiAgent::TeamRoot.from_h(payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode TeamRoot", error)
@@ -102,7 +102,7 @@ module Phronomy
         payload = value.to_h
         Phronomy::MultiAgent::TeamExecution.from_h(payload)
         build_record("phronomy.team_execution", "0.1", payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode TeamExecution", error)
@@ -112,7 +112,7 @@ module Phronomy
         payload = current_payload!(record, record_type: "phronomy.team_execution",
           format_version: "0.1", keys: Phronomy::MultiAgent::TeamExecution::ATTRIBUTES, label: "TeamExecution")
         Phronomy::MultiAgent::TeamExecution.from_h(payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode TeamExecution", error)
@@ -123,7 +123,7 @@ module Phronomy
         payload["lifecycle_status"] = root.lifecycle_status.to_s
         validate_agent_root_payload!(payload)
         build_record(AGENT_ROOT_RECORD_TYPE, AGENT_ROOT_FORMAT_VERSION, payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode AgentRoot", error)
@@ -139,7 +139,7 @@ module Phronomy
         )
         validate_agent_root_payload!(payload)
         Phronomy::Agent::AgentRoot.from_h(payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode AgentRoot", error)
@@ -161,7 +161,7 @@ module Phronomy
           AGENT_EXECUTION_FORMAT_VERSION,
           payload
         )
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode AgentExecution", error)
@@ -177,7 +177,7 @@ module Phronomy
         )
         validate_agent_execution_payload!(payload)
         Phronomy::Agent::AgentExecution.from_h(payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode AgentExecution", error)
@@ -186,7 +186,7 @@ module Phronomy
       def encode_journal_record(journal_record)
         payload = journal_payload(journal_record, require_sequence: true)
         build_record(JOURNAL_RECORD_TYPE, JOURNAL_FORMAT_VERSION, payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode JournalRecord", error)
@@ -202,7 +202,7 @@ module Phronomy
         )
         validate_journal_payload!(payload, label: "JournalRecord payload", require_sequence: true)
         Phronomy::Agent::JournalRecord.from_h(payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode JournalRecord", error)
@@ -213,7 +213,7 @@ module Phronomy
         validate_workflow_snapshot!(normalized_snapshot)
         revision = Integer(workflow_revision)
         unless revision.positive?
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "Workflow durable revision must be positive"
         end
 
@@ -224,7 +224,7 @@ module Phronomy
         }
         validate_workflow_state_payload!(payload)
         build_record(WORKFLOW_STATE_RECORD_TYPE, WORKFLOW_STATE_FORMAT_VERSION, payload)
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot encode Workflow state", error)
@@ -242,7 +242,7 @@ module Phronomy
         workflow_instance_id = payload.fetch("workflow_instance_id")
         if expected_workflow_instance_id &&
             workflow_instance_id != expected_workflow_instance_id.to_s
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "Workflow state identity mismatch: #{workflow_instance_id.inspect} != " \
             "#{expected_workflow_instance_id.to_s.inspect}"
         end
@@ -251,7 +251,7 @@ module Phronomy
           snapshot: immutable_copy(payload.fetch("snapshot")),
           revision: payload.fetch("workflow_revision")
         }.freeze
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
         serialization_error("cannot decode Workflow state", error)
@@ -302,7 +302,7 @@ module Phronomy
 
         working_records = payload.fetch("working_records")
         unless working_records.is_a?(Array)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "AgentExecution payload working_records must be an Array"
         end
         working_records.each_with_index do |record, index|
@@ -313,25 +313,25 @@ module Phronomy
           )
           record_agent_id = record.fetch("agent_id")
           unless record_agent_id == payload.fetch("agent_id")
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "AgentExecution working_records[#{index}] agent_id mismatch"
           end
           record_execution_id = record.fetch("execution_id")
           if record_execution_id && record_execution_id != payload.fetch("execution_id")
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "AgentExecution working_records[#{index}] execution_id mismatch"
           end
         end
 
         llm_calls = payload.fetch("llm_calls")
         unless llm_calls.is_a?(Array)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "AgentExecution payload llm_calls must be an Array"
         end
         llm_calls.each_with_index do |call, index|
           validate_llm_call_payload!(call, label: "AgentExecution llm_calls[#{index}]")
           unless call.fetch("execution_id") == payload.fetch("execution_id")
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "AgentExecution llm_calls[#{index}] execution_id mismatch"
           end
         end
@@ -350,11 +350,11 @@ module Phronomy
         sequence = payload.fetch("sequence")
         if require_sequence
           unless sequence.is_a?(Integer) && sequence.positive?
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "#{label} sequence must be a positive Integer"
           end
         elsif !(sequence.nil? || (sequence.is_a?(Integer) && sequence.positive?))
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} sequence must be nil or a positive Integer"
         end
         require_optional_string!(payload, "execution_id", label: label)
@@ -406,18 +406,18 @@ module Phronomy
         require_nonempty_string!(request, "id", label: "approval_request")
         require_nonempty_string!(request, "execution_id", label: "approval_request")
         unless request.fetch("execution_id") == execution_id
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "approval_request execution_id mismatch"
         end
         require_nonempty_string!(request, "created_at", label: "approval_request")
         if request.key?("approved") && !boolean?(request.fetch("approved"))
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "approval_request approved must be true or false"
         end
 
         items = request.fetch("items")
         unless items.is_a?(Array) && !items.empty?
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "approval_request items must be a non-empty Array"
         end
         items.each_with_index do |item, index|
@@ -446,33 +446,33 @@ module Phronomy
       def validate_workflow_snapshot!(snapshot)
         validate_exact_keys!(snapshot, WORKFLOW_SNAPSHOT_KEYS, label: "Workflow snapshot")
         unless snapshot.fetch("fields").is_a?(Hash)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "Workflow snapshot fields must be a Hash"
         end
         phase = snapshot.fetch("phase")
         unless phase.nil? || phase.is_a?(String)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "Workflow snapshot phase must be a String or nil"
         end
         Phronomy::CanonicalJSON.dump(snapshot)
         snapshot
       rescue ArgumentError => error
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "Workflow snapshot is not canonical JSON compatible: #{error.message}"
       end
 
       def current_payload!(record, record_type:, format_version:, keys:, label:)
-        unless record.is_a?(Phronomy::Persistence::DurableRecord)
-          raise Phronomy::Persistence::SerializationError,
-            "backend returned #{record.class}; expected Persistence::DurableRecord"
+        unless record.is_a?(Phronomy::Storage::DurableRecord)
+          raise Phronomy::Storage::SerializationError,
+            "backend returned #{record.class}; expected Storage::DurableRecord"
         end
         unless record.record_type == record_type
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "durable record type mismatch: expected #{record_type.inspect}, " \
             "got #{record.record_type.inspect}"
         end
         unless record.format_version == format_version
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "unsupported #{record_type} format version: #{record.format_version.inspect}; " \
             "current version is #{format_version.inspect}"
         end
@@ -482,10 +482,10 @@ module Phronomy
 
       def validate_allowed_keys!(hash, required_keys:, optional_keys:, label:)
         unless hash.is_a?(Hash)
-          raise Phronomy::Persistence::SerializationError, "#{label} must be a Hash"
+          raise Phronomy::Storage::SerializationError, "#{label} must be a Hash"
         end
         unless hash.keys.all? { |key| key.is_a?(String) }
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} keys must all be String"
         end
 
@@ -497,16 +497,16 @@ module Phronomy
         details = []
         details << "missing=#{missing.inspect}" unless missing.empty?
         details << "unknown=#{unknown.inspect}" unless unknown.empty?
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} schema mismatch (#{details.join(", ")})"
       end
 
       def validate_exact_keys!(hash, expected_keys, label:)
         unless hash.is_a?(Hash)
-          raise Phronomy::Persistence::SerializationError, "#{label} must be a Hash"
+          raise Phronomy::Storage::SerializationError, "#{label} must be a Hash"
         end
         unless hash.keys.all? { |key| key.is_a?(String) }
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} keys must all be String"
         end
 
@@ -519,22 +519,22 @@ module Phronomy
         details = []
         details << "missing=#{missing.inspect}" unless missing.empty?
         details << "unknown=#{unknown.inspect}" unless unknown.empty?
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} schema mismatch (#{details.join(", ")})"
       end
 
       def top_level_string_keys(value, label:)
         unless value.is_a?(Hash)
-          raise Phronomy::Persistence::SerializationError, "#{label} must be a Hash"
+          raise Phronomy::Storage::SerializationError, "#{label} must be a Hash"
         end
         value.each_with_object({}) do |(key, child), result|
           unless key.is_a?(String) || key.is_a?(Symbol)
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "#{label} key must be String or Symbol, got #{key.class}"
           end
           string_key = key.to_s
           if result.key?(string_key)
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "#{label} contains duplicate key after normalization: #{string_key.inspect}"
           end
           result[string_key] = child
@@ -548,7 +548,7 @@ module Phronomy
         source = top_level_string_keys(snapshot, label: "Workflow snapshot")
         fields = source.fetch("fields")
         unless fields.is_a?(Hash)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "Workflow snapshot fields must be a Hash"
         end
         {
@@ -562,12 +562,12 @@ module Phronomy
         when Hash
           value.each_with_object({}) do |(key, child), result|
             unless key.is_a?(String) || key.is_a?(Symbol)
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "Workflow field key must be String or Symbol, got #{key.class}"
             end
             string_key = key.to_s
             if result.key?(string_key)
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "duplicate Workflow field key after normalization: #{string_key.inspect}"
             end
             result[string_key] = canonicalize_workflow_value(child)
@@ -579,7 +579,7 @@ module Phronomy
         when String, Integer, Float, TrueClass, FalseClass, NilClass
           value
         else
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "unsupported Workflow durable value: #{value.class}"
         end
       end
@@ -605,7 +605,7 @@ module Phronomy
         value = hash.fetch(key)
         return value if value.is_a?(String) && !value.empty?
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be a non-empty String"
       end
 
@@ -613,7 +613,7 @@ module Phronomy
         value = hash.fetch(key)
         return value if value.nil? || value.is_a?(String)
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be a String or nil"
       end
 
@@ -621,7 +621,7 @@ module Phronomy
         value = hash.fetch(key)
         return value if value.is_a?(Integer)
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be an Integer"
       end
 
@@ -629,7 +629,7 @@ module Phronomy
         value = hash.fetch(key)
         return value if value.is_a?(Integer) && value.positive?
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be a positive Integer"
       end
 
@@ -637,7 +637,7 @@ module Phronomy
         value = hash.fetch(key)
         return value if value.is_a?(Integer) && value >= 0
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be a non-negative Integer"
       end
 
@@ -645,7 +645,7 @@ module Phronomy
         value = hash.fetch(key)
         return value if boolean?(value)
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be true or false"
       end
 
@@ -653,20 +653,20 @@ module Phronomy
         value = hash.fetch(key)
         return value if value.is_a?(String) && allowed.include?(value)
 
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} must be one of #{allowed.inspect}"
       end
 
       def require_canonical_hash!(hash, key, label:)
         value = hash.fetch(key)
         unless value.is_a?(Hash)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be a Hash"
         end
         Phronomy::CanonicalJSON.dump(value)
         value
       rescue ArgumentError => error
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{label} #{key} is not canonical JSON compatible: #{error.message}"
       end
 
@@ -675,7 +675,7 @@ module Phronomy
       end
 
       def build_record(record_type, format_version, payload)
-        Phronomy::Persistence::DurableRecord.new(
+        Phronomy::Storage::DurableRecord.new(
           record_type: record_type,
           format_version: format_version,
           payload: payload
@@ -698,7 +698,7 @@ module Phronomy
       end
 
       def serialization_error(prefix, error)
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "#{prefix}: #{error.class}: #{error.message}"
       end
     end

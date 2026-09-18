@@ -54,7 +54,7 @@ RSpec.shared_examples "a workflow state repository" do
         expected_revision: nil,
         snapshot: {fields: {value: 2}, phase: "__end__"}
       )
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Storage::ConflictError)
   end
 
   it "returns a snapshot representation accepted by WorkflowRunner" do
@@ -111,7 +111,7 @@ RSpec.shared_examples "a workflow state repository" do
 
     expect do
       repository.delete(workflow_instance_id, expected_revision: 99)
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Storage::ConflictError)
 
     repository.delete(workflow_instance_id, expected_revision: 1)
     expect(repository.load(workflow_instance_id)).to be_nil

@@ -79,7 +79,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "keeps agent_id stable and applies exact definition compatibility as a separate load policy" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
 
       version_one = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "cg04-load-lineage", version: 1

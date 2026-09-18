@@ -40,7 +40,7 @@ RSpec.describe "Agent chat dependency contract" do
   [false, true].each do |legacy_value|
     it "materializes an existing model-config record with the legacy value #{legacy_value} without rewriting it" do
       RubyLLM.configure { |config| config.openai_api_key = "test-api-key" }
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       klass = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "legacy-chat-config-#{legacy_value}", version: 1
       end

@@ -515,9 +515,9 @@ module Phronomy
             error: translated(error),
             admission_outcome: :recovery_required
           )
-        rescue Phronomy::Persistence::ConflictError,
-          Phronomy::Persistence::NotFoundError,
-          Phronomy::Persistence::SerializationError,
+        rescue Phronomy::Storage::ConflictError,
+          Phronomy::Storage::NotFoundError,
+          Phronomy::Storage::SerializationError,
           ArgumentError,
           Phronomy::ConfigurationError => error
           return InitialPreparationResult.new(
@@ -765,7 +765,7 @@ module Phronomy
             worker&.merge("execution_id" => assignment.fetch("execution_id"))
           end
           unless slot && slot.fetch("execution_id") == execution.execution_id && slot.fetch("agent_id") == execution.agent_id
-            raise Phronomy::Persistence::ConflictError, "Team reserved child identity mismatch"
+            raise Phronomy::Storage::ConflictError, "Team reserved child identity mismatch"
           end
         when "subagent"
           parent = tx.executions.load(owner.fetch("parent_execution_id"))
@@ -775,18 +775,18 @@ module Phronomy
           snapshot = tx.contents.fetch_json(parent.metadata.fetch("multi_agent_coordination_ref"))
           slot = snapshot.fetch("children").find { |entry| entry.fetch("slot") == owner.fetch("slot") }
           unless slot && slot.fetch("agent_id") == execution.agent_id && slot.fetch("execution_id") == execution.execution_id
-            raise Phronomy::Persistence::ConflictError, "Parent reserved child identity mismatch"
+            raise Phronomy::Storage::ConflictError, "Parent reserved child identity mismatch"
           end
         when "handoff"
           routing = tx.handoff_states.load(owner.fetch("main_agent_id"))
           unless routing && routing.active_agent_id == execution.agent_id
-            raise Phronomy::Persistence::ConflictError, "Handoff responsibility changed before admission"
+            raise Phronomy::Storage::ConflictError, "Handoff responsibility changed before admission"
           end
           if Array(routing.metadata["cancelled_execution_ids"]).include?(execution.execution_id)
             raise Phronomy::CancellationError, "Handoff reservation was cancelled"
           end
           if routing.phase != "stable" && routing.pending_target_execution_id != execution.execution_id
-            raise Phronomy::Persistence::ConflictError, "Handoff reserved Target identity mismatch"
+            raise Phronomy::Storage::ConflictError, "Handoff reserved Target identity mismatch"
           end
         else
           raise Phronomy::ConfigurationError, "Unknown coordination owner kind"
@@ -1660,10 +1660,10 @@ module Phronomy
       end
 
       def known_durable_preparation_failure?(error)
-        error.is_a?(Phronomy::Persistence::ConflictError) ||
-          error.is_a?(Phronomy::Persistence::NotFoundError) ||
-          error.is_a?(Phronomy::Persistence::SerializationError) ||
-          error.is_a?(Phronomy::Persistence::UnsupportedBackendError) ||
+        error.is_a?(Phronomy::Storage::ConflictError) ||
+          error.is_a?(Phronomy::Storage::NotFoundError) ||
+          error.is_a?(Phronomy::Storage::SerializationError) ||
+          error.is_a?(Phronomy::Storage::UnsupportedBackendError) ||
           error.is_a?(ArgumentError) ||
           error.is_a?(Phronomy::ConfigurationError)
       end
@@ -2395,7 +2395,7 @@ module Phronomy
         routing = tx.handoff_states.load(coordination.fetch("main_agent_id"))
         return unless routing && routing.pending_target_execution_id == execution.execution_id && routing.phase != "stable"
         unless routing.active_agent_id == execution.agent_id
-          raise Phronomy::Persistence::ConflictError, "Handoff Target owner mismatch"
+          raise Phronomy::Storage::ConflictError, "Handoff Target owner mismatch"
         end
         tx.handoff_states.save(routing.main_agent_id, expected_revision: routing.handoff_revision,
           state: routing.with(phase: "stable"))

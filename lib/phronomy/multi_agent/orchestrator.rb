@@ -23,7 +23,7 @@ module Phronomy
           raise Phronomy::EventLoopReentrancyError, "Orchestrator#resume cannot block EventLoop"
         end
         execution = persistence.executions.load(execution_id)
-        raise Phronomy::Persistence::ConflictError, "Parent execution owner mismatch" unless execution.agent_id == agent_id
+        raise Phronomy::Storage::ConflictError, "Parent execution owner mismatch" unless execution.agent_id == agent_id
         input = persistence.contents.fetch_text(execution.metadata.fetch("current_input_ref"))
         result = Phronomy::Agent::ExactExecution.start(agent: self, execution_id: execution_id, input: input, config: config).wait_result
         raise Phronomy::Agent::RecoverySupport.error_from_failure(result[:error]) if result[:error]

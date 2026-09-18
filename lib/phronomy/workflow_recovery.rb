@@ -42,10 +42,10 @@ module Phronomy
           revision: revision,
           error: nil
         )
-      rescue Phronomy::Persistence::ConflictError,
-        Phronomy::Persistence::NotFoundError,
-        Phronomy::Persistence::SerializationError,
-        Phronomy::Persistence::UnsupportedBackendError => error
+      rescue Phronomy::Storage::ConflictError,
+        Phronomy::Storage::NotFoundError,
+        Phronomy::Storage::SerializationError,
+        Phronomy::Storage::UnsupportedBackendError => error
         Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
           outcome: :known_failure,
           revision: nil,
@@ -100,7 +100,7 @@ module Phronomy
           error: original_error
         )
       else
-        conflict = Phronomy::Persistence::ConflictError.new(
+        conflict = Phronomy::Storage::ConflictError.new(
           "Workflow terminal Persistence outcome conflicts with both expected " \
           "pre-state and intended post-state for #{operation.workflow_instance_id.inspect}"
         )

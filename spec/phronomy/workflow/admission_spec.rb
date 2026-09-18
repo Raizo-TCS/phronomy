@@ -90,7 +90,7 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "acquires admission before durable Workflow load" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     repository = persistence.workflow_states
     load_entered = Queue.new
     allow_load = Queue.new
@@ -139,7 +139,7 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "keeps the FSMSession nonterminal until terminal save succeeds" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     repository = persistence.workflow_states
     save_entered = Queue.new
     allow_save = Queue.new
@@ -189,7 +189,7 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "does not publish a halted stream state before its durable save succeeds" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     repository = persistence.workflow_states
     save_entered = Queue.new
     allow_save = Queue.new
@@ -232,13 +232,13 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "treats a portable compare-and-swap failure as a known terminal failure" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     repository = persistence.workflow_states
 
     failing_repository = Object.new
     failing_repository.define_singleton_method(:load) { |id| repository.load(id) }
     failing_repository.define_singleton_method(:save) do |_id, expected_revision:, snapshot:|
-      raise Phronomy::Persistence::ConflictError,
+      raise Phronomy::Storage::ConflictError,
         "forced conflict revision=#{expected_revision.inspect} snapshot=#{!snapshot.nil?}"
     end
     failing_repository.define_singleton_method(:delete) do |id, expected_revision:|
@@ -250,13 +250,13 @@ RSpec.describe "Workflow durable admission" do
     task = workflow.invoke_async({}, config: {workflow_instance_id: "known-failure"})
 
     expect { task.wait_result }
-      .to raise_error(Phronomy::Persistence::ConflictError, /forced conflict/)
+      .to raise_error(Phronomy::Storage::ConflictError, /forced conflict/)
     expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("known-failure"))
       .to be_nil
   end
 
   it "reconciles terminal save response loss when authoritative state is the intended post-state" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     repository = persistence.workflow_states
     save_returned = Queue.new
 
@@ -314,7 +314,7 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "raises ConflictError when the durable snapshot has diverged since halt" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     repo = persistence.workflow_states
     workflow = halting_workflow(persistence: persistence)
 
@@ -325,11 +325,11 @@ RSpec.describe "Workflow durable admission" do
     repo.save("diverged", expected_revision: 1, snapshot: {fields: {value: 99}, phase: nil})
 
     expect { workflow.send_event(state: halted, event: :finish) }
-      .to raise_error(Phronomy::Persistence::ConflictError)
+      .to raise_error(Phronomy::Storage::ConflictError)
   end
 
   it "propagates a repository load error during durable Workflow start" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     fail_repo = Object.new
     fail_repo.define_singleton_method(:load) { |_id| raise IOError, "load exploded on start" }
     fail_repo.define_singleton_method(:save) do |id, expected_revision:, snapshot:|
@@ -348,7 +348,7 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "propagates a repository load error during durable Workflow resume" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     real_repo = persistence.workflow_states
     load_count = 0
     flaky_repo = Object.new
@@ -390,7 +390,7 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "handles a durable repository that returns string-keyed snapshot records on resume" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     real_repo = persistence.workflow_states
     # Wrap the repository so that returned records use string keys, exercising
     # record_value's string-key fallback and deep_immutable_copy's String-key branch.

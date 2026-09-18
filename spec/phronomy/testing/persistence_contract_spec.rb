@@ -41,7 +41,7 @@ RSpec.describe "Persistence contract test support" do
         abort "contract namespace missing" unless defined?(Phronomy::Testing::PersistenceContract)
 
         RSpec.describe "external Persistence contract smoke" do
-          let(:persistence) { Phronomy::Persistence::InMemory.new }
+          let(:persistence) { Phronomy::Persistence.in_memory }
 
           it_behaves_like "a persistence content store"
           it_behaves_like "an Agent repository"

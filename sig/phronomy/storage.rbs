@@ -1,0 +1,137 @@
+module Phronomy
+  interface _ContentRepository
+    def put: (String bytes, canonicalization_version: untyped) -> String
+    def fetch: (String content_id) -> String
+    def exist?: (String content_id) -> bool
+    def put_text: (String text) -> String
+    def put_json: (untyped value) -> String
+    def fetch_text: (String content_id) -> String
+    def fetch_json: (String content_id) -> untyped
+    def fetch_many: (Array[String] content_ids) -> Hash[String, String]
+  end
+
+  interface _BackendAgentRecordRepository
+    def create: (agent_id: String, agent_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def load: (String agent_id) -> Storage::DurableRecord
+    def save: (String agent_id, expected_revision: Integer, next_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def delete: (String agent_id) -> untyped
+  end
+
+  interface _BackendJournalRecordRepository
+    def append: (String agent_id, expected_position: Integer, records: Array[Storage::DurableRecord], record_ids: Array[String]) -> Array[Storage::DurableRecord]
+    def read: (String agent_id, ?after: Integer?, ?limit: Integer?) -> Array[Storage::DurableRecord]
+    def head: (String agent_id) -> Integer
+    def delete: (String agent_id) -> untyped
+  end
+
+  interface _BackendExecutionRecordRepository
+    def create_active: (execution_id: String, agent_id: String, execution_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def load: (String execution_id) -> Storage::DurableRecord
+    def save: (String execution_id, expected_revision: Integer, next_revision: Integer, agent_id: String, active: bool, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def list_active: (String agent_id) -> Array[Storage::DurableRecord]
+    def list: (String agent_id, ?after: String?, ?limit: Integer) -> Array[Storage::DurableRecord]
+    def delete: (String execution_id) -> untyped
+    def delete_for_agent: (String agent_id) -> untyped
+    def assert_idle!: (String agent_id) -> untyped
+  end
+
+  interface _BackendWorkflowStateRecordRepository
+    def load: (String workflow_instance_id) -> Storage::DurableRecord?
+    def save: (String workflow_instance_id, expected_revision: Integer?, next_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _BackendHandoffStateRecordRepository
+    def load: (String main_agent_id) -> Storage::DurableRecord?
+    def save: (String main_agent_id, expected_revision: Integer?, next_revision: Integer, active_agent_id: String, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def delete: (String main_agent_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _BackendTeamRecordRepository
+    def create: (team_id: String, team_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def load: (String team_id) -> Storage::DurableRecord
+    def save: (String team_id, expected_revision: Integer, next_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def delete: (String team_id) -> untyped
+  end
+
+  interface _BackendTeamExecutionRecordRepository
+    def create_active: (team_execution_id: String, team_id: String, execution_revision: Integer, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def load: (String team_execution_id) -> Storage::DurableRecord
+    def save: (String team_execution_id, expected_revision: Integer, next_revision: Integer, team_id: String, active: bool, record: Storage::DurableRecord) -> Storage::DurableRecord
+    def list_active: (String team_id) -> Array[Storage::DurableRecord]
+    def list: (String team_id, ?after: String?, ?limit: Integer) -> Array[Storage::DurableRecord]
+    def delete: (String team_execution_id) -> untyped
+    def delete_for_team: (String team_id) -> untyped
+    def assert_idle!: (String team_id) -> untyped
+  end
+
+  interface _BackendWatermark
+    def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
+  end
+
+  interface _StorageRepositories
+    def contents: () -> _ContentRepository
+    def agents: () -> _BackendAgentRecordRepository
+    def journals: () -> _BackendJournalRecordRepository
+    def executions: () -> _BackendExecutionRecordRepository
+    def workflow_states: () -> _BackendWorkflowStateRecordRepository
+    def handoff_states: () -> _BackendHandoffStateRecordRepository
+    def teams: () -> _BackendTeamRecordRepository
+    def team_executions: () -> _BackendTeamExecutionRecordRepository
+    def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
+  end
+
+  interface _StorageBackend
+    include _StorageRepositories
+    def capabilities: () -> Hash[Symbol, bool]
+    def transaction: () { (_StorageRepositories) -> untyped } -> untyped
+  end
+
+  module Storage
+    class ConflictError < Phronomy::Error
+    end
+    class NotFoundError < Phronomy::Error
+    end
+    class UnsupportedBackendError < Phronomy::Error
+    end
+    class SerializationError < Phronomy::Error
+    end
+
+    class DurableRecord
+      FORMAT_VERSION_PATTERN: Regexp
+      attr_reader record_type: String
+      attr_reader format_version: String
+      attr_reader payload: Hash[String, untyped]
+      def initialize: (record_type: String, format_version: String, payload: Hash[String, untyped]) -> void
+      def copy: () -> DurableRecord
+    end
+
+    class Repositories
+      def contents: () -> _ContentRepository
+      def agents: () -> _BackendAgentRecordRepository
+      def journals: () -> _BackendJournalRecordRepository
+      def executions: () -> _BackendExecutionRecordRepository
+      def workflow_states: () -> _BackendWorkflowStateRecordRepository
+      def handoff_states: () -> _BackendHandoffStateRecordRepository
+      def teams: () -> _BackendTeamRecordRepository
+      def team_executions: () -> _BackendTeamExecutionRecordRepository
+      def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
+      def initialize: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, handoff_states: _BackendHandoffStateRecordRepository, teams: _BackendTeamRecordRepository, team_executions: _BackendTeamExecutionRecordRepository, watermark: _BackendWatermark) -> void
+    end
+
+    class Backend < Repositories
+      REQUIRED_CAPABILITIES: Hash[Symbol, bool]
+      def initialize: (contents: _ContentRepository, agents: _BackendAgentRecordRepository, journals: _BackendJournalRecordRepository, executions: _BackendExecutionRecordRepository, workflow_states: _BackendWorkflowStateRecordRepository, handoff_states: _BackendHandoffStateRecordRepository, teams: _BackendTeamRecordRepository, team_executions: _BackendTeamExecutionRecordRepository) -> void
+      def self.validate_capabilities!: (_StorageBackend backend) -> void
+      def capabilities: () -> Hash[Symbol, bool]
+      def transaction: () { (_StorageRepositories) -> untyped } -> untyped
+      def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
+    end
+
+    module Backends
+      class InMemory < Backend
+        def initialize: () -> void
+      end
+    end
+  end
+end

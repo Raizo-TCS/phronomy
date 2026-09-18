@@ -123,7 +123,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
   it "encodes and decodes AgentRoot through DurableRecord" do
     record = described_class.encode_agent_root(root)
 
-    expect(record).to be_a(Phronomy::Persistence::DurableRecord)
+    expect(record).to be_a(Phronomy::Storage::DurableRecord)
     expect(record.record_type).to eq("phronomy.agent_root")
     expect(record.format_version).to eq("0.1")
     expect(record.payload.fetch("lifecycle_status")).to eq("idle")
@@ -148,7 +148,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
 
   it "rejects an older format version instead of backward-decoding" do
     current = described_class.encode_agent_root(root)
-    old = Phronomy::Persistence::DurableRecord.new(
+    old = Phronomy::Storage::DurableRecord.new(
       record_type: current.record_type,
       format_version: "0.0",
       payload: current.payload
@@ -156,12 +156,12 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
 
     expect do
       described_class.decode_agent_root(old)
-    end.to raise_error(Phronomy::Persistence::SerializationError, /unsupported.*format version/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /unsupported.*format version/)
   end
 
   it "rejects a record type mismatch" do
     current = described_class.encode_agent_root(root)
-    wrong = Phronomy::Persistence::DurableRecord.new(
+    wrong = Phronomy::Storage::DurableRecord.new(
       record_type: "phronomy.agent_execution",
       format_version: current.format_version,
       payload: current.payload
@@ -169,7 +169,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
 
     expect do
       described_class.decode_agent_root(wrong)
-    end.to raise_error(Phronomy::Persistence::SerializationError, /record type mismatch/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /record type mismatch/)
   end
 
   it "rejects missing and unknown fields within the current version" do
@@ -177,26 +177,26 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     missing_payload = current.payload.to_h.except("metadata")
     unknown_payload = current.payload.to_h.merge("unexpected" => true)
 
-    missing = Phronomy::Persistence::DurableRecord.new(
+    missing = Phronomy::Storage::DurableRecord.new(
       record_type: current.record_type,
       format_version: current.format_version,
       payload: missing_payload
     )
-    unknown = Phronomy::Persistence::DurableRecord.new(
+    unknown = Phronomy::Storage::DurableRecord.new(
       record_type: current.record_type,
       format_version: current.format_version,
       payload: unknown_payload
     )
 
     expect { described_class.decode_agent_root(missing) }
-      .to raise_error(Phronomy::Persistence::SerializationError, /missing=.*metadata/)
+      .to raise_error(Phronomy::Storage::SerializationError, /missing=.*metadata/)
     expect { described_class.decode_agent_root(unknown) }
-      .to raise_error(Phronomy::Persistence::SerializationError, /unknown=.*unexpected/)
+      .to raise_error(Phronomy::Storage::SerializationError, /unknown=.*unexpected/)
   end
 
   it "rejects wrong scalar types within the current AgentRoot format" do
     current = described_class.encode_agent_root(root)
-    malformed = Phronomy::Persistence::DurableRecord.new(
+    malformed = Phronomy::Storage::DurableRecord.new(
       record_type: current.record_type,
       format_version: current.format_version,
       payload: current.payload.to_h.merge("agent_id" => 42)
@@ -204,14 +204,14 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
 
     expect do
       described_class.decode_agent_root(malformed)
-    end.to raise_error(Phronomy::Persistence::SerializationError, /agent_id.*String/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /agent_id.*String/)
   end
 
   it "rejects wrong nested types within the current AgentExecution format" do
     current = described_class.encode_agent_execution(execution)
     payload = Marshal.load(Marshal.dump(current.payload))
     payload.fetch("working_records").first["context_candidate"] = "true"
-    malformed = Phronomy::Persistence::DurableRecord.new(
+    malformed = Phronomy::Storage::DurableRecord.new(
       record_type: current.record_type,
       format_version: current.format_version,
       payload: payload
@@ -220,7 +220,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     expect do
       described_class.decode_agent_execution(malformed)
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /working_records\[0\].*context_candidate.*true or false/
     )
   end
@@ -229,7 +229,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     current = described_class.encode_agent_execution(execution)
     payload = Marshal.load(Marshal.dump(current.payload))
     payload.fetch("llm_calls").first["unexpected"] = true
-    malformed = Phronomy::Persistence::DurableRecord.new(
+    malformed = Phronomy::Storage::DurableRecord.new(
       record_type: current.record_type,
       format_version: current.format_version,
       payload: payload
@@ -237,7 +237,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
 
     expect do
       described_class.decode_agent_execution(malformed)
-    end.to raise_error(Phronomy::Persistence::SerializationError, /llm_calls\[0\].*unknown/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /llm_calls\[0\].*unknown/)
   end
 
   it "keeps application metadata extensible without relaxing the record schema" do
@@ -293,7 +293,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     def corrupt_execution_record(overrides)
       base = described_class.encode_agent_execution(execution)
       bad_payload = base.payload.merge(overrides)
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: described_class::AGENT_EXECUTION_RECORD_TYPE,
         format_version: described_class::AGENT_EXECUTION_FORMAT_VERSION,
         payload: bad_payload
@@ -303,13 +303,13 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
     it "rejects non-Array working_records" do
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("working_records" => "corrupt"))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /working_records must be an Array/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /working_records must be an Array/)
     end
 
     it "rejects non-Array llm_calls" do
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("llm_calls" => "corrupt"))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /llm_calls must be an Array/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /llm_calls must be an Array/)
     end
 
     it "rejects a working_record with wrong agent_id" do
@@ -317,7 +317,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
         .payload.fetch("working_records").first.merge("agent_id" => "wrong-agent")
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("working_records" => [bad_wr]))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /working_records\[0\] agent_id mismatch/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /working_records\[0\] agent_id mismatch/)
     end
 
     it "rejects a working_record with mismatched execution_id" do
@@ -325,7 +325,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
         .payload.fetch("working_records").first.merge("execution_id" => "wrong-exec")
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("working_records" => [bad_wr]))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /working_records\[0\] execution_id mismatch/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /working_records\[0\] execution_id mismatch/)
     end
 
     it "rejects a llm_call with wrong execution_id" do
@@ -333,7 +333,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
         .payload.fetch("llm_calls").first.merge("execution_id" => "wrong-exec")
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("llm_calls" => [bad_call]))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /llm_calls\[0\] execution_id mismatch/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /llm_calls\[0\] execution_id mismatch/)
     end
 
     it "rejects approval_request with wrong execution_id" do
@@ -341,7 +341,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
         .payload.fetch("approval_request").merge("execution_id" => "wrong-exec")
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("approval_request" => bad_approval))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /approval_request execution_id mismatch/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /approval_request execution_id mismatch/)
     end
 
     it "rejects approval_request with non-boolean approved field" do
@@ -349,7 +349,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
         .payload.fetch("approval_request").merge("approved" => "maybe")
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("approval_request" => bad_approval))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /approved must be true or false/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /approved must be true or false/)
     end
 
     it "rejects approval_request with empty items" do
@@ -357,7 +357,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
         .payload.fetch("approval_request").merge("items" => [])
       expect {
         described_class.decode_agent_execution(corrupt_execution_record("approval_request" => bad_approval))
-      }.to raise_error(Phronomy::Persistence::SerializationError, /items must be a non-empty Array/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /items must be a non-empty Array/)
     end
 
     it "rejects a workflow state with wrong expected_workflow_instance_id" do
@@ -368,7 +368,7 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
       )
       expect {
         described_class.decode_workflow_state(record, expected_workflow_instance_id: "wrong-id")
-      }.to raise_error(Phronomy::Persistence::SerializationError, /mismatch/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /mismatch/)
     end
 
     it "rejects a workflow snapshot with non-Hash fields" do
@@ -380,14 +380,14 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
       bad_payload = record.payload.merge(
         "snapshot" => record.payload.fetch("snapshot").merge("fields" => "not-a-hash")
       )
-      bad_record = Phronomy::Persistence::DurableRecord.new(
+      bad_record = Phronomy::Storage::DurableRecord.new(
         record_type: described_class::WORKFLOW_STATE_RECORD_TYPE,
         format_version: described_class::WORKFLOW_STATE_FORMAT_VERSION,
         payload: bad_payload
       )
       expect {
         described_class.decode_workflow_state(bad_record)
-      }.to raise_error(Phronomy::Persistence::SerializationError, /fields must be a Hash/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /fields must be a Hash/)
     end
 
     it "rejects a workflow snapshot with non-String phase" do
@@ -399,14 +399,14 @@ RSpec.describe Phronomy::Persistence::DurableCodec do
       bad_payload = record.payload.merge(
         "snapshot" => record.payload.fetch("snapshot").merge("phase" => 42)
       )
-      bad_record = Phronomy::Persistence::DurableRecord.new(
+      bad_record = Phronomy::Storage::DurableRecord.new(
         record_type: described_class::WORKFLOW_STATE_RECORD_TYPE,
         format_version: described_class::WORKFLOW_STATE_FORMAT_VERSION,
         payload: bad_payload
       )
       expect {
         described_class.decode_workflow_state(bad_record)
-      }.to raise_error(Phronomy::Persistence::SerializationError, /phase must be a String or nil/)
+      }.to raise_error(Phronomy::Storage::SerializationError, /phase must be a String or nil/)
     end
   end
 end

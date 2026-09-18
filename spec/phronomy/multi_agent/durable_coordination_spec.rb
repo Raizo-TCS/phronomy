@@ -58,7 +58,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
         begin
           child = backend.executions.load(assignment.fetch("execution_id"))
           captured = backend.snapshot if child.terminal?
-        rescue Phronomy::Persistence::NotFoundError
+        rescue Phronomy::Storage::NotFoundError
           nil
         end
       end
@@ -147,7 +147,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       begin
         child = backend.executions.load(run.coordinator.fetch("execution_id"))
         captured = backend.snapshot if child.phase == :calling_llm
-      rescue Phronomy::Persistence::NotFoundError
+      rescue Phronomy::Storage::NotFoundError
         nil
       end
     end
@@ -191,7 +191,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /cancelled/)
     expect(loaded.executions.first.status).to eq("cancelled")
     expect(loaded.executions.first.assignments.first.fetch("execution_id")).to eq(reserved)
-    expect { restored.executions.load(reserved) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { restored.executions.load(reserved) }.to raise_error(Phronomy::Storage::NotFoundError)
     expect(llm.calls).to be_empty
   end
 
@@ -216,7 +216,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       begin
         child = backend.executions.load(slot.fetch("execution_id"))
         captured = backend.snapshot if child.terminal? && run.phase == :dispatching_tools
-      rescue Phronomy::Persistence::NotFoundError
+      rescue Phronomy::Storage::NotFoundError
         nil
       end
     end
@@ -267,7 +267,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       child_id = backend.contents.fetch_json(run.metadata.fetch("multi_agent_coordination_ref")).fetch("children").first.fetch("execution_id")
       begin
         captured = backend.snapshot if backend.executions.load(child_id).phase == :calling_llm
-      rescue Phronomy::Persistence::NotFoundError
+      rescue Phronomy::Storage::NotFoundError
         nil
       end
     end
@@ -329,7 +329,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     expect(llm.calls.size).to eq(1)
     expect(JSON.generate(llm.last_messages)).to include("original request", "saved responsibility")
     target.purge!
-    expect { restored.handoff_result(source_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { restored.handoff_result(source_id) }.to raise_error(Phronomy::Storage::NotFoundError)
     source.purge!
     expect(restored.handoff_states.load(source.agent_id)).to be_nil
   end
@@ -358,7 +358,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     runner = Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge])
     expect(runner.result(source_id)).to include(execution_id: reserved_id, status: :cancelled)
     expect(restored.executions.load(source_id).status).to eq(:handed_off)
-    expect { restored.executions.load(reserved_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { restored.executions.load(reserved_id) }.to raise_error(Phronomy::Storage::NotFoundError)
     expect(restored.handoff_states.load(source.agent_id).active_agent_id).to eq(target.agent_id)
     llm = LLMStub.activate(responses: ["next turn"])
     expect(runner.invoke("new request")[:output]).to eq("next turn")
@@ -408,7 +408,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       child = backend.contents.fetch_json(run.metadata.fetch("multi_agent_coordination_ref")).fetch("children").first
       begin
         captured = backend.snapshot if backend.executions.load(child.fetch("execution_id")).terminal?
-      rescue Phronomy::Persistence::NotFoundError
+      rescue Phronomy::Storage::NotFoundError
         nil
       end
     end

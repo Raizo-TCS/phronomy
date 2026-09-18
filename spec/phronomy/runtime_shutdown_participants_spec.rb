@@ -195,7 +195,7 @@ end
 
 RSpec.describe "Coordination admission ownership" do
   let(:registry) { Phronomy::MultiAgent::AdmissionRegistry.for(Phronomy::Runtime.instance) }
-  let(:store) { Phronomy::Persistence::InMemory.new }
+  let(:store) { Phronomy::Persistence.in_memory }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) { agent_definition id: "shutdown-participant-agent", version: 1 }
   end

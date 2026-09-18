@@ -26,9 +26,9 @@ module Phronomy
         begin
           agent = yield(@runtime)
         rescue Phronomy::AgentAlreadyExistsError,
-          Phronomy::Persistence::ConflictError,
-          Phronomy::Persistence::NotFoundError,
-          Phronomy::Persistence::SerializationError,
+          Phronomy::Storage::ConflictError,
+          Phronomy::Storage::NotFoundError,
+          Phronomy::Storage::SerializationError,
           ArgumentError,
           Phronomy::ConfigurationError
           release_construction!(key, token)

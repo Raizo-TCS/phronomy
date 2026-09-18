@@ -93,7 +93,7 @@ module Phronomy
           raise Phronomy::EventLoopReentrancyError, "Team construction cannot block EventLoop" if Phronomy::Runtime.in_event_loop_context?
           key = id.to_s
           raise ArgumentError, "team_id must not be empty" if key.empty?
-          store = persistence || Phronomy.configuration.persistence || Phronomy::Persistence::InMemory.new
+          store = persistence || Phronomy.configuration.persistence || Phronomy::Persistence.in_memory
           runtime = Phronomy::Runtime.instance
           runtime.__team_owner(key, klass: self, create: create, persistence: store) do
             instance = allocate
@@ -200,7 +200,7 @@ module Phronomy
       def read_execution(id)
         execution = persistence.team_executions.load(id)
         unless execution.team_id == team_id
-          raise Phronomy::Persistence::ConflictError, "Team execution #{id} belongs to another Team"
+          raise Phronomy::Storage::ConflictError, "Team execution #{id} belongs to another Team"
         end
         execution
       end
@@ -236,7 +236,7 @@ module Phronomy
           raise error unless intended
           begin
             confirmed = read_execution(id)
-          rescue Phronomy::Persistence::NotFoundError
+          rescue Phronomy::Storage::NotFoundError
             raise error
           end
           raise error unless confirmed.to_h == intended.to_h
@@ -252,7 +252,7 @@ module Phronomy
           intended = nil
           persistence.transaction do |tx|
             current = tx.team_executions.load(id)
-            raise Phronomy::Persistence::ConflictError, "Team execution owner mismatch" unless current.team_id == team_id
+            raise Phronomy::Storage::ConflictError, "Team execution owner mismatch" unless current.team_id == team_id
             intended = yield(current, tx)
             next if intended.equal?(current)
             tx.team_executions.save(id, expected_revision: current.execution_revision, execution: intended)
@@ -265,7 +265,7 @@ module Phronomy
         rescue => error
           confirmed = read_execution(id)
           return confirmed if intended && confirmed.to_h == intended.to_h
-          if error.is_a?(Phronomy::Persistence::ConflictError) && (attempts += 1) < 8
+          if error.is_a?(Phronomy::Storage::ConflictError) && (attempts += 1) < 8
             retry
           end
           raise error
@@ -384,7 +384,7 @@ module Phronomy
           begin
             persistence.agents.load(id)
             present = true
-          rescue Phronomy::Persistence::NotFoundError
+          rescue Phronomy::Storage::NotFoundError
             present = false
           end
           token.raise_if_cancelled! unless present
@@ -419,7 +419,7 @@ module Phronomy
           entries = fresh.assignments.map do |entry|
             next entry unless entry.fetch("task_id") == assigned.fetch("task_id")
             next entry unless entry.fetch("state") == "reserved"
-            raise Phronomy::Persistence::ConflictError, "Assignment execution changed" unless entry.fetch("execution_id") == outcome.fetch(:execution_id)
+            raise Phronomy::Storage::ConflictError, "Assignment execution changed" unless entry.fetch("execution_id") == outcome.fetch(:execution_id)
             entry.merge("state" => outcome.fetch(:status).to_s,
               "result_ref" => outcome[:result_ref], "error_ref" => outcome[:error_ref])
           end
@@ -513,20 +513,20 @@ module Phronomy
           operations = fresh.metadata.fetch("operations")
           if (prior = operations[key])
             unless prior.fetch("operation") == operation.to_s && prior.fetch("arguments") == argument_values
-              raise Phronomy::Persistence::ConflictError, "Team operation #{key} identity mismatch"
+              raise Phronomy::Storage::ConflictError, "Team operation #{key} identity mismatch"
             end
             next fresh
           end
           raise Phronomy::CancellationError, "Team run cancelled" if fresh.metadata["cancel_requested"]
-          raise Phronomy::Persistence::ConflictError, "Team task generation is closed" unless fresh.active? && fresh.phase == "coordinator"
+          raise Phronomy::Storage::ConflictError, "Team task generation is closed" unless fresh.active? && fresh.phase == "coordinator"
           coordinator = tx.executions.load(fresh.coordinator.fetch("execution_id"))
           unless coordinator.agent_id == fresh.coordinator.fetch("agent_id")
-            raise Phronomy::Persistence::ConflictError, "Team coordinator owner mismatch"
+            raise Phronomy::Storage::ConflictError, "Team coordinator owner mismatch"
           end
           batch = Array(coordinator.metadata[Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY])
           requested = batch.find { |entry| entry.fetch("tool_invocation_id") == key }
           unless requested && requested.fetch("status") == "authorized" && requested.fetch("tool_name") == operation.to_s && requested.fetch("arguments").compact == argument_values
-            raise Phronomy::Persistence::ConflictError, "Team operation #{key} is not the authorized call"
+            raise Phronomy::Storage::ConflictError, "Team operation #{key} is not the authorized call"
           end
           # All calls passed the Agent authorization barrier. Commit this finite
           # batch in Provider order, so finalize cannot overtake queued tasks.

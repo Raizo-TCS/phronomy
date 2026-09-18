@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe Phronomy::Agent::JournalProjection do
   it "derives transcript from the current generation of the Journal" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     root = Phronomy::Agent::AgentRoot.create(
       agent_id: "agent-1",
       agent_definition_id: "test-agent",
@@ -49,7 +49,7 @@ RSpec.describe Phronomy::Agent::JournalProjection do
   end
 
   it "includes canonical assistant/tool messages but not raw Tool results" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     root = Phronomy::Agent::AgentRoot.create(
       agent_id: "agent-1",
       agent_definition_id: "test-agent",

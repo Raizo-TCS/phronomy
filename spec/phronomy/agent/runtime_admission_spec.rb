@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent Runtime admission" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
 
   it "rejects a competing top-level invoke on EventLoop before Persistence admission" do
     entered = Queue.new

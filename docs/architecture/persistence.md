@@ -9,8 +9,16 @@
 
 ## 1. Durable boundary
 
-`Phronomy::Persistence` is the single durable-state backend abstraction for
-stateful Agents and durable Workflows.
+`Phronomy::Persistence` is the domain-facing service for the single durable-state
+transaction domain used by Agents, Teams, and Workflows. It composes a
+`Storage::Backend`; storage implementations do not inherit the domain service.
+
+The `storage/` directory owns record carriers, portable errors, repository views,
+and the Backend contract. `storage/backends/` owns physical storage implementations.
+The `persistence/` directory owns domain codecs and repository facades.
+The root and transaction paths use the same facade construction, with transaction
+facades bound to the raw backend view for that transaction.
+See [ADR-032](../decisions/032-storage-backend-composition.md).
 
 Shared value copying belongs to `Values::Immutable` in `values/`. Agent records,
 Team records, Recovery classifications, and Persistence result views use this
@@ -78,7 +86,7 @@ Defined semantic durable transitions are atomic according to the Persistence
 transaction contract and conforming backend.
 
 Revision/watermark/CAS checks reject stale durable transitions with
-`Persistence::ConflictError` rather than silently merging/reloading competing
+`Storage::ConflictError` rather than silently merging/reloading competing
 state.
 
 Conflict detection is not competing-execution exclusion and cannot undo an
@@ -115,7 +123,7 @@ Phronomy does not claim arbitrary external exactly-once side effects.
 ## 7. Durable codec
 
 Durable backend exchange uses immutable
-`Phronomy::Persistence::DurableRecord` values with:
+`Phronomy::Storage::DurableRecord` values with:
 
 ```text
 record_type

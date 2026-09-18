@@ -75,7 +75,7 @@ handling; workers do not receive AgentInvocation as a mutable state authority.
 Mutable Agent/Execution/Journal state is not automatically reloaded before every
 LLM or Tool step. Durable writes use optimistic revision/position guardrails; an
 external writer that advances the durable base causes
-`Persistence::ConflictError` rather than automatic reload or merge.
+`Storage::ConflictError` rather than automatic reload or merge.
 
 For Workflows, the current `WorkflowContext` and FSMSession own the active
 logical state. A durable Workflow hydrates once at invocation/resume and saves at
@@ -100,7 +100,7 @@ new / create
 load(agent_id, persistence:)
   live -> exact same Ruby object, with no Persistence reload
   durable-only -> hydrate and publish once
-  missing -> Persistence::NotFoundError
+  missing -> Storage::NotFoundError
 
 get(agent_id)
   live Runtime lookup only; missing -> nil

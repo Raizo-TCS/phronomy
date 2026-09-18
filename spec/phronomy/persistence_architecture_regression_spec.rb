@@ -32,8 +32,8 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   end
 
   it "keeps transient Agent execution state out of the Persistence contract" do
-    persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
-    in_memory = File.read(File.join(root, "lib/phronomy/persistence/in_memory.rb"))
+    persistence = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
+    in_memory = File.read(File.join(root, "lib/phronomy/storage/backends/in_memory.rb"))
     runtime = File.read(File.join(root, "lib/phronomy/engine/runtime.rb"))
     event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
 
@@ -226,8 +226,8 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(fsm).to include("SecureRandom.uuid.to_s.freeze")
   end
 
-  it "uses the existing Persistence::InMemory Monitor as the durable in-memory transaction owner" do
-    in_memory = File.read(File.join(root, "lib/phronomy/persistence/in_memory.rb"))
+  it "uses the existing Storage::Backends::InMemory Monitor as the durable in-memory transaction owner" do
+    in_memory = File.read(File.join(root, "lib/phronomy/storage/backends/in_memory.rb"))
 
     expect(in_memory.scan(/@monitor\s*=\s*Monitor\.new/).length).to eq(1)
     expect(in_memory).not_to match(/@(?:workflow|state_store).*mutex/i)
@@ -239,7 +239,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   end
 
   it "keeps durable-transition atomicity separate from F1 commit-outcome certainty" do
-    persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
+    persistence = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
 
     expect(persistence).to include(
       "all durable repositories can participate in one atomic"
@@ -253,7 +253,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   end
 
   it "does not equate optimistic conflict detection with distributed exclusion" do
-    persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
+    persistence = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
 
     expect(persistence).to include(
       "compare-and-swap conflict detection"

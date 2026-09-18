@@ -36,7 +36,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
   end
 
   describe "build_followup model config base" do
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "followup-model-test", version: 1
@@ -109,7 +109,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
   end
 
   describe "follow-up hook instruction segments" do
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "followup-hook-segment-test", version: 1

@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Journal-backed Agent Knowledge" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
 
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do

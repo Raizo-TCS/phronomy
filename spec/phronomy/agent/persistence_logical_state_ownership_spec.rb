@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent logical-state ownership" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "local-state-owner-test", version: 1

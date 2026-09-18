@@ -69,6 +69,6 @@ RSpec.describe Phronomy::WorkflowRecovery do
     )
 
     expect(result.outcome).to eq(:outcome_unknown)
-    expect(result.error).to be_a(Phronomy::Persistence::ConflictError)
+    expect(result.error).to be_a(Phronomy::Storage::ConflictError)
   end
 end

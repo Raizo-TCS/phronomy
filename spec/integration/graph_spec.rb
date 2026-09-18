@@ -8,7 +8,7 @@ require_relative "spec_helper"
 
 RSpec.describe "Group 7: Workflow", :integration do
   def with_in_memory_persistence
-    yield Phronomy::Persistence::InMemory.new
+    yield Phronomy::Persistence.in_memory
   end
 
   def without_persistence
@@ -81,7 +81,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-002: linear; wait_state halt; resume without input; append-type; stream; Persistence::InMemory
+  # TC-002: linear; wait_state halt; resume without input; append-type; stream; Persistence.in_memory
   describe "TC-002" do
     it "halts at wait state, then resumes and completes" do
       with_in_memory_persistence do |persistence|
@@ -110,7 +110,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-004: linear; wait_state halt; resume without input; replace-type; large recursion_limit; Persistence::InMemory
+  # TC-004: linear; wait_state halt; resume without input; replace-type; large recursion_limit; Persistence.in_memory
   describe "TC-004" do
     it "halts at wait state, then resumes and completes" do
       with_in_memory_persistence do |persistence|
@@ -142,7 +142,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-007: branching; wait_state halt; not resumed; merge-type; Persistence::InMemory
+  # TC-007: branching; wait_state halt; not resumed; merge-type; Persistence.in_memory
   describe "TC-007" do
     it "routes to correct branch and halts at wait state" do
       with_in_memory_persistence do |persistence|
@@ -229,7 +229,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-011: multi-state; wait_state halt; resume with input; replace-type; proc default; Persistence::InMemory; stream
+  # TC-011: multi-state; wait_state halt; resume with input; replace-type; proc default; Persistence.in_memory; stream
   describe "TC-011" do
     it "halts at wait state after n2, then resumes with new input" do
       with_in_memory_persistence do |persistence|
@@ -339,7 +339,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-016: linear; no interrupt; replace-type; Persistence::InMemory final snapshot
+  # TC-016: linear; no interrupt; replace-type; Persistence.in_memory final snapshot
   describe "TC-016" do
     it "persists final state through Persistence#workflow_states" do
       with_in_memory_persistence do |persistence|

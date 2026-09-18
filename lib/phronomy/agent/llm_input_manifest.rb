@@ -3,7 +3,7 @@
 module Phronomy
   module Agent
     # ContentStore-backed durable codec boundary for one Provider input manifest.
-    # It is intentionally separate from Persistence::DurableRecord.
+    # It is intentionally separate from Storage::DurableRecord.
     class LLMInputManifest
       VERSION = "0.1"
       CALL_MODES = %i[ask complete].freeze
@@ -62,7 +62,7 @@ module Phronomy
             label: label
           )
           unless SEGMENT_DELIVERIES.include?(delivery)
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "LLMInputManifest segment delivery must be one of #{SEGMENT_DELIVERIES.inspect}, got #{delivery.inspect}"
           end
           tool_call_id = LLMInputManifest.send(
@@ -87,10 +87,10 @@ module Phronomy
             tool_call_id: tool_call_id,
             metadata: metadata
           )
-        rescue Phronomy::Persistence::SerializationError
+        rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "invalid LLMInputManifest segment: #{error.class}: #{error.message}"
         end
 
@@ -162,7 +162,7 @@ module Phronomy
         label = "LLMInputManifest"
         version = source.fetch("version")
         unless version.is_a?(String) && version == VERSION
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "unsupported LLMInputManifest version: #{version.inspect}; " \
             "current version is #{VERSION.inspect}"
         end
@@ -229,10 +229,10 @@ module Phronomy
           adapter_name: adapter_name,
           adapter_version: adapter_version
         )
-      rescue Phronomy::Persistence::SerializationError
+      rescue Phronomy::Storage::SerializationError
         raise
       rescue => error
-        raise Phronomy::Persistence::SerializationError,
+        raise Phronomy::Storage::SerializationError,
           "invalid LLMInputManifest: #{error.class}: #{error.message}"
       end
 
@@ -262,11 +262,11 @@ module Phronomy
 
         def strict_source!(hash, required:, optional:, label:)
           unless hash.is_a?(Hash)
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "#{label} must be a Hash"
           end
           unless hash.keys.all? { |key| key.is_a?(String) }
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "#{label} keys must all be String"
           end
 
@@ -277,13 +277,13 @@ module Phronomy
             details = []
             details << "missing=#{missing.inspect}" unless missing.empty?
             details << "unknown=#{unknown.inspect}" unless unknown.empty?
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "#{label} schema mismatch (#{details.join(", ")})"
           end
           Phronomy::CanonicalJSON.dump(hash)
           hash
         rescue ArgumentError => error
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} is not canonical JSON compatible: #{error.message}"
         end
 
@@ -291,7 +291,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(Integer)
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be an Integer"
         end
 
@@ -299,7 +299,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(Integer) && value.positive?
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be a positive Integer"
         end
 
@@ -307,7 +307,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(Integer) && value >= 0
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be a non-negative Integer"
         end
 
@@ -315,7 +315,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(String) && !value.empty?
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be a non-empty String"
         end
 
@@ -323,7 +323,7 @@ module Phronomy
           value = hash[key]
           return value if value.nil? || value.is_a?(String)
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be a String or nil"
         end
 
@@ -331,7 +331,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(String) && allowed.include?(value)
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be one of #{allowed.inspect}"
         end
 
@@ -339,7 +339,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(Array)
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be an Array"
         end
 
@@ -347,7 +347,7 @@ module Phronomy
           value = hash.fetch(key)
           return value if value.is_a?(Hash)
 
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} #{key} must be a Hash"
         end
       end

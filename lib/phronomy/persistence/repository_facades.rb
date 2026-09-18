@@ -35,12 +35,12 @@ module Phronomy
           expected = Integer(expected_revision)
           next_revision = Integer(root.agent_revision)
           unless next_revision == expected + 1
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "agent save must advance revision exactly once: " \
               "expected #{expected + 1}, got #{next_revision}"
           end
           unless root.agent_id.to_s == agent_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "Agent root identity mismatch: #{root.agent_id} != #{agent_id}"
           end
 
@@ -63,11 +63,11 @@ module Phronomy
         def decode_for_agent(record, agent_id, revision: nil)
           root = DurableCodec.decode_agent_root(record)
           unless root.agent_id == agent_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Agent root for #{root.agent_id.inspect}; expected #{agent_id.to_s.inspect}"
           end
           if revision && root.agent_revision != revision
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Agent revision #{root.agent_revision}; expected #{revision}"
           end
           root
@@ -83,7 +83,7 @@ module Phronomy
           expected = Integer(expected_position)
           sequenced = Array(records).each_with_index.map do |record, index|
             unless record.agent_id.to_s == agent_id.to_s
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "Journal record Agent mismatch: #{record.agent_id} != #{agent_id}"
             end
             record.with_sequence(expected + index + 1)
@@ -124,12 +124,12 @@ module Phronomy
         def validate_read!(records, agent_id, start_sequence:)
           records.each_with_index do |record, index|
             unless record.agent_id == agent_id.to_s
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "backend returned Journal record for #{record.agent_id.inspect}; expected #{agent_id.to_s.inspect}"
             end
             expected_sequence = start_sequence + index
             unless record.sequence == expected_sequence
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "backend returned Journal sequence #{record.sequence.inspect}; expected #{expected_sequence}"
             end
           end
@@ -144,7 +144,7 @@ module Phronomy
 
         def create_active(execution)
           unless execution.active?
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "create_active requires an active AgentExecution"
           end
           record = DurableCodec.encode_agent_execution(execution)
@@ -171,12 +171,12 @@ module Phronomy
           expected = Integer(expected_revision)
           next_revision = Integer(execution.execution_revision)
           unless next_revision == expected + 1
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "execution save must advance revision exactly once: " \
               "expected #{expected + 1}, got #{next_revision}"
           end
           unless execution.execution_id.to_s == execution_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "Execution identity mismatch: #{execution.execution_id} != #{execution_id}"
           end
 
@@ -228,19 +228,19 @@ module Phronomy
         def decode_for_execution(record, execution_id, agent_id: nil, revision: nil, active: nil)
           execution = DurableCodec.decode_agent_execution(record)
           if execution_id && execution.execution_id != execution_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution #{execution.execution_id.inspect}; expected #{execution_id.to_s.inspect}"
           end
           if agent_id && execution.agent_id != agent_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution for Agent #{execution.agent_id.inspect}; expected #{agent_id.to_s.inspect}"
           end
           if revision && execution.execution_revision != revision
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution revision #{execution.execution_revision}; expected #{revision}"
           end
           if !active.nil? && execution.active? != active
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution active=#{execution.active?}; expected #{active}"
           end
           execution
@@ -270,12 +270,12 @@ module Phronomy
           expected = Integer(expected_revision)
           next_revision = Integer(root.team_revision)
           unless next_revision == expected + 1
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "agent save must advance revision exactly once: " \
               "expected #{expected + 1}, got #{next_revision}"
           end
           unless root.team_id.to_s == team_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "Team root identity mismatch: #{root.team_id} != #{team_id}"
           end
 
@@ -298,11 +298,11 @@ module Phronomy
         def decode_for_team(record, team_id, revision: nil)
           root = DurableCodec.decode_team_root(record)
           unless root.team_id == team_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Team root for #{root.team_id.inspect}; expected #{team_id.to_s.inspect}"
           end
           if revision && root.team_revision != revision
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Team revision #{root.team_revision}; expected #{revision}"
           end
           root
@@ -316,7 +316,7 @@ module Phronomy
 
         def create_active(execution)
           unless execution.active?
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "create_active requires an active TeamExecution"
           end
           record = DurableCodec.encode_team_execution(execution)
@@ -343,12 +343,12 @@ module Phronomy
           expected = Integer(expected_revision)
           next_revision = Integer(execution.execution_revision)
           unless next_revision == expected + 1
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "execution save must advance revision exactly once: " \
               "expected #{expected + 1}, got #{next_revision}"
           end
           unless execution.team_execution_id.to_s == team_execution_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "Execution identity mismatch: #{execution.team_execution_id} != #{team_execution_id}"
           end
 
@@ -400,19 +400,19 @@ module Phronomy
         def decode_for_execution(record, team_execution_id, team_id: nil, revision: nil, active: nil)
           execution = DurableCodec.decode_team_execution(record)
           if team_execution_id && execution.team_execution_id != team_execution_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution #{execution.team_execution_id.inspect}; expected #{team_execution_id.to_s.inspect}"
           end
           if team_id && execution.team_id != team_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution for Agent #{execution.team_id.inspect}; expected #{team_id.to_s.inspect}"
           end
           if revision && execution.execution_revision != revision
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution revision #{execution.execution_revision}; expected #{revision}"
           end
           if !active.nil? && execution.active? != active
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Execution active=#{execution.active?}; expected #{active}"
           end
           execution
@@ -431,7 +431,7 @@ module Phronomy
           expected = expected_revision.nil? ? nil : Integer(expected_revision)
           next_revision = expected.nil? ? 1 : expected + 1
           unless state.main_agent_id == main_agent_id.to_s && state.handoff_revision == next_revision
-            raise Phronomy::Persistence::SerializationError, "Handoff identity/revision mismatch"
+            raise Phronomy::Storage::SerializationError, "Handoff identity/revision mismatch"
           end
           record = @backend_repository.save(main_agent_id.to_s,
             expected_revision: expected, next_revision: next_revision,
@@ -450,7 +450,7 @@ module Phronomy
           identity_matches = state.main_agent_id == main_agent_id.to_s
           revision_matches = revision.nil? || state.handoff_revision == revision
           unless identity_matches && revision_matches
-            raise Phronomy::Persistence::SerializationError, "Backend returned another Handoff identity/revision"
+            raise Phronomy::Storage::SerializationError, "Backend returned another Handoff identity/revision"
           end
           state
         end
@@ -490,7 +490,7 @@ module Phronomy
             expected_workflow_instance_id: workflow_instance_id
           )
           unless decoded.fetch(:revision) == next_revision
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "backend returned Workflow revision #{decoded.fetch(:revision)}; expected #{next_revision}"
           end
           decoded.fetch(:revision)
@@ -504,22 +504,21 @@ module Phronomy
         end
       end
 
-      # Transaction-scoped domain-facing Persistence view built from raw backend
-      # repositories. Backend implementations can use this through
-      # Persistence#build_transaction_view without duplicating facade logic.
+      # Domain-facing repositories built from one raw storage view. The root
+      # service and each transaction apply exactly the same conversion rules.
       class View
         attr_reader :contents, :agents, :journals, :executions, :workflow_states, :handoff_states, :teams, :team_executions
 
-        def initialize(contents:, agents:, journals:, executions:, workflow_states:, handoff_states:, teams:, team_executions:, watermark:)
-          @contents = contents
-          @agents = Agents.new(agents)
-          @journals = Journals.new(journals)
-          @executions = Executions.new(executions)
-          @workflow_states = WorkflowStates.new(workflow_states)
-          @handoff_states = HandoffStates.new(handoff_states)
-          @teams = Teams.new(teams)
-          @team_executions = TeamExecutions.new(team_executions)
-          @watermark = watermark
+        def initialize(backend)
+          @contents = backend.contents
+          @agents = Agents.new(backend.agents)
+          @journals = Journals.new(backend.journals)
+          @executions = Executions.new(backend.executions)
+          @workflow_states = WorkflowStates.new(backend.workflow_states)
+          @handoff_states = HandoffStates.new(backend.handoff_states)
+          @teams = Teams.new(backend.teams)
+          @team_executions = TeamExecutions.new(backend.team_executions)
+          @watermark = backend
         end
 
         def assert_agent_watermark!(agent_id:, agent_revision:, journal_position:)

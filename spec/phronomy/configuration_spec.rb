@@ -53,7 +53,7 @@ RSpec.describe Phronomy::Configuration do
     end
 
     it "sets the unified Persistence backend" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       config.persistence = persistence
       expect(config.persistence).to be(persistence)
     end
@@ -86,7 +86,7 @@ RSpec.describe "Phronomy.configure" do
   end
 
   it "uses the global Persistence for Agents that do not inject another backend" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "global-persistence-agent", version: 1
     end
@@ -96,8 +96,8 @@ RSpec.describe "Phronomy.configure" do
   end
 
   it "keeps an explicitly injected Agent Persistence ahead of the global backend" do
-    global = Phronomy::Persistence::InMemory.new
-    explicit = Phronomy::Persistence::InMemory.new
+    global = Phronomy::Persistence.in_memory
+    explicit = Phronomy::Persistence.in_memory
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "explicit-persistence-agent", version: 1
     end

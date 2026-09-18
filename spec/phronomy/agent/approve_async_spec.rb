@@ -201,7 +201,7 @@ RSpec.describe Phronomy::Agent::Base do
 
   describe ".live_for_execution" do
     let(:tool_instance) { HITLTool.new }
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:approvals) { Queue.new }
     let(:agent) do
       HITLAgentForApproveAsync.new(

@@ -1,27 +1,29 @@
 # Persistence backend contract
 
-`Phronomy::Persistence` is the single durable-state backend abstraction used by
-stateful Agents and durable Workflows. This document is the normative contract
-for authors of custom Persistence backends.
+`Phronomy::Persistence` is the domain-facing durable-state service used by
+Agents, Teams, and Workflows. `Phronomy::Storage::Backend` defines its synchronous,
+record-oriented storage extension contract. This document is normative for
+custom backends and for the domain repository facade above them.
 
-The Backend SPI is **Beta**. It may evolve in a minor pre-1.0 release, but a
-backend should not depend on Phronomy private APIs or Runtime internals.
+The Backend SPI is **Beta**. The composition change replaces the earlier
+`Persistence` subclass SPI; see [the migration guide](migrations/storage-backend-composition.md).
+Backends should not depend on Phronomy private APIs or Runtime internals.
 
 ## Architecture boundary
 
-A backend implements durable storage only:
+| Component | Source dependencies | Responsibility |
+|---|---|---|
+| Storage contract | Shared record/value/error contracts | Raw repositories, transaction and watermark protocol |
+| Concrete backend | Storage contract and its DB driver | Physical records, indexes, CAS, transaction implementation |
+| Persistence facade and codecs | Storage contract and domain record types | Domain validation, conversion, and result queries |
+| Construction | Persistence facade and the selected backend | Connect the two using `Persistence.new(backend: ...)` |
 
-```text
-Application
-    ↓
-Agent / Workflow
-    ↓
-Runtime / EventLoop / ExecutionCoordinator
-    ↓
-Phronomy::Persistence synchronous Backend SPI
-    ↓
-Database / durable storage
-```
+A concrete backend inherits `Storage::Backend` or implements the same protocol.
+It does not inherit `Persistence`, construct domain repository facades, or select
+an Agent/Team class. SQL implementations depend on the common storage contract;
+the common contract does not select or load SQL implementations.
+`Persistence.in_memory` is the convenience composition of the standard facade
+and `Storage::Backends::InMemory`.
 
 Persistence does not own live Agent identity, top-level Runtime admission, or
 live execution state. In particular, a backend must not persist or reconstruct
@@ -44,7 +46,7 @@ contract.
 
 ## Required root surface
 
-A Persistence backend exposes eight durable repositories:
+The raw backend and domain-facing Persistence each expose eight repositories:
 
 ```text
 contents
@@ -68,11 +70,24 @@ persistence.assert_agent_watermark!(
 )
 ```
 
-The object yielded by `transaction` is a transaction-scoped Persistence view. It
-must respond to all eight repository accessors and
-`assert_agent_watermark!`. It may be the Persistence instance itself, but SQL
-backends may instead yield an object bound to a checked-out connection or
-transaction session.
+The object yielded by **backend.transaction** exposes all eight raw repository
+accessors and `assert_agent_watermark!`. Except for `contents`, repositories
+exchange `Storage::DurableRecord` values and explicit metadata. A backend may
+yield itself if its repositories already share the transaction; SQL backends
+can yield `Storage::Repositories.new(..., watermark: ...)` whose eight
+repositories and watermark all use the same checked-out connection.
+
+The object yielded by **persistence.transaction** exposes domain repository
+facades over exactly that raw view. Persistence builds those facades inside the
+backend transaction block, so conversion failures and caller exceptions reach
+the backend before commit. Both transaction methods return the block result.
+A raw backend must not call the removed `build_transaction_view` helper or build
+private `Persistence::RepositoryFacades` itself.
+
+Root `Persistence.new(backend:)` validates the required capabilities before
+exposing domain repositories. `persistence.backend` returns the selected raw
+backend for backend-specific administration; application domain reads and
+writes use `persistence` and its transaction views.
 
 ## Required capabilities
 
@@ -86,7 +101,7 @@ Every backend must advertise:
 }
 ```
 
-`Phronomy::Persistence::REQUIRED_CAPABILITIES` is the executable definition of
+`Phronomy::Storage::Backend::REQUIRED_CAPABILITIES` is the executable definition of
 this requirement.
 
 ### `atomic_all`
@@ -131,7 +146,7 @@ and is not part of this Backend SPI.
 
 The backend must implement compare-and-swap semantics used by Agent roots,
 Agent executions, Journals, Workflow snapshots, and the durable Agent watermark.
-Stale writers must receive `Phronomy::Persistence::ConflictError`; they must not
+Stale writers must receive `Phronomy::Storage::ConflictError`; they must not
 silently overwrite newer durable state.
 
 ## Error contract
@@ -139,11 +154,11 @@ silently overwrite newer durable state.
 Backends should translate backend-specific constraint errors into the following
 portable Phronomy errors when the meaning matches.
 
-### `Phronomy::Persistence::NotFoundError`
+### `Phronomy::Storage::NotFoundError`
 
 A requested durable record does not exist.
 
-### `Phronomy::Persistence::ConflictError`
+### `Phronomy::Storage::ConflictError`
 
 A persistence precondition failed, including revision, Journal position,
 identity, duplicate-ID, or compare-and-swap conflicts.
@@ -155,13 +170,13 @@ execution record cannot be established. Phronomy also uses the same public error
 for a competing process-local top-level request rejected by Runtime/EventLoop
 before the backend is called.
 
-### `Phronomy::Persistence::SerializationError`
+### `Phronomy::Storage::SerializationError`
 
 The backend cannot encode a value into its supported durable representation.
 This is intended primarily for durable backends whose Workflow state domain is
 narrower than the InMemory backend's Ruby-object domain.
 
-### `Phronomy::Persistence::UnsupportedBackendError`
+### `Phronomy::Storage::UnsupportedBackendError`
 
 The backend does not provide a required structural or capability contract.
 
@@ -188,7 +203,7 @@ Required semantics:
 - content is immutable and content-addressed;
 - writing identical bytes is idempotent and returns the same content ID;
 - `fetch` returns a binary `String` isolated from caller mutation;
-- a missing content ID raises `Persistence::NotFoundError`;
+- a missing content ID raises `Storage::NotFoundError`;
 - one content ID must never resolve to different bytes; a digest-integrity
   violation raises `ContentStore::IntegrityError`.
 
@@ -391,7 +406,7 @@ Array of supported values
 Hash with String/Symbol keys and supported values
 ```
 
-If a value cannot be represented, raise `Persistence::SerializationError` rather
+If a value cannot be represented, raise `Storage::SerializationError` rather
 than silently converting it into a lossy form. JSON backends may return String
 keys after decoding; `WorkflowRunner` deliberately accepts String and Symbol keys
 and normalizes them when comparing durable snapshots.
@@ -518,7 +533,7 @@ require "phronomy"
 require "phronomy/testing/persistence_contract"
 
 RSpec.describe MyPersistenceBackend do
-  let(:persistence) { described_class.new(...) }
+  let(:persistence) { Phronomy::Persistence.new(backend: described_class.new(...)) }
 
   it_behaves_like "a persistence content store"
   it_behaves_like "an Agent repository"
@@ -532,7 +547,7 @@ RSpec.describe MyPersistenceBackend do
 end
 ```
 
-`Persistence::InMemory` is run through the same shipped contract source in
+`Persistence.in_memory` is run through the same shipped contract source in
 Phronomy CI. The files under `spec/support/shared_examples/` are compatibility
 require wrappers only; the authoritative shared-example implementations live
 under `lib/phronomy/testing/persistence_contract/` so the core suite and external
@@ -562,7 +577,7 @@ contract where their meaning is known.
 
 ## V2 coordination Backend SPI (clean break)
 
-Both `Persistence.new` and `build_transaction_view` require all eight raw
+Both the raw backend and each `Storage::Repositories` transaction view require all eight raw
 repositories. Five-repository fallback is removed. Existing record formats remain
 `0.1`; three additional record types are `phronomy.handoff_state`,
 `phronomy.team_root`, and `phronomy.team_execution`. Backend index metadata is

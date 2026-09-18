@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent same-process live ownership" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "same-process-owner-test", version: 1
@@ -81,7 +81,7 @@ RSpec.describe "Agent same-process live ownership" do
   it "keeps load strict when no durable Agent exists" do
     expect {
       agent_class.load("missing-agent", persistence: persistence)
-    }.to raise_error(Phronomy::Persistence::NotFoundError)
+    }.to raise_error(Phronomy::Storage::NotFoundError)
 
     expect(agent_class.get("missing-agent")).to be_nil
   end
@@ -170,7 +170,7 @@ RSpec.describe "Agent same-process live ownership" do
 
   it "rejects load through a different Persistence instance while the Agent is live" do
     agent_class.create(agent_id: "agent-a", persistence: persistence)
-    other_persistence = Phronomy::Persistence::InMemory.new
+    other_persistence = Phronomy::Persistence.in_memory
 
     expect {
       agent_class.load("agent-a", persistence: other_persistence)

@@ -5,7 +5,7 @@ require "json"
 
 RSpec.describe "CG-01 canonical Workflow instance identity" do
   let(:root) { File.expand_path("../..", __dir__) }
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
 
   let(:context_class) do
     Class.new do

@@ -74,7 +74,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
   it "converts the fixed-base unversioned AgentRoot payload to v0.1" do
     record = described_class.agent_root(root.to_h)
 
-    expect(record).to be_a(Phronomy::Persistence::DurableRecord)
+    expect(record).to be_a(Phronomy::Storage::DurableRecord)
     expect(record.record_type).to eq("phronomy.agent_root")
     expect(record.format_version).to eq("0.1")
     expect(Phronomy::Persistence::DurableCodec.decode_agent_root(record).agent_id)
@@ -87,7 +87,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect do
       described_class.agent_root(legacy)
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /pre-S3 AgentRoot.*unknown=.*unknown_legacy_field/
     )
   end
@@ -128,7 +128,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect do
       described_class.journal_record(current.to_h.merge("mystery" => 1))
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /pre-S3 JournalRecord.*unknown=.*mystery/
     )
   end
@@ -233,7 +233,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect do
       described_class.agent_execution(legacy)
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /llm_calls\[0\].*unknown=.*mystery/
     )
   end
@@ -267,7 +267,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect do
       described_class.llm_input_manifest(unsupported)
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /unsupported pre-S3 LLMInputManifest version/
     )
   end
@@ -275,13 +275,13 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
   it "rejects a non-Hash migration input" do
     expect do
       described_class.agent_root("not-a-hash")
-    end.to raise_error(Phronomy::Persistence::SerializationError, /must be a Hash/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /must be a Hash/)
   end
 
   it "rejects a migration input with non-String/Symbol keys" do
     expect do
       described_class.agent_root({123 => "value"})
-    end.to raise_error(Phronomy::Persistence::SerializationError, /key must be String or Symbol/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /key must be String or Symbol/)
   end
 
   it "rejects a migration input with duplicate keys after normalization" do
@@ -289,7 +289,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     mixed = {foo: "a"}.merge("foo" => "b")
     expect do
       described_class.agent_root(mixed)
-    end.to raise_error(Phronomy::Persistence::SerializationError, /duplicate/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /duplicate/)
   end
 
   it "returns nil for a nil approval_request in agent_execution migration" do
@@ -310,7 +310,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect do
       described_class.agent_execution(legacy)
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /execution_id does not match/
     )
   end
@@ -327,7 +327,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     expect do
       described_class.agent_execution(legacy)
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /items must be a non-empty Array/
     )
   end

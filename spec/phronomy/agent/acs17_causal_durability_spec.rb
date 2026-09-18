@@ -9,12 +9,7 @@ RSpec.describe "ACS-17 causal durability" do
     def initialize(delegate)
       @delegate = delegate
       @lose_next_response = false
-      # Assign facade repos directly to avoid double-wrapping via Persistence#initialize.
-      @contents = delegate.contents
-      @agents = delegate.agents
-      @journals = delegate.journals
-      @executions = delegate.executions
-      @workflow_states = delegate.workflow_states
+      super(backend: delegate.backend)
     end
 
     def capabilities = @delegate.capabilities
@@ -249,7 +244,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "durably records Provider outcome and pending Tool continuation before Tool dispatch" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -289,7 +284,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "durably records Tool outcome and next Provider continuation before Provider dispatch" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
     coordinator, execution, root, manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -330,7 +325,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "reconciles Tool-dispatch preparation as committed off EventLoop when only the Persistence response is lost" do
-    delegate = Phronomy::Persistence::InMemory.new
+    delegate = Phronomy::Persistence.in_memory
     persistence = ResponseLostAfterCommitPersistence.new(delegate)
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
@@ -363,7 +358,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "reconciles Provider-dispatch preparation as committed off EventLoop when only the Persistence response is lost" do
-    delegate = Phronomy::Persistence::InMemory.new
+    delegate = Phronomy::Persistence.in_memory
     persistence = ResponseLostAfterCommitPersistence.new(delegate)
     agent = build_agent(persistence)
     coordinator, execution, root, manifest, manifest_ref =
@@ -408,7 +403,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "classifies an unchanged durable Tool pre-state as not committed" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -437,7 +432,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "classifies an unchanged durable Provider pre-state as not committed" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
     coordinator, execution, root, manifest, _manifest_ref =
       establish_execution(agent, persistence)
@@ -463,7 +458,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "classifies a third durable state as conflict and does not manufacture a dispatch result" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -501,7 +496,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "does not convert a known durable conflict into F1 uncertainty" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -522,7 +517,7 @@ RSpec.describe "ACS-17 causal durability" do
 
     expect {
       coordinator.send(:perform_tool_dispatch_preparation, operation)
-    }.to raise_error(Phronomy::Persistence::ConflictError)
+    }.to raise_error(Phronomy::Storage::ConflictError)
   end
 
   it "keeps physical Provider and Tool dispatch behind confirmed apply helpers only" do

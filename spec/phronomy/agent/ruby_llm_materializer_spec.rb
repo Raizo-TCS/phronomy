@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::RubyLLMMaterializer do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
   let(:agent) do
     agent_class = Class.new do
       def self.tools = []

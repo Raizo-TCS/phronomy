@@ -146,6 +146,6 @@ RSpec.describe "current Agent domain semantic payload codecs" do
 
     expect do
       Phronomy::Persistence::DurableCodec.encode_agent_execution(restored)
-    end.to raise_error(Phronomy::Persistence::SerializationError, /approval_request.*schema mismatch/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /approval_request.*schema mismatch/)
   end
 end

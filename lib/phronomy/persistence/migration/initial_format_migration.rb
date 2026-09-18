@@ -35,7 +35,7 @@ module Phronomy
           DurableCodec.encode_agent_root(
             Phronomy::Agent::AgentRoot.from_h(source)
           )
-        rescue Phronomy::Persistence::SerializationError
+        rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
           migration_error("AgentRoot", error)
@@ -69,7 +69,7 @@ module Phronomy
           )
           execution = Phronomy::Agent::AgentExecution.from_h(source)
           DurableCodec.encode_agent_execution(execution)
-        rescue Phronomy::Persistence::SerializationError
+        rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
           migration_error("AgentExecution", error)
@@ -80,7 +80,7 @@ module Phronomy
           DurableCodec.encode_journal_record(
             Phronomy::Agent::JournalRecord.from_h(source)
           )
-        rescue Phronomy::Persistence::SerializationError
+        rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
           migration_error("JournalRecord", error)
@@ -92,25 +92,25 @@ module Phronomy
             workflow_revision: Integer(revision),
             snapshot: snapshot
           )
-        rescue Phronomy::Persistence::SerializationError
+        rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
           migration_error("Workflow state", error)
         end
 
         # LLMInputManifest is a ContentStore codec boundary, not a
-        # Persistence::DurableRecord. Its pre-CG-07 integer version 1 is migrated
+        # Storage::DurableRecord. Its pre-CG-07 integer version 1 is migrated
         # explicitly to the pre-1.0 string version "0.1".
         def llm_input_manifest(hash)
           source = stringify_keys(hash)
           old_version = source.fetch("version")
           unless old_version == 1 || old_version == "1"
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "unsupported pre-S3 LLMInputManifest version: #{old_version.inspect}"
           end
           source["version"] = Phronomy::Agent::LLMInputManifest::VERSION
           Phronomy::Agent::LLMInputManifest.from_h(source).to_h
-        rescue Phronomy::Persistence::SerializationError
+        rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
           migration_error("LLMInputManifest", error)
@@ -141,13 +141,13 @@ module Phronomy
           )
           parents = PRE_S3_APPROVAL_PARENT_KEYS.select { |key| source.key?(key) }
           unless parents.length == 1
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "pre-S3 approval_request must contain exactly one parent identity, got #{parents.inspect}"
           end
 
           items = source.fetch("items")
           unless items.is_a?(Array) && !items.empty?
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "pre-S3 approval_request items must be a non-empty Array"
           end
           source["items"] = items.map.with_index do |item, index|
@@ -164,7 +164,7 @@ module Phronomy
             source.delete("agent_invocation_id")
             source["execution_id"] = execution_id.to_s
           elsif source.fetch("execution_id").to_s != execution_id.to_s
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "pre-S3 approval_request execution_id does not match AgentExecution"
           end
           source
@@ -180,7 +180,7 @@ module Phronomy
           details = []
           details << "missing=#{missing.inspect}" unless missing.empty?
           details << "unknown=#{unknown.inspect}" unless unknown.empty?
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "#{label} schema mismatch (#{details.join(", ")})"
         end
         private_class_method :validate_allowed_keys!
@@ -197,17 +197,17 @@ module Phronomy
 
         def stringify_keys(hash)
           unless hash.is_a?(Hash)
-            raise Phronomy::Persistence::SerializationError,
+            raise Phronomy::Storage::SerializationError,
               "migration input must be a Hash"
           end
           hash.each_with_object({}) do |(key, value), result|
             unless key.is_a?(String) || key.is_a?(Symbol)
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "migration key must be String or Symbol, got #{key.class}"
             end
             string_key = key.to_s
             if result.key?(string_key)
-              raise Phronomy::Persistence::SerializationError,
+              raise Phronomy::Storage::SerializationError,
                 "duplicate migration key after normalization: #{string_key.inspect}"
             end
             result[string_key] = value
@@ -216,7 +216,7 @@ module Phronomy
         private_class_method :stringify_keys
 
         def migration_error(label, error)
-          raise Phronomy::Persistence::SerializationError,
+          raise Phronomy::Storage::SerializationError,
             "cannot migrate pre-S3 #{label}: #{error.class}: #{error.message}"
         end
         private_class_method :migration_error

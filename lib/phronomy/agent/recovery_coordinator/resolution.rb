@@ -26,7 +26,7 @@ module Phronomy
           unless current.execution_revision ==
               request.expected_execution_revision
             request.completion.fail(
-              Phronomy::Persistence::ConflictError.new(
+              Phronomy::Storage::ConflictError.new(
                 "Recovery resolution revision conflict: expected " \
                 "#{request.expected_execution_revision}, actual " \
                 "#{current.execution_revision}"
@@ -118,7 +118,7 @@ module Phronomy
           unless current.metadata[
             RecoverySupport::PENDING_LLM_ID_KEY
           ].to_s == llm_call_id
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "LLM Recovery subject is no longer pending"
           end
 
@@ -268,7 +268,7 @@ module Phronomy
             recovery = RecoverySupport.build_recovery_hash(subjects)
           end
           unless recovery
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "Tool Recovery state is missing"
           end
 
@@ -281,7 +281,7 @@ module Phronomy
               hash.fetch("state", "unresolved") == "unresolved"
           end
           unless subject_entry
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "Tool Recovery subject is no longer unresolved"
           end
           subject_entry =
@@ -418,10 +418,10 @@ module Phronomy
         # simplecov:enable
 
         def known_non_f1_error?(error)
-          error.is_a?(Phronomy::Persistence::ConflictError) ||
-            error.is_a?(Phronomy::Persistence::NotFoundError) ||
-            error.is_a?(Phronomy::Persistence::SerializationError) ||
-            error.is_a?(Phronomy::Persistence::UnsupportedBackendError) ||
+          error.is_a?(Phronomy::Storage::ConflictError) ||
+            error.is_a?(Phronomy::Storage::NotFoundError) ||
+            error.is_a?(Phronomy::Storage::SerializationError) ||
+            error.is_a?(Phronomy::Storage::UnsupportedBackendError) ||
             error.is_a?(ArgumentError) ||
             error.is_a?(Phronomy::ConfigurationError)
         end
@@ -477,7 +477,7 @@ module Phronomy
           if current.to_h == operation.execution.to_h
             raise(error.is_a?(ResolutionOutcomeUnknownError) ? error.original_error : error)
           end
-          raise Phronomy::Persistence::ConflictError,
+          raise Phronomy::Storage::ConflictError,
             "Recovery resolution durable outcome conflicts with both expected pre-state and intended post-state"
         end
 
@@ -490,7 +490,7 @@ module Phronomy
               "recovered execution disappeared before resolution apply"
           end
           unless state.execution.equal?(ready.operation.execution) && state.fsm_session_id.nil?
-            raise Phronomy::Persistence::ConflictError,
+            raise Phronomy::Storage::ConflictError,
               "Recovery execution changed before resolution apply"
           end
           raise ready.error if ready.error

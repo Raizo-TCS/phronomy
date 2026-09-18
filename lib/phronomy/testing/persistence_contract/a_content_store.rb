@@ -21,7 +21,7 @@ RSpec.shared_examples "a persistence content store" do
   it "raises NotFoundError for a missing content_id" do
     expect do
       content_store.fetch("sha256:#{"0" * 64}")
-    end.to raise_error(Phronomy::Persistence::NotFoundError)
+    end.to raise_error(Phronomy::Storage::NotFoundError)
   end
 
   it "isolates durable bytes from mutation of fetched values" do

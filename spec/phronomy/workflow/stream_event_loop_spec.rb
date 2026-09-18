@@ -52,7 +52,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
   end
 
   it "loads and saves Persistence workflow_states like invoke and invoke_async" do
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     persistence.workflow_states.save(
       "stream-state",
       expected_revision: nil,

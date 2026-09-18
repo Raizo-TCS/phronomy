@@ -62,7 +62,7 @@ resolved explicitly.
 | [`011-delegate-transport-policy-to-adapters`](011-delegate-transport-policy-to-adapters.md) | Accepted | Yes | Legacy duplicate numeric prefix; use the full canonical key. |
 | [`012-canonical-execution-log-and-context-policy`](012-canonical-execution-log-and-context-policy.md) | Accepted | Yes | Current Journal / Manifest / Context authority. |
 | [`013-journal-backed-knowledge-as-context-candidates`](013-journal-backed-knowledge-as-context-candidates.md) | Accepted | Yes | Current persistent Knowledge authority. |
-| [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md) | Accepted | Yes | Durable-backend and live-owner/no-reload intent remains current; live Agent execution mutation is refined by ADR-024, same-process Agent identity/admission ownership by ADR-025, and same-process Workflow admission/terminal-barrier ordering by ADR-026. Workflow identity terminology is superseded by ADR-020, generic `InvocationContext` / Agent correlation semantics by ADR-021, and concrete FSMSession/Agent-Tool routing identity by ADR-023. |
+| [`014-unified-persistence-durable-state`](014-unified-persistence-durable-state.md) | Accepted | Yes | Durable-backend and live-owner/no-reload intent remains current; [032-storage-backend-composition](032-storage-backend-composition.md) refines storage contract ownership and replaces the backend inheritance SPI; live Agent execution mutation is refined by ADR-024, same-process Agent identity/admission ownership by ADR-025, and same-process Workflow admission/terminal-barrier ordering by ADR-026. Workflow identity terminology is superseded by ADR-020, generic `InvocationContext` / Agent correlation semantics by ADR-021, and concrete FSMSession/Agent-Tool routing identity by ADR-023. |
 | [`015-tool-public-facade-and-rbs-boundary`](015-tool-public-facade-and-rbs-boundary.md) | Accepted | Yes | Current Tool façade / extension-SPI / RBS boundary. |
 | [`016-semantic-multi-agent-handoff`](016-semantic-multi-agent-handoff.md) | Superseded | No | Superseded by [ADR-030](030-agent-handoff-domain-and-durable-responsibility.md), including Agent-domain ownership and exact Target recovery. |
 | [`017-design-authority-and-adr-governance`](017-design-authority-and-adr-governance.md) | Accepted | Yes | Repository-wide architecture authority and ADR governance. |
@@ -80,6 +80,7 @@ resolved explicitly.
 | [`029-semantic-completion-and-application-effect-boundary`](029-semantic-completion-and-application-effect-boundary.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
 | [`030-agent-handoff-domain-and-durable-responsibility`](030-agent-handoff-domain-and-durable-responsibility.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
 | [`031-durable-multi-agent-coordination`](031-durable-multi-agent-coordination.md) | Accepted | Yes | V2 revision 2; framework semantic coordination and Application effect boundary. |
+| [`032-storage-backend-composition`](032-storage-backend-composition.md) | Accepted | Yes | Separates raw Storage contracts/backends from domain Persistence by composition; replaces the Persistence subclass SPI and its facade-building helper. ADR-014 single transaction domain and ownership guarantees remain. |
 
 ## Legacy duplicate `011`
 

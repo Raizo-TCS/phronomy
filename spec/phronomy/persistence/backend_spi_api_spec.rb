@@ -2,17 +2,12 @@
 
 require "spec_helper"
 
-RSpec.describe "Persistence Backend SPI public contract" do
-  subject(:persistence_class) { Phronomy::Persistence }
-
+RSpec.describe "Persistence and Storage Backend SPI public contract" do
   class CapturingAgentRecordRepository
     attr_reader :created_record, :created_metadata
 
     def create(agent_id:, agent_revision:, record:)
-      @created_metadata = {
-        agent_id: agent_id,
-        agent_revision: agent_revision
-      }.freeze
+      @created_metadata = {agent_id: agent_id, agent_revision: agent_revision}.freeze
       @created_record = record
       record
     end
@@ -27,145 +22,101 @@ RSpec.describe "Persistence Backend SPI public contract" do
     end
   end
 
-  it "publishes the required backend capabilities" do
-    expect(persistence_class::REQUIRED_CAPABILITIES).to eq(
-      atomic_all: true,
-      atomic_admission: true,
-      optimistic_revision: true
-    )
-  end
+  let(:backend_class) do
+    Class.new(Phronomy::Storage::Backend) do
+      attr_accessor :transaction_view
 
-  it "exposes the repository accessors and root synchronous SPI as Ruby-public" do
-    expect(persistence_class.public_instance_methods).to include(
-      :contents,
-      :agents,
-      :journals,
-      :executions,
-      :workflow_states,
-      :handoff_states, :teams, :team_executions,
-      :transaction,
-      :build_transaction_view,
-      :assert_agent_watermark!
-    )
-  end
+      def capabilities = Phronomy::Storage::Backend::REQUIRED_CAPABILITIES
 
-  it "wraps record-oriented backend repositories and passes index metadata separately" do
-    contents = Object.new
-    agents = CapturingAgentRecordRepository.new
-    unused = Object.new
-
-    backend_class = Class.new(Phronomy::Persistence) do
-      def capabilities
-        Phronomy::Persistence::REQUIRED_CAPABILITIES
+      def transaction
+        yield transaction_view
       end
     end
+  end
+  let(:raw) { Object.new }
+  let(:raw_agents) { CapturingAgentRecordRepository.new }
+  let(:raw_repositories) do
+    {contents: raw, agents: raw_agents, journals: raw, executions: raw,
+     workflow_states: raw, handoff_states: raw, teams: raw, team_executions: raw}
+  end
+  let(:backend) { backend_class.new(**raw_repositories) }
+  let(:persistence) { Phronomy::Persistence.new(backend: backend) }
+  let(:root) do
+    Phronomy::Agent::AgentRoot.create(agent_id: "backend-spi-agent",
+      agent_definition_id: "backend-spi-definition", agent_definition_version: 1)
+  end
 
-    backend = backend_class.new(
-      contents: contents,
-      agents: agents,
-      journals: unused,
-      executions: unused,
-      workflow_states: unused,
-      handoff_states: unused, teams: unused, team_executions: unused
+  it "publishes the required storage capabilities" do
+    expect(Phronomy::Storage::Backend::REQUIRED_CAPABILITIES).to eq(
+      atomic_all: true, atomic_admission: true, optimistic_revision: true
     )
+  end
 
-    root = Phronomy::Agent::AgentRoot.create(
-      agent_id: "backend-spi-agent",
-      agent_definition_id: "backend-spi-definition",
-      agent_definition_version: 1
-    )
+  it "exposes both domain and record repository protocols" do
+    required = [:contents, :agents, :journals, :executions, :workflow_states,
+      :handoff_states, :teams, :team_executions, :transaction, :assert_agent_watermark!]
+    expect(Phronomy::Persistence.public_instance_methods).to include(*required)
+    expect(Phronomy::Storage::Backend.public_instance_methods).to include(*required)
+    expect(persistence.backend).to equal(backend)
+    expect(persistence.capabilities).to eq(backend.capabilities)
+  end
 
-    restored = backend.agents.create(root)
-
-    expect(backend.contents).to equal(contents)
-    expect(backend.agents).not_to equal(agents)
+  it "wraps raw repositories and passes identity metadata separately" do
+    restored = persistence.agents.create(root)
+    expect(persistence.contents).to equal(raw)
+    expect(backend.agents).to equal(raw_agents)
     expect(restored).to be_a(Phronomy::Agent::AgentRoot)
-    expect(agents.created_metadata).to eq(
-      agent_id: root.agent_id,
-      agent_revision: root.agent_revision
-    )
-    expect(agents.created_record).to be_a(Phronomy::Persistence::DurableRecord)
-    expect(agents.created_record.record_type).to eq("phronomy.agent_root")
-    expect(agents.created_record.format_version).to eq("0.1")
+    expect(raw_agents.created_metadata).to eq(agent_id: root.agent_id, agent_revision: 0)
+    expect(raw_agents.created_record).to be_a(Phronomy::Storage::DurableRecord)
+    expect(raw_agents.created_record.record_type).to eq("phronomy.agent_root")
+    expect(raw_agents.created_record.format_version).to eq("0.1")
   end
 
-  it "provides one standard facade builder for transaction-scoped raw repositories" do
-    raw_agents = CapturingAgentRecordRepository.new
-    raw = Object.new
+  it "uses transaction-scoped repositories and watermark instead of the root view" do
+    tx_agents = CapturingAgentRecordRepository.new
+    tx_contents = Object.new
     watermark = CapturingWatermark.new
-
-    backend_class = Class.new(Phronomy::Persistence) do
-      def capabilities
-        Phronomy::Persistence::REQUIRED_CAPABILITIES
-      end
+    backend.transaction_view = Phronomy::Storage::Repositories.new(
+      **raw_repositories.merge(agents: tx_agents, contents: tx_contents), watermark: watermark
+    )
+    result = persistence.transaction do |tx|
+      expect(tx.contents).to equal(tx_contents)
+      expect(tx.agents.create(root)).to be_a(Phronomy::Agent::AgentRoot)
+      expect(tx.assert_agent_watermark!(agent_id: root.agent_id,
+        agent_revision: 3, journal_position: 4)).to be(true)
+      :transaction_result
     end
-    backend = backend_class.new(
-      contents: raw,
-      agents: raw_agents,
-      journals: raw,
-      executions: raw,
-      workflow_states: raw,
-      handoff_states: raw, teams: raw, team_executions: raw
-    )
-
-    view = backend.build_transaction_view(
-      contents: raw,
-      agents: raw_agents,
-      journals: raw,
-      executions: raw,
-      workflow_states: raw,
-      handoff_states: raw, teams: raw, team_executions: raw,
-      watermark: watermark
-    )
-
-    expect(view.contents).to equal(raw)
-    expect(view.agents).not_to equal(raw_agents)
-    expect(
-      view.assert_agent_watermark!(
-        agent_id: "agent-1",
-        agent_revision: 3,
-        journal_position: 4
-      )
-    ).to be(true)
-    expect(watermark.received).to eq(
-      agent_id: "agent-1",
-      agent_revision: 3,
-      journal_position: 4
-    )
+    expect(result).to eq(:transaction_result)
+    expect(tx_agents.created_metadata).to eq(agent_id: root.agent_id, agent_revision: 0)
+    expect(raw_agents.created_record).to be_nil
+    expect(watermark.received).to eq(agent_id: root.agent_id, agent_revision: 3, journal_position: 4)
   end
 
-  it "rejects a backend that omits optimistic revision support" do
-    backend_class = Class.new(Phronomy::Persistence) do
-      def capabilities
-        {atomic_all: true, atomic_admission: true}.freeze
-      end
-    end
-    repository = Object.new
-
-    expect do
-      backend_class.new(
-        contents: repository,
-        agents: repository,
-        journals: repository,
-        executions: repository,
-        workflow_states: repository,
-        handoff_states: repository, teams: repository, team_executions: repository
-      )
-    end.to raise_error(
-      Phronomy::Persistence::UnsupportedBackendError,
-      /optimistic_revision/
-    )
+  it "rejects a missing capability before exposing domain repositories" do
+    allow(backend).to receive(:capabilities).and_return(atomic_all: true, atomic_admission: true)
+    expect { persistence }.to raise_error(Phronomy::Storage::UnsupportedBackendError, /optimistic_revision/)
   end
 
-  it "exposes portable backend error classes" do
-    expect(persistence_class::ConflictError).to be < Phronomy::Error
-    expect(persistence_class::NotFoundError).to be < Phronomy::Error
-    expect(persistence_class::UnsupportedBackendError).to be < Phronomy::Error
-    expect(persistence_class::SerializationError).to be < Phronomy::Error
+  it "publishes storage errors without an upper Persistence owner" do
+    [Phronomy::Storage::ConflictError, Phronomy::Storage::NotFoundError,
+      Phronomy::Storage::SerializationError, Phronomy::Storage::UnsupportedBackendError].each do |error|
+      expect(error).to be < Phronomy::Error
+    end
+  end
+
+  it "removes the replaced inheritance and facade-building SPI" do
+    expect(Phronomy::Storage::Backends::InMemory).to be < Phronomy::Storage::Backend
+    expect(Phronomy::Storage::Backends::InMemory).not_to be < Phronomy::Persistence
+    expect(persistence).not_to respond_to(:build_transaction_view)
+    expect(backend).not_to respond_to(:build_transaction_view)
+    [:InMemory, :DurableRecord, :ConflictError, :NotFoundError,
+      :SerializationError, :UnsupportedBackendError, :REQUIRED_CAPABILITIES].each do |name|
+      expect(Phronomy::Persistence.const_defined?(name, false)).to be(false)
+    end
   end
 
   it "uses one immutable DurableRecord carrier for the record SPI" do
-    record = Phronomy::Persistence::DurableRecord.new(
+    record = Phronomy::Storage::DurableRecord.new(
       record_type: "phronomy.example",
       format_version: "0.1",
       payload: {"value" => [1, "two"]}
@@ -179,101 +130,101 @@ RSpec.describe "Persistence Backend SPI public contract" do
 
   it "reports a missing format version as SerializationError" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: "phronomy.example",
         payload: {"value" => 1}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /format_version is missing/
     )
   end
 
   it "does not coerce DurableRecord record_type into String" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: :phronomy_example,
         format_version: "0.1",
         payload: {"value" => 1}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /record_type must be a String/
     )
   end
 
   it "does not coerce DurableRecord format_version into String" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: "phronomy.example",
         format_version: 0.1,
         payload: {"value" => 1}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /format_version must be a String/
     )
   end
 
   it "rejects a missing record_type in DurableRecord" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         format_version: "0.1",
         payload: {"value" => 1}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /record_type is missing/
     )
   end
 
   it "rejects a missing payload in DurableRecord" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: "phronomy.example",
         format_version: "0.1"
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /payload is missing/
     )
   end
 
   it "rejects an empty record_type in DurableRecord" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: "",
         format_version: "0.1",
         payload: {"value" => 1}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /record_type must not be empty/
     )
   end
 
   it "rejects an invalid format_version pattern in DurableRecord" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: "phronomy.example",
         format_version: "not-semver",
         payload: {"value" => 1}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /invalid durable format_version/
     )
   end
 
   it "rejects a non-JSON-serializable payload in DurableRecord" do
     expect do
-      Phronomy::Persistence::DurableRecord.new(
+      Phronomy::Storage::DurableRecord.new(
         record_type: "phronomy.example",
         format_version: "0.1",
         payload: {"value" => Float::INFINITY}
       )
     end.to raise_error(
-      Phronomy::Persistence::SerializationError,
+      Phronomy::Storage::SerializationError,
       /canonical JSON compatible/
     )
   end

@@ -350,7 +350,7 @@ module Phronomy
             )
             self
           end
-        rescue Phronomy::Persistence::ConflictError => error
+        rescue Phronomy::Storage::ConflictError => error
           raise Phronomy::AgentAlreadyExistsError,
             "Agent #{effective_agent_id.inspect} already exists durably: #{error.message}"
         end
@@ -471,9 +471,9 @@ module Phronomy
             tx.agents.delete(agent_id)
           end
         rescue Phronomy::AgentBusyError,
-          Phronomy::Persistence::ConflictError,
-          Phronomy::Persistence::NotFoundError,
-          Phronomy::Persistence::SerializationError,
+          Phronomy::Storage::ConflictError,
+          Phronomy::Storage::NotFoundError,
+          Phronomy::Storage::SerializationError,
           ArgumentError
           runtime.__abort_agent_purge(self, token)
           raise
@@ -585,7 +585,7 @@ module Phronomy
       )
         @persistence = persistence ||
           Phronomy.configuration.persistence ||
-          Phronomy::Persistence::InMemory.new
+          Phronomy::Persistence.in_memory
         @agent_id = agent_id.to_s.freeze
 
         if load_existing
