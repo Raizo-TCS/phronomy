@@ -23,7 +23,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     main = build_agent("cg05-main-no-handoff", "Main agent")
     LLMStub.activate(responses: ["Handled by main."])
 
-    runner = Phronomy::Agent::HandoffRunner.new(main_agent: main)
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: main)
     result = runner.invoke("Hello")
 
     expect(result[:output]).to eq("Handled by main.")
@@ -48,7 +48,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Billing investigation complete."
     ])
 
-    runner = Phronomy::Agent::HandoffRunner.new(
+    runner = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     )
@@ -89,7 +89,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Completed by C."
     ])
 
-    runner = Phronomy::Agent::HandoffRunner.new(
+    runner = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: a,
       handoffs: [a_to_b, b_to_c]
     )
@@ -120,7 +120,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Second billing answer."
     ])
 
-    runner = Phronomy::Agent::HandoffRunner.new(
+    runner = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     )
@@ -151,12 +151,12 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Continued by billing."
     ])
 
-    Phronomy::Agent::HandoffRunner.new(
+    Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("Start")
 
-    recreated = Phronomy::Agent::HandoffRunner.new(
+    recreated = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     )
@@ -171,7 +171,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     target = build_agent("domain-target", "Target", persistence: Phronomy::Persistence.in_memory)
     edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
     expect do
-      Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge])
+      Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])
     end.to raise_error(Phronomy::ConfigurationError, /Persistence instance/)
   end
 end

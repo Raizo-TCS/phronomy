@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../integration/support/llm_stub"
 
-RSpec.describe Phronomy::Agent::HandoffRunner do
+RSpec.describe Phronomy::MultiAgent::HandoffRunner do
   let(:store) { Phronomy::Persistence.in_memory }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
@@ -38,7 +38,7 @@ RSpec.describe Phronomy::Agent::HandoffRunner do
     edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
     reverse = Phronomy::Agent::Handoff.new(source_agent: target, target_agent: source)
     names = [edge, reverse].map { |h| Phronomy::Agent::HandoffCapabilityFactory.build(h).tool_name }
-    stub_const("Phronomy::Agent::HandoffRunner::MAX_HANDOFFS", 1)
+    stub_const("Phronomy::MultiAgent::HandoffRunner::MAX_HANDOFFS", 1)
     LLMStub.activate(responses: names.map { |name| LLMStub.tool_call_response(name, {responsibility: "continue"}) })
     expect do
       described_class.new(main_agent: source, handoffs: [edge, reverse]).invoke("ping")

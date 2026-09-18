@@ -3,8 +3,8 @@
 require "time"
 
 module Phronomy
-  module Agent
-    # Durable Agent-domain responsibility routing within one Persistence instance.
+  module MultiAgent
+    # Coordinates durable handoffs across Agents using one Persistence instance.
     # @api public
     class HandoffRunner
       MAX_HANDOFFS = 20
@@ -16,7 +16,7 @@ module Phronomy
       def initialize(main_agent:, handoffs: [])
         @main_agent, @handoffs = main_agent, Array(handoffs).freeze
         @persistence = main_agent.persistence
-        raise ArgumentError, "handoffs must contain Agent::Handoff" unless @handoffs.all? { |h| h.is_a?(Handoff) }
+        raise ArgumentError, "handoffs must contain Agent::Handoff" unless @handoffs.all? { |h| h.is_a?(Phronomy::Agent::Handoff) }
         @agents = ([main_agent] + @handoffs.flat_map { |edge| [edge.source_agent, edge.target_agent] }).uniq.to_h { |a| [a.agent_id, a] }.freeze
         unless @agents.values.all? { |a| a.persistence.equal?(@persistence) }
           raise Phronomy::ConfigurationError, "Durable Handoff graph requires one Persistence instance"
@@ -24,7 +24,7 @@ module Phronomy
         if @handoffs.group_by { |h| [h.source_agent.agent_id, h.target_agent.agent_id] }.any? { |_, edges| edges.size > 1 }
           raise ArgumentError, "Duplicate Source/Target Handoff edges"
         end
-        @bindings = @handoffs.group_by { |h| h.source_agent.agent_id }.transform_values { |edges| edges.map { |h| HandoffCapabilityFactory.build(h) }.freeze }.freeze
+        @bindings = @handoffs.group_by { |h| h.source_agent.agent_id }.transform_values { |edges| edges.map { |h| Phronomy::Agent::HandoffCapabilityFactory.build(h) }.freeze }.freeze
         @runtime = Phronomy::Runtime.instance
         @admissions = Phronomy::MultiAgent::AdmissionRegistry.for(@runtime)
       end
@@ -50,7 +50,7 @@ module Phronomy
           active = @agents.fetch(state.active_agent_id) do
             raise Phronomy::ExecutionRehydrationRequiredError, "Handoff graph lacks active Agent #{state.active_agent_id}"
           end
-          context = state.active_handoff_context_ref && HandoffContext.from_h(@persistence.contents.fetch_json(state.active_handoff_context_ref))
+          context = state.active_handoff_context_ref && Phronomy::Agent::HandoffContext.from_h(@persistence.contents.fetch_json(state.active_handoff_context_ref))
           wiring = config.merge(phronomy_handoff_bindings: @bindings.fetch(active.agent_id, []),
             phronomy_handoff_context: context,
             phronomy_coordination: {"kind" => "handoff", "main_agent_id" => main_agent.agent_id, "handoff_revision" => state.handoff_revision}).freeze
@@ -66,7 +66,7 @@ module Phronomy
               end
               wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(exact.execution_id)
               stored_input = @persistence.contents.fetch_text(exact.metadata.fetch("current_input_ref"))
-              ExactExecution.start(agent: active, execution_id: exact.execution_id, input: stored_input, config: wiring).wait_result
+              Phronomy::Agent::ExactExecution.start(agent: active, execution_id: exact.execution_id, input: stored_input, config: wiring).wait_result
             end
           else
             source = @persistence.executions.load(state.pending_source_execution_id)
@@ -78,7 +78,7 @@ module Phronomy
               raise Phronomy::ConfigurationError, "Handoff Target definition mismatch"
             end
             wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(state.pending_target_execution_id)
-            ExactExecution.start(agent: active, execution_id: state.pending_target_execution_id,
+            Phronomy::Agent::ExactExecution.start(agent: active, execution_id: state.pending_target_execution_id,
               input: context.responsibility, config: wiring).wait_result
           end
           execution = @persistence.executions.load(result.fetch(:execution_id))
@@ -91,7 +91,7 @@ module Phronomy
           if execution.active?
             raise Phronomy::ExecutionRehydrationRequiredError, "Handoff execution requires approval or recovery"
           end
-          raise RecoverySupport.error_from_failure(result[:error]) if result[:error]
+          raise Phronomy::Agent::RecoverySupport.error_from_failure(result[:error]) if result[:error]
           return result.reject { |key, _| key.to_s.start_with?("_phronomy_") || key == :handoff_request }.merge(agent: active)
         end
       rescue Phronomy::CancellationError => error
@@ -148,7 +148,7 @@ module Phronomy
           raise error unless intended && confirmed && Array(confirmed.metadata["cancelled_execution_ids"]).include?(leaf_id)
         end
         return @persistence.execution_result(leaf_id) if leaf&.terminal?
-        ExecutionCancellation.signal(leaf_id, leaf.agent_id) if leaf&.active?
+        Phronomy::Agent::ExecutionCancellation.signal(leaf_id, leaf.agent_id) if leaf&.active?
         {execution_id: leaf_id, cancellation_requested: !leaf&.terminal?}.freeze
       end
 
@@ -164,7 +164,7 @@ module Phronomy
         state = @persistence.handoff_states.load(main_agent.agent_id)
         return state if state
         now = Time.now.utc.iso8601(6)
-        initial = HandoffState.new(main_agent_id: main_agent.agent_id, handoff_revision: 1,
+        initial = Phronomy::Agent::HandoffState.new(main_agent_id: main_agent.agent_id, handoff_revision: 1,
           active_agent_id: main_agent.agent_id, active_handoff_context_ref: nil,
           phase: "stable", pending_source_execution_id: nil, pending_target_execution_id: nil,
           created_at: now, updated_at: now, metadata: {})

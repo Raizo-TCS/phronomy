@@ -4,6 +4,11 @@
 
 Accepted. V2 revision 2, 2026-09-06.
 
+The HandoffRunner namespace and ownership are amended by
+[034-handoff-runner-coordination-ownership](034-handoff-runner-coordination-ownership.md).
+The public Runner is now `Phronomy::MultiAgent::HandoffRunner`. Other Handoff
+types and the durable semantics below remain unchanged in this first step.
+
 User approval covers the V2 boundary and the five recovery-contract clarifications.
 Acceptance is design authority; it is not a claim of repository integration or test success.
 

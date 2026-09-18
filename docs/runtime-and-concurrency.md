@@ -583,7 +583,7 @@ Each participant implements two operations:
   their shutdown calls. Incomplete cleanup prevents default Runtime replacement.
 
 `MultiAgent::AdmissionRegistry.for(runtime)` constructs and registers the shared
-coordination admission registry. HandoffRunner and TeamCoordinator retain that
+coordination admission registry. MultiAgent::HandoffRunner and TeamCoordinator retain that
 registry, admit each synchronous call directly and release it in `ensure` after
 successful admission. The registry closes admission atomically with respect to
 `admit!`; a call admitted before closure is included in the wait, and a call after

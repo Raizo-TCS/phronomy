@@ -88,7 +88,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 | Feature | Stability |
 |---|---|
 | **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |
-| **Durable Agent Handoff** — `Agent::Handoff` and `Agent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
+| **Durable Handoff** — `Agent::Handoff` and `MultiAgent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |

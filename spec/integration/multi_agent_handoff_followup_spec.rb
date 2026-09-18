@@ -64,7 +64,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::Agent::HandoffRunner.new(
+    result = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("ORIGINAL_CURRENT_REQUEST_MARKER: investigate case-42")
@@ -135,7 +135,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::Agent::HandoffRunner.new(
+    result = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("Transfer this request")

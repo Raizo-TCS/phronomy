@@ -12,6 +12,14 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Move `Phronomy::Agent::HandoffRunner` to
+  `Phronomy::MultiAgent::HandoffRunner` without a compatibility alias on the
+  architecture refactoring branch. Handoff edges and Policy remain in Agent;
+  execution, persistence formats, cancellation and recovery behavior are unchanged.
+  See [the migration guide](docs/migrations/handoff-runner-multi-agent.md).
+
 ---
 
 ## [0.26.0] - 2026-09-14

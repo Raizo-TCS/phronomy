@@ -1,5 +1,11 @@
 # Phronomy Durable Semantic Coordination — Implementation Design V2
 
+> Runner namespace update (2026-09-18): this document preserves the V2
+> implementation/migration record. The current Runner is
+> `Phronomy::MultiAgent::HandoffRunner` under
+> [ADR-034](../../decisions/034-handoff-runner-coordination-ownership.md).
+> Handoff and HandoffPolicy remain in Agent at this stage.
+
 ## 0. Status and authority
 
 **Accepted implementation design — V2 revision 2 (2026-09-06).**

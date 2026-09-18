@@ -300,7 +300,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       captured = backend.snapshot if !captured && routing&.phase == "target_pending"
     end
     LLMStub.activate(responses: [LLMStub.tool_call_response(name, {responsibility: "saved responsibility"}), "target"])
-    Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge]).invoke("original request")
+    Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge]).invoke("original request")
     restored = reboot(captured)
     source_id = restored.list_executions(source.agent_id).first.execution_id
     expect(restored.handoff_result(source_id)).to include(agent_id: target.agent_id, status: :active, reserved: true)
@@ -309,7 +309,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     source = worker.load(source.agent_id, persistence: restored)
     target = worker.load(target.agent_id, persistence: restored)
     source_id = restored.list_executions(source.agent_id).first.execution_id
-    no_graph = Phronomy::Agent::HandoffRunner.new(main_agent: source)
+    no_graph = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source)
     reserved = no_graph.result(source_id)
     expect(reserved).to include(agent_id: target.agent_id, status: :active, reserved: true)
     expect { source.purge! }.to raise_error(Phronomy::AgentBusyError, /unfinished turn/)
@@ -323,7 +323,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     changed = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target, policy: policy)
     allow_any_instance_of(Phronomy::Agent::HandoffProjection).to receive(:build_terminal).and_raise("must not reproject")
     llm = LLMStub.activate(responses: ["after restart"])
-    runner = Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [changed])
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [changed])
     result = runner.invoke("ignored new input")
     expect(result[:execution_id]).to eq(reserved[:execution_id])
     expect(llm.calls.size).to eq(1)
@@ -344,18 +344,18 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       captured = backend.snapshot if !captured && backend.handoff_states.load(source.agent_id)&.phase == "target_pending"
     end
     LLMStub.activate(responses: [LLMStub.tool_call_response(name, {responsibility: "continue"}), "target"])
-    Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge]).invoke("plan")
+    Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge]).invoke("plan")
     restored = reboot(captured)
     source_id = restored.list_executions(source.agent_id).first.execution_id
     source = worker.load(source.agent_id, persistence: restored)
-    runner = Phronomy::Agent::HandoffRunner.new(main_agent: source)
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source)
     reserved_id = runner.result(source_id).fetch(:execution_id)
     runner.cancel(source_id)
     restored = reboot(restored.snapshot)
     source = worker.load(source.agent_id, persistence: restored)
     target = worker.load(target.agent_id, persistence: restored)
     edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
-    runner = Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge])
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])
     expect(runner.result(source_id)).to include(execution_id: reserved_id, status: :cancelled)
     expect(restored.executions.load(source_id).status).to eq(:handed_off)
     expect { restored.executions.load(reserved_id) }.to raise_error(Phronomy::Storage::NotFoundError)
@@ -380,7 +380,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       end
     end
     llm = LLMStub.activate(responses: [LLMStub.tool_call_response(name, {responsibility: "continue"}), "target-result"])
-    runner = Phronomy::Agent::HandoffRunner.new(main_agent: source, handoffs: [edge])
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])
     expect(runner.invoke("plan")[:output]).to eq("target-result")
     expect(fired).to be(true)
     expect(llm.calls.size).to eq(2)

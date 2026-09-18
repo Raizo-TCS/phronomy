@@ -383,7 +383,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::HandoffRunner",
+    "name": "Phronomy::MultiAgent::HandoffRunner",
     "type": "class",
     "public_instance_methods": [
       "cancel",
