@@ -19,6 +19,8 @@ loader.inflector.inflect("llm_input_manifest" => "LLMInputManifest")
 loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
+# Common definitions retain their public Phronomy constants.
+loader.collapse("#{__dir__}/phronomy/common")
 loader.collapse("#{__dir__}/phronomy/engine")
 # Context contracts keep their public Agent constants while living together.
 loader.collapse("#{__dir__}/phronomy/agent/context_contract")
@@ -36,7 +38,6 @@ require_relative "phronomy/version"
 require_relative "phronomy/token_usage"
 
 module Phronomy
-  class Error < StandardError; end
   class ParseError < Error; end
   class RecursionLimitError < Error; end
   class ToolError < Error; end

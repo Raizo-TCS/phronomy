@@ -67,6 +67,21 @@ directory to preserve the existing `Phronomy::Agent` constants. A Policy's
 dependency on those contracts does not make it depend on Agent execution. See
 [ADR-036](decisions/036-context-contract-ownership.md).
 
+### Common definitions
+
+`common/` owns general definitions shared across the framework that do not
+belong to a particular feature. They must not depend on concrete Agent,
+Workflow, Runtime, or other feature implementations. Being used in several
+places, or inheriting a common base class, does not by itself make a definition
+common; feature-owned contracts remain with their owners.
+
+The first definition in this group is `Phronomy::Error`, the shared base
+exception. Its only superclass is Ruby's `StandardError`. Zeitwerk collapses
+`common/`, preserving the canonical public name without introducing a
+`Phronomy::Common` namespace. Other error types and global configuration have
+not been regrouped by this change. See
+[ADR-037](decisions/037-common-definition-ownership.md).
+
 ## Current architecture
 
 | Area | Current document |

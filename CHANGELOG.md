@@ -14,6 +14,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Changed
 
+- Move the shared `Phronomy::Error` base exception to `common/error.rb` and
+  define ownership rules for general common definitions. The public constant,
+  subclass hierarchies, and rescue behavior are preserved. See
+  [ADR-037](docs/decisions/037-common-definition-ownership.md).
 - Group Context Policy and hook contracts, values, Manifest representation,
   and Plan validation under `agent/context_contract/`. Zeitwerk collapses the
   directory so the existing `Phronomy::Agent` constant names, Policy/hook
