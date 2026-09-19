@@ -279,6 +279,14 @@ remain durable conflict defense rather than distributed ownership.
 
 ## Tool execution modes
 
+The default dispatch helper is the private
+`Phronomy::Agent::Context::Capability::ToolExecutor`, colocated with Capability
+Base. Agent ToolInvocation supplies Runtime and admission policy for the
+standard path, and owns authorization and logical result handling. Custom
+`call_async` implementations keep the public Tool protocol. This ownership is
+defined by [ADR-035](decisions/035-tool-executor-capability-ownership.md); the
+public `Phronomy::Tool::Base` facade and its Class identity remain unchanged.
+
 Agent uses ordinary `RubyLLM::Chat` for both complete and streaming Provider
 calls. The `before_tool_call` callback takes the complete assistant Tool-call
 batch before RubyLLM executes the first Tool body. `AgentInvocation` then owns

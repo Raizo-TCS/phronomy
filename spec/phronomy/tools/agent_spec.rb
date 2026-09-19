@@ -165,13 +165,13 @@ RSpec.describe Phronomy::Tools::Agent do
 
       it "starts the child Agent asynchronously without ToolExecutor/OffloadPool" do
         klass = described_class.from_agent(EchoAgent)
-        allow(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
+        allow(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).and_call_original
 
         task = klass.new.call_async({"input" => "hello"})
 
         expect(task).to be_a(Phronomy::TaskResult)
         expect(task.wait_result).to eq("echo: hello")
-        expect(Phronomy::Agent::ToolExecutor).not_to have_received(:call_async)
+        expect(Phronomy::Agent::Context::Capability::ToolExecutor).not_to have_received(:call_async)
       end
 
       it "returns an empty String for a nil asynchronous Agent output" do

@@ -551,7 +551,7 @@ module Phronomy
 
       def start_async_tool_operation(runtime)
         if uses_default_call_async?
-          Phronomy::Agent::ToolExecutor.call_async(
+          Phronomy::Agent::Context::Capability::ToolExecutor.call_async(
             tool: @tool,
             args: @arguments,
             cancellation_token: @config[:cancellation_token],

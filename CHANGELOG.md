@@ -14,6 +14,12 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Changed
 
+- Move the internal `Phronomy::Agent::ToolExecutor` to
+  `Phronomy::Agent::Context::Capability::ToolExecutor`, alongside the default
+  Tool invocation contract, without an alias for the old internal constant.
+  Public Tool names, `call_async` arguments, execution modes, Runtime routing,
+  and Agent-owned authorization/result handling are preserved. See
+  [ADR-035](docs/decisions/035-tool-executor-capability-ownership.md).
 - Move `Phronomy::Agent::HandoffRunner` to
   `Phronomy::MultiAgent::HandoffRunner` without a compatibility alias on the
   architecture refactoring branch. Handoff edges and Policy remain in Agent;

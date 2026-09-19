@@ -83,6 +83,7 @@ resolved explicitly.
 | [`032-storage-backend-composition`](032-storage-backend-composition.md) | Accepted | Yes | Separates raw Storage contracts/backends from domain Persistence by composition; replaces the Persistence subclass SPI and its facade-building helper. ADR-014 single transaction domain and ownership guarantees remain; [033-domain-persistence-ownership](033-domain-persistence-ownership.md) refines codec/repository ownership. |
 | [`033-domain-persistence-ownership`](033-domain-persistence-ownership.md) | Accepted | Yes | Domain-owned codecs, repositories, and result queries over the unchanged Storage SPI; explicit composition preserves one transaction domain. |
 | [`034-handoff-runner-coordination-ownership`](034-handoff-runner-coordination-ownership.md) | Accepted | Yes | H1 moves the public HandoffRunner to MultiAgent; Agent execution, Handoff records, and Runtime shutdown semantics are preserved. Further Handoff separation is deferred. |
+| [`035-tool-executor-capability-ownership`](035-tool-executor-capability-ownership.md) | Accepted | Yes | T1 places the private default Tool executor beside Capability Base; public Tool identity, execution modes, Runtime injection, and Agent authorization/result ownership are preserved. |
 
 ## Legacy duplicate `011`
 

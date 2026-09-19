@@ -307,7 +307,7 @@ module Phronomy
             cancellation_token: nil,
             config: {}
           )
-            Phronomy::Agent::ToolExecutor.call_async(
+            Phronomy::Agent::Context::Capability::ToolExecutor.call_async(
               tool: self,
               args: args,
               cancellation_token: cancellation_token,

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::ToolExecutor do
+RSpec.describe Phronomy::Agent::Context::Capability::ToolExecutor do
   def make_tool(mode)
     klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
       description "test tool"
