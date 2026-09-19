@@ -33,6 +33,12 @@ not receive a mutable Provider chat/message array.
 
 A hook returns `Phronomy::Agent::LLMInputPatch` or `nil`.
 
+These two types live in the shared `agent/context_contract/` implementation
+directory together with the Policy input and result contracts. Zeitwerk
+collapses the directory, preserving their existing public `Phronomy::Agent`
+names. Hook registration, invocation, and result handling are unchanged; see
+[ADR-036](../decisions/036-context-contract-ownership.md).
+
 ```ruby
 Phronomy::Agent::LLMInputPatch.new(
   model_config_patch: {temperature: 0.2},

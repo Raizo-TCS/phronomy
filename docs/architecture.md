@@ -60,6 +60,13 @@ The public Workflow DSL continues to use `:__finish__`. The execution session
 and phase compiler do not depend on `WorkflowRunner` for this shared vocabulary;
 the Workflow builder still legitimately creates its runner.
 
+Context Policy and hook contracts provide another example. The shared values,
+Manifest representation, and Plan validation live in `agent/context_contract/`,
+separately from concrete policies and Agent execution. Zeitwerk collapses that
+directory to preserve the existing `Phronomy::Agent` constants. A Policy's
+dependency on those contracts does not make it depend on Agent execution. See
+[ADR-036](decisions/036-context-contract-ownership.md).
+
 ## Current architecture
 
 | Area | Current document |

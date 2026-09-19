@@ -20,6 +20,8 @@ loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 loader.collapse("#{__dir__}/phronomy/engine")
+# Context contracts keep their public Agent constants while living together.
+loader.collapse("#{__dir__}/phronomy/agent/context_contract")
 # Loaded via require_relative before loader.setup; ignore to avoid Zeitwerk constant-name mismatch.
 loader.ignore("#{__dir__}/phronomy/ruby_llm_patches.rb")
 # Persistence backend conformance tests are explicit test support. Keep them out

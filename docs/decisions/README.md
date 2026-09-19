@@ -84,6 +84,7 @@ resolved explicitly.
 | [`033-domain-persistence-ownership`](033-domain-persistence-ownership.md) | Accepted | Yes | Domain-owned codecs, repositories, and result queries over the unchanged Storage SPI; explicit composition preserves one transaction domain. |
 | [`034-handoff-runner-coordination-ownership`](034-handoff-runner-coordination-ownership.md) | Accepted | Yes | H1 moves the public HandoffRunner to MultiAgent; Agent execution, Handoff records, and Runtime shutdown semantics are preserved. Further Handoff separation is deferred. |
 | [`035-tool-executor-capability-ownership`](035-tool-executor-capability-ownership.md) | Accepted | Yes | T1 places the private default Tool executor beside Capability Base; public Tool identity, execution modes, Runtime injection, and Agent authorization/result ownership are preserved. |
+| [`036-context-contract-ownership`](036-context-contract-ownership.md) | Accepted | Yes | C1 groups Context Policy/hook contracts, values, Manifest representation, and Plan validation in a collapsed directory; public Agent constants, extension protocols, and stored formats are preserved. |
 
 ## Legacy duplicate `011`
 

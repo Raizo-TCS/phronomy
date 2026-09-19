@@ -43,11 +43,11 @@ required_files=(
   lib/phronomy/agent/execution_coordinator.rb
   lib/phronomy/agent/journal_record.rb
   lib/phronomy/agent/context_assembler.rb
-  lib/phronomy/agent/context_policy.rb
-  lib/phronomy/agent/context_policy_input.rb
+  lib/phronomy/agent/context_contract/context_policy.rb
+  lib/phronomy/agent/context_contract/context_policy_input.rb
   lib/phronomy/agent/context_policy_input_builder.rb
-  lib/phronomy/agent/context_plan.rb
-  lib/phronomy/agent/context_plan_validator.rb
+  lib/phronomy/agent/context_contract/context_plan.rb
+  lib/phronomy/agent/context_contract/context_plan_validator.rb
   lib/phronomy/agent/context_policies/default.rb
   spec/phronomy/agent/context_policy_architecture_regression_spec.rb
   lib/phronomy/agent/agent_invocation.rb
@@ -91,7 +91,7 @@ required_files=(
   lib/phronomy/agent_purged_error.rb
   lib/phronomy/engine/runtime/agent_ownership_registry.rb
   lib/phronomy/agent/agent_root.rb
-  lib/phronomy/agent/llm_input_build_context.rb
+  lib/phronomy/agent/context_contract/llm_input_build_context.rb
   lib/phronomy/agent/shared_state.rb
   spec/phronomy/agent/base_spec.rb
   spec/phronomy/agent_spec.rb
@@ -140,11 +140,11 @@ syntax_files=(
   lib/phronomy/agent/execution_coordinator.rb
   lib/phronomy/agent/journal_record.rb
   lib/phronomy/agent/context_assembler.rb
-  lib/phronomy/agent/context_policy.rb
-  lib/phronomy/agent/context_policy_input.rb
+  lib/phronomy/agent/context_contract/context_policy.rb
+  lib/phronomy/agent/context_contract/context_policy_input.rb
   lib/phronomy/agent/context_policy_input_builder.rb
-  lib/phronomy/agent/context_plan.rb
-  lib/phronomy/agent/context_plan_validator.rb
+  lib/phronomy/agent/context_contract/context_plan.rb
+  lib/phronomy/agent/context_contract/context_plan_validator.rb
   lib/phronomy/agent/context_policies/default.rb
   spec/phronomy/agent/context_policy_architecture_regression_spec.rb
   lib/phronomy/agent/agent_invocation.rb
@@ -201,7 +201,7 @@ syntax_files=(
   lib/phronomy/agent_purged_error.rb
   lib/phronomy/engine/runtime/agent_ownership_registry.rb
   lib/phronomy/agent/agent_root.rb
-  lib/phronomy/agent/llm_input_build_context.rb
+  lib/phronomy/agent/context_contract/llm_input_build_context.rb
   lib/phronomy/agent/shared_state.rb
   lib/phronomy/agent/concerns/before_llm_input.rb
   lib/phronomy/testing/persistence_contract/an_agent_repository.rb

@@ -14,6 +14,12 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Changed
 
+- Group Context Policy and hook contracts, values, Manifest representation,
+  and Plan validation under `agent/context_contract/`. Zeitwerk collapses the
+  directory so the existing `Phronomy::Agent` constant names, Policy/hook
+  protocols, and Manifest format remain unchanged. Agent execution and Context
+  assembly retain their existing responsibilities. See
+  [ADR-036](docs/decisions/036-context-contract-ownership.md).
 - Move the internal `Phronomy::Agent::ToolExecutor` to
   `Phronomy::Agent::Context::Capability::ToolExecutor`, alongside the default
   Tool invocation contract, without an alias for the old internal constant.
