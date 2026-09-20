@@ -4,6 +4,11 @@
 
 Accepted on the architecture refactoring branch.
 
+The initial extraction scope is amended by
+[038-responsibility-based-source-layout](038-responsibility-based-source-layout.md),
+which adds reviewed general definitions and relocates feature-owned definitions.
+The common-ownership rule and public Error contract below remain in force.
+
 ## Context
 
 `lib/phronomy.rb` combines the application loading entry point with shared

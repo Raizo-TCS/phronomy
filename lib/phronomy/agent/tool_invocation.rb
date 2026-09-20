@@ -665,18 +665,7 @@ module Phronomy
       end
 
       def immutable_copy(value)
-        case value
-        when Hash
-          value.each_with_object({}) do |(key, item), result|
-            result[immutable_copy(key)] = immutable_copy(item)
-          end.freeze
-        when Array
-          value.map { |item| immutable_copy(item) }.freeze
-        when String
-          value.dup.freeze
-        else
-          value
-        end
+        Phronomy::Values::Immutable.copy(value)
       end
 
       def redact_for_display(value)

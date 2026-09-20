@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "invalid_async_workflow_action_error"
+
 module Phronomy
   # Raised when a synchronous FSM entry action returns Phronomy::TaskResult.
   #

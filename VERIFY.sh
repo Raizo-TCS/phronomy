@@ -21,9 +21,9 @@ required_files=(
   docs/decisions/024-event-loop-single-writer-agent-runtime.md
   docs/decisions/025-process-local-agent-ownership-and-runtime-admission.md
   docs/decisions/026-workflow-runtime-admission-and-durable-terminal-barrier.md
-  lib/phronomy/workflow.rb
-  lib/phronomy/workflow_context.rb
-  lib/phronomy/workflow_runner.rb
+  lib/phronomy/workflow/execution/workflow.rb
+  lib/phronomy/workflow/execution/workflow_context.rb
+  lib/phronomy/workflow/execution/workflow_runner.rb
   lib/phronomy/engine/event_loop.rb
   lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
@@ -38,7 +38,7 @@ required_files=(
   spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
-  lib/phronomy/invocation_context.rb
+  lib/phronomy/engine/invocation_context.rb
   lib/phronomy/agent/async_event_api.rb
   lib/phronomy/agent/execution_coordinator.rb
   lib/phronomy/agent/journal_record.rb
@@ -68,7 +68,7 @@ required_files=(
   spec/phronomy/workflow/admission_spec.rb
   spec/phronomy/workflow/live_signal_spec.rb
   spec/phronomy/workflow/transition_action_spec.rb
-  lib/phronomy/generator_verifier.rb
+  lib/phronomy/generation/generator_verifier.rb
   spec/phronomy/generator_verifier_spec.rb
   spec/integration/subgraph_parallel_agent_tool_spec.rb
   lib/phronomy/tracing/base.rb
@@ -87,8 +87,8 @@ required_files=(
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
   lib/phronomy/agent/base.rb
-  lib/phronomy/agent_already_exists_error.rb
-  lib/phronomy/agent_purged_error.rb
+  lib/phronomy/agent/lifecycle_contract/agent_already_exists_error.rb
+  lib/phronomy/agent/lifecycle_contract/agent_purged_error.rb
   lib/phronomy/engine/runtime/agent_ownership_registry.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/context_contract/llm_input_build_context.rb
@@ -119,9 +119,9 @@ done
 
 syntax_files=(
   spec/phronomy/architecture_governance_spec.rb
-  lib/phronomy/workflow.rb
-  lib/phronomy/workflow_context.rb
-  lib/phronomy/workflow_runner.rb
+  lib/phronomy/workflow/execution/workflow.rb
+  lib/phronomy/workflow/execution/workflow_context.rb
+  lib/phronomy/workflow/execution/workflow_runner.rb
   lib/phronomy/engine/event_loop.rb
   lib/phronomy/engine/fsm_session.rb
   lib/phronomy/persistence/in_memory.rb
@@ -135,7 +135,7 @@ syntax_files=(
   spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
-  lib/phronomy/invocation_context.rb
+  lib/phronomy/engine/invocation_context.rb
   lib/phronomy/agent/async_event_api.rb
   lib/phronomy/agent/execution_coordinator.rb
   lib/phronomy/agent/journal_record.rb
@@ -177,7 +177,7 @@ syntax_files=(
   spec/phronomy/workflow/admission_spec.rb
   spec/phronomy/workflow/live_signal_spec.rb
   spec/phronomy/workflow/fsm_session_spec.rb
-  lib/phronomy/generator_verifier.rb
+  lib/phronomy/generation/generator_verifier.rb
   spec/phronomy/generator_verifier_spec.rb
   spec/integration/subgraph_parallel_agent_tool_spec.rb
   spec/phronomy/guarantee_model_spec.rb
@@ -197,8 +197,8 @@ syntax_files=(
   spec/phronomy/fault_injection_advanced_spec.rb
   spec/phronomy/persistence_architecture_regression_spec.rb
   lib/phronomy/agent/base.rb
-  lib/phronomy/agent_already_exists_error.rb
-  lib/phronomy/agent_purged_error.rb
+  lib/phronomy/agent/lifecycle_contract/agent_already_exists_error.rb
+  lib/phronomy/agent/lifecycle_contract/agent_purged_error.rb
   lib/phronomy/engine/runtime/agent_ownership_registry.rb
   lib/phronomy/agent/agent_root.rb
   lib/phronomy/agent/context_contract/llm_input_build_context.rb
@@ -322,7 +322,7 @@ bundle exec rspec \
   spec/integration/multi_agent_handoff_followup_spec.rb
 
 echo "== ACS-06 / CG-07 durable format / record-oriented Persistence SPI =="
-ruby -c lib/phronomy/persistence.rb >/dev/null
+ruby -c lib/phronomy/persistence/api/persistence.rb >/dev/null
 ruby -c lib/phronomy/persistence/durable_record.rb >/dev/null
 ruby -c lib/phronomy/persistence/durable_codec.rb >/dev/null
 ruby -c lib/phronomy/persistence/repository_facades.rb >/dev/null
@@ -467,7 +467,7 @@ for rel in [
     if fsm_new_has_id_kwarg(text):
         raise SystemExit(f"FAIL: {rel} still injects a domain/context ID as FSMSession id")
 
-workflow = pathlib.Path("lib/phronomy/workflow_runner.rb").read_text()
+workflow = pathlib.Path("lib/phronomy/workflow/execution/workflow_runner.rb").read_text()
 event_loop = pathlib.Path("lib/phronomy/engine/event_loop.rb").read_text()
 fsm = pathlib.Path("lib/phronomy/engine/fsm_session.rb").read_text()
 
@@ -487,7 +487,7 @@ for required in ["workflow_terminal_persistence_result", ":persisting_terminal",
 PY
 
 echo "== ACS-13 Workflow admission / durable terminal barrier =="
-ruby -c lib/phronomy/workflow_runner.rb >/dev/null
+ruby -c lib/phronomy/workflow/execution/workflow_runner.rb >/dev/null
 ruby -c lib/phronomy/engine/event_loop.rb >/dev/null
 ruby -c lib/phronomy/engine/fsm_session.rb >/dev/null
 ruby -c spec/phronomy/workflow/admission_spec.rb >/dev/null

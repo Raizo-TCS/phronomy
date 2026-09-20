@@ -5,9 +5,11 @@ require "open3"
 require "rbconfig"
 
 RSpec.describe "Shared value dependency boundary" do
-  it "builds recovery facts and Team records without loading Agent or execution code" do
+  it "builds recovery facts and Team records without loading additional Agent or execution code" do
     source = <<~'CODE'
       require "phronomy"
+      # Measure this operation separately from the application loader's documented bootstrap.
+      loaded_at_entry = $LOADED_FEATURES.dup
 
       facts = {"observed" => ["before"]}
       classification = Phronomy::Recovery::Classification.new(
@@ -34,7 +36,7 @@ RSpec.describe "Shared value dependency boundary" do
 
       directory = File.expand_path(ARGV.fetch(0))
       prohibited = %w[agent engine persistence workflow]
-      leaks = $LOADED_FEATURES.select do |path|
+      leaks = ($LOADED_FEATURES - loaded_at_entry).select do |path|
         next false unless path.start_with?(directory + "/")
         relative = path.delete_prefix(directory + "/")
         prohibited.any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }

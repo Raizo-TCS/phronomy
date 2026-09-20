@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../common/error"
+
 module Phronomy
   # Base error for synchronous Workflow callbacks that return Phronomy::TaskResult.
   #

@@ -5,9 +5,11 @@ require "open3"
 require "rbconfig"
 
 RSpec.describe "Storage dependency and transaction boundary" do
-  it "loads and uses storage without loading domain persistence or execution code" do
+  it "loads and uses storage without loading domain persistence or execution implementations" do
     source = <<~'CODE'
       require "phronomy"
+      # Measure this operation separately from the application loader's documented bootstrap.
+      loaded_at_entry = $LOADED_FEATURES.dup
       directory = File.expand_path(ARGV.fetch(0))
       backend = Phronomy::Storage::Backends::InMemory.new
       record = Phronomy::Storage::DurableRecord.new(
@@ -26,9 +28,11 @@ RSpec.describe "Storage dependency and transaction boundary" do
       end
       abort "opaque record changed" unless backend.agents.load("opaque").payload == {"value" => 1}
       prohibited = %w[agent multi_agent persistence engine]
-      loaded = $LOADED_FEATURES.select { |path| path.start_with?(directory + "/") }
+      loaded = ($LOADED_FEATURES - loaded_at_entry).select { |path| path.start_with?(directory + "/") }
       leaks = loaded.select do |path|
         relative = path.delete_prefix(directory + "/")
+        # AgentBusyError is an independent lifecycle contract, not Agent execution.
+        next false if relative == "agent/lifecycle_contract/agent_busy_error.rb"
         prohibited.any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }
       end
       abort "upper dependency loaded: #{leaks.join(', ')}" unless leaks.empty?

@@ -110,7 +110,7 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   end
 
   it "keeps Workflow admission ownership separate from concrete FSMSession routing" do
-    runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
+    runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
     event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
 
     expect(runner).not_to include("Phronomy::FSMSession.reserve_identity")

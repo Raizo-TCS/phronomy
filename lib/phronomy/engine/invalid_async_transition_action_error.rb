@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "invalid_async_workflow_action_error"
+
 module Phronomy
   # Raised when a synchronous Workflow transition action returns Phronomy::TaskResult.
   #

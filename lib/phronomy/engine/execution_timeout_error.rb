@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "timeout_error"
+
 module Phronomy
   class ExecutionTimeoutError < TimeoutError
     attr_reader :outcomes

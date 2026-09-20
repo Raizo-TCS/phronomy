@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "workflow_runner"
-require_relative "runnable"
+require_relative "../../engine/runnable"
 
 module Phronomy
   # StateChart-style Workflow definition DSL.

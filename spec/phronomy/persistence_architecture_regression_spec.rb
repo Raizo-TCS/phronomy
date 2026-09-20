@@ -47,7 +47,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   end
 
   it "keeps Agent durable ownership and live owner lookup semantics in Base" do
-    agent_entry = File.read(File.join(root, "lib/phronomy/agent.rb"))
+    agent_entry = File.read(File.join(root, "lib/phronomy/agent/api/agent.rb"))
     base = File.read(File.join(root, "lib/phronomy/agent/base.rb"))
     ownership_path = File.join(
       root,
@@ -205,7 +205,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   end
 
   it "keeps Workflow admission ownership, FSMSession routing, and terminal persistence distinct" do
-    runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
+    runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
     event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
     fsm = File.read(File.join(root, "lib/phronomy/engine/fsm_session.rb"))
 

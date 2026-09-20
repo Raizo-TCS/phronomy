@@ -75,12 +75,47 @@ Workflow, Runtime, or other feature implementations. Being used in several
 places, or inheriting a common base class, does not by itself make a definition
 common; feature-owned contracts remain with their owners.
 
-The first definition in this group is `Phronomy::Error`, the shared base
-exception. Its only superclass is Ruby's `StandardError`. Zeitwerk collapses
-`common/`, preserving the canonical public name without introducing a
-`Phronomy::Common` namespace. Other error types and global configuration have
-not been regrouped by this change. See
-[ADR-037](decisions/037-common-definition-ownership.md).
+This group contains `Phronomy::Error`, `Phronomy::ConfigurationError`,
+`Phronomy::CanonicalJSON`, and `Phronomy::Values::Immutable`. Zeitwerk collapses
+`common/`, preserving these canonical names without introducing a
+`Phronomy::Common` namespace. Other exceptions belong to their feature
+contracts. Concrete configuration defaults remain in `configuration/`.
+Application Runtime reset and configuration replacement are coordinated in
+`runtime_composition/`, separately from configuration access and Engine
+mechanics. See [ADR-039](decisions/039-runtime-configuration-lifecycle-ownership.md).
+See [ADR-037](decisions/037-common-definition-ownership.md) and
+[ADR-038](decisions/038-responsibility-based-source-layout.md).
+
+### Source placement and loading
+
+`lib/phronomy.rb` is the application loading entry point. Internal production
+files must not require it. Feature implementations and contracts live in their
+responsibility directories; the direct root contains only `version.rb` and the
+small namespace/loading files enumerated in ADR-038.
+The separately documented external backend-test entry
+`phronomy/testing/persistence_contract` retains its existing opt-in loading
+contract and is excluded from production automatic loading.
+
+Engine owns Event, Execution composition and its outcome exceptions, and the
+synchronous FSM callback exceptions. Recovery owns shared rehydration
+requirements. Workflow implementation lives under `workflow/execution/`;
+Agent namespace operations live under `agent/api/`, separately from the shared
+Agent lifecycle exceptions in `agent/lifecycle_contract/`. LLM values and
+call-boundary exceptions live under `llm_contract/`.
+
+Selected nested Zeitwerk roots retain existing top-level Phronomy constants
+without changing the enclosing feature's existing nested constants. For
+example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with
+`Phronomy::Workflow::Persistence`. Workflow remains a class and its source
+file lives beside its implementation. These moves do not introduce aliases or
+a new public API for requiring arbitrary internal paths.
+
+The application loader explicitly preserves Workflow recovery installation;
+the Agent entry explicitly preserves Agent lifecycle extension installation.
+Configuration accessors now live beside Configuration, rather than inside the
+loader. Configuration still assembles concrete defaults, so this relocation
+does not claim that settings are independent of feature implementations or
+that all dependency cycles have been removed.
 
 ## Current architecture
 

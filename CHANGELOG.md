@@ -14,6 +14,18 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Changed
 
+- Separate application Runtime reset and configuration replacement into
+  `runtime_composition/global_runtime.rb`. Configuration access no longer owns
+  Runtime lifecycle control; the reset API, shutdown ordering, timeout behavior,
+  and configuration defaults are unchanged. See
+  [ADR-039](docs/decisions/039-runtime-configuration-lifecycle-ownership.md).
+- Group root implementations and entry-point exceptions by responsibility:
+  common definitions, Engine/FSM execution contracts, Recovery, Workflow,
+  Agent lifecycle contracts, LLM contracts, configuration, and feature APIs.
+  Preserve public constant names, API signatures, stored formats, and lifecycle
+  loading. Reserve the direct source root for version and namespace/loading
+  files; share the three equivalent immutable-copy helpers. See
+  [ADR-038](docs/decisions/038-responsibility-based-source-layout.md).
 - Move the shared `Phronomy::Error` base exception to `common/error.rb` and
   define ownership rules for general common definitions. The public constant,
   subclass hierarchies, and rescue behavior are preserved. See

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../common/error"
+
 module Phronomy
   # Raised when an Application stream callback fails and
   # +stream_callback_error_policy+ is +:fail_task+.

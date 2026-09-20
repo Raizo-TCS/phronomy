@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../canonical_json"
+
 module Phronomy
   module Values
     # Shared value operations for snapshots, recovery facts, and result views.

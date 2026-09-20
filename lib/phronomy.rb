@@ -2,7 +2,8 @@
 
 require "zeitwerk"
 require "ruby_llm"
-require_relative "phronomy/ruby_llm_patches"
+require_relative "phronomy/version"
+require_relative "phronomy/llm_adapter/ruby_llm_patches"
 
 loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
@@ -19,107 +20,46 @@ loader.inflector.inflect("llm_input_manifest" => "LLMInputManifest")
 loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
-# Common definitions retain their public Phronomy constants.
-loader.collapse("#{__dir__}/phronomy/common")
-loader.collapse("#{__dir__}/phronomy/engine")
+# These responsibility directories do not add a public Ruby namespace.
+%w[common configuration engine generation llm_contract recovery].each do |directory|
+  loader.collapse("#{__dir__}/phronomy/#{directory}")
+end
 # Context contracts keep their public Agent constants while living together.
 loader.collapse("#{__dir__}/phronomy/agent/context_contract")
-# Loaded via require_relative before loader.setup; ignore to avoid Zeitwerk constant-name mismatch.
-loader.ignore("#{__dir__}/phronomy/ruby_llm_patches.rb")
-# Persistence backend conformance tests are explicit test support. Keep them out
-# of production eager-load so ordinary `require "phronomy"` never requires RSpec.
+
+# A nested root is independent of its enclosing Ruby namespace. Keep existing
+# Phronomy::Workflow, Phronomy::WorkflowContext, and other canonical constants
+# beside the feature they belong to, without aliases or a new partial-load API.
+%w[
+  agent/api
+  agent/lifecycle_contract
+  filter/contract
+  output_parser/contract
+  persistence/api
+  tool/contract
+  workflow/execution
+].each do |directory|
+  loader.push_dir("#{__dir__}/phronomy/#{directory}", namespace: Phronomy)
+end
+
+# These files reopen existing namespaces or patch an external dependency.
+loader.ignore(
+  "#{__dir__}/phronomy/llm_adapter/ruby_llm_patches.rb",
+  "#{__dir__}/phronomy/configuration/global_configuration.rb",
+  "#{__dir__}/phronomy/runtime_composition/global_runtime.rb"
+)
+# Persistence conformance support must never make production loading require RSpec.
 loader.ignore(
   "#{__dir__}/phronomy/testing/persistence_contract.rb",
   "#{__dir__}/phronomy/testing/persistence_contract"
 )
 loader.setup
 
-require_relative "phronomy/version"
-require_relative "phronomy/token_usage"
+require_relative "phronomy/llm_contract/token_usage"
+require_relative "phronomy/configuration/global_configuration"
+require_relative "phronomy/runtime_composition/global_runtime"
 
-module Phronomy
-  class ParseError < Error; end
-  class RecursionLimitError < Error; end
-  class ToolError < Error; end
-  class TimeoutError < Error; end
-  class ConfigurationError < Error; end
-  class HandoffError < Error; end
-
-  class TransportError < Error; end
-  class RateLimitError < TransportError; end
-  class AuthenticationError < TransportError; end
-  class ContextLengthError < Error; end
-  class CancellationError < Error; end
-
-  # Raised when a synchronous API would block the EventLoop control thread.
-  class EventLoopReentrancyError < Error; end
-
-  # Backward-compatible error class name for callers that still rescue the old
-  # scheduler-oriented exception. New code should use EventLoopReentrancyError.
-  class SchedulerReentrancyError < EventLoopReentrancyError; end
-
-  class RuntimeShutdownError < Error; end
-  class RuntimeShutdownReentrancyError < RuntimeShutdownError; end
-
-  class LowConfidenceError < Error
-    attr_reader :result
-
-    def initialize(result)
-      @result = result
-      super("Answer confidence #{result.confidence} is below the required threshold")
-    end
-  end
-
-  class FilterBlockError < Error
-    attr_reader :filter
-
-    def initialize(message, filter: nil)
-      super(message)
-      @filter = filter
-    end
-  end
-
-  class PoolShutdownError < Error; end
-  class BackpressureError < Error; end
-
-  class WorkflowContextOwnershipError < Error; end
-
-  class << self
-    def configuration
-      @configuration ||= Configuration.new
-    end
-
-    def configure
-      yield configuration
-    end
-
-    def reset_configuration!
-      @configuration = Configuration.new
-    end
-
-    def with_configuration
-      original = @configuration&.dup
-      yield configuration
-    ensure
-      @configuration = original
-    end
-
-    def reset_runtime!(timeout: configuration.event_loop_stop_grace_seconds)
-      previous_grace = @configuration&.event_loop_stop_grace_seconds
-      result = Runtime.reset_default!(timeout: timeout)
-
-      new_configuration = Configuration.new
-      if previous_grace
-        new_configuration.event_loop_stop_grace_seconds = previous_grace
-      end
-      @configuration = new_configuration
-      result
-    end
-  end
-end
-
-# Shared Recovery primitives and Workflow Persistence F1 reconciliation.
-# Entity-specific Agent Recovery is loaded from lib/phronomy/agent.rb when the
-# Agent namespace is materialized.
-require_relative "phronomy/recovery"
-require_relative "phronomy/workflow_recovery"
+# Retain the Workflow recovery prepend during ordinary application loading.
+# Agent lifecycle extensions remain installed when its namespace is loaded.
+require_relative "phronomy/recovery/recovery"
+require_relative "phronomy/workflow/execution/workflow_recovery"

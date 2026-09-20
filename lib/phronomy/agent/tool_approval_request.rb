@@ -75,16 +75,7 @@ module Phronomy
         private
 
         def immutable_copy(value)
-          case value
-          when Hash
-            value.each_with_object({}) { |(k, v), h| h[immutable_copy(k)] = immutable_copy(v) }.freeze
-          when Array
-            value.map { |v| immutable_copy(v) }.freeze
-          when String
-            value.dup.freeze
-          else
-            value
-          end
+          Phronomy::Values::Immutable.copy(value)
         end
       end
 

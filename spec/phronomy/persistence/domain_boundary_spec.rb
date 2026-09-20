@@ -5,9 +5,11 @@ require "open3"
 require "rbconfig"
 
 RSpec.describe "Domain persistence ownership boundary" do
-  it "round-trips Team records without loading Agent, Workflow, or composition code" do
+  it "round-trips Team records without loading additional Agent, Workflow, or composition code" do
     source = <<~'CODE'
       require "phronomy"
+      # Measure this operation separately from the application loader's documented bootstrap.
+      loaded_at_entry = $LOADED_FEATURES.dup
       timestamp = "2026-09-18T00:00:00Z"
       root = Phronomy::MultiAgent::TeamRoot.new(
         team_id: "team", team_definition_id: "definition", team_definition_version: 1,
@@ -31,7 +33,7 @@ RSpec.describe "Domain persistence ownership boundary" do
       abort "Team execution changed" unless runs.load(execution.team_execution_id).to_h == execution.to_h
       directory = File.expand_path(ARGV.fetch(0))
       prohibited = %w[agent workflow persistence persistence_composition engine]
-      leaks = $LOADED_FEATURES.select do |path|
+      leaks = ($LOADED_FEATURES - loaded_at_entry).select do |path|
         next false unless path.start_with?(directory + "/")
         relative = path.delete_prefix(directory + "/")
         prohibited.any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }
@@ -45,9 +47,11 @@ RSpec.describe "Domain persistence ownership boundary" do
     expect(output).to include("independent Team persistence: OK")
   end
 
-  it "uses the public Agent repositories without loading Team or Workflow implementations" do
+  it "uses the public Agent repositories without loading additional Team or Workflow implementations" do
     source = <<~'CODE'
       require "phronomy"
+      # Measure this operation separately from the application loader's documented bootstrap.
+      loaded_at_entry = $LOADED_FEATURES.dup
       persistence = Phronomy::Persistence.in_memory
       root = Phronomy::Agent::AgentRoot.create(agent_id: "isolated-agent",
         agent_definition_id: "boundary", agent_definition_version: 1)
@@ -55,7 +59,7 @@ RSpec.describe "Domain persistence ownership boundary" do
       abort "Agent root changed" unless persistence.agents.load(root.agent_id).to_h == root.to_h
       abort "repository identity changed" unless persistence.agents.equal?(persistence.agents)
       directory = File.expand_path(ARGV.fetch(0))
-      leaks = $LOADED_FEATURES.select do |path|
+      leaks = ($LOADED_FEATURES - loaded_at_entry).select do |path|
         next false unless path.start_with?(directory + "/")
         relative = path.delete_prefix(directory + "/")
         %w[multi_agent workflow].any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }
