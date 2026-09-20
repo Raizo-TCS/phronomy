@@ -122,6 +122,13 @@ factories; composition selects their concrete types. Static source-reference
 graphs do not follow these injected calls. LLMAdapter's async bridge still uses
 Runtime, and other dependency cycles remain.
 
+Agent and Team implement their identity registries in `agent/` and
+`multi_agent/`. Runtime strongly retains one of each when registered, using only
+its generic shutdown participant contract. Feature code reserves identities,
+handles feature exceptions, and detaches owners after completed cleanup.
+EventLoop's Agent/Workflow execution management remains a separate responsibility
+to extract. See [ADR-041](decisions/041-feature-owned-identity-registries.md).
+
 ## Current architecture
 
 | Area | Current document |

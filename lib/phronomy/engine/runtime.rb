@@ -3,8 +3,6 @@
 require_relative "runtime/timer_queue"
 require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
-require_relative "runtime/agent_ownership_registry"
-require_relative "runtime/team_ownership_registry"
 
 module Phronomy
   class Runtime
@@ -66,8 +64,6 @@ module Phronomy
       )
       @shutdown_participants = {}
       @shutdown_participant_error = nil
-      @agent_ownership_registry = AgentOwnershipRegistry.new(runtime: self)
-      @team_ownership_registry = TeamOwnershipRegistry.new
       @lifecycle_mutex = Mutex.new
       @shutdown_mutex = Mutex.new
       @state = :running
@@ -113,56 +109,6 @@ module Phronomy
     end
 
     # @api private
-    def __team_owner(id, klass:, create:, persistence:, &block)
-      @team_ownership_registry.fetch(id, klass: klass, create: create, persistence: persistence, &block)
-    end
-
-    # @api private
-    def __get_team(id, klass:)
-      @team_ownership_registry.get(id.to_s, klass: klass)
-    end
-
-    # @api private
-    def __create_agent(agent_id, expected_class:, &block)
-      @agent_ownership_registry.create(agent_id, expected_class: expected_class, &block)
-    end
-
-    # @api private
-    def __load_agent(agent_id, expected_class:, &block)
-      @agent_ownership_registry.load(agent_id, expected_class: expected_class, &block)
-    end
-
-    # @api private
-    def __get_agent(agent_id, expected_class:)
-      @agent_ownership_registry.get(agent_id, expected_class: expected_class)
-    end
-
-    # @api private
-    def __agent_owned?(agent)
-      @agent_ownership_registry.owned?(agent)
-    end
-
-    # @api private
-    def __begin_agent_purge(agent)
-      @agent_ownership_registry.begin_purge(agent)
-    end
-
-    # @api private
-    def __complete_agent_purge(agent, token)
-      @agent_ownership_registry.complete_purge(agent, token)
-    end
-
-    # @api private
-    def __abort_agent_purge(agent, token)
-      @agent_ownership_registry.abort_purge(agent, token)
-    end
-
-    # @api private
-    def __leave_agent_purge_uncertain(agent, token)
-      @agent_ownership_registry.leave_purge_uncertain(agent, token)
-    end
-
-    # @api private
     def __agent_execution_admitted?(agent_id)
       loop_instance = @lifecycle_mutex.synchronize { @event_loop }
       loop_instance&.agent_execution_admitted?(agent_id) || false
@@ -172,6 +118,9 @@ module Phronomy
     # begin_draining must be idempotent, nonblocking and must not call Runtime:
     # admission closes under the same lifecycle lock as registration.
     # wait_until_idle receives an absolute monotonic deadline and returns a Boolean.
+    # Optional after_runtime_shutdown runs outside the lifecycle lock only after
+    # all waits succeed, EventLoop stops, and pools/timer finish shutdown. It must
+    # be idempotent, short, and perform no I/O. Exceptions mark cleanup incomplete.
     # This is a shutdown contract, not an application extension point.
     # @api private
     def __register_shutdown_participant(key:, participant:)
@@ -186,6 +135,13 @@ module Phronomy
         end
         @shutdown_participants[key] ||= participant
       end
+    end
+
+    # Lookup only: never registers a participant or reopens its admission gate.
+    # Retained participants remain available during and after shutdown.
+    # @api private
+    def __shutdown_participant(key:)
+      @lifecycle_mutex.synchronize { @shutdown_participants[key] }
     end
 
     def event_loop
@@ -245,12 +201,8 @@ module Phronomy
           [@event_loop, @shutdown_participants.values]
         end
         loop_instance&.begin_draining
-        @agent_ownership_registry.begin_draining
-        @team_ownership_registry.begin_draining
 
         participants_idle = wait_for_participants(participants, drain_deadline)
-        agent_ownership_stable = @agent_ownership_registry.wait_until_stable(drain_deadline)
-        team_ownership_stable = @team_ownership_registry.wait_until_stable(drain_deadline)
         loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
 
         @lifecycle_mutex.synchronize do
@@ -265,22 +217,20 @@ module Phronomy
         end
 
         subsystem_error = shutdown_pools_and_timer
-        failure, participant_error = @lifecycle_mutex.synchronize { [@failure, @shutdown_participant_error] }
-        failure ||= subsystem_error
+        participant_error = @lifecycle_mutex.synchronize { @shutdown_participant_error }
         cleanup_complete = participants_idle && participant_error.nil? &&
-          agent_ownership_stable && team_ownership_stable && loop_idle &&
+          loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           subsystem_error.nil?
 
+        cleanup_complete = finalize_participants(participants) if cleanup_complete
+        failure = @lifecycle_mutex.synchronize { @failure } || subsystem_error
         runtime_outcome = if failure || event_loop_status == :failed
           :failed
         else
           :terminated
         end
-
-        @agent_ownership_registry.shutdown! if cleanup_complete
-        @team_ownership_registry.shutdown! if cleanup_complete
 
         result = ShutdownResult.new(
           runtime_outcome: runtime_outcome,
@@ -314,6 +264,18 @@ module Phronomy
     def wait_for_participants(participants, deadline)
       participants.map do |participant|
         participant.wait_until_idle(deadline) == true
+      rescue => error
+        @lifecycle_mutex.synchronize { record_participant_failure(error) }
+        false
+      end.all?
+    end
+
+    # Finalize every participant even if one fails. Earlier releases are not
+    # rolled back, and a failure prevents replacement of the default Runtime.
+    def finalize_participants(participants)
+      participants.map do |participant|
+        participant.after_runtime_shutdown if participant.respond_to?(:after_runtime_shutdown)
+        true
       rescue => error
         @lifecycle_mutex.synchronize { record_participant_failure(error) }
         false

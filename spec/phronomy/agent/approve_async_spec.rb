@@ -79,7 +79,10 @@ RSpec.describe Phronomy::Agent::Base do
       event_loop = double("event_loop", current?: true)
       runtime = double("runtime", event_loop: event_loop)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-      allow(runtime).to receive(:__create_agent).and_yield(runtime)
+      allow(Phronomy::Agent::OwnershipRegistry).to receive(:for).with(runtime)
+        .and_return(double("ownership registry", create: nil).tap do |registry|
+          allow(registry).to receive(:create).and_yield(runtime)
+        end)
 
       expect do
         agent.approve(

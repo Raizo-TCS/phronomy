@@ -23,32 +23,16 @@ are defined by
 
 ## Runtime model
 
-```text
-Runtime
-├─ Agent ownership registry
-│  └─ agent_id -> one mutable live Agent instance
-├─ EventLoop (one control-plane operating-system Thread)
-│  ├─ FSMSession
-│  │  ├─ Agent
-│  │  ├─ Workflow
-│  │  ├─ ToolInvocation
-│  │  └─ MultiAgent fan-out
-│  ├─ Agent top-level admission
-│  │  └─ agent_id -> one nonterminal logical Execution admission
-│  └─ Agent execution directory
-│     └─ execution_id -> immutable live-state record
-├─ OffloadPool (bounded operating-system Threads)
-│  ├─ private Operation records
-│  ├─ blocking input/output (I/O)
-│  ├─ central-processing-unit (CPU)-bound synchronous work
-│  └─ operation-specific durable Agent/Workflow work
-├─ named OffloadPools
-└─ EventLoop-driven timers
+| Runtime-retained component | Implementation owner and responsibility |
+|---|---|
+| Shutdown participants | Feature-owned registries: Agent identity, Team identity, and MultiAgent synchronous-call admission |
+| EventLoop | Engine dispatcher thread, FSMSessions, and currently Agent/Workflow execution admission and state |
+| OffloadPool and named pools | Engine bounded workers and private physical-operation records |
+| Timers | Engine EventLoop-driven scheduling |
 
-EventLoop / FSMSession ─┐
-                       ├─> TaskResult = completion handle
-OffloadPool ────────────┘
-```
+Runtime retains participants through a generic lifecycle protocol; it does not
+construct Agent or Team identity registries. Each feature registers its own
+instance. See [ADR-041](decisions/041-feature-owned-identity-registries.md).
 
 The framework does not allocate one operating-system Thread per logical
 Agent/Workflow/Tool lifecycle. Logical waits remain explicit states plus later
@@ -88,8 +72,9 @@ content reference is value materialization rather than mutable state refresh.
 
 `agent_id` identifies one logical Agent, not a reusable lookup key for independent
 mutable objects. One Runtime therefore publishes at most one mutable live Agent
-instance for a given `agent_id`. The Runtime-owned registry is an authority, not a
-cache, and reserves the identity before create/load materialization.
+instance for a given `agent_id`. The Agent-owned registry, strongly retained by
+Runtime, is an authority, not a cache, and reserves the identity before
+create/load materialization.
 
 The application-facing identity operations are distinct:
 
@@ -578,7 +563,7 @@ through `Runtime#__register_shutdown_participant`. This is an internal lifecycle
 contract, not a public extension API or an execution registry. Runtime does not
 construct participants or interpret their admission rules.
 
-Each participant implements two operations:
+Each participant implements two required operations:
 
 - `begin_draining` closes admission under the participant's admission lock. It
   must be idempotent, short and nonblocking, and must not call back into Runtime.
@@ -589,6 +574,23 @@ Each participant implements two operations:
   waiting, and waits without holding its lifecycle lock. A timeout or failed hook
   makes cleanup incomplete; other participants, pools and timers still receive
   their shutdown calls. Incomplete cleanup prevents default Runtime replacement.
+
+Participants may also implement `after_runtime_shutdown`. Runtime calls it
+outside its lifecycle lock after every wait succeeds, EventLoop has stopped,
+and pools/timers have shut down successfully. The hook must be idempotent,
+short, and perform no I/O; its return value is ignored. A hook exception marks
+cleanup incomplete, retains the first failure, and does not skip later hooks.
+Completed releases are not rolled back; repeated shutdown returns its cached
+result without retrying hooks. A prior closure/wait failure, timeout, or worker
+shutdown failure skips finalization entirely.
+
+`Runtime#__shutdown_participant(key:)` only retrieves an existing participant,
+including during/after shutdown. Registration still requires a running Runtime,
+even for an existing key. Agent/Team `get` uses lookup without registration;
+feature gates reject new ownership changes through retained registries after
+closure. Already admitted transitions may finish. Identity registries wait only
+for active construction/purge, then detach Agent references or clear Team
+owners at finalization; live idle objects do not themselves prolong shutdown.
 
 `MultiAgent::AdmissionRegistry.for(runtime)` constructs and registers the shared
 coordination admission registry. MultiAgent::HandoffRunner and TeamCoordinator retain that

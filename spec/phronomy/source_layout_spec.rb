@@ -97,6 +97,32 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
+  it "keeps concrete ownership registries and their exception contracts outside Runtime" do
+    paths = [File.join(library_root, "engine/runtime.rb"),
+      *Dir.glob(File.join(library_root, "engine/runtime/**/*.rb"))]
+    paths.each do |path|
+      constants = Ripper.lex(File.read(path)).filter_map do |_, type, token, _|
+        token if type == :on_const
+      end
+      expect(constants).not_to include("Agent", "MultiAgent", "Storage",
+        "OwnershipRegistry", "AgentOwnershipRegistry", "TeamOwnershipRegistry", "AgentAlreadyExistsError")
+    end
+
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy"
+      # The application entry already installs Agent extensions. Inspect only
+      # additional loading caused by construction/shutdown of an unused Runtime.
+      before = $LOADED_FEATURES.dup
+      runtime = Phronomy::Runtime.new
+      abort "cleanup failed" unless runtime.shutdown.cleanup_complete?
+      loaded = ($LOADED_FEATURES - before).grep(%r{/phronomy/(agent|multi_agent|storage)/})
+      abort "Runtime loaded feature definitions: \#{loaded.inspect}" unless loaded.empty?
+      abort "old Agent registry alias" if Phronomy::Runtime.const_defined?(:AgentOwnershipRegistry, false)
+      abort "old Team registry alias" if Phronomy::Runtime.const_defined?(:TeamOwnershipRegistry, false)
+    RUBY
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+  end
+
   it "constructs settings using supplied factories without concrete feature implementations" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/configuration/configuration"

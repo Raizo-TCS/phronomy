@@ -204,7 +204,7 @@ module Phronomy
           runtime = Phronomy::Runtime.instance
           materialized = false
 
-          agent = runtime.__load_agent(key, expected_class: self) do |owner_runtime|
+          agent = OwnershipRegistry.for(runtime).load(key, expected_class: self) do |owner_runtime|
             materialized = true
             instance = __construct_owned_agent(
               owner_runtime,
@@ -235,7 +235,10 @@ module Phronomy
         # Returns only the process-local live Agent owner. Does not access
         # Persistence and returns nil when this Runtime has no live owner.
         def get(agent_id)
-          Phronomy::Runtime.instance.__get_agent(agent_id, expected_class: self)
+          key = agent_id.to_s
+          raise ArgumentError, "agent_id must not be empty" if key.empty?
+
+          OwnershipRegistry.existing_for(Phronomy::Runtime.instance)&.get(key, expected_class: self)
         end
 
         # Resolves the live Agent instance that currently owns execution_id in
@@ -338,7 +341,7 @@ module Phronomy
 
         runtime = Phronomy::Runtime.instance
         begin
-          runtime.__create_agent(effective_agent_id, expected_class: self.class) do |owner_runtime|
+          OwnershipRegistry.for(runtime).create(effective_agent_id, expected_class: self.class) do |owner_runtime|
             __prepare_runtime_owner!(owner_runtime, effective_agent_id)
             initialize_owned_state(
               agent_id: effective_agent_id,
@@ -450,9 +453,10 @@ module Phronomy
 
         __assert_live_agent!
         runtime = @_phronomy_runtime_owner
-        token = runtime.__begin_agent_purge(self)
+        registry = OwnershipRegistry.for(runtime)
+        token = registry.begin_purge(self)
         if runtime.__agent_execution_admitted?(agent_id)
-          runtime.__abort_agent_purge(self, token)
+          registry.abort_purge(self, token)
           raise Phronomy::AgentBusyError,
             "Agent #{agent_id.inspect} has a nonterminal top-level execution"
         end
@@ -475,16 +479,16 @@ module Phronomy
           Phronomy::Storage::NotFoundError,
           Phronomy::Storage::SerializationError,
           ArgumentError
-          runtime.__abort_agent_purge(self, token)
+          registry.abort_purge(self, token)
           raise
         rescue
           # Without F1 reconciliation support we cannot infer that a failed
           # durable delete did not commit. Keep the identity fail-closed.
-          runtime.__leave_agent_purge_uncertain(self, token)
+          registry.leave_purge_uncertain(self, token)
           raise
         end
 
-        runtime.__complete_agent_purge(self, token)
+        registry.complete_purge(self, token)
         true
       end
 
@@ -789,7 +793,8 @@ module Phronomy
         return true if @_phronomy_runtime_owner_state == :constructing
 
         runtime = @_phronomy_runtime_owner
-        unless runtime&.__agent_owned?(self)
+        registry = OwnershipRegistry.existing_for(runtime) if runtime
+        unless registry&.owned?(self)
           raise Phronomy::RuntimeShutdownError,
             "Agent #{agent_id.inspect} is no longer the live owner in its Runtime"
         end

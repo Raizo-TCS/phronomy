@@ -1,10 +1,20 @@
 # frozen_string_literal: true
 
 module Phronomy
-  class Runtime
+  module MultiAgent
     # Runtime-local Team identity and construction exclusion; no execution state.
     # @api private
     class TeamOwnershipRegistry
+      def self.for(runtime)
+        existing_for(runtime) || runtime.__register_shutdown_participant(
+          key: self, participant: new
+        )
+      end
+
+      def self.existing_for(runtime)
+        runtime.__shutdown_participant(key: self)
+      end
+
       def initialize
         @mutex = Mutex.new
         @condition = ConditionVariable.new
@@ -58,7 +68,7 @@ module Phronomy
         end
       end
 
-      def wait_until_stable(deadline)
+      def wait_until_idle(deadline)
         @mutex.synchronize do
           until @constructing.empty?
             remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -69,7 +79,7 @@ module Phronomy
         end
       end
 
-      def shutdown!
+      def after_runtime_shutdown
         @mutex.synchronize { @owners.clear }
       end
     end

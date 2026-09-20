@@ -30,6 +30,81 @@ RSpec.describe "Runtime shutdown participants" do
     expect(runtime.shutdown.cleanup_complete?).to be(true)
   end
 
+  it "looks up existing participants without registration or reopening admission" do
+    participant = double("participant", begin_draining: nil, wait_until_idle: true)
+    expect(runtime.__shutdown_participant(key: :missing)).to be_nil
+    runtime.__register_shutdown_participant(key: :owner, participant: participant)
+    expect(runtime.__shutdown_participant(key: :owner)).to equal(participant)
+    runtime.shutdown
+    expect(runtime.__shutdown_participant(key: :owner)).to equal(participant)
+    expect(runtime.__shutdown_participant(key: :missing)).to be_nil
+    expect { runtime.__register_shutdown_participant(key: :owner, participant: participant) }
+      .to raise_error(Phronomy::RuntimeShutdownError)
+  end
+
+  it "finalizes once outside the lifecycle lock after EventLoop and workers stop" do
+    loop_instance = runtime.event_loop
+    pool = runtime.offload
+    pool_stopped = false
+    allow(pool).to receive(:shutdown).and_wrap_original do |original|
+      original.call
+      pool_stopped = true
+    end
+    participant = double("participant", begin_draining: nil, wait_until_idle: true)
+    expect(participant).to receive(:after_runtime_shutdown).once do
+      expect(runtime.state).to eq(:stopping)
+      expect(loop_instance.thread_alive?).to be(false)
+      expect(pool_stopped).to be(true)
+    end
+    runtime.__register_shutdown_participant(key: :owner, participant: participant)
+    result = runtime.shutdown
+    expect(result.cleanup_complete?).to be(true)
+    expect(runtime.shutdown).to equal(result)
+  end
+
+  it "does not finalize any participant when one wait misses the deadline" do
+    first = double("busy participant", begin_draining: nil, wait_until_idle: false)
+    second = double("idle participant", begin_draining: nil, wait_until_idle: true)
+    [first, second].each_with_index do |participant, index|
+      expect(participant).not_to receive(:after_runtime_shutdown)
+      runtime.__register_shutdown_participant(key: index, participant: participant)
+    end
+    expect(runtime.shutdown(timeout: 0).cleanup_complete?).to be(false)
+  end
+
+  it "does not finalize participants when worker shutdown fails" do
+    participant = double("participant", begin_draining: nil, wait_until_idle: true)
+    expect(participant).not_to receive(:after_runtime_shutdown)
+    runtime.__register_shutdown_participant(key: :owner, participant: participant)
+    allow(runtime.offload).to receive(:shutdown).and_wrap_original do |original|
+      original.call
+      raise IOError, "worker shutdown failed"
+    end
+    result = runtime.shutdown
+    expect(result.cleanup_complete?).to be(false)
+    expect(result.error.message).to eq("worker shutdown failed")
+  end
+
+  it "continues finalization after a hook fails and retains the default Runtime" do
+    previous = Phronomy::Runtime.replace_default_for_test(runtime)
+    failure = RuntimeError.new("finalization failed")
+    first = double("failed participant", begin_draining: nil, wait_until_idle: true)
+    expect(first).to receive(:after_runtime_shutdown).ordered.and_raise(failure)
+    second = double("healthy participant", begin_draining: nil, wait_until_idle: true)
+    expect(second).to receive(:after_runtime_shutdown).ordered
+    runtime.__register_shutdown_participant(key: :first, participant: first)
+    runtime.__register_shutdown_participant(key: :second, participant: second)
+    expect { Phronomy::Runtime.reset_default! }
+      .to raise_error(Phronomy::RuntimeShutdownError, /cleanup is incomplete/)
+    expect(Phronomy::Runtime.instance).to equal(runtime)
+    result = runtime.shutdown
+    expect(result.cleanup_complete?).to be(false)
+    expect(result.runtime_outcome).to eq(:failed)
+    expect(result.error).to equal(failure)
+  ensure
+    Phronomy::Runtime.restore_default_for_test(previous)
+  end
+
   it "shares one registry per Runtime even when callers register concurrently" do
     start = Queue.new
     threads = Array.new(2) do

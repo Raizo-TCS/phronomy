@@ -1,13 +1,27 @@
 # frozen_string_literal: true
 
 module Phronomy
-  class Runtime
+  module Agent
     # Process-local authoritative owner registry for mutable Agent instances.
     #
     # This is not a cache. While a Runtime is alive, one agent_id maps to at most
     # one mutable live Agent object. Construction is reserved before durable
     # create/load so concurrent callers cannot materialize independent objects.
-    class AgentOwnershipRegistry
+    # @api private
+    class OwnershipRegistry
+      # Candidates have no side effects. Runtime retains the first registration.
+      # Existing instances remain available for lookup and transition completion
+      # after admission closes; their own gate rejects new ownership changes.
+      def self.for(runtime)
+        existing_for(runtime) || runtime.__register_shutdown_participant(
+          key: self, participant: new(runtime: runtime)
+        )
+      end
+
+      def self.existing_for(runtime)
+        runtime.__shutdown_participant(key: self)
+      end
+
       Entry = Data.define(:state, :agent, :token)
       private_constant :Entry
 
@@ -156,10 +170,10 @@ module Phronomy
         @mutex.synchronize do
           entry = @entries[key]
           validate_purge_entry!(entry, agent, token, key)
+          agent.send(:__mark_purged!, @runtime)
           @entries.delete(key)
           @condition.broadcast
         end
-        agent.send(:__mark_purged!, @runtime)
         true
       end
 
@@ -169,10 +183,10 @@ module Phronomy
         @mutex.synchronize do
           entry = @entries[key]
           validate_purge_entry!(entry, agent, token, key)
+          agent.send(:__restore_live_after_purge_abort!, @runtime)
           @entries[key] = Entry.new(state: :live, agent: agent, token: nil)
           @condition.broadcast
         end
-        agent.send(:__restore_live_after_purge_abort!, @runtime)
         true
       end
 
@@ -183,6 +197,7 @@ module Phronomy
         key = normalize_agent_id(agent.agent_id)
         @mutex.synchronize do
           validate_purge_entry!(@entries[key], agent, token, key)
+          agent.send(:__mark_ownership_recovery_required!, @runtime)
           @entries[key] = Entry.new(
             state: :recovery_required,
             agent: agent,
@@ -190,7 +205,6 @@ module Phronomy
           )
           @condition.broadcast
         end
-        agent.send(:__mark_ownership_recovery_required!, @runtime)
         true
       end
 
@@ -204,7 +218,7 @@ module Phronomy
 
       # Live/recovery-required entries do not prevent Runtime shutdown. Only an
       # ownership transition that is still actively changing state must settle.
-      def wait_until_stable(deadline)
+      def wait_until_idle(deadline)
         @mutex.synchronize do
           while @entries.values.any? { |entry| %i[constructing purging].include?(entry.state) }
             remaining = deadline - monotonic_now
@@ -217,7 +231,7 @@ module Phronomy
         end
       end
 
-      def shutdown!
+      def after_runtime_shutdown
         agents = @mutex.synchronize do
           @state = :terminated
           owned = @entries.values.filter_map(&:agent).uniq

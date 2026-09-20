@@ -140,7 +140,7 @@ RSpec.describe "Agent same-process live ownership" do
     end
 
     entered.pop
-    # Give the second caller an opportunity to reach the Runtime reservation.
+    # Give the second caller an opportunity to reach the ownership reservation.
     Thread.pass
     release << true
     threads.each(&:join)
@@ -264,18 +264,19 @@ RSpec.describe "Agent same-process live ownership" do
     agent = agent_class.create(agent_id: "agent-ownership-check", persistence: persistence)
     runtime = Phronomy::Runtime.instance
 
-    expect(runtime.__agent_owned?(nil)).to be false
-    expect(runtime.__agent_owned?(agent)).to be true
+    registry = Phronomy::Agent::OwnershipRegistry.for(runtime)
+    expect(registry.owned?(nil)).to be false
+    expect(registry.owned?(agent)).to be true
 
     agent.purge!
-    expect(runtime.__agent_owned?(agent)).to be false
+    expect(registry.owned?(agent)).to be false
   end
 
   it "raises RuntimeShutdownError when begin_purge is called on a non-live agent" do
     agent = agent_class.create(agent_id: "agent-not-live", persistence: persistence)
     agent.purge!
 
-    registry = Phronomy::Runtime.instance.instance_variable_get(:@agent_ownership_registry)
+    registry = Phronomy::Agent::OwnershipRegistry.for(Phronomy::Runtime.instance)
     expect {
       registry.begin_purge(agent)
     }.to raise_error(Phronomy::RuntimeShutdownError)

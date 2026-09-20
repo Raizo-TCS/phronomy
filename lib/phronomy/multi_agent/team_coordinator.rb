@@ -68,7 +68,9 @@ module Phronomy
         end
 
         # @api public
-        def get(team_id) = Phronomy::Runtime.instance.__get_team(team_id, klass: self)
+        def get(team_id)
+          TeamOwnershipRegistry.existing_for(Phronomy::Runtime.instance)&.get(team_id.to_s, klass: self)
+        end
 
         # @api private
         def _coordinator_model = @coordinator_model
@@ -95,7 +97,7 @@ module Phronomy
           raise ArgumentError, "team_id must not be empty" if key.empty?
           store = persistence || Phronomy.configuration.persistence || Phronomy::Persistence.in_memory
           runtime = Phronomy::Runtime.instance
-          runtime.__team_owner(key, klass: self, create: create, persistence: store) do
+          TeamOwnershipRegistry.for(runtime).fetch(key, klass: self, create: create, persistence: store) do
             instance = allocate
             instance.send(:initialize, key.freeze, store, metadata, listener, runtime, create: create)
             instance
