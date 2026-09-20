@@ -72,24 +72,66 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
-  it "keeps Runtime lifecycle coordination outside configuration definitions" do
+  it "keeps concrete defaults and Runtime coordination outside configuration definitions" do
     configuration_files = Dir.glob(File.join(library_root, "configuration/**/*.rb"))
-    runtime_references = configuration_files.select do |path|
-      Ripper.lex(File.read(path)).any? { |_, type, token, _| type == :on_const && token == "Runtime" }
+    concrete_references = configuration_files.select do |path|
+      Ripper.lex(File.read(path)).any? do |_, type, token, _|
+        type == :on_const && %w[Runtime LLMAdapter Tracing].include?(token)
+      end
     end
-    expect(runtime_references).to be_empty
+    expect(concrete_references).to be_empty
 
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       Dir.glob("lib/phronomy/configuration/**/*.rb").sort.each { |path| require File.expand_path(path) }
       abort "Runtime lifecycle exposed by configuration" if Phronomy.respond_to?(:reset_runtime!)
-      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition)/})
-      abort "Runtime implementation loaded by configuration: \#{unexpected.inspect}" unless unexpected.empty?
+      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition|llm_adapter|tracing)/})
+      abort "Feature implementation loaded by configuration: \#{unexpected.inspect}" unless unexpected.empty?
 
       require "phronomy"
       abort "application lifecycle API missing" unless Phronomy.respond_to?(:reset_runtime!)
       abort "configuration API missing" unless Phronomy.respond_to?(:configuration)
       Zeitwerk::Loader.eager_load_all
       abort "unexpected public composition namespace" if Phronomy.const_defined?(:RuntimeComposition, false)
+    RUBY
+
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+  end
+
+  it "constructs settings using supplied factories without concrete feature implementations" do
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy/configuration/configuration"
+      calls = []
+      Phronomy::Configuration.install_default_factories(
+        tracer: -> { calls << :tracer; Object.new },
+        llm_adapter: -> { calls << :llm_adapter; Object.new }
+      )
+      abort "factories called during binding" unless calls.empty?
+      first = Phronomy::Configuration.new
+      second = Class.new(Phronomy::Configuration).new
+      abort "factory order or count changed" unless calls == [:tracer, :llm_adapter, :tracer, :llm_adapter]
+      abort "tracer shared across configurations" if first.tracer.equal?(second.tracer)
+      abort "adapter shared across configurations" if first.llm_adapter.equal?(second.llm_adapter)
+      abort "scalar defaults changed" unless first.recursion_limit == 25 && second.trace_pii == false
+      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition|llm_adapter|tracing)/})
+      abort "feature implementation loaded: \#{unexpected.inspect}" unless unexpected.empty?
+    RUBY
+
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+  end
+
+  it "binds defaults without creating global settings or starting the default Runtime" do
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy"
+      abort "global settings created during require" if Phronomy.instance_variable_get(:@configuration)
+      abort "Runtime started during require" if Phronomy::Runtime.default_if_initialized_for_test
+      config = Phronomy::Configuration.new
+      abort "default adapter changed" unless config.llm_adapter.instance_of?(Phronomy::LLMAdapter::RubyLLM)
+      abort "default tracer changed" unless config.tracer.instance_of?(Phronomy::Tracing::NullTracer)
+      abort "standalone settings installed globally" if Phronomy.instance_variable_get(:@configuration)
+      require "phronomy"
+      Zeitwerk::Loader.eager_load_all
+      abort "global settings created by eager loading" if Phronomy.instance_variable_get(:@configuration)
+      abort "Runtime started by configuration or eager loading" if Phronomy::Runtime.default_if_initialized_for_test
     RUBY
 
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }

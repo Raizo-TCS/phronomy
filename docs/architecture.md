@@ -79,10 +79,14 @@ This group contains `Phronomy::Error`, `Phronomy::ConfigurationError`,
 `Phronomy::CanonicalJSON`, and `Phronomy::Values::Immutable`. Zeitwerk collapses
 `common/`, preserving these canonical names without introducing a
 `Phronomy::Common` namespace. Other exceptions belong to their feature
-contracts. Concrete configuration defaults remain in `configuration/`.
-Application Runtime reset and configuration replacement are coordinated in
-`runtime_composition/`, separately from configuration access and Engine
-mechanics. See [ADR-039](decisions/039-runtime-configuration-lifecycle-ownership.md).
+contracts. `configuration/` owns settings and scalar defaults. The concrete
+adapter and tracer defaults are selected in `runtime_composition/`, which binds
+fresh-instance factories consumed by `Configuration.new`. This keeps concrete
+feature selection outside settings while preserving application behavior.
+Application Runtime reset and configuration replacement are also coordinated in
+`runtime_composition/`, separately from configuration access and Engine mechanics.
+See [ADR-039](decisions/039-runtime-configuration-lifecycle-ownership.md) and
+[ADR-040](decisions/040-configuration-default-composition.md).
 See [ADR-037](decisions/037-common-definition-ownership.md) and
 [ADR-038](decisions/038-responsibility-based-source-layout.md).
 
@@ -113,9 +117,10 @@ a new public API for requiring arbitrary internal paths.
 The application loader explicitly preserves Workflow recovery installation;
 the Agent entry explicitly preserves Agent lifecycle extension installation.
 Configuration accessors now live beside Configuration, rather than inside the
-loader. Configuration still assembles concrete defaults, so this relocation
-does not claim that settings are independent of feature implementations or
-that all dependency cycles have been removed.
+loader. Configuration constructs fresh components through internally bound
+factories; composition selects their concrete types. Static source-reference
+graphs do not follow these injected calls. LLMAdapter's async bridge still uses
+Runtime, and other dependency cycles remain.
 
 ## Current architecture
 

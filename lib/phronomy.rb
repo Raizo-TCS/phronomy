@@ -42,10 +42,11 @@ loader.collapse("#{__dir__}/phronomy/agent/context_contract")
   loader.push_dir("#{__dir__}/phronomy/#{directory}", namespace: Phronomy)
 end
 
-# These files reopen existing namespaces or patch an external dependency.
+# These files wire composition, reopen namespaces, or patch a dependency.
 loader.ignore(
   "#{__dir__}/phronomy/llm_adapter/ruby_llm_patches.rb",
   "#{__dir__}/phronomy/configuration/global_configuration.rb",
+  "#{__dir__}/phronomy/runtime_composition/configuration_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/global_runtime.rb"
 )
 # Persistence conformance support must never make production loading require RSpec.
@@ -55,6 +56,7 @@ loader.ignore(
 )
 loader.setup
 
+require_relative "phronomy/runtime_composition/configuration_defaults"
 require_relative "phronomy/llm_contract/token_usage"
 require_relative "phronomy/configuration/global_configuration"
 require_relative "phronomy/runtime_composition/global_runtime"

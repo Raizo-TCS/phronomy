@@ -6,6 +6,18 @@ module Phronomy
     STREAM_CALLBACK_ERROR_POLICIES = %i[report fail_task].freeze
     private_constant :STREAM_CALLBACK_ERROR_POLICIES
 
+    DEFAULT_FACTORIES = {}
+    private_constant :DEFAULT_FACTORIES
+
+    # Bind fresh-instance factories once during application loading. Concrete
+    # component selection belongs to runtime_composition, not configuration.
+    # Applications replace instances through the existing configuration writers.
+    # @api private
+    def self.install_default_factories(tracer:, llm_adapter:)
+      DEFAULT_FACTORIES.replace(tracer: tracer, llm_adapter: llm_adapter).freeze
+      nil
+    end
+
     attr_accessor :default_model
     attr_accessor :default_embedding_model
     attr_accessor :tracer
@@ -39,10 +51,10 @@ module Phronomy
 
     def initialize
       @recursion_limit = 25
-      @tracer = Phronomy::Tracing::NullTracer.new
+      @tracer = DEFAULT_FACTORIES.fetch(:tracer).call
       @trace_pii = false
       @event_loop_stop_grace_seconds = 5
-      @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
+      @llm_adapter = DEFAULT_FACTORIES.fetch(:llm_adapter).call
       @event_loop_starvation_threshold_seconds = nil
       @event_loop_dispatch_threshold_seconds = nil
       @stream_callback_error_policy = :report

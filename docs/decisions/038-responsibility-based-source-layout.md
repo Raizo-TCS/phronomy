@@ -5,6 +5,8 @@
 Accepted on the architecture refactoring branch; configuration/runtime lifecycle
 ownership amended by
 [039-runtime-configuration-lifecycle-ownership](039-runtime-configuration-lifecycle-ownership.md).
+Concrete-default ownership is subsequently amended by
+[040-configuration-default-composition](040-configuration-default-composition.md).
 
 Amends the extraction scope of
 [037-common-definition-ownership](037-common-definition-ownership.md).

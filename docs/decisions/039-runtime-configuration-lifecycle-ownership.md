@@ -4,6 +4,10 @@
 
 Accepted on the architecture refactoring branch.
 
+Concrete-default ownership in decision 1 is amended by
+[040-configuration-default-composition](040-configuration-default-composition.md).
+The reset ownership and algorithm below remain current.
+
 Amends the configuration ownership in
 [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md).
 Its loading rules, direct-root allowlist, and compatibility requirements remain
