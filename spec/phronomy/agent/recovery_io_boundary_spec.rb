@@ -65,7 +65,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored, loaded, event = pending_provider
     threads = Queue.new
     restored.before_io = ->(operation) { threads << Thread.current.name if operation == :fetch }
-    allow(Phronomy::Agent::RecoverySupport).to receive(:build_chat_for_recovery).and_wrap_original do |method, *args, **kwargs|
+    allow(Phronomy::Agent::InvocationRestorer).to receive(:build_chat_for_recovery).and_wrap_original do |method, *args, **kwargs|
       expect(Phronomy::Runtime.instance.event_loop.current?).to be(true)
       method.call(*args, **kwargs)
     end

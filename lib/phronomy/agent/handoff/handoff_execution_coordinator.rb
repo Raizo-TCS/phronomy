@@ -51,7 +51,7 @@ module Phronomy
           if Array(routing.metadata["cancelled_execution_ids"]).include?(current.execution_id)
             raise Phronomy::CancellationError, "Handoff Source turn was cancelled"
           end
-          manifest = RecoverySupport.manifest_from_ref(@agent, current.metadata.fetch("manifest_ref"))
+          manifest = SavedContextReader.manifest_from_ref(@agent, current.metadata.fetch("manifest_ref"))
           context = HandoffProjection.new.build_terminal(view: request, manifest: manifest,
             persistence: tx, source_agent_id: @agent.agent_id)
           context_ref = tx.contents.put_json(context.to_h)
@@ -63,8 +63,9 @@ module Phronomy
             pending_source_execution_id: current.execution_id, pending_target_execution_id: target_id,
             metadata: routing.metadata.merge("target_definition" => target_definition))
           tx.handoff_states.save(main_id, expected_revision: routing.handoff_revision, state: transfer)
-          encoded_records, call_records = encode_runtime_records(
+          encoded_records, call_records = RuntimeRecordEncoder.encode(
             current,
+            agent_id: @agent.agent_id,
             tx: tx,
             snapshot: runtime_snapshot,
             context_candidate: false,

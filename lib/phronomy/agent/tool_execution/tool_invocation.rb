@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../engine/concurrency/worker_input_restricted"
+require_relative "../../engine/concurrency/worker_input_restricted"
 
 require "securerandom"
 

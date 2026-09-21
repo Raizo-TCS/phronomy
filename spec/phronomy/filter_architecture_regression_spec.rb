@@ -108,7 +108,7 @@ RSpec.describe "Filter architecture regression contract (ACS-03)" do
 
   it "keeps raw input filtering explicit and closes Context inspection through ContextPolicy" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     security = File.read(
       File.join(root, "docs/architecture/security-boundaries.md")

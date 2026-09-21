@@ -123,6 +123,13 @@ than concrete Workflow types. The original restriction set and opaque
 application-value behavior are preserved; see
 [ADR-045](decisions/045-worker-input-restriction-ownership.md).
 
+Agent implementation files are grouped into lifecycle, execution, Tool execution,
+context assembly, journal, Handoff and recovery directories. These directories
+are collapsed, so existing Agent constant names remain unchanged. Journal encoding,
+saved context reads and live invocation restoration have separate internal owners;
+transaction and EventLoop state decisions remain with their callers. See
+[ADR-046](decisions/046-agent-responsibility-layout-and-shared-records.md).
+
 Selected nested Zeitwerk roots retain existing top-level Phronomy constants
 without changing the enclosing feature's existing nested constants. For
 example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with

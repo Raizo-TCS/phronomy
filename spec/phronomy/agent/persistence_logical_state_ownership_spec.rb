@@ -59,7 +59,7 @@ RSpec.describe "Agent logical-state ownership" do
 
   it "keeps mutable Agent repository reload out of ExecutionCoordinator" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
 
     %w[reconcile_terminal_error commit_coordination_wait validate_coordination_admission!].each do |method_name|
@@ -82,7 +82,7 @@ RSpec.describe "Agent logical-state ownership" do
 
   it "uses the local Agent watermark before fixing a follow-up Manifest" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     followup = coordinator
       .split("def perform_provider_dispatch_preparation", 2)
@@ -98,7 +98,7 @@ RSpec.describe "Agent logical-state ownership" do
 
   it "applies committed AgentRoot and Journal advances only through the EventLoop apply helper" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
 
     mutation_sites = coordinator.lines.each_index.filter_map do |index|

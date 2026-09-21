@@ -33,13 +33,13 @@ module Phronomy
           return if !suspended && %i[resolution_required failed_terminal].include?(action)
 
           unless projection
-            _manifest, projection = RecoverySupport.materialize_projection(agent, execution.metadata.fetch("manifest_ref"))
+            _manifest, projection = SavedContextReader.materialize_projection(agent, execution.metadata.fetch("manifest_ref"))
           end
           records = execution.working_records.select { |record| %i[assistant_message tool_message].include?(record.kind.to_sym) }
           materializer = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence)
           messages = records.map { |record| materializer.materialize_journal_record(record) }.freeze
           assistant = messages.reverse.find { |message| message.role.to_sym == :assistant }
-          output, usage = RecoverySupport.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
+          output, usage = SavedContextReader.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
           RecoveryMaterial.new(projection: projection, messages: messages,
             assistant_message: assistant, output: output, usage: usage)
         end
@@ -65,10 +65,10 @@ module Phronomy
           else
             projection = material.projection
             invocation = if action == :framework_tools
-              RecoverySupport.build_invocation_for_suspended(agent, execution, projection, main,
+              InvocationRestorer.build_invocation_for_suspended(agent, execution, projection, main,
                 agent.send(:_phronomy_event_listener), assistant_message: material.assistant_message)
             else
-              RecoverySupport.build_chat_for_recovery(agent, execution, projection, main,
+              InvocationRestorer.build_chat_for_recovery(agent, execution, projection, main,
                 agent.send(:_phronomy_event_listener), messages: material.messages)
             end
             if execution.phase.to_sym == :recovery_provider_completed
@@ -106,7 +106,7 @@ module Phronomy
         end
 
         def prepare_saved_provider_calls(execution, invocation, message)
-          record = RecoverySupport.latest_assistant_record(execution)
+          record = SavedContextReader.latest_assistant_record(execution)
           calls = message.tool_calls.respond_to?(:values) ? message.tool_calls.values : Array(message.tool_calls)
           framework_calls = calls.select { |call| agent.__framework_call?(call.name) }
           if framework_calls.empty?

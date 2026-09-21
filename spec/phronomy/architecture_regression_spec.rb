@@ -83,10 +83,10 @@ RSpec.describe "EventLoop-first architecture regression guards" do
       File.expand_path("../../lib/phronomy/engine/fsm_session.rb", __dir__)
     )
     agent = File.read(
-      File.expand_path("../../lib/phronomy/agent/agent_invocation.rb", __dir__)
+      File.expand_path("../../lib/phronomy/agent/execution/agent_invocation.rb", __dir__)
     )
     tool = File.read(
-      File.expand_path("../../lib/phronomy/agent/tool_invocation.rb", __dir__)
+      File.expand_path("../../lib/phronomy/agent/tool_execution/tool_invocation.rb", __dir__)
     )
 
     expect(fsm).to include("SecureRandom.uuid.to_s.freeze")

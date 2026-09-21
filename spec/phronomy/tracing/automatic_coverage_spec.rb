@@ -167,9 +167,9 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
 
   it "keeps automatic coverage on logical operations instead of blocking facade wrappers" do
     async_api = File.read(File.join(root, "lib/phronomy/agent/async_event_api.rb"))
-    coordinator = File.read(File.join(root, "lib/phronomy/agent/execution_coordinator.rb"))
-    llm = File.read(File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb"))
-    tool = File.read(File.join(root, "lib/phronomy/agent/tool_invocation.rb"))
+    coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
+    llm = File.read(File.join(root, "lib/phronomy/agent/execution/agent_invocation_session_builder.rb"))
+    tool = File.read(File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation.rb"))
     workflow = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
     multi = File.read(File.join(root, "lib/phronomy/multi_agent/handoff_runner.rb"))
 

@@ -108,7 +108,7 @@ RSpec.describe "Agent Runtime admission" do
 
   it "places Runtime admission before the initial Offload/Persistence operation" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
     )
     section = source
       .split("def begin_start_on_event_loop", 2)
@@ -126,7 +126,7 @@ RSpec.describe "Agent Runtime admission" do
 
   it "keeps Persistence create_active as the durable second line of defense" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
     )
 
     expect(source).to include("tx.executions.create_active(execution)")
@@ -134,10 +134,10 @@ RSpec.describe "Agent Runtime admission" do
 
   it "keeps Runtime shutdown waiting through Agent durability transitions" do
     registry_source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_registry.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_registry.rb", __dir__)
     )
     coordinator_source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
     )
 
     idle_helper = registry_source

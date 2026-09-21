@@ -170,7 +170,6 @@ module Phronomy
               )
             updated = nil
             with_resolution_f1_capture do |tx|
-              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
               snapshot = {
                 llm_results: [{
                   llm_call_id: llm_call_id,
@@ -191,9 +190,9 @@ module Phronomy
                 runtime_events: [].freeze,
                 active_call: nil
               }.freeze
-              records, calls = main.send(
-                :encode_runtime_records,
+              records, calls = RuntimeRecordEncoder.encode(
                 current,
+                agent_id: agent.agent_id,
                 tx: tx,
                 snapshot: snapshot,
                 context_candidate: true,
@@ -338,9 +337,7 @@ module Phronomy
           when :succeeded
             updated = nil
             with_resolution_f1_capture do |tx|
-              main = agent.send(:execution_coordinator_for, agent.__coordination_config)
-              result_ref = main.send(
-                :put_runtime_content,
+              result_ref = RuntimeRecordEncoder.put_runtime_content(
                 tx,
                 operation.result
               )
@@ -363,9 +360,9 @@ module Phronomy
                     subject_entry.fetch("llm_call_id").to_s
                 }.freeze
               )
-              records, _calls = main.send(
-                :encode_runtime_records,
+              records, _calls = RuntimeRecordEncoder.encode(
                 current,
+                agent_id: agent.agent_id,
                 tx: tx,
                 snapshot: {
                   llm_results: [].freeze,

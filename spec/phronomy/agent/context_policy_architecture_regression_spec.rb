@@ -42,7 +42,7 @@ RSpec.describe "ACS-04 Context Policy architecture regression guards" do
   end
 
   it "does not persist or reconstruct a ContextPolicy descriptor" do
-    source = File.read(File.join(root, "lib/phronomy/agent/execution_coordinator.rb"))
+    source = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
     expect(source).not_to include("ContextPolicyDescriptor")
     expect(source).not_to include("ContextPolicyRegistry")
     expect(source).not_to include("def context_policy_for")
@@ -50,7 +50,7 @@ RSpec.describe "ACS-04 Context Policy architecture regression guards" do
   end
 
   it "runs initial Policy preparation before the mutable-state commit transaction" do
-    source = File.read(File.join(root, "lib/phronomy/agent/execution_coordinator.rb"))
+    source = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
     section = source[/def perform_initial_preparation\(operation\).*?\n      def admit_execution/m]
     expect(section).not_to be_nil
     prepare_index = section.index("prepared = assembler.prepare_initial")
@@ -62,7 +62,7 @@ RSpec.describe "ACS-04 Context Policy architecture regression guards" do
   end
 
   it "runs follow-up Policy between snapshot encoding and the durable state commit" do
-    source = File.read(File.join(root, "lib/phronomy/agent/execution_coordinator.rb"))
+    source = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
     section = source[/def perform_provider_dispatch_preparation\(operation\).*?\n      def perform_tool_dispatch_preparation/m]
     expect(section).not_to be_nil
     prepare_index = section.index("prepared = assembler.prepare_followup")

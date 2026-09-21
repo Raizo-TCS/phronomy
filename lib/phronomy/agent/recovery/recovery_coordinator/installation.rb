@@ -45,14 +45,14 @@ module Phronomy
           manifest = base_manifest = projection = nil
           if manifest_ref
             manifest, projection =
-              RecoverySupport.materialize_projection(
+              SavedContextReader.materialize_projection(
                 agent,
                 manifest_ref
               )
             base_manifest = if base_ref.to_s == manifest_ref.to_s
               manifest
             else
-              RecoverySupport.manifest_from_ref(agent, base_ref)
+              SavedContextReader.manifest_from_ref(agent, base_ref)
             end
           end
 
@@ -165,7 +165,7 @@ module Phronomy
 
           invocation = nil
           if execution.status == :suspended || execution.phase.to_sym == :resuming
-            invocation = RecoverySupport.build_invocation_for_suspended(
+            invocation = InvocationRestorer.build_invocation_for_suspended(
               agent, execution, plan.projection, main, agent.send(:_phronomy_event_listener),
               assistant_message: plan.material.assistant_message
             )

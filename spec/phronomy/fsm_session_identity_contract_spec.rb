@@ -101,8 +101,8 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "does not inject Agent or Tool domain IDs into FSMSession constructors" do
     %w[
-      lib/phronomy/agent/agent_invocation_session_builder.rb
-      lib/phronomy/agent/tool_invocation_session_builder.rb
+      lib/phronomy/agent/execution/agent_invocation_session_builder.rb
+      lib/phronomy/agent/tool_execution/tool_invocation_session_builder.rb
     ].each do |relative|
       source = File.read(File.join(root, relative))
       expect(fsm_session_constructor_keyword_names(source)).not_to include(:id)
@@ -130,9 +130,9 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   end
 
   it "uses session-local sinks instead of long-lived Tool parent routing fields" do
-    tool = File.read(File.join(root, "lib/phronomy/agent/tool_invocation.rb"))
+    tool = File.read(File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation.rb"))
     builder = File.read(
-      File.join(root, "lib/phronomy/agent/tool_invocation_session_builder.rb")
+      File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation_session_builder.rb")
     )
     expect(tool).not_to include("parent_agent_invocation_id")
     expect(builder).to include("parent_event_sink")
@@ -154,10 +154,10 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "routes Provider completion before EventLoop applies semantic result state" do
     builder = File.read(
-      File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb")
+      File.join(root, "lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
     )
     invocation = File.read(
-      File.join(root, "lib/phronomy/agent/agent_invocation.rb")
+      File.join(root, "lib/phronomy/agent/execution/agent_invocation.rb")
     )
 
     expect(builder).to include("post_session_event!(event_sink, event_type, result)")

@@ -13,5 +13,5 @@ unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
 end
 
 # Durable Agent Recovery and Agent-incarnation event binding.
-require_relative "../recovery_support"
-require_relative "../recovery_coordinator"
+require_relative "../recovery/recovery_support"
+require_relative "../recovery/recovery_coordinator"

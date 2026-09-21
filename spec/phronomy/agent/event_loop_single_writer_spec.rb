@@ -10,7 +10,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "removes the Activation shared-mutable runtime model from active source" do
-    expect(File).not_to exist(File.join(root, "lib/phronomy/agent/agent_execution_activation.rb"))
+    expect(File).not_to exist(File.join(root, "lib/phronomy/agent/execution/agent_execution_activation.rb"))
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/activation_registry.rb"))
 
     active = Dir.glob(File.join(root, "lib/phronomy/**/*.rb")).map { |path| File.read(path) }.join("\n")
@@ -21,8 +21,8 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps live Agent execution mutation on EventLoop and off worker result paths" do
-    registry = source("lib/phronomy/agent/execution_registry.rb")
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
+    registry = source("lib/phronomy/agent/execution/execution_registry.rb")
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
 
     expect(registry).to include("@agent_executions = {}")
     expect(registry).to include("def install_agent_execution")
@@ -52,7 +52,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps TaskResult/listener delivery state outside the terminal worker command" do
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
     command = coordinator
       .split("TerminalCommitCommand = Data.define", 2).fetch(1)
       .split("TerminalDelivery = Data.define", 2).first
@@ -70,8 +70,8 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps live Handoff Agent references outside the terminal worker snapshot" do
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
-    multi = source("lib/phronomy/agent/handoff_execution_coordinator.rb")
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
+    multi = source("lib/phronomy/agent/handoff/handoff_execution_coordinator.rb")
     terminal_view = coordinator
       .split("HandoffTerminalView = Data.define", 2).fetch(1)
       .split("TerminalView = Data.define", 2).first
@@ -83,7 +83,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "does not start a follow-up durable operation after an application callback has already failed" do
-    builder = source("lib/phronomy/agent/agent_invocation_session_builder.rb")
+    builder = source("lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
     method_source = builder
       .split("def self.prepare_and_start_llm_call", 2).fetch(1)
       .split("private_class_method :prepare_and_start_llm_call", 2).first
@@ -93,7 +93,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "applies a known committed follow-up execution even if runtime materialization fails" do
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
     worker = coordinator
       .split("def perform_provider_dispatch_preparation", 2).fetch(1)
       .split(/^      def /, 2).first
@@ -112,7 +112,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
 
   it "does not expose live mutable execution state through the Agent execution owner lookup" do
     runtime = source("lib/phronomy/engine/runtime.rb")
-    registry = source("lib/phronomy/agent/execution_registry.rb")
+    registry = source("lib/phronomy/agent/execution/execution_registry.rb")
 
     expect(runtime).not_to include("def __agent_execution_owner")
     expect(registry).to include("def agent_execution_owner")

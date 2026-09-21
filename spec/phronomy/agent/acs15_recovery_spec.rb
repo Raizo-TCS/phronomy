@@ -679,7 +679,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
       end
     end
 
-    describe ".restore_tool_snapshot!" do
+    describe Phronomy::Agent::InvocationRestorer do
       def make_child(id: "inv-1")
         child = double("tool_invocation")
         allow(child).to receive(:id).and_return(id)

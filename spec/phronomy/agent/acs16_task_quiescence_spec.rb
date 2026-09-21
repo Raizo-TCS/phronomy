@@ -250,7 +250,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
 
     it "does not encode stale terminal-result rejection as parent TaskResult settlement" do
       source = File.read(
-        File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+        File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
       )
       stale_section = source
         .split("if operation.state_required", 2)

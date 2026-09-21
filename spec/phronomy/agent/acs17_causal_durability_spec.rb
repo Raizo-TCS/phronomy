@@ -523,7 +523,7 @@ RSpec.describe "ACS-17 causal durability" do
   it "keeps physical Provider and Tool dispatch behind confirmed apply helpers only" do
     root = File.expand_path("../../..", __dir__)
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
 
     expect(coordinator.scan("start_prepared_provider_call").length).to eq(1)

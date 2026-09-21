@@ -8,7 +8,7 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
   let(:root) { File.expand_path("../../..", __dir__) }
 
   it "does not expose the removed sentinel Handoff encoding" do
-    source = File.read(File.join(root, "lib/phronomy/agent/handoff.rb"))
+    source = File.read(File.join(root, "lib/phronomy/agent/handoff/handoff.rb"))
     expect(source).not_to include("SENTINEL_PREFIX")
     expect(source).not_to include("def sentinel")
     expect(source).not_to include("def to_tool_class")
@@ -56,8 +56,8 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
   end
 
   it "keeps Handoff control out of ordinary Tool results" do
-    request = File.read(File.join(root, "lib/phronomy/agent/handoff_request.rb"))
-    coordinator = File.read(File.join(root, "lib/phronomy/agent/handoff_execution_coordinator.rb"))
+    request = File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_request.rb"))
+    coordinator = File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_execution_coordinator.rb"))
     expect(request).to include("HandoffRequest")
     expect(coordinator).to include(":handed_off")
     expect(coordinator).not_to include("sentinel_map")

@@ -24,8 +24,13 @@ loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 %w[common configuration engine generation llm_contract recovery].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
-# Context contracts keep their public Agent constants while living together.
-loader.collapse("#{__dir__}/phronomy/agent/context_contract")
+# Agent responsibility directories retain the existing Agent constant names.
+%w[
+  context_contract lifecycle execution tool_execution context_assembly
+  journal handoff recovery
+].each do |directory|
+  loader.collapse("#{__dir__}/phronomy/agent/#{directory}")
+end
 
 # A nested root is independent of its enclosing Ruby namespace. Keep existing
 # Phronomy::Workflow, Phronomy::WorkflowContext, and other canonical constants

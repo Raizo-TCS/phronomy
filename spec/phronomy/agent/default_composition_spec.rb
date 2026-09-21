@@ -93,7 +93,7 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
 
   it "constructs through a supplied factory without loading any concrete Persistence or Runtime" do
     isolated_ruby(<<~RUBY)
-      require "phronomy/agent/default_persistence"
+      require "phronomy/agent/lifecycle/default_persistence"
       calls = []
       factory = -> { calls << :create; Object.new }
       Phronomy::Agent::DefaultPersistence.install_factory(factory)
@@ -115,7 +115,7 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
   [false, true].each do |preload_contract|
     it "preserves normal and eager loading without constructing defaults (preload: #{preload_contract})" do
       isolated_ruby(<<~RUBY)
-        require "phronomy/agent/default_persistence" if #{preload_contract}
+        require "phronomy/agent/lifecycle/default_persistence" if #{preload_contract}
         previous_agent = Phronomy::Agent if #{preload_contract}
         require "phronomy"
         abort "Agent namespace replaced" if previous_agent && !previous_agent.equal?(Phronomy::Agent)
@@ -148,7 +148,7 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
 
   it "keeps concrete Persistence selection and composition loading out of Agent execution and API" do
     paths = ["lib/phronomy/agent/base.rb", "lib/phronomy/agent/api/agent.rb",
-      "lib/phronomy/agent/default_persistence.rb"]
+      "lib/phronomy/agent/lifecycle/default_persistence.rb"]
     paths.each do |path|
       tokens = Ripper.lex(File.read(File.join(project_root, path)))
       constants = tokens.filter_map { |_, type, token, _| token if type == :on_const }

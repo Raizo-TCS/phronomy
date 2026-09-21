@@ -35,7 +35,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     persistence = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
     in_memory = File.read(File.join(root, "lib/phronomy/storage/backends/in_memory.rb"))
     runtime = File.read(File.join(root, "lib/phronomy/engine/runtime.rb"))
-    registry = File.read(File.join(root, "lib/phronomy/agent/execution_registry.rb"))
+    registry = File.read(File.join(root, "lib/phronomy/agent/execution/execution_registry.rb"))
 
     expect(persistence).to include("workflow_states")
     expect(persistence).not_to include("activations")
@@ -92,7 +92,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "does not reload mutable Agent root or execution in ExecutionCoordinator" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
 
     %w[reconcile_terminal_error commit_coordination_wait validate_coordination_admission!].each do |method_name|
@@ -115,7 +115,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "guards the durable Agent watermark before fixing a follow-up Manifest" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     followup = coordinator
       .split("def perform_provider_dispatch_preparation", 2)
@@ -131,7 +131,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "starts a follow-up Provider Call only after EventLoop validates and applies preparation" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     apply = coordinator
       .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
@@ -147,7 +147,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "keeps durable worker paths free of direct Phronomy live-state mutation" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     worker_methods = %w[
       perform_initial_preparation
@@ -173,7 +173,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "keeps causal-barrier reconciliation Persistence reads off EventLoop apply paths" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     provider_worker = coordinator
       .split("def perform_provider_dispatch_preparation_reconciliation", 2)
