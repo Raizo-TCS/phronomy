@@ -85,3 +85,28 @@ together. Validate root and transaction repository binding, CAS/admission and
 watermark checks, record round trips, and codec failure rollback. Perform actual
 SQL tests with the backend's supported database and driver versions; an
 in-memory success does not prove SQL transaction/concurrency behavior.
+
+## Execution constraint errors (ADR-043)
+
+Raw `Storage::Backend` execution repositories must report
+`Storage::ActiveExecutionConflictError`, a `Storage::ConflictError` subtype, when
+an existing nonterminal execution prevents another admission or an idle-only
+operation for that owner. Update the same constraint branches in `save` if the
+backend already checks them. Do not convert unrelated identity/revision failures.
+
+The Agent and Team repository facades translate this subtype into the existing
+`Phronomy::AgentBusyError` while preserving its message and cause. A transaction
+still sees the exception before commit. Public Persistence/Agent/Team callers
+keep their previous busy exception; raw backend callers must update their rescue.
+
+Apply the new core before the migrated SQLite/PostgreSQL sources. Both examples
+require the new storage constant; for coordinated source development set
+`PHRONOMY_PATH` to the updated core checkout before resolving/running their
+bundles. An unchanged legacy backend remains usable through the domain facade
+because its old `AgentBusyError` is passed through, but it does not satisfy the
+new raw conformance checks. No fallback constant aliases are supplied.
+
+Run `a Persistence backend` from `phronomy/testing/persistence_contract`; it now
+includes `storage execution constraint notifications` for both raw execution
+repositories. Keep running the domain repository suites and backend concurrency
+and rollback tests. No schema or serialized data migration is required.

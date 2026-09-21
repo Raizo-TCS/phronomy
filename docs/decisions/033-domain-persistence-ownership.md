@@ -1,7 +1,8 @@
 # 033: Own persistence rules within each domain
 
-- Status: Accepted
+- Status: Amended
 - Date: 2026-09-18
+- Error boundary refined by: [043-storage-execution-constraint-notifications](043-storage-execution-constraint-notifications.md)
 - Refines: [032-storage-backend-composition](032-storage-backend-composition.md)
 
 ## Context

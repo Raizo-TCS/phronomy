@@ -29,6 +29,8 @@ module Phronomy
             revision: execution.execution_revision,
             active: true
           )
+        rescue Phronomy::Storage::ActiveExecutionConflictError => error
+          raise Phronomy::AgentBusyError, error.message
         end
 
         def load(execution_id)
@@ -64,6 +66,8 @@ module Phronomy
             revision: next_revision,
             active: execution.active?
           )
+        rescue Phronomy::Storage::ActiveExecutionConflictError => error
+          raise Phronomy::AgentBusyError, error.message
         end
 
         def list_active(agent_id)
@@ -89,6 +93,8 @@ module Phronomy
 
         def assert_idle!(agent_id)
           @backend_repository.assert_idle!(agent_id.to_s)
+        rescue Phronomy::Storage::ActiveExecutionConflictError => error
+          raise Phronomy::AgentBusyError, error.message
         end
 
         private

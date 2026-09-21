@@ -130,7 +130,9 @@ no active/suspended execution already exists for agent_id
 ```
 
 A conflict with an existing active/suspended execution raises
-`Phronomy::AgentBusyError`.
+`Phronomy::Storage::ActiveExecutionConflictError` at the raw Backend boundary.
+The domain repository facade translates it to `Phronomy::AgentBusyError`.
+The same distinction applies to Team execution admission and idle-only checks.
 
 Within one process, Runtime/EventLoop admission is acquired before the initial
 Persistence operation and is the primary competing-execution exclusion
@@ -163,12 +165,26 @@ A requested durable record does not exist.
 A persistence precondition failed, including revision, Journal position,
 identity, duplicate-ID, or compare-and-swap conflicts.
 
-### `Phronomy::AgentBusyError`
+### `Phronomy::Storage::ActiveExecutionConflictError`
 
-A durable nonterminal Agent execution already exists and another durable
-execution record cannot be established. Phronomy also uses the same public error
-for a competing process-local top-level request rejected by Runtime/EventLoop
-before the backend is called.
+This `Storage::ConflictError` subtype means that a stored nonterminal execution
+for the same owner prevents admission or an idle-only operation. Raw Agent/Team
+execution repositories raise it from `create_active`, `assert_idle!`, and any
+existing `save` branch that detects this constraint. Duplicate execution IDs,
+stale revisions and unrelated uniqueness failures must not use this subtype.
+The check and write remain inside the same atomic backend consistency boundary.
+
+The domain-facing Agent/Team execution repositories translate only this subtype
+to the existing `Phronomy::AgentBusyError`, retaining its message and Ruby cause.
+Translation stays inside the current transaction block. `AgentBusyError` also
+remains the process-local admission error; backends no longer choose it.
+
+This is an intentional Beta raw SPI migration: direct backend callers must
+rescue the new storage subtype. Existing backends that still raise
+`AgentBusyError` pass unchanged through the new facade, but fail the updated raw
+conformance contract. Update both SQL reference backends with the core. See
+[ADR-043](decisions/043-storage-execution-constraint-notifications.md) and the
+[migration guide](migrations/storage-backend-composition.md#execution-constraint-errors-adr-043).
 
 ### `Phronomy::Storage::SerializationError`
 

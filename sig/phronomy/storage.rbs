@@ -90,6 +90,8 @@ module Phronomy
   module Storage
     class ConflictError < Phronomy::Error
     end
+    class ActiveExecutionConflictError < ConflictError
+    end
     class NotFoundError < Phronomy::Error
     end
     class UnsupportedBackendError < Phronomy::Error

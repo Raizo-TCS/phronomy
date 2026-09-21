@@ -98,7 +98,8 @@ RSpec.describe "Persistence and Storage Backend SPI public contract" do
   end
 
   it "publishes storage errors without an upper Persistence owner" do
-    [Phronomy::Storage::ConflictError, Phronomy::Storage::NotFoundError,
+    [Phronomy::Storage::ConflictError, Phronomy::Storage::ActiveExecutionConflictError,
+      Phronomy::Storage::NotFoundError,
       Phronomy::Storage::SerializationError, Phronomy::Storage::UnsupportedBackendError].each do |error|
       expect(error).to be < Phronomy::Error
     end

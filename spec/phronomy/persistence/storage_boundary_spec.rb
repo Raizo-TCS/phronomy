@@ -23,7 +23,7 @@ RSpec.describe "Storage dependency and transaction boundary" do
           tx.executions.create_active(execution_id: "other", agent_id: "opaque",
             execution_revision: 0, record: record)
           abort "admission conflict was not detected"
-        rescue Phronomy::AgentBusyError
+        rescue Phronomy::Storage::ActiveExecutionConflictError
         end
       end
       abort "opaque record changed" unless backend.agents.load("opaque").payload == {"value" => 1}
@@ -31,8 +31,6 @@ RSpec.describe "Storage dependency and transaction boundary" do
       loaded = ($LOADED_FEATURES - loaded_at_entry).select { |path| path.start_with?(directory + "/") }
       leaks = loaded.select do |path|
         relative = path.delete_prefix(directory + "/")
-        # AgentBusyError is an independent lifecycle contract, not Agent execution.
-        next false if relative == "agent/lifecycle_contract/agent_busy_error.rb"
         prohibited.any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }
       end
       abort "upper dependency loaded: #{leaks.join(', ')}" unless leaks.empty?

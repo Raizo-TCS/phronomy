@@ -188,7 +188,7 @@ module Phronomy
               active = @owner.state[:execution_metadata].values.find do |metadata|
                 metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
               end
-              raise Phronomy::AgentBusyError, "agent is busy: #{agent_key}" if active
+              raise Phronomy::Storage::ActiveExecutionConflictError, "agent is busy: #{agent_key}" if active
 
               @owner.state[:executions][execution_key] = record.copy
               @owner.state[:execution_metadata][execution_key] = {
@@ -294,7 +294,7 @@ module Phronomy
                 metadata.fetch(:agent_id) == agent_id.to_s && metadata.fetch(:active)
               end
               if active
-                raise Phronomy::AgentBusyError,
+                raise Phronomy::Storage::ActiveExecutionConflictError,
                   "agent has an active or suspended execution: #{agent_id}"
               end
             end
@@ -381,7 +381,7 @@ module Phronomy
               active = @owner.state[:team_execution_metadata].values.find do |metadata|
                 metadata.fetch(:team_id) == agent_key && metadata.fetch(:active)
               end
-              raise Phronomy::AgentBusyError, "agent is busy: #{agent_key}" if active
+              raise Phronomy::Storage::ActiveExecutionConflictError, "agent is busy: #{agent_key}" if active
 
               @owner.state[:team_executions][execution_key] = record.copy
               @owner.state[:team_execution_metadata][execution_key] = {
@@ -490,7 +490,7 @@ module Phronomy
                 metadata.fetch(:team_id) == team_id.to_s && metadata.fetch(:active)
               end
               if active
-                raise Phronomy::AgentBusyError,
+                raise Phronomy::Storage::ActiveExecutionConflictError,
                   "agent has an active or suspended execution: #{team_id}"
               end
             end
