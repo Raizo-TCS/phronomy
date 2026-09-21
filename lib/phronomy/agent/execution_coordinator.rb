@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "time"
 require "securerandom"
 
 module Phronomy
   module Agent
     class ExecutionCoordinator
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       # External/API -> EventLoop control messages.
       StartCommand = Data.define(
         :coordinator, :input, :config, :mode,

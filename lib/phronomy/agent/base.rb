@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "securerandom"
 require_relative "concerns/filterable"
 require_relative "concerns/before_llm_input"
@@ -31,6 +33,8 @@ module Phronomy
     #     max_iterations 15
     #   end
     class Base
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       include Phronomy::Runnable
       include Concerns::Filterable
       include Concerns::BeforeLLMInput
@@ -589,7 +593,7 @@ module Phronomy
       )
         @persistence = persistence ||
           Phronomy.configuration.persistence ||
-          Phronomy::Persistence.in_memory
+          DefaultPersistence.build
         @agent_id = agent_id.to_s.freeze
 
         if load_existing

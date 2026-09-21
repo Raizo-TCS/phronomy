@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "securerandom"
 
 module Phronomy
   module Agent
     class ToolInvocation
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       AuthorizationOutcome = Data.define(
         :tool_invocation_id, :decision, :facts, :reason, :error, :cancelled
       ) do
@@ -490,24 +494,7 @@ module Phronomy
       private_class_method :immutable_command_copy
 
       def self.phronomy_managed_live_domain_object?(value)
-        value.is_a?(Phronomy::Agent::Base) ||
-          value.is_a?(Phronomy::Agent::AgentRoot) ||
-          value.is_a?(Phronomy::Agent::AgentExecution) ||
-          value.is_a?(Phronomy::Agent::AgentInvocation) ||
-          value.is_a?(Phronomy::Agent::ToolInvocation) ||
-          value.is_a?(Phronomy::Agent::JournalProjection) ||
-          value.is_a?(Phronomy::Agent::ExecutionCoordinator) ||
-          value.is_a?(Phronomy::Agent::Context::Capability::Base) ||
-          value.is_a?(Phronomy::Workflow) ||
-          value.is_a?(Phronomy::WorkflowRunner) ||
-          value.is_a?(Phronomy::WorkflowContext) ||
-          value.is_a?(Phronomy::Runtime) ||
-          value.is_a?(Phronomy::TaskResult) ||
-          value.is_a?(Phronomy::EventLoop) ||
-          value.is_a?(Phronomy::FSMSession) ||
-          value.is_a?(Phronomy::FSMSession::EventSink) ||
-          value.is_a?(Phronomy::Concurrency::CancellationToken) ||
-          value.is_a?(Phronomy::Concurrency::OffloadPool)
+        value.is_a?(Phronomy::Concurrency::WorkerInputRestricted)
       end
       private_class_method :phronomy_managed_live_domain_object?
 

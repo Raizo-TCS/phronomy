@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "concurrency/worker_input_restricted"
+
 module Phronomy
   # Runtime-owned FIFO event loop for FSMSession instances.
   #
@@ -7,6 +9,8 @@ module Phronomy
   # lifecycle progression and Phronomy-managed live execution-state mutation
   # happens by short event dispatches on this thread.
   class EventLoop
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     SYSTEM_CHANNEL_ID = "__event_loop__"
 
     QUEUE_BACKLOG_WARNING_THRESHOLD = 1_000

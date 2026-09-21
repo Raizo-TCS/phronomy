@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "../../../engine/concurrency/worker_input_restricted"
+
 module Phronomy
   module Agent
     module Context
       module Capability
         # Base class extending RubyLLM::Tool with Phronomy-specific DSL.
         class Base < RubyLLM::Tool
+          include Phronomy::Concurrency::WorkerInputRestricted
+
           class << self
             # @api public
             def tool_name(value = nil)

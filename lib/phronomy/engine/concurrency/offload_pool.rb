@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "worker_input_restricted"
+
 module Phronomy
   module Concurrency
     # A bounded, observable thread pool for synchronous work that must not run on
@@ -41,6 +43,8 @@ module Phronomy
     #   task = pool.submit(timeout: 30, cancellation_token: token) { expensive_call }
     #   result = task.wait_result
     class OffloadPool
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       # Private execution record for one submitted synchronous operation.
       #
       # Caller-facing completion is represented exclusively by {Phronomy::TaskResult}.

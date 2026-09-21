@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "time"
 
 module Phronomy
   module Agent
     class AgentRoot
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       LIFECYCLE_STATUSES = %i[idle active suspended closed invalidated].freeze
 
       ATTRIBUTES = %i[

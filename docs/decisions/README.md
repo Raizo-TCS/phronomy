@@ -93,6 +93,8 @@ resolved explicitly.
 
 | [`042-feature-owned-execution-state`](042-feature-owned-execution-state.md) | Accepted | Yes | Agent/Workflow own execution state; Engine retains generic receiver delivery, synchronization and shutdown boundaries. Single-writer and durable barriers remain. |
 | [`043-storage-execution-constraint-notifications`](043-storage-execution-constraint-notifications.md) | Accepted | Yes | Raw backends report Storage-owned active-execution conflicts; feature repositories preserve public busy errors within the same transaction. Beta raw error SPI migration. |
+| [`044-agent-default-and-one-shot-composition`](044-agent-default-and-one-shot-composition.md) | Accepted | Yes | Agent consumes an owner-defined fresh-Persistence factory; application composition selects the default and owns the unchanged one-shot API. |
+| [`045-worker-input-restriction-ownership`](045-worker-input-restriction-ownership.md) | Accepted | Yes | Each restricted type declares an execution-boundary marker; authorization input validation preserves the existing rejection and opaque application-value contracts without enumerating feature types. |
 
 ## Legacy duplicate `011`
 

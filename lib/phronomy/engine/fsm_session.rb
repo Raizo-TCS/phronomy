@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "concurrency/worker_input_restricted"
+
 require "securerandom"
 
 module Phronomy
@@ -9,6 +11,8 @@ module Phronomy
   # FSMSession owns FSM execution only; it does not own external TaskResult handles,
   # activity tokens, callback correlation, or domain-specific stale-event policy.
   class FSMSession
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     class IdentityReservation
       attr_reader :fsm_session_id
 
@@ -30,6 +34,8 @@ module Phronomy
     private_constant :IdentityReservation
 
     class EventSink
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       attr_reader :fsm_session_id
 
       def initialize(event_loop:)

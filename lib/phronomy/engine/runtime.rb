@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "concurrency/worker_input_restricted"
+
 require_relative "runtime/timer_queue"
 require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
 
 module Phronomy
   class Runtime
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     @instance_mutex = Mutex.new
 
     class << self

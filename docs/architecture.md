@@ -103,9 +103,25 @@ contract and is excluded from production automatic loading.
 Engine owns Event, Execution composition and its outcome exceptions, and the
 synchronous FSM callback exceptions. Recovery owns shared rehydration
 requirements. Workflow implementation lives under `workflow/execution/`;
-Agent namespace operations live under `agent/api/`, separately from the shared
+Agent namespace/event loading lives under `agent/api/`, separately from the shared
 Agent lifecycle exceptions in `agent/lifecycle_contract/`. LLM values and
 call-boundary exceptions live under `llm_contract/`.
+
+Agent consumes its private fresh-Persistence factory only when neither an
+explicit instance nor a configured instance is available. Concrete selection
+and binding live in `runtime_composition/agent_defaults.rb`. The one-shot
+`Agent.run_once` method is defined in `agent/composition/run_once.rb`, because it
+explicitly composes Agent and fresh ephemeral Persistence on every call.
+The application entry loads both composition files; Agent execution and
+namespace loading do not delegate upward to them. See
+[ADR-044](decisions/044-agent-default-and-one-shot-composition.md).
+
+Types excluded from authorization worker inputs declare the internal,
+methodless `Concurrency::WorkerInputRestricted` contract at their own
+definitions. ToolInvocation checks that execution-boundary contract rather
+than concrete Workflow types. The original restriction set and opaque
+application-value behavior are preserved; see
+[ADR-045](decisions/045-worker-input-restriction-ownership.md).
 
 Selected nested Zeitwerk roots retain existing top-level Phronomy constants
 without changing the enclosing feature's existing nested constants. For

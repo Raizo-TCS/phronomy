@@ -46,6 +46,8 @@ end
 loader.ignore(
   "#{__dir__}/phronomy/llm_adapter/ruby_llm_patches.rb",
   "#{__dir__}/phronomy/configuration/global_configuration.rb",
+  "#{__dir__}/phronomy/agent/composition",
+  "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/configuration_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/global_runtime.rb"
 )
@@ -60,6 +62,13 @@ require_relative "phronomy/runtime_composition/configuration_defaults"
 require_relative "phronomy/llm_contract/token_usage"
 require_relative "phronomy/configuration/global_configuration"
 require_relative "phronomy/runtime_composition/global_runtime"
+
+# Explicitly install the Agent namespace extensions even if its factory
+# contract was loaded first. Composition owns both concrete binding and the
+# run_once method definition; neither is required from Agent execution files.
+require_relative "phronomy/agent/api/agent"
+require_relative "phronomy/runtime_composition/agent_defaults"
+require_relative "phronomy/agent/composition/run_once"
 
 # Retain the Workflow recovery prepend during ordinary application loading.
 # Agent lifecycle extensions remain installed when its namespace is loaded.

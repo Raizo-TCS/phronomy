@@ -198,6 +198,15 @@ Phronomy-managed live domain objects are rejected from that value data. A comple
 value-type/serialization contract for arbitrary Application-owned opaque objects is
 deferred; such objects remain Application-owned and must be worker-safe.
 
+The existing restricted types declare the internal methodless
+`Concurrency::WorkerInputRestricted` marker at their own definitions.
+ToolInvocation checks that execution-boundary contract instead of enumerating
+Agent/Workflow/Runtime classes. Frozen marked values and subclasses remain
+restricted; Hash keys and values, nested Arrays and behavior handles are all
+checked. The marker does not inspect opaque application fields or closure
+captures and is not a general restriction on every OffloadPool command.
+See [ADR-045](decisions/045-worker-input-restriction-ownership.md).
+
 Worker authorization/execution outcomes return as values carrying
 `tool_invocation_id`; the Tool FSMSession consumes a mismatched semantic result
 without advancing its current state.

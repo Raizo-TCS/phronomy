@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 module Phronomy
   module Agent
     class JournalProjection
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       MESSAGE_KINDS = %i[
         external_message
         assistant_message

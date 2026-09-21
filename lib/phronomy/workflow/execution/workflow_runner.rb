@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../engine/concurrency/worker_input_restricted"
+
 require "securerandom"
 
 module Phronomy
@@ -16,6 +18,8 @@ module Phronomy
   # to the same FSMSession before that session becomes halted/completed.
   # @api private
   class WorkflowRunner
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     include Phronomy::Runnable
 
     Execution = Data.define(

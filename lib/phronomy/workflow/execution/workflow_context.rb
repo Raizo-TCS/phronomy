@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../../engine/concurrency/worker_input_restricted"
+
 module Phronomy
   # Module for defining Workflow context data.
   #
@@ -12,6 +14,8 @@ module Phronomy
   # evaluation, return a replacement WorkflowContext, or return +:consume+ to
   # discard a stale/unrelated event without firing a transition.
   module WorkflowContext
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     def self.included(base)
       base.extend(ClassMethods)
       base.instance_variable_set(:@fields, {})

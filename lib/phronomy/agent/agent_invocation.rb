@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "securerandom"
 require "time"
 
 module Phronomy
   module Agent
     class AgentInvocation
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       # execution_id is the logical Agent execution parent. Concrete Runtime
       # routing identity belongs only to the owning FSMSession incarnation.
       TOOL_EVENT_TYPES = %i[

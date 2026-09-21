@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "securerandom"
 require "time"
 
 module Phronomy
   module Agent
     class AgentExecution
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       ACTIVE_STATUSES = %i[preparing active suspended].freeze
       TERMINAL_STATUSES = %i[completed handed_off failed cancelled rejected blocked].freeze
       TRANSITIONS = {

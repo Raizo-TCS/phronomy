@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require_relative "../../engine/concurrency/worker_input_restricted"
+
 require_relative "workflow_runner"
 require_relative "../../engine/runnable"
 
 module Phronomy
   # StateChart-style Workflow definition DSL.
   class Workflow
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     include Phronomy::Runnable
 
     def self.define(context_class, persistence: nil, &block)

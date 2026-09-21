@@ -7,6 +7,8 @@ ownership amended by
 [039-runtime-configuration-lifecycle-ownership](039-runtime-configuration-lifecycle-ownership.md).
 Concrete-default ownership is subsequently amended by
 [040-configuration-default-composition](040-configuration-default-composition.md).
+Agent default selection and one-shot placement are subsequently refined by
+[044-agent-default-and-one-shot-composition](044-agent-default-and-one-shot-composition.md).
 
 Amends the extraction scope of
 [037-common-definition-ownership](037-common-definition-ownership.md).
@@ -65,10 +67,11 @@ feature contract a general common definition.
    | `engine/` | EventLoop/FSM communication, synchronous callback constraints, execution composition, cancellation/deadlines, runtime diagnostics, invocation and runnable execution contracts |
    | `recovery/` | Shared recovery vocabulary and execution rehydration requirement; no concrete Agent/Workflow orchestration |
    | `workflow/execution/` | Workflow DSL, context ownership, runner, and terminal persistence recovery |
-   | `agent/api/` | Agent namespace operations and lifecycle extension installation |
+   | `agent/api/` | Agent namespace/event loading and lifecycle extension installation |
+   | `agent/composition/` | One-shot Agent/Persistence composition; method definition loaded by the application entry (ADR-044) |
    | `agent/lifecycle_contract/` | Agent ownership, handoff, and application stream-delivery exceptions |
    | `configuration/` | Global configuration values, defaults, accessors, replacement, and scoped overrides |
-   | `runtime_composition/` | Application Runtime/configuration lifecycle coordination; separated by ADR-039 |
+   | `runtime_composition/` | Application Runtime/configuration lifecycle coordination and concrete default bindings (ADR-039/040/044) |
    | `llm_contract/` | Token usage, context-budget failures, and LLM call-boundary failures |
    | `llm_adapter/ruby_llm_patches.rb` | RubyLLM version-guarded compatibility patch |
    | `persistence/api/` | Public Persistence facade and repository composition |
