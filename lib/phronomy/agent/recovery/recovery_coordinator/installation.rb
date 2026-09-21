@@ -327,17 +327,13 @@ module Phronomy
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
             observe_recovery_execution(internal_task, execution)
-            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
-              agent.agent_id,
+            main.deliver_on_event_loop(ExecutionCoordinator::RecoverPreparationCommand.new(
+              coordinator: main,
               execution_id: execution.execution_id,
-              state: :executing
-            )
-            main.send(
-              :start_initial_preparation_recovery_on_event_loop,
-              execution,
-              internal_task,
+              expected_execution_revision: execution.execution_revision,
+              result_task: internal_task,
               load_completion: completion
-            )
+            ))
           when :resuming
             approved = execution.approval_request &&
               (
@@ -352,18 +348,17 @@ module Phronomy
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
             observe_recovery_execution(internal_task, execution)
-            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
-              agent.agent_id,
+            state = ExecutionRegistry.for(event_loop).agent_execution_state(execution.execution_id)
+            main.deliver_on_event_loop(ExecutionCoordinator::ContinueRecoveredCommand.new(
+              coordinator: main,
               execution_id: execution.execution_id,
-              state: :executing
-            )
-            main.send(
-              :start_resume_on_event_loop,
-              execution.execution_id,
-              internal_task,
-              approved: false,
-              config: {}
-            )
+              expected_execution_revision: execution.execution_revision,
+              continuation: :approval_rejection,
+              invocation: state.invocation,
+              runtime_projection: state.runtime_projection,
+              result_task: internal_task,
+              error: nil
+            ))
             completion.complete(agent)
           when :recovery_tools_completed, :recovery_provider_completed, :recovery_resolved_failed
             internal_task = Phronomy::TaskResult.deferred(name: "agent-recovery-auto:#{execution.execution_id}")

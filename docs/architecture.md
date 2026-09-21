@@ -130,6 +130,13 @@ saved context reads and live invocation restoration have separate internal owner
 transaction and EventLoop state decisions remain with their callers. See
 [ADR-046](decisions/046-agent-responsibility-layout-and-shared-records.md).
 
+Recovery hands semantic continuation commands to the execution owner through
+its EventLoop delivery boundary. The owner checks current identity, revision
+and session state before applying them. `Agent::ExecutionSessionRunner` shares
+ordinary and recovered Agent/Tool session registration and reports completion
+back to the same coordinator; terminal persistence remains with that coordinator.
+See [ADR-047](decisions/047-recovered-execution-continuation-contract.md).
+
 Selected nested Zeitwerk roots retain existing top-level Phronomy constants
 without changing the enclosing feature's existing nested constants. For
 example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with

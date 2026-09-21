@@ -21,6 +21,20 @@ module Phronomy
         :approved, :config, :result_task
       )
 
+      # Recovery -> execution-owner commands. These stay on EventLoop and do
+      # not carry persistence readers or arbitrary private method names.
+      RecoverPreparationCommand = Data.define(
+        :coordinator, :execution_id, :expected_execution_revision,
+        :result_task, :load_completion
+      )
+      ContinueRecoveredCommand = Data.define(
+        :coordinator, :execution_id, :expected_execution_revision,
+        :continuation, :invocation, :runtime_projection, :result_task, :error
+      )
+      SessionFinishedCommand = Data.define(
+        :coordinator, :execution_id, :result_task, :invocation, :error, :fsm_session_id
+      )
+
       # EventLoop -> Offload operation-specific immutable snapshots.
       InitialPreparationCommand = Data.define(
         :root, :journal_records, :input, :config, :preparation_replayable
@@ -375,6 +389,13 @@ module Phronomy
         case command
         when StartCommand
           begin_start_on_event_loop(command)
+        when RecoverPreparationCommand
+          recover_preparation_on_event_loop(command)
+        when ContinueRecoveredCommand
+          continue_recovered_on_event_loop(command)
+        when SessionFinishedCommand
+          finish_on_event_loop(command.execution_id, command.result_task,
+            command.invocation, command.error, fsm_session_id: command.fsm_session_id)
         when InitialPreparationReady
           apply_initial_preparation_on_event_loop(command)
         when InitialPreparationRecoveryReady
@@ -983,17 +1004,9 @@ module Phronomy
           prepared.execution.execution_id,
           request.result_task
         )
-        source_task = Phronomy::TaskResult.deferred(name: "#{request.result_task.name}-source")
-        source_task.on_complete do |invocation, error|
-          finish_on_event_loop(
-            prepared.execution.execution_id,
-            request.result_task,
-            invocation || session.context,
-            error,
-            fsm_session_id: session.id
-          )
-        end
-        event_loop.register(session, completion: source_task)
+        execution_session_runner(runtime).register(
+          session, request.result_task
+        )
       # simplecov:disable
       rescue => _error
         Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(prepared.execution.execution_id) if
@@ -1907,11 +1920,9 @@ module Phronomy
           mode: trace_mode,
           **@agent.send(:_build_caller_meta, trace_config)
         )
-        start_resume_on_event_loop(
-          operation.execution_id,
-          request.result_task,
-          approved: request.approved,
-          config: request.config
+        execution_session_runner(Phronomy::Runtime.instance).resume_approval(
+          state.invocation, request.result_task,
+          approved: request.approved, config: request.config
         )
       rescue => error
         state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(operation.execution_id) if event_loop&.current?
@@ -1928,87 +1939,107 @@ module Phronomy
         end
       end
 
-      def start_resume_on_event_loop(execution_id, result_task, approved:, config:)
-        runtime = Phronomy::Runtime.instance
-        event_loop = runtime.event_loop
-        state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution_id)
-        invocation = state.invocation
-        invocation.merge_config!(config)
-        invocation.begin_approval_resume!(approved: approved)
-        parent_session = Agent::AgentInvocationSessionBuilder.build_for_resume(
-          agent_invocation: invocation,
-          resume_event: :resume,
-          resume_phase: :suspended,
-          runtime: runtime
-        )
-        Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(
-          execution_id,
-          invocation: invocation,
-          fsm_session_id: parent_session.id
-        )
-        source_task = Phronomy::TaskResult.deferred(name: "#{result_task.name}-source")
-        source_task.on_complete do |completed, error|
-          finish_on_event_loop(
-            execution_id,
-            result_task,
-            completed || parent_session.context,
-            error,
-            fsm_session_id: parent_session.id
-          )
+      # Recovery chooses a semantic continuation after resolving saved facts.
+      # Execution owns validation, admission, live installation and FSM entry.
+      def recover_preparation_on_event_loop(command)
+        state = recovered_execution_state!(command)
+        unless state.execution.status == :preparing && state.execution.phase.to_sym == :preparing
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "initial preparation continuation requires a :preparing execution"
         end
-        event_loop.register(parent_session, completion: source_task)
-        invocation.tool_invocations.each do |child|
-          child_session = if child.awaiting_approval?
-            Agent::ToolInvocationSessionBuilder.build_for_resume(
-              tool_invocation: child,
-              parent_event_sink: parent_session.event_sink,
-              resume_event: approved ? :approve : :reject,
-              resume_phase: :awaiting_approval,
-              runtime: runtime
-            )
-          elsif !approved && child.authorized?
-            Agent::ToolInvocationSessionBuilder.build_for_resume(
-              tool_invocation: child,
-              parent_event_sink: parent_session.event_sink,
-              resume_event: :cancel,
-              resume_phase: :authorized,
-              runtime: runtime
-            )
-          end
-          register_child(event_loop, child, child_session, parent_session.event_sink) if child_session
+        ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).mark_agent_execution_admission(
+          @agent.agent_id, execution_id: state.execution_id, state: :executing
+        )
+        start_initial_preparation_recovery_on_event_loop(
+          state.execution, command.result_task, load_completion: command.load_completion
+        )
+      rescue => error
+        fail_task(command.result_task, translated(error))
+        command.load_completion.fail(translated(error))
+      end
+
+      def continue_recovered_on_event_loop(command)
+        runtime = Phronomy::Runtime.instance
+        registry = ExecutionRegistry.for(runtime.event_loop)
+        state = recovered_execution_state!(command)
+        validate_recovered_continuation!(state.execution, command.continuation)
+        invocation = command.invocation
+        unless invocation && invocation.agent.equal?(@agent) &&
+            invocation.execution_id.to_s == state.execution_id.to_s
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "recovered invocation does not belong to execution #{state.execution_id}"
+        end
+        if command.continuation == :failed_terminal && !command.error.is_a?(Exception)
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "failed recovery continuation requires a failure"
+        end
+
+        state = registry.replace_agent_execution(state.execution_id,
+          runtime_projection: command.runtime_projection, invocation: invocation, fsm_session_id: nil)
+        if command.continuation == :failed_terminal
+          begin_terminal_commit_on_event_loop(state, command.result_task, invocation,
+            command.error, fsm_session_id: nil)
+          return
+        end
+
+        registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: state.execution_id, state: :executing)
+        registry.register_agent_completion_waiter(state.execution_id, command.result_task)
+        runner = execution_session_runner(runtime)
+        case command.continuation
+        when :approval_rejection
+          runner.resume_approval(invocation, command.result_task, approved: false, config: {})
+        when :framework_tools
+          runner.resume_framework_tools(invocation, command.result_task)
+        when :framework_calls, :output
+          runner.resume(invocation, command.result_task,
+            resume_event: :llm_completed, resume_phase: :calling_llm)
+        when :followup
+          runner.resume(invocation, command.result_task,
+            resume_event: :state_completed, resume_phase: :recording_tool_results)
         end
       end
 
-      def start_framework_tools_on_event_loop(execution_id, result_task)
-        runtime = Phronomy::Runtime.instance
-        event_loop = runtime.event_loop
-        state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution_id)
-        invocation = state.invocation
-        session = AgentInvocationSessionBuilder.build_for_resume(agent_invocation: invocation,
-          resume_event: :resume, resume_phase: :suspended, runtime: runtime)
-        Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(execution_id, invocation: invocation, fsm_session_id: session.id)
-        Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(@agent.agent_id, execution_id: execution_id, state: :executing)
-        source = Phronomy::TaskResult.deferred(name: "framework-tool-recovery-source")
-        source.on_complete do |result, error|
-          finish_on_event_loop(execution_id, result_task, result || session.context, error, fsm_session_id: session.id)
+      def recovered_execution_state!(command)
+        state = ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_execution_state(command.execution_id)
+        unless command.coordinator.equal?(self) && state && state.agent.equal?(@agent) &&
+            state.coordinator.equal?(self) && state.execution.active? &&
+            state.execution.execution_revision == command.expected_execution_revision &&
+            state.fsm_session_id.nil?
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "stale recovered execution continuation for #{command.execution_id}"
         end
-        event_loop.register(session, completion: source)
-        invocation.tool_invocations.select(&:authorized?).each do |child|
-          child_session = ToolInvocationSessionBuilder.build_for_resume(tool_invocation: child,
-            parent_event_sink: session.event_sink, resume_event: :dispatch, resume_phase: :authorized, runtime: runtime)
-          register_child(event_loop, child, child_session, session.event_sink)
-        end
+        state
       end
 
-      def register_child(event_loop, child, session, parent_event_sink)
-        completion = Phronomy::TaskResult.deferred(name: "tool-session:#{child.id}")
-        completion.on_complete do |_result, error|
-          next unless error
+      def execution_session_runner(runtime)
+        ExecutionSessionRunner.new(runtime: runtime, on_complete: ->(**result) {
+          deliver_on_event_loop(SessionFinishedCommand.new(coordinator: self, **result))
+        })
+      end
 
-          child.mark_framework_failed!(error)
-          parent_event_sink.post(:tool_failed, {tool_invocation_id: child.id})
+      def validate_recovered_continuation!(execution, continuation)
+        phase = execution.phase.to_sym
+        valid = case continuation
+        when :framework_tools
+          %i[dispatching_tools resuming recovery_tools].include?(phase) && execution.status != :suspended
+        when :framework_calls
+          %i[recovery_provider_completed recovery_tools_completed].include?(phase) &&
+            execution.metadata["framework_calls_pending"]
+        when :output
+          phase == :recovery_provider_completed && !execution.metadata["framework_calls_pending"]
+        when :followup
+          phase == :recovery_tools_completed && !execution.metadata["framework_calls_pending"]
+        when :failed_terminal
+          phase == :recovery_resolved_failed
+        when :approval_rejection
+          approval = execution.approval_request
+          phase == :resuming && !(approval && (approval["approved"] || approval[:approved]))
         end
-        event_loop.register(session, completion: completion)
+        return if valid
+
+        raise Phronomy::ExecutionRehydrationRequiredError,
+          "invalid recovered continuation #{continuation.inspect} for #{phase.inspect}"
       end
 
       # ----------------------------------------------------------------------
@@ -2021,7 +2052,8 @@ module Phronomy
         state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution_id)
         return fail_task(result_task, runtime_rejected_error(:terminal)) unless state
 
-        unless state.fsm_session_id.to_s == fsm_session_id.to_s &&
+        unless state.agent.equal?(@agent) && state.coordinator.equal?(self) &&
+            state.fsm_session_id.to_s == fsm_session_id.to_s &&
             state.invocation.equal?(invocation)
           return fail_task(
             result_task,

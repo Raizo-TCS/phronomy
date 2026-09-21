@@ -1,6 +1,7 @@
 # ADR-046: Agent Responsibility Layout and Shared Records
 
-**Status**: Accepted on the architecture refactoring branch
+**Status**: Amended on the architecture refactoring branch
+**Continuation amendment**: [047-recovered-execution-continuation-contract](047-recovered-execution-continuation-contract.md) removes the remaining Recovery-to-private-control calls and shares session registration. The original extraction scope below is retained as history.
 **Date**: 2026-09-21
 **Refines**: [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md)
 and [024-event-loop-single-writer-agent-runtime](024-event-loop-single-writer-agent-runtime.md)
