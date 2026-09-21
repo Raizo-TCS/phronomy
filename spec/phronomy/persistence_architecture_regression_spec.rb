@@ -35,15 +35,15 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     persistence = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
     in_memory = File.read(File.join(root, "lib/phronomy/storage/backends/in_memory.rb"))
     runtime = File.read(File.join(root, "lib/phronomy/engine/runtime.rb"))
-    event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
+    registry = File.read(File.join(root, "lib/phronomy/agent/execution_registry.rb"))
 
     expect(persistence).to include("workflow_states")
     expect(persistence).not_to include("activations")
     expect(in_memory).not_to include("@activations")
     expect(runtime).not_to include("@agent_activations")
     expect(runtime).not_to include("__agent_activations")
-    expect(event_loop).to include("@agent_executions = {}")
-    expect(event_loop).to include("def agent_execution_owner")
+    expect(registry).to include("@agent_executions = {}")
+    expect(registry).to include("def agent_execution_owner")
   end
 
   it "keeps Agent durable ownership and live owner lookup semantics in Base" do
@@ -71,7 +71,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
     expect(class_api).to include("def live_for_execution")
     expect(class_api).not_to match(/\bdef approve(?:_async)?\b/)
-    expect(lookup).to include("Phronomy::Runtime.instance.__agent_execution_owner")
+    expect(lookup).to include("ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner")
     expect(lookup).not_to include("persistence.executions.load")
     expect(lookup).not_to include("persistence.agents.load")
     expect(base).to include("records: _journal_records_snapshot")
@@ -206,7 +206,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "keeps Workflow admission ownership, FSMSession routing, and terminal persistence distinct" do
     runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
-    event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
+    registry = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_execution_registry.rb"))
     fsm = File.read(File.join(root, "lib/phronomy/engine/fsm_session.rb"))
 
     expect(runner).to include("workflow_instance_id")
@@ -216,9 +216,9 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(runner).not_to include("Phronomy::FSMSession.reserve_identity")
     expect(runner).not_to include("graph_thread_id:")
 
-    expect(event_loop).to include("WorkflowAdmission = Data.define")
-    expect(event_loop).to include(":owner_token, :fsm_session_id, :state")
-    expect(event_loop).to include("%i[executing persisting_terminal recovery_required]")
+    expect(registry).to include("WorkflowAdmission = Data.define")
+    expect(registry).to include(":owner_token, :fsm_session_id, :state")
+    expect(registry).to include("%i[executing persisting_terminal recovery_required]")
 
     expect(fsm).to include("workflow_terminal_persistence_result")
     expect(fsm).to include("@terminal_lifecycle_state = :persisting_terminal")

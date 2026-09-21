@@ -197,14 +197,13 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     # Model a newer lifecycle update while the old worker is materializing.
     handler = Object.new
     handler.define_singleton_method(:deliver_on_event_loop) do |_command|
-      state = event_loop.agent_execution_state(event.fetch(:execution_id))
-      event_loop.replace_agent_execution(state.execution_id,
+      state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(event.fetch(:execution_id))
+      Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(state.execution_id,
         execution: state.execution.with(metadata: state.execution.metadata.merge("newer_live_state" => true)))
       applied.complete(true)
     end
     command = Struct.new(:coordinator).new(handler)
-    event_loop.post(Phronomy::Event.new(type: :agent_control,
-      target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {command: command}))
+    Phronomy::Agent::ExecutionRegistry.for(event_loop).post(command, completion: applied)
     applied.wait_result(timeout: 3)
     release << true
     expect { resolution.wait_result(timeout: 3) }

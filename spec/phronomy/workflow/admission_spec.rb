@@ -59,9 +59,9 @@ RSpec.describe "Workflow durable admission" do
     event_loop = Phronomy::Runtime.instance.event_loop
 
     first_fsm_session_id = eventually do
-      event_loop.workflow_admission_fsm_session_id("workflow-42")
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("workflow-42")
     end
-    first_owner = event_loop.workflow_admission_owner("workflow-42")
+    first_owner = Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_owner("workflow-42")
 
     expect(first_owner).not_to be_nil
     expect(first_owner).not_to be_a(String)
@@ -72,16 +72,16 @@ RSpec.describe "Workflow durable admission" do
 
     expect(workflow.signal(workflow_instance_id: "workflow-42", event: :finish)).to be(true)
     expect(task.wait_result.workflow_instance_id).to eq("workflow-42")
-    expect(event_loop.workflow_admission_owner("workflow-42")).to be_nil
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_owner("workflow-42")).to be_nil
 
     second_task = workflow.invoke_async(
       {value: 2},
       config: {workflow_instance_id: "workflow-42", session_id: "rails-session-7"}
     )
     second_fsm_session_id = eventually do
-      event_loop.workflow_admission_fsm_session_id("workflow-42")
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("workflow-42")
     end
-    second_owner = event_loop.workflow_admission_owner("workflow-42")
+    second_owner = Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_owner("workflow-42")
 
     expect(second_owner).not_to equal(first_owner)
     expect(second_fsm_session_id).not_to eq(first_fsm_session_id)
@@ -122,8 +122,8 @@ RSpec.describe "Workflow durable admission" do
     load_entered.pop
 
     event_loop = Phronomy::Runtime.instance.event_loop
-    expect(event_loop.workflow_admission_state("shared")).to eq(:admitting)
-    expect(event_loop.workflow_admission_fsm_session_id("shared")).to be_nil
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_state("shared")).to eq(:admitting)
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("shared")).to be_nil
 
     competitor = workflow.invoke_async({}, config: {workflow_instance_id: "shared"})
     expect { competitor.wait_result }
@@ -133,7 +133,7 @@ RSpec.describe "Workflow durable admission" do
     expect(load_calls.size).to eq(1)
 
     allow_load << true
-    eventually { event_loop.workflow_admission_fsm_session_id("shared") }
+    eventually { Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("shared") }
     expect(workflow.signal(workflow_instance_id: "shared", event: :finish)).to be(true)
     first.wait_result
   end
@@ -167,8 +167,8 @@ RSpec.describe "Workflow durable admission" do
     save_entered.pop
 
     event_loop = Phronomy::Runtime.instance.event_loop
-    fsm_session_id = event_loop.workflow_admission_fsm_session_id("barrier")
-    expect(event_loop.workflow_admission_state("barrier")).to eq(:persisting_terminal)
+    fsm_session_id = Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("barrier")
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_state("barrier")).to eq(:persisting_terminal)
     expect(event_loop.admitted_fsm_session?(fsm_session_id)).to be(true)
     expect(task.status).to eq(:pending)
 
@@ -177,7 +177,7 @@ RSpec.describe "Workflow durable admission" do
     stray_event = Phronomy::Event.new(type: :some_event, target_id: fsm_session_id, payload: nil)
     event_loop.post_to_session(stray_event)
     sleep 0.02  # let EventLoop process the discarded event
-    expect(event_loop.workflow_admission_state("barrier")).to eq(:persisting_terminal)
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_state("barrier")).to eq(:persisting_terminal)
 
     competitor = workflow.invoke_async({}, config: {workflow_instance_id: "barrier"})
     expect { competitor.wait_result }
@@ -185,7 +185,7 @@ RSpec.describe "Workflow durable admission" do
 
     allow_save << true
     expect(task.wait_result.value).to eq(1)
-    expect(event_loop.workflow_admission_owner("barrier")).to be_nil
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_owner("barrier")).to be_nil
   end
 
   it "does not publish a halted stream state before its durable save succeeds" do
@@ -251,7 +251,7 @@ RSpec.describe "Workflow durable admission" do
 
     expect { task.wait_result }
       .to raise_error(Phronomy::Storage::ConflictError, /forced conflict/)
-    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("known-failure"))
+    expect(Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_owner("known-failure"))
       .to be_nil
   end
 
@@ -283,7 +283,7 @@ RSpec.describe "Workflow durable admission" do
     result = task.wait_result
     expect(result.value).to eq(1)
     expect(repository.load("uncertain")[:revision]).to eq(1)
-    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("uncertain"))
+    expect(Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_owner("uncertain"))
       .to be_nil
   end
 
@@ -343,7 +343,7 @@ RSpec.describe "Workflow durable admission" do
     workflow = finishing_workflow(persistence: persistence)
     task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "start-load-err"})
     expect { task.wait_result }.to raise_error(IOError, /load exploded on start/)
-    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("start-load-err"))
+    expect(Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_owner("start-load-err"))
       .to be_nil
   end
 
@@ -371,7 +371,7 @@ RSpec.describe "Workflow durable admission" do
 
     expect { workflow.send_event(state: halted, event: :finish) }
       .to raise_error(IOError, /load exploded on resume/)
-    expect(Phronomy::Runtime.instance.event_loop.workflow_admission_owner("resume-load-err"))
+    expect(Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_owner("resume-load-err"))
       .to be_nil
   end
 
@@ -381,7 +381,7 @@ RSpec.describe "Workflow durable admission" do
     task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "signal-gone"})
 
     # Wait until the FSMSession is bound (executing state) before signalling.
-    eventually { event_loop.workflow_admission_fsm_session_id("signal-gone") }
+    eventually { Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("signal-gone") }
     expect(workflow.signal(workflow_instance_id: "signal-gone", event: :finish)).to be(true)
     task.wait_result
 
@@ -437,13 +437,13 @@ RSpec.describe "Workflow durable admission" do
 
     event_loop = Phronomy::Runtime.instance.event_loop
     task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "bad-signal"})
-    eventually { event_loop.workflow_admission_fsm_session_id("bad-signal") }
+    eventually { Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_fsm_session_id("bad-signal") }
 
     # :finish is defined for :state_b but the FSMSession is at :state_a.
     # The transition fires, fails, and the ArgumentError is propagated.
     workflow.signal(workflow_instance_id: "bad-signal", event: :finish)
 
     expect { task.wait_result }.to raise_error(ArgumentError, /Transition from/)
-    expect(event_loop.workflow_admission_owner("bad-signal")).to be_nil
+    expect(Phronomy::WorkflowExecutionRegistry.for(event_loop).workflow_admission_owner("bad-signal")).to be_nil
   end
 end

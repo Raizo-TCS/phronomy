@@ -1,6 +1,8 @@
 # ADR-025: Process-Local Agent Ownership and Runtime Admission
 
 **Status**: Amended
+**Implementation ownership amendment**: [042-feature-owned-execution-state](042-feature-owned-execution-state.md) moves feature execution state and decisions to Agent/Workflow receivers; the EventLoop thread remains the single writer. Its registration, delivery and drain rules refine the original descriptions below.
+
 **Date**: 2026-08-24
 **Amended by**: [041-feature-owned-identity-registries](041-feature-owned-identity-registries.md) for registry implementation ownership and its generic Runtime shutdown contract
 **Partially supersedes**: [ADR-014](014-unified-persistence-durable-state.md) for same-process Agent live-instance ownership and top-level execution admission

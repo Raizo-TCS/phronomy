@@ -18,7 +18,7 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
       assert_event_loop!(event_loop)
-      event_loop.mark_workflow_admission(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).mark_workflow_admission(
         execution.workflow_instance_id,
         owner_token: execution.owner_token,
         state: :persisting_terminal

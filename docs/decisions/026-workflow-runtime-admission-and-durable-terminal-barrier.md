@@ -1,6 +1,8 @@
 # ADR-026: Workflow Runtime Admission and Durable Terminal Barrier
 
-**Status**: Accepted
+**Status**: Amended
+**Implementation ownership amendment**: [042-feature-owned-execution-state](042-feature-owned-execution-state.md) moves feature execution state and decisions to Agent/Workflow receivers; the EventLoop thread remains the single writer. Its registration, delivery and drain rules refine the original descriptions below.
+
 **Date**: 2026-08-24
 **Partially supersedes**: [ADR-014](014-unified-persistence-durable-state.md) for same-process Workflow admission ownership and terminal durable-barrier ordering
 **Refines**: [ADR-023](023-fsm-session-incarnation-identity-and-routing.md) by removing the transitional Workflow FSMSession-identity reservation bridge

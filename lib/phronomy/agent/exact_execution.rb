@@ -26,7 +26,7 @@ module Phronomy
           if execution&.terminal?
             [:terminal, materialize(execution)]
           elsif execution
-            unless @runtime.__agent_execution_owner(@id)
+            unless Phronomy::Agent::ExecutionRegistry.existing_for(@runtime)&.agent_execution_owner(@id)
               @agent.instance_variable_set(:@_phronomy_coordination_config, @config)
               begin
                 RecoveryCoordinator.new(@agent).recover_on_load!
@@ -55,8 +55,7 @@ module Phronomy
               source.on_complete { |_value, failure| reconcile(failure) }
             when :active
               command = Wait.new(coordinator: self, agent: @agent, execution_id: @id)
-              posted = @runtime.event_loop.post(Phronomy::Event.new(type: :agent_terminal_ready,
-                target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {command: command}))
+              posted = ExecutionRegistry.for(@runtime.event_loop).post(command, completion: @completion)
               @completion.fail(Phronomy::RuntimeShutdownError.new("Exact execution observer rejected")) unless posted
             end
           end
@@ -70,7 +69,7 @@ module Phronomy
       end
 
       def deliver_on_event_loop(command)
-        state = @runtime.event_loop.agent_execution_state(command.execution_id)
+        state = Phronomy::Agent::ExecutionRegistry.for(@runtime.event_loop).agent_execution_state(command.execution_id)
         unless state
           # Ownership can be released between the durable read and this command.
           # Reinstall once with the caller's current wiring/cancellation request.
@@ -94,7 +93,7 @@ module Phronomy
         state.invocation.merge_config!(phronomy_exact_observers: (observers + [@completion]).uniq.freeze)
         waiter = Phronomy::TaskResult.deferred(name: "exact-wait:#{@id}")
         waiter.on_complete { |_result, failure| reconcile(failure) }
-        @runtime.event_loop.register_agent_completion_waiter(@id, waiter)
+        Phronomy::Agent::ExecutionRegistry.for(@runtime.event_loop).register_agent_completion_waiter(@id, waiter)
       rescue => failure
         @completion.fail(failure)
       end

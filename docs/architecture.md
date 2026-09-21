@@ -126,8 +126,15 @@ Agent and Team implement their identity registries in `agent/` and
 `multi_agent/`. Runtime strongly retains one of each when registered, using only
 its generic shutdown participant contract. Feature code reserves identities,
 handles feature exceptions, and detaches owners after completed cleanup.
-EventLoop's Agent/Workflow execution management remains a separate responsibility
-to extract. See [ADR-041](decisions/041-feature-owned-identity-registries.md).
+See [ADR-041](decisions/041-feature-owned-identity-registries.md).
+
+Agent and Workflow also own their distinct execution registries. EventLoop
+retains them through Engine's internal `ExecutionReceiver` contract, dispatches
+queued messages and combines generic session/delivery counts with their idle
+predicates. Normal mutation remains on the EventLoop thread; only final
+invalidation after join runs on the management thread. EventLoop has no Agent
+or Workflow dispatch branch. See
+[ADR-042](decisions/042-feature-owned-execution-state.md).
 
 ## Current architecture
 

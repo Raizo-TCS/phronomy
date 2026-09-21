@@ -10,7 +10,7 @@ module Phronomy
 
         def begin_resolve_on_event_loop(request)
           event_loop = @runtime.event_loop
-          state = event_loop.agent_execution_state(
+          state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(
             request.execution_id
           )
           unless state && state.agent.equal?(agent)
@@ -69,7 +69,7 @@ module Phronomy
             result: request.result,
             failure: request.failure
           )
-          event_loop.mark_agent_execution_admission(
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
             agent.agent_id,
             execution_id: current.execution_id,
             state: :recovery_required
@@ -484,7 +484,7 @@ module Phronomy
         def apply_resolve_on_event_loop(ready)
           request = ready.request
           event_loop = @runtime.event_loop
-          state = event_loop.agent_execution_state(request.execution_id)
+          state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(request.execution_id)
           unless state && state.agent.equal?(agent)
             raise Phronomy::ExecutionRehydrationRequiredError,
               "recovered execution disappeared before resolution apply"
@@ -497,7 +497,7 @@ module Phronomy
 
           result = ready.result
           if result.execution
-            event_loop.replace_agent_execution(request.execution_id, execution: result.execution)
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(request.execution_id, execution: result.execution)
           end
           raise result.error if result.error
 

@@ -48,7 +48,7 @@ module Phronomy
           event_loop = @runtime.event_loop
           action = recovery_action(execution)
           if action == :resolution_required
-            event_loop.mark_agent_execution_admission(agent.agent_id,
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(agent.agent_id,
               execution_id: execution.execution_id, state: :recovery_required)
             deliver_resolution_required(execution, coordination_recovery_descriptor(execution))
             completion.complete({execution_id: execution.execution_id,
@@ -59,7 +59,7 @@ module Phronomy
 
           observe_recovery_execution(completion, execution)
           main = agent.send(:execution_coordinator_for, agent.__coordination_config)
-          projection = event_loop.agent_execution_state(execution.execution_id).runtime_projection
+          projection = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution.execution_id).runtime_projection
           if action == :failed_terminal
             invocation = build_failed_recovery_invocation(execution, main)
           else
@@ -77,22 +77,22 @@ module Phronomy
             prepare_saved_provider_calls(execution, invocation, material.assistant_message) if action == :framework_calls
           end
 
-          event_loop.replace_agent_execution(execution.execution_id, execution: execution,
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(execution.execution_id, execution: execution,
             runtime_projection: projection, invocation: invocation, fsm_session_id: nil)
           if action == :failed_terminal
             failure = execution.metadata.dig(RecoverySupport::RECOVERY_METADATA_KEY, "failure") ||
               {"class" => "Phronomy::Error", "message" => "Recovery-resolved failure"}
             main.send(:begin_terminal_commit_on_event_loop,
-              event_loop.agent_execution_state(execution.execution_id), completion, invocation,
+              Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution.execution_id), completion, invocation,
               RecoverySupport.error_from_failure(failure), fsm_session_id: nil)
             return
           end
 
-          event_loop.mark_agent_execution_admission(agent.agent_id,
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(agent.agent_id,
             execution_id: execution.execution_id, state: :executing)
           case action
           when :framework_tools
-            event_loop.register_agent_completion_waiter(execution.execution_id, completion)
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).register_agent_completion_waiter(execution.execution_id, completion)
             main.send(:start_framework_tools_on_event_loop, execution.execution_id, completion)
           when :framework_calls, :output
             # Re-enter the ordinary FSM before output filtering so its failures
@@ -126,8 +126,8 @@ module Phronomy
         def start_recovery_session(event_loop, main, execution, invocation, completion, resume_event:, resume_phase:)
           session = AgentInvocationSessionBuilder.build_for_resume(agent_invocation: invocation,
             resume_event: resume_event, resume_phase: resume_phase, runtime: @runtime)
-          event_loop.replace_agent_execution(execution.execution_id, invocation: invocation, fsm_session_id: session.id)
-          event_loop.register_agent_completion_waiter(execution.execution_id, completion)
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(execution.execution_id, invocation: invocation, fsm_session_id: session.id)
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).register_agent_completion_waiter(execution.execution_id, completion)
           source = Phronomy::TaskResult.deferred(name: "#{completion.name}-source")
           source.on_complete do |completed, error|
             main.send(:finish_on_event_loop, execution.execution_id, completion,

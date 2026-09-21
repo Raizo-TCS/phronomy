@@ -136,7 +136,7 @@ module Phronomy
     end
 
     # Posts an application-defined event to the currently live Workflow owner.
-    # EventLoop resolves workflow_instance_id to the current concrete
+    # WorkflowExecutionRegistry resolves workflow_instance_id to the current concrete
     # fsm_session_id. The opaque admission owner token is deliberately not a
     # routing identity and is not exposed here.
     def signal(workflow_instance_id:, event:, payload: nil)
@@ -149,7 +149,10 @@ module Phronomy
           "Valid events: #{@external_events.keys.inspect}"
       end
 
-      Phronomy::Runtime.instance.event_loop.post_to_workflow(
+      registry = Phronomy::WorkflowExecutionRegistry.existing_for(Phronomy::Runtime.instance)
+      return false unless registry
+
+      registry.post_to_workflow(
         workflow_instance_id: workflow_instance_id,
         event: event_name,
         payload: payload
@@ -275,7 +278,7 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
       admitted = false
-      event_loop.admit_workflow(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).admit_workflow(
         request.workflow_instance_id,
         owner_token: request.owner_token
       )
@@ -316,7 +319,7 @@ module Phronomy
       )
     rescue => error
       if admitted
-        event_loop.release_workflow(
+        Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
           request.workflow_instance_id,
           owner_token: request.owner_token
         )
@@ -328,7 +331,7 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
       admitted = false
-      event_loop.admit_workflow(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).admit_workflow(
         request.workflow_instance_id,
         owner_token: request.owner_token
       )
@@ -364,7 +367,7 @@ module Phronomy
       )
     rescue => error
       if admitted
-        event_loop.release_workflow(
+        Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
           request.workflow_instance_id,
           owner_token: request.owner_token
         )
@@ -574,7 +577,7 @@ module Phronomy
         resume_phase: resume_phase,
         stable_observer: stable_observer
       )
-      event_loop.bind_workflow_session(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).bind_workflow_session(
         execution.workflow_instance_id,
         owner_token: execution.owner_token,
         fsm_session_id: session.id
@@ -589,11 +592,12 @@ module Phronomy
           error: error
         )
       end
-      event_loop.register(session, completion: source_task)
+      event_loop.register(session, completion: source_task,
+        receiver: Phronomy::WorkflowExecutionRegistry.for(event_loop))
       result_task
     rescue => error
       if event_loop&.current?
-        event_loop&.release_workflow(
+        Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
           execution.workflow_instance_id,
           owner_token: execution.owner_token
         )
@@ -606,7 +610,7 @@ module Phronomy
     def finalize_execution(execution:, result_task:, result:, error:)
       event_loop = Phronomy::Runtime.instance.event_loop
       assert_event_loop!(event_loop)
-      event_loop.release_workflow(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
         execution.workflow_instance_id,
         owner_token: execution.owner_token
       )
@@ -622,7 +626,7 @@ module Phronomy
       runtime = Phronomy::Runtime.instance
       event_loop = runtime.event_loop
       assert_event_loop!(event_loop)
-      event_loop.mark_workflow_admission(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).mark_workflow_admission(
         execution.workflow_instance_id,
         owner_token: execution.owner_token,
         state: :persisting_terminal
@@ -688,7 +692,7 @@ module Phronomy
     def release_and_fail(request, error)
       event_loop = Phronomy::Runtime.instance.event_loop
       assert_event_loop!(event_loop)
-      event_loop.release_workflow(
+      Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
         request.workflow_instance_id,
         owner_token: request.owner_token
       )
@@ -764,13 +768,10 @@ module Phronomy
     end
 
     def post_control(runtime, command)
-      runtime.event_loop.post(
-        Phronomy::Event.new(
-          type: :workflow_control,
-          target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-          payload: {command: command}
-        )
-      )
+      admission = command.is_a?(StartCommand) || command.is_a?(ResumeCommand)
+      completion = admission ? command.result_task : command.request.result_task
+      Phronomy::WorkflowExecutionRegistry.for(runtime.event_loop).post(command,
+        admission: admission, completion: completion)
     end
 
     def runtime_rejected_error(action)

@@ -187,14 +187,10 @@ module Phronomy
       private
 
       def post_control(command)
-        @runtime.event_loop.post(
-          Phronomy::Event.new(
-            type: :agent_control,
-            target_id:
-              Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-            payload: {command: command}.freeze
-          )
-        )
+        admission = command.is_a?(InstallCommand) || command.is_a?(ResolveCommand)
+        completion = admission ? command.completion : command.request.completion
+        ExecutionRegistry.for(@runtime.event_loop).post(command,
+          admission: admission, completion: completion)
       rescue Phronomy::RuntimeShutdownError
         false
       end

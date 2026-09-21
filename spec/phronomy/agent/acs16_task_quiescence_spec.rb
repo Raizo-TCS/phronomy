@@ -187,7 +187,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       expect(active.length).to eq(1)
       execution_id = active.first.execution_id
       expect(
-        Phronomy::Runtime.instance.event_loop.agent_inflight_work_count(execution_id)
+        Phronomy::Agent::ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_inflight_work_count(execution_id)
       ).to be >= 1
 
       token.cancel!
@@ -208,7 +208,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       expect(original.status).to eq(:cancelled)
       expect(agent.persistence.executions.list_active(agent.agent_id)).to be_empty
       expect(
-        Phronomy::Runtime.instance.event_loop.agent_inflight_work_count(execution_id)
+        Phronomy::Agent::ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_inflight_work_count(execution_id)
       ).to eq(0)
     ensure
       release << true if defined?(release) && release.empty?

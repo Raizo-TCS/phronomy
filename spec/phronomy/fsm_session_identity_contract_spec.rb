@@ -111,15 +111,15 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "keeps Workflow admission ownership separate from concrete FSMSession routing" do
     runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
-    event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
+    registry = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_execution_registry.rb"))
 
     expect(runner).not_to include("Phronomy::FSMSession.reserve_identity")
     expect(runner).not_to include("owner_fsm_session_id")
     expect(runner).to include("owner_token: Object.new.freeze")
     expect(runner).to include("bind_workflow_session")
-    expect(event_loop).to include("WorkflowAdmission = Data.define")
-    expect(event_loop).to include(":owner_token, :fsm_session_id, :state")
-    expect(event_loop).to include("current.owner_token.equal?(owner_token)")
+    expect(registry).to include("WorkflowAdmission = Data.define")
+    expect(registry).to include(":owner_token, :fsm_session_id, :state")
+    expect(registry).to include("current.owner_token.equal?(owner_token)")
     expect(runner).not_to include("graph_thread_id:")
   end
 

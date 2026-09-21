@@ -107,7 +107,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
     # context the guard-mismatch dispatch is guaranteed complete.
     # post_to_workflow bypasses signal's event-name guard intentionally while
     # still resolving workflow_instance_id to the currently bound fsm_session_id atomically.
-    Phronomy::Runtime.instance.event_loop.post_to_workflow(
+    Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).post_to_workflow(
       workflow_instance_id: "guarded-workflow",
       event: :probe,
       payload: nil

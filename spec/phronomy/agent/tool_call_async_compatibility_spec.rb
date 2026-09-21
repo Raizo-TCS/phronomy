@@ -59,7 +59,8 @@ RSpec.describe "Tool#call_async compatibility" do
     runtime = instance_double(Phronomy::Runtime)
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
-    allow(event_loop_dbl).to receive(:supervise_agent_operation)
+    registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
+    allow(Phronomy::Agent::ExecutionRegistry).to receive(:for).with(event_loop_dbl).and_return(registry)
     operation = Phronomy::TaskResult.deferred(name: "offloaded-tool")
     operation.complete("ok")
 
@@ -105,7 +106,8 @@ RSpec.describe "Tool#call_async compatibility" do
     runtime = instance_double(Phronomy::Runtime)
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
-    allow(event_loop_dbl).to receive(:supervise_agent_operation)
+    registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
+    allow(Phronomy::Agent::ExecutionRegistry).to receive(:for).with(event_loop_dbl).and_return(registry)
 
     expect(Phronomy::Agent::Context::Capability::ToolExecutor).not_to receive(:call_async)
 
@@ -152,7 +154,8 @@ RSpec.describe "Tool#call_async compatibility" do
     runtime = instance_double(Phronomy::Runtime)
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
-    allow(event_loop_dbl).to receive(:supervise_agent_operation)
+    registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
+    allow(Phronomy::Agent::ExecutionRegistry).to receive(:for).with(event_loop_dbl).and_return(registry)
     # start_execution without a block — the internal callback guard fires.
     expect { invocation.start_execution(runtime: runtime) }.to raise_error(StandardError)
   end

@@ -116,6 +116,25 @@ RSpec.describe Phronomy::Agent::Base do
       [original, approvals.pop]
     end
 
+    it "invalidates suspended execution waiters through Agent cleanup after the loop joins" do
+      original, request = invoke_and_suspend(agent, approvals)
+      runtime = Phronomy::Runtime.instance
+      event_loop = runtime.event_loop
+      registry = Phronomy::Agent::ExecutionRegistry.existing_for(runtime)
+      cleanup_context = nil
+      allow(registry).to receive(:shutdown).and_wrap_original do |method, **args|
+        cleanup_context = [event_loop.current?, event_loop.thread_alive?]
+        method.call(**args)
+      end
+
+      expect(runtime.shutdown(timeout: 3)).to be_cleanup_complete
+      expect(cleanup_context).to eq([false, false])
+      expect { original.wait_result(timeout: 1) }
+        .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+      expect(registry.agent_execution_owner(request.execution_id)).to be_nil
+      expect(registry.agent_execution_admitted?(agent.agent_id)).to be(false)
+    end
+
     it "returns a distinct pending TaskResult that joins the same terminal execution" do
       original, request = invoke_and_suspend(agent, approvals)
       allow(tool_instance).to receive(:call).and_return("done")
@@ -136,7 +155,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "resumes the same live Agent owner without exposing mutable Runtime state" do
       original, request = invoke_and_suspend(agent, approvals)
-      owner = Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id)
+      owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(request.execution_id)
 
       expect(owner.agent).to be(agent)
       expect(owner.status).to eq(:suspended)
@@ -190,7 +209,7 @@ RSpec.describe Phronomy::Agent::Base do
         /not a suspended execution of this agent/
       )
       expect(original).not_to be_done
-      expect(Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id).status)
+      expect(Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(request.execution_id)&.status)
         .to eq(:suspended)
 
       allow(tool_instance).to receive(:call).and_return("done")
@@ -225,7 +244,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "returns the same live owner Agent through Agent::Base" do
       _original, request = invoke_and_suspend(agent, approvals)
-      owner = Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id)
+      owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(request.execution_id)
 
       resolved = Phronomy::Agent::Base.live_for_execution(request.execution_id)
 

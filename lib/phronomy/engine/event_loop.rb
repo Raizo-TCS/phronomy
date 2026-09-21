@@ -17,43 +17,7 @@ module Phronomy
 
     STOP = Object.new.freeze
     WAKE = Object.new.freeze
-    UNSET = Object.new.freeze
-    private_constant :STOP, :WAKE, :UNSET
-
-    # Immutable EventLoop-owned value. The map containing these records is the
-    # mutable authority; records are replaced rather than mutated in place.
-    AgentExecutionState = Data.define(
-      :execution_id,
-      :agent,
-      :coordinator,
-      :execution,
-      :runtime_projection,
-      :base_manifest,
-      :invocation,
-      :fsm_session_id
-    )
-    private_constant :AgentExecutionState
-
-    # Read-only process-local lookup view used by approval/live-owner APIs.
-    # It intentionally exposes no mutable execution, invocation, or projection.
-    AgentExecutionOwner = Data.define(:execution_id, :agent, :coordinator, :status)
-    private_constant :AgentExecutionOwner
-
-    # EventLoop-owned process-local top-level execution admission. This is
-    # separate from AgentExecutionState because admission begins before the
-    # durable AgentExecution exists. owner_token is coordination-only and is
-    # never a semantic result-authority identifier.
-    AgentAdmission = Data.define(:agent_id, :owner_token, :execution_id, :state)
-    private_constant :AgentAdmission
-
-    # EventLoop-owned process-local Workflow execution-segment admission. The
-    # owner token is a Runtime coordination capability, not a domain identity or
-    # routing identity. fsm_session_id is bound only after durable load/hydration
-    # completes and a concrete FSMSession has been constructed.
-    WorkflowAdmission = Data.define(
-      :workflow_instance_id, :owner_token, :fsm_session_id, :state
-    )
-    private_constant :WorkflowAdmission
+    private_constant :STOP, :WAKE
 
     def initialize(runtime:)
       @runtime = runtime
@@ -63,15 +27,14 @@ module Phronomy
       @max_queue_depth = 0
       @last_queue_backlog_warning_at = nil
 
+      @execution_receivers = {}
+      @execution_deliveries = {}
+      @session_receivers = {}
+      @dispatching_delivery = nil
+      @receiver_shutdown_error = nil
       @fsms = {}
       @waiting = {}
       @admitted_fsm_session_ids = Set.new
-      @workflow_admissions = {}
-      @agent_admissions = {}
-      @agent_executions = {}
-      @agent_completion_waiters = Hash.new { |hash, key| hash[key] = [] }
-      @agent_inflight_work = Hash.new { |hash, key| hash[key] = {} }
-      @agent_deferred_terminals = {}
 
       @lifecycle_mutex = Mutex.new
       @idle_cond = ConditionVariable.new
@@ -113,7 +76,93 @@ module Phronomy
       @queue_metrics_mutex.synchronize { @max_queue_depth }
     end
 
-    def register(fsm_session, completion: nil)
+    # Internal receiver registration is closed before shutdown tests idleness.
+    # Feature constructors are side-effect free and run outside this lock.
+    # @api private
+    def __register_execution_receiver(key:, receiver:)
+      unless receiver.is_a?(Phronomy::ExecutionReceiver) && receiver.__bound_to?(self)
+        raise ArgumentError, "execution receiver must implement the Engine contract for this EventLoop"
+      end
+      @lifecycle_mutex.synchronize do
+        unless @state == :running
+          raise Phronomy::RuntimeShutdownError,
+            "EventLoop is #{@state}; execution receivers cannot be registered"
+        end
+        @execution_receivers[key] ||= receiver
+      end
+    end
+
+    # @api private
+    def __execution_receiver(key:)
+      @lifecycle_mutex.synchronize { @execution_receivers[key] }
+    end
+
+    # The same lock covers feature state and Engine's idle decision. Blocks are
+    # short state reads/writes, never I/O, delivery callbacks or Runtime calls.
+    # @api private
+    def __synchronize_execution_state
+      @lifecycle_mutex.synchronize do
+        yield
+      ensure
+        @idle_cond.broadcast if runtime_idle_locked?
+      end
+    end
+
+    # Admission already queued while running may establish its feature slot
+    # during drain. A newly requested admission may not do so.
+    # @api private
+    def __admit_execution(receiver)
+      assert_event_loop_thread!
+      __synchronize_execution_state do
+        accepted_delivery = @dispatching_delivery &&
+          @dispatching_delivery[:receiver].equal?(receiver) &&
+          @dispatching_delivery[:admission]
+        accepting = @execution_receivers.value?(receiver) &&
+          (@state == :running || (@state == :draining && accepted_delivery))
+        unless accepting
+          raise Phronomy::RuntimeShutdownError,
+            "EventLoop is #{@state}; new executions are not accepted"
+        end
+        yield
+      end
+    end
+
+    # Count accepted deliveries until dispatch finishes, including the interval
+    # before a feature admission or FSM exists. Continuations use registered
+    # receivers; new admissions require the running state.
+    # @api private
+    def __post_execution(receiver, message, admission: false, completion: nil)
+      token = Object.new.freeze
+      event = Phronomy::Event.new(type: :execution_control,
+        target_id: SYSTEM_CHANNEL_ID, payload: token)
+      queued_depth = nil
+      accepted = @lifecycle_mutex.synchronize do
+        next false unless accepting_events? && @execution_receivers.value?(receiver)
+        next false if admission && @state != :running
+
+        @execution_deliveries[token] = {
+          receiver: receiver, message: message, admission: admission, completion: completion
+        }.freeze
+        begin
+          queued_depth = enqueue([event, monotonic_nanoseconds])
+        rescue
+          @execution_deliveries.delete(token)
+          raise
+        end
+        true
+      end
+      return false unless accepted
+
+      check_queue_backlog(queued_depth, event)
+      true
+    end
+
+    # @api private
+    def __receiver_cleanup_complete?
+      @receiver_shutdown_error.nil?
+    end
+
+    def register(fsm_session, completion: nil, receiver: nil)
       if current? && !completion.is_a?(Phronomy::TaskResult)
         raise Phronomy::Error,
           "Cannot call a synchronous invocation API from an EventLoop action. " \
@@ -135,11 +184,16 @@ module Phronomy
             "FSMSession #{fsm_session.id.inspect} is already registered"
         end
 
+        if receiver && !@execution_receivers.value?(receiver)
+          raise ArgumentError, "execution receiver is not registered on this EventLoop"
+        end
+        @session_receivers[fsm_session.id] = receiver if receiver
         @admitted_fsm_session_ids.add(fsm_session.id)
         @outstanding_sessions += 1
         begin
           queued_depth = enqueue([event, monotonic_nanoseconds])
         rescue
+          @session_receivers.delete(fsm_session.id)
           @admitted_fsm_session_ids.delete(fsm_session.id)
           @outstanding_sessions -= 1
           @idle_cond.broadcast if runtime_idle_locked?
@@ -195,502 +249,30 @@ module Phronomy
       true
     end
 
-    # Process-local read-only admission check used by destructive Agent lifecycle
-    # operations. The mutable admission map itself remains EventLoop-owned.
-    def agent_execution_admitted?(agent_id)
-      @lifecycle_mutex.synchronize { @agent_admissions.key?(agent_id.to_s) }
-    end
-
-    # Reserves the one top-level logical execution slot for agent_id before any
-    # Persistence execution admission is attempted.
+    # Resolve feature identity and enqueue to a live FSM under one lock. The
+    # receiver supplies only a short lookup; dispatch still uses the FIFO.
     # @api private
-    def admit_agent_execution(agent_id, owner_token:)
-      assert_event_loop_thread!
-      key = agent_id.to_s
-      raise ArgumentError, "agent_id must not be empty" if key.empty?
-      raise ArgumentError, "owner_token is required" unless owner_token
+    def __route_execution_event(receiver)
+      event = nil
+      queued_depth = nil
+      accepted = @lifecycle_mutex.synchronize do
+        next false unless accepting_events? && @execution_receivers.value?(receiver)
+        event = yield
+        next false unless event && @admitted_fsm_session_ids.include?(event.target_id)
 
-      @lifecycle_mutex.synchronize do
-        ensure_accepting_registrations!
-        if @agent_admissions.key?(key)
-          raise Phronomy::AgentBusyError,
-            "Agent #{key.inspect} already has a nonterminal top-level execution"
-        end
-        @agent_admissions[key] = AgentAdmission.new(
-          agent_id: key.freeze,
-          owner_token: owner_token,
-          execution_id: nil,
-          state: :admitting
-        )
-      end
-      true
-    end
-
-    # Binds a successful durable AgentExecution identity to the earlier
-    # process-local admission.
-    # @api private
-    def bind_agent_execution_admission(agent_id, owner_token:, execution_id:)
-      assert_event_loop_thread!
-      key = agent_id.to_s
-      execution_key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        current = @agent_admissions.fetch(key) do
-          raise Phronomy::Error, "Agent #{key.inspect} has no Runtime admission"
-        end
-        unless current.owner_token.equal?(owner_token) && current.execution_id.nil?
-          raise Phronomy::Error, "stale Agent admission bind for #{key.inspect}"
-        end
-        @agent_admissions[key] = AgentAdmission.new(
-          agent_id: current.agent_id,
-          owner_token: current.owner_token,
-          execution_id: execution_key.freeze,
-          state: :executing
-        )
-      end
-      true
-    end
-
-    # @api private
-    def mark_agent_execution_admission(agent_id, execution_id:, state:)
-      assert_event_loop_thread!
-      key = agent_id.to_s
-      execution_key = execution_id.to_s
-      next_state = state.to_sym
-      unless %i[executing suspended resuming cancelling terminalizing recovery_required].include?(next_state)
-        raise ArgumentError, "unsupported Agent admission state: #{next_state.inspect}"
-      end
-
-      @lifecycle_mutex.synchronize do
-        current = @agent_admissions.fetch(key) do
-          raise Phronomy::Error, "Agent #{key.inspect} has no Runtime admission"
-        end
-        unless current.execution_id.to_s == execution_key
-          raise Phronomy::Error, "stale Agent admission state update for #{key.inspect}"
-        end
-        @agent_admissions[key] = AgentAdmission.new(
-          agent_id: current.agent_id,
-          owner_token: current.owner_token,
-          execution_id: current.execution_id,
-          state: next_state
-        )
-        @idle_cond.broadcast if runtime_idle_locked?
-      end
-      true
-    end
-
-    # @api private
-    def mark_agent_admission_recovery_required(agent_id, owner_token:)
-      assert_event_loop_thread!
-      key = agent_id.to_s
-      @lifecycle_mutex.synchronize do
-        current = @agent_admissions.fetch(key) do
-          raise Phronomy::Error, "Agent #{key.inspect} has no Runtime admission"
-        end
-        unless current.owner_token.equal?(owner_token)
-          raise Phronomy::Error, "stale Agent admission recovery update for #{key.inspect}"
-        end
-        @agent_admissions[key] = AgentAdmission.new(
-          agent_id: current.agent_id,
-          owner_token: current.owner_token,
-          execution_id: current.execution_id,
-          state: :recovery_required
-        )
-        @idle_cond.broadcast if runtime_idle_locked?
-      end
-      true
-    end
-
-    # Owner-aware release. Pre-durable failures release by owner_token; durable
-    # terminal outcomes release by execution_id.
-    # @api private
-    def release_agent_execution_admission(agent_id, owner_token: nil, execution_id: nil)
-      assert_event_loop_thread!
-      key = agent_id.to_s
-      @lifecycle_mutex.synchronize do
-        current = @agent_admissions[key]
-        next false unless current
-
-        authoritative = if execution_id
-          current.execution_id.to_s == execution_id.to_s
-        elsif owner_token
-          current.owner_token.equal?(owner_token)
-        else
-          false
-        end
-        next false unless authoritative
-
-        @agent_admissions.delete(key)
-        @idle_cond.broadcast if runtime_idle_locked?
+        queued_depth = enqueue([event, monotonic_nanoseconds])
         true
       end
-    end
+      return false unless accepted
 
-    # Process-local read-only owner lookup. Mutable Agent execution state never
-    # crosses this boundary; external callers receive only routing/ownership data.
-    def agent_execution_owner(execution_id)
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        state = @agent_executions[key]
-        next nil unless state
-
-        AgentExecutionOwner.new(
-          execution_id: key.freeze,
-          agent: state.agent,
-          coordinator: state.coordinator,
-          status: state.execution.status
-        )
-      end
-    end
-
-    # EventLoop-only accessors below form the live Agent execution authority.
-    # Offload workers receive operation-specific immutable snapshots instead.
-    # @api private
-    def agent_execution_state(execution_id)
-      assert_event_loop_thread!
-      @agent_executions[execution_id.to_s]
-    end
-
-    # @api private
-    def install_agent_execution(
-      execution_id:,
-      agent:,
-      coordinator:,
-      execution:,
-      runtime_projection:,
-      base_manifest:,
-      invocation:,
-      fsm_session_id:
-    )
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      state = AgentExecutionState.new(
-        execution_id: key.freeze,
-        agent: agent,
-        coordinator: coordinator,
-        execution: execution,
-        runtime_projection: runtime_projection,
-        base_manifest: base_manifest,
-        invocation: invocation,
-        fsm_session_id: fsm_session_id&.to_s&.freeze
-      )
-      @lifecycle_mutex.synchronize do
-        if @agent_executions.key?(key)
-          raise Phronomy::Error, "Agent execution #{key.inspect} is already live"
-        end
-        @agent_executions[key] = state
-      end
-      state
-    end
-
-    # @api private
-    def replace_agent_execution(
-      execution_id,
-      execution: UNSET,
-      runtime_projection: UNSET,
-      invocation: UNSET,
-      fsm_session_id: UNSET
-    )
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        current = @agent_executions.fetch(key) do
-          raise Phronomy::Error, "Agent execution #{key.inspect} is not live"
-        end
-        updated = AgentExecutionState.new(
-          execution_id: current.execution_id,
-          agent: current.agent,
-          coordinator: current.coordinator,
-          execution: execution.equal?(UNSET) ? current.execution : execution,
-          runtime_projection: runtime_projection.equal?(UNSET) ?
-            current.runtime_projection : runtime_projection,
-          base_manifest: current.base_manifest,
-          invocation: invocation.equal?(UNSET) ? current.invocation : invocation,
-          fsm_session_id: fsm_session_id.equal?(UNSET) ?
-            current.fsm_session_id : fsm_session_id&.to_s&.freeze
-        )
-        @agent_executions[key] = updated
-        updated
-      end
-    end
-
-    # Registers a caller-facing TaskResult that observes the authoritative terminal
-    # outcome of one logical Agent execution. Waiters are Runtime-only and are
-    # never persisted or rehydrated.
-    # @api private
-    def register_agent_completion_waiter(execution_id, task)
-      assert_event_loop_thread!
-      unless task.is_a?(Phronomy::TaskResult)
-        raise ArgumentError, "Agent completion waiter must be a Phronomy::TaskResult"
-      end
-
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        waiters = @agent_completion_waiters[key]
-        waiters << task unless waiters.include?(task)
-      end
-      task
-    end
-
-    # Atomically detaches all process-local completion waiters at authoritative
-    # terminal delivery. A fallback TaskResult is included for pre-install terminal
-    # paths that never acquired a live execution directory entry.
-    # @api private
-    def take_agent_completion_waiters(execution_id, fallback: nil)
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        waiters = @agent_completion_waiters.delete(key) || []
-        waiters << fallback if fallback && !waiters.include?(fallback)
-        waiters
-      end
-    end
-
-    # Registers one execution-owned asynchronous operation for physical
-    # quiescence supervision. OffloadPool tasks expose a private physical
-    # completion signal; custom asynchronous handles are required to make their
-    # ordinary completion mean that no residual execution-affecting work remains.
-    # @api private
-    def supervise_agent_operation(execution_id, operation)
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      unless operation.respond_to?(:on_complete)
-        raise ArgumentError, "supervised operation must expose on_complete"
-      end
-
-      physically_done = if operation.respond_to?(:physical_complete?)
-        operation.physical_complete?
-      elsif operation.respond_to?(:done?)
-        operation.done?
-      else
-        false
-      end
-      return operation if physically_done
-
-      token = Object.new.freeze
-      @lifecycle_mutex.synchronize do
-        unless @agent_executions.key?(key)
-          raise Phronomy::Error, "Agent execution #{key.inspect} is not live"
-        end
-        @agent_inflight_work[key][token] = true
-      end
-
-      callback = lambda do
-        accepted = post(
-          Phronomy::Event.new(
-            type: :agent_physical_work_completed,
-            target_id: SYSTEM_CHANNEL_ID,
-            payload: {execution_id: key, token: token}.freeze
-          )
-        )
-        unless accepted
-          Phronomy.configuration.logger&.warn(
-            "[Phronomy] EventLoop rejected physical-completion delivery for #{key}"
-          )
-        end
-      end
-
-      if operation.respond_to?(:on_physical_complete)
-        operation.on_physical_complete(&callback)
-      else
-        operation.on_complete { |_value, _error| callback.call }
-      end
-      operation
-    end
-
-    # @api private
-    def agent_execution_quiescent?(execution_id)
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        work = @agent_inflight_work.fetch(key, nil)
-        work.nil? || work.empty?
-      end
-    end
-
-    # Holds exactly one terminal continuation while cancellation/deadline has
-    # revoked result authority but execution-owned physical work is still live.
-    # @api private
-    def defer_agent_terminal_until_quiescent(execution_id, command)
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        if @agent_deferred_terminals.key?(key)
-          raise Phronomy::Error, "Agent execution #{key.inspect} already has a deferred terminal"
-        end
-        @agent_deferred_terminals[key] = command
-      end
+      check_queue_backlog(queued_depth, event)
       true
-    end
-
-    # @api private
-    def agent_inflight_work_count(execution_id)
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        (@agent_inflight_work.fetch(key, nil) || {}).size
-      end
-    end
-
-    # @api private
-    def release_agent_execution(execution_id)
-      assert_event_loop_thread!
-      key = execution_id.to_s
-      @lifecycle_mutex.synchronize do
-        work = @agent_inflight_work.fetch(key, nil)
-        unless work.nil? || work.empty?
-          raise Phronomy::Error,
-            "cannot release non-quiescent Agent execution #{key.inspect}"
-        end
-        if @agent_deferred_terminals.key?(key)
-          raise Phronomy::Error,
-            "cannot release Agent execution #{key.inspect} with deferred terminal work"
-        end
-        @agent_inflight_work.delete(key)
-        @agent_executions.delete(key)
-      end
     end
 
     # @api private
     def fsm_session_state(fsm_session_id)
       assert_event_loop_thread!
       @fsms[fsm_session_id.to_s]&.current_state
-    end
-
-    # Reserves one logical Workflow execution segment before durable load or
-    # hydration. The owner token is independent from any later FSMSession id.
-    # @api private
-    def admit_workflow(workflow_instance_id, owner_token:)
-      assert_event_loop_thread!
-      key = workflow_instance_id.to_s
-      raise ArgumentError, "workflow_instance_id must not be empty" if key.empty?
-      raise ArgumentError, "owner_token is required" unless owner_token
-
-      @lifecycle_mutex.synchronize do
-        ensure_accepting_registrations!
-        if @workflow_admissions.key?(key)
-          raise Phronomy::Error,
-            "Workflow instance #{key.inspect} already has a live execution segment"
-        end
-        @workflow_admissions[key] = WorkflowAdmission.new(
-          workflow_instance_id: key.freeze,
-          owner_token: owner_token,
-          fsm_session_id: nil,
-          state: :admitting
-        )
-      end
-      true
-    end
-
-    # Binds the concrete routing identity after admission and durable hydration.
-    # @api private
-    def bind_workflow_session(workflow_instance_id, owner_token:, fsm_session_id:)
-      assert_event_loop_thread!
-      key = workflow_instance_id.to_s
-      fsm_key = fsm_session_id.to_s
-      raise ArgumentError, "fsm_session_id must not be empty" if fsm_key.empty?
-
-      @lifecycle_mutex.synchronize do
-        current = @workflow_admissions.fetch(key) do
-          raise Phronomy::Error, "Workflow instance #{key.inspect} has no Runtime admission"
-        end
-        unless current.owner_token.equal?(owner_token) && current.fsm_session_id.nil?
-          raise Phronomy::Error, "stale Workflow admission bind for #{key.inspect}"
-        end
-        @workflow_admissions[key] = WorkflowAdmission.new(
-          workflow_instance_id: current.workflow_instance_id,
-          owner_token: current.owner_token,
-          fsm_session_id: fsm_key.freeze,
-          state: :executing
-        )
-      end
-      true
-    end
-
-    # @api private
-    def mark_workflow_admission(workflow_instance_id, owner_token:, state:)
-      assert_event_loop_thread!
-      key = workflow_instance_id.to_s
-      next_state = state.to_sym
-      unless %i[executing persisting_terminal recovery_required].include?(next_state)
-        raise ArgumentError, "unsupported Workflow admission state: #{next_state.inspect}"
-      end
-
-      @lifecycle_mutex.synchronize do
-        current = @workflow_admissions.fetch(key) do
-          raise Phronomy::Error, "Workflow instance #{key.inspect} has no Runtime admission"
-        end
-        unless current.owner_token.equal?(owner_token)
-          raise Phronomy::Error, "stale Workflow admission update for #{key.inspect}"
-        end
-        @workflow_admissions[key] = WorkflowAdmission.new(
-          workflow_instance_id: current.workflow_instance_id,
-          owner_token: current.owner_token,
-          fsm_session_id: current.fsm_session_id,
-          state: next_state
-        )
-        @idle_cond.broadcast if runtime_idle_locked?
-      end
-      true
-    end
-
-    # Owner-aware release. A competing or stale attempt cannot release the
-    # current Workflow execution segment.
-    # @api private
-    def release_workflow(workflow_instance_id, owner_token:)
-      assert_event_loop_thread!
-      key = workflow_instance_id.to_s
-      @lifecycle_mutex.synchronize do
-        current = @workflow_admissions[key]
-        next false unless current&.owner_token&.equal?(owner_token)
-
-        @workflow_admissions.delete(key)
-        @idle_cond.broadcast if runtime_idle_locked?
-        true
-      end
-    end
-
-    # Read-only diagnostics used by internal tests and routing assertions.
-    def workflow_admission_owner(workflow_instance_id)
-      @lifecycle_mutex.synchronize do
-        @workflow_admissions[workflow_instance_id.to_s]&.owner_token
-      end
-    end
-
-    def workflow_admission_fsm_session_id(workflow_instance_id)
-      @lifecycle_mutex.synchronize do
-        @workflow_admissions[workflow_instance_id.to_s]&.fsm_session_id
-      end
-    end
-
-    def workflow_admission_state(workflow_instance_id)
-      @lifecycle_mutex.synchronize do
-        @workflow_admissions[workflow_instance_id.to_s]&.state
-      end
-    end
-
-    def post_to_workflow(workflow_instance_id:, event:, payload: nil)
-      queued_depth = nil
-      posted_event = nil
-      accepted = @lifecycle_mutex.synchronize do
-        next false unless accepting_events?
-
-        admission = @workflow_admissions[workflow_instance_id.to_s]
-        next false unless admission&.state == :executing
-        fsm_session_id = admission.fsm_session_id
-        next false unless fsm_session_id
-        next false unless @admitted_fsm_session_ids.include?(fsm_session_id)
-
-        posted_event = Phronomy::Event.new(
-          type: event.to_sym,
-          target_id: fsm_session_id,
-          payload: payload
-        )
-        queued_depth = enqueue([posted_event, monotonic_nanoseconds])
-        true
-      end
-      return false unless accepted
-
-      check_queue_backlog(queued_depth, posted_event)
-      true
     end
 
     def wake
@@ -770,6 +352,23 @@ module Phronomy
 
     private
 
+    def dispatch_execution(token)
+      delivery = @lifecycle_mutex.synchronize { @execution_deliveries[token] }
+      return unless delivery
+
+      @dispatching_delivery = delivery
+      delivery[:receiver].deliver(delivery[:message])
+    rescue => error
+      complete_waiter(delivery[:completion], error) if delivery
+      raise
+    ensure
+      @dispatching_delivery = nil
+      @lifecycle_mutex.synchronize do
+        @execution_deliveries.delete(token)
+        @idle_cond.broadcast if runtime_idle_locked?
+      end
+    end
+
     def run_loop
       loop do
         fire_due_timers
@@ -824,6 +423,7 @@ module Phronomy
         session = @fsms.delete(fsm_session_id)
         waiter = @waiting.delete(fsm_session_id)
         decrement_outstanding if session
+        @lifecycle_mutex.synchronize { @session_receivers.delete(fsm_session_id) }
         complete_waiter(waiter, event.payload.fetch(:result))
       when :start
         session = event.payload.fetch(:session)
@@ -831,21 +431,14 @@ module Phronomy
         @fsms[session.id] = session
         @waiting[session.id] = waiter if waiter
         session.start
-      when :agent_control, :agent_terminal_ready
-        # :agent_terminal_ready is retained as an internal migration-compatible
-        # dispatch name; ACS-11 emits the operation-neutral :agent_control event.
-        cmd = event.payload.fetch(:command)
-        cmd.coordinator.deliver_on_event_loop(cmd)
-      when :agent_physical_work_completed
-        complete_agent_physical_work(event.payload)
-      when :workflow_control
-        cmd = event.payload.fetch(:command)
-        cmd.runner.deliver_on_event_loop(cmd)
+      when :execution_control
+        dispatch_execution(event.payload)
       when :recovery_required
         fsm_session_id = event.payload.fetch(:fsm_session_id)
         session = @fsms.delete(fsm_session_id)
         decrement_outstanding if session
-        mark_workflow_recovery_required_for_session(fsm_session_id)
+        receiver = @lifecycle_mutex.synchronize { @session_receivers.delete(fsm_session_id) }
+        receiver&.session_retired(fsm_session_id, reason: :recovery_required)
       end
     end
 
@@ -854,42 +447,6 @@ module Phronomy
         TERMINAL_MANAGEMENT_EVENTS.include?(event.type) &&
         event.payload.is_a?(Hash) &&
         event.payload.key?(:fsm_session_id)
-    end
-
-    def complete_agent_physical_work(payload)
-      key = payload.fetch(:execution_id).to_s
-      token = payload.fetch(:token)
-      deferred = @lifecycle_mutex.synchronize do
-        work = @agent_inflight_work.fetch(key, nil)
-        next nil unless work&.delete(token)
-
-        if work.empty?
-          @agent_inflight_work.delete(key)
-          command = @agent_deferred_terminals.delete(key)
-          @idle_cond.broadcast if runtime_idle_locked?
-          command
-        end
-      end
-      deferred&.coordinator&.deliver_on_event_loop(deferred)
-      true
-    end
-
-    def mark_workflow_recovery_required_for_session(fsm_session_id)
-      @lifecycle_mutex.synchronize do
-        key, admission = @workflow_admissions.find do |_workflow_instance_id, candidate|
-          candidate.fsm_session_id == fsm_session_id.to_s
-        end
-        return false unless admission
-
-        @workflow_admissions[key] = WorkflowAdmission.new(
-          workflow_instance_id: admission.workflow_instance_id,
-          owner_token: admission.owner_token,
-          fsm_session_id: nil,
-          state: :recovery_required
-        )
-        @idle_cond.broadcast if runtime_idle_locked?
-      end
-      true
     end
 
     def begin_stopping_if_idle
@@ -916,22 +473,17 @@ module Phronomy
       @waiting.values.each { |waiter| complete_waiter(waiter, error) }
       @waiting.clear
       @fsms.clear
-      completion_waiters = @lifecycle_mutex.synchronize do
-        waiters = @agent_completion_waiters.values.flatten
-        @agent_completion_waiters.clear
-        @agent_inflight_work.clear
-        @agent_deferred_terminals.clear
-        waiters
-      end
-      completion_waiters.each { |waiter| complete_waiter(waiter, error) }
-      @lifecycle_mutex.synchronize do
+      deliveries = @lifecycle_mutex.synchronize do
+        pending = @execution_deliveries.values
+        @execution_deliveries.clear
+        @session_receivers.clear
         @admitted_fsm_session_ids.clear
-        @workflow_admissions.clear
-        @agent_admissions.clear
-        @agent_executions.clear
         @outstanding_sessions = 0
         @idle_cond.broadcast
+        pending
       end
+      deliveries.each { |delivery| complete_waiter(delivery[:completion], error) }
+      shutdown_receivers(error)
     end
 
     def drain_queued_items
@@ -948,9 +500,6 @@ module Phronomy
       @lifecycle_mutex.synchronize do
         @state = :failed
         @admitted_fsm_session_ids.clear
-        @workflow_admissions.clear
-        @agent_admissions.clear
-        @agent_executions.clear
         @idle_cond.broadcast
       end
       cleanup_abandoned_work(error)
@@ -982,23 +531,8 @@ module Phronomy
     end
 
     def runtime_idle_locked?
-      @outstanding_sessions.zero? &&
-        @agent_inflight_work.values.all?(&:empty?) &&
-        @agent_deferred_terminals.empty? &&
-        !workflow_admission_transition_in_progress_locked? &&
-        !agent_admission_transition_in_progress_locked?
-    end
-
-    def workflow_admission_transition_in_progress_locked?
-      @workflow_admissions.values.any? do |admission|
-        %i[admitting executing persisting_terminal].include?(admission.state)
-      end
-    end
-
-    def agent_admission_transition_in_progress_locked?
-      @agent_admissions.values.any? do |admission|
-        %i[admitting executing resuming cancelling terminalizing].include?(admission.state)
-      end
+      @outstanding_sessions.zero? && @execution_deliveries.empty? &&
+        @execution_receivers.values.all?(&:idle?)
     end
 
     def join_until(deadline)
@@ -1010,28 +544,24 @@ module Phronomy
     end
 
     def finalize_terminated(status)
-      pending_waiters = @lifecycle_mutex.synchronize do
-        waiters = @agent_completion_waiters.values.flatten
-        @agent_completion_waiters.clear
-        @agent_inflight_work.clear
-        @agent_deferred_terminals.clear
+      @lifecycle_mutex.synchronize do
         @state = :terminated
         @admitted_fsm_session_ids.clear
-        @workflow_admissions.clear
-        @agent_admissions.clear
-        @agent_executions.clear
-        @thread = nil unless @thread&.alive?
+        @session_receivers.clear
+        @thread = nil
         @idle_cond.broadcast
-        waiters
       end
-      if pending_waiters.any?
-        error = Phronomy::ExecutionRehydrationRequiredError.new(
-          "Runtime terminated while Agent execution remained nonterminal; " \
-          "process-local TaskResult handles are not rehydrated"
-        )
-        pending_waiters.each { |waiter| complete_waiter(waiter, error) }
+      shutdown_receivers(nil)
+      @receiver_shutdown_error ? :failed : status
+    end
+
+    def shutdown_receivers(error)
+      @execution_receivers.each_value do |receiver|
+        receiver.shutdown(error: error)
+      rescue => caught
+        @receiver_shutdown_error ||= caught
       end
-      status
+      @runtime.__event_loop_failed(@receiver_shutdown_error) if @receiver_shutdown_error
     end
 
     def complete_waiter(waiter, payload)

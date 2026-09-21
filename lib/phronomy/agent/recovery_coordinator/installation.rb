@@ -151,12 +151,12 @@ module Phronomy
           bound = false
           installed = false
 
-          event_loop.admit_agent_execution(
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).admit_agent_execution(
             agent.agent_id,
             owner_token: command.owner_token
           )
           admitted = true
-          event_loop.bind_agent_execution_admission(
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).bind_agent_execution_admission(
             agent.agent_id,
             owner_token: command.owner_token,
             execution_id: execution.execution_id
@@ -171,7 +171,7 @@ module Phronomy
             )
           end
 
-          event_loop.install_agent_execution(
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).install_agent_execution(
             execution_id: execution.execution_id,
             agent: agent,
             coordinator: main,
@@ -184,7 +184,7 @@ module Phronomy
           installed = true
 
           if execution.status == :suspended
-            event_loop.mark_agent_execution_admission(
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
               state: :suspended
@@ -215,7 +215,7 @@ module Phronomy
 
           case plan.classification.disposition
           when Phronomy::Recovery::RESOLUTION_REQUIRED
-            event_loop.mark_agent_execution_admission(
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
               state: :recovery_required
@@ -260,7 +260,7 @@ module Phronomy
           # simplecov:disable
           if installed
             begin
-              event_loop.release_agent_execution(
+              Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(
               execution.execution_id
             )
             rescue
@@ -270,7 +270,7 @@ module Phronomy
           if admitted
             if bound
               begin
-                event_loop.release_agent_execution_admission(
+                Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
                   agent.agent_id,
                   execution_id: execution&.execution_id
                 )
@@ -279,7 +279,7 @@ module Phronomy
               end
             else
               begin
-                event_loop.release_agent_execution_admission(
+                Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
                   agent.agent_id,
                   owner_token: command.owner_token
                 )
@@ -327,7 +327,7 @@ module Phronomy
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
             observe_recovery_execution(internal_task, execution)
-            event_loop.mark_agent_execution_admission(
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
               state: :executing
@@ -352,7 +352,7 @@ module Phronomy
               name: "agent-recovery-auto:#{execution.execution_id}"
             )
             observe_recovery_execution(internal_task, execution)
-            event_loop.mark_agent_execution_admission(
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
               state: :executing

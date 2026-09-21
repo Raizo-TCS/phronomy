@@ -245,7 +245,7 @@ module Phronomy
         # this process. The Runtime returns only a read-only ownership view;
         # mutable Agent execution state remains EventLoop-owned.
         def live_for_execution(execution_id)
-          owner = Phronomy::Runtime.instance.__agent_execution_owner(execution_id)
+          owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(execution_id)
           unless owner
             raise Phronomy::ExecutionRehydrationRequiredError,
               "no live execution owner for #{execution_id}; durable rehydration is required"
@@ -455,7 +455,7 @@ module Phronomy
         runtime = @_phronomy_runtime_owner
         registry = OwnershipRegistry.for(runtime)
         token = registry.begin_purge(self)
-        if runtime.__agent_execution_admitted?(agent_id)
+        if Phronomy::Agent::ExecutionRegistry.existing_for(runtime)&.agent_execution_admitted?(agent_id)
           registry.abort_purge(self, token)
           raise Phronomy::AgentBusyError,
             "Agent #{agent_id.inspect} has a nonterminal top-level execution"

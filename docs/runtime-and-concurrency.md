@@ -26,7 +26,8 @@ are defined by
 | Runtime-retained component | Implementation owner and responsibility |
 |---|---|
 | Shutdown participants | Feature-owned registries: Agent identity, Team identity, and MultiAgent synchronous-call admission |
-| EventLoop | Engine dispatcher thread, FSMSessions, and currently Agent/Workflow execution admission and state |
+| EventLoop | Engine dispatcher thread, FSMSessions and registered feature receivers |
+| Execution receivers | Agent/Workflow own execution admission, state and idle policies; mutations run on EventLoop |
 | OffloadPool and named pools | Engine bounded workers and private physical-operation records |
 | Timers | Engine EventLoop-driven scheduling |
 
@@ -38,6 +39,22 @@ The framework does not allocate one operating-system Thread per logical
 Agent/Workflow/Tool lifecycle. Logical waits remain explicit states plus later
 EventLoop events.
 
+## Feature execution receivers
+
+[ADR-042](decisions/042-feature-owned-execution-state.md) separates implementation
+ownership from the single-writer execution context. Agent and Workflow create
+`Agent::ExecutionRegistry` and `WorkflowExecutionRegistry` respectively; Engine
+retains registered receivers without selecting concrete feature types.
+
+Receiver registration and new request admission close before idle checks.
+Already queued requests, pending durable operations and supervised physical
+work are counted until their feature continuation settles. Worker callbacks
+only enqueue results. Workflow instance routing and generic FSM enqueue share
+one lock. After a clean join, receiver cleanup invalidates retained state;
+a failing receiver makes Runtime cleanup incomplete. Dispatcher failure instead
+notifies receivers on the failing loop thread with the original error.
+
+
 ## Live state and durable state
 
 A live Agent or Workflow owns its current logical state. `Persistence` is the
@@ -45,7 +62,7 @@ last committed durable representation and recovery source; it is not reloaded at
 every semantic boundary.
 
 For active Agents, **EventLoop is the single writer of Phronomy-managed live
-execution state**. EventLoop owns a process-local execution directory keyed by
+execution state**. `Agent::ExecutionRegistry` owns the process-local directory keyed by
 canonical `execution_id`. Each directory value is immutable and is replaced on
 EventLoop when the current AgentExecution, RuntimeProjection, AgentInvocation, or
 owning FSMSession changes. The former mutex-protected
@@ -99,7 +116,8 @@ invalidates the old object, deletes durable state, releases the process-local
 identity, and allows a later new Agent to reuse the textual ID.
 
 Live Agent ownership and top-level Execution admission are separate lifetimes.
-For one live Agent, EventLoop admits at most one nonterminal top-level Execution.
+For one live Agent, `Agent::ExecutionRegistry` admits at most one nonterminal
+top-level Execution on EventLoop.
 Admission is acquired **before** the initial Offload/Persistence operation:
 
 ```text

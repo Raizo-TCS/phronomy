@@ -147,7 +147,7 @@ module Phronomy
         if durable_id.nil? &&
             Phronomy::Runtime.instance.event_loop.current?
           state =
-            Phronomy::Runtime.instance.event_loop.agent_execution_state(
+            Phronomy::Agent::ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_execution_state(
               execution_id
             )
           durable_id = state&.execution&.metadata&.fetch(

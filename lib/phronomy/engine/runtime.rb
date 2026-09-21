@@ -100,18 +100,10 @@ module Phronomy
       @timer_service.timer_queue
     end
 
-    # Returns only an immutable process-local routing/ownership view. Mutable
-    # execution state remains inside EventLoop and is never exposed to callers.
+    # Lookup only; inspection must not create an EventLoop during shutdown.
     # @api private
-    def __agent_execution_owner(execution_id)
-      loop_instance = @lifecycle_mutex.synchronize { @event_loop }
-      loop_instance&.agent_execution_owner(execution_id)
-    end
-
-    # @api private
-    def __agent_execution_admitted?(agent_id)
-      loop_instance = @lifecycle_mutex.synchronize { @event_loop }
-      loop_instance&.agent_execution_admitted?(agent_id) || false
+    def __event_loop_if_initialized
+      @lifecycle_mutex.synchronize { @event_loop }
     end
 
     # Shares one internal participant per key for this Runtime's lifetime.
@@ -222,6 +214,7 @@ module Phronomy
           loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
+          (!loop_instance || loop_instance.__receiver_cleanup_complete?) &&
           subsystem_error.nil?
 
         cleanup_complete = finalize_participants(participants) if cleanup_complete

@@ -133,17 +133,17 @@ RSpec.describe "Agent Runtime admission" do
   end
 
   it "keeps Runtime shutdown waiting through Agent durability transitions" do
-    event_loop_source = File.read(
-      File.expand_path("../../../lib/phronomy/engine/event_loop.rb", __dir__)
+    registry_source = File.read(
+      File.expand_path("../../../lib/phronomy/agent/execution_registry.rb", __dir__)
     )
     coordinator_source = File.read(
       File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
     )
 
-    idle_helper = event_loop_source
+    idle_helper = registry_source
       .split("def agent_admission_transition_in_progress_locked?", 2)
       .fetch(1)
-      .split(/^    def /, 2)
+      .split(/^      def /, 2)
       .first
     expect(idle_helper).to include(
       "%i[admitting executing resuming cancelling terminalizing]"
@@ -167,20 +167,21 @@ RSpec.describe "Agent Runtime admission" do
       terminal.index("runtime.offload.submit")
   end
 
-  it "returns false when __agent_execution_admitted? is queried for an unknown agent" do
-    result = Phronomy::Runtime.instance.__agent_execution_admitted?("unknown-agent-id")
+  it "returns false when agent_execution_admitted? is queried for an unknown agent" do
+    result = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_admitted?("unknown-agent-id") || false
     expect(result).to be false
   end
 
-  it "returns false when __agent_execution_admitted? is called with nil" do
-    result = Phronomy::Runtime.instance.__agent_execution_admitted?(nil)
+  it "returns false when agent_execution_admitted? is called with nil" do
+    result = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_admitted?(nil) || false
     expect(result).to be false
   end
 
-  it "returns false when __agent_execution_admitted? is called on a fresh Runtime before any EventLoop exists" do
+  it "returns false when agent_execution_admitted? is called on a fresh Runtime before any EventLoop exists" do
     runtime = Phronomy::Runtime.new
-    result = runtime.__agent_execution_admitted?("any-agent-id")
+    result = Phronomy::Agent::ExecutionRegistry.existing_for(runtime)&.agent_execution_admitted?("any-agent-id") || false
     expect(result).to be false
+    expect(runtime.__event_loop_if_initialized).to be_nil
   ensure
     runtime&.shutdown(timeout: 2)
   end
@@ -197,20 +198,23 @@ RSpec.describe "Agent Runtime admission" do
       define_method(:extract_message) do |input|
         entered.push(true)
         release.pop
-        super(input)
+        raise ArgumentError, "purge admission probe finished"
       end
     end
 
     agent = busy_class.create(agent_id: "busy-purge-agent", persistence: persistence)
-    agent.invoke_async("work")
-    entered.pop
+    task = agent.invoke_async("work")
+    Timeout.timeout(3) { entered.pop }
 
     expect {
       agent.purge!
     }.to raise_error(Phronomy::AgentBusyError)
 
     release.push(true)
+    expect { task.wait_result(timeout: 3) }
+      .to raise_error(ArgumentError, "purge admission probe finished")
   ensure
+    release << true if release
     begin
       Phronomy.reset_runtime!
     rescue

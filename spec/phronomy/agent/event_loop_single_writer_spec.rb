@@ -21,14 +21,14 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps live Agent execution mutation on EventLoop and off worker result paths" do
-    event_loop = source("lib/phronomy/engine/event_loop.rb")
+    registry = source("lib/phronomy/agent/execution_registry.rb")
     coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
 
-    expect(event_loop).to include("@agent_executions = {}")
-    expect(event_loop).to include("def install_agent_execution")
-    expect(event_loop).to include("def replace_agent_execution")
-    expect(event_loop).to include("def release_agent_execution")
-    expect(event_loop).to include("assert_event_loop_thread!")
+    expect(registry).to include("@agent_executions = {}")
+    expect(registry).to include("def install_agent_execution")
+    expect(registry).to include("def replace_agent_execution")
+    expect(registry).to include("def release_agent_execution")
+    expect(registry).to include("assert_event_loop_thread!")
 
     worker_sections = %w[
       perform_initial_preparation
@@ -110,15 +110,16 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
       apply.index("if result.error")
   end
 
-  it "does not expose live mutable execution state through Runtime owner lookup" do
+  it "does not expose live mutable execution state through the Agent execution owner lookup" do
     runtime = source("lib/phronomy/engine/runtime.rb")
-    event_loop = source("lib/phronomy/engine/event_loop.rb")
+    registry = source("lib/phronomy/agent/execution_registry.rb")
 
-    expect(runtime).to include("def __agent_execution_owner")
+    expect(runtime).not_to include("def __agent_execution_owner")
+    expect(registry).to include("def agent_execution_owner")
     expect(runtime).not_to include("def __agent_activations")
-    expect(event_loop).to include("AgentExecutionOwner = Data.define")
-    expect(event_loop).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:invocation/)
-    expect(event_loop).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:execution,/)
+    expect(registry).to include("AgentExecutionOwner = Data.define")
+    expect(registry).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:invocation/)
+    expect(registry).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:execution,/)
   end
 
   it "rejects a stale Provider result by semantic llm_call_id without advancing the invocation" do
