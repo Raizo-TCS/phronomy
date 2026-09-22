@@ -97,6 +97,7 @@ resolved explicitly.
 | [`045-worker-input-restriction-ownership`](045-worker-input-restriction-ownership.md) | Accepted | Yes | Each restricted type declares an execution-boundary marker; authorization input validation preserves the existing rejection and opaque application-value contracts without enumerating feature types. |
 | [`046-agent-responsibility-layout-and-shared-records`](046-agent-responsibility-layout-and-shared-records.md) | Amended | Yes | Agent responsibility directories preserve constants; shared record encoding, saved context reads and live restoration have separate owners. Continuation control refined by [047-recovered-execution-continuation-contract](047-recovered-execution-continuation-contract.md). |
 | [`047-recovered-execution-continuation-contract`](047-recovered-execution-continuation-contract.md) | Accepted | Yes | Recovery hands semantic commands to the execution owner; EventLoop identity/revision checks and shared session registration replace private control calls. |
+| [`048-dispatch-preparation-worker-ownership`](048-dispatch-preparation-worker-ownership.md) | Accepted | Yes | Dispatch worker owns prerequisite persistence and readback; the execution owner retains EventLoop validation, apply and dispatch. Operation-specific boundaries and purpose-level method bodies are preserved. |
 
 ## Legacy duplicate `011`
 

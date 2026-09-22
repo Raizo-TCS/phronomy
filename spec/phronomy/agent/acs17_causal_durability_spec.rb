@@ -106,6 +106,10 @@ RSpec.describe "ACS-17 causal durability" do
     [coordinator, active, root, manifest, manifest_ref]
   end
 
+  def dispatch_preparation(agent)
+    Phronomy::Agent::DispatchPreparation.new(agent: agent, persistence: agent.persistence)
+  end
+
   def provider_outcome
     Phronomy::Agent::ProviderCallOutcome.new(
       role: :assistant,
@@ -210,7 +214,7 @@ RSpec.describe "ACS-17 causal durability" do
   rescue => error
     raise if error.message == "expected a PreparationOutcomeUnknownError"
 
-    expect(error.class.name).to end_with("PreparationOutcomeUnknownError")
+    expect(error).to be_a(Phronomy::Agent::DispatchPreparation::OutcomeUnknownError)
     expect(error).to respond_to(:original_error)
     expect(error).to respond_to(:intended_result)
     error
@@ -255,7 +259,7 @@ RSpec.describe "ACS-17 causal durability" do
       manifest_ref
     )
 
-    result = coordinator.send(:perform_tool_dispatch_preparation, operation)
+    result = dispatch_preparation(agent).prepare_tools(operation)
     stored = persistence.executions.load(execution.execution_id)
 
     expect(stored.to_h).to eq(result.execution.to_h)
@@ -294,20 +298,14 @@ RSpec.describe "ACS-17 causal durability" do
       root,
       manifest_ref
     )
-    tool_result = coordinator.send(
-      :perform_tool_dispatch_preparation,
-      tool_operation
-    )
+    tool_result = dispatch_preparation(agent).prepare_tools(tool_operation)
     provider_operation = provider_preparation_operation(
       tool_result.execution,
       root,
       manifest
     )
 
-    result = coordinator.send(
-      :perform_provider_dispatch_preparation,
-      provider_operation
-    )
+    result = dispatch_preparation(agent).prepare_provider(provider_operation)
     stored = persistence.executions.load(execution.execution_id)
 
     expect(stored.to_h).to eq(result.execution.to_h)
@@ -339,17 +337,14 @@ RSpec.describe "ACS-17 causal durability" do
     persistence.lose_next_transaction_response!
 
     uncertainty = capture_uncertain_result do
-      coordinator.send(:perform_tool_dispatch_preparation, operation)
+      dispatch_preparation(agent).prepare_tools(operation)
     end
     command = Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand.new(
       operation: operation,
       intended_result: uncertainty.intended_result,
       original_error: uncertainty.original_error
     )
-    result = coordinator.send(
-      :perform_tool_dispatch_preparation_reconciliation,
-      command
-    )
+    result = dispatch_preparation(agent).reconcile_tools(command)
 
     expect(result.disposition).to eq(:committed)
     expect(result.preparation_result.execution.to_h)
@@ -369,31 +364,25 @@ RSpec.describe "ACS-17 causal durability" do
       root,
       manifest_ref
     )
-    tool_result = coordinator.send(
-      :perform_tool_dispatch_preparation,
-      tool_operation
-    )
+    tool_result = dispatch_preparation(agent).prepare_tools(tool_operation)
     operation = provider_preparation_operation(
       tool_result.execution,
       root,
       manifest
     )
-    # skip: 1 because perform_provider_dispatch_preparation now uses two transactions;
+    # skip: 1 because Provider preparation uses two transactions;
     # the first encodes records and the second (guarded) commits the execution save.
     persistence.lose_next_transaction_response!(skip: 1)
 
     uncertainty = capture_uncertain_result do
-      coordinator.send(:perform_provider_dispatch_preparation, operation)
+      dispatch_preparation(agent).prepare_provider(operation)
     end
     command = Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationCommand.new(
       operation: operation,
       intended_result: uncertainty.intended_result,
       original_error: uncertainty.original_error
     )
-    result = coordinator.send(
-      :perform_provider_dispatch_preparation_reconciliation,
-      command
-    )
+    result = dispatch_preparation(agent).reconcile_provider(command)
 
     expect(result.disposition).to eq(:committed)
     expect(result.preparation_result.execution.to_h)
@@ -422,10 +411,7 @@ RSpec.describe "ACS-17 causal durability" do
       original_error: IOError.new("simulated uncertain Tool preparation")
     )
 
-    result = coordinator.send(
-      :perform_tool_dispatch_preparation_reconciliation,
-      command
-    )
+    result = dispatch_preparation(agent).reconcile_tools(command)
 
     expect(result.disposition).to eq(:not_committed)
     expect(result.preparation_result).to be_nil
@@ -434,7 +420,7 @@ RSpec.describe "ACS-17 causal durability" do
   it "classifies an unchanged durable Provider pre-state as not committed" do
     persistence = Phronomy::Persistence.in_memory
     agent = build_agent(persistence)
-    coordinator, execution, root, manifest, _manifest_ref =
+    _, execution, root, manifest, _manifest_ref =
       establish_execution(agent, persistence)
     operation = provider_preparation_operation(execution, root, manifest)
     intended = Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationResult.new(
@@ -448,10 +434,7 @@ RSpec.describe "ACS-17 causal durability" do
       original_error: IOError.new("simulated uncertain Provider preparation")
     )
 
-    result = coordinator.send(
-      :perform_provider_dispatch_preparation_reconciliation,
-      command
-    )
+    result = dispatch_preparation(agent).reconcile_provider(command)
 
     expect(result.disposition).to eq(:not_committed)
     expect(result.preparation_result).to be_nil
@@ -486,10 +469,7 @@ RSpec.describe "ACS-17 causal durability" do
       original_error: IOError.new("simulated uncertain Tool preparation")
     )
 
-    result = coordinator.send(
-      :perform_tool_dispatch_preparation_reconciliation,
-      command
-    )
+    result = dispatch_preparation(agent).reconcile_tools(command)
 
     expect(result.disposition).to eq(:conflict)
     expect(result.preparation_result).to be_nil
@@ -516,7 +496,7 @@ RSpec.describe "ACS-17 causal durability" do
     )
 
     expect {
-      coordinator.send(:perform_tool_dispatch_preparation, operation)
+      dispatch_preparation(agent).prepare_tools(operation)
     }.to raise_error(Phronomy::Storage::ConflictError)
   end
 
@@ -542,5 +522,183 @@ RSpec.describe "ACS-17 causal durability" do
 
     expect(provider_apply).to include("start_prepared_provider_call")
     expect(tool_apply).to include("start_prepared_tool_dispatch")
+  end
+
+  def provider_operation_after_tools(agent, persistence)
+    coordinator, execution, root, manifest, manifest_ref = establish_execution(agent, persistence)
+    tools = dispatch_preparation(agent).prepare_tools(
+      tool_preparation_operation(coordinator, execution, root, manifest_ref)
+    )
+    provider_preparation_operation(tools.execution, root, manifest)
+  end
+
+  def bind_observed_policy(agent, &observe)
+    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+      define_method(:call) do |input|
+        observe.call
+        Phronomy::Agent::ContextPolicies::Default.instance.call(input)
+      end
+    end.new
+    agent.class.context_policy(policy)
+  end
+
+  it "keeps application hooks and Policy outside both preparation transactions" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    events = []
+    transaction_open = false
+    original_root = agent.agent_root
+    original_records = agent.send(:_journal_records_snapshot)
+    bind_observed_policy(agent) do
+      expect(transaction_open).to be(false)
+      events << :policy
+    end
+    allow(persistence).to receive(:transaction).and_wrap_original do |original, &action|
+      events << :transaction_started
+      transaction_open = true
+      original.call(&action)
+    ensure
+      transaction_open = false
+      events << :transaction_finished
+    end
+    allow(agent).to receive(:run_before_llm_input_hooks).and_wrap_original do |original, **kwargs|
+      expect(transaction_open).to be(false)
+      events << :hook
+      original.call(**kwargs)
+    end
+    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+      materializer = original.call(**kwargs)
+      allow(materializer).to receive(:materialize).and_wrap_original do |materialize, **args|
+        expect(transaction_open).to be(false)
+        stored = persistence.executions.load(operation.execution_id)
+        expect(stored.phase).to eq(:calling_llm)
+        events << :materialize
+        materialize.call(**args)
+      end
+      materializer
+    end
+
+    result = dispatch_preparation(agent).prepare_provider(operation)
+
+    expect(events).to eq([:transaction_started, :transaction_finished, :hook, :policy,
+      :transaction_started, :transaction_finished, :materialize])
+    expect(result.error).to be_nil
+    expect(agent.agent_root).to equal(original_root)
+    expect(agent.send(:_journal_records_snapshot)).to eq(original_records)
+  end
+
+  it "does not classify response loss from the encoding transaction as an uncertain execution save" do
+    persistence = ResponseLostAfterCommitPersistence.new(Phronomy::Persistence.in_memory)
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    persistence.lose_next_transaction_response!
+
+    expect { dispatch_preparation(agent).prepare_provider(operation) }
+      .to raise_error(IOError, /response loss/)
+    expect(persistence.executions.load(operation.execution_id).to_h).to eq(operation.execution.to_h)
+  end
+
+  it "rechecks the durable Agent watermark after application Policy changes it" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    bind_observed_policy(agent) do
+      changed = operation.root.with(agent_revision: operation.root.agent_revision + 1)
+      persistence.agents.save(changed.agent_id,
+        expected_revision: operation.root.agent_revision, root: changed)
+    end
+
+    expect { dispatch_preparation(agent).prepare_provider(operation) }
+      .to raise_error(Phronomy::Storage::ConflictError)
+    expect(persistence.executions.load(operation.execution_id).to_h).to eq(operation.execution.to_h)
+  end
+
+  it "checks cancellation after application Policy and before committing the Provider preparation" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    token = Phronomy::Concurrency::CancellationToken.new
+    operation = operation.with(invocation_config: {cancellation_token: token}.freeze)
+    bind_observed_policy(agent) { token.cancel! }
+
+    expect { dispatch_preparation(agent).prepare_provider(operation) }
+      .to raise_error(Phronomy::CancellationError)
+    expect(persistence.executions.load(operation.execution_id).to_h).to eq(operation.execution.to_h)
+  end
+
+  it "returns the committed Provider execution with a post-commit materialization error" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    failure = IOError.new("projection unavailable")
+    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+      materializer = original.call(**kwargs)
+      allow(materializer).to receive(:materialize).and_raise(failure)
+      materializer
+    end
+
+    result = dispatch_preparation(agent).prepare_provider(operation)
+
+    expect(result.error).to equal(failure)
+    expect(result.runtime_projection).to be_nil
+    expect(result.execution.phase).to eq(:calling_llm)
+    expect(persistence.executions.load(operation.execution_id).to_h).to eq(result.execution.to_h)
+  end
+
+  it "retains a confirmed Provider result when reconciliation materialization fails" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    committed = dispatch_preparation(agent).prepare_provider(operation)
+    failure = IOError.new("saved projection unavailable")
+    allow(Phronomy::Agent::SavedContextReader).to receive(:materialize_projection).and_raise(failure)
+    command = Phronomy::Agent::DispatchPreparation::ProviderReconciliationCommand.new(
+      operation: operation, intended_result: committed, original_error: IOError.new("lost response")
+    )
+
+    result = dispatch_preparation(agent).reconcile_provider(command)
+
+    expect(result.disposition).to eq(:committed)
+    expect(result.preparation_result.execution.to_h).to eq(committed.execution.to_h)
+    expect(result.preparation_result.error).to equal(failure)
+    expect(result.preparation_result.runtime_projection).to be_nil
+  end
+
+  it "propagates a reconciliation read failure without reporting an uncommitted preparation" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    intended = Phronomy::Agent::DispatchPreparation::ProviderResult.new(
+      execution: operation.execution.with(phase: :calling_llm), runtime_projection: nil, error: nil
+    )
+    command = Phronomy::Agent::DispatchPreparation::ProviderReconciliationCommand.new(
+      operation: operation, intended_result: intended, original_error: IOError.new("lost response")
+    )
+    allow(persistence.executions).to receive(:load).with(operation.execution_id)
+      .and_raise(IOError, "read unavailable")
+
+    expect { dispatch_preparation(agent).reconcile_provider(command) }
+      .to raise_error(IOError, "read unavailable")
+  end
+
+  it "rejects different preparation contents even when the intended revision matches" do
+    persistence = Phronomy::Persistence.in_memory
+    agent = build_agent(persistence)
+    operation = provider_operation_after_tools(agent, persistence)
+    committed = dispatch_preparation(agent).prepare_provider(operation)
+    different = committed.execution.with(
+      execution_revision: committed.execution.execution_revision,
+      metadata: committed.execution.metadata.merge("different-content" => true)
+    )
+    command = Phronomy::Agent::DispatchPreparation::ProviderReconciliationCommand.new(
+      operation: operation, intended_result: committed.with(execution: different),
+      original_error: IOError.new("lost response")
+    )
+
+    result = dispatch_preparation(agent).reconcile_provider(command)
+
+    expect(result.disposition).to eq(:conflict)
+    expect(result.preparation_result).to be_nil
   end
 end

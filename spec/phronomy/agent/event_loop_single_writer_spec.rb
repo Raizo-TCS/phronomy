@@ -32,10 +32,6 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
 
     worker_sections = %w[
       perform_initial_preparation
-      perform_provider_dispatch_preparation
-      perform_tool_dispatch_preparation
-      perform_provider_dispatch_preparation_reconciliation
-      perform_tool_dispatch_preparation_reconciliation
       perform_resume_commit
       compute_terminal
       commit_suspended
@@ -45,6 +41,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
       coordinator.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
     end.join("\n")
 
+    worker_sections += source("lib/phronomy/agent/execution/dispatch_preparation.rb")
     expect(worker_sections).not_to include("__replace_root")
     expect(worker_sections).not_to include("_append_journal_records")
     expect(worker_sections).not_to include("replace_agent_execution")
@@ -94,15 +91,15 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
 
   it "applies a known committed follow-up execution even if runtime materialization fails" do
     coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
-    worker = coordinator
-      .split("def perform_provider_dispatch_preparation", 2).fetch(1)
+    worker = source("lib/phronomy/agent/execution/dispatch_preparation.rb")
+      .split("def materialize_provider_result", 2).fetch(1)
       .split(/^      def /, 2).first
     apply = coordinator
       .split("def apply_confirmed_provider_dispatch_preparation_on_event_loop", 2).fetch(1)
       .split(/^      def /, 2).first
 
     expect(worker).to include("materialization_error")
-    expect(worker).to include("execution: updated")
+    expect(worker).to include("execution: execution")
     expect(worker).to include("error: materialization_error")
     expect(apply.index("execution: result.execution")).to be <
       apply.index("if result.error")
@@ -240,5 +237,14 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     invocation.acknowledge_runtime_snapshot(snapshot)
 
     expect(invocation.runtime_snapshot.fetch(:runtime_events)).to eq([later])
+  end
+
+  it "keeps the dispatch worker independent of execution control and live delivery" do
+    worker = source("lib/phronomy/agent/execution/dispatch_preparation.rb")
+    %w[ExecutionCoordinator ExecutionRegistry ExecutionSessionRunner TaskResult
+      start_prepared_provider_call start_prepared_tool_dispatch].each do |dependency|
+      expect(worker).not_to include(dependency)
+    end
+    expect(worker).not_to include("Phronomy::Runtime", ".offload", "event_sink")
   end
 end

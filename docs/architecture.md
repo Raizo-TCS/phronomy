@@ -137,6 +137,15 @@ ordinary and recovered Agent/Tool session registration and reports completion
 back to the same coordinator; terminal persistence remains with that coordinator.
 See [ADR-047](decisions/047-recovered-execution-continuation-contract.md).
 
+`Agent::DispatchPreparation` owns Provider/Tool dispatch prerequisites and their
+operation-specific readback. ExecutionCoordinator captures and submits inputs,
+then validates/applies results on EventLoop before dispatch. The worker's Provider
+entry separates record encoding, application ContextPolicy, prerequisite commit
+and post-commit materialization without changing transaction/rescue boundaries.
+Its input/result types are worker-owned; existing Coordinator constant paths are
+internal aliases, with changed canonical Ruby names. See
+[ADR-048](decisions/048-dispatch-preparation-worker-ownership.md).
+
 Selected nested Zeitwerk roots retain existing top-level Phronomy constants
 without changing the enclosing feature's existing nested constants. For
 example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with
