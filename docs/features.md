@@ -92,7 +92,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
-| **SharedState** — Peer-agent shared-state coordination | Experimental |
+| **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; see the [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
 | **Human-in-the-loop approval** — durable suspension publishes `:approval_required` through the Agent listener; `approve` / `approve_async` resumes the same logical `execution_id` with a fresh FSMSession incarnation | Beta |
 | **`tool_approval_policy`** — Application-defined allow/approve/reject policy using a value-only `ApprovalEvaluationRequest` without live Agent/Tool references | Beta |
 

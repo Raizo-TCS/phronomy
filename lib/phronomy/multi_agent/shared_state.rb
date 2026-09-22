@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
-    # Implements peer coordination through a shared KnowledgeStore.
+  module MultiAgent
+    # Implements peer coordination through an invocation-local KnowledgeStore.
+    # @api public
     class SharedState
       # Semantic revision of the framework-owned SharedState instrumentation
       # applied on top of one specific researcher definition revision.
@@ -13,6 +14,8 @@ module Phronomy
       INSTRUMENTATION_DEFINITION_VERSION = 1
       private_constant :INSTRUMENTATION_DEFINITION_VERSION
 
+      # Findings shared by the sequential members of one invocation.
+      # @api public
       class KnowledgeStore
         def initialize
           @findings = []
@@ -78,8 +81,15 @@ module Phronomy
       # @api public
       def invoke(input, config: {})
         validate_termination!
-
         store = KnowledgeStore.new
+        cycles, terminated_by = coordinate_members(input, store)
+
+        {output: aggregate_findings(store), cycles: cycles, terminated_by: terminated_by}
+      end
+
+      private
+
+      def coordinate_members(input, store)
         max_cycles = self.class._max_cycles
         deadline = self.class._timeout ? Time.now + self.class._timeout : nil
         terminated_by = :max_cycles
@@ -87,15 +97,7 @@ module Phronomy
         cycle_limit = max_cycles || Float::INFINITY
 
         (1..cycle_limit).each do |cycle|
-          self.class._members.each do |member_config|
-            invoke_researcher(
-              member_config[:klass],
-              store,
-              cycle,
-              input,
-              member_config[:instruction]
-            )
-          end
+          invoke_members(input, store, cycle)
           completed_cycles = cycle
 
           if self.class._terminate_when&.call(store)
@@ -109,16 +111,24 @@ module Phronomy
           end
         end
 
-        output = if self.class._aggregator
+        [completed_cycles, terminated_by]
+      end
+
+      def invoke_members(input, store, cycle)
+        self.class._members.each do |member_config|
+          invoke_researcher(
+            member_config[:klass], store, cycle, input, member_config[:instruction]
+          )
+        end
+      end
+
+      def aggregate_findings(store)
+        if self.class._aggregator
           self.class._aggregator.call(store)
         else
           store.read_all
         end
-
-        {output: output, cycles: completed_cycles, terminated_by: terminated_by}
       end
-
-      private
 
       def validate_termination!
         return if self.class._max_cycles || self.class._timeout
@@ -148,28 +158,8 @@ module Phronomy
 
       def build_instrumented_researcher(researcher_class, store, cycle)
         agent_key = researcher_class.name&.to_sym || researcher_class.object_id.to_s.to_sym
-
-        read_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
-          tool_name "read_store"
-          description "Read all current findings from the shared knowledge store. " \
-            "Call this to see what other researchers have discovered."
-          execution_mode :cooperative
-
-          define_method(:execute) { store.read_all.to_json }
-        end
-
-        write_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
-          tool_name "write_finding"
-          description "Record a new finding into the shared knowledge store so " \
-            "that other researchers can build on your discovery."
-          execution_mode :cooperative
-          param :content, type: :string, desc: "The finding to record"
-
-          define_method(:execute) do |content:|
-            store.write(agent: agent_key, content: content, cycle: cycle)
-            "Finding recorded."
-          end
-        end
+        read_tool = build_read_tool(store)
+        write_tool = build_write_tool(store, cycle, agent_key)
 
         definitions = researcher_class.tools.to_h do |tool_class|
           [tool_class, researcher_class.tool_aliases[tool_class]]
@@ -197,12 +187,39 @@ module Phronomy
         end
       end
 
+      def build_read_tool(store)
+        Class.new(Phronomy::Agent::Context::Capability::Base) do
+          tool_name "read_store"
+          description "Read all current findings from the shared knowledge store. " \
+            "Call this to see what other researchers have discovered."
+          execution_mode :cooperative
+
+          define_method(:execute) { store.read_all.to_json }
+        end
+      end
+
+      def build_write_tool(store, cycle, agent_key)
+        Class.new(Phronomy::Agent::Context::Capability::Base) do
+          tool_name "write_finding"
+          description "Record a new finding into the shared knowledge store so " \
+            "that other researchers can build on your discovery."
+          execution_mode :cooperative
+          param :content, type: :string, desc: "The finding to record"
+
+          define_method(:execute) do |content:|
+            store.write(agent: agent_key, content: content, cycle: cycle)
+            "Finding recorded."
+          end
+        end
+      end
+
       def instrumented_definition_for(researcher_class)
         parent_def = researcher_class.agent_definition
         parent_id = parent_def.fetch(:id)
         parent_version = parent_def.fetch(:version)
 
         {
+          # Keep the existing semantic ID across the Ruby namespace migration.
           id: "Phronomy::Agent::SharedState::Instrumented/#{parent_id}@#{parent_version}".freeze,
           version: INSTRUMENTATION_DEFINITION_VERSION
         }.freeze

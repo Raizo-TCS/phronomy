@@ -235,6 +235,15 @@ invalidation after join runs on the management thread. EventLoop has no Agent
 or Workflow dispatch branch. See
 [ADR-042](decisions/042-feature-owned-execution-state.md).
 
+`MultiAgent::SharedState` owns sequential peer coordination through a findings
+store created for each invocation. It equips member Agents with shared-store
+Tools, runs complete cycles, checks stopping conditions and aggregates findings.
+It is not an individual Agent's durable state or execution coordinator. Its
+Experimental public namespace moves from Agent to MultiAgent without an alias;
+generated semantic definition IDs retain their previous values. See
+[ADR-053](decisions/053-shared-state-coordination-ownership.md) and the
+[migration guide](migrations/shared-state-multi-agent.md).
+
 ## Current architecture
 
 | Area | Current document |

@@ -1,6 +1,7 @@
 # ADR-046: Agent Responsibility Layout and Shared Records
 
 **Status**: Amended on the architecture refactoring branch
+**SharedState amendment**: [053-shared-state-coordination-ownership](053-shared-state-coordination-ownership.md) moves the deferred multi-Agent coordination responsibility to MultiAgent. The original placement below is retained as history.
 **Continuation amendment**: [047-recovered-execution-continuation-contract](047-recovered-execution-continuation-contract.md) removes the remaining Recovery-to-private-control calls and shares session registration. The original extraction scope below is retained as history.
 **Date**: 2026-09-21
 **Refines**: [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md)

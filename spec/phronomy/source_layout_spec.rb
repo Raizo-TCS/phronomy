@@ -164,6 +164,7 @@ RSpec.describe "Responsibility-based source layout" do
   end
 
   [
+    "Phronomy::MultiAgent::SharedState",
     "Phronomy::Workflow::PhaseMachineBuilder",
     "Phronomy::Workflow::Persistence::Codec",
     "Phronomy::Agent::ContextPolicy",
@@ -201,5 +202,27 @@ RSpec.describe "Responsibility-based source layout" do
 
       expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
     end
+  end
+
+  it "loads SharedState from MultiAgent without retaining an Agent coordination alias" do
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy"
+      owner = Phronomy::MultiAgent::SharedState
+      store = owner::KnowledgeStore
+      abort "incorrect coordinator identity" unless owner.name == "Phronomy::MultiAgent::SharedState"
+      abort "incorrect store identity" unless store.name == "Phronomy::MultiAgent::SharedState::KnowledgeStore"
+      abort "old SharedState alias" if Phronomy::Agent.const_defined?(:SharedState, false)
+      abort "Runtime started during loading" if Phronomy::Runtime.default_if_initialized_for_test
+      loaded = $LOADED_FEATURES.grep(%r{/phronomy/(agent|multi_agent)/shared_state.rb$})
+      abort "incorrect implementation ownership" unless loaded.size == 1 && loaded.first.end_with?("/multi_agent/shared_state.rb")
+      abort "invocation API changed" unless owner.instance_method(:invoke).parameters == [[:req, :input], [:key, :config]]
+      2.times { Zeitwerk::Loader.eager_load_all }
+      abort "coordinator redefined" unless owner.equal?(Phronomy::MultiAgent::SharedState)
+      abort "store redefined" unless store.equal?(owner::KnowledgeStore)
+      abort "old alias installed during eager load" if Phronomy::Agent.const_defined?(:SharedState, false)
+      abort "Runtime started during eager load" if Phronomy::Runtime.default_if_initialized_for_test
+    RUBY
+
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 end

@@ -1,5 +1,23 @@
 module Phronomy
   module MultiAgent
+    class SharedState
+      class KnowledgeStore
+        def self.new: () -> instance
+        def read_all: () -> Array[Hash[Symbol, untyped]]
+        def write: (agent: untyped, content: untyped, cycle: untyped) -> nil
+        def size: () -> Integer
+      end
+
+      def self.new: () -> instance
+      def self.member: (singleton(::Phronomy::Agent::Base) klass, ?instruction: untyped) -> Array[Hash[Symbol, untyped]]
+      def self.coordination: (?untyped text) -> untyped
+      def self.max_cycles: (?untyped value) -> Integer?
+      def self.timeout: (?untyped value) -> Float?
+      def self.terminate_when: () ?{ (KnowledgeStore) -> untyped } -> untyped
+      def self.aggregate: () ?{ (KnowledgeStore) -> untyped } -> untyped
+      def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
+    end
+
     class Orchestrator < ::Phronomy::Agent::Base
       def self.subagent: (Symbol | String name, singleton(::Phronomy::Agent::Base) agent_class, ?on_error: Symbol, ?inherit_knowledge: bool) -> untyped
       def self.registered_subagents: () -> Hash[Symbol | String, untyped]

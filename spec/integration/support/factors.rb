@@ -614,7 +614,7 @@ module IntegrationFactors
   def self.ss_team_class(termination:, instruction:, coordination:, aggregate:, researcher:)
     instr_text = (instruction == :present) ? "Focus only on security aspects." : nil
 
-    Class.new(Phronomy::Agent::SharedState) do
+    Class.new(Phronomy::MultiAgent::SharedState) do
       case termination
       when :max_cycles
         max_cycles 2

@@ -338,7 +338,7 @@ RSpec.describe "Group 31: SharedState", :integration do
     let(:team_class) do
       ra = researcher_a
       rb = researcher_b
-      Class.new(Phronomy::Agent::SharedState) do
+      Class.new(Phronomy::MultiAgent::SharedState) do
         max_cycles 1
         member ra
         member rb

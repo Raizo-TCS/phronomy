@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::SharedState do
+RSpec.describe Phronomy::MultiAgent::SharedState do
   # Builds a stub researcher agent class whose invoke records calls and
   # optionally calls write_finding via the injected tool.
   #
@@ -180,7 +180,7 @@ RSpec.describe Phronomy::Agent::SharedState do
   # ---------------------------------------------------------------------------
 
   describe "KnowledgeStore" do
-    subject(:store) { Phronomy::Agent::SharedState::KnowledgeStore.new }
+    subject(:store) { Phronomy::MultiAgent::SharedState::KnowledgeStore.new }
 
     it "starts empty" do
       expect(store.read_all).to eq([])
@@ -519,7 +519,7 @@ RSpec.describe Phronomy::Agent::SharedState do
       end
       original_tools = researcher.tools.dup
       coordinator = Class.new(described_class).new
-      store = Phronomy::Agent::SharedState::KnowledgeStore.new
+      store = Phronomy::MultiAgent::SharedState::KnowledgeStore.new
 
       instrumented = coordinator.send(
         :build_instrumented_researcher,
@@ -555,7 +555,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
     it "derives a different generated definition when the wrapped revision changes" do
       coordinator = Class.new(described_class).new
-      store = Phronomy::Agent::SharedState::KnowledgeStore.new
+      store = Phronomy::MultiAgent::SharedState::KnowledgeStore.new
 
       researcher_v4 = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "shared-state-lineage", version: 4
