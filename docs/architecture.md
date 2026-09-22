@@ -138,6 +138,14 @@ back to the same coordinator; operation workers now own terminal persistence
 under its EventLoop result authority (ADR-051 below).
 See [ADR-047](decisions/047-recovered-execution-continuation-contract.md).
 
+InvocationRestorer decodes saved Tool snapshots, resolves the Tool Call and Tool,
+and matches approval evidence. The newly constructed ToolInvocation applies its
+own saved state through the internal `restore_state!` operation; Recovery no
+longer writes its instance variables. State application neither evaluates approval
+nor dispatches Tool execution. Existing recovery installation notifications and
+continuation rules are unchanged. See
+[ADR-052](decisions/052-tool-invocation-restoration-ownership.md).
+
 `Agent::DispatchPreparation` owns Provider/Tool dispatch prerequisites and their
 operation-specific readback. ExecutionCoordinator captures and submits inputs,
 then validates/applies results on EventLoop before dispatch. The worker's Provider

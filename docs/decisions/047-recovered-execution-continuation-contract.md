@@ -106,3 +106,11 @@ and duplicated session wiring; it does not complete decomposition of that class.
 Tool snapshot restoration's direct field coupling, SharedState ownership,
 Storage domain responsibilities and Workflow terminal persistence remain
 separate work.
+
+## Tool restoration amendment (2026-09-22)
+
+[052-tool-invocation-restoration-ownership](052-tool-invocation-restoration-ownership.md)
+completes the direct Tool field coupling item above. ToolInvocation owns saved
+state application; Recovery retains decoding and identity matching. The original
+scope and historical remaining-work statement above are preserved. SharedState,
+Storage domain responsibilities and Workflow terminal persistence remain open.

@@ -101,6 +101,7 @@ resolved explicitly.
 | [`049-initial-preparation-worker-ownership`](049-initial-preparation-worker-ownership.md) | Accepted | Yes | Initial preparation and preparing recovery share a persistence worker; admission outcomes, commit certainty and EventLoop ownership stay distinct. Pure failure classification is shared without sharing transaction control. |
 | [`050-approval-resume-snapshot-and-commit-ownership`](050-approval-resume-snapshot-and-commit-ownership.md) | Accepted | Yes | Validated approval commands own immutable recovery snapshots. A worker commits decision, Execution and Root; the execution owner retains admission, live state and session resumption. |
 | [`051-execution-outcome-worker-ownership`](051-execution-outcome-worker-ownership.md) | Accepted | Yes | Ordinary and Handoff outcome workers own atomic persistence and operation-specific readback; EventLoop retains result authority and delivery. |
+| [`052-tool-invocation-restoration-ownership`](052-tool-invocation-restoration-ownership.md) | Accepted | Yes | ToolInvocation owns saved state application; Recovery retains snapshot decoding and identity matching. Existing restoration and replay rules are preserved. |
 
 ## Legacy duplicate `011`
 

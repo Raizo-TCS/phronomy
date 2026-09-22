@@ -73,46 +73,14 @@ module Phronomy
               id: entry.fetch("tool_invocation_id")
             )
           end
-          restore_tool_snapshot!(child, entry, by_id)
-          child
+          child.restore_state!(
+            status: entry.fetch("status").to_sym,
+            result: entry["result"],
+            approval_item: by_id[child.id.to_s]
+          )
         end
         invocation.tool_invocations = children
         invocation
-      end
-
-      def restore_tool_snapshot!(child, entry, approval_items)
-        status = entry.fetch("status").to_sym
-        case status
-        when :awaiting_approval
-          child.validate! unless child.terminal?
-          child.instance_variable_set(:@final_decision, :require_approval)
-          child.mark_awaiting_approval!
-        when :authorized
-          child.validate! unless child.terminal?
-          child.instance_variable_set(:@final_decision, :allow)
-          child.mark_authorized!
-        when :completed
-          child.instance_variable_set(:@result, entry["result"])
-          child.instance_variable_set(:@status, :completed)
-        when :rejected
-          child.mark_rejected!
-        when :failed
-          child.mark_framework_failed!(
-            Phronomy::ToolError.new("durably restored Tool preflight failure")
-          )
-        when :cancelled
-          child.mark_cancelled!
-        else
-          raise Phronomy::ExecutionRehydrationRequiredError,
-            "unsupported durable Tool snapshot state: #{status.inspect}"
-        end
-
-        item = approval_items[child.id.to_s]
-        if item
-          child.instance_variable_set(:@facts, Phronomy::Values::Immutable.copy(item.facts))
-          child.instance_variable_set(:@authorization_reason, item.reason)
-        end
-        child
       end
 
       def build_chat_for_recovery(agent, execution, projection, main_coordinator, listener, messages:)

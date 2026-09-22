@@ -139,6 +139,16 @@ module Phronomy
         @phase = phase
       end
 
+      # Restores a newly constructed invocation from materialized saved facts.
+      # Recovery owns snapshot decoding and identity matching. This operation
+      # owns state application; it neither dispatches nor reevaluates approval.
+      # @api private
+      def restore_state!(status:, result: nil, approval_item: nil)
+        restore_saved_state!(status, result)
+        restore_approval_evidence!(approval_item)
+        self
+      end
+
       def handle_fsm_event(event)
         case event.type
         when :authorization_completed
@@ -348,6 +358,40 @@ module Phronomy
       end
 
       private
+
+      def restore_saved_state!(status, result)
+        case status
+        when :awaiting_approval
+          validate! unless terminal?
+          @final_decision = :require_approval
+          mark_awaiting_approval!
+        when :authorized
+          validate! unless terminal?
+          @final_decision = :allow
+          mark_authorized!
+        when :completed
+          @result = result
+          @status = :completed
+        when :rejected
+          mark_rejected!
+        when :failed
+          mark_framework_failed!(
+            Phronomy::ToolError.new("durably restored Tool preflight failure")
+          )
+        when :cancelled
+          mark_cancelled!
+        else
+          raise Phronomy::ExecutionRehydrationRequiredError,
+            "unsupported durable Tool snapshot state: #{status.inspect}"
+        end
+      end
+
+      def restore_approval_evidence!(item)
+        return unless item
+
+        @facts = immutable_copy(item.facts)
+        @authorization_reason = item.reason
+      end
 
       def authorization_command
         definition = @agent.class.agent_definition
