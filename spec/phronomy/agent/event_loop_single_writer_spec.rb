@@ -9,6 +9,17 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     File.read(File.join(root, path))
   end
 
+  it "keeps approval snapshots in explicit worker commands without a shared lookup or control objects" do
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
+    worker = source("lib/phronomy/agent/execution/approval_resume_commit.rb")
+    expect(coordinator + worker).not_to include("@recovery_resume_snapshot", "Mutex.new")
+    expect(worker).not_to include("ExecutionRegistry", "TaskResult", "SessionRunner", "@coordinator", "@agent.")
+    expect(Phronomy::Agent::ApprovalResumeCommit::Command.members)
+      .not_to include(:invocation, :config, :result_task, :listener, :coordinator)
+    expect(Phronomy::Agent::ApprovalResumeCommit.ancestors)
+      .to include(Phronomy::Concurrency::WorkerInputRestricted)
+  end
+
   it "removes the Activation shared-mutable runtime model from active source" do
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/execution/agent_execution_activation.rb"))
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/activation_registry.rb"))
@@ -31,8 +42,6 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     expect(registry).to include("assert_event_loop_thread!")
 
     worker_sections = %w[
-      perform_initial_preparation
-      perform_resume_commit
       compute_terminal
       commit_suspended
       commit_completed
@@ -42,6 +51,8 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     end.join("\n")
 
     worker_sections += source("lib/phronomy/agent/execution/dispatch_preparation.rb")
+    worker_sections += source("lib/phronomy/agent/execution/initial_preparation.rb")
+    worker_sections += source("lib/phronomy/agent/execution/approval_resume_commit.rb")
     expect(worker_sections).not_to include("__replace_root")
     expect(worker_sections).not_to include("_append_journal_records")
     expect(worker_sections).not_to include("replace_agent_execution")
@@ -246,5 +257,16 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
       expect(worker).not_to include(dependency)
     end
     expect(worker).not_to include("Phronomy::Runtime", ".offload", "event_sink")
+  end
+
+  it "keeps initial preparation and recovery independent of execution control and delivery" do
+    worker = source("lib/phronomy/agent/execution/initial_preparation.rb")
+    %w[ExecutionCoordinator ExecutionRegistry ExecutionSessionRunner TaskResult
+      start_prepared_provider_call start_prepared_tool_dispatch].each do |dependency|
+      expect(worker).not_to include(dependency)
+    end
+    expect(worker).not_to include("Phronomy::Runtime", ".offload", "event_sink")
+    expect(Phronomy::Agent::InitialPreparation::RecoveryCommand.members)
+      .not_to include(:result_task, :load_completion, :coordinator, :listener)
   end
 end

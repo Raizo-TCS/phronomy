@@ -438,7 +438,7 @@ module Phronomy
 
       def sanitized_item_metadata(item)
         raw = item.metadata.to_h.transform_keys(&:to_s)
-        # :working origin is Phronomy-controlled (from perform_initial_preparation),
+        # :working origin is Phronomy-controlled (from InitialPreparation),
         # so handoff routing metadata on working records is equally trusted.
         trusted_handoff = if item.provenance.origin == :handoff || item.provenance.origin == :working
           raw.slice(*TRUSTED_HANDOFF_METADATA_KEYS)

@@ -79,7 +79,7 @@ RSpec.describe "ACS-17 causal durability" do
 
   def establish_execution(agent, persistence)
     coordinator = agent.send(:execution_coordinator)
-    execution, root = coordinator.send(
+    execution, root = Phronomy::Agent::InitialPreparation.new(agent: agent, persistence: persistence).send(
       :admit_execution,
       "hello",
       root: agent.agent_root,

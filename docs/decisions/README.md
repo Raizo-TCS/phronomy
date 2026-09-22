@@ -98,6 +98,8 @@ resolved explicitly.
 | [`046-agent-responsibility-layout-and-shared-records`](046-agent-responsibility-layout-and-shared-records.md) | Amended | Yes | Agent responsibility directories preserve constants; shared record encoding, saved context reads and live restoration have separate owners. Continuation control refined by [047-recovered-execution-continuation-contract](047-recovered-execution-continuation-contract.md). |
 | [`047-recovered-execution-continuation-contract`](047-recovered-execution-continuation-contract.md) | Accepted | Yes | Recovery hands semantic commands to the execution owner; EventLoop identity/revision checks and shared session registration replace private control calls. |
 | [`048-dispatch-preparation-worker-ownership`](048-dispatch-preparation-worker-ownership.md) | Accepted | Yes | Dispatch worker owns prerequisite persistence and readback; the execution owner retains EventLoop validation, apply and dispatch. Operation-specific boundaries and purpose-level method bodies are preserved. |
+| [`049-initial-preparation-worker-ownership`](049-initial-preparation-worker-ownership.md) | Accepted | Yes | Initial preparation and preparing recovery share a persistence worker; admission outcomes, commit certainty and EventLoop ownership stay distinct. Pure failure classification is shared without sharing transaction control. |
+| [`050-approval-resume-snapshot-and-commit-ownership`](050-approval-resume-snapshot-and-commit-ownership.md) | Accepted | Yes | Validated approval commands own immutable recovery snapshots. A worker commits decision, Execution and Root; the execution owner retains admission, live state and session resumption. |
 
 ## Legacy duplicate `011`
 

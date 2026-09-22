@@ -113,7 +113,7 @@ RSpec.describe "Agent Runtime admission" do
     section = source
       .split("def begin_start_on_event_loop", 2)
       .fetch(1)
-      .split("def perform_initial_preparation", 2)
+      .split("def initial_preparation_replayable?", 2)
       .first
 
     admission_index = section.index("admit_agent_execution")
@@ -126,7 +126,7 @@ RSpec.describe "Agent Runtime admission" do
 
   it "keeps Persistence create_active as the durable second line of defense" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/initial_preparation.rb", __dir__)
     )
 
     expect(source).to include("tx.executions.create_active(execution)")
@@ -153,7 +153,7 @@ RSpec.describe "Agent Runtime admission" do
     resume = coordinator_source
       .split("def begin_resume_on_event_loop", 2)
       .fetch(1)
-      .split("def perform_resume_commit", 2)
+      .split("def capture_approval_resume", 2)
       .first
     expect(resume.index("state: :resuming")).to be <
       resume.index("runtime.offload.submit")

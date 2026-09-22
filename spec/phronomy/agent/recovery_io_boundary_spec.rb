@@ -253,7 +253,23 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
       restored_request = Timeout.timeout(3) { approvals.pop }
       expect(restored_request.id).to eq(request.id)
       expect(calls).to eq(0)
+      owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)
+        .agent_execution_owner(request.execution_id)
+      commit = owner.coordinator.instance_variable_get(:@approval_resume_commit)
+      committed_snapshots = Queue.new
+      allow(commit).to receive(:commit).and_wrap_original do |original_commit, operation|
+        saved = original_commit.call(operation)
+        expect(calls).to eq(0)
+        committed_snapshots << saved.execution.metadata.fetch(
+          Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY
+        )
+        saved
+      end
       result = loaded.approve_async(request.execution_id, approval_request_id: request.id, approved: approved).wait_result(timeout: 3)
+      captured = Timeout.timeout(3) { committed_snapshots.pop }
+      expect(captured.map { |entry| entry.fetch("tool_invocation_id") })
+        .to eq(restored_request.items.map(&:tool_invocation_id))
+      expect(captured.first).to include("status" => "awaiting_approval", "arguments" => {})
       if approved
         expect(result[:output]).to eq("approved output")
         expect(calls).to eq(1)

@@ -146,6 +146,26 @@ Its input/result types are worker-owned; existing Coordinator constant paths are
 internal aliases, with changed canonical Ruby names. See
 [ADR-048](decisions/048-dispatch-preparation-worker-ownership.md).
 
+`Agent::InitialPreparation` owns initial durable admission, Context preparation,
+preparation failure persistence and replay from saved preparing inputs. Ordinary
+start and recovery share the admitted-preparation steps; Runtime admission,
+result validation, live-state apply and session delivery remain on EventLoop.
+The known failure base advances only after a successful commit response.
+`Agent::ExecutionFailure` shares the existing pure failure classification with
+terminal persistence; it does not own transactions or delivery. See
+[ADR-049](decisions/049-initial-preparation-worker-ownership.md).
+
+`Agent::ApprovalResumeCommit` persists approval decisions with operation-owned
+Tool recovery snapshots. Coordinator validates the suspended owner and approval
+request before copying canonical snapshot values into the immutable Command;
+there is no shared snapshot lookup. The worker validates the target, stages
+recovery facts and commits decision/Execution/Root together. EventLoop retains
+admission, stale-result checks, live-state application and session resumption.
+An uncertain commit still requires recovery; it is not retried or treated as a
+confirmed resume. Internal Coordinator type aliases remain, with changed
+canonical names and an added Command snapshot field. See
+[ADR-050](decisions/050-approval-resume-snapshot-and-commit-ownership.md).
+
 Selected nested Zeitwerk roots retain existing top-level Phronomy constants
 without changing the enclosing feature's existing nested constants. For
 example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with

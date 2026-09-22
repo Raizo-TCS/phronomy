@@ -36,17 +36,12 @@ module Phronomy
       )
 
       # EventLoop -> Offload operation-specific immutable snapshots.
-      InitialPreparationCommand = Data.define(
-        :root, :journal_records, :input, :config, :preparation_replayable
-      )
+      InitialPreparationCommand = InitialPreparation::Command
       ProviderDispatchPreparationCommand = DispatchPreparation::ProviderCommand
       ToolDispatchPreparationCommand = DispatchPreparation::ToolCommand
       ProviderDispatchPreparationReconciliationCommand = DispatchPreparation::ProviderReconciliationCommand
       ToolDispatchPreparationReconciliationCommand = DispatchPreparation::ToolReconciliationCommand
-      ResumeCommitCommand = Data.define(
-        :execution_id, :expected_execution_revision,
-        :root, :execution, :approval_request_id, :approved
-      )
+      ResumeCommitCommand = ApprovalResumeCommit::Command
       HandoffTerminalView = Data.define(
         :target_agent_id, :responsibility, :selection_intent,
         :llm_call_id, :tool_call_id, :policy
@@ -68,15 +63,12 @@ module Phronomy
 
       # Offload -> EventLoop operation results. No live Agent/Invocation object is
       # mutated by a worker; these values are validated and applied on EventLoop.
-      InitialPreparationResult = Data.define(
-        :execution, :root, :runtime_projection, :filtered_input,
-        :config, :appended_records, :error, :admission_outcome
-      )
+      InitialPreparationResult = InitialPreparation::Result
       ProviderDispatchPreparationResult = DispatchPreparation::ProviderResult
       ToolDispatchPreparationResult = DispatchPreparation::ToolResult
       ProviderDispatchPreparationReconciliationResult = DispatchPreparation::ProviderReconciliationResult
       ToolDispatchPreparationReconciliationResult = DispatchPreparation::ToolReconciliationResult
-      ResumeCommitResult = Data.define(:execution, :root)
+      ResumeCommitResult = ApprovalResumeCommit::Result
       TerminalOutcome = Data.define(
         :type, :execution, :root, :appended_records,
         :result, :error, :approval_request
@@ -117,7 +109,9 @@ module Phronomy
 
       def initialize(agent)
         @agent = agent
+        @initial_preparation = InitialPreparation.new(agent: agent, persistence: agent.persistence)
         @dispatch_preparation = DispatchPreparation.new(agent: agent, persistence: agent.persistence)
+        @approval_resume_commit = ApprovalResumeCommit.new(agent_id: agent.agent_id, persistence: agent.persistence)
       end
 
       def start(
@@ -408,7 +402,7 @@ module Phronomy
           )
         )
         task = runtime.offload.submit(on_full: :raise) do
-          perform_initial_preparation(operation)
+          @initial_preparation.prepare(operation)
         end
         submitted = true
         task.on_complete do |result, error|
@@ -438,323 +432,6 @@ module Phronomy
         deliver_start_failure_on_event_loop(request, translated(error))
       end
 
-      def perform_initial_preparation(operation)
-        begin
-          raw_message = @agent.send(:extract_message, operation.input)
-        rescue => error
-          return InitialPreparationResult.new(
-            execution: nil,
-            root: operation.root,
-            runtime_projection: nil,
-            filtered_input: nil,
-            config: operation.config,
-            appended_records: [].freeze,
-            error: translated(error),
-            admission_outcome: :not_established
-          )
-        end
-
-        begin
-          execution, active_root = admit_execution(
-            raw_message,
-            root: operation.root,
-            mode: (operation.config[:phronomy_recovery_mode] || :invoke).to_sym,
-            config: operation.config,
-            preparation_replayable: operation.preparation_replayable
-          )
-        rescue Phronomy::AgentBusyError => error
-          # A durable busy conflict proves that another nonterminal logical
-          # Execution already exists for this agent_id. Process loss does not
-          # make that execution terminal; keep Runtime admission fail-closed
-          # until ACS-15 recovery/reconciliation can establish current lineage.
-          return InitialPreparationResult.new(
-            execution: nil,
-            root: operation.root,
-            runtime_projection: nil,
-            filtered_input: nil,
-            config: operation.config,
-            appended_records: [].freeze,
-            error: translated(error),
-            admission_outcome: :recovery_required
-          )
-        rescue Phronomy::Storage::ConflictError,
-          Phronomy::Storage::NotFoundError,
-          Phronomy::Storage::SerializationError,
-          ArgumentError,
-          Phronomy::ConfigurationError => error
-          return InitialPreparationResult.new(
-            execution: nil,
-            root: operation.root,
-            runtime_projection: nil,
-            filtered_input: nil,
-            config: operation.config,
-            appended_records: [].freeze,
-            error: translated(error),
-            admission_outcome: :not_established
-          )
-        rescue => error
-          return InitialPreparationResult.new(
-            execution: nil,
-            root: operation.root,
-            runtime_projection: nil,
-            filtered_input: nil,
-            config: operation.config,
-            appended_records: [].freeze,
-            error: translated(error),
-            admission_outcome: :outcome_unknown
-          )
-        end
-
-        perform_admitted_initial_preparation(
-          input: operation.input,
-          config: operation.config,
-          execution: execution,
-          active_root: active_root,
-          journal_records: operation.journal_records
-        )
-      end
-
-      def perform_admitted_initial_preparation(
-        input:,
-        config:,
-        execution:,
-        active_root:,
-        journal_records:
-      )
-        current_execution = execution
-        begin
-          effective_config = config
-          @agent.send(
-            :check_cancellation!,
-            effective_config,
-            "invocation cancelled before input filtering"
-          )
-          filtered_input = @agent.send(:run_input_filters!, input)
-          @agent.send(
-            :check_cancellation!,
-            effective_config,
-            "invocation cancelled before context assembly"
-          )
-          filtered_message = @agent.send(:extract_message, filtered_input)
-          manifest = manifest_ref = active_execution = nil
-
-          # Content-addressed source material may be written before the Policy call.
-          # No mutable Agent/Execution repository state is committed here.
-          filtered_ref = @agent.persistence.contents.put_text(filtered_message)
-          input_record = JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: current_execution.execution_id,
-            kind: :external_message,
-            channel: :external,
-            role: :user,
-            content_ref: filtered_ref,
-            context_generation: active_root.transcript_generation,
-            context_candidate: true,
-            metadata: {"handoff_policy_category" => "current_request"}
-          )
-          staged = current_execution.with(
-            execution_revision: current_execution.execution_revision,
-            working_records: current_execution.working_records + [input_record],
-            metadata: current_execution.metadata.merge(
-              "current_input_ref" => filtered_ref,
-              "current_input_record_id" => input_record.record_id
-            )
-          )
-          assembler = ContextAssembler.new(
-            agent: @agent,
-            persistence: @agent.persistence,
-            journal_records: journal_records
-          )
-          prepared = assembler.prepare_initial(
-            input: filtered_input,
-            agent_root: active_root,
-            execution: staged,
-            config: effective_config,
-            patch: @agent.send(
-              :run_before_llm_input_hooks,
-              call_sequence: 1,
-              config: effective_config
-            )
-          )
-          @agent.send(
-            :check_cancellation!,
-            effective_config,
-            "invocation cancelled after context policy"
-          )
-
-          # Revalidate the durable base only after Application Policy returns.
-          # ContextPolicy never runs while this transaction is open.
-          @agent.persistence.transaction do |tx|
-            assert_local_durable_base!(tx, active_root)
-            manifest, manifest_ref = assembler.finalize(prepared, persistence: tx)
-            active_execution = staged.with(
-              status: :active,
-              phase: :calling_llm,
-              metadata: staged.metadata.merge(
-                "base_manifest_ref" => manifest_ref,
-                "manifest_ref" => manifest_ref,
-                "manifest_refs" => [manifest_ref]
-              )
-            )
-            tx.executions.save(
-              current_execution.execution_id,
-              expected_revision: current_execution.execution_revision,
-              execution: active_execution
-            )
-          end
-          current_execution = active_execution
-
-          projection = RubyLLMMaterializer.new(
-            agent: @agent,
-            persistence: @agent.persistence
-          ).materialize(manifest: manifest, manifest_ref: manifest_ref)
-          InitialPreparationResult.new(
-            execution: active_execution,
-            root: active_root,
-            runtime_projection: projection,
-            filtered_input: filtered_input,
-            config: effective_config,
-            appended_records: [].freeze,
-            error: nil,
-            admission_outcome: :active
-          )
-        rescue => error
-          failure = commit_preparation_failure(
-            current_execution,
-            active_root,
-            error
-          )
-          InitialPreparationResult.new(
-            execution: failure.fetch(:execution),
-            root: failure.fetch(:root),
-            runtime_projection: nil,
-            filtered_input: nil,
-            config: config,
-            appended_records: failure.fetch(:appended_records),
-            error: failure.fetch(:error),
-            admission_outcome: :terminal
-          )
-        end
-      end
-
-      def admit_execution(
-        raw_message,
-        root:,
-        mode: :invoke,
-        config: {},
-        preparation_replayable: false
-      )
-        if root.lifecycle_status == :closed
-          raise Phronomy::Error,
-            "agent is closed: #{@agent.agent_id}"
-        end
-
-        execution = next_root = nil
-        mode = mode.to_sym
-        pending_llm_call_id = SecureRandom.uuid.to_s.freeze
-        pending_started_at = Time.now.utc.iso8601(6).freeze
-
-        @agent.persistence.transaction do |tx|
-          input_ref = tx.contents.put_text(raw_message)
-          durable_context_ref = if config.key?(:durable_context)
-            tx.contents.put_json(config.fetch(:durable_context))
-          end
-          input_record = JournalRecord.new(
-            agent_id: @agent.agent_id,
-            kind: :input_received,
-            channel: :external,
-            role: :user,
-            content_ref: input_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: false
-          )
-          execution = AgentExecution.start(
-            agent_root: root,
-            input_record: input_record,
-            execution_id: config[:phronomy_reserved_execution_id] || SecureRandom.uuid,
-            metadata: {
-              "coordination" => config[:phronomy_coordination],
-              "current_input_ref" => input_ref,
-              "durable_context_ref" => durable_context_ref,
-              "preparation_replayable" => !!preparation_replayable,
-              RecoverySupport::CONTRACT_VERSION_KEY =>
-                RecoverySupport::CONTRACT_VERSION,
-              RecoverySupport::INVOCATION_MODE_KEY => mode.to_s,
-              RecoverySupport::PENDING_LLM_ID_KEY =>
-                pending_llm_call_id,
-              RecoverySupport::PENDING_LLM_STARTED_AT_KEY =>
-                pending_started_at
-            }.compact
-          )
-          input_record = JournalRecord.from_h(
-            input_record.to_h.merge(
-              "execution_id" => execution.execution_id
-            )
-          )
-          execution = execution.with(
-            execution_revision: 0,
-            working_records: [input_record]
-          )
-          validate_coordination_admission!(tx, execution)
-          tx.executions.create_active(execution)
-          next_root = root.with(
-            agent_revision: root.agent_revision + 1,
-            lifecycle_status: :active
-          )
-          tx.agents.save(
-            root.agent_id,
-            expected_revision: root.agent_revision,
-            root: next_root
-          )
-        end
-        [execution, next_root]
-      end
-
-      def validate_coordination_admission!(tx, execution)
-        owner = execution.metadata["coordination"]
-        return unless owner
-        case owner.fetch("kind")
-        when "team"
-          team = tx.team_executions.load(owner.fetch("team_execution_id"))
-          unless team.team_id == owner.fetch("team_id") && team.active? && !team.metadata["cancel_requested"]
-            raise Phronomy::CancellationError, "Team run is no longer dispatchable"
-          end
-          slot = if owner.fetch("slot") == "coordinator"
-            team.coordinator
-          else
-            assignment = team.assignments.find { |entry| entry.fetch("task_id") == owner.fetch("slot") }
-            worker = assignment && team.workers.fetch(assignment.fetch("worker"))
-            worker&.merge("execution_id" => assignment.fetch("execution_id"))
-          end
-          unless slot && slot.fetch("execution_id") == execution.execution_id && slot.fetch("agent_id") == execution.agent_id
-            raise Phronomy::Storage::ConflictError, "Team reserved child identity mismatch"
-          end
-        when "subagent"
-          parent = tx.executions.load(owner.fetch("parent_execution_id"))
-          unless parent.agent_id == owner.fetch("parent_agent_id") && parent.active? && !parent.metadata["coordination_cancel_requested"]
-            raise Phronomy::CancellationError, "Parent run is no longer dispatchable"
-          end
-          snapshot = tx.contents.fetch_json(parent.metadata.fetch("multi_agent_coordination_ref"))
-          slot = snapshot.fetch("children").find { |entry| entry.fetch("slot") == owner.fetch("slot") }
-          unless slot && slot.fetch("agent_id") == execution.agent_id && slot.fetch("execution_id") == execution.execution_id
-            raise Phronomy::Storage::ConflictError, "Parent reserved child identity mismatch"
-          end
-        when "handoff"
-          routing = tx.handoff_states.load(owner.fetch("main_agent_id"))
-          unless routing && routing.active_agent_id == execution.agent_id
-            raise Phronomy::Storage::ConflictError, "Handoff responsibility changed before admission"
-          end
-          if Array(routing.metadata["cancelled_execution_ids"]).include?(execution.execution_id)
-            raise Phronomy::CancellationError, "Handoff reservation was cancelled"
-          end
-          if routing.phase != "stable" && routing.pending_target_execution_id != execution.execution_id
-            raise Phronomy::Storage::ConflictError, "Handoff reserved Target identity mismatch"
-          end
-        else
-          raise Phronomy::ConfigurationError, "Unknown coordination owner kind"
-        end
-      end
-
       def initial_preparation_replayable?(input, config, approval_policy)
         return false unless input.is_a?(String)
         return false unless approval_policy.nil?
@@ -770,66 +447,6 @@ module Phronomy
           invocation_context.respond_to?(name) &&
             !invocation_context.public_send(name).nil?
         end
-      end
-
-      def commit_preparation_failure(execution, root, error)
-        translated_error = translated(error)
-        failed = next_root = appended = nil
-
-        @agent.persistence.transaction do |tx|
-          error_ref = tx.contents.put_json(
-            "class" => translated_error.class.name,
-            "message" => translated_error.message
-          )
-          audit_records = execution.working_records.map do |record|
-            JournalRecord.from_h(
-              record.to_h.merge("context_candidate" => false)
-            )
-          end
-          terminal_status = terminal_status_for(translated_error)
-          audit_records << JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: execution.execution_id,
-            kind: execution_terminal_kind(terminal_status),
-            channel: :audit,
-            content_ref: error_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: false
-          )
-          appended = tx.journals.append(
-            root.agent_id,
-            expected_position: root.journal_position,
-            records: audit_records
-          )
-          failed = execution.with(
-            status: terminal_status,
-            phase: terminal_status,
-            working_records: [],
-            error_ref: error_ref,
-            terminal_reason: translated_error.class.name
-          )
-          tx.executions.save(
-            execution.execution_id,
-            expected_revision: execution.execution_revision,
-            execution: failed
-          )
-          next_root = root.with(
-            agent_revision: root.agent_revision + 1,
-            journal_position: root.journal_position + appended.length,
-            lifecycle_status: :idle
-          )
-          tx.agents.save(
-            root.agent_id,
-            expected_revision: root.agent_revision,
-            root: next_root
-          )
-        end
-        {
-          error: translated_error,
-          execution: failed,
-          root: next_root,
-          appended_records: Array(appended).freeze
-        }.freeze
       end
 
       def apply_initial_preparation_on_event_loop(ready)
@@ -995,14 +612,13 @@ module Phronomy
           return
         end
 
-        root = @agent.agent_root
-        journal_records = @agent.send(:_journal_records_snapshot)
+        operation = InitialPreparation::RecoveryCommand.new(
+          execution: execution,
+          root: @agent.agent_root,
+          journal_records: @agent.send(:_journal_records_snapshot)
+        )
         task = runtime.offload.submit(on_full: :raise) do
-          perform_initial_preparation_recovery(
-            execution,
-            root: root,
-            journal_records: journal_records
-          )
+          @initial_preparation.recover(operation)
         end
         task.on_complete do |result, error|
           ready = InitialPreparationRecoveryReady.new(
@@ -1036,49 +652,6 @@ module Phronomy
         fail_task(result_task, translated_error)
         load_completion.fail(translated_error)
         # simplecov:enable
-      end
-
-      def perform_initial_preparation_recovery(
-        execution,
-        root:,
-        journal_records:
-      )
-        unless execution.metadata["preparation_replayable"] == true
-          raise Phronomy::ExecutionRehydrationRequiredError,
-            "execution #{execution.execution_id} has no replay-safe initial preparation contract"
-        end
-
-        input_ref = execution.metadata.fetch("current_input_ref")
-        input = @agent.persistence.contents.fetch_text(input_ref)
-        mode = (
-          execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] || "invoke"
-        ).to_sym
-        config = {phronomy_recovery_mode: mode}.merge(@agent.__coordination_config)
-
-        if execution.metadata.key?("durable_context_ref")
-          durable_context_ref = execution.metadata.fetch("durable_context_ref")
-          durable_context = @agent.persistence.contents.fetch_json(
-            durable_context_ref
-          )
-          unless durable_context.is_a?(Hash)
-            raise Phronomy::ExecutionRehydrationRequiredError,
-              "execution #{execution.execution_id} has a non-Hash durable_context"
-          end
-          Phronomy::Values::Immutable.validate_canonical_json!(
-            durable_context,
-            label: "Recovered durable_context"
-          )
-          config[:durable_context] =
-            Phronomy::Values::Immutable.copy(durable_context)
-        end
-
-        perform_admitted_initial_preparation(
-          input: input,
-          config: config.freeze,
-          execution: execution,
-          active_root: root,
-          journal_records: journal_records
-        )
       end
 
       def apply_initial_preparation_recovery_on_event_loop(ready)
@@ -1451,10 +1024,6 @@ module Phronomy
         # simplecov:enable
       end
 
-      # Worker-only Persistence readback for causal-barrier F1 reconciliation.
-      # EventLoop submits one operation-specific ReconciliationCommand and only
-      # applies this result after it returns through the normal control path.
-
       def mark_barrier_recovery_required(operation, error)
         event_loop = Phronomy::Runtime.instance.event_loop
         Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
@@ -1473,20 +1042,6 @@ module Phronomy
       # ----------------------------------------------------------------------
 
       def begin_resume_on_event_loop(request)
-        event_loop = Phronomy::Runtime.instance.event_loop
-        state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(request.execution_id)
-        if state&.agent&.equal?(@agent) && state&.invocation
-          @recovery_resume_snapshot_mutex ||= Mutex.new
-          snapshot = RecoverySupport.build_tool_batch_snapshot(
-            state.invocation
-          )
-          @recovery_resume_snapshot_mutex.synchronize do
-            @recovery_resume_snapshots ||= {}
-            @recovery_resume_snapshots[request.execution_id.to_s] =
-              snapshot
-          end
-        end
-
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
         state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(request.execution_id)
@@ -1522,14 +1077,7 @@ module Phronomy
           return
         end
 
-        operation = ResumeCommitCommand.new(
-          execution_id: state.execution_id,
-          expected_execution_revision: state.execution.execution_revision,
-          root: @agent.agent_root,
-          execution: state.execution,
-          approval_request_id: request.approval_request_id,
-          approved: request.approved
-        )
+        operation = capture_approval_resume(state, request)
         resume_transition_started = false
         submitted = false
         Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
@@ -1539,7 +1087,7 @@ module Phronomy
         )
         resume_transition_started = true
         task = runtime.offload.submit(on_full: :raise) do
-          perform_resume_commit(operation)
+          @approval_resume_commit.commit(operation)
         end
         submitted = true
         task.on_complete do |result, error|
@@ -1565,70 +1113,21 @@ module Phronomy
         raise unless resume_transition_started
       end
 
-      def perform_resume_commit(operation)
-        snapshot = nil
-        @recovery_resume_snapshot_mutex&.synchronize do
-          snapshot = @recovery_resume_snapshots&.delete(
-            operation.execution_id.to_s
+      def capture_approval_resume(state, request)
+        snapshot = if state.invocation
+          Phronomy::Values::Immutable.copy(
+            RecoverySupport.build_tool_batch_snapshot(state.invocation)
           )
         end
-
-        if snapshot
-          staged_execution = RecoverySupport.with_recovery_metadata(
-            operation.execution,
-            RecoverySupport::TOOL_BATCH_METADATA_KEY => snapshot
-          )
-          operation = operation.class.new(
-            **operation.to_h.merge(execution: staged_execution)
-          )
-        end
-
-        current = operation.execution
-        current_root = operation.root
-        request = current.approval_request || {}
-        request_id = request["id"] || request[:id]
-        unless request_id.to_s == operation.approval_request_id
-          raise ArgumentError,
-            "approval request does not match execution #{current.execution_id}"
-        end
-
-        updated = next_root = nil
-        @agent.persistence.transaction do |tx|
-          decision_ref = tx.contents.put_json(
-            "approval_request_id" => request_id.to_s,
-            "approved" => operation.approved
-          )
-          decision_record = JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: current.execution_id,
-            kind: :approval_decided,
-            channel: :approval,
-            content_ref: decision_ref,
-            context_generation: current_root.transcript_generation,
-            context_candidate: false
-          )
-          updated = current.with(
-            status: :active,
-            phase: :resuming,
-            working_records: current.working_records + [decision_record],
-            approval_request: request.merge("approved" => operation.approved)
-          )
-          tx.executions.save(
-            current.execution_id,
-            expected_revision: current.execution_revision,
-            execution: updated
-          )
-          next_root = current_root.with(
-            agent_revision: current_root.agent_revision + 1,
-            lifecycle_status: :active
-          )
-          tx.agents.save(
-            current_root.agent_id,
-            expected_revision: current_root.agent_revision,
-            root: next_root
-          )
-        end
-        ResumeCommitResult.new(execution: updated, root: next_root)
+        ResumeCommitCommand.new(
+          execution_id: state.execution_id,
+          expected_execution_revision: state.execution.execution_revision,
+          root: @agent.agent_root,
+          execution: state.execution,
+          approval_request_id: request.approval_request_id,
+          approved: request.approved,
+          tool_batch_snapshot: snapshot
+        )
       end
 
       def apply_resume_commit_on_event_loop(ready)
@@ -2333,11 +1832,11 @@ module Phronomy
               record.to_h.merge("context_candidate" => false)
             )
           end
-          terminal_status = terminal_status_for(translated_error)
+          terminal_status = ExecutionFailure.status_for(translated_error)
           audit_records << JournalRecord.new(
             agent_id: @agent.agent_id,
             execution_id: current.execution_id,
-            kind: execution_terminal_kind(terminal_status),
+            kind: ExecutionFailure.journal_kind_for(terminal_status),
             channel: :audit,
             content_ref: error_ref,
             context_generation: root.transcript_generation,
@@ -2567,14 +2066,6 @@ module Phronomy
           "ExecutionCoordinator live-state apply must run on EventLoop"
       end
 
-      def assert_local_durable_base!(tx, root)
-        tx.assert_agent_watermark!(
-          agent_id: root.agent_id,
-          agent_revision: root.agent_revision,
-          journal_position: root.journal_position
-        )
-      end
-
       def transcript_messages(root, journal_records, persistence: @agent.persistence)
         materializer = RubyLLMMaterializer.new(
           agent: @agent,
@@ -2694,27 +2185,6 @@ module Phronomy
         return :cancelled if error.is_a?(Phronomy::CancellationError)
 
         :error
-      end
-
-      def terminal_status_for(error)
-        if defined?(Phronomy::CancellationError) &&
-            error.is_a?(Phronomy::CancellationError)
-          return :cancelled
-        end
-        if defined?(Phronomy::FilterBlockError) &&
-            error.is_a?(Phronomy::FilterBlockError)
-          return :blocked
-        end
-
-        :failed
-      end
-
-      def execution_terminal_kind(status)
-        {
-          cancelled: :execution_cancelled,
-          blocked: :execution_blocked,
-          failed: :execution_failed
-        }.fetch(status)
       end
 
       def post_control(runtime, command)

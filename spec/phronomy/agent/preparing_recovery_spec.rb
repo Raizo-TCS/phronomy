@@ -148,9 +148,7 @@ RSpec.describe "durable :preparing Agent recovery" do
         agent_id: "preparing-admission-evidence",
         persistence: persistence
       )
-      coordinator = agent.send(:execution_coordinator)
-
-      execution, = coordinator.send(
+      execution, = Phronomy::Agent::InitialPreparation.new(agent: agent, persistence: persistence).send(
         :admit_execution,
         "hello",
         root: agent.agent_root,
