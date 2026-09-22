@@ -123,10 +123,29 @@ injections do not represent real process loss or live external service failures.
 Architecture guards now inspect the actual workers and disallow repository
 reloads in Coordinator without the old terminal-helper exceptions.
 
+## Owner-control review (2026-09-22)
+
+The fifth stage keeps one execution owner and makes its remaining result paths
+read as validation, state application and continuation/delivery. Preparation
+recovery separates failed-outcome settlement from session restart. Approval
+resume separates committed-state installation and tracing from FSM entry.
+Terminal results retain visible outcome selection while private methods handle
+the distinct waiting, suspension, completion, Handoff and failure deliveries.
+Only the identical execution/admission release is shared across terminal paths.
+Initial preparation snapshot construction is named explicitly; start/resume
+admission flags, submission flags and their rescue decisions remain together.
+
+No transaction, authority condition, failure policy, public type or class owner
+changes. Direct Ready delivery tests run on the real EventLoop/ExecutionRegistry
+and check stale-result isolation, state-before-notification, notification-before-
+settlement, fallback waiters, suspension, uncertainty and recovery/resume failure
+boundaries. These tests also pass against the preceding implementation, documenting
+preserved behavior rather than a new contract. F0/F1/F3 are injected locally;
+no new X0 operation or stronger F4 guarantee is claimed.
+
 ## Remaining work
 
-The four persistence extraction stages are implemented. A final review of the
-remaining execution owner methods and their abstraction levels is still due;
-line count alone does not complete that review. Tool restoration, SharedState,
-Storage domain responsibilities and Workflow terminal ownership remain separate
-work items.
+The execution-owner decomposition and final readability review are implemented.
+Tool restoration, SharedState, Storage domain responsibilities and Workflow
+terminal ownership remain separate work items. Further owner splitting needs a
+concrete responsibility or failure-boundary reason; file length alone is not one.

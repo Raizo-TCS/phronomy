@@ -176,6 +176,28 @@ application, admission and Task/listener delivery. Command/view/outcome types ar
 worker-owned with internal Coordinator aliases and changed canonical Ruby names.
 See [ADR-051](decisions/051-execution-outcome-worker-ownership.md).
 
+The remaining execution owner expresses result handling as validation, committed
+state installation, and continuation or delivery. Private methods keep these
+steps in Coordinator; they introduce neither another owner nor shared per-operation
+fields. The operation-specific authority checks and outer rescue boundaries stay
+at the result entry points. Start/resume admission and submission flags stay in
+the same methods as their cleanup decisions.
+
+| Owner entry | Purpose-level steps |
+| --- | --- |
+| Initial preparation recovery result | Validate preparing owner; restart the prepared session or settle its saved failure; complete the load observer |
+| Approval resume result | Validate suspended revision; install committed state and waiter; observe the task; resume the FSM |
+| Terminal result | Validate revision/session; handle commit uncertainty; apply state and acknowledge the snapshot; deliver the selected outcome |
+
+Terminal delivery releases ownership before notifying completed/failed/Handoff
+observers, then settles Tasks. Suspension keeps ordinary Tasks pending. Ordinary
+commit uncertainty keeps recovery admission and pending waiters; coordination
+errors retain their separate release-and-fail behavior. Session registration
+failure during preparation recovery still terminalizes without a live session;
+trace/resume failure still uses the newly installed execution revision.
+This is an internal readability refinement of ADR-024/047/051, not a change to
+persistence, recovery guarantees or public interfaces.
+
 Selected nested Zeitwerk roots retain existing top-level Phronomy constants
 without changing the enclosing feature's existing nested constants. For
 example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with

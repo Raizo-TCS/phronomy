@@ -377,17 +377,7 @@ module Phronomy
         # must abort instead of deleting the Agent underneath this start.
         @agent.send(:__assert_live_agent!)
 
-        operation = InitialPreparationCommand.new(
-          root: root,
-          journal_records: @agent.send(:_journal_records_snapshot),
-          input: request.input,
-          config: request.config,
-          preparation_replayable: initial_preparation_replayable?(
-            request.input,
-            request.config,
-            request.approval_policy
-          )
-        )
+        operation = capture_initial_preparation(request, root)
         task = runtime.offload.submit(on_full: :raise) do
           @initial_preparation.prepare(operation)
         end
@@ -417,6 +407,20 @@ module Phronomy
           end
         end
         deliver_start_failure_on_event_loop(request, translated(error))
+      end
+
+      def capture_initial_preparation(request, root)
+        InitialPreparationCommand.new(
+          root: root,
+          journal_records: @agent.send(:_journal_records_snapshot),
+          input: request.input,
+          config: request.config,
+          preparation_replayable: initial_preparation_replayable?(
+            request.input,
+            request.config,
+            request.approval_policy
+          )
+        )
       end
 
       def initial_preparation_replayable?(input, config, approval_policy)
@@ -670,63 +674,10 @@ module Phronomy
         result = ready.result
         case result.admission_outcome
         when :terminal
-          apply_agent_live_state(
-            root: result.root,
-            appended_records: result.appended_records
-          )
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(
-            ready.execution_id,
-            execution: result.execution
-          )
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(ready.execution_id)
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: ready.execution_id
-          )
-          event_type = terminal_event_type(result.error)
-          callback_error = deliver_terminal(
-            @agent.send(:_phronomy_event_listener),
-            event_type,
-            error: result.error
-          )
-          settle_after_terminal(
-            ready.result_task,
-            callback_error,
-            event_type,
-            nil,
-            result.error
-          )
+          settle_failed_preparation_recovery_on_event_loop(ready, event_loop)
           ready.load_completion.complete(@agent)
         when :active
-          apply_agent_live_state(
-            root: result.root,
-            appended_records: result.appended_records
-          )
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(ready.execution_id)
-          mode = (
-            result.execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] ||
-              "invoke"
-          ).to_sym
-          request = StartCommand.new(
-            coordinator: self,
-            input: result.filtered_input,
-            config: result.config,
-            mode: mode,
-            approval_policy: nil,
-            approval_listener: nil,
-            on_event: @agent.send(:_phronomy_event_listener),
-            result_task: ready.result_task,
-            admission_token: Object.new.freeze
-          )
-          begin
-            register_initial_session_on_event_loop(request, result)
-          rescue => error
-            begin_terminal_without_session_on_event_loop(
-              request: request,
-              prepared: result,
-              error: error
-            )
-          end
+          restart_prepared_execution_on_event_loop(ready, event_loop)
           ready.load_completion.complete(@agent)
         else
           error = Phronomy::ExecutionRehydrationRequiredError.new(
@@ -753,6 +704,69 @@ module Phronomy
         fail_task(ready.result_task, translated_error)
         ready.load_completion.fail(translated_error)
         # simplecov:enable
+      end
+
+      def settle_failed_preparation_recovery_on_event_loop(ready, event_loop)
+        result = ready.result
+        apply_agent_live_state(
+          root: result.root,
+          appended_records: result.appended_records
+        )
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(
+          ready.execution_id,
+          execution: result.execution
+        )
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(ready.execution_id)
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: ready.execution_id
+        )
+        event_type = terminal_event_type(result.error)
+        callback_error = deliver_terminal(
+          @agent.send(:_phronomy_event_listener),
+          event_type,
+          error: result.error
+        )
+        settle_after_terminal(
+          ready.result_task,
+          callback_error,
+          event_type,
+          nil,
+          result.error
+        )
+      end
+
+      def restart_prepared_execution_on_event_loop(ready, event_loop)
+        result = ready.result
+        apply_agent_live_state(
+          root: result.root,
+          appended_records: result.appended_records
+        )
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(ready.execution_id)
+        mode = (
+          result.execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] ||
+            "invoke"
+        ).to_sym
+        request = StartCommand.new(
+          coordinator: self,
+          input: result.filtered_input,
+          config: result.config,
+          mode: mode,
+          approval_policy: nil,
+          approval_listener: nil,
+          on_event: @agent.send(:_phronomy_event_listener),
+          result_task: ready.result_task,
+          admission_token: Object.new.freeze
+        )
+        begin
+          register_initial_session_on_event_loop(request, result)
+        rescue => error
+          begin_terminal_without_session_on_event_loop(
+            request: request,
+            prepared: result,
+            error: error
+          )
+        end
       end
 
       def release_initial_preparation_recovery_runtime_state(
@@ -1144,36 +1158,8 @@ module Phronomy
           return
         end
 
-        apply_agent_live_state(root: ready.result.root, appended_records: [])
-        Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
-          @agent.agent_id,
-          execution_id: operation.execution_id,
-          state: :executing
-        )
-        Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(
-          operation.execution_id,
-          execution: ready.result.execution
-        )
-        Phronomy::Agent::ExecutionRegistry.for(event_loop).register_agent_completion_waiter(
-          operation.execution_id,
-          request.result_task
-        )
-        trace_config = state.invocation ?
-          state.invocation.config.merge(request.config) : request.config
-        trace_mode = state.invocation&.mode ||
-          (
-            ready.result.execution.metadata[
-              RecoverySupport::INVOCATION_MODE_KEY
-            ] || "invoke"
-          ).to_sym
-        Phronomy::Tracing::Automatic.observe_task(
-          request.result_task,
-          "agent.execution",
-          agent_id: @agent.agent_id,
-          execution_id: operation.execution_id,
-          mode: trace_mode,
-          **@agent.send(:_build_caller_meta, trace_config)
-        )
+        install_resumed_execution_on_event_loop(ready, event_loop)
+        observe_resumed_execution(ready, state)
         execution_session_runner(Phronomy::Runtime.instance).resume_approval(
           state.invocation, request.result_task,
           approved: request.approved, config: request.config
@@ -1191,6 +1177,46 @@ module Phronomy
         else
           fail_task(request.result_task, translated(error))
         end
+      end
+
+      def install_resumed_execution_on_event_loop(ready, event_loop)
+        request = ready.request
+        operation = ready.operation
+        apply_agent_live_state(root: ready.result.root, appended_records: [])
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: operation.execution_id,
+          state: :executing
+        )
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(
+          operation.execution_id,
+          execution: ready.result.execution
+        )
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).register_agent_completion_waiter(
+          operation.execution_id,
+          request.result_task
+        )
+      end
+
+      def observe_resumed_execution(ready, state)
+        request = ready.request
+        operation = ready.operation
+        trace_config = state.invocation ?
+          state.invocation.config.merge(request.config) : request.config
+        trace_mode = state.invocation&.mode ||
+          (
+            ready.result.execution.metadata[
+              RecoverySupport::INVOCATION_MODE_KEY
+            ] || "invoke"
+          ).to_sym
+        Phronomy::Tracing::Automatic.observe_task(
+          request.result_task,
+          "agent.execution",
+          agent_id: @agent.agent_id,
+          execution_id: operation.execution_id,
+          mode: trace_mode,
+          **@agent.send(:_build_caller_meta, trace_config)
+        )
       end
 
       # Recovery chooses a semantic continuation after resolving saved facts.
@@ -1566,26 +1592,54 @@ module Phronomy
         end
 
         if ready.error
-          if operation.execution.metadata["coordination"] || operation.execution.metadata["multi_agent_coordination_ref"]
-            Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(operation.execution_id) if state
-            Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(@agent.agent_id, execution_id: operation.execution_id)
-            Phronomy::Agent::ExecutionRegistry.for(event_loop).take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each do |task|
-              task.fail(ready.error)
-            end
-            return
-          end
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: operation.execution_id,
-            state: :recovery_required
-          )
-          Phronomy.configuration.logger&.warn(
-            "[Phronomy] Agent terminal durable outcome requires recovery for " \
-            "#{operation.execution_id}: #{ready.error.class}: #{ready.error.message}"
-          )
+          handle_terminal_commit_error_on_event_loop(ready, state, event_loop)
           return
         end
 
+        apply_terminal_outcome_state_on_event_loop(ready, state, event_loop)
+        outcome = ready.outcome
+        case outcome.type
+        when :coordination_wait
+          release_coordination_wait_on_event_loop(ready, state, event_loop)
+        when :suspended
+          suspend_execution_on_event_loop(ready, state, event_loop)
+        when :completed
+          deliver_completed_execution_on_event_loop(ready, state, event_loop)
+        when :handed_off
+          deliver_handoff_on_event_loop(ready, state, event_loop)
+        when :failed
+          deliver_failed_execution_on_event_loop(ready, state, event_loop)
+        else
+          fail_task(
+            delivery.result_task,
+            Phronomy::Error.new("unknown terminal outcome: #{outcome.type.inspect}")
+          )
+        end
+      end
+
+      def handle_terminal_commit_error_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
+        delivery = ready.delivery
+        if operation.execution.metadata["coordination"] || operation.execution.metadata["multi_agent_coordination_ref"]
+          release_terminal_ownership(event_loop, operation.execution_id, state)
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each do |task|
+            task.fail(ready.error)
+          end
+          return
+        end
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: operation.execution_id,
+          state: :recovery_required
+        )
+        Phronomy.configuration.logger&.warn(
+          "[Phronomy] Agent terminal durable outcome requires recovery for " \
+          "#{operation.execution_id}: #{ready.error.class}: #{ready.error.message}"
+        )
+      end
+
+      def apply_terminal_outcome_state_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
         outcome = ready.outcome
         apply_agent_live_state(
           root: outcome.root,
@@ -1599,85 +1653,91 @@ module Phronomy
             fsm_session_id: (outcome.type == :suspended) ? nil : state.fsm_session_id
           )
         end
+      end
 
-        case outcome.type
-        when :coordination_wait
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(operation.execution_id) if state
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(@agent.agent_id, execution_id: operation.execution_id)
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| task.fail(outcome.error) }
-        when :suspended
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: operation.execution_id,
-            state: :suspended
-          )
-          dispatch_approval_listener(delivery.approval_listener, outcome.approval_request)
-          callback_error = deliver_terminal(
-            delivery.application_listener,
-            :approval_required,
-            request: outcome.approval_request
-          )
-          report_nonterminal_callback_error(
-            callback_error,
-            :approval_required,
-            outcome.result
-          )
-          Array(state&.invocation&.config&.fetch(:phronomy_exact_observers, [])).each do |task|
-            task.fail(Phronomy::ExecutionRehydrationRequiredError.new("Execution #{operation.execution_id} requires approval"))
-          end
-        when :completed
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(operation.execution_id) if state
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: operation.execution_id
-          )
-          callback_error = deliver_terminal(delivery.application_listener, :done, outcome.result)
-          settle_execution_waiters(
-            event_loop, operation.execution_id, delivery.result_task,
-            callback_error, :done, outcome.result
-          )
-        when :handed_off
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(operation.execution_id) if state
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: operation.execution_id
-          )
-          result = outcome.result.merge(
-            handoff_request: delivery.handoff_request,
-            _phronomy_handoff_manifest: delivery.handoff_manifest
-          ).freeze
-          callback_error = deliver_terminal(delivery.application_listener, :handoff, result)
-          settle_execution_waiters(
-            event_loop, operation.execution_id, delivery.result_task,
-            callback_error, :handoff, result
-          )
-        when :failed
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(operation.execution_id) if state
-          Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: operation.execution_id
-          )
-          type = terminal_event_type(outcome.error)
-          callback_error = deliver_terminal(
-            delivery.application_listener,
-            type,
-            error: outcome.error
-          )
-          settle_execution_waiters(
-            event_loop, operation.execution_id, delivery.result_task,
-            callback_error, type, nil, outcome.error
-          )
-        else
-          fail_task(
-            delivery.result_task,
-            Phronomy::Error.new("unknown terminal outcome: #{outcome.type.inspect}")
-          )
+      def release_coordination_wait_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
+        delivery = ready.delivery
+        outcome = ready.outcome
+        release_terminal_ownership(event_loop, operation.execution_id, state)
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| task.fail(outcome.error) }
+      end
+
+      def suspend_execution_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
+        delivery = ready.delivery
+        outcome = ready.outcome
+        Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
+          @agent.agent_id,
+          execution_id: operation.execution_id,
+          state: :suspended
+        )
+        dispatch_approval_listener(delivery.approval_listener, outcome.approval_request)
+        callback_error = deliver_terminal(
+          delivery.application_listener,
+          :approval_required,
+          request: outcome.approval_request
+        )
+        report_nonterminal_callback_error(
+          callback_error,
+          :approval_required,
+          outcome.result
+        )
+        Array(state&.invocation&.config&.fetch(:phronomy_exact_observers, [])).each do |task|
+          task.fail(Phronomy::ExecutionRehydrationRequiredError.new("Execution #{operation.execution_id} requires approval"))
         end
       end
 
-      # ----------------------------------------------------------------------
-      # Durable record encoding helpers
-      # ----------------------------------------------------------------------
+      def deliver_completed_execution_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
+        delivery = ready.delivery
+        outcome = ready.outcome
+        release_terminal_ownership(event_loop, operation.execution_id, state)
+        callback_error = deliver_terminal(delivery.application_listener, :done, outcome.result)
+        settle_execution_waiters(
+          event_loop, operation.execution_id, delivery.result_task,
+          callback_error, :done, outcome.result
+        )
+      end
+
+      def deliver_handoff_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
+        delivery = ready.delivery
+        outcome = ready.outcome
+        release_terminal_ownership(event_loop, operation.execution_id, state)
+        result = outcome.result.merge(
+          handoff_request: delivery.handoff_request,
+          _phronomy_handoff_manifest: delivery.handoff_manifest
+        ).freeze
+        callback_error = deliver_terminal(delivery.application_listener, :handoff, result)
+        settle_execution_waiters(
+          event_loop, operation.execution_id, delivery.result_task,
+          callback_error, :handoff, result
+        )
+      end
+
+      def deliver_failed_execution_on_event_loop(ready, state, event_loop)
+        operation = ready.operation
+        delivery = ready.delivery
+        outcome = ready.outcome
+        release_terminal_ownership(event_loop, operation.execution_id, state)
+        type = terminal_event_type(outcome.error)
+        callback_error = deliver_terminal(
+          delivery.application_listener,
+          type,
+          error: outcome.error
+        )
+        settle_execution_waiters(
+          event_loop, operation.execution_id, delivery.result_task,
+          callback_error, type, nil, outcome.error
+        )
+      end
+
+      def release_terminal_ownership(event_loop, execution_id, state)
+        registry = Phronomy::Agent::ExecutionRegistry.for(event_loop)
+        registry.release_agent_execution(execution_id) if state
+        registry.release_agent_execution_admission(@agent.agent_id, execution_id: execution_id)
+      end
 
       # ----------------------------------------------------------------------
       # EventLoop validation/apply helpers
