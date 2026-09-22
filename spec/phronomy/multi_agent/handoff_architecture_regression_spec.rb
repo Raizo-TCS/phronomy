@@ -59,7 +59,10 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
     request = File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_request.rb"))
     coordinator = File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_execution_coordinator.rb"))
     expect(request).to include("HandoffRequest")
-    expect(coordinator).to include(":handed_off")
+    worker = File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_outcome_committer.rb"))
+    expect(coordinator).to include("HandoffOutcomeCommitter.new")
+    expect(worker).to include(":handed_off")
+    expect(worker).not_to include("sentinel_map")
     expect(coordinator).not_to include("sentinel_map")
   end
 

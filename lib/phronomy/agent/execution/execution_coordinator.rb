@@ -42,20 +42,9 @@ module Phronomy
       ProviderDispatchPreparationReconciliationCommand = DispatchPreparation::ProviderReconciliationCommand
       ToolDispatchPreparationReconciliationCommand = DispatchPreparation::ToolReconciliationCommand
       ResumeCommitCommand = ApprovalResumeCommit::Command
-      HandoffTerminalView = Data.define(
-        :target_agent_id, :responsibility, :selection_intent,
-        :llm_call_id, :tool_call_id, :policy
-      )
-      TerminalView = Data.define(
-        :phase, :output, :usage, :approval_request, :rejected,
-        :input_blocked, :output_blocked, :block_error,
-        :invocation_error, :handoff, :callback_failure, :source_error, :cancel_requested
-      )
-      TerminalCommitCommand = Data.define(
-        :execution_id, :fsm_session_id, :expected_execution_revision,
-        :root, :journal_records, :execution, :runtime_snapshot,
-        :terminal_view, :state_required
-      )
+      HandoffTerminalView = ExecutionOutcomeCommitter::HandoffTerminalView
+      TerminalView = ExecutionOutcomeCommitter::TerminalView
+      TerminalCommitCommand = ExecutionOutcomeCommitter::Command
       TerminalDelivery = Data.define(
         :result_task, :application_listener, :approval_listener,
         :handoff_request, :handoff_manifest
@@ -69,10 +58,7 @@ module Phronomy
       ProviderDispatchPreparationReconciliationResult = DispatchPreparation::ProviderReconciliationResult
       ToolDispatchPreparationReconciliationResult = DispatchPreparation::ToolReconciliationResult
       ResumeCommitResult = ApprovalResumeCommit::Result
-      TerminalOutcome = Data.define(
-        :type, :execution, :root, :appended_records,
-        :result, :error, :approval_request
-      )
+      TerminalOutcome = ExecutionOutcomeCommitter::Outcome
 
       InitialPreparationReady = Data.define(
         :coordinator, :request, :result, :error
@@ -112,6 +98,7 @@ module Phronomy
         @initial_preparation = InitialPreparation.new(agent: agent, persistence: agent.persistence)
         @dispatch_preparation = DispatchPreparation.new(agent: agent, persistence: agent.persistence)
         @approval_resume_commit = ApprovalResumeCommit.new(agent_id: agent.agent_id, persistence: agent.persistence)
+        @outcome_committer = build_outcome_committer
       end
 
       def start(
@@ -1472,6 +1459,10 @@ module Phronomy
         )
       end
 
+      def build_outcome_committer
+        ExecutionOutcomeCommitter.new(agent: @agent, persistence: @agent.persistence)
+      end
+
       def submit_terminal_operation(operation, delivery)
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
@@ -1489,7 +1480,7 @@ module Phronomy
         task = runtime.offload.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. TaskResult/listener delivery state stays outside it.
-          compute_terminal(operation)
+          @outcome_committer.commit_outcome(operation)
         end
         task.on_complete do |outcome, error|
           ready = TerminalCommitReady.new(
@@ -1555,333 +1546,6 @@ module Phronomy
 
       def empty_runtime_snapshot
         {llm_results: [].freeze, runtime_events: [].freeze, active_call: nil}.freeze
-      end
-
-      def compute_terminal(operation)
-        view = operation.terminal_view
-        error = view.callback_failure&.to_stream_callback_error || view.source_error ||
-          view.block_error || view.invocation_error
-        if operation.execution.metadata["multi_agent_coordination_ref"] &&
-            (error.is_a?(Phronomy::ExecutionRehydrationRequiredError) || view.cancel_requested)
-          waiting = commit_coordination_wait(operation, error)
-          return waiting if waiting
-        end
-        raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
-        return commit_failed_outcome(operation, error) if error
-        return commit_suspended(operation) if view.phase == :suspended
-        commit_completed(operation)
-      rescue => caught
-        reconcile_terminal_error(operation, caught)
-      end
-
-      # Reuse the Agent barrier to retain unfinished owned children. This is an
-      # active AgentExecution snapshot, not a second scheduler or terminal state.
-      def commit_coordination_wait(operation, error)
-        current = operation.execution
-        waiting = nil
-        @agent.persistence.transaction do |tx|
-          refreshed = @agent.__prepare_coordination_record(current, tx: tx)
-          snapshot = tx.contents.fetch_json(refreshed.metadata.fetch("multi_agent_coordination_ref"))
-          unresolved = snapshot.fetch("children").any? do |child|
-            !%w[completed failed cancelled rejected blocked handed_off].include?(child.fetch("state")) &&
-              !(operation.terminal_view.cancel_requested && child.fetch("state") == "reserved")
-          end
-          next unless unresolved
-          waiting = current.with(metadata: refreshed.metadata.merge(
-            "coordination_cancel_requested" => operation.terminal_view.cancel_requested || current.metadata["coordination_cancel_requested"] == true
-          ))
-          tx.executions.save(current.execution_id, expected_revision: current.execution_revision, execution: waiting)
-        end
-        return unless waiting
-        coordination_wait_outcome(operation, waiting, error)
-      rescue => failure
-        confirmed = @agent.persistence.executions.load(current.execution_id)
-        raise failure unless waiting && confirmed.to_h == waiting.to_h
-        coordination_wait_outcome(operation, confirmed, error)
-      end
-
-      def coordination_wait_outcome(operation, execution, error)
-        TerminalOutcome.new(type: :coordination_wait, execution: execution, root: operation.root,
-          appended_records: [].freeze, result: nil,
-          error: error.is_a?(Phronomy::ExecutionRehydrationRequiredError) ? error :
-            Phronomy::ExecutionRehydrationRequiredError.new("Execution #{execution.execution_id} retains unfinished children for cancellation/recovery"),
-          approval_request: nil)
-      end
-
-      # F1: terminal atomicity alone does not establish commit outcome certainty.
-      # Reuse an exact committed outcome; an absent/active/read-failed result is
-      # never permission to write a second terminal transition.
-      def reconcile_terminal_error(operation, error)
-        confirmed = @agent.persistence.executions.load(operation.execution_id)
-        raise error unless confirmed.terminal? &&
-          confirmed.agent_id == @agent.agent_id &&
-          confirmed.execution_revision == operation.expected_execution_revision + 1
-        root = @agent.persistence.agents.load(@agent.agent_id)
-        records = @agent.persistence.journals.read(@agent.agent_id,
-          after: operation.root.journal_position, limit: root.journal_position - operation.root.journal_position)
-        result = @agent.persistence.execution_result(confirmed.execution_id)
-        failure = result[:error] && RecoverySupport.error_from_failure(result[:error])
-        type = if failure
-          :failed
-        else
-          ((confirmed.status == :handed_off) ? :handed_off : :completed)
-        end
-        TerminalOutcome.new(type: type, execution: confirmed, root: root,
-          appended_records: records.freeze,
-          result: failure ? nil : result_base(confirmed, root).merge(output: result[:result]).freeze,
-          error: failure, approval_request: nil)
-      end
-
-      def commit_suspended(operation)
-        current = operation.execution
-        root = operation.root
-        request = operation.terminal_view.approval_request
-        runtime_snapshot = operation.runtime_snapshot
-        suspended = next_root = nil
-
-        @agent.persistence.transaction do |tx|
-          encoded_records, call_records = RuntimeRecordEncoder.encode(
-            current,
-            agent_id: @agent.agent_id,
-            tx: tx,
-            snapshot: runtime_snapshot,
-            context_candidate: true,
-            agent_root: root
-          )
-          request_ref = tx.contents.put_json(RuntimeRecordEncoder.json_value(request.to_h))
-          approval_record = JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: current.execution_id,
-            kind: :approval_required,
-            channel: :approval,
-            content_ref: request_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: false
-          )
-          suspended = current.with(
-            status: :suspended,
-            phase: :approval,
-            working_records: current.working_records + encoded_records + [approval_record],
-            llm_calls: current.llm_calls + call_records,
-            approval_request: RuntimeRecordEncoder.json_value(request.to_h)
-          )
-          tx.executions.save(
-            current.execution_id,
-            expected_revision: current.execution_revision,
-            execution: suspended
-          )
-          next_root = root.with(
-            agent_revision: root.agent_revision + 1,
-            lifecycle_status: :suspended
-          )
-          tx.agents.save(
-            root.agent_id,
-            expected_revision: root.agent_revision,
-            root: next_root
-          )
-        end
-        result = result_base(suspended, next_root).merge(
-          suspended: true,
-          approval_request: request
-        )
-        TerminalOutcome.new(
-          type: :suspended,
-          execution: suspended,
-          root: next_root,
-          appended_records: [].freeze,
-          result: result.freeze,
-          error: nil,
-          approval_request: request
-        )
-      end
-
-      def synchronize_handoff_target(tx, execution)
-        coordination = execution.metadata["coordination"]
-        return unless coordination && coordination["kind"] == "handoff"
-        routing = tx.handoff_states.load(coordination.fetch("main_agent_id"))
-        return unless routing && routing.pending_target_execution_id == execution.execution_id && routing.phase != "stable"
-        unless routing.active_agent_id == execution.agent_id
-          raise Phronomy::Storage::ConflictError, "Handoff Target owner mismatch"
-        end
-        tx.handoff_states.save(routing.main_agent_id, expected_revision: routing.handoff_revision,
-          state: routing.with(phase: "stable"))
-      end
-
-      def commit_completed(operation)
-        current = operation.execution
-        root = operation.root
-        view = operation.terminal_view
-        runtime_snapshot = operation.runtime_snapshot
-        completed = next_root = appended = messages = nil
-
-        @agent.persistence.transaction do |tx|
-          encoded_records, call_records = RuntimeRecordEncoder.encode(
-            current,
-            agent_id: @agent.agent_id,
-            tx: tx,
-            snapshot: runtime_snapshot,
-            context_candidate: true,
-            agent_root: root
-          )
-          output_ref = tx.contents.put_text(view.output.to_s)
-          final_output_record = JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: current.execution_id,
-            kind: :final_output,
-            channel: :audit,
-            role: :assistant,
-            content_ref: output_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: false
-          )
-          completed_record = JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: current.execution_id,
-            kind: view.rejected ? :execution_rejected : :execution_completed,
-            channel: :audit,
-            content_ref: output_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: false
-          )
-          all_records = current.working_records + encoded_records +
-            [final_output_record, completed_record]
-          appended = tx.journals.append(
-            root.agent_id,
-            expected_position: root.journal_position,
-            records: all_records
-          )
-          completed = current.with(
-            status: view.rejected ? :rejected : :completed,
-            phase: :completed,
-            working_records: [],
-            llm_calls: current.llm_calls + call_records,
-            approval_request: nil,
-            result_ref: output_ref,
-            terminal_reason: view.rejected ? "rejected" : "completed"
-          )
-          completed = @agent.__prepare_coordination_record(completed, tx: tx)
-          synchronize_handoff_target(tx, completed)
-          tx.executions.save(
-            current.execution_id,
-            expected_revision: current.execution_revision,
-            execution: completed
-          )
-          context_changed = appended.any?(&:context_candidate)
-          next_root = root.with(
-            agent_revision: root.agent_revision + 1,
-            context_revision: root.context_revision + (context_changed ? 1 : 0),
-            journal_position: root.journal_position + appended.length,
-            lifecycle_status: :idle
-          )
-          tx.agents.save(
-            root.agent_id,
-            expected_revision: root.agent_revision,
-            root: next_root
-          )
-
-          # Materialize the caller-facing transcript through the transaction
-          # view before commit. If materialization fails, the terminal durable
-          # transition rolls back instead of committing and then attempting a
-          # second terminal transition from a stale execution revision.
-          records_after_commit = operation.journal_records + Array(appended)
-          messages = transcript_messages(
-            next_root,
-            records_after_commit,
-            persistence: tx
-          )
-        end
-        result = result_base(completed, next_root).merge(
-          output: view.output,
-          rejected: view.rejected || nil,
-          usage: view.usage,
-          messages: messages
-        ).compact
-        TerminalOutcome.new(
-          type: :completed,
-          execution: completed,
-          root: next_root,
-          appended_records: Array(appended).freeze,
-          result: result.freeze,
-          error: nil,
-          approval_request: nil
-        )
-      end
-
-      def commit_failed_outcome(operation, error)
-        translated_error = translated(error)
-        current = operation.execution
-        root = operation.root
-        runtime_snapshot = operation.runtime_snapshot
-        failed = next_root = appended = nil
-
-        @agent.persistence.transaction do |tx|
-          encoded_records, call_records = RuntimeRecordEncoder.encode(
-            current,
-            agent_id: @agent.agent_id,
-            tx: tx,
-            snapshot: runtime_snapshot,
-            context_candidate: false,
-            agent_root: root
-          )
-          error_ref = tx.contents.put_json(
-            "class" => translated_error.class.name,
-            "message" => translated_error.message
-          )
-          audit_records = (current.working_records + encoded_records).map do |record|
-            JournalRecord.from_h(
-              record.to_h.merge("context_candidate" => false)
-            )
-          end
-          terminal_status = ExecutionFailure.status_for(translated_error)
-          audit_records << JournalRecord.new(
-            agent_id: @agent.agent_id,
-            execution_id: current.execution_id,
-            kind: ExecutionFailure.journal_kind_for(terminal_status),
-            channel: :audit,
-            content_ref: error_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: false
-          )
-          appended = tx.journals.append(
-            root.agent_id,
-            expected_position: root.journal_position,
-            records: audit_records
-          )
-          failed = current.with(
-            status: terminal_status,
-            phase: terminal_status,
-            working_records: [],
-            llm_calls: current.llm_calls + call_records,
-            error_ref: error_ref,
-            terminal_reason: translated_error.class.name
-          )
-          failed = @agent.__prepare_coordination_record(failed, tx: tx)
-          synchronize_handoff_target(tx, failed)
-          tx.executions.save(
-            current.execution_id,
-            expected_revision: current.execution_revision,
-            execution: failed
-          )
-          next_root = root.with(
-            agent_revision: root.agent_revision + 1,
-            journal_position: root.journal_position + appended.length,
-            lifecycle_status: :idle
-          )
-          tx.agents.save(
-            root.agent_id,
-            expected_revision: root.agent_revision,
-            root: next_root
-          )
-        end
-        TerminalOutcome.new(
-          type: :failed,
-          execution: failed,
-          root: next_root,
-          appended_records: Array(appended).freeze,
-          result: nil,
-          error: translated_error,
-          approval_request: nil
-        )
       end
 
       def apply_terminal_commit_on_event_loop(ready)
@@ -2064,29 +1728,6 @@ module Phronomy
 
         raise Phronomy::Error,
           "ExecutionCoordinator live-state apply must run on EventLoop"
-      end
-
-      def transcript_messages(root, journal_records, persistence: @agent.persistence)
-        materializer = RubyLLMMaterializer.new(
-          agent: @agent,
-          persistence: persistence
-        )
-        materializer.materialize_journal_records(
-          JournalProjection.new(
-            agent_root: root,
-            records: journal_records
-          ).transcript_records
-        )
-      end
-
-      def result_base(execution, root)
-        {
-          agent_id: root.agent_id,
-          execution_id: execution.execution_id,
-          agent_revision: root.agent_revision,
-          context_revision: root.context_revision,
-          journal_position: root.journal_position
-        }
       end
 
       def deliver_terminal(listener, type, payload)

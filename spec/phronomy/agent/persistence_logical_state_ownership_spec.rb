@@ -59,9 +59,6 @@ RSpec.describe "Agent logical-state ownership" do
 
   it "keeps mutable Agent repository reload out of ExecutionCoordinator" do
     coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
-    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
-      coordinator = coordinator.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
-    end
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
     reconciliation = worker.split("def reconcile_preparation", 2).fetch(1).split(/^      def /, 2).first
     without_reconciliation = worker.sub(/^      def reconcile_preparation.*?(?=^      def )/m, "")
@@ -70,7 +67,13 @@ RSpec.describe "Agent logical-state ownership" do
     parent_validation = preparation.split("def validate_subagent_admission!", 2).fetch(1).split(/^      def /, 2).first
     expect(parent_validation).to include('tx.executions.load(owner.fetch("parent_execution_id"))')
     without_parent_validation = preparation.sub(/^      def validate_subagent_admission!.*?(?=^      def )/m, "")
-    [coordinator, without_reconciliation, without_parent_validation].each do |source|
+    outcomes = File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb"))
+    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
+      body = outcomes.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
+      expect(body).to include("@persistence.executions.load")
+      outcomes = outcomes.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
+    end
+    [coordinator, outcomes, without_reconciliation, without_parent_validation].each do |source|
       expect(source).not_to match(/(?:tx|persistence)\.agents\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.executions\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.journals\.read/)

@@ -100,6 +100,7 @@ resolved explicitly.
 | [`048-dispatch-preparation-worker-ownership`](048-dispatch-preparation-worker-ownership.md) | Accepted | Yes | Dispatch worker owns prerequisite persistence and readback; the execution owner retains EventLoop validation, apply and dispatch. Operation-specific boundaries and purpose-level method bodies are preserved. |
 | [`049-initial-preparation-worker-ownership`](049-initial-preparation-worker-ownership.md) | Accepted | Yes | Initial preparation and preparing recovery share a persistence worker; admission outcomes, commit certainty and EventLoop ownership stay distinct. Pure failure classification is shared without sharing transaction control. |
 | [`050-approval-resume-snapshot-and-commit-ownership`](050-approval-resume-snapshot-and-commit-ownership.md) | Accepted | Yes | Validated approval commands own immutable recovery snapshots. A worker commits decision, Execution and Root; the execution owner retains admission, live state and session resumption. |
+| [`051-execution-outcome-worker-ownership`](051-execution-outcome-worker-ownership.md) | Accepted | Yes | Ordinary and Handoff outcome workers own atomic persistence and operation-specific readback; EventLoop retains result authority and delivery. |
 
 ## Legacy duplicate `011`
 

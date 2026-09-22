@@ -92,9 +92,6 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
   it "does not reload mutable Agent root or execution in ExecutionCoordinator" do
     coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
-    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
-      coordinator = coordinator.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
-    end
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
     reconciliation = worker.split("def reconcile_preparation", 2).fetch(1).split(/^      def /, 2).first
     without_reconciliation = worker.sub(/^      def reconcile_preparation.*?(?=^      def )/m, "")
@@ -104,7 +101,13 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     parent_validation = preparation.split("def validate_subagent_admission!", 2).fetch(1).split(/^      def /, 2).first
     expect(parent_validation).to include('tx.executions.load(owner.fetch("parent_execution_id"))')
     without_parent_validation = preparation.sub(/^      def validate_subagent_admission!.*?(?=^      def )/m, "")
-    [coordinator, without_reconciliation, without_parent_validation, approval].each do |source|
+    outcomes = File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb"))
+    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
+      body = outcomes.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
+      expect(body).to include("@persistence.executions.load")
+      outcomes = outcomes.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
+    end
+    [coordinator, outcomes, without_reconciliation, without_parent_validation, approval].each do |source|
       expect(source).not_to match(/(?:tx|persistence)\.agents\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.executions\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.journals\.read/)
@@ -138,19 +141,10 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   end
 
   it "keeps durable worker paths free of direct Phronomy live-state mutation" do
-    coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
-    )
-    worker_methods = %w[
-      compute_terminal
-      commit_suspended
-      commit_completed
-      commit_failed_outcome
+    bodies = [
+      File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb")),
+      File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_outcome_committer.rb"))
     ]
-
-    bodies = worker_methods.map do |name|
-      coordinator.split("def #{name}", 2).fetch(1).split(/^      def /, 2).first
-    end
     bodies << File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
     bodies << File.read(File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb"))
     bodies << File.read(File.join(root, "lib/phronomy/agent/execution/approval_resume_commit.rb"))
