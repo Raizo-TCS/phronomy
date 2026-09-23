@@ -5,11 +5,12 @@
 # Measures the per-invoke cost of the Phronomy::Agent::Base framework path
 # (context assembly, filter checks, before_llm_input hooks, response handling)
 # with a fully stubbed LLM. No network calls are made.
+# Each sample invokes a fresh Agent once. Agent construction is outside the
+# measured block; growing conversation history is a different workload.
 #
 # Scenarios:
 #   1. Minimal agent (no tools, no persistent Knowledge) — baseline framework overhead.
 #   2. Tool-aware agent with a registered stub Tool.
-#   3. Agent#stream setup latency (first-chunk time with stubbed stream).
 
 require "benchmark"
 require_relative "../lib/phronomy"
@@ -18,10 +19,12 @@ require_relative "../lib/phronomy"
 # Shared stubs
 # ---------------------------------------------------------------------------
 
-BenchAgentMessage = Struct.new(:role, :content, :tool_calls, :tokens) do
+module BenchAgentMessage
   def self.assistant(content = "done")
-    new(:assistant, content, nil,
-      Struct.new(:input, :output, :cached, :cache_creation).new(5, 5, 0, 0))
+    RubyLLM::Message.new(
+      role: :assistant, content: content,
+      tokens: RubyLLM::Tokens.new(input: 5, output: 5, cache_read: 0, cache_write: 0)
+    )
   end
 end
 
@@ -34,22 +37,25 @@ class BenchStubChat
     @messages = []
   end
 
-  def with_instructions(_) = self
-  def with_tool(_) = self
+  def with_instructions(_, **_options) = self
+  def with_tools(*) = self
   def with_temperature(_) = self
   def with_cache_instructions(_) = self
   def with_output_schema(_) = self
-  def on_tool_call(&) = self
-  def before_tool_call(&) = self
   def last_message = @response
 
-  def ask(_)
-    @messages << @response
-    @response
+  def after_message(&block)
+    @after_message = block
+    self
   end
 
-  def stream(*)
-    yield @response.content if block_given?
+  def ask(_)
+    complete
+  end
+
+  def complete
+    @messages << @response
+    @after_message&.call(@response)
     @response
   end
 end
@@ -69,7 +75,6 @@ end
 # ---------------------------------------------------------------------------
 
 BENCH_RESP = BenchAgentMessage.assistant("benchmark complete")
-BENCH_RESP_CHAT = BenchStubChat.new(BENCH_RESP)
 
 bench_minimal_class = Class.new(Phronomy::Agent::Base) do
   agent_definition id: "bench-minimal", version: 1
@@ -86,22 +91,21 @@ bench_tool_class = Class.new(Phronomy::Agent::Base) do
   define_method(:build_chat) { |*| BenchStubChat.new(BENCH_RESP) }
 end
 
-BENCH_AGENT_MINIMAL = bench_minimal_class.new
-BENCH_AGENT_TOOLS = bench_tool_class.new
-
 AGENT_INVOKE_ITERATIONS = 200
+BENCH_AGENTS_MINIMAL = Array.new(AGENT_INVOKE_ITERATIONS) { bench_minimal_class.new }.freeze
+BENCH_AGENTS_TOOLS = Array.new(AGENT_INVOKE_ITERATIONS) { bench_tool_class.new }.freeze
 
 puts "=== bench_agent_invoke ==="
 Benchmark.bm(50) do |x|
-  x.report("Agent#invoke — minimal (no tools), #{AGENT_INVOKE_ITERATIONS} iters") do
-    AGENT_INVOKE_ITERATIONS.times do
-      BENCH_AGENT_MINIMAL.invoke("ping")
+  x.report("Agent#invoke — fresh, no tools, #{AGENT_INVOKE_ITERATIONS} iters") do
+    BENCH_AGENTS_MINIMAL.each do |agent|
+      agent.invoke("ping")
     end
   end
 
-  x.report("Agent#invoke — tool-aware, #{AGENT_INVOKE_ITERATIONS} iters") do
-    AGENT_INVOKE_ITERATIONS.times do
-      BENCH_AGENT_TOOLS.invoke("ping")
+  x.report("Agent#invoke — fresh, tool-aware, #{AGENT_INVOKE_ITERATIONS} iters") do
+    BENCH_AGENTS_TOOLS.each do |agent|
+      agent.invoke("ping")
     end
   end
 end

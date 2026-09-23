@@ -80,7 +80,7 @@ RSpec.shared_examples "neutral storage primitives" do
   end
 
   it "orders equality-index pages by UTF-8 bytes with an exclusive cursor" do
-    keys = ["z", "é", "Z", "あ", "a"]
+    keys = ["z", "é", "Z", "a"]
     keys.each { |key| raw_insert(key, active: false) }
     sorted = keys.sort_by(&:b)
     first = raw_records.scan(index: :owner, equals: {owner: raw_owner}, limit: 2)

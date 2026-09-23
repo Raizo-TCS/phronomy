@@ -43,19 +43,18 @@ module BenchContextAssembler
       call_sequence: 2, call_mode: :complete,
       instruction: [], knowledge: knowledge, tools: [], conversation: conversation,
       token_budget: Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: [item_count * 16, 4_096].max,
-        max_output_tokens: 512
+        max_input_tokens: [item_count * 16, 4_096].max
       ),
       model_config: {}, previous_manifest: nil, metadata: {}
     )
   end
 
   def assembler_fixture
-    persistence = Phronomy::Persistence::InMemory.new
+    persistence = Phronomy::Persistence.in_memory
     agent_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "bench-manifest-context-assembler", version: 1
-      model "local-model"
-      context_window 16_384
+      # Resolve capabilities from RubyLLM's bundled registry; no provider call.
+      model "gpt-4o-mini"
       max_output_tokens 1_024
       instructions "Benchmark instruction"
     end
