@@ -106,5 +106,6 @@ additional files; they give graph, receiver and state independent reading units.
 Directory-level dependency counts increase with that physical partition; cycle
 membership is unchanged. This is responsibility separation, not cycle removal.
 
-R08/D08 remains application-pending. Keep the published diagram on applied40-01
-until verification. R09 and R10 remain after that gate.
+Refactor 41 is applied and independently verified at core e87eb77f, tree
+14dc8a546a4fd96e19e0713f7480ca2efa3c331a. All nine files and the full tree match.
+R08/D08 is closed. The published diagram is applied41-01. R09 and R10 remain.

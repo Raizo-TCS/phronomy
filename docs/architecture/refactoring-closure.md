@@ -2,13 +2,14 @@
 
 ## Scope and acceptance state
 
-The applied baseline is Refactor 40: core
-`b3dfbc5a65daf3ac52a902c2f832ac4216978966` and examples
+The applied baseline is Refactor 41: core
+`e87eb77f07251cb9ba8b17aa8087c1e5dd4f9723` and examples
 `68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` on `refactor/architecture`.
 W1/W2, Storage S1/S2 and Refactor 36's S3 cleanup are applied and verified.
 Refactor 37's D02, Refactor 38's R03/R11, Refactor 39's R06 and Refactor 40's R07
-changes are applied and verified. Refactor 41 implements R08/D08's GeneratorVerifier
-ownership; its application is not yet verified.
+changes are applied and verified. Refactor 41's R08/D08 is applied and verified. Refactor 42 implements the
+first R09 slice: Tool binding and explicit declaration-inheritance contracts.
+Its application is not yet verified; R09 remains open for Chat/state ownership.
 
 The S3 audit and its bounded Storage cleanup are verified. The initial review
 still contains open proposals. The previous remaining-work summary omitted still
@@ -53,7 +54,7 @@ SQL operations and stored formats are unchanged.
 | Workflow final save | One F1-aware implementation in WorkflowRunner; no WorkflowRecovery prepend override (W1/W2). |
 | ExecutionCoordinator | EventLoop-side sequencing/acceptance; named preparation/persistence workers hold worker-side tasks. ToolInvocation owns its restoration sequence. |
 | Multi-agent coordination | HandoffRunner and SharedState in MultiAgent; durable domain records retain their feature owners. |
-| Public persistence queries | Agent/Team query traversal is separate from the public facade and repository assembly (D07). GeneratorVerifier is not counted as completed; see R08/D08 below. |
+| Public persistence queries | Agent/Team query traversal is separate from the public facade and repository assembly (D07). GeneratorVerifier ownership is applied and verified in Refactor 41 (R08/D08). |
 | Storage | Neutral SPI 2 and all three backends validated; domain conditions and physical operations have distinct owners. |
 | Final naming and documents | Retained names above, Resource/Validation cleanup, current stage status and historical migration guides reconciled in Refactor 36. |
 
@@ -70,7 +71,7 @@ boundary, not a claim that all source-structure guards must disappear. A01's
 shutdown boundary and the revised A02 removal are implemented.
 
 The broader A proposals map to those same goals rather than adding another
-independent set of tasks: A03 includes D02 (now verified) and the open D08 work;
+independent set of tasks: A03 includes D02 and D08 (both verified);
 A04's record/codec separation and neutral backend contract are implemented,
 while composition review overlaps R09; A05 keeps the same public Tool Class and
 places ToolExecutor beside the capability contract, preserving its documented
@@ -87,15 +88,15 @@ completed follow-ups. The remaining items are not regressions caused by Refactor
 | R03 | Applied and verified in Refactor 38: ExecutionMetadata owns shared durable keys and snapshots; ToolInvocation owns stable identity. Earlier restoration behavior is preserved. |
 | R06 | Applied and verified in Refactor 39: InvocationTransitions owns Tool events, ordered external transitions and state declarations for both builders and Invocation. |
 | R07 | Applied and verified in Refactor 40: ContextAssembler describes preparation through private instruction, record-candidate, candidate-merge and current-input operations. |
-| R08 / D08 | Refactor 41 candidate, one overlapping item: GeneratorVerifier keeps its facade and Result; private WorkflowBuilder, AgentResultReceiver and the moved PipelineState separate graph construction, reception and state. Application verification remains. |
-| R09 | Partial: composition moved, but Base's Tool binding remains. DSL inheritance differences require a behavior decision before modification. |
+| R08 / D08 | Applied and verified in Refactor 41, one overlapping item: GeneratorVerifier keeps its facade and Result; private WorkflowBuilder, AgentResultReceiver and the moved PipelineState separate graph construction, reception and state. |
+| R09 | Partial: composition moved; Refactor 42 extracts ToolBinding and records/tests current DSL rules. Application is pending. Chat construction and state-mutation ownership still need review; inheritance changes remain a separate behavior decision. |
 | R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
 | R11 | Applied and verified in Refactor 38: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. |
 
 These entries identify real remaining proposals, not automatic authorization for
-public behavior changes. D02, R03/R11, R06 and R07 are applied and verified.
-Refactor 41 implements R08/D08's GeneratorVerifier ownership. After its application
-check, address R09; R10 can be coordinated with its owning changes.
+public behavior changes. D02, R03/R11, R06, R07 and R08/D08 are applied and verified.
+Refactor 42 implements the first R09 slice; Chat/state ownership remains.
+R10 can be coordinated with its owning changes.
 Keep R09's DSL semantics separate.
 A complete initial-review closure requires implementation and verification or an
 explicit decision to defer each item. It cannot follow from this small package.
@@ -155,7 +156,7 @@ Refactor 38 is applied and independently verified at core 690b2823, tree
 Core 2,970 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
 R03/R11 are closed. Five groups remained at that point; R06 is now applied below.
-The diagram was synchronized to applied38-01 then and is now applied40-01.
+The diagram was synchronized to applied38-01 then and is now applied41-01.
 
 
 ## R06: Agent transition ownership (Refactor 39, applied)
@@ -183,7 +184,7 @@ Refactor 39 is applied and independently verified at core 4d57614a, tree
 Core 2,993 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
 R06 is closed. Four groups remained then; R07 is now applied below.
-The diagram was synchronized to applied39-01 then and is now applied40-01.
+The diagram was synchronized to applied39-01 then and is now applied41-01.
 
 
 ## R07: Context preparation steps (Refactor 40, applied)
@@ -211,11 +212,11 @@ Refactor 40 is applied and independently verified at core b3dfbc5a, tree
 dcd9d1bf8efb1b488f9c2b3b1c4e99bdeda6096c. All six files and the tree match.
 Core 3,003 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style, gem and four paired
-preparation scenarios. R07 is closed. Three groups remain: R08/D08, R09 and R10.
-The published diagram is applied40-01; keep it until Refactor 41 application checks.
+preparation scenarios. R07 is closed. Three groups remained at that point; R08/D08 is now applied below.
+The published diagram is applied41-01; keep it until Refactor 42 application checks.
 
 
-## R08/D08: GeneratorVerifier ownership (Refactor 41 candidate)
+## R08/D08: GeneratorVerifier ownership (Refactor 41, applied)
 
 See [the ownership and event-contract design](generator-verifier-ownership.md).
 The public facade retains configuration, lazy Workflow caching, default parsers
@@ -239,5 +240,35 @@ The public signature/Result/state contract also matches. Full gates are recorded
 in the distribution. Existing semantics remain: final trust is score-based, even
 if an unapproved high-score draft is finalized at the iteration limit.
 
-R08/D08 is application-pending. After its check, two groups remain: R09 and R10.
-Keep R09's DSL inheritance behavior decision separate from internal extraction.
+Refactor 41 is applied and independently verified at core e87eb77f, tree
+14dc8a546a4fd96e19e0713f7480ca2efa3c331a. All nine files and the full tree match.
+Core 3,042 (61 pending), integration 367 (28 pending), common examples 42 and
+SQLite 116 passed with zero failures, as did API/RBS, style, gem and explicit
+public/Result/state comparisons. R08/D08 is closed; R09 and R10 remain.
+The diagram is applied41-01.
+
+
+## R09: Tool binding and declaration rules (Refactor 42 candidate)
+
+See [the boundary design and inheritance matrix](agent-configuration-and-tool-binding.md).
+Base retains its preparation hook, non-Class passthrough and setting selection.
+Agent::ToolBinding creates alias/filter decorators and forwards custom async
+logical/physical completion. The default async path stays inherited to avoid
+applying filters twice. ToolInvocation and Orchestrator retain their owners.
+No Agent reference or private callback into Base is passed to ToolBinding.
+
+Thirty-five new examples pass on both baseline and candidate. Current DSL rules
+are explicit, including non-inherited model/budgets/filters, live parent lookups,
+shared instructions/policy/Tool-list values and inherited aliases that nil does
+not remove. This package does not unify public configuration behavior.
+
+The initial R09 also named Chat construction and state mutation. Earlier short
+summaries omitted that detail. build_chat, _apply_runtime_projection_to_chat,
+create_agent_root!, add_knowledge and mutate_context! still remain in Base.
+Their ownership and transaction/root-publication boundaries are the next R09
+slice, not a newly invented performance or runtime requirement. Keep this work
+visible. R09 and R10 remain open after this slice's application check.
+
+Refactor 42 is a source candidate awaiting application. The published diagram
+remains applied41-01. No live-LLM, live PostgreSQL, candidate remote-CI or
+performance claim follows from the local validation results.

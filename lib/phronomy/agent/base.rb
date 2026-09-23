@@ -1027,66 +1027,10 @@ module Phronomy
       def prepare_tool_class(tool_class, invocation: nil)
         return tool_class unless tool_class.is_a?(Class)
 
-        resolved = if (alias_name = self.class.tool_aliases[tool_class])
-          Class.new(tool_class) do
-            tool_name alias_name
-          end
-        else
-          tool_class
-        end
-
-        result_filters = _tool_result_filters_for(tool_class)
-        return resolved if result_filters.empty?
-
-        effective_name = resolved.new.name
-        custom_async_call =
-          resolved.instance_method(:call_async).owner !=
-          Phronomy::Agent::Context::Capability::Base
-
-        Class.new(resolved) do
-          tool_name effective_name
-          define_method(:call) do |args, **kwargs|
-            result = super(args, **kwargs)
-            result_filters.inject(result) { |val, filter|
-              filter.call(val, tool_name: name, args: args)
-            }
-          end
-
-          if custom_async_call
-            define_method(:call_async) do |args, **kwargs|
-              source = super(args, **kwargs)
-              filtered = Phronomy::Concurrency::PhysicalCompletionTask.deferred(
-                name: "tool-filter-#{name}"
-              )
-              source_has_physical_signal = source.respond_to?(:on_physical_complete)
-              source.on_physical_complete { filtered.mark_physical_complete! } if
-                source_has_physical_signal
-              source.on_complete do |value, error|
-                if error
-                  filtered.mark_physical_complete! unless source_has_physical_signal
-                  if source.respond_to?(:status) && source.status == :cancelled
-                    filtered.cancel!(error)
-                  else
-                    filtered.fail(error)
-                  end
-                  next
-                end
-
-                begin
-                  result = result_filters.inject(value) { |val, filter|
-                    filter.call(val, tool_name: name, args: args)
-                  }
-                  filtered.mark_physical_complete! unless source_has_physical_signal
-                  filtered.complete(result)
-                rescue => filter_error
-                  filtered.mark_physical_complete! unless source_has_physical_signal
-                  filtered.fail(filter_error)
-                end
-              end
-              filtered
-            end
-          end
-        end
+        binding = ToolBinding.new(
+          tool_class, alias_name: self.class.tool_aliases[tool_class]
+        )
+        binding.prepare(result_filters: _tool_result_filters_for(tool_class))
       end
     end
   end

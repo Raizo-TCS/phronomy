@@ -55,7 +55,7 @@ RSpec.describe Phronomy::Agent::Base do
       expect(klass.cache_instructions).to be(false)
     end
 
-    it "does not inherit definition identity/revision while normal class configuration still inherits" do
+    it "requires a separate definition identity/revision while inheriting instructions" do
       parent = Class.new(Phronomy::Agent::Base)
       stub_const("CG04ParentAgent", parent)
       parent.agent_definition(version: 1)
