@@ -22,9 +22,10 @@ RSpec.describe "Domain persistence ownership boundary" do
         tasks: [], workers: [], assignments: [], result_ref: nil, error_ref: nil,
         created_at: timestamp, updated_at: timestamp, metadata: {}
       )
-      backend = Phronomy::Storage::Backends::InMemory.new
-      roots = Phronomy::MultiAgent::Persistence::TeamRepository.new(backend.teams)
-      runs = Phronomy::MultiAgent::Persistence::TeamExecutionRepository.new(backend.team_executions)
+      schema = Phronomy::TeamStorageSchema
+      backend = Phronomy::Storage::Backends::InMemory.new(resources: [schema::ROOTS, schema::EXECUTIONS])
+      roots = Phronomy::MultiAgent::Persistence::TeamRepository.new(backend.view)
+      runs = Phronomy::MultiAgent::Persistence::TeamExecutionRepository.new(backend.view)
       backend.transaction do
         roots.create(root)
         runs.create_active(execution)
@@ -62,6 +63,7 @@ RSpec.describe "Domain persistence ownership boundary" do
       leaks = ($LOADED_FEATURES - loaded_at_entry).select do |path|
         next false unless path.start_with?(directory + "/")
         relative = path.delete_prefix(directory + "/")
+        next false if relative.end_with?("storage_schema.rb") || relative.include?("storage_contract/")
         %w[multi_agent workflow].any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }
       end
       abort "unrelated implementation loaded: #{leaks.join(', ')}" unless leaks.empty?
@@ -74,12 +76,15 @@ RSpec.describe "Domain persistence ownership boundary" do
   end
 
   it "rolls back Agent, Team, and content writes when the Team response fails validation" do
-    backend = Phronomy::Storage::Backends::InMemory.new
+    backend = Phronomy::Persistence.in_memory.backend
     # F0 after physical writes, within one backend transaction; no X0 effect.
-    backend.teams.define_singleton_method(:create) do |**arguments|
-      stored = super(**arguments)
-      Phronomy::Storage::DurableRecord.new(record_type: stored.record_type,
-        format_version: stored.format_version, payload: stored.payload.merge("team_id" => "wrong-team"))
+    backend.define_singleton_method(:insert_record) do |context, resource, **arguments|
+      entry = super(context, resource, **arguments)
+      next entry unless resource.id == "team.roots"
+      record = entry.record
+      corrupt = Phronomy::Storage::DurableRecord.new(record_type: record.record_type,
+        format_version: record.format_version, payload: record.payload.merge("team_id" => "wrong-team"))
+      Phronomy::Storage::Entry::Record.new(**entry.to_h.merge(record: corrupt))
     end
     persistence = Phronomy::Persistence.new(backend: backend)
     agent = Phronomy::Agent::AgentRoot.create(agent_id: "rollback-agent",
@@ -97,10 +102,10 @@ RSpec.describe "Domain persistence ownership boundary" do
         tx.agents.create(agent)
         tx.teams.create(team)
       end
-    end.to raise_error(Phronomy::Storage::SerializationError, /backend returned Team root/)
+    end.to raise_error(Phronomy::Storage::SerializationError, /backend returned another Team/)
 
-    expect { backend.agents.load(agent.agent_id) }.to raise_error(Phronomy::Storage::NotFoundError)
-    expect { backend.teams.load(team.team_id) }.to raise_error(Phronomy::Storage::NotFoundError)
-    expect(backend.contents.exist?(content_id)).to be(false)
+    expect { persistence.agents.load(agent.agent_id) }.to raise_error(Phronomy::Storage::NotFoundError)
+    expect { persistence.teams.load(team.team_id) }.to raise_error(Phronomy::Storage::NotFoundError)
+    expect(persistence.contents.exist?(content_id)).to be(false)
   end
 end

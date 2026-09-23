@@ -37,7 +37,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     runtime = File.read(File.join(root, "lib/phronomy/engine/runtime.rb"))
     registry = File.read(File.join(root, "lib/phronomy/agent/execution/execution_registry.rb"))
 
-    expect(persistence).to include("workflow_states")
+    expect(persistence).not_to include("workflow_states", "Agent", "Team")
     expect(persistence).not_to include("activations")
     expect(in_memory).not_to include("@activations")
     expect(runtime).not_to include("@agent_activations")
@@ -232,7 +232,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     persistence = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
 
     expect(persistence).to include(
-      "all durable repositories can participate in one atomic"
+      "All declared resources participate in one atomic"
     )
     expect(persistence).to include(
       "Storage failures whose commit outcome is fundamentally"

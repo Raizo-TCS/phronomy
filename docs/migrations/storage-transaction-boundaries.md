@@ -1,5 +1,10 @@
 # Storage transaction boundaries (Refactor 34)
 
+Historical migration step. Its old raw SPI surface is superseded by the
+[neutral Storage SPI 2 migration](neutral-storage-spi.md); use that guide for the
+current backend contract.
+
+
 Update core and the SQLite/PostgreSQL reference adapters together. No data
 migration is required. The public method signatures, eight repository accessors,
 required capability keys and stored record formats are unchanged.

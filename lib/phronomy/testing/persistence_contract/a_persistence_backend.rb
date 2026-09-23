@@ -3,7 +3,7 @@
 require "securerandom"
 
 RSpec.shared_examples "a Persistence backend" do
-  include_examples "storage execution constraint notifications"
+  include_examples "neutral storage primitives"
   include_examples "storage transaction boundaries"
 
   let(:backend_agent_root) do
@@ -27,7 +27,7 @@ RSpec.shared_examples "a Persistence backend" do
 
   it "advertises every required capability" do
     Phronomy::Storage::Backend::REQUIRED_CAPABILITIES.each do |name, required_value|
-      expect(persistence.capabilities[name]).to eq(required_value)
+      expect(persistence.backend.capabilities[name]).to eq(required_value)
     end
   end
 

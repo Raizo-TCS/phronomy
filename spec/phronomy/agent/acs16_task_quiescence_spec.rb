@@ -219,7 +219,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
     it "keeps the Execution TaskResult pending when terminal durability requires recovery" do
       persistence = Phronomy::Persistence.in_memory
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
-      allow(persistence.executions).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
+      allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
         if terminal_statuses.include?(execution.status)
           raise "terminal persistence unavailable"
         end
@@ -328,7 +328,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
     it "logs the warning when terminal durability requires recovery and a logger is configured" do
       persistence = Phronomy::Persistence.in_memory
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
-      allow(persistence.executions).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
+      allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
         if terminal_statuses.include?(execution.status)
           raise "terminal persistence unavailable"
         end

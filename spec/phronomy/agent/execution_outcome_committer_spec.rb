@@ -308,7 +308,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
 
     it "rolls back transfer and Source when the Root save fails" do
       operation = command
-      allow(persistence.agents).to receive(:save).and_raise(Phronomy::Storage::ConflictError, "Root conflict")
+      allow_any_instance_of(Phronomy::Agent::Persistence::AgentRepository).to receive(:save).and_raise(Phronomy::Storage::ConflictError, "Root conflict")
       expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::Storage::ConflictError)
       expect(persistence.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
       expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)

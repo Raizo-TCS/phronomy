@@ -3,68 +3,50 @@
 module Phronomy
   module Agent
     module Persistence
-      # Domain repository over a raw repository in the selected storage transaction.
+      # Assigns domain sequence numbers and validates opaque stream entries.
       # @api private
       class JournalRepository
-        def initialize(backend_repository)
-          @backend_repository = backend_repository
-        end
+        def initialize(view) = @view = view
 
         def append(agent_id, expected_position:, records:)
           expected = Integer(expected_position)
-          sequenced = Array(records).each_with_index.map do |record, index|
+          entries = Array(records).each_with_index.map do |record, index|
             unless record.agent_id.to_s == agent_id.to_s
-              raise Phronomy::Storage::SerializationError,
-                "Journal record Agent mismatch: #{record.agent_id} != #{agent_id}"
+              raise Phronomy::Storage::SerializationError, "Journal record Agent mismatch"
             end
-            record.with_sequence(expected + index + 1)
+            sequenced = record.with_sequence(expected + index + 1)
+            Phronomy::Storage::Entry::Append.new(id: sequenced.record_id.to_s, record: Codec.encode_journal_record(sequenced))
           end
-          encoded = sequenced.map { |record| Codec.encode_journal_record(record) }
-          stored = @backend_repository.append(
-            agent_id.to_s,
-            expected_position: expected,
-            records: encoded,
-            record_ids: sequenced.map { |record| record.record_id.to_s }.freeze
-          )
-          decoded = Array(stored).map { |record| Codec.decode_journal_record(record) }
-          validate_read!(decoded, agent_id, start_sequence: expected + 1)
+          @view.atomic do |bound|
+            stored = bound.streams(StorageSchema::JOURNAL).append(stream: agent_id.to_s,
+              expected_head: expected, entries: entries)
+            decode(stored, agent_id, after: expected)
+          end
         end
 
         def read(agent_id, after: nil, limit: nil)
-          after_value = after.nil? ? nil : Integer(after)
-          limit_value = limit.nil? ? nil : Integer(limit)
-          stored = @backend_repository.read(
-            agent_id.to_s,
-            after: after_value,
-            limit: limit_value
-          )
-          decoded = Array(stored).map { |record| Codec.decode_journal_record(record) }
-          validate_read!(decoded, agent_id, start_sequence: (after_value || 0) + 1)
+          position = after.nil? ? 0 : Integer(after)
+          count = limit.nil? ? nil : Integer(limit)
+          @view.atomic do |bound|
+            stored = (count == 0) ? [] : bound.streams(StorageSchema::JOURNAL).read(stream: agent_id.to_s, after: position, limit: count)
+            decode(stored, agent_id, after: position)
+          end
         end
 
-        def head(agent_id)
-          Integer(@backend_repository.head(agent_id.to_s))
-        end
-
-        def delete(agent_id)
-          @backend_repository.delete(agent_id.to_s)
-        end
+        def head(agent_id) = @view.streams(StorageSchema::JOURNAL).head(stream: agent_id.to_s)
+        def delete(agent_id) = @view.streams(StorageSchema::JOURNAL).delete(stream: agent_id.to_s)
 
         private
 
-        def validate_read!(records, agent_id, start_sequence:)
-          records.each_with_index do |record, index|
-            unless record.agent_id == agent_id.to_s
-              raise Phronomy::Storage::SerializationError,
-                "backend returned Journal record for #{record.agent_id.inspect}; expected #{agent_id.to_s.inspect}"
+        def decode(entries, agent_id, after:)
+          entries.each_with_index.map do |entry, index|
+            record = Codec.decode_journal_record(entry.record)
+            unless record.agent_id == agent_id.to_s && record.record_id == entry.id &&
+                record.sequence == entry.position && entry.position == after + index + 1
+              raise Phronomy::Storage::SerializationError, "backend returned another Journal identity/sequence"
             end
-            expected_sequence = start_sequence + index
-            unless record.sequence == expected_sequence
-              raise Phronomy::Storage::SerializationError,
-                "backend returned Journal sequence #{record.sequence.inspect}; expected #{expected_sequence}"
-            end
-          end
-          records.freeze
+            record
+          end.freeze
         end
       end
     end

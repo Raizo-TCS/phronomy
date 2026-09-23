@@ -3,7 +3,7 @@
 require "spec_helper"
 require "phronomy/testing/persistence_contract"
 
-RSpec.describe "Feature-owned storage constraint translation (ADR-043; F0/F2, no X0)" do
+RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no X0)" do
   include_context "coordination repository values"
 
   let(:agent_execution) do
@@ -20,7 +20,15 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-043; F0/F2, no
   ].each do |repository_class, fixture, execution_id, owner_id|
     context repository_class.name do
       let(:value) { public_send(fixture) }
-      let(:raw) { Object.new }
+      let(:raw) do
+        Object.new.tap do |view|
+          def view.atomic = yield self
+          def view.records(*) = self
+        end
+      end
+      let(:resource) do
+        (fixture == :agent_execution) ? Phronomy::Agent::Persistence::StorageSchema::EXECUTIONS : Phronomy::TeamStorageSchema::EXECUTIONS
+      end
       let(:repository) { repository_class.new(raw) }
 
       [:create_active, :save, :assert_idle!].each do |operation|
@@ -38,9 +46,17 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-043; F0/F2, no
           end
 
           it "preserves the public lifecycle error, original message and storage cause" do
-            error = Phronomy::Storage::ActiveExecutionConflictError.new("stored owner is busy")
-            allow(raw).to receive(operation).and_raise(error)
-            expect(&invoke_operation).to raise_error(Phronomy::AgentBusyError, error.message) { |mapped|
+            error = nil
+            if operation == :assert_idle!
+              allow(raw).to receive(:check!) do |guards:, conditions:|
+                error = Phronomy::Storage::ConditionFailedError.new(conditions.first)
+                raise error
+              end
+            else
+              error = Phronomy::Storage::UniqueConstraintError.new(resource: resource, constraint: :one_active_owner)
+              allow(raw).to receive((operation == :create_active) ? :insert : :replace).and_raise(error)
+            end
+            expect(&invoke_operation).to raise_error(Phronomy::AgentBusyError) { |mapped|
               expect(mapped.cause).to equal(error)
             }
           end
@@ -49,7 +65,7 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-043; F0/F2, no
             [Phronomy::Storage::ConflictError.new("duplicate ID or stale revision"),
               IOError.new("storage unavailable"),
               Phronomy::AgentBusyError.new("legacy backend")].each do |error|
-              allow(raw).to receive(operation).and_raise(error)
+              allow(raw).to receive({create_active: :insert, save: :replace, assert_idle!: :check!}.fetch(operation)).and_raise(error)
               expect(&invoke_operation).to raise_error { |caught| expect(caught).to equal(error) }
             end
           end
@@ -80,7 +96,7 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-043; F0/F2, no
           tx.public_send(kind).create_active(other)
         end
       end.to raise_error(Phronomy::AgentBusyError) { |error|
-        expect(error.cause).to be_a(Phronomy::Storage::ActiveExecutionConflictError)
+        expect(error.cause).to be_a(Phronomy::Storage::UniqueConstraintError)
       }
       expect(persistence.contents.exist?(content_id)).to be(false)
     end

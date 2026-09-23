@@ -42,8 +42,8 @@ RSpec.describe "Agent logical-state ownership" do
     agent_id = agent.agent_id
     Phronomy.reset_runtime!
 
-    expect(persistence.agents).to receive(:load).once.and_call_original
-    expect(persistence.journals).to receive(:read).once.and_call_original
+    expect(persistence.backend).to receive(:read_record).with(anything, Phronomy::Agent::Persistence::StorageSchema::ROOTS, key: agent_id).once.and_call_original
+    expect(persistence.backend).to receive(:read_stream).once.and_call_original
     loaded = agent_class.load(agent_id, persistence: persistence)
 
     expect(persistence.agents).not_to receive(:load)

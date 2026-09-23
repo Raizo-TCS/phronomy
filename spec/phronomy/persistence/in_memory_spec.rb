@@ -31,17 +31,17 @@ RSpec.describe Phronomy::Persistence do
   it "stores structured durable state as DurableRecord rather than domain objects" do
     persistence.agents.create(root)
 
-    stored = persistence.backend.state.fetch(:agents).fetch(root.agent_id)
+    stored = persistence.backend.view.records("agent.roots").fetch(root.agent_id).record
     expect(stored).to be_a(Phronomy::Storage::DurableRecord)
     expect(stored.record_type).to eq("phronomy.agent_root")
     expect(stored.format_version).to eq("0.1")
     expect(stored.payload.fetch("agent_id")).to eq(root.agent_id)
     expect(stored).not_to be_a(Phronomy::Agent::AgentRoot)
-    expect(persistence.backend.state.fetch(:agent_revisions).fetch(root.agent_id)).to eq(0)
+    expect(persistence.backend.view.records("agent.roots").fetch(root.agent_id).revision).to eq(0)
   end
 
   it "keeps raw Backend indexing independent from DurableRecord payload semantics" do
-    raw_agents = persistence.backend.agents
+    raw_agents = persistence.backend.view.records("agent.roots")
     opaque = Phronomy::Storage::DurableRecord.new(
       record_type: "opaque.backend-test",
       format_version: "0.1",
@@ -49,16 +49,16 @@ RSpec.describe Phronomy::Persistence do
     )
 
     expect do
-      raw_agents.create(
-        agent_id: "opaque-agent",
-        agent_revision: 7,
+      raw_agents.insert(
+        key: "opaque-agent",
+        revision: 7, attributes: {},
         record: opaque
       )
     end.not_to raise_error
 
-    expect(raw_agents.load("opaque-agent").payload)
+    expect(raw_agents.fetch("opaque-agent").record.payload)
       .to eq("not_an_agent_schema" => true)
-    expect(persistence.backend.state.fetch(:agent_revisions).fetch("opaque-agent")).to eq(7)
+    expect(raw_agents.fetch("opaque-agent").revision).to eq(7)
   end
 
   it "uses ExecutionRepository as atomic Agent admission without parsing status from payload" do
@@ -85,11 +85,11 @@ RSpec.describe Phronomy::Persistence do
       persistence.transaction { |tx| tx.executions.create_active(second) }
     end.to raise_error(Phronomy::AgentBusyError)
 
-    stored = persistence.backend.state.fetch(:executions).fetch(first.execution_id)
-    metadata = persistence.backend.state.fetch(:execution_metadata).fetch(first.execution_id)
+    stored = persistence.backend.view.records("agent.executions").fetch(first.execution_id).record
+    metadata = persistence.backend.view.records("agent.executions").fetch(first.execution_id).attributes
     expect(stored).to be_a(Phronomy::Storage::DurableRecord)
     expect(stored.record_type).to eq("phronomy.agent_execution")
-    expect(metadata).to include(agent_id: root.agent_id, revision: 0, active: true)
+    expect(metadata).to include(owner: root.agent_id, active: true)
   end
 
   describe "workflow_states" do
@@ -116,9 +116,9 @@ RSpec.describe Phronomy::Persistence do
       expect(revision).to eq(2)
       expect(persistence.workflow_states.load("workflow-1")[:revision]).to eq(2)
 
-      stored = persistence.backend.state.fetch(:workflow_states).fetch("workflow-1")
+      stored = persistence.backend.view.records("workflow.states").fetch("workflow-1").record
       expect(stored).to be_a(Phronomy::Storage::DurableRecord)
-      expect(persistence.backend.state.fetch(:workflow_revisions).fetch("workflow-1")).to eq(2)
+      expect(persistence.backend.view.records("workflow.states").fetch("workflow-1").revision).to eq(2)
     end
 
     it "rejects stale saves instead of overwriting a newer snapshot" do
@@ -186,7 +186,7 @@ RSpec.describe Phronomy::Persistence do
       expect { persistence.agents.load(root.agent_id) }
         .to raise_error(Phronomy::Storage::NotFoundError)
       expect(persistence.workflow_states.load("workflow-1")).to be_nil
-      expect(persistence.backend.state.fetch(:workflow_revisions)).to be_empty
+      expect(persistence.backend.view.records("workflow.states").read("workflow-rollback")).to be_nil
     end
   end
 
@@ -234,7 +234,7 @@ RSpec.describe Phronomy::Persistence do
       )
       expect(appended.first.sequence).to eq(1)
 
-      stored = persistence.backend.state.fetch(:journals).fetch(root.agent_id).first
+      stored = persistence.backend.view.streams("agent.journal").read(stream: root.agent_id).first.record
       expect(stored).to be_a(Phronomy::Storage::DurableRecord)
       expect(stored.record_type).to eq("phronomy.journal_record")
 

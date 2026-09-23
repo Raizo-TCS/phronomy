@@ -2,118 +2,36 @@
 
 require "spec_helper"
 
-RSpec.describe "Persistence and Storage Backend SPI public contract" do
-  class CapturingAgentRecordRepository
-    attr_reader :created_record, :created_metadata
+RSpec.describe "Persistence and Storage SPI 2 public contract" do
+  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:backend) { persistence.backend }
 
-    def create(agent_id:, agent_revision:, record:)
-      @created_metadata = {agent_id: agent_id, agent_revision: agent_revision}.freeze
-      @created_record = record
-      record
-    end
+  it "keeps domain repositories on Persistence and exposes neutral primitives on View" do
+    expect(persistence).to respond_to(:contents, :agents, :journals, :executions, :workflow_states,
+      :handoff_states, :teams, :team_executions, :transaction, :assert_agent_watermark!)
+    expect(backend.view).to respond_to(:records, :streams, :blobs, :check!)
+    expect(backend).not_to respond_to(:agents, :contents, :assert_agent_watermark!)
+    expect(persistence.capabilities).to eq(atomic_all: true, atomic_admission: true, optimistic_revision: true)
+    expect(backend.capabilities).to eq(Phronomy::Storage::Backend::REQUIRED_CAPABILITIES)
+    expect(backend.capabilities[:spi_version]).to eq(2)
   end
 
-  class CapturingWatermark
-    attr_reader :received
-
-    def assert_agent_watermark!(**kwargs)
-      @received = kwargs.freeze
-      true
-    end
+  it "rejects old duck-typed backends before domain composition" do
+    old_backend = Object.new
+    def old_backend.capabilities = {atomic_all: true, atomic_admission: true, optimistic_revision: true}
+    expect { Phronomy::Persistence.new(backend: old_backend) }.to raise_error(Phronomy::Storage::UnsupportedBackendError, /SPI 2/)
   end
 
-  let(:backend_class) do
-    Class.new(Phronomy::Storage::Backend) do
-      attr_accessor :transaction_view
-
-      def capabilities = Phronomy::Storage::Backend::REQUIRED_CAPABILITIES
-
-      def transaction
-        yield transaction_view
-      end
-    end
-  end
-  let(:raw) { Object.new }
-  let(:raw_agents) { CapturingAgentRecordRepository.new }
-  let(:raw_repositories) do
-    {contents: raw, agents: raw_agents, journals: raw, executions: raw,
-     workflow_states: raw, handoff_states: raw, teams: raw, team_executions: raw}
-  end
-  let(:backend) { backend_class.new(**raw_repositories) }
-  let(:persistence) { Phronomy::Persistence.new(backend: backend) }
-  let(:root) do
-    Phronomy::Agent::AgentRoot.create(agent_id: "backend-spi-agent",
-      agent_definition_id: "backend-spi-definition", agent_definition_version: 1)
+  it "rejects an incomplete capability declaration" do
+    allow(backend).to receive(:capabilities).and_return(backend.capabilities.merge(guarded_checks: false))
+    expect { Phronomy::Persistence.new(backend: backend) }.to raise_error(Phronomy::Storage::UnsupportedBackendError, /guarded_checks/)
   end
 
-  it "publishes the required storage capabilities" do
-    expect(Phronomy::Storage::Backend::REQUIRED_CAPABILITIES).to eq(
-      atomic_all: true, atomic_admission: true, optimistic_revision: true
-    )
-  end
-
-  it "exposes both domain and record repository protocols" do
-    required = [:contents, :agents, :journals, :executions, :workflow_states,
-      :handoff_states, :teams, :team_executions, :transaction, :assert_agent_watermark!]
-    expect(Phronomy::Persistence.public_instance_methods).to include(*required)
-    expect(Phronomy::Storage::Backend.public_instance_methods).to include(*required)
-    expect(persistence.backend).to equal(backend)
-    expect(persistence.capabilities).to eq(backend.capabilities)
-  end
-
-  it "wraps raw repositories and passes identity metadata separately" do
-    restored = persistence.agents.create(root)
-    expect(persistence.contents).to equal(raw)
-    expect(backend.agents).to equal(raw_agents)
-    expect(restored).to be_a(Phronomy::Agent::AgentRoot)
-    expect(raw_agents.created_metadata).to eq(agent_id: root.agent_id, agent_revision: 0)
-    expect(raw_agents.created_record).to be_a(Phronomy::Storage::DurableRecord)
-    expect(raw_agents.created_record.record_type).to eq("phronomy.agent_root")
-    expect(raw_agents.created_record.format_version).to eq("0.1")
-  end
-
-  it "uses transaction-scoped repositories and watermark instead of the root view" do
-    tx_agents = CapturingAgentRecordRepository.new
-    tx_contents = Object.new
-    watermark = CapturingWatermark.new
-    backend.transaction_view = Phronomy::Storage::Repositories.new(
-      **raw_repositories.merge(agents: tx_agents, contents: tx_contents), watermark: watermark
-    )
-    result = persistence.transaction do |tx|
-      expect(tx.contents).to equal(tx_contents)
-      expect(tx.agents.create(root)).to be_a(Phronomy::Agent::AgentRoot)
-      expect(tx.assert_agent_watermark!(agent_id: root.agent_id,
-        agent_revision: 3, journal_position: 4)).to be(true)
-      :transaction_result
-    end
-    expect(result).to eq(:transaction_result)
-    expect(tx_agents.created_metadata).to eq(agent_id: root.agent_id, agent_revision: 0)
-    expect(raw_agents.created_record).to be_nil
-    expect(watermark.received).to eq(agent_id: root.agent_id, agent_revision: 3, journal_position: 4)
-  end
-
-  it "rejects a missing capability before exposing domain repositories" do
-    allow(backend).to receive(:capabilities).and_return(atomic_all: true, atomic_admission: true)
-    expect { persistence }.to raise_error(Phronomy::Storage::UnsupportedBackendError, /optimistic_revision/)
-  end
-
-  it "publishes storage errors without an upper Persistence owner" do
-    [Phronomy::Storage::ConflictError, Phronomy::Storage::ActiveExecutionConflictError,
-      Phronomy::Storage::NotFoundError,
-      Phronomy::Storage::SerializationError, Phronomy::Storage::UnsupportedBackendError].each do |error|
-      expect(error).to be < Phronomy::Error
-    end
-  end
-
-  it "removes the replaced inheritance and facade-building SPI" do
+  it "does not retain the removed eight-slot view or domain-named error alias" do
+    expect(Phronomy::Storage.const_defined?(:Repositories, false)).to be(false)
+    expect(Phronomy::Storage.const_defined?(:ActiveExecutionConflictError, false)).to be(false)
     expect(Phronomy::Storage::Backends::InMemory).to be < Phronomy::Storage::Backend
     expect(Phronomy::Storage::Backends::InMemory).not_to be < Phronomy::Persistence
-    expect(persistence).not_to respond_to(:build_transaction_view)
-    expect(backend).not_to respond_to(:build_transaction_view)
-    [:InMemory, :DurableRecord, :ConflictError, :NotFoundError,
-      :SerializationError, :UnsupportedBackendError, :REQUIRED_CAPABILITIES].each do |name|
-      expect(Phronomy::Persistence.const_defined?(name, false)).to be(false)
-    end
   end
 
   it "uses one immutable DurableRecord carrier for the record SPI" do

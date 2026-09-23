@@ -26,9 +26,9 @@ remaining Workflow problem.
 | W1: Refactor 31 | Two terminal-save implementations, selected by prepend | Applied and verified. The active F1-aware implementation belongs to Runner and the override is removed. See [ADR-054](../decisions/054-workflow-terminal-save-single-owner.md). |
 | W2a: Refactor 32 | Terminal observer exceptions leave stream and admission pending | Keep the error path open through notification, preserve the original exception and any confirmed save, and verify application before ownership extraction. See [ADR-055](../decisions/055-terminal-observer-failure-settlement.md). Applied and verified at 01cd2f57. |
 | W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Applied and verified in Refactor 33 at fcd434c4; WorkflowTerminalPolicy and FSMProtocol::TerminalDecision own the boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
-| S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Design completed: Records/Streams/Blobs with conditions and guarded checks. The existing 37 raw methods have been inventoried; no new SPI is implemented yet. |
-| S2a: Refactor 34 | Existing update, batch validation and nested transaction differences | Candidate implemented: InMemory active-owner update exclusion, SQL Journal prevalidation and explicit nested savepoints. See ADR-057 and the migration guide. Application verification and live PostgreSQL validation remain. |
-| S2b: Neutral Storage SPI | Common/domain contracts and all backends must agree | Implement Records/Streams/Blobs, domain adapters, failed-view lifecycle and non-local-exit handling. Preserve one transaction domain and existing record formats. |
+| S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Design completed: Records/Streams/Blobs with conditions and guarded checks. The existing 37 raw methods have been inventoried; S2b now implements that design. |
+| S2a: Refactor 34 | Existing update, batch validation and nested transaction differences | Applied and verified at core ac07b6d4 / examples ae538996, including PostgreSQL 17.11 on Ruby 3.2/3.3/3.4. See ADR-057. |
+| S2b: Neutral Storage SPI | Common/domain contracts and all backends must agree | Refactor 35 candidate implemented: Records/Streams/Blobs, feature schemas/adapters, failed-view lifecycle and non-local-exit rollback. See ADR-058. Application verification remains. |
 | S2c: Integration and migration | Physical backends must satisfy the same contract | Validate live PostgreSQL locking/concurrency, all backends, API/RBS migration, durable reload and release artifact application. |
 | S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Decide names after the contract is established. Keep the public Persistence facade unless an explicit public migration is justified. Verify application and remaining dependency directions; do not rename merely to simplify a diagram. |
 
@@ -56,10 +56,10 @@ uncertainty/shutdown, early/duplicate/late events, ordinary events during the
 barrier, observer errors, rejected submission/delivery and shared Agent/Tool
 behavior. Its application verification is complete; Storage S1 design followed.
 
-## Storage operation inventory
+## S1 baseline operation inventory (before SPI 2)
 
 Removing Agent/Workflow constant references did not make the SPI domain-neutral.
-`Storage::Backend < Storage::Repositories` still constructs eight required slots;
+`Storage::Backend < Storage::Repositories` constructed eight required slots;
 `assert_agent_watermark!` checks Agent revision and Journal position together.
 
 | Current area | Existing constraint to preserve | Ownership/design question |
@@ -89,7 +89,7 @@ See the existing [persistence staged plan](persistence-refactoring-plan.md),
 [ADR-033](../decisions/033-domain-persistence-ownership.md) and
 [ADR-043](../decisions/043-storage-execution-constraint-notifications.md).
 
-## S2a candidate scope
+## S2a applied boundary and S2b candidate
 
 [ADR-057](../decisions/057-storage-transaction-boundaries.md) records the three
 behavioral changes. The [migration guide](../migrations/storage-transaction-boundaries.md)
@@ -100,3 +100,13 @@ make arbitrary database failures safe to catch inside the failed scope.
 Do not mark Storage complete when S2a is applied. The neutral SPI, failed-view
 rules, non-local-exit handling, full live PostgreSQL validation and S3 naming
 review remain. Reference SQL code parity is not PostgreSQL execution evidence.
+
+## Refactor 35 verification boundary
+
+Core baseline: ac07b6d4b47167ae404c8ecad8450e80a0087754.
+Examples baseline: ae538996fd276faa3dac0990839e9cf115e6dff6.
+S2b changes the raw SPI and both SQL implementations together. Domain APIs and
+stored formats remain. Candidate checks include InMemory, real SQLite, generic
+resource declarations, scope failures and old/new/old SQLite data compatibility.
+Live PostgreSQL verification against the applied S2b core/examples pair is still
+S2c. Keep the applied dependency SVG until the candidate is actually applied.

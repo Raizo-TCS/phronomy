@@ -91,18 +91,19 @@ module Phronomy
     # @api public
     def initialize(backend:)
       Phronomy::Storage::Backend.validate_capabilities!(backend)
+      PersistenceComposition::StorageSchema.validate!(backend.view)
       @backend = backend
-      @repositories = PersistenceComposition::Repositories.new(backend)
+      @repositories = PersistenceComposition::Repositories.new(backend.view)
     end
 
     # Constructs an isolated in-memory storage domain with standard codecs.
     # @api public
     def self.in_memory
-      new(backend: Phronomy::Storage::Backends::InMemory.new)
+      new(backend: Phronomy::Storage::Backends::InMemory.new(resources: PersistenceComposition::StorageSchema.resources))
     end
 
     # @api public
-    def capabilities = backend.capabilities
+    def capabilities = {atomic_all: true, atomic_admission: true, optimistic_revision: true}.freeze
 
     # Executes a single backend transaction and exposes domain repositories
     # bound to its raw view. Codec and caller failures remain inside the backend
@@ -116,7 +117,7 @@ module Phronomy
     # @api public
     def transaction
       backend.transaction do |raw_view|
-        repositories = raw_view.equal?(backend) ? @repositories : PersistenceComposition::Repositories.new(raw_view)
+        repositories = PersistenceComposition::Repositories.new(raw_view)
         yield repositories
       end
     end

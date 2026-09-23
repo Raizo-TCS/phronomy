@@ -1,5 +1,10 @@
 # Storage Backend composition migration
 
+Historical migration step. Its old raw SPI surface is superseded by the
+[neutral Storage SPI 2 migration](neutral-storage-spi.md); use that guide for the
+current backend contract.
+
+
 This change targets the `refactor/architecture` branch after `1b481f6`, with
 shared value operations already owned by `Values::Immutable`.
 It replaces the Beta Backend SPI; the gem version and persisted record formats

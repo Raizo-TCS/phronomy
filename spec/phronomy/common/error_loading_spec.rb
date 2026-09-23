@@ -50,7 +50,7 @@ RSpec.describe "Common base exception loading" do
           "RuntimeShutdownReentrancyError" => "RuntimeShutdownError",
           "AgentBusyError" => "Error",
           "Storage::ConflictError" => "Error",
-          "Storage::ActiveExecutionConflictError" => "Storage::ConflictError",
+          "Storage::UniqueConstraintError" => "Storage::ConflictError",
           "ExecutionCancellationError" => "CancellationError"
         }
 

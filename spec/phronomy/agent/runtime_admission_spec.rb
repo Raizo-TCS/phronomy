@@ -26,7 +26,7 @@ RSpec.describe "Agent Runtime admission" do
     end
 
     agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
-    allow(persistence.executions).to receive(:create_active).and_call_original
+    allow(persistence.backend).to receive(:insert_record).and_call_original
 
     first = agent.invoke_async("first")
     expect(entered.pop).to be true
@@ -38,13 +38,13 @@ RSpec.describe "Agent Runtime admission" do
 
     # The second request was rejected by process-local EventLoop admission, and
     # the first worker is still blocked before Persistence admission.
-    expect(persistence.executions).not_to have_received(:create_active)
+    expect(persistence.backend).not_to have_received(:insert_record)
 
     release << true
     expect {
       first.wait_result(timeout: 1)
     }.to raise_error(ArgumentError, /stop first request/)
-    expect(persistence.executions).not_to have_received(:create_active)
+    expect(persistence.backend).not_to have_received(:insert_record)
   ensure
     release << true if defined?(release) && release.empty?
   end
@@ -87,7 +87,7 @@ RSpec.describe "Agent Runtime admission" do
 
     agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
     calls = 0
-    allow(persistence.executions).to receive(:create_active) do |_execution|
+    allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:create_active) do |_execution|
       calls += 1
       raise Phronomy::AgentBusyError, "durable execution already exists"
     end

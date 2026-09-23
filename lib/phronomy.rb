@@ -43,6 +43,8 @@ end
   persistence/api
   tool/contract
   workflow/execution
+  workflow/storage_contract
+  multi_agent/storage_contract
 ].each do |directory|
   loader.push_dir("#{__dir__}/phronomy/#{directory}", namespace: Phronomy)
 end

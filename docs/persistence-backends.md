@@ -1,210 +1,147 @@
-# Persistence backend contract
+# Persistence and neutral Storage SPI 2
 
-`Phronomy::Persistence` is the domain-facing durable-state service used by
-Agents, Teams, and Workflows. `Phronomy::Storage::Backend` defines its synchronous,
-record-oriented storage extension contract. This document is normative for
-custom backends and for the domain repository facade above them.
+[ADR-058](decisions/058-neutral-storage-primitives.md) defines the current
+extension contract. This is an intentional breaking replacement of the old
+fixed-repository Backend SPI. Application code keeps `Persistence.new(backend:)`,
+`Persistence.in_memory`, its eight domain repositories and result queries.
 
-The Backend SPI is **Beta**. The composition change replaces the earlier
-`Persistence` subclass SPI; see [the migration guide](migrations/storage-backend-composition.md).
-Backends should not depend on Phronomy private APIs or Runtime internals.
+## Ownership and composition
 
-## Architecture boundary
+Storage owns `Resource`, `Backend`, `View`, `Records`, `Streams`, `Blobs`, immutable
+`Entry` values, guards, conditions and neutral exceptions. It has no Agent/Team
+record types, active-execution policy, content digest algorithm or watermark API.
 
-| Component | Source dependencies | Responsibility |
-|---|---|---|
-| Storage contract | Shared record/value/error contracts | Raw repositories, transaction and watermark protocol |
-| Concrete backend | Storage contract and its DB driver | Physical records, indexes, CAS, transaction implementation |
-| Persistence facade and codecs | Storage contract and domain record types | Domain validation, conversion, and result queries |
-| Construction | Persistence facade and the selected backend | Connect the two using `Persistence.new(backend: ...)` |
+Agent, Team, Workflow and ContentStore declare their own resource schemas.
+`PersistenceComposition::StorageSchema` gathers those declarations and
+`PersistenceComposition::Repositories` assembles domain wrappers over a View.
+The Team and Workflow schema files live beside their features in nested loader
+roots; loading metadata does not load their runtime implementations.
+`ContentStore::StoredContents` owns SHA-256 identity and digest verification.
+The Agent-owned `Watermark` composes guarded revision and stream-head conditions.
 
-A concrete backend inherits `Storage::Backend` or implements the same protocol.
-It does not inherit `Persistence`, construct domain repository facades, or select
-an Agent/Team class. SQL implementations depend on the common storage contract;
-the common contract does not select or load SQL implementations.
-`Persistence.in_memory` is the convenience composition of the standard facade
-and `Storage::Backends::InMemory`.
+InMemory receives `resources:` and supplies one Monitor/snapshot transaction
+across the catalog. SQL reference composition supplies the same catalog and a
+separate physical table/column mapping to the neutral driver in examples
+`shared/storage`. Table names, columns, indexes, DurableRecord envelopes, payloads,
+format versions and content identities remain unchanged.
 
-Persistence does not own live Agent identity, top-level Runtime admission, or
-live execution state. In particular, a backend must not persist or reconstruct
-the following as part of this SPI:
-
-- Runtime Agent ownership-registry entries;
-- EventLoop Agent top-level admission entries;
-- EventLoop Agent execution-directory entries;
-- `AgentInvocation`;
-- `FSMSession`;
-- `TaskResult` or callbacks;
-- EventLoop queue contents;
-- Runtime Workflow admission entries;
-- in-flight provider operations.
-
-Persistence operations are synchronous. Framework-owned blocking Persistence I/O
-is submitted to the Runtime OffloadPool by Phronomy; a backend must not post
-EventLoop events or introduce `load_async` / `save_async` variants into this
-contract.
-
-## Required root surface
-
-The raw backend and domain-facing Persistence each expose eight repositories:
-
-```text
-contents
-agents
-journals
-executions
-workflow_states
-handoff_states
-teams
-team_executions
-```
-
-and two root operations:
+## Backend and View
 
 ```ruby
-persistence.transaction { |tx| ... }
-persistence.assert_agent_watermark!(
-  agent_id:,
-  agent_revision:,
-  journal_position:
-)
+backend = Phronomy::Storage::Backends::InMemory.new(resources: resources)
+backend.view.records(resource)
+backend.view.streams(resource)
+backend.view.blobs(resource)
+backend.transaction { |view| ... }
+view.check!(guards: guards, conditions: conditions)
 ```
 
-The object yielded by **backend.transaction** exposes all eight raw repository
-accessors and `assert_agent_watermark!`. Except for `contents`, repositories
-exchange `Storage::DurableRecord` values and explicit metadata. A backend may
-yield itself if its repositories already share the transaction; SQL backends
-can yield `Storage::Repositories.new(..., watermark: ...)` whose eight
-repositories and watermark all use the same checked-out connection.
+The backend declares `spi_version: 2` and true values for `atomic_resources`,
+`record_cas`, `stream_cas`, `conditional_unique`, `guarded_checks` and
+`nested_savepoints`. Persistence validates these capabilities and the required
+resource declarations before exposing repositories. Old duck-typed backends are
+rejected with `UnsupportedBackendError`; there is no eight-slot compatibility
+adapter. Public Persistence capabilities retain `atomic_all`, `atomic_admission`
+and `optimistic_revision`, derived by composition from these primitives.
 
-The object yielded by **persistence.transaction** exposes domain repository
-facades over exactly that raw view. Persistence builds those facades inside the
-backend transaction block, so conversion failures and caller exceptions reach
-the backend before commit. Both transaction methods return the block result.
-A raw backend must not call the removed `build_transaction_view` helper or build
-private `PersistenceComposition::Repositories` or domain repositories itself.
+A root handle routes to the current transaction on the same backend/thread.
+A bound view and all its handles expire on commit or rollback and reject use from
+another thread. Explicit nested transactions use savepoints on the same SQL
+connection, or nested InMemory snapshots. Inner success depends on outer commit;
+an inner exception is re-raised after rollback and can be caught by the outer
+scope. `ActiveRecord::Rollback` also propagates.
 
-Root `Persistence.new(backend:)` validates the required capabilities before
-exposing domain repositories. `persistence.backend` returns the selected raw
-backend for backend-specific administration; application domain reads and
-writes use `persistence` and its transaction views.
+A failure during physical work marks the scope failed. Catching it inside that
+same scope does not permit further operations or successful commit. Establish an
+explicit inner transaction before a recoverable operation and catch outside it.
+Input validation occurs before physical work. A successful optional read returning
+nil is not a failed physical operation; domain required-load errors may be raised
+after that read. Domain decode/returned-metadata failures stay inside the atomic
+boundary so a corrupt response after a write causes rollback.
 
-## Required capabilities
+Transaction blocks must finish normally. `return`, `break` and `throw` escaping
+them cause rollback and `TransactionError`. These exits are not commit controls.
+Commit/rollback transport failures remain database failures; this contract does
+not promise exactly-once external effects or infer commit certainty.
 
-Every backend must advertise:
+## Resource declarations
 
-```ruby
-{
-  atomic_all: true,
-  atomic_admission: true,
-  optimistic_revision: true
-}
-```
+A `Resource` is an immutable value with `id`, `kind`, `attributes`,
+`immutable_attributes`, `indexes`, `unique` and optional `guard`. Attributes use
+`:string`, `:integer`, `:boolean` and their explicit `:nullable_*` forms. Keys and
+text attributes use valid UTF-8 without NUL; keys are nonempty. Binary data belongs
+to Blobs. No Proc, SQL expression or payload predicate is accepted.
 
-`Phronomy::Storage::Backend::REQUIRED_CAPABILITIES` is the executable definition of
-this requirement.
+Named equality indexes specify exact fields. Records may declare conditional
+unique constraints with a symbol name, fields and equality `where` values. Null
+unique-key fields are distinct, matching the default SQL unique-index semantics.
+Streams have no indexed attributes; Blobs have attributes but no indexes/guards.
+A record guard uses its key or an immutable non-null string attribute. A stream
+guard uses its stream ID. Its anchor must be a registered Records resource.
+Required anchors must exist; missing parents raise `NotFoundError` in all drivers.
 
-### `atomic_all`
+## Records
 
-All durable repositories must be able to participate in one atomic transaction
-domain. A transaction may change `contents`, `agents`, `journals`, `executions`,
-`workflow_states`, `handoff_states`, `teams`, and `team_executions`, and then either commit all changes or roll them all back.
+| Operation | Contract |
+|---|---|
+| `insert(key:, revision:, attributes:, record:)` | Insert only when absent; return an independent immutable `Entry::Record`. Primary duplicates and named unique failures differ. |
+| `read(key)` / `fetch(key)` | Optional nil / required `NotFoundError`. |
+| `replace(key:, expected_revision:, next_revision:, attributes:, record:, expected_attributes: {})` | Check existence, revision, expected attributes, immutable fields and uniqueness atomically; next revision must equal expected + 1. Replace all attributes. |
+| `delete(key:, expected_revision: Records::UNCHECKED)` | Unchecked deletion is idempotent. A supplied revision requires existence and equality. Return nil. |
+| `scan(index:, equals:, after: nil, limit: nil)` | Exact named-index fields, UTF-8 byte order, exclusive key cursor, positive limit or nil for all. |
+| `delete_matching(index:, equals:)` | Delete equality matches atomically; a parent-guarded resource must constrain the guard attribute. Return nil. |
 
-This requirement deliberately does not claim exactly-once semantics after an
-indeterminate database/network failure. If the underlying database cannot tell
-the caller whether a commit happened, the backend should surface the storage
-failure rather than pretending the outcome is known.
+An Entry carries key, revision, attributes and an opaque `DurableRecord`.
+The driver does not reconstruct metadata from payload. Domain wrappers verify
+that returned identity, revision and attributes agree with decoded domain data.
+Workflow/Handoff choose initial revision 1 and route nil expected revision to
+insert; nil is never an unchecked update. Team terminal-to-active rejection is a
+domain `expected_attributes: {active: true}` precondition when saving active state.
 
-### `atomic_admission`
+## Streams and Blobs
 
-This capability is a **durable Agent execution integrity defense**. It is not the
-primary same-process Agent ownership/admission mechanism and it is not Workflow
-distributed locking.
+Streams expose `append(stream:, expected_head:, entries:)`,
+`read(stream:, after: 0, limit: nil)`, `head(stream:)`, and `delete(stream:)`.
+Append takes `Entry::Append(id:, record:)`, validates the entire batch before any
+write, enforces unique entry IDs within a stream, assigns contiguous positions
+and updates the head atomically. Empty append still checks the expected head.
+Reads return immutable `Entry::Stream(position:, id:, record:)` values in position
+order. Delete removes head and entries together. The domain Journal wrapper
+preserves its existing `limit: 0` empty-result behavior without a raw zero-limit
+operation.
 
-For one Agent, `executions.create_active` must atomically guarantee both:
+Blobs expose `put_if_absent(key:, bytes:, attributes:)`, `fetch(key)` and
+`exist?(key)`. Same bytes retain the first attributes; different bytes for an
+existing key raise `BlobConflictError`. Entry bytes are independent immutable
+binary strings. Blob keys are arbitrary storage keys; ContentStore adds the
+`sha256:<digest>` contract and maps integrity failures to its own `IntegrityError`.
 
-```text
-execution_id is unique
-AND
-no active/suspended execution already exists for agent_id
-```
+## Guards, conditions and errors
 
-A conflict with an existing active/suspended execution raises
-`Phronomy::Storage::ActiveExecutionConflictError` at the raw Backend boundary.
-The domain repository facade translates it to `Phronomy::AgentBusyError`.
-The same distinction applies to Team execution admission and idle-only checks.
+`GuardRef(resource:, key:)` names a stable existing parent record. `View#check!`
+acquires guards in resource/key byte order before evaluating the closed condition
+set: `RevisionIs`, `StreamHeadIs`, `NoRows`. A condition must include the guard
+required by its resource and scope. PostgreSQL locks parents before child heads
+or records; SQLite relies on the transaction/CAS/unique constraints and must not
+claim a SELECT alone reserves a writer. Transactions spanning multiple owners
+must establish a consistent owner lock order; database deadlocks remain database
+errors, never optimistic conflicts.
 
-Within one process, Runtime/EventLoop admission is acquired before the initial
-Persistence operation and is the primary competing-execution exclusion
-mechanism. `atomic_admission` remains required as the durable second line of
-defense against stale paths, durable conflicts, and unsupported cross-process
-races. It must not be removed merely because Runtime admission exists.
+`UniqueConstraintError < ConflictError` carries the resource ID and constraint
+name. Agent/Team translate only their exact `one_active_owner` constraint to
+`AgentBusyError`. Their idle checks translate their own `NoRows` condition failure.
+`ConditionFailedError` carries the failed condition. Duplicate identities,
+stale revisions and ordinary constraint conflicts remain `ConflictError`.
+`NotFoundError`, `SerializationError`, `UnsupportedBackendError` retain their
+meanings; `TransactionError` identifies invalid scope use. The removed
+`ActiveExecutionConflictError` and `Storage::Repositories` have no aliases.
 
-Workflow admission remains Runtime/process-local. Cross-process Agent or
-Workflow ownership/lease/fencing is a separate distributed-coordination concern
-and is not part of this Backend SPI.
-
-### `optimistic_revision`
-
-The backend must implement compare-and-swap semantics used by Agent roots,
-Agent executions, Journals, Workflow snapshots, and the durable Agent watermark.
-Stale writers must receive `Phronomy::Storage::ConflictError`; they must not
-silently overwrite newer durable state.
-
-## Error contract
-
-Backends should translate backend-specific constraint errors into the following
-portable Phronomy errors when the meaning matches.
-
-### `Phronomy::Storage::NotFoundError`
-
-A requested durable record does not exist.
-
-### `Phronomy::Storage::ConflictError`
-
-A persistence precondition failed, including revision, Journal position,
-identity, duplicate-ID, or compare-and-swap conflicts.
-
-### `Phronomy::Storage::ActiveExecutionConflictError`
-
-This `Storage::ConflictError` subtype means that a stored nonterminal execution
-for the same owner prevents admission or an idle-only operation. Raw Agent/Team
-execution repositories raise it from `create_active`, `assert_idle!`, and any
-existing `save` branch that detects this constraint. Duplicate execution IDs,
-stale revisions and unrelated uniqueness failures must not use this subtype.
-The check and write remain inside the same atomic backend consistency boundary.
-
-The domain-facing Agent/Team execution repositories translate only this subtype
-to the existing `Phronomy::AgentBusyError`, retaining its message and Ruby cause.
-Translation stays inside the current transaction block. `AgentBusyError` also
-remains the process-local admission error; backends no longer choose it.
-
-This is an intentional Beta raw SPI migration: direct backend callers must
-rescue the new storage subtype. Existing backends that still raise
-`AgentBusyError` pass unchanged through the new facade, but fail the updated raw
-conformance contract. Update both SQL reference backends with the core. See
-[ADR-043](decisions/043-storage-execution-constraint-notifications.md) and the
-[migration guide](migrations/storage-backend-composition.md#execution-constraint-errors-adr-043).
-
-### `Phronomy::Storage::SerializationError`
-
-The backend cannot encode a value into its supported durable representation.
-This is intended primarily for durable backends whose Workflow state domain is
-narrower than the InMemory backend's Ruby-object domain.
-
-### `Phronomy::Storage::UnsupportedBackendError`
-
-The backend does not provide a required structural or capability contract.
-
-Database availability, connection loss, and other transport/storage failures
-must not be misreported as ordinary optimistic conflicts merely to fit this
-error taxonomy.
+The following sections describe the retained **domain Persistence** surface.
 
 ## Contents repository
 
-The content repository should normally inherit from
-`Phronomy::ContentStore::Base`, which supplies text/JSON helpers and the canonical
-content-ID calculation.
+`ContentStore::StoredContents < ContentStore::Base` supplies this domain surface
+over neutral Blobs, with text/JSON helpers and canonical content-ID calculation.
 
 Required primitive surface:
 
@@ -405,10 +342,9 @@ honestly rather than converting them into `ConflictError`.
 
 ### Workflow value serialization
 
-`WorkflowContext#to_h` may contain ordinary Ruby application values. The
-InMemory backend can preserve a broader set of Ruby values than a JSON database.
-A durable backend is not required to serialize arbitrary Ruby objects such as
-`Proc`, IO objects, sockets, or runtime callbacks.
+The Workflow domain codec accepts canonical JSON-compatible snapshot values in
+all drivers, including InMemory. Proc, IO, sockets and runtime callbacks are not
+durable snapshot values.
 
 A JSON/JSONB backend should document its supported value domain. A recommended
 domain is:
@@ -432,8 +368,8 @@ particular database backend accept arbitrary Workflow values.
 
 ## Durable Agent watermark
 
-`assert_agent_watermark!` is a public **Backend SPI** operation. It is not an
-ordinary application API.
+`assert_agent_watermark!` is a domain Persistence operation. Agent-owned
+`Watermark` composes a parent guard, root revision and Journal head conditions.
 
 Phronomy uses it at durable barriers because a hydrated live Agent owns the
 current logical state and Phronomy deliberately does not reload mutable Agent
@@ -513,9 +449,9 @@ This is a targeted migration rule for the removed generic identity field. It doe
 not establish a general unknown-field or long-term codec/schema-versioning
 policy.
 
-The canonical Hash representation is the Phronomy/domain boundary. A backend is
-free to map that representation to normalized SQL columns, JSON, or another
-storage format internally.
+Domain codecs own canonical Hash representation. The raw driver stores the
+DurableRecord envelope and separately supplied metadata without interpreting
+domain payload fields.
 
 ## Conformance tests
 
@@ -539,6 +475,11 @@ an Agent repository
 a Journal repository
 an Execution repository
 a workflow state repository
+a Handoff state repository
+a Team repository
+a Team execution repository
+neutral storage primitives
+storage transaction boundaries
 a Persistence backend
 ```
 
@@ -591,34 +532,17 @@ may use combinations of:
 Backend-specific database exceptions should be translated to the Phronomy error
 contract where their meaning is known.
 
-## V2 coordination Backend SPI (clean break)
+## Coordination domain repositories
 
-Both the raw backend and each `Storage::Repositories` transaction view require all eight raw
-repositories. Five-repository fallback is removed. Existing record formats remain
-`0.1`; three additional record types are `phronomy.handoff_state`,
-`phronomy.team_root`, and `phronomy.team_execution`. Backend index metadata is
-explicit and MUST NOT be reconstructed by parsing DurableRecord payloads.
+Handoff starts at revision 1 with expected revision nil; later saves advance one
+revision. Team roots and executions begin at revision 0. Team admission retains
+`AgentBusyError`; stale CAS and duplicate identities use `ConflictError`.
+Missing Team/execution loads raise `NotFoundError`; absent Handoff state returns
+nil. The unchanged record types are `phronomy.handoff_state`, `phronomy.team_root`
+and `phronomy.team_execution`, all version `0.1`.
 
-| Raw repository | Required operations and explicit metadata |
-|---|---|
-| `handoff_states` | `load(main_agent_id)`; `save(main_agent_id, expected_revision:, next_revision:, active_agent_id:, record:)`; `delete(main_agent_id, expected_revision:)` |
-| `teams` | `create(team_id:, team_revision:, record:)`; `load(team_id)`; `save(team_id, expected_revision:, next_revision:, record:)`; `delete(team_id)` |
-| `team_executions` | `create_active(team_execution_id:, team_id:, execution_revision:, record:)`; `load(id)`; `save(id, expected_revision:, next_revision:, team_id:, active:, record:)`; `list_active(team_id)`; `list(team_id, after: nil, limit: 100)`; `delete(id)`; `delete_for_team(team_id)`; `assert_idle!(team_id)` |
-| `executions` extension | `list(agent_id, after: nil, limit: 100)` for retained active and terminal records |
-
-Handoff starts at revision 1 with expected revision nil; later saves advance
-exactly one revision. Team roots and executions begin at revision 0. Team
-admission has the existing `AgentBusyError` contract for an already active owner;
-stale CAS/duplicate identity uses `ConflictError`. Missing Team/execution loads
-raise `NotFoundError`; absent Handoff state returns nil. Unavailable reads and
-codec errors must propagate separately.
-
-Lists sort IDs lexically, use an exclusive ID cursor, return at most the positive
-integer limit, include only the requested owner, and return immutable copies.
-Backends define retention; enumeration does not implement input correlation or
-request deduplication. Terminal-to-active rewrites are invalid.
-
-For F1, atomic commit does not imply a known response. Phronomy reads back the
-same intended ID/fact before advancing. A backend must provide authoritative
-reads/CAS; failure of readback is returned without new semantic work. No callback
-ACK/index is part of the SPI. Existing cross-process exclusion limitations remain.
+Backend authors should also read the [SPI 2 migration guide](migrations/neutral-storage-spi.md).
+The Stable/Beta product API snapshot and the explicit Storage SPI 2 signature
+snapshot are separate gates. Live PostgreSQL locking and failure tests must run
+against the candidate core and examples revisions; earlier SPI results do not
+satisfy this gate.

@@ -108,6 +108,8 @@ resolved explicitly.
 | [`056-workflow-terminal-policy-ownership`](056-workflow-terminal-policy-ownership.md) | Accepted | Yes | Workflow owns persistence-result interpretation through a private policy; Engine retains generic session gating and complete/fail/retire actions. Preserves ADR-026/055 ordering and uncertainty without a public plugin API. |
 | [`057-storage-transaction-boundaries`](057-storage-transaction-boundaries.md) | Accepted | Yes | Enforces active-owner exclusion on InMemory updates, validates SQL Journal batches before writes and defines explicit nested savepoints with propagated failures. Preserves the existing SPI and record formats; the neutral SPI remains separate work. |
 
+| [`058-neutral-storage-primitives`](058-neutral-storage-primitives.md) | Accepted | Yes | Neutral Records/Streams/Blobs SPI 2 and scoped transaction lifecycle; amends 032, 033, 043 and 057. |
+
 ## Legacy duplicate `011`
 
 The repository intentionally preserves both legacy files:

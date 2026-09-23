@@ -9,9 +9,9 @@ RSpec.shared_context "durable coordination runtime" do
     attr_accessor :after_commit, :before_io
 
     def initialize
-      super(backend: Phronomy::Storage::Backends::InMemory.new)
+      super(backend: Phronomy::Storage::Backends::InMemory.new(resources: Phronomy::PersistenceComposition::StorageSchema.resources))
       owner = self
-      {backend.contents => :fetch, backend.executions => :load}.each do |repository, operation|
+      {contents => :fetch, executions => :load}.each do |repository, operation|
         repository.define_singleton_method(operation) do |*args|
           owner.check_io_thread!(operation)
           super(*args)
@@ -43,10 +43,10 @@ RSpec.shared_context "durable coordination runtime" do
       value
     end
 
-    def snapshot = backend.synchronize { Marshal.load(Marshal.dump(backend.state)) }
+    def snapshot = backend.transaction { Marshal.load(Marshal.dump(backend.instance_variable_get(:@state))) }
 
     def self.restore(snapshot)
-      new.tap { |store| store.backend.synchronize { store.backend.state.replace(Marshal.load(Marshal.dump(snapshot))) } }
+      new.tap { |store| store.backend.transaction { store.backend.instance_variable_get(:@state).replace(Marshal.load(Marshal.dump(snapshot))) } }
     end
   end
 

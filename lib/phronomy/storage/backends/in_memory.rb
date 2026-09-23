@@ -1,698 +1,156 @@
 # frozen_string_literal: true
 
 require "monitor"
-require "digest"
 
 module Phronomy
   module Storage
     module Backends
-      class InMemory < Phronomy::Storage::Backend
-        class Contents < Phronomy::ContentStore::Base
-          def initialize(owner)
-            @owner = owner
-          end
-
-          def put(bytes, canonicalization_version:)
-            value = String(bytes).b.freeze
-            id = content_id_for(value)
-            @owner.synchronize do
-              current = @owner.state[:contents][id]
-              if current && current[:bytes] != value
-                raise Phronomy::ContentStore::IntegrityError, "digest collision for #{id}"
-              end
-              @owner.state[:contents][id] ||= {
-                bytes: value,
-                canonicalization_version: Integer(canonicalization_version)
-              }
-            end
-            id
-          end
-
-          def fetch(content_id)
-            @owner.synchronize do
-              record = @owner.state[:contents].fetch(content_id.to_s) do
-                raise NotFoundError, "content not found: #{content_id}"
-              end
-              bytes = record[:bytes]
-              unless content_id_for(bytes) == content_id.to_s
-                raise Phronomy::ContentStore::IntegrityError, "content digest mismatch: #{content_id}"
-              end
-              bytes.dup
-            end
-          end
-
-          def exist?(content_id)
-            @owner.synchronize { @owner.state[:contents].key?(content_id.to_s) }
-          end
-        end
-
-        # Backend-side Agent record repository. DurableRecord is opaque here;
-        # identity/revision metadata is supplied explicitly by domain repository wrappers.
-        class Agents
-          def initialize(owner) = @owner = owner
-
-          def create(agent_id:, agent_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            key = agent_id.to_s
-            revision = Integer(agent_revision)
-            raise ConflictError, "agent_id must not be empty" if key.empty?
-            raise ConflictError, "agent_revision must be non-negative" if revision.negative?
-
-            @owner.synchronize do
-              raise ConflictError, "agent already exists: #{key}" if @owner.state[:agents].key?(key)
-              @owner.state[:agents][key] = record.copy
-              @owner.state[:agent_revisions][key] = revision
-            end
-            record.copy
-          end
-
-          def load(agent_id)
-            @owner.synchronize do
-              @owner.state[:agents].fetch(agent_id.to_s) do
-                raise NotFoundError, "agent not found: #{agent_id}"
-              end.copy
-            end
-          end
-
-          def save(agent_id, expected_revision:, next_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            key = agent_id.to_s
-            expected = Integer(expected_revision)
-            next_value = Integer(next_revision)
-            @owner.synchronize do
-              unless @owner.state[:agents].key?(key)
-                raise NotFoundError, "agent not found: #{agent_id}"
-              end
-              actual_revision = @owner.state[:agent_revisions].fetch(key)
-              unless actual_revision == expected
-                raise ConflictError,
-                  "agent revision conflict: expected #{expected}, actual #{actual_revision}"
-              end
-              unless next_value == expected + 1
-                raise ConflictError,
-                  "agent save must advance revision exactly once: " \
-                  "expected #{expected + 1}, got #{next_value}"
-              end
-              @owner.state[:agents][key] = record.copy
-              @owner.state[:agent_revisions][key] = next_value
-            end
-            record.copy
-          end
-
-          def delete(agent_id)
-            @owner.synchronize do
-              key = agent_id.to_s
-              @owner.state[:agent_revisions].delete(key)
-              @owner.state[:agents].delete(key)
-            end
-          end
-        end
-
-        class Journals
-          def initialize(owner) = @owner = owner
-
-          def append(agent_id, expected_position:, records:, record_ids:)
-            encoded = Array(records).map { |record| @owner.require_durable_record!(record) }
-            ids = Array(record_ids).map(&:to_s)
-            unless encoded.length == ids.length
-              raise ConflictError,
-                "Journal records/record_ids length mismatch: #{encoded.length} != #{ids.length}"
-            end
-            if ids.any?(&:empty?)
-              raise ConflictError, "Journal record_id must not be empty"
-            end
-
-            @owner.synchronize do
-              key = agent_id.to_s
-              target = (@owner.state[:journals][key] ||= [])
-              known_ids = (@owner.state[:journal_record_ids][key] ||= {})
-              expected = Integer(expected_position)
-              unless target.length == expected
-                raise ConflictError,
-                  "journal position conflict: expected #{expected}, actual #{target.length}"
-              end
-
-              incoming_ids = {}
-              ids.each do |record_id|
-                if known_ids[record_id] || incoming_ids[record_id]
-                  raise ConflictError, "duplicate Journal record_id: #{record_id}"
-                end
-                incoming_ids[record_id] = true
-              end
-
-              stored = encoded.map(&:copy)
-              target.concat(stored)
-              incoming_ids.each_key { |record_id| known_ids[record_id] = true }
-              stored.map(&:copy).freeze
-            end
-          end
-
-          def read(agent_id, after: nil, limit: nil)
-            @owner.synchronize do
-              result = Array(@owner.state[:journals][agent_id.to_s])
-              result = result.drop(Integer(after)) if after
-              result = result.first(Integer(limit)) if limit
-              result.map(&:copy).freeze
-            end
-          end
-
-          def head(agent_id)
-            @owner.synchronize { Array(@owner.state[:journals][agent_id.to_s]).length }
-          end
-
-          def delete(agent_id)
-            @owner.synchronize do
-              key = agent_id.to_s
-              @owner.state[:journal_record_ids].delete(key)
-              @owner.state[:journals].delete(key)
-            end
-          end
-        end
-
-        class Executions
-          def initialize(owner) = @owner = owner
-
-          def create_active(execution_id:, agent_id:, execution_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            execution_key = execution_id.to_s
-            agent_key = agent_id.to_s
-            revision = Integer(execution_revision)
-            raise ConflictError, "execution_id must not be empty" if execution_key.empty?
-            raise ConflictError, "agent_id must not be empty" if agent_key.empty?
-            raise ConflictError, "execution_revision must be non-negative" if revision.negative?
-
-            @owner.synchronize do
-              if @owner.state[:executions].key?(execution_key)
-                raise ConflictError, "execution already exists: #{execution_key}"
-              end
-              active = @owner.state[:execution_metadata].values.find do |metadata|
-                metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
-              end
-              raise Phronomy::Storage::ActiveExecutionConflictError, "agent is busy: #{agent_key}" if active
-
-              @owner.state[:executions][execution_key] = record.copy
-              @owner.state[:execution_metadata][execution_key] = {
-                agent_id: agent_key,
-                revision: revision,
-                active: true
-              }.freeze
-            end
-            record.copy
-          end
-
-          def load(execution_id)
-            @owner.synchronize do
-              @owner.state[:executions].fetch(execution_id.to_s) do
-                raise NotFoundError, "execution not found: #{execution_id}"
-              end.copy
-            end
-          end
-
-          def save(execution_id, expected_revision:, next_revision:, agent_id:, active:, record:)
-            record = @owner.require_durable_record!(record)
-            execution_key = execution_id.to_s
-            agent_key = agent_id.to_s
-            expected = Integer(expected_revision)
-            next_value = Integer(next_revision)
-            unless active.equal?(true) || active.equal?(false)
-              raise ConflictError, "execution active metadata must be true or false"
-            end
-
-            @owner.synchronize do
-              unless @owner.state[:executions].key?(execution_key)
-                raise NotFoundError, "execution not found: #{execution_id}"
-              end
-              current = @owner.state[:execution_metadata].fetch(execution_key)
-              actual_revision = current.fetch(:revision)
-              unless actual_revision == expected
-                raise ConflictError,
-                  "execution revision conflict: expected #{expected}, actual #{actual_revision}"
-              end
-              unless current.fetch(:agent_id) == agent_key
-                raise ConflictError,
-                  "Execution Agent identity mismatch: #{agent_key} != #{current.fetch(:agent_id)}"
-              end
-              unless next_value == expected + 1
-                raise ConflictError,
-                  "execution save must advance revision exactly once: " \
-                  "expected #{expected + 1}, got #{next_value}"
-              end
-
-              competing_active = active && @owner.state[:execution_metadata].any? do |id, metadata|
-                id != execution_key && metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
-              end
-              if competing_active
-                raise Phronomy::Storage::ActiveExecutionConflictError, "agent is busy: #{agent_key}"
-              end
-
-              @owner.state[:executions][execution_key] = record.copy
-              @owner.state[:execution_metadata][execution_key] = {
-                agent_id: agent_key,
-                revision: next_value,
-                active: active
-              }.freeze
-            end
-            record.copy
-          end
-
-          def list_active(agent_id)
-            @owner.synchronize do
-              agent_key = agent_id.to_s
-              ids = @owner.state[:execution_metadata].filter_map do |execution_id, metadata|
-                execution_id if metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
-              end
-              ids.map { |execution_id| @owner.state[:executions].fetch(execution_id).copy }.freeze
-            end
-          end
-
-          def list(agent_id, after: nil, limit: 100)
-            @owner.synchronize do
-              ids = @owner.state[:execution_metadata].filter_map do |id, metadata|
-                id if metadata.fetch(:agent_id) == agent_id.to_s && (!after || id > after.to_s)
-              end.sort.first(limit)
-              ids.map { |id| @owner.state[:executions].fetch(id).copy }.freeze
-            end
-          end
-
-          def delete(execution_id)
-            @owner.synchronize do
-              key = execution_id.to_s
-              @owner.state[:execution_metadata].delete(key)
-              @owner.state[:executions].delete(key)
-            end
-          end
-
-          def delete_for_agent(agent_id)
-            @owner.synchronize do
-              agent_key = agent_id.to_s
-              ids = @owner.state[:execution_metadata].filter_map do |execution_id, metadata|
-                execution_id if metadata.fetch(:agent_id) == agent_key
-              end
-              ids.each do |execution_id|
-                @owner.state[:execution_metadata].delete(execution_id)
-                @owner.state[:executions].delete(execution_id)
-              end
-            end
-          end
-
-          def assert_idle!(agent_id)
-            @owner.synchronize do
-              active = @owner.state[:execution_metadata].values.find do |metadata|
-                metadata.fetch(:agent_id) == agent_id.to_s && metadata.fetch(:active)
-              end
-              if active
-                raise Phronomy::Storage::ActiveExecutionConflictError,
-                  "agent has an active or suspended execution: #{agent_id}"
-              end
-            end
-            true
-          end
-        end
-
-        class Teams
-          def initialize(owner) = @owner = owner
-
-          def create(team_id:, team_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            key = team_id.to_s
-            revision = Integer(team_revision)
-            raise ConflictError, "team_id must not be empty" if key.empty?
-            raise ConflictError, "team_revision must be non-negative" if revision.negative?
-
-            @owner.synchronize do
-              raise ConflictError, "agent already exists: #{key}" if @owner.state[:teams].key?(key)
-              @owner.state[:teams][key] = record.copy
-              @owner.state[:team_revisions][key] = revision
-            end
-            record.copy
-          end
-
-          def load(team_id)
-            @owner.synchronize do
-              @owner.state[:teams].fetch(team_id.to_s) do
-                raise NotFoundError, "agent not found: #{team_id}"
-              end.copy
-            end
-          end
-
-          def save(team_id, expected_revision:, next_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            key = team_id.to_s
-            expected = Integer(expected_revision)
-            next_value = Integer(next_revision)
-            @owner.synchronize do
-              unless @owner.state[:teams].key?(key)
-                raise NotFoundError, "agent not found: #{team_id}"
-              end
-              actual_revision = @owner.state[:team_revisions].fetch(key)
-              unless actual_revision == expected
-                raise ConflictError,
-                  "agent revision conflict: expected #{expected}, actual #{actual_revision}"
-              end
-              unless next_value == expected + 1
-                raise ConflictError,
-                  "agent save must advance revision exactly once: " \
-                  "expected #{expected + 1}, got #{next_value}"
-              end
-              @owner.state[:teams][key] = record.copy
-              @owner.state[:team_revisions][key] = next_value
-            end
-            record.copy
-          end
-
-          def delete(team_id)
-            @owner.synchronize do
-              key = team_id.to_s
-              @owner.state[:team_revisions].delete(key)
-              @owner.state[:teams].delete(key)
-            end
-          end
-        end
-
-        class TeamExecutions
-          def initialize(owner) = @owner = owner
-
-          def create_active(team_execution_id:, team_id:, execution_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            execution_key = team_execution_id.to_s
-            agent_key = team_id.to_s
-            revision = Integer(execution_revision)
-            raise ConflictError, "team_execution_id must not be empty" if execution_key.empty?
-            raise ConflictError, "team_id must not be empty" if agent_key.empty?
-            raise ConflictError, "execution_revision must be non-negative" if revision.negative?
-
-            @owner.synchronize do
-              if @owner.state[:team_executions].key?(execution_key)
-                raise ConflictError, "execution already exists: #{execution_key}"
-              end
-              active = @owner.state[:team_execution_metadata].values.find do |metadata|
-                metadata.fetch(:team_id) == agent_key && metadata.fetch(:active)
-              end
-              raise Phronomy::Storage::ActiveExecutionConflictError, "agent is busy: #{agent_key}" if active
-
-              @owner.state[:team_executions][execution_key] = record.copy
-              @owner.state[:team_execution_metadata][execution_key] = {
-                team_id: agent_key,
-                revision: revision,
-                active: true
-              }.freeze
-            end
-            record.copy
-          end
-
-          def load(team_execution_id)
-            @owner.synchronize do
-              @owner.state[:team_executions].fetch(team_execution_id.to_s) do
-                raise NotFoundError, "execution not found: #{team_execution_id}"
-              end.copy
-            end
-          end
-
-          def save(team_execution_id, expected_revision:, next_revision:, team_id:, active:, record:)
-            record = @owner.require_durable_record!(record)
-            execution_key = team_execution_id.to_s
-            agent_key = team_id.to_s
-            expected = Integer(expected_revision)
-            next_value = Integer(next_revision)
-            unless active.equal?(true) || active.equal?(false)
-              raise ConflictError, "execution active metadata must be true or false"
-            end
-
-            @owner.synchronize do
-              unless @owner.state[:team_executions].key?(execution_key)
-                raise NotFoundError, "execution not found: #{team_execution_id}"
-              end
-              current = @owner.state[:team_execution_metadata].fetch(execution_key)
-              actual_revision = current.fetch(:revision)
-              unless actual_revision == expected
-                raise ConflictError,
-                  "execution revision conflict: expected #{expected}, actual #{actual_revision}"
-              end
-              unless current.fetch(:team_id) == agent_key
-                raise ConflictError,
-                  "Execution Team identity mismatch: #{agent_key} != #{current.fetch(:team_id)}"
-              end
-              if active && !current.fetch(:active)
-                raise ConflictError, "A terminal Team execution cannot become active"
-              end
-              unless next_value == expected + 1
-                raise ConflictError,
-                  "execution save must advance revision exactly once: " \
-                  "expected #{expected + 1}, got #{next_value}"
-              end
-
-              @owner.state[:team_executions][execution_key] = record.copy
-              @owner.state[:team_execution_metadata][execution_key] = {
-                team_id: agent_key,
-                revision: next_value,
-                active: active
-              }.freeze
-            end
-            record.copy
-          end
-
-          def list_active(team_id)
-            @owner.synchronize do
-              agent_key = team_id.to_s
-              ids = @owner.state[:team_execution_metadata].filter_map do |team_execution_id, metadata|
-                team_execution_id if metadata.fetch(:team_id) == agent_key && metadata.fetch(:active)
-              end
-              ids.map { |team_execution_id| @owner.state[:team_executions].fetch(team_execution_id).copy }.freeze
-            end
-          end
-
-          def list(team_id, after: nil, limit: 100)
-            @owner.synchronize do
-              ids = @owner.state[:team_execution_metadata].filter_map do |id, metadata|
-                id if metadata.fetch(:team_id) == team_id.to_s && (!after || id > after.to_s)
-              end.sort.first(limit)
-              ids.map { |id| @owner.state[:team_executions].fetch(id).copy }.freeze
-            end
-          end
-
-          def delete(team_execution_id)
-            @owner.synchronize do
-              key = team_execution_id.to_s
-              @owner.state[:team_execution_metadata].delete(key)
-              @owner.state[:team_executions].delete(key)
-            end
-          end
-
-          def delete_for_team(team_id)
-            @owner.synchronize do
-              agent_key = team_id.to_s
-              ids = @owner.state[:team_execution_metadata].filter_map do |team_execution_id, metadata|
-                team_execution_id if metadata.fetch(:team_id) == agent_key
-              end
-              ids.each do |team_execution_id|
-                @owner.state[:team_execution_metadata].delete(team_execution_id)
-                @owner.state[:team_executions].delete(team_execution_id)
-              end
-            end
-          end
-
-          def assert_idle!(team_id)
-            @owner.synchronize do
-              active = @owner.state[:team_execution_metadata].values.find do |metadata|
-                metadata.fetch(:team_id) == team_id.to_s && metadata.fetch(:active)
-              end
-              if active
-                raise Phronomy::Storage::ActiveExecutionConflictError,
-                  "agent has an active or suspended execution: #{team_id}"
-              end
-            end
-            true
-          end
-        end
-
-        class HandoffStates
-          def initialize(owner) = @owner = owner
-
-          def load(main_agent_id)
-            @owner.synchronize do
-              record = @owner.state[:handoff_states][main_agent_id.to_s]
-              record&.copy
-            end
-          end
-
-          def save(main_agent_id, expected_revision:, next_revision:, active_agent_id:, record:)
-            record = @owner.require_durable_record!(record)
-            raise ArgumentError, "active_agent_id is required" if active_agent_id.to_s.empty?
-            key = main_agent_id.to_s
-            expected = expected_revision.nil? ? nil : Integer(expected_revision)
-            next_value = Integer(next_revision)
-            @owner.synchronize do
-              actual_revision = @owner.state[:handoff_revisions][key]
-              unless actual_revision == expected
-                raise ConflictError,
-                  "workflow state revision conflict for #{key}: " \
-                  "expected #{expected.inspect}, actual #{actual_revision.inspect}"
-              end
-              expected_next = expected.nil? ? 1 : expected + 1
-              unless next_value == expected_next
-                raise ConflictError,
-                  "workflow state save must advance revision exactly once: " \
-                  "expected #{expected_next}, got #{next_value}"
-              end
-
-              @owner.state[:handoff_states][key] = record.copy
-              @owner.state[:handoff_revisions][key] = next_value
-            end
-            record.copy
-          end
-
-          def delete(main_agent_id, expected_revision:)
-            @owner.synchronize do
-              key = main_agent_id.to_s
-              expected = Integer(expected_revision)
-              actual_revision = @owner.state[:handoff_revisions][key]
-              unless actual_revision == expected
-                raise ConflictError,
-                  "workflow state revision conflict for #{key}: " \
-                  "expected #{expected.inspect}, actual #{actual_revision.inspect}"
-              end
-              @owner.state[:handoff_revisions].delete(key)
-              @owner.state[:handoff_states].delete(key)
-            end
-            nil
-          end
-        end
-
-        class WorkflowStates
-          def initialize(owner) = @owner = owner
-
-          def load(workflow_instance_id)
-            @owner.synchronize do
-              record = @owner.state[:workflow_states][workflow_instance_id.to_s]
-              record&.copy
-            end
-          end
-
-          def save(workflow_instance_id, expected_revision:, next_revision:, record:)
-            record = @owner.require_durable_record!(record)
-            key = workflow_instance_id.to_s
-            expected = expected_revision.nil? ? nil : Integer(expected_revision)
-            next_value = Integer(next_revision)
-            @owner.synchronize do
-              actual_revision = @owner.state[:workflow_revisions][key]
-              unless actual_revision == expected
-                raise ConflictError,
-                  "workflow state revision conflict for #{key}: " \
-                  "expected #{expected.inspect}, actual #{actual_revision.inspect}"
-              end
-              expected_next = expected.nil? ? 1 : expected + 1
-              unless next_value == expected_next
-                raise ConflictError,
-                  "workflow state save must advance revision exactly once: " \
-                  "expected #{expected_next}, got #{next_value}"
-              end
-
-              @owner.state[:workflow_states][key] = record.copy
-              @owner.state[:workflow_revisions][key] = next_value
-            end
-            record.copy
-          end
-
-          def delete(workflow_instance_id, expected_revision:)
-            @owner.synchronize do
-              key = workflow_instance_id.to_s
-              expected = Integer(expected_revision)
-              actual_revision = @owner.state[:workflow_revisions][key]
-              unless actual_revision == expected
-                raise ConflictError,
-                  "workflow state revision conflict for #{key}: " \
-                  "expected #{expected.inspect}, actual #{actual_revision.inspect}"
-              end
-              @owner.state[:workflow_revisions].delete(key)
-              @owner.state[:workflow_states].delete(key)
-            end
-            nil
-          end
-        end
-
-        attr_reader :state
-
-        def initialize
+      # One Monitor and snapshot cover every declared resource and nested scope.
+      # @api public
+      class InMemory < Backend
+        # @api public
+        def initialize(resources: [])
+          super
           @monitor = Monitor.new
-          @state = {
-            contents: {},
-            agents: {},
-            agent_revisions: {},
-            journals: {},
-            journal_record_ids: {},
-            executions: {},
-            execution_metadata: {},
-            workflow_states: {},
-            workflow_revisions: {},
-            handoff_states: {}, handoff_revisions: {},
-            teams: {}, team_revisions: {}, team_executions: {}, team_execution_metadata: {}
-          }
-          @contents_backend = Contents.new(self)
-          @agents_backend = Agents.new(self)
-          @journals_backend = Journals.new(self)
-          @executions_backend = Executions.new(self)
-          @workflow_states_backend = WorkflowStates.new(self)
-          super(
-            contents: @contents_backend,
-            agents: @agents_backend,
-            journals: @journals_backend,
-            executions: @executions_backend,
-            workflow_states: @workflow_states_backend,
-            handoff_states: HandoffStates.new(self),
-            teams: Teams.new(self), team_executions: TeamExecutions.new(self)
-          )
+          @state = resources.to_h { |resource| [resource.id, {}] }
         end
 
-        def capabilities
-          {atomic_all: true, atomic_admission: true, optimistic_revision: true}.freeze
-        end
+        # @api public
+        def capabilities = REQUIRED_CAPABILITIES
 
-        def assert_agent_watermark!(agent_id:, agent_revision:, journal_position:)
-          synchronize do
-            key = agent_id.to_s
-            unless @state[:agents].key?(key)
-              raise NotFoundError, "Agent not found: #{agent_id}"
-            end
+        private
 
-            actual_revision = @state[:agent_revisions].fetch(key)
-            if actual_revision != agent_revision
-              raise ConflictError,
-                "agent revision conflict: expected #{agent_revision}, actual #{actual_revision}"
-            end
-
-            actual_position = Array(@state[:journals][key]).length
-            if actual_position != journal_position
-              raise ConflictError,
-                "journal position conflict: expected #{journal_position}, actual #{actual_position}"
-            end
-
-            true
-          end
-        end
-
-        def transaction
-          synchronize do
-            state_snapshot = Marshal.load(Marshal.dump(@state))
+        def storage_transaction
+          @monitor.synchronize do
+            snapshot = Marshal.load(Marshal.dump(@state))
+            completed = false
             begin
-              yield self
-            rescue
-              @state.replace(state_snapshot)
-              raise
+              result = yield @state
+              completed = true
+              result
+            ensure
+              @state.replace(snapshot) unless completed
             end
           end
         end
 
-        def synchronize(&block)
-          @monitor.synchronize(&block)
+        def bucket(state, resource) = state.fetch(resource.id)
+
+        def read_record(state, resource, key:)
+          value = bucket(state, resource)[key]
+          value && Entry::Record.new(**value.to_h)
         end
 
-        # @api private
-        def require_durable_record!(record)
-          return record if record.is_a?(Phronomy::Storage::DurableRecord)
-
-          raise Phronomy::Storage::SerializationError,
-            "backend repository expected Storage::DurableRecord, got #{record.class}"
+        def lock_guard(state, resource, key:)
+          raise NotFoundError, "guard record not found: #{resource.id}/#{key}" unless bucket(state, resource).key?(key)
+          true
         end
+
+        def guard_record(state, resource, key:, attributes: {}, creating: false)
+          guard = resource.guard
+          return unless guard
+          anchor = resources.fetch(guard.fetch(:resource))
+          return if creating && anchor.equal?(resource) && guard[:via] == :key
+          guard_key = [:key, :stream].include?(guard[:via]) ? key : attributes.fetch(guard[:via])
+          lock_guard(state, anchor, key: guard_key)
+        end
+
+        def check_unique(state, resource, entry)
+          resource.unique.each do |constraint|
+            next if constraint[:fields].any? { |key| entry.attributes[key].nil? }
+            next unless constraint.fetch(:where).all? { |key, value| entry.attributes[key] == value }
+            conflict = bucket(state, resource).values.any? do |other|
+              other.key != entry.key && constraint[:where].all? { |k, val| other.attributes[k] == val } && constraint[:fields].all? { |k| other.attributes[k] == entry.attributes[k] }
+            end
+            raise UniqueConstraintError.new(resource: resource, constraint: constraint[:name]) if conflict
+          end
+        end
+
+        def insert_record(state, resource, entry:)
+          raise ConflictError, "duplicate record identity" if bucket(state, resource).key?(entry.key)
+          guard_record(state, resource, key: entry.key, attributes: entry.attributes, creating: true)
+          check_unique(state, resource, entry)
+          bucket(state, resource)[entry.key] = entry
+          Entry::Record.new(**entry.to_h)
+        end
+
+        def replace_record(state, resource, entry:, expected_revision:, expected_attributes:)
+          current = bucket(state, resource)[entry.key] || raise(NotFoundError, "record not found: #{entry.key}")
+          guard_record(state, resource, key: entry.key, attributes: current.attributes)
+          raise ConflictError, "record revision conflict" unless current.revision == expected_revision
+          unless expected_attributes.all? { |key, value| current.attributes[key] == value } && resource.immutable_attributes.all? { |key| current.attributes[key] == entry.attributes[key] }
+            raise ConflictError, "record attribute precondition failed"
+          end
+          check_unique(state, resource, entry)
+          bucket(state, resource)[entry.key] = entry
+          Entry::Record.new(**entry.to_h)
+        end
+
+        def delete_record(state, resource, key:, expected_revision:)
+          current = bucket(state, resource)[key]
+          if !expected_revision.equal?(Records::UNCHECKED) && (!current || current.revision != expected_revision)
+            raise ConflictError, "record deletion revision conflict"
+          end
+          return nil unless current
+          guard_record(state, resource, key: key, attributes: current.attributes)
+          bucket(state, resource).delete(key)
+          nil
+        end
+
+        def scan_records(state, resource, equals:, after:, limit:)
+          entries = bucket(state, resource).values.select { |entry| (!after || entry.key.b > after.b) && equals.all? { |key, value| entry.attributes[key] == value } }.sort_by { |entry| entry.key.b }
+          entries = entries.first(limit) if limit
+          entries.map { |entry| Entry::Record.new(**entry.to_h) }.freeze
+        end
+
+        def delete_matching_records(state, resource, equals:)
+          if resource.guard && ![:key, :stream].include?(resource.guard[:via])
+            raise ArgumentError, "deletion must constrain its guard attribute" unless equals.key?(resource.guard[:via])
+            guard_record(state, resource, key: "unused", attributes: equals)
+          end
+          scan_records(state, resource, equals: equals, after: nil, limit: nil).each do |entry|
+            delete_record(state, resource, key: entry.key, expected_revision: Records::UNCHECKED)
+          end
+          nil
+        end
+
+        def append_stream(state, resource, stream:, expected_head:, entries:)
+          guard_record(state, resource, key: stream)
+          stored = bucket(state, resource).fetch(stream, [])
+          raise ConflictError, "stream head conflict" unless stored.length == expected_head
+          raise ConflictError, "duplicate stream entry identity" unless (stored.map(&:id) & entries.map(&:id)).empty?
+          appended = entries.each_with_index.map { |entry, index| Entry::Stream.new(position: expected_head + index + 1, id: entry.id, record: entry.record) }
+          bucket(state, resource)[stream] = stored + appended unless appended.empty?
+          appended.map { |entry| Entry::Stream.new(**entry.to_h) }.freeze
+        end
+
+        def read_stream(state, resource, stream:, after:, limit:)
+          selected = bucket(state, resource).fetch(stream, []).select { |entry| entry.position > after }
+          selected = selected.first(limit) if limit
+          selected.map { |entry| Entry::Stream.new(**entry.to_h) }.freeze
+        end
+
+        def stream_head(state, resource, stream:) = bucket(state, resource).fetch(stream, []).length
+
+        def delete_stream(state, resource, stream:)
+          guard_record(state, resource, key: stream)
+          bucket(state, resource).delete(stream)
+          nil
+        end
+
+        def put_blob(state, resource, blob:)
+          stored = bucket(state, resource)[blob.key]
+          raise BlobConflictError, "blob bytes are immutable" if stored && stored.bytes != blob.bytes
+          stored ||= bucket(state, resource)[blob.key] = blob
+          Entry::Blob.new(**stored.to_h)
+        end
+
+        def fetch_blob(state, resource, key:)
+          stored = bucket(state, resource)[key] || raise(NotFoundError, "blob not found: #{key}")
+          Entry::Blob.new(**stored.to_h)
+        end
+
+        def blob_exists(state, resource, key:) = bucket(state, resource).key?(key)
       end
     end
   end

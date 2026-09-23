@@ -5,6 +5,10 @@
 - Date: 2026-09-17
 - Refines: [014-unified-persistence-durable-state](014-unified-persistence-durable-state.md)
 
+The raw fixed-repository/error portions are amended by
+[ADR-058](058-neutral-storage-primitives.md). Domain ownership and applicable
+transaction/uncertainty decisions below remain in force.
+
 ## Context
 
 The previous `Persistence` class combined raw storage contracts with domain

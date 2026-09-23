@@ -3,119 +3,102 @@
 module Phronomy
   module Agent
     module Persistence
-      # Domain repository over a raw repository in the selected storage transaction.
+      # Owns execution activity, ownership, admission and durable record encoding.
       # @api private
       class ExecutionRepository
-        def initialize(backend_repository)
-          @backend_repository = backend_repository
-        end
+        def initialize(view) = @view = view
 
         def create_active(execution)
-          unless execution.active?
-            raise Phronomy::Storage::SerializationError,
-              "create_active requires an active AgentExecution"
-          end
+          raise Phronomy::Storage::SerializationError, "create_active requires an active AgentExecution" unless execution.active?
           record = Codec.encode_agent_execution(execution)
-          stored = @backend_repository.create_active(
-            execution_id: execution.execution_id.to_s,
-            agent_id: execution.agent_id.to_s,
-            execution_revision: Integer(execution.execution_revision),
-            record: record
-          )
-          decode_for_execution(
-            stored,
-            execution.execution_id,
-            agent_id: execution.agent_id,
-            revision: execution.execution_revision,
-            active: true
-          )
-        rescue Phronomy::Storage::ActiveExecutionConflictError => error
-          raise Phronomy::AgentBusyError, error.message
+          admission do
+            @view.atomic do |bound|
+              entry = bound.records(StorageSchema::EXECUTIONS).insert(key: execution.execution_id.to_s,
+                revision: Integer(execution.execution_revision), attributes: attributes(execution), record: record)
+              decode(entry, execution.execution_id, owner: execution.agent_id,
+                revision: execution.execution_revision, active: true)
+            end
+          end
         end
 
         def load(execution_id)
-          decode_for_execution(@backend_repository.load(execution_id.to_s), execution_id)
+          value = @view.atomic do |bound|
+            entry = bound.records(StorageSchema::EXECUTIONS).read(execution_id.to_s)
+            entry && decode(entry, execution_id)
+          end
+          value || raise(Phronomy::Storage::NotFoundError, "Execution not found: #{execution_id}")
         end
 
         def save(execution_id, expected_revision:, execution:)
           expected = Integer(expected_revision)
-          next_revision = Integer(execution.execution_revision)
-          unless next_revision == expected + 1
-            raise Phronomy::Storage::ConflictError,
-              "execution save must advance revision exactly once: " \
-              "expected #{expected + 1}, got #{next_revision}"
-          end
+          revision = Integer(execution.execution_revision)
+          raise Phronomy::Storage::ConflictError, "execution save must advance revision exactly once" unless revision == expected + 1
           unless execution.execution_id.to_s == execution_id.to_s
-            raise Phronomy::Storage::SerializationError,
-              "Execution identity mismatch: #{execution.execution_id} != #{execution_id}"
+            raise Phronomy::Storage::SerializationError, "Execution identity mismatch"
           end
-
           record = Codec.encode_agent_execution(execution)
-          stored = @backend_repository.save(
-            execution_id.to_s,
-            expected_revision: expected,
-            next_revision: next_revision,
-            agent_id: execution.agent_id.to_s,
-            active: execution.active?,
-            record: record
-          )
-          decode_for_execution(
-            stored,
-            execution_id,
-            agent_id: execution.agent_id,
-            revision: next_revision,
-            active: execution.active?
-          )
-        rescue Phronomy::Storage::ActiveExecutionConflictError => error
-          raise Phronomy::AgentBusyError, error.message
+          admission do
+            @view.atomic do |bound|
+              entry = bound.records(StorageSchema::EXECUTIONS).replace(key: execution_id.to_s,
+                expected_revision: expected, next_revision: revision, attributes: attributes(execution),
+                expected_attributes: {}, record: record)
+              decode(entry, execution_id, owner: execution.agent_id, revision: revision, active: execution.active?)
+            end
+          end
         end
 
         def list_active(agent_id)
-          Array(@backend_repository.list_active(agent_id.to_s)).map do |record|
-            decode_for_execution(record, nil, agent_id: agent_id, active: true)
-          end.freeze
+          @view.atomic do |bound|
+            bound.records(StorageSchema::EXECUTIONS).scan(index: :owner_active,
+              equals: {owner: agent_id.to_s, active: true}).map { |entry| decode(entry, entry.key, owner: agent_id, active: true) }.freeze
+          end
         end
 
         def list(agent_id, after: nil, limit: 100)
           raise ArgumentError, "limit must be a positive Integer" unless limit.is_a?(Integer) && limit.positive?
-          Array(@backend_repository.list(agent_id.to_s, after: after&.to_s, limit: limit)).map do |record|
-            decode_for_execution(record, nil, agent_id: agent_id)
-          end.freeze
+          @view.atomic do |bound|
+            bound.records(StorageSchema::EXECUTIONS).scan(index: :owner, equals: {owner: agent_id.to_s},
+              after: after&.to_s, limit: limit).map { |entry| decode(entry, entry.key, owner: agent_id) }.freeze
+          end
         end
 
         def delete(execution_id)
-          @backend_repository.delete(execution_id.to_s)
+          @view.records(StorageSchema::EXECUTIONS).delete(key: execution_id.to_s)
         end
 
         def delete_for_agent(agent_id)
-          @backend_repository.delete_for_agent(agent_id.to_s)
+          @view.records(StorageSchema::EXECUTIONS).delete_matching(index: :owner, equals: {owner: agent_id.to_s})
         end
 
         def assert_idle!(agent_id)
-          @backend_repository.assert_idle!(agent_id.to_s)
-        rescue Phronomy::Storage::ActiveExecutionConflictError => error
+          condition = Phronomy::Storage::Condition::NoRows.new(resource: StorageSchema::EXECUTIONS,
+            index: :owner_active, equals: {owner: agent_id.to_s, active: true})
+          @view.check!(guards: [Phronomy::Storage::GuardRef.new(resource: StorageSchema::ROOTS, key: agent_id.to_s)],
+            conditions: [condition])
+        rescue Phronomy::Storage::ConditionFailedError => error
+          raise unless error.condition.equal?(condition)
           raise Phronomy::AgentBusyError, error.message
         end
 
         private
 
-        def decode_for_execution(record, execution_id, agent_id: nil, revision: nil, active: nil)
-          execution = Codec.decode_agent_execution(record)
-          if execution_id && execution.execution_id != execution_id.to_s
-            raise Phronomy::Storage::SerializationError,
-              "backend returned Execution #{execution.execution_id.inspect}; expected #{execution_id.to_s.inspect}"
-          end
-          if agent_id && execution.agent_id != agent_id.to_s
-            raise Phronomy::Storage::SerializationError,
-              "backend returned Execution for Agent #{execution.agent_id.inspect}; expected #{agent_id.to_s.inspect}"
-          end
-          if revision && execution.execution_revision != revision
-            raise Phronomy::Storage::SerializationError,
-              "backend returned Execution revision #{execution.execution_revision}; expected #{revision}"
-          end
-          if !active.nil? && execution.active? != active
-            raise Phronomy::Storage::SerializationError,
-              "backend returned Execution active=#{execution.active?}; expected #{active}"
+        def attributes(execution) = {owner: execution.agent_id.to_s, active: execution.active?}
+
+        def admission
+          yield
+        rescue Phronomy::Storage::UniqueConstraintError => error
+          raise unless error.resource == StorageSchema::EXECUTIONS.id && error.constraint == :one_active_owner
+          raise Phronomy::AgentBusyError, error.message
+        end
+
+        def decode(entry, execution_id, owner: nil, revision: nil, active: nil)
+          execution = Codec.decode_agent_execution(entry.record)
+          valid = entry.key == execution_id.to_s && execution.execution_id == entry.key &&
+            execution.execution_revision == entry.revision && attributes(execution) == entry.attributes &&
+            (!owner || execution.agent_id == owner.to_s) && (!revision || execution.execution_revision == revision) &&
+            (active.nil? || execution.active? == active)
+          unless valid
+            raise Phronomy::Storage::SerializationError, "backend returned another Agent Execution identity/metadata"
           end
           execution
         end

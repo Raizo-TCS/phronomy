@@ -5,6 +5,10 @@
 - Error boundary refined by: [043-storage-execution-constraint-notifications](043-storage-execution-constraint-notifications.md)
 - Refines: [032-storage-backend-composition](032-storage-backend-composition.md)
 
+The raw fixed-repository/error portions are amended by
+[ADR-058](058-neutral-storage-primitives.md). Domain ownership and applicable
+transaction/uncertainty decisions below remain in force.
+
 ## Context
 
 ADR-032 separated raw storage from domain persistence, but the common-looking

@@ -4,6 +4,9 @@
 
 Accepted for implementation in Refactor 34 (Storage S2a).
 
+
+The raw fixed-repository/error portions are amended by [ADR-058](058-neutral-storage-primitives.md). Domain ownership and applicable transaction/uncertainty decisions remain in force.
+
 ## Context
 
 The existing eight-repository SPI had three concrete behavioral differences.

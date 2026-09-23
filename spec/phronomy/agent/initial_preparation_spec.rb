@@ -139,7 +139,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
   it "releases a known failed durable admission without running input filters" do
     command = operation
-    allow(store.executions).to receive(:create_active).and_raise(Phronomy::Storage::ConflictError, "stale root")
+    allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:create_active).and_raise(Phronomy::Storage::ConflictError, "stale root")
     expect(agent).not_to receive(:run_input_filters!)
 
     result = worker.prepare(command)

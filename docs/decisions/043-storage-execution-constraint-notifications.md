@@ -1,5 +1,8 @@
 # ADR-043: Storage-Owned Execution Constraint Notifications
 
+The raw fixed-repository/error portions are amended by [ADR-058](058-neutral-storage-primitives.md). Domain ownership and applicable transaction/uncertainty decisions remain in force.
+
+
 **Status**: Accepted
 **Date**: 2026-09-21
 **Refines**: [033-domain-persistence-ownership](033-domain-persistence-ownership.md) and the Beta Backend error contract in [persistence-backends](../persistence-backends.md)

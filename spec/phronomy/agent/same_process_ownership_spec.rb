@@ -111,13 +111,13 @@ RSpec.describe "Agent same-process live ownership" do
     agent_class.create(agent_id: "agent-a", persistence: persistence)
     Phronomy.reset_runtime!
 
-    original_load = persistence.agents.method(:load)
+    original_load = persistence.backend.method(:read_record)
     entered = Queue.new
     release = Queue.new
     count_mutex = Mutex.new
     load_count = 0
 
-    persistence.agents.define_singleton_method(:load) do |agent_id|
+    persistence.backend.define_singleton_method(:read_record) do |context, resource, **arguments|
       first = count_mutex.synchronize do
         load_count += 1
         load_count == 1
@@ -126,7 +126,7 @@ RSpec.describe "Agent same-process live ownership" do
         entered << true
         release.pop
       end
-      original_load.call(agent_id)
+      original_load.call(context, resource, **arguments)
     end
 
     results = Queue.new
