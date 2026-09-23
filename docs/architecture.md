@@ -213,8 +213,14 @@ example, `Phronomy::WorkflowContext` and `Phronomy::WorkflowRunner` coexist with
 file lives beside its implementation. These moves do not introduce aliases or
 a new public API for requiring arbitrary internal paths.
 
-The application loader explicitly preserves Workflow recovery installation;
-the Agent entry explicitly preserves Agent lifecycle extension installation.
+WorkflowRunner directly owns terminal save submission and F1 snapshot readback.
+The former WorkflowRecovery prepend and shadowed save implementation are removed;
+the active path is independent of an installation hook. Private methods separate
+submission, save/reconciliation and result delivery. FSMSession still interprets
+the terminal persistence event; that ownership is a separate next step. See
+[ADR-054](decisions/054-workflow-terminal-save-single-owner.md) and the
+[remaining refactoring plan](architecture/remaining-refactoring-plan.md).
+The Agent entry explicitly preserves Agent lifecycle extension installation.
 Configuration accessors now live beside Configuration, rather than inside the
 loader. Configuration constructs fresh components through internally bound
 factories; composition selects their concrete types. Static source-reference

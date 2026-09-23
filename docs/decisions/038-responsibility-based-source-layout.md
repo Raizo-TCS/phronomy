@@ -9,6 +9,9 @@ Concrete-default ownership is subsequently amended by
 [040-configuration-default-composition](040-configuration-default-composition.md).
 Agent default selection and one-shot placement are subsequently refined by
 [044-agent-default-and-one-shot-composition](044-agent-default-and-one-shot-composition.md).
+The Workflow recovery prepend requirement is subsequently replaced by direct
+Runner ownership in
+[054-workflow-terminal-save-single-owner](054-workflow-terminal-save-single-owner.md).
 
 Amends the extraction scope of
 [037-common-definition-ownership](037-common-definition-ownership.md).

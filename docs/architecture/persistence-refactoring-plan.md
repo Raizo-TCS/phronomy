@@ -4,6 +4,11 @@ This plan tracks staged implementation. Accepted architecture for the current
 ownership change is [033-domain-persistence-ownership](../decisions/033-domain-persistence-ownership.md).
 Future stages below are planning work, not a new Backend SPI contract.
 
+The [remaining responsibility plan](remaining-refactoring-plan.md) orders the
+Workflow terminal ownership work before stages 2 and 3 and records the current
+atomic-operation inventory. Refactor 31 consolidates Workflow terminal saving;
+it does not implement the deferred Storage SPI changes.
+
 ## Target
 
 Domain persistence depends on its record definitions and common persistence

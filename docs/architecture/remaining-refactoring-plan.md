@@ -1,0 +1,83 @@
+# Remaining responsibility refactoring
+
+This is an implementation plan, not a new Storage SPI or Workflow lifecycle
+contract. The inventory baseline is core `e4ad9948798a4f165d052bd8ab5ac3574cf48e24`
+and examples `2f8b467f1268dd21de4c02b1c90c8bdd211d1feb` on `refactor/architecture`.
+
+## Completed boundaries
+
+ExecutionCoordinator's staged split, ToolInvocation restoration ownership and
+SharedState's MultiAgent ownership are complete. Domain codecs/repositories
+already belong to Agent, MultiAgent and Workflow (ADR-033). Raw storage conflicts
+already use Storage-owned exceptions (ADR-043). `FSMProtocol::FINISH` already
+owns the common terminal marker; that earlier constant dependency is not the
+remaining Workflow problem.
+
+## Execution order and completion gates
+
+| Step | Remaining concern | Scope and completion gate |
+|---|---|---|
+| W1: Refactor 31 | Two terminal-save implementations, selected by prepend | Consolidate the active F1-aware implementation in Runner and remove the override. Implemented in this candidate; application verification is still required. See [ADR-054](../decisions/054-workflow-terminal-save-single-owner.md). |
+| W2: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Design a Workflow-owned terminal controller with a small generic session boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
+| S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Inventory atomic operations and physical implementations below, choose the smallest neutral contracts and domain-owned backend extensions, and verify F0/F1/F2 boundaries before changing SPI. |
+| S2: Storage implementation and migration | Common/domain contracts and all backends must agree | Coordinate core, InMemory, SQLite and PostgreSQL changes in one reviewable migration. Preserve the transaction domain and record formats, prove rollback/constraints and document any intentional Beta SPI change. |
+| S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Decide names after the contract is established. Keep the public Persistence facade unless an explicit public migration is justified. Verify application and remaining dependency directions; do not rename merely to simplify a diagram. |
+
+W1 precedes W2 so the active terminal save is explicit before its session-facing
+ownership changes. W2 can be completed without redesigning Storage's raw SPI.
+Storage follows because its common contract affects all domain repositories and
+both SQL reference implementations. Verify the applied commit before producing
+the next dependent source package.
+
+## W2 design constraints
+
+Runner already owns snapshot capture, Offload submission and save reconciliation.
+The unresolved Engine code is in `FSMSession#handle`, `request_terminal!`,
+`handle_terminal_persistence_result` and related lifecycle transitions. The
+execution registry already owns Workflow admission; do not create a second
+admission owner or move its decisions back into Engine.
+
+Prefer composition through a Workflow-owned terminal policy, but validate its
+generic session protocol against existing Agent/Tool sessions before selecting
+an implementation. The session must retain generic event identity and delivery;
+Workflow must decide what its persistence event and uncertainty mean. No new
+public lifecycle/plugin API is required by this plan.
+
+Tests must cover ephemeral completion, delayed durable success, portable known
+failure, F1 post/pre/conflicting/unreadable states, late and duplicate events,
+callback exceptions, rejected delivery, shutdown and halted-stream notification.
+All live authority stays on EventLoop. A completed worker is not permission to
+settle a Task before the owning session accepts the result.
+
+## Storage operation inventory
+
+Removing Agent/Workflow constant references did not make the SPI domain-neutral.
+`Storage::Backend < Storage::Repositories` still constructs eight required slots;
+`assert_agent_watermark!` checks Agent revision and Journal position together.
+
+| Current area | Existing constraint to preserve | Ownership/design question |
+|---|---|---|
+| Contents | Canonical content identity and reads/writes join the same transaction | Keep the content contract without coupling it to an execution owner. |
+| Agents / Teams | Key identity and expected/next revision CAS | Separate physical compare-and-write from domain record validation. |
+| Journals | Expected head position, append order and record identity | Preserve atomic append; a generic key/value write alone is insufficient. |
+| Agent / Team executions | Atomic active-owner exclusion, immutable owner identity, revision checks and indexed queries | Decide a neutral constraint/index primitive or explicit domain-owned extension; never replace atomic admission with an unlocked preflight. |
+| Workflow / Handoff states | Create/update/delete CAS and stored identity | Preserve nil pre-revision creation and conditional deletion, with domain interpretation above the raw contract. |
+| Agent watermark | Revision and Journal head observed consistently with subsequent writes | Express a multi-record precondition or domain-owned transaction operation, not independent reads above the backend. |
+| Transaction view | All eight repositories, content and watermark share one view | Keep InMemory's one Monitor/snapshot and each SQL view's one checked-out connection; splitting classes must not split commits. |
+| Errors / capability declarations | Dedicated active constraint errors, ordinary conflicts and uncertainty remain distinct | Revisit domain terms in capabilities without adding stronger concurrency or commit-certainty promises. |
+
+Reference implementations live in `storage/backends/in_memory.rb` and examples
+`30_sqlite_persistence` / `31_postgresql_persistence`. Inspect SQL indexes, lock
+order, connection binding and rollback as well as Ruby signatures. Storage's
+existing Agent/Team implementations have different details; do not assume they
+are interchangeable just because their method names resemble each other.
+
+S1 must produce a mapping from every current operation to its owner and atomic
+primitive, plus API/RBS migration and backend conformance gates. Do not adopt a
+generic key/value API, callbacks inside transactions or a registry of arbitrary
+operations merely to erase domain names. Keep record type/version/payload,
+existing F0/F1/F4 limits and the X0 external-effect boundary explicit.
+
+See the existing [persistence staged plan](persistence-refactoring-plan.md),
+[ADR-033](../decisions/033-domain-persistence-ownership.md) and
+[ADR-043](../decisions/043-storage-execution-constraint-notifications.md).

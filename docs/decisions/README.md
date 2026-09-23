@@ -103,6 +103,7 @@ resolved explicitly.
 | [`051-execution-outcome-worker-ownership`](051-execution-outcome-worker-ownership.md) | Accepted | Yes | Ordinary and Handoff outcome workers own atomic persistence and operation-specific readback; EventLoop retains result authority and delivery. |
 | [`052-tool-invocation-restoration-ownership`](052-tool-invocation-restoration-ownership.md) | Accepted | Yes | ToolInvocation owns saved state application; Recovery retains snapshot decoding and identity matching. Existing restoration and replay rules are preserved. |
 | [`053-shared-state-coordination-ownership`](053-shared-state-coordination-ownership.md) | Accepted | Yes | Moves Experimental SharedState and its invocation-local store to MultiAgent without an old-name alias; preserves coordination behavior and generated definition identity. Resolves the deferred SharedState ownership in ADR-046. |
+| [`054-workflow-terminal-save-single-owner`](054-workflow-terminal-save-single-owner.md) | Accepted | Yes | Consolidates the active F1-aware terminal save in WorkflowRunner and removes its private prepend override. Amends ADR-038 loading; preserves the durable barrier and leaves FSMSession policy ownership as separate work. |
 
 ## Legacy duplicate `011`
 

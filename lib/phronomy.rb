@@ -75,7 +75,5 @@ require_relative "phronomy/agent/api/agent"
 require_relative "phronomy/runtime_composition/agent_defaults"
 require_relative "phronomy/agent/composition/run_once"
 
-# Retain the Workflow recovery prepend during ordinary application loading.
-# Agent lifecycle extensions remain installed when its namespace is loaded.
+# Load the common recovery vocabulary during ordinary application loading.
 require_relative "phronomy/recovery/recovery"
-require_relative "phronomy/workflow/execution/workflow_recovery"

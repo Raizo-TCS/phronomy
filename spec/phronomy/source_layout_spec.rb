@@ -185,7 +185,8 @@ RSpec.describe "Responsibility-based source layout" do
         originals = names.to_h { |name| [name, Phronomy.const_get(name)] }
         abort "Workflow ceased to be a class" unless Phronomy::Workflow.is_a?(Class)
         abort "Agent ceased to be a module" unless Phronomy::Agent.instance_of?(Module)
-        abort "Workflow recovery not installed during require" unless Phronomy::WorkflowRunner.ancestors.count(Phronomy::WorkflowRecovery) == 1
+        abort "Workflow terminal save has another owner" unless Phronomy::WorkflowRunner.instance_method(:begin_terminal_persistence_on_event_loop).owner.equal?(Phronomy::WorkflowRunner)
+        abort "Workflow recovery override remains" if Phronomy.const_defined?(:WorkflowRecovery, false)
         abort "Agent event extension missing" unless Phronomy::Agent::Base.ancestors.count(Phronomy::Agent::AsyncEventApi) == 1
         abort "common error replaced" unless Phronomy::Error.equal?(previous_error)
         abort "common values replaced" unless Phronomy::Values::Immutable.equal?(previous_values)
