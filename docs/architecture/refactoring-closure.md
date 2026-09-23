@@ -2,12 +2,13 @@
 
 ## Scope and acceptance state
 
-The applied baseline is Refactor 38: core
-`690b28239a30129484388b16728a52746ce4a5de` and examples
+The applied baseline is Refactor 39: core
+`4d57614a2b655ab18ffec0a1f28bb668ff916053` and examples
 `68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` on `refactor/architecture`.
 W1/W2, Storage S1/S2 and Refactor 36's S3 cleanup are applied and verified.
-Refactor 37's D02 and Refactor 38's R03/R11 changes are applied and verified.
-Refactor 39 implements R06 transition ownership; its application is not yet verified.
+Refactor 37's D02, Refactor 38's R03/R11 and Refactor 39's R06 changes are applied
+and verified. Refactor 40 implements R07 preparation readability; its application
+is not yet verified.
 
 The S3 audit and its bounded Storage cleanup are verified. The initial review
 still contains open proposals. The previous remaining-work summary omitted still
@@ -77,24 +78,24 @@ bridge to Engine; A06's execution/context separation is implemented but its
 shared recovery metadata concern is now resolved by Refactor 38 under R03. No claim is made that all
 Agent directory cycles disappeared.
 
-The following initial items are still open or partial. They were omitted from
-the recent W/S-only inventory; they are not regressions caused by Refactor 35.
+The following table tracks the previously omitted initial items, including
+completed follow-ups. The remaining items are not regressions caused by Refactor 35.
 
 | Initial item | Current assessment and follow-up |
 |---|---|
 | D02 | Applied and verified in Refactor 37: callers construct OperationBinding directly and retain ordering and cancellation contracts. |
 | R03 | Applied and verified in Refactor 38: ExecutionMetadata owns shared durable keys and snapshots; ToolInvocation owns stable identity. Earlier restoration behavior is preserved. |
-| R06 | Refactor 39 candidate: InvocationTransitions owns Tool events, ordered external transitions and state declarations for both builders and Invocation. Application verification remains. |
-| R07 | Unimplemented: ContextAssembler's prepare methods still mix preparation steps with detailed item/provenance construction. |
+| R06 | Applied and verified in Refactor 39: InvocationTransitions owns Tool events, ordered external transitions and state declarations for both builders and Invocation. |
+| R07 | Refactor 40 candidate: ContextAssembler describes preparation through private instruction, record-candidate, candidate-merge and current-input operations. Application verification remains. |
 | R08 / D08 | One overlapping item, not two: GeneratorVerifier still combines PipelineState, Workflow construction and result reception. |
 | R09 | Partial: composition moved, but Base's Tool binding remains. DSL inheritance differences require a behavior decision before modification. |
 | R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
 | R11 | Applied and verified in Refactor 38: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. |
 
 These entries identify real remaining proposals, not automatic authorization for
-public behavior changes. D02 and R03/R11 are applied and verified. Refactor 39
-implements R06's transition authority. After its application check, address
-R07/R08/R09's readability work; R10 can be coordinated with its owning changes.
+public behavior changes. D02, R03/R11 and R06 are applied and verified.
+Refactor 40 implements R07 preparation readability. After its application check,
+address R08/R09's work; R10 can be coordinated with its owning changes.
 Keep R09's DSL semantics separate.
 A complete initial-review closure requires implementation and verification or an
 explicit decision to defer each item. It cannot follow from this small package.
@@ -153,11 +154,11 @@ Refactor 38 is applied and independently verified at core 690b2823, tree
 67ea6df833254341043c3fb1e99729d66f9598f6. All 30 full files and the tree match.
 Core 2,970 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
-R03/R11 are closed. Five groups remain: R06, R07, R08/D08, R09 and R10.
-The applied diagram is applied38-01; keep it until Refactor 39 application checks.
+R03/R11 are closed. Five groups remained at that point; R06 is now applied below.
+The diagram was synchronized to applied38-01 then and is now applied39-01.
 
 
-## R06: Agent transition ownership (Refactor 39 candidate)
+## R06: Agent transition ownership (Refactor 39, applied)
 
 See [the transition ownership design](agent-transition-ownership.md).
 InvocationTransitions owns the six Tool event names, thirteen external event
@@ -173,9 +174,39 @@ Agent policy, and automatic transitions and entry actions keep their owners.
 No new generic DSL, compatibility alias, public API or persistence format is added.
 R10's entry-action names and R09's DSL inheritance semantics are separate work.
 
-The candidate preserves callback-failure, Handoff-failure, Handoff-request,
+The implementation preserves callback-failure, Handoff-failure, Handoff-request,
 Tool-request and output-fallback priority, nil-context fallback, guard exceptions,
 approval suspension and resume. Independent behavioral expectations pass on both
 baseline and candidate; full-suite results are in the distribution evidence.
-R06 is application-pending. After its application check, four groups remain:
-R07, R08/D08, R09 and R10. Proceed to R07's ContextAssembler readability work.
+Refactor 39 is applied and independently verified at core 4d57614a, tree
+654241da4b2b7f32d988602d28127bc1fa155641. All 10 full files and the tree match.
+Core 2,993 (61 pending), integration 367 (28 pending), common examples 42 and
+SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
+R06 is closed. Four groups remain: R07, R08/D08, R09 and R10.
+The published diagram is applied39-01; keep it until Refactor 40 application checks.
+
+
+## R07: Context preparation steps (Refactor 40 candidate)
+
+See [the preparation design and compatibility boundaries](context-preparation-steps.md).
+ContextAssembler retains its public preparation/finalization boundary and its
+existing collaborators. Seven private operations separate initial/base/Handoff
+instructions, retained instructions, record candidates, Hook/Handoff merging
+and the current-input item. No production class or file is added.
+
+The public prepare methods now describe the preparation steps; item IDs,
+provenance and metadata live in the corresponding item-building operation.
+Initial and follow-up paths share generation filtering and candidate merging,
+while preserving their distinct instruction sources, exclusion rules, call
+sequence and ask/complete delivery. Evaluation and content-store effects retain
+their order. Application Policy remains outside the caller's commit transaction;
+finalize remains validation and persistence, without a Policy call.
+
+Ten additional contract examples pass against both Refactor 39 and the candidate.
+Four paired initial/follow-up scenarios compare complete Policy input, Prepared,
+Manifest references/bytes and content operations across separate processes.
+Full core/integration/examples/API/type/package gates are in the distribution.
+
+R07 is application-pending. After that check, three groups remain: R08/D08, R09
+and R10. Next is R08/D08's GeneratorVerifier workflow and result-reception work.
+R09's DSL inheritance semantics still require a separate behavior decision.

@@ -79,8 +79,11 @@ real SQLite, API/SPI snapshots, RBS, style, annotations and isolated gem checks.
 No SQL, stored format, entry action implementation, Tool restoration, cancellation
 or Coordinator sequencing is changed. The new contract tests isolate entry actions
 and do not claim live Provider coverage. Live PostgreSQL/LLM and remote CI are
-not executed for this candidate. The published SVG stays on applied38-01 until
-user application is independently verified.
+not executed for this candidate. Refactor 39 was independently verified after application at core 4d57614a,
+tree 654241da4b2b7f32d988602d28127bc1fa155641. All 10 files and the full tree
+matched, and core/integration/examples/SQLite/API/type/gem checks passed.
+The published SVG is applied39-01.
 
-R06 remains application-pending. R07, R08/D08, R09 and R10 remain after that gate;
-in particular, R09's inheritance behavior and R10's action names are not altered.
+R06 is applied and complete. R07 now has a Refactor 40 candidate; R08/D08, R09
+and R10 remain afterward. R09's inheritance behavior and R10's action names
+are not altered by the transition-ownership work.

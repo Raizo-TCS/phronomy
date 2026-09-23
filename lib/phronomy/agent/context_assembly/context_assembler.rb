@@ -59,80 +59,32 @@ module Phronomy
         excluded = [execution.metadata["current_input_record_id"]].compact
         handoff_context = config[:phronomy_handoff_context]
 
-        instructions = []
-        unless system_text.to_s.empty?
-          instructions << ContextPolicyInput::InstructionItem.new(
-            id: "instruction:agent:#{execution.execution_id}:1",
-            kind: :instruction,
-            role: :system,
-            content: system_text.to_s,
-            content_format: :text,
-            estimated_tokens: estimate_value(system_text.to_s),
-            required: true,
-            provenance: ContextPolicyInput::Provenance.new(origin: :agent_configuration),
-            metadata: {}
-          )
-        end
-        if handoff_context
-          instructions << ContextPolicyInput::InstructionItem.new(
-            id: "instruction:handoff:#{execution.execution_id}:1",
-            kind: :handoff_responsibility,
-            role: :user,
-            content: handoff_context.responsibility.to_s,
-            content_format: :text,
-            estimated_tokens: estimate_value(handoff_context.responsibility.to_s),
-            required: true,
-            provenance: ContextPolicyInput::Provenance.new(origin: :handoff_context),
-            metadata: {SEGMENT_ORIGIN_METADATA_KEY => HANDOFF_CONTEXT_ORIGIN}
-          )
-        end
+        instructions = initial_instruction_items(
+          system_text,
+          handoff_context,
+          execution: execution
+        )
 
-        generation = agent_root.transcript_generation
-        eligible_working = Array(execution.working_records).select do |record|
-          record.context_candidate && record.context_generation == generation
-        end
-        candidates = @candidate_resolver.resolve(
-          prior_records: projection.context_records,
-          working_records: eligible_working,
+        candidates = resolve_record_candidates(
+          projection,
+          agent_root: agent_root,
+          execution: execution,
           excluded_record_ids: excluded
         )
-        candidates = merge_hook_candidates(
+        candidates = merge_context_candidates(
           candidates,
           hook_candidates,
+          handoff_context,
           agent_root: agent_root,
           execution: execution,
           call_sequence: 1
         )
-        candidates = merge_handoff_candidates(
-          candidates,
-          handoff_context,
+        current_input = current_input_item(
+          current_input_content,
+          input_ref: input_ref,
+          candidates: candidates,
+          agent_root: agent_root,
           execution: execution
-        )
-        next_sequence = Array(candidates).filter_map(&:sequence).max.to_i + 1
-        current_input = ContextPolicyInput::ConversationItem.new(
-          id: "current-input:#{execution.execution_id}",
-          kind: :current_input,
-          role: :user,
-          content: current_input_content,
-          content_format: :text,
-          sequence: next_sequence,
-          estimated_tokens: estimate_value(current_input_content),
-          required: true,
-          provenance: ContextPolicyInput::Provenance.new(
-            origin: :working,
-            content_ref: input_ref,
-            record_id: execution.metadata["current_input_record_id"],
-            agent_id: agent_root.agent_id,
-            execution_id: execution.execution_id
-          ),
-          tool_call_id: nil,
-          tool_call_ids: [],
-          delivery: :ask_argument,
-          metadata: {
-            "source_agent_id" => agent_root.agent_id,
-            "source_execution_id" => execution.execution_id,
-            "handoff_policy_category" => "current_request"
-          }
         )
 
         prepare(
@@ -168,32 +120,22 @@ module Phronomy
           additional_tools: handoff_tool_classes(config)
         )
 
-        instructions = base_manifest.segments.filter_map do |segment|
-          next unless retained_base_instruction?(segment)
-          instruction_item_from_manifest(segment)
-        end
+        instructions = retained_instruction_items(base_manifest)
 
-        generation = agent_root.transcript_generation
-        eligible_working = Array(execution.working_records).select do |record|
-          record.context_candidate && record.context_generation == generation
-        end
-        candidates = @candidate_resolver.resolve(
-          prior_records: projection.context_records,
-          working_records: eligible_working,
+        candidates = resolve_record_candidates(
+          projection,
+          agent_root: agent_root,
+          execution: execution,
           excluded_record_ids: []
         )
         call_sequence = execution.llm_calls.length + 1
-        candidates = merge_hook_candidates(
+        candidates = merge_context_candidates(
           candidates,
           hook_candidates,
+          handoff_context,
           agent_root: agent_root,
           execution: execution,
           call_sequence: call_sequence
-        )
-        candidates = merge_handoff_candidates(
-          candidates,
-          handoff_context,
-          execution: execution
         )
 
         prepare(
@@ -273,6 +215,111 @@ module Phronomy
       end
 
       private
+
+      def initial_instruction_items(system_text, handoff_context, execution:)
+        instructions = []
+        unless system_text.to_s.empty?
+          instructions << agent_instruction_item(system_text, execution: execution)
+        end
+        if handoff_context
+          instructions << handoff_instruction_item(handoff_context, execution: execution)
+        end
+        instructions
+      end
+
+      def agent_instruction_item(system_text, execution:)
+        ContextPolicyInput::InstructionItem.new(
+          id: "instruction:agent:#{execution.execution_id}:1",
+          kind: :instruction,
+          role: :system,
+          content: system_text.to_s,
+          content_format: :text,
+          estimated_tokens: estimate_value(system_text.to_s),
+          required: true,
+          provenance: ContextPolicyInput::Provenance.new(origin: :agent_configuration),
+          metadata: {}
+        )
+      end
+
+      def handoff_instruction_item(handoff_context, execution:)
+        ContextPolicyInput::InstructionItem.new(
+          id: "instruction:handoff:#{execution.execution_id}:1",
+          kind: :handoff_responsibility,
+          role: :user,
+          content: handoff_context.responsibility.to_s,
+          content_format: :text,
+          estimated_tokens: estimate_value(handoff_context.responsibility.to_s),
+          required: true,
+          provenance: ContextPolicyInput::Provenance.new(origin: :handoff_context),
+          metadata: {SEGMENT_ORIGIN_METADATA_KEY => HANDOFF_CONTEXT_ORIGIN}
+        )
+      end
+
+      def retained_instruction_items(base_manifest)
+        base_manifest.segments.filter_map do |segment|
+          next unless retained_base_instruction?(segment)
+          instruction_item_from_manifest(segment)
+        end
+      end
+
+      def resolve_record_candidates(projection, agent_root:, execution:, excluded_record_ids:)
+        generation = agent_root.transcript_generation
+        eligible_working = Array(execution.working_records).select do |record|
+          record.context_candidate && record.context_generation == generation
+        end
+        @candidate_resolver.resolve(
+          prior_records: projection.context_records,
+          working_records: eligible_working,
+          excluded_record_ids: excluded_record_ids
+        )
+      end
+
+      def merge_context_candidates(
+        candidates, hook_candidates, handoff_context,
+        agent_root:, execution:, call_sequence:
+      )
+        candidates = merge_hook_candidates(
+          candidates,
+          hook_candidates,
+          agent_root: agent_root,
+          execution: execution,
+          call_sequence: call_sequence
+        )
+        merge_handoff_candidates(
+          candidates,
+          handoff_context,
+          execution: execution
+        )
+      end
+
+      def current_input_item(content, input_ref:, candidates:, agent_root:, execution:)
+        next_sequence = Array(candidates).filter_map(&:sequence).max.to_i + 1
+        ContextPolicyInput::ConversationItem.new(
+          id: "current-input:#{execution.execution_id}",
+          kind: :current_input,
+          role: :user,
+          content: content,
+          content_format: :text,
+          sequence: next_sequence,
+          estimated_tokens: estimate_value(content),
+          required: true,
+          provenance: ContextPolicyInput::Provenance.new(
+            origin: :working,
+            content_ref: input_ref,
+            record_id: execution.metadata["current_input_record_id"],
+            agent_id: agent_root.agent_id,
+            execution_id: execution.execution_id
+          ),
+          tool_call_id: nil,
+          tool_call_ids: [],
+          delivery: :ask_argument,
+          metadata: {
+            "source_agent_id" => agent_root.agent_id,
+            "source_execution_id" => execution.execution_id,
+            "handoff_policy_category" => "current_request"
+          }
+        )
+      end
 
       def prepare(
         agent_root:,
