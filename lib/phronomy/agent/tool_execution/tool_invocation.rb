@@ -361,7 +361,7 @@ module Phronomy
       end
 
       def tool_schema
-        @tool&.respond_to?(:params_schema) ? @tool.params_schema : {}
+        @tool&.respond_to?(:parameters_schema) ? @tool.parameters_schema : {}
       end
 
       def display_arguments

@@ -32,7 +32,7 @@ class ACS16TerminalBarrierAgent < Phronomy::Agent::Base
   instructions "Return a short answer."
 end
 
-ACS16_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(4, 2, 0, 0)
+ACS16_TOKENS = Struct.new(:input, :output, :cache_read, :cache_write).new(4, 2, 0, 0)
 
 def build_acs16_terminal_chat
   response = double(
@@ -45,12 +45,12 @@ def build_acs16_terminal_chat
   )
   chat = double("ACS16TerminalChat")
   allow(chat).to receive(:with_instructions).and_return(chat)
-  allow(chat).to receive(:with_tool).and_return(chat)
+  allow(chat).to receive(:with_tools).and_return(chat)
   allow(chat).to receive(:with_temperature).and_return(chat)
   allow(chat).to receive(:messages).and_return([response])
   allow(chat).to receive(:cancellation_token=)
   allow(chat).to receive(:on_tool_call)
-  allow(chat).to receive(:before_tool_call)
+  allow(chat).to receive(:after_message)
   allow(chat).to receive(:on_tool_result)
   allow(chat).to receive(:ask).and_return(response)
   allow(chat).to receive(:complete).and_return(response)
@@ -89,16 +89,16 @@ def build_acs16_cancellation_chat(tool_instance)
   )
   chat = double("ACS16Chat")
   allow(chat).to receive(:with_instructions).and_return(chat)
-  allow(chat).to receive(:with_tool).and_return(chat)
+  allow(chat).to receive(:with_tools).and_return(chat)
   allow(chat).to receive(:with_temperature).and_return(chat)
   allow(chat).to receive(:messages).and_return([assistant])
   allow(chat).to receive(:tools).and_return({acs16_blocking_tool: tool_instance})
   allow(chat).to receive(:add_message)
   allow(chat).to receive(:cancellation_token=)
   allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
-  allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+  allow(chat).to receive(:after_message) { |&block| stored_hook = block }
   allow(chat).to receive(:on_tool_result)
-  allow(chat).to receive(:ask) { stored_hook&.call(tool_call) }
+  allow(chat).to receive(:ask) { stored_hook&.call(assistant) }
   allow(chat).to receive(:complete).and_return(final)
   chat
 end
@@ -374,16 +374,16 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       stored_hook = nil
       chat = double("Chat")
       allow(chat).to receive(:with_instructions).and_return(chat)
-      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_temperature).and_return(chat)
       allow(chat).to receive(:messages).and_return([assistant])
       allow(chat).to receive(:tools).and_return({acs16_hitl_tool: tool_instance})
       allow(chat).to receive(:add_message)
       allow(chat).to receive(:cancellation_token=)
       allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
-      allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:after_message) { |&block| stored_hook = block }
       allow(chat).to receive(:on_tool_result)
-      allow(chat).to receive(:ask) { stored_hook&.call(tc) }
+      allow(chat).to receive(:ask) { stored_hook&.call(assistant) }
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
       agent = hitl_agent_cls.new(
@@ -442,16 +442,16 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       stored_hook = nil
       chat = double("CoopChat")
       allow(chat).to receive(:with_instructions).and_return(chat)
-      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_temperature).and_return(chat)
       allow(chat).to receive(:messages).and_return([assistant])
       allow(chat).to receive(:tools).and_return({acs16_cooperative_tool: coop_tool})
       allow(chat).to receive(:add_message)
       allow(chat).to receive(:cancellation_token=)
       allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
-      allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:after_message) { |&block| stored_hook = block }
       allow(chat).to receive(:on_tool_result)
-      allow(chat).to receive(:ask) { stored_hook&.call(tc) }
+      allow(chat).to receive(:ask) { stored_hook&.call(assistant) }
       allow(chat).to receive(:complete).and_return(final)
       allow(RubyLLM).to receive(:chat).and_return(chat)
 
@@ -510,16 +510,16 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       stored_hook = nil
       chat = double("CustomHandleChat")
       allow(chat).to receive(:with_instructions).and_return(chat)
-      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_temperature).and_return(chat)
       allow(chat).to receive(:messages).and_return([assistant])
       allow(chat).to receive(:tools).and_return({acs16_custom_handle_tool: custom_tool})
       allow(chat).to receive(:add_message)
       allow(chat).to receive(:cancellation_token=)
       allow(chat).to receive(:on_tool_call) { |&block| stored_hook = block }
-      allow(chat).to receive(:before_tool_call) { |&block| stored_hook = block }
+      allow(chat).to receive(:after_message) { |&block| stored_hook = block }
       allow(chat).to receive(:on_tool_result)
-      allow(chat).to receive(:ask) { stored_hook&.call(tc) }
+      allow(chat).to receive(:ask) { stored_hook&.call(assistant) }
       allow(chat).to receive(:complete).and_return(final)
       allow(RubyLLM).to receive(:chat).and_return(chat)
 

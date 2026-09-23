@@ -26,12 +26,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(count).to eq(4)
     end
 
-    it "TokenBudget effective_input_limit equals context_window minus max_output_tokens" do
+    it "TokenBudget effective_input_limit equals the input limit" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 200,
-        max_output_tokens: 50
+        max_input_tokens: 200
       )
-      expect(budget.effective_input_limit).to eq(150)
+      expect(budget.effective_input_limit).to eq(200)
     end
   end
 
@@ -42,35 +41,32 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # TC-005: explicit small budget; effective_input_limit and available
   # ---------------------------------------------------------------------------
   describe "TC-005: explicit budget; effective_input_limit and available" do
-    it "effective_input_limit returns context_window minus max_output_tokens" do
+    it "effective_input_limit returns the input limit" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 100,
-        max_output_tokens: 50
+        max_input_tokens: 100
       )
-      expect(budget.effective_input_limit).to eq(50)
+      expect(budget.effective_input_limit).to eq(100)
     end
 
     it "available(used:) returns remaining capacity after subtracting used tokens" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 100,
-        max_output_tokens: 50
+        max_input_tokens: 100
       )
-      expect(budget.available(used: 30)).to eq(20)
+      expect(budget.available(used: 30)).to eq(70)
     end
 
     it "available clamps to zero when used exceeds effective_input_limit" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 100,
-        max_output_tokens: 50
+        max_input_tokens: 100
       )
-      expect(budget.available(used: 60)).to eq(0)
+      expect(budget.available(used: 160)).to eq(0)
     end
   end
 
   # ---------------------------------------------------------------------------
-  # TC-006: explicit budget; large max_output; word-count tokenizer
+  # TC-006: explicit budget; input-only budgeting; word-count tokenizer
   # ---------------------------------------------------------------------------
-  describe "TC-006: explicit budget; large max_output; word-count tokenizer" do
+  describe "TC-006: explicit budget; input-only budgeting; word-count tokenizer" do
     around do |example|
       original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
       Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
@@ -79,12 +75,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
-    it "effective_input_limit is small when max_output_tokens is large" do
+    it "uses the input limit without reserving output" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 500,
-        max_output_tokens: 400
+        max_input_tokens: 500
       )
-      expect(budget.effective_input_limit).to eq(100)
+      expect(budget.effective_input_limit).to eq(500)
     end
 
     it "word-count tokenizer estimates 8 tokens for an 8-word message" do
@@ -105,20 +100,18 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
-    it "effective_input_limit equals context_window when max_output_tokens is zero" do
+    it "effective_input_limit equals the input limit" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 10_000,
-        max_output_tokens: 0
+        max_input_tokens: 10_000
       )
       expect(budget.effective_input_limit).to eq(10_000)
     end
 
-    it "effective_input_limit clamps to zero when max_output_tokens exceeds context_window" do
+    it "does not reduce the input limit for output" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 100,
-        max_output_tokens: 200
+        max_input_tokens: 100
       )
-      expect(budget.effective_input_limit).to eq(0)
+      expect(budget.effective_input_limit).to eq(100)
     end
   end
 
@@ -129,9 +122,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # TC-018 infeasible (tiktoken)
 
   # ---------------------------------------------------------------------------
-  # TC-017: word-count tokenizer; large context_window; zero max_output_tokens
+  # TC-017: word-count tokenizer; large context_window; input-only budgeting
   # ---------------------------------------------------------------------------
-  describe "TC-017: word-count tokenizer; large context_window; zero max_output_tokens" do
+  describe "TC-017: word-count tokenizer; large context_window; input-only budgeting" do
     around do |example|
       original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
       Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
@@ -144,10 +137,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(Phronomy::LlmContextWindow::TokenEstimator.estimate("one two three")).to eq(3)
     end
 
-    it "effective_input_limit equals context_window when max_output_tokens is zero" do
+    it "effective_input_limit equals the input limit" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: 50_000,
-        max_output_tokens: 0
+        max_input_tokens: 50_000
       )
       expect(budget.effective_input_limit).to eq(50_000)
     end

@@ -160,15 +160,15 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
 
   describe "run_once" do
     def fake_chat
-      tokens = double("Tokens", input: 1, output: 1, cached: 0, cache_creation: 0,
+      tokens = double("Tokens", input: 1, output: 1, cache_read: 0, cache_write: 0,
         to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0})
       response = double("Response", role: :assistant, content: "answer", tool_calls: nil, tokens: tokens, tool_call?: false)
       chat = double("Chat", messages: [], last_message: response)
       allow(chat).to receive(:with_instructions).and_return(chat)
-      allow(chat).to receive(:with_tool).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:cancellation_token=)
       allow(chat).to receive(:on_tool_call)
-      allow(chat).to receive(:before_tool_call)
+      allow(chat).to receive(:after_message)
       allow(chat).to receive(:on_tool_result)
       allow(chat).to receive(:ask).and_return(response)
       chat

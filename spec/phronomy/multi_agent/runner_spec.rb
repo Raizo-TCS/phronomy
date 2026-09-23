@@ -17,7 +17,6 @@ RSpec.describe Phronomy::MultiAgent::HandoffRunner do
       c.openai_api_key = "test"
       c.openai_api_base = "https://example.test/v1"
     }
-    Phronomy.configure { |c| c.default_output_reserve = 4096 }
   end
   after { LLMStub.deactivate }
 

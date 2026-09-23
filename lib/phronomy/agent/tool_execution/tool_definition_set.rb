@@ -14,10 +14,10 @@ module Phronomy
             "name" => tool.name.to_s,
             "description" => tool.description.to_s,
             "parameters_schema" => normalize(
-              tool.respond_to?(:parameters_schema) ? tool.parameters_schema : {}
+              tool.parameters_schema
             ),
             "provider_options" => normalize(
-              tool.respond_to?(:provider_options) ? tool.provider_options : {}
+              tool.provider_options
             )
           }
         end.freeze
@@ -69,6 +69,11 @@ module Phronomy
           current_definition, runtime_tool = current_by_name.fetch(name) do
             raise Phronomy::ConfigurationError,
               "ContextPolicy selected Tool not present in current Agent configuration: #{name}"
+          end
+          if definition["parameters_schema"] == {} && current_definition["parameters_schema"] != {}
+            raise Phronomy::ConfigurationError,
+              "Saved Tool definition lacks a verifiable parameters_schema: #{name}; " \
+              "finish this in-flight execution on its original version before upgrading"
           end
           unless Phronomy::CanonicalJSON.dump(current_definition) ==
               Phronomy::CanonicalJSON.dump(definition)

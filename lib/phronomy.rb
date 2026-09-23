@@ -3,7 +3,6 @@
 require "zeitwerk"
 require "ruby_llm"
 require_relative "phronomy/version"
-require_relative "phronomy/llm_adapter/ruby_llm_patches"
 
 loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
@@ -51,7 +50,6 @@ end
 
 # These files wire composition, reopen namespaces, or patch a dependency.
 loader.ignore(
-  "#{__dir__}/phronomy/llm_adapter/ruby_llm_patches.rb",
   "#{__dir__}/phronomy/configuration/global_configuration.rb",
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",

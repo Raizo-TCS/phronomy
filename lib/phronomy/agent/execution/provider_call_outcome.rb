@@ -20,7 +20,7 @@ module Phronomy
           {}
         end
         metadata = {}
-        metadata["model_id"] = message.model_id.to_s if message.respond_to?(:model_id) && message.model_id
+        metadata["model_id"] = message.model.to_s if message.respond_to?(:model) && message.model
 
         new(
           role: message.respond_to?(:role) ? message.role : :assistant,

@@ -54,7 +54,7 @@ RSpec.describe "Agent configuration inheritance contract" do
     expect { child.context_policy(nil) }.to raise_error(ArgumentError)
   end
 
-  {temperature: 0.7, cache_instructions: true, max_output_tokens: 321, context_window: 4096}.each do |setting, value|
+  {temperature: 0.7, cache_instructions: true, max_output_tokens: 321}.each do |setting, value|
     it "does not inherit #{setting}" do
       parent.public_send(setting, value)
       expect(child.public_send(setting)).to be_nil
@@ -78,9 +78,7 @@ RSpec.describe "Agent configuration inheritance contract" do
     child.cache_instructions(false)
     expect(child.cache_instructions(nil)).to be(false)
     child.max_output_tokens("12")
-    child.context_window("34")
     expect(child.max_output_tokens(nil)).to eq(12)
-    expect(child.context_window(nil)).to eq(34)
   end
 
   it "inherits the tools array by reference until an own declaration replaces it" do

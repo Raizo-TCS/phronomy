@@ -35,20 +35,15 @@ RSpec.configure do |config|
   # still intercepts even when allow_net_connect! is active.
   config.before(:each) do
     WebMock.allow_net_connect! if defined?(WebMock)
-    # Ensure the output reserve is always set; some tests call reset_configuration!.
-    Phronomy.configure { |c| c.default_output_reserve ||= 4096 }
   end
 
   config.before(:suite) do
     RubyLLM.configure do |c|
+      c.openai_protocol = :chat_completions
       c.openai_api_base = LM_STUDIO_API_BASE
       c.openai_api_key = LM_STUDIO_API_KEY
       c.request_timeout = 60
     end
     Phronomy.reset_configuration!
-    # Many test agents use openai/gpt-oss-20b whose registry max_output_tokens
-    # equals its context_window, making effective_input_limit = 0 without an
-    # explicit reserve. Set a framework default so budget selection works.
-    Phronomy.configure { |c| c.default_output_reserve = 4096 }
   end
 end

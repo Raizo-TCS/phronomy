@@ -238,14 +238,14 @@ RSpec.describe "Security specs (Issue #214)" do
       response = double("response",
         content: raw_llm_output,
         tool_call?: false,
-        tokens: double(input: 5, output: 20, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 20, "cached" => 0, "cache_creation" => 0}))
+        tokens: double(input: 5, output: 20, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 20, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
-      allow(chat_double).to receive(:with_tool).and_return(chat_double)
+      allow(chat_double).to receive(:with_tools).and_return(chat_double)
       allow(chat_double).to receive(:with_instructions).and_return(chat_double)
       allow(chat_double).to receive(:with_temperature).and_return(chat_double)
       allow(chat_double).to receive(:cancellation_token=)
       allow(chat_double).to receive(:on_tool_call)
-      allow(chat_double).to receive(:before_tool_call)
+      allow(chat_double).to receive(:after_message)
       allow(chat_double).to receive(:on_tool_result)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])

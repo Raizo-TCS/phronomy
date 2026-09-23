@@ -8,7 +8,7 @@ RSpec.describe "Agent logical-state ownership" do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "local-state-owner-test", version: 1
       model "local-model"
-      context_window 4096
+
       max_output_tokens 512
       instructions "Test instruction"
     end

@@ -9,19 +9,14 @@ module Phronomy
       def self.build(config)
         chat = RubyLLM.chat(**chat_options(config))
         chat.with_temperature(config["temperature"]) if config["temperature"]
-        if config["max_output_tokens"] && chat.respond_to?(:with_max_output_tokens)
+        if config["max_output_tokens"]
           chat.with_max_output_tokens(config["max_output_tokens"])
         end
         chat
       end
 
       def self.apply_instructions(chat, text, cache:, provider:)
-        if cache && provider.to_s == "anthropic"
-          content = RubyLLM::Providers::Anthropic::Content.new(text, cache: true)
-          chat.with_instructions(content)
-        else
-          chat.with_instructions(text)
-        end
+        chat.with_instructions(text, cache_until_here: cache)
       end
 
       def self.chat_options(config)

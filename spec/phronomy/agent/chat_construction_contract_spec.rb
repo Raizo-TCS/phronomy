@@ -41,11 +41,11 @@ RSpec.describe "Agent Chat construction and projection contract" do
     end
   end
 
-  it "tolerates a chat without a max-output setter" do
+  it "requires the RubyLLM 2 max-output API" do
     unsupported = Object.new
     expect(RubyLLM).to receive(:chat).with(model: "saved").and_return(unsupported)
     expect(unsupported).not_to respond_to(:with_max_output_tokens)
-    expect(agent.send(:build_chat, model_config: {"model" => "saved", "max_output_tokens" => 10})).to equal(unsupported)
+    expect { agent.send(:build_chat, model_config: {"model" => "saved", "max_output_tokens" => 10}) }.to raise_error(NoMethodError, /with_max_output_tokens/)
   end
 
   it "propagates a construction failure without trying configuration setters" do
@@ -64,18 +64,15 @@ RSpec.describe "Agent Chat construction and projection contract" do
   end
 
   it "preserves Anthropic instruction caching and the chat setter return value" do
-    content = Object.new
     result = Object.new
-    expect(RubyLLM::Providers::Anthropic::Content).to receive(:new).with("system", cache: true).and_return(content)
-    expect(chat).to receive(:with_instructions).with(content).and_return(result)
+    expect(chat).to receive(:with_instructions).with("system", cache_until_here: true).and_return(result)
     expect(agent.send(:apply_instructions, chat, "system", cache: true, provider: :anthropic)).to equal(result)
   end
 
   [[false, "anthropic"], [true, "openai"], [true, nil]].each do |cache, provider|
     it "passes ordinary instructions unchanged with cache=#{cache} provider=#{provider.inspect}" do
       text = Object.new
-      expect(RubyLLM::Providers::Anthropic::Content).not_to receive(:new)
-      expect(chat).to receive(:with_instructions).with(text).and_return(chat)
+      expect(chat).to receive(:with_instructions).with(text, cache_until_here: cache).and_return(chat)
       expect(agent.send(:apply_instructions, chat, text, cache: cache, provider: provider)).to equal(chat)
     end
   end
@@ -93,7 +90,7 @@ RSpec.describe "Agent Chat construction and projection contract" do
     expect(agent).to receive(:apply_instructions).with(chat, "saved system", cache: true, provider: "anthropic").ordered
     tools.each_with_index do |tool, index|
       expect(agent).to receive(:prepare_tool_class).with(tool, invocation: invocation).ordered.and_return(prepared[index])
-      expect(chat).to receive(:with_tool).with(prepared[index]).ordered
+      expect(chat).to receive(:with_tools).with(prepared[index]).ordered
     end
     expect(chat).to receive(:messages).twice.ordered.and_return(destination)
     expect(agent.send(:_apply_runtime_projection_to_chat, chat, projection, invocation: invocation)).to equal(chat)
@@ -114,7 +111,7 @@ RSpec.describe "Agent Chat construction and projection contract" do
     projection = Struct.new(:system, :tool_classes, :messages).new(nil, tools, [Object.new])
     expect(agent).to receive(:prepare_tool_class).with(tools[0], invocation: nil).and_raise(error)
     expect(agent).not_to receive(:prepare_tool_class).with(tools[1], invocation: nil)
-    expect(chat).not_to receive(:with_tool)
+    expect(chat).not_to receive(:with_tools)
     expect(chat).not_to receive(:messages)
     expect { agent.send(:_apply_runtime_projection_to_chat, chat, projection) }
       .to raise_error { |actual| expect(actual).to equal(error) }

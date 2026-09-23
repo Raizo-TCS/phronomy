@@ -386,7 +386,7 @@ module IntegrationFactors
   end
 
   def self.fake_llm_response(content: "ok")
-    tokens_stub = Struct.new(:input, :output, :cached, :cache_creation).new(1, 1, 0, 0)
+    tokens_stub = Struct.new(:input, :output, :cache_read, :cache_write).new(1, 1, 0, 0)
     Struct.new(:content, :tokens, :messages).new(content, tokens_stub, [])
   end
 
@@ -652,7 +652,7 @@ module IntegrationFactors
       agent_definition id: "test-agent-27", version: 1
       model LM_MODEL_32
       provider :openai
-      context_window 32_768
+
       instructions "You are a worker agent."
 
       if failing

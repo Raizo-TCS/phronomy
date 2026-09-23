@@ -123,15 +123,9 @@ module Phronomy
           if val.nil?
             @max_output_tokens
           else
-            @max_output_tokens = val.to_i
-          end
-        end
-
-        def context_window(val = nil)
-          if val.nil?
-            @context_window
-          else
-            @context_window = val.to_i
+            value = Integer(val)
+            raise ArgumentError, "max_output_tokens must be positive" unless value.positive?
+            @max_output_tokens = value
           end
         end
 
@@ -836,7 +830,7 @@ module Phronomy
           )
         end
         projection.tool_classes.each do |tool_class|
-          chat.with_tool(prepare_tool_class(tool_class, invocation: invocation))
+          chat.with_tools(prepare_tool_class(tool_class, invocation: invocation))
         end
         projection.messages.each { |message| chat.messages << message }
         chat

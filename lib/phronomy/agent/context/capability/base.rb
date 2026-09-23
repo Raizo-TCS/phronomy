@@ -13,7 +13,7 @@ module Phronomy
           class << self
             # @api public
             def tool_name(value = nil)
-              return @tool_name if value.nil?
+              return @tool_name || super() if value.nil?
 
               @tool_name = value.to_s
             end
@@ -34,41 +34,62 @@ module Phronomy
             end
             alias_method :desc, :description
 
-            # RubyLLM stores declared parameters in a class-instance variable.
-            # Copy the parent's registry on first access so child classes inherit
-            # existing parameters while remaining free to add their own.
+            # Phronomy declarations inherit through anonymous Tool decorators.
+            # RubyLLM owns schema construction and provider request rendering.
             # @api public
-            def parameters
-              return @parameters if instance_variable_defined?(:@parameters)
+            def declared_parameters
+              return @declared_parameters if instance_variable_defined?(:@declared_parameters)
 
-              parent = superclass.respond_to?(:parameters) ? superclass.parameters : {}
-              @parameters = parent.dup
+              @declared_parameters = superclass.declared_parameters.dup
             end
 
-            # RubyLLM stores an explicit .params schema definition in a
-            # class-instance variable. Readers must fall back to the parent.
+            # Keep Phronomy's parameter reader and support RubyLLM's schema DSL.
+            # @api public
+            def parameters(schema = :__phronomy_read__, &block)
+              return declared_parameters if schema == :__phronomy_read__ && !block
+
+              super((schema == :__phronomy_read__) ? nil : schema, &block)
+            end
+
+            # @api public
+            def parameters_schema_definition
+              return @parameters_schema_definition if instance_variable_defined?(:@parameters_schema_definition)
+
+              superclass.parameters_schema_definition
+            end
+
             # @api public
             def params_schema_definition
-              return @params_schema_definition if instance_variable_defined?(:@params_schema_definition)
-              return superclass.params_schema_definition if superclass.respond_to?(:params_schema_definition)
-
-              nil
+              parameters_schema_definition
             end
 
-            # RubyLLM provider params are also class-instance state. Copy them on
-            # first access to preserve inheritance without sharing the top-level
-            # mutable Hash between parent and child.
+            # @api public
+            def params(schema = nil, &block)
+              parameters(schema, &block)
+            end
+
+            # @api public
+            def provider_options(options = :__phronomy_read__)
+              return super unless options == :__phronomy_read__
+              return @provider_options if instance_variable_defined?(:@provider_options)
+
+              @provider_options = duplicate_configuration(superclass.provider_options)
+            end
+
             # @api public
             def provider_params
-              return @provider_params if instance_variable_defined?(:@provider_params)
-
-              parent = superclass.respond_to?(:provider_params) ? superclass.provider_params : {}
-              @provider_params = duplicate_configuration(parent)
+              provider_options
             end
 
             # @api public
-            def param(name, enum: nil, properties: nil, **options)
-              super(name, **options)
+            def with_params(**options)
+              provider_options(options)
+            end
+
+            # @api public
+            def param(name, enum: nil, properties: nil, desc: nil, **options)
+              options[:description] = desc if desc
+              parameter(name, **options)
               param_enums[name] = duplicate_configuration(enum) if enum
               param_schemas[name] = normalize_nested_schema(properties) if properties
             end
@@ -179,8 +200,8 @@ module Phronomy
                 end
                 @requires_approval = block
               elsif value == :__unset__
-                return @requires_approval if instance_variable_defined?(:@requires_approval)
-                return superclass.requires_approval if superclass.respond_to?(:requires_approval)
+                return @requires_approval unless @requires_approval.nil?
+                return superclass.requires_approval if superclass < RubyLLM::Tool
 
                 false
               else
@@ -229,7 +250,7 @@ module Phronomy
             self.class.tool_name || super
           end
 
-          def params_schema
+          def parameters_schema
             schema = super
             return schema if schema.nil?
 
@@ -268,6 +289,22 @@ module Phronomy
             schema
           end
 
+          # Phronomy retains these readers as part of its Tool contract.
+          # @api public
+          def params_schema
+            parameters_schema
+          end
+
+          # @api public
+          def provider_params
+            provider_options
+          end
+
+          # @api public
+          def parameters
+            self.class.declared_parameters
+          end
+
           # @api public
           def call(args, cancellation_token: nil)
             cancellation_token&.raise_if_cancelled!
@@ -285,7 +322,7 @@ module Phronomy
             if cancellation_token && execute_accepts_cancellation_token?
               validated_args = validated_args.merge(cancellation_token: cancellation_token)
             end
-            result = super(validated_args)
+            result = super(**(validated_args || {}).transform_keys(&:to_sym))
             truncate_result_if_needed(result)
           rescue Phronomy::ToolError, Phronomy::CancellationError
             raise

@@ -47,7 +47,7 @@ RSpec.describe "ACS-17 causal durability" do
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: definition_id, version: 1
       model "local-model"
-      context_window 4096
+
       max_output_tokens 512
     end
     klass.new(

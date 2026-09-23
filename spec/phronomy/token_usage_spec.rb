@@ -20,7 +20,7 @@ RSpec.describe Phronomy::TokenUsage do
     end
 
     it "builds a TokenUsage from a RubyLLM::Tokens-like object" do
-      tokens = double("Tokens", input: 100, output: 50, cached: 20, cache_creation: 5, to_h: {"input" => 100, "output" => 50, "cached" => 20, "cache_creation" => 5})
+      tokens = double("Tokens", input: 100, output: 50, cache_read: 20, cache_write: 5, to_h: {"input" => 100, "output" => 50, "cached" => 20, "cache_creation" => 5})
       usage = described_class.from_tokens(tokens)
       expect(usage.input).to eq(100)
       expect(usage.output).to eq(50)
@@ -29,7 +29,7 @@ RSpec.describe Phronomy::TokenUsage do
     end
 
     it "treats nil fields as 0" do
-      tokens = double("Tokens", input: nil, output: nil, cached: nil, cache_creation: nil)
+      tokens = double("Tokens", input: nil, output: nil, cache_read: nil, cache_write: nil)
       usage = described_class.from_tokens(tokens)
       expect(usage.input).to eq(0)
       expect(usage.output).to eq(0)

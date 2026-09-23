@@ -3,7 +3,7 @@
 module Phronomy
   module Agent
     class ContextAssembler
-      ASSEMBLY_POLICY_VERSION = 8
+      ASSEMBLY_POLICY_VERSION = 9
       SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
       POLICY_ORIGIN_METADATA_KEY = "context_policy_origin"
       POLICY_ITEM_ID_METADATA_KEY = "context_policy_item_id"
@@ -333,7 +333,7 @@ module Phronomy
         tools:,
         current_input:
       )
-        token_budget = TokenBudgetResolver.new(agent: @agent).resolve(model_config)
+        token_budget = TokenBudgetResolver.new.resolve(model_config)
         policy_input = @input_builder.build(
           agent_id: agent_root.agent_id,
           execution_id: execution.execution_id,
@@ -521,14 +521,23 @@ module Phronomy
           "provider" => @agent.class.provider&.to_s,
           "temperature" => @agent.class.temperature,
           "max_output_tokens" => @agent.class.max_output_tokens,
-          "context_window" => @agent.class.context_window,
           "cache_instructions" => !!@agent.class.cache_instructions
         }.compact
       end
 
       def apply_model_config_patch(base, patch)
         return base unless patch
-        base.merge(patch.to_h.transform_keys(&:to_s)).compact
+        values = patch.to_h.transform_keys(&:to_s)
+        if values.key?("context_window")
+          raise Phronomy::ConfigurationError,
+            "context_window is model metadata; configure the RubyLLM model registry"
+        end
+        if values.key?("max_output_tokens") && !values["max_output_tokens"].nil?
+          cap = Integer(values["max_output_tokens"])
+          raise ArgumentError, "max_output_tokens must be positive" unless cap.positive?
+          values["max_output_tokens"] = cap
+        end
+        base.merge(values).compact
       end
 
       def normalize_candidates(candidates)

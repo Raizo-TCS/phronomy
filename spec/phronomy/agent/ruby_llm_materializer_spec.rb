@@ -123,6 +123,6 @@ RSpec.describe Phronomy::Agent::RubyLLMMaterializer do
     )
 
     message = materializer.materialize_journal_record(record)
-    expect(message.content).to eq("answer" => 42)
+    expect(JSON.parse(message.content)).to eq("answer" => 42)
   end
 end

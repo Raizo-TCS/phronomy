@@ -19,6 +19,10 @@ end
 
 require "phronomy"
 
+# Existing HTTP fixtures exercise Chat Completions. Responses has its own
+# contract examples which explicitly select RubyLLM's default protocol.
+RubyLLM.configure { |config| config.openai_protocol = :chat_completions }
+
 # Suppress rantly dot/SUCCESS output by default; set RANTLY_VERBOSE=1 to enable.
 ENV["RANTLY_VERBOSE"] ||= "0"
 

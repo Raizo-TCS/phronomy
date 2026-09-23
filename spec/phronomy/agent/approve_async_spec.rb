@@ -21,7 +21,7 @@ unless defined?(HITLAgentForApproveAsync)
   end
 end
 
-FAKE_APPROVE_ASYNC_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(10, 5, 0, 0)
+FAKE_APPROVE_ASYNC_TOKENS = Struct.new(:input, :output, :cache_read, :cache_write).new(10, 5, 0, 0)
 
 def build_approve_async_chat(tool_instance:, final_response: "resumed")
   stored_hook = nil
@@ -44,16 +44,16 @@ def build_approve_async_chat(tool_instance:, final_response: "resumed")
   final_resp = double("FinalResp", content: final_response, tokens: FAKE_APPROVE_ASYNC_TOKENS)
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
-  allow(dbl).to receive(:with_tool).and_return(dbl)
+  allow(dbl).to receive(:with_tools).and_return(dbl)
   allow(dbl).to receive(:with_temperature).and_return(dbl)
   allow(dbl).to receive(:messages) { [fake_assistant_msg] }
   allow(dbl).to receive(:tools) { {hitl_tool: tool_instance} }
   allow(dbl).to receive(:add_message)
   allow(dbl).to receive(:cancellation_token=)
   allow(dbl).to receive(:on_tool_call) { |&block| stored_hook = block }
-  allow(dbl).to receive(:before_tool_call) { |&block| stored_hook = block }
+  allow(dbl).to receive(:after_message) { |&block| stored_hook = block }
   allow(dbl).to receive(:on_tool_result)
-  allow(dbl).to receive(:ask) { stored_hook&.call(fake_tc) }
+  allow(dbl).to receive(:ask) { stored_hook&.call(fake_assistant_msg) }
   allow(dbl).to receive(:complete).and_return(final_resp)
   dbl
 end

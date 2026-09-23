@@ -1,4 +1,4 @@
-# Open finding: Tool parameter schema is absent from saved definitions
+# Historical finding: Tool parameter schema is absent from saved definitions
 
 ## Observed mismatch
 
@@ -39,3 +39,12 @@ continuation, explicit treatment of missing historical schema, adapter-version
 coverage and old/new recovery validation. Until that work is accepted, retain
 this issue in the current work list. Refactor 44 does not silently migrate records
 or change the general Tool comparison contract.
+
+## Refactor 45 resolution candidate
+
+[The RubyLLM 2 migration](rubyllm-2-token-ownership.md) removes the empty fallback,
+records the actual schema/provider options and rejects incompatible definitions.
+It explicitly rejects historical empty schemas when materializing in-flight
+manifests. Matching current definitions continue normally. The original observation
+above is retained as evidence; it is not a description of the new implementation.
+Application verification of Refactor 45 remains pending.

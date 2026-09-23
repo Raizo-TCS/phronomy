@@ -43,8 +43,8 @@ module Phronomy
       new(
         input: tokens.input || 0,
         output: tokens.output || 0,
-        cached: tokens.cached || 0,
-        cache_creation: tokens.cache_creation || 0
+        cached: tokens.cache_read || 0,
+        cache_creation: tokens.cache_write || 0
       )
     end
 

@@ -83,7 +83,6 @@ RSpec.shared_context "durable coordination runtime" do
       c.openai_api_base = "https://example.test/v1"
     }
     Phronomy.configure { |c|
-      c.default_output_reserve = 4096
       c.event_loop_stop_grace_seconds = 0.5
     }
   end

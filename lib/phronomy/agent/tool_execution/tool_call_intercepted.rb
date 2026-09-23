@@ -4,8 +4,8 @@ module Phronomy
   module Agent
     # Normal control-transfer signal raised before RubyLLM executes a Tool Call.
     #
-    # RubyLLM >= 1.15 guarantees that the complete assistant message has already
-    # been added to Chat#messages before before_tool_call runs. Keeping that
+    # RubyLLM 2.0 guarantees that the complete assistant message has already
+    # been added to Chat#messages before after_message runs. Keeping that
     # message here allows Phronomy to persist the complete Provider outcome even
     # though the RubyLLM call itself unwinds through this exception.
     # @api private

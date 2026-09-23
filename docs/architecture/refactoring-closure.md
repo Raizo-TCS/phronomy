@@ -318,3 +318,17 @@ Refactor 43 and Refactor 44 with RubyLLM 1.16.0. The actual schema reader is
 `parameters_schema` reader is absent. A required/type change can evade the saved
 comparison. This is the next correctness issue to design, with explicit handling
 of historical manifests. It is not fixed by R10 or by passing its recovery tests.
+
+## Refactor 44 applied; Refactor 45 migration candidate
+
+R10 was applied at 99ee43cd7b48174d825d20876fc38bbe47e6da11, tree
+34de332df150ff28ac93b2d04e099197f4a214d1, and verified. The original R/D inventory
+is closed. Earlier candidate wording above is historical.
+
+RubyLLM 2.0.0 now supplies the awaited provider-neutral output cap.
+[Refactor 45](rubyllm-2-token-ownership.md) implements the dependency/API migration,
+input-only registry budgeting, output-cap forwarding, schema recording/comparison
+and coordinated examples migration. The schema issue is addressed in this candidate;
+old empty-schema manifests require completion on the original version before upgrade.
+Local verification and the exact package trees are recorded in the distribution.
+User application verification remains outstanding; this is not a published release.

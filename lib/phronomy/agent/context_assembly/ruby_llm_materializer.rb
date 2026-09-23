@@ -151,22 +151,19 @@ module Phronomy
         end
 
         tool_calls = materialize_tool_calls(payload["tool_calls"])
-        message = RubyLLM::Message.new(
+        RubyLLM::Message.new(
           role: role,
           content: initial_content_for(role, payload.fetch("content", nil), tool_calls),
           tool_calls: tool_calls.empty? ? nil : tool_calls,
           tool_call_id: payload["tool_call_id"],
-          model_id: payload["model_id"]
+          model: payload["model_id"]
         )
-
-        message.content = payload["content"] if payload.key?("content")
-        message
       end
 
       def initial_content_for(role, content, tool_calls)
         return "" if role == :assistant && content.nil? && !tool_calls.empty?
 
-        content.nil? ? "" : content
+        (content.is_a?(Hash) || content.is_a?(Array)) ? JSON.generate(content) : content
       end
 
       def materialize_tool_calls(payloads)

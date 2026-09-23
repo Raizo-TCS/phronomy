@@ -22,7 +22,6 @@ module Phronomy
     attr_accessor :default_embedding_model
     attr_accessor :tracer
     attr_accessor :before_llm_input
-    attr_accessor :default_output_reserve
     attr_accessor :recursion_limit
     attr_accessor :trace_pii
     attr_accessor :logger

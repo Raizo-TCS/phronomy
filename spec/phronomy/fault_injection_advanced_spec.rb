@@ -25,8 +25,8 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       "Tokens",
       input: 10,
       output: 5,
-      cached: 0,
-      cache_creation: 0,
+      cache_read: 0,
+      cache_write: 0,
       to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}
     )
   end
@@ -210,10 +210,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     let(:streaming_chat) do
       dbl = double("StreamingChat")
       allow(dbl).to receive(:with_instructions).and_return(dbl)
-      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_tools).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)
       allow(dbl).to receive(:on_tool_call)
-      allow(dbl).to receive(:before_tool_call)
+      allow(dbl).to receive(:after_message)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask)
         .and_yield(chunk1).and_yield(chunk2).and_yield(chunk3)
@@ -272,8 +272,8 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         "CalmTokens",
         input: 1,
         output: 1,
-        cached: 0,
-        cache_creation: 0,
+        cache_read: 0,
+        cache_write: 0,
         to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0}
       )
       calm_message = double(
@@ -285,10 +285,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         role: :assistant
       )
       allow(calm_chat).to receive(:with_instructions).and_return(calm_chat)
-      allow(calm_chat).to receive(:with_tool).and_return(calm_chat)
+      allow(calm_chat).to receive(:with_tools).and_return(calm_chat)
       allow(calm_chat).to receive(:with_temperature).and_return(calm_chat)
       allow(calm_chat).to receive(:on_tool_call)
-      allow(calm_chat).to receive(:before_tool_call)
+      allow(calm_chat).to receive(:after_message)
       allow(calm_chat).to receive(:on_tool_result)
       allow(calm_chat).to receive(:ask).and_return(calm_message)
       allow(calm_chat).to receive(:messages).and_return([])

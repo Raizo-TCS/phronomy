@@ -34,7 +34,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "initial-preparation-#{SecureRandom.hex(6)}", version: 1
       model "local-model"
-      context_window 4096
+
       max_output_tokens 512
     end
   end

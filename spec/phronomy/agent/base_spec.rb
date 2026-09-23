@@ -195,18 +195,18 @@ RSpec.describe Phronomy::Agent::Base do
         model "gpt-4o-mini"
       end.new
     end
-    let(:fake_tokens_el) { double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0}) }
+    let(:fake_tokens_el) { double("Tok", input: 1, output: 1, cache_read: 0, cache_write: 0, to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0}) }
     let(:fake_response_el) { double("Resp", role: :assistant, content: "ok", tool_calls: nil, tokens: fake_tokens_el, tool_call?: false) }
 
     before do
       dbl = double("Chat")
       allow(dbl).to receive(:with_instructions).and_return(dbl)
-      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_tools).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)
       allow(dbl).to receive(:messages).and_return([fake_response_el])
       allow(dbl).to receive(:cancellation_token=)
       allow(dbl).to receive(:on_tool_call)
-      allow(dbl).to receive(:before_tool_call)
+      allow(dbl).to receive(:after_message)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask) { |_msg, &blk|
         blk&.call(double("Chunk", content: "token"))

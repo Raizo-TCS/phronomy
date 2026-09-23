@@ -122,16 +122,13 @@ module Phronomy
       private_class_method :build_runtime_chat_action
 
       def self.install_tool_interceptors(chat, llm_call_id:)
-        unless chat.respond_to?(:before_tool_call)
-          raise Phronomy::ConfigurationError,
-            "Agent-owned Tool execution requires RubyLLM >= 1.15 (before_tool_call callback)"
-        end
+        # RubyLLM 2 records the complete assistant message before this callback,
+        # and checks its own approval gate afterwards. Capture here so Phronomy
+        # owns authorization and dispatch for the entire Tool batch.
+        chat.after_message do |message|
+          next unless message.tool_call?
 
-        # RubyLLM has recorded the complete assistant message at this point.
-        # Intercept every Tool call in that message before the first Tool body
-        # runs; AgentInvocation owns authorization, dispatch and result collection.
-        chat.before_tool_call do |tool_call|
-          raise build_tool_interception(chat, [tool_call], llm_call_id)
+          raise build_tool_interception(chat, [], llm_call_id)
         end
       end
       private_class_method :install_tool_interceptors

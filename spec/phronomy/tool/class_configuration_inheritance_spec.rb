@@ -53,7 +53,7 @@ RSpec.describe "Tool class configuration inheritance" do
       parent = configured_tool_class
       child = Class.new(parent)
 
-      expect(child.tool_name).to be_nil
+      expect(child.tool_name).to eq("")
       expect(child.description).to eq("Configured tool")
       expect(child.desc).to eq("Configured tool")
 

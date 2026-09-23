@@ -19,12 +19,12 @@ RSpec.describe "Canonical Complete Execution Log capture" do
         @messages = [message]
       end
 
-      def before_tool_call(&block)
-        @before_tool_call = block
+      def after_message(&block)
+        @after_message = block
       end
 
       def trigger(tool_call)
-        @before_tool_call.call(tool_call)
+        @after_message.call(tool_call)
       end
     end
     chat = fake_chat_class.new(assistant)
@@ -35,7 +35,7 @@ RSpec.describe "Canonical Complete Execution Log capture" do
       llm_call_id: "llm-1"
     )
 
-    expect { chat.trigger(call_a) }
+    expect { chat.trigger(assistant) }
       .to raise_error(Phronomy::Agent::ToolCallIntercepted) do |error|
         expect(error.assistant_message).to equal(assistant)
         expect(error.assistant_outcome.content.to_s).to eq("I will use two tools")

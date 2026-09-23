@@ -41,10 +41,10 @@ module Phronomy
           {}
         end
         usage = Phronomy::TokenUsage.new(
-          input: usage_hash["input"] || usage_hash[:input],
-          output: usage_hash["output"] || usage_hash[:output],
-          cached: usage_hash["cached"] || usage_hash[:cached],
-          cache_creation: usage_hash["cache_creation"] || usage_hash[:cache_creation]
+          input: usage_hash["input"] || usage_hash[:input] || usage_hash["input_tokens"] || usage_hash[:input_tokens],
+          output: usage_hash["output"] || usage_hash[:output] || usage_hash["output_tokens"] || usage_hash[:output_tokens],
+          cached: usage_hash["cached"] || usage_hash[:cached] || usage_hash["cache_read_tokens"] || usage_hash[:cache_read_tokens] || usage_hash["cached_tokens"] || usage_hash[:cached_tokens],
+          cache_creation: usage_hash["cache_creation"] || usage_hash[:cache_creation] || usage_hash["cache_write_tokens"] || usage_hash[:cache_write_tokens] || usage_hash["cache_creation_tokens"] || usage_hash[:cache_creation_tokens]
         )
         [output, usage]
       end

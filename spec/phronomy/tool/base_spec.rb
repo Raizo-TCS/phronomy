@@ -794,9 +794,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
 
     context "when tool_name is not set" do
-      it "returns nil from the class method" do
+      it "uses RubyLLM naming for an anonymous class" do
         klass = Class.new(described_class)
-        expect(klass.tool_name).to be_nil
+        expect(klass.tool_name).to eq("")
       end
 
       it "#name falls back to RubyLLM automatic conversion" do

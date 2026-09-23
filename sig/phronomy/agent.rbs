@@ -190,7 +190,6 @@ module Phronomy
       def self.max_iterations: (?Integer value) -> Integer
       def self.cache_instructions: (?bool enabled) -> bool?
       def self.max_output_tokens: (?Integer value) -> Integer?
-      def self.context_window: (?Integer value) -> Integer?
       def self.context_policy: () -> ContextPolicy
                              | (ContextPolicy policy) -> ContextPolicy
       def self.agent_definition: () -> Hash[Symbol, untyped]

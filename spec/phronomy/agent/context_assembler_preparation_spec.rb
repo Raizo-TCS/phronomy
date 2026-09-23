@@ -17,7 +17,7 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "preparation-contract", version: 1
       model "local-model"
-      context_window 10_000
+
       max_output_tokens 100
       instructions "Base instruction"
       context_policy bound_policy
@@ -198,7 +198,7 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
     expect(policy).not_to receive(:call)
     manifest, ref = commit_service.transaction { |tx| assembler.finalize(prepared, persistence: tx) }
     expect(manifest.call_mode).to eq(:ask)
-    expect(manifest.assembly_policy_version).to eq(8)
+    expect(manifest.assembly_policy_version).to eq(9)
     expect(persistence.contents.fetch_json(ref)).to eq(manifest.to_h)
     expect(manifest.segments.count { |segment| segment.delivery == :ask_argument }).to eq(1)
   end
@@ -245,5 +245,35 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
       [:put_json, {"fact" => "Hook knowledge"}], [:put_text, "Current hook instruction"],
       [:put_text, "Transferred knowledge"]
     ])
+  end
+  it "rejects a hook override of registry-owned context_window before policy selection" do
+    patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {context_window: 1000})
+    expect { prepare_initial(patch: patch) }
+      .to raise_error(Phronomy::ConfigurationError, /RubyLLM model registry/)
+    expect(policy_inputs).to be_empty
+  end
+
+  it "persists an explicit hook output cap without storing model capabilities" do
+    patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {max_output_tokens: "321"})
+    prepared = prepare_initial(patch: patch)
+    manifest, manifest_ref = assembler.finalize(prepared)
+    config = persistence.contents.fetch_json(manifest.model_config_ref)
+    expect(config["max_output_tokens"]).to eq(321)
+    expect(config).not_to have_key("context_window")
+
+    expect(Phronomy::Agent::TokenBudgetResolver).not_to receive(:new)
+    expect(policy).not_to receive(:call)
+    agent_class.max_output_tokens 999
+    projection = Phronomy::Agent::RubyLLMMaterializer.new(agent: agent, persistence: persistence)
+      .materialize(manifest: manifest, manifest_ref: manifest_ref)
+    expect(projection.model_config["max_output_tokens"]).to eq(321)
+    expect(projection.manifest.segments).to eq(manifest.segments)
+  end
+
+  [0, -1, false, "invalid"].each do |cap|
+    it "rejects invalid output cap #{cap.inspect} supplied by a hook" do
+      patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {max_output_tokens: cap})
+      expect { prepare_initial(patch: patch) }.to raise_error { |error| expect([ArgumentError, TypeError]).to include(error.class) }
+    end
   end
 end

@@ -96,7 +96,7 @@ creation.
 | temperature | nil; does not inherit | Truthy setter; zero is accepted; nil/false read. |
 | max_iterations | 10; does not inherit | Truthy setter; zero is accepted. |
 | cache_instructions | nil; does not inherit | nil reads, false is an explicit value. |
-| max_output_tokens / context_window | nil; do not inherit | nil reads; setter uses to_i. |
+| max_output_tokens | nil; does not inherit | nil reads; positive Integer conversion. context_window moved to the RubyLLM registry in Refactor 45. |
 | agent_definition | Raises until that class declares identity/revision | Each subclass requires its own definition; this is not inherited model configuration. |
 | input/output/tool_result_filter registries | Empty class registry; do not inherit | Registrations append on that class. Instance filters are separate. |
 | before_llm_input / _before_llm_input | nil class callback; does not inherit | Instance and global hook behavior remains separate. |
@@ -135,3 +135,5 @@ Refactor 43 application was verified at core 5c4c0392; R09 is closed.
 R10 is implemented in Refactor 44, pending application verification.
 The published SVG is applied43-01. See the [naming boundary](entry-action-and-team-wording.md)
 and the separate [open Tool schema finding](tool-schema-recording-gap.md).
+
+Refactor 45 changes the token declarations as described in [the migration](rubyllm-2-token-ownership.md). Other Agent inheritance rules above remain unchanged. Tool schema/provider configuration follows the RubyLLM 2 inherited configuration contract.

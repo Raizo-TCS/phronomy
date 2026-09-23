@@ -60,7 +60,7 @@ RSpec.describe "Agent Tool batches through ordinary RubyLLM chat" do
       agent_definition id: "tool-batch-#{SecureRandom.hex(6)}", version: 1
       model "test-model"
       provider :openai
-      context_window 4096
+
       max_output_tokens 512
       instructions "Use the requested lookups and report their results."
       tools tool => nil
