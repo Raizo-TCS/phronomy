@@ -84,8 +84,10 @@ See [Context Management](context-management.md) and
 ## 3. Live mutable ownership
 
 Within one Runtime/process, one mutable live Agent instance owns one `agent_id`.
-Loading or creating a second mutable live instance for the same `agent_id` is
-rejected.
+`Agent::OwnershipRegistry` reserves that identity before materialization;
+Runtime strongly retains the registry through the generic shutdown contract.
+Repeated load returns the same live instance, while duplicate create is rejected.
+See [ADR-041](../decisions/041-feature-owned-identity-registries.md).
 
 During active execution, EventLoop is the single writer of Phronomy-managed live
 Agent execution state. Blocking Persistence work and other synchronous work that

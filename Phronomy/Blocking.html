@@ -80,7 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/blocking.rb
+    <dd>lib/phronomy/engine/blocking.rb
 </dd>
   </dl>
   
@@ -291,14 +291,14 @@ The block must not wait for another Agent, Workflow, or TaskResult.</p>
 39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/blocking.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Blocking.call_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
   <span class='kw'>begin</span>
     <span class='kw'>unless</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
-      <span class='id identifier rubyid_binding'>binding</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid___operation_binding'><span class='object_link'><a href="Execution.html#__operation_binding-class_method" title="Phronomy::Execution.__operation_binding (method)">__operation_binding</a></span></span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_binding'>binding</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/OperationBinding.html" title="Phronomy::Concurrency::OperationBinding (class)">OperationBinding</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/OperationBinding.html#initialize-instance_method" title="Phronomy::Concurrency::OperationBinding#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span>
         <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
@@ -323,7 +323,7 @@ The block must not wait for another Agent, Workflow, or TaskResult.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:18 2026 by
+  Generated on Wed Sep 23 17:37:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

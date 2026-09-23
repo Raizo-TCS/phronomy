@@ -368,7 +368,7 @@ cancel external work, or interpret application event payloads.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entry_point</span>
-  <span class='id identifier rubyid_all_states'>all_states</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@declared_states</span> <span class='op'>+</span> <span class='ivar'>@wait_state_names</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='symbol'>:__end__</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_uniq'>uniq</span>
+  <span class='id identifier rubyid_all_states'>all_states</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@declared_states</span> <span class='op'>+</span> <span class='ivar'>@wait_state_names</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="../FSMProtocol.html" title="Phronomy::FSMProtocol (module)">FSMProtocol</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../FSMProtocol.html#FINISH-constant" title="Phronomy::FSMProtocol::FINISH (constant)">FINISH</a></span></span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_uniq'>uniq</span>
   <span class='id identifier rubyid_auto_transitions'>auto_transitions</span> <span class='op'>=</span> <span class='ivar'>@auto_transitions</span>
   <span class='id identifier rubyid_external_events'>external_events</span> <span class='op'>=</span> <span class='ivar'>@external_events</span>
   <span class='id identifier rubyid_entry_actions'>entry_actions</span> <span class='op'>=</span> <span class='ivar'>@entry_actions</span>
@@ -446,7 +446,7 @@ cancel external work, or interpret application event payloads.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:24 2026 by
+  Generated on Wed Sep 23 17:37:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

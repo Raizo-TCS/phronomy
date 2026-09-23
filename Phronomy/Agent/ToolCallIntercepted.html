@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/tool_call_intercepted.rb
+    <dd>lib/phronomy/agent/tool_execution/tool_call_intercepted.rb
 </dd>
   </dl>
   
@@ -111,8 +111,8 @@
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
 <p>Normal control-transfer signal raised before RubyLLM executes a Tool Call.</p>
-<p>RubyLLM &gt;= 1.15 guarantees that the complete assistant message has already
-been added to Chat#messages before before_tool_call runs. Keeping that
+<p>RubyLLM 2.0 guarantees that the complete assistant message has already
+been added to Chat#messages before after_message runs. Keeping that
 message here allows Phronomy to persist the complete Provider outcome even
 though the RubyLLM call itself unwinds through this exception.</p>
 
@@ -341,7 +341,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_call_intercepted.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_call_intercepted.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='comma'>,</span> <span class='label'>assistant_message:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>assistant_outcome:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>llm_call_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@tool_calls</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -396,7 +396,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_call_intercepted.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_call_intercepted.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assistant_message'>assistant_message</span>
   <span class='ivar'>@assistant_message</span>
@@ -441,7 +441,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_call_intercepted.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_call_intercepted.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assistant_outcome'>assistant_outcome</span>
   <span class='ivar'>@assistant_outcome</span>
@@ -486,7 +486,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_call_intercepted.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_call_intercepted.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_llm_call_id'>llm_call_id</span>
   <span class='ivar'>@llm_call_id</span>
@@ -531,7 +531,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_call_intercepted.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_call_intercepted.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_calls'>tool_calls</span>
   <span class='ivar'>@tool_calls</span>
@@ -581,7 +581,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_call_intercepted.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_call_intercepted.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call'>tool_call</span>
   <span class='ivar'>@tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span>
@@ -596,7 +596,7 @@ though the RubyLLM call itself unwinds through this exception.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:24 2026 by
+  Generated on Wed Sep 23 17:37:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

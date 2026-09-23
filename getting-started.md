@@ -85,7 +85,7 @@ application does not need to pass the previous `messages` array back into every
 invocation.
 
 ```ruby
-persistence = Phronomy::Persistence::InMemory.new
+persistence = Phronomy::Persistence.in_memory
 
 agent = ResearchAgent.create(
   agent_id: "research-session-42",
@@ -115,7 +115,7 @@ A Runtime has at most one mutable live Agent object for an `agent_id`. If the
 Agent is already live, repeated `load` returns that exact Ruby object and does
 not reload Persistence. If it is not live, `load` hydrates the durable Agent
 once. Loading an ID that does not exist durably raises
-`Persistence::NotFoundError`.
+`Storage::NotFoundError`.
 
 Use `get` when only a process-local lookup is wanted:
 
@@ -131,7 +131,7 @@ While the Agent is live, it owns its current AgentRoot/Journal view and
 Runtime/EventLoop owns process-local identity/admission/execution authority.
 Phronomy persists snapshots at defined durability boundaries but does not reload
 mutable Agent/Execution/Journal state before every LLM or Tool step. A conflicting
-external durable write is surfaced as `Persistence::ConflictError` rather than
+external durable write is surfaced as `Storage::ConflictError` rather than
 silently merged into the live instance.
 
 The active transcript and Knowledge views can be advanced independently without
@@ -250,7 +250,7 @@ end
 write_draft  = ->(state) { state.merge(draft: "Draft content") }
 review_draft = ->(state) { state.merge(feedback: "Feedback on: #{state.draft}") }
 
-persistence = Phronomy::Persistence::InMemory.new
+persistence = Phronomy::Persistence.in_memory
 
 workflow = Phronomy::Workflow.define(
   ReviewContext,

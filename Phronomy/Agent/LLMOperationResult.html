@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/llm_operation_result.rb
+    <dd>lib/phronomy/agent/execution/llm_operation_result.rb
 </dd>
   </dl>
   
@@ -331,7 +331,7 @@ applying any live state.</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/llm_operation_result.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>llm_call_id:</span><span class='comma'>,</span> <span class='label'>response:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>streaming:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='id identifier rubyid_llm_call_id'>llm_call_id</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -388,7 +388,7 @@ applying any live state.</p>
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -433,7 +433,7 @@ applying any live state.</p>
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_llm_call_id'>llm_call_id</span>
   <span class='ivar'>@llm_call_id</span>
@@ -478,7 +478,7 @@ applying any live state.</p>
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_response'>response</span>
   <span class='ivar'>@response</span>
@@ -523,7 +523,7 @@ applying any live state.</p>
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/llm_operation_result.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/llm_operation_result.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_streaming'>streaming</span>
   <span class='ivar'>@streaming</span>
@@ -539,7 +539,7 @@ applying any live state.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:22 2026 by
+  Generated on Wed Sep 23 17:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

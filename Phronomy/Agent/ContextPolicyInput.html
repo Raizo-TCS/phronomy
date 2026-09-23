@@ -98,8 +98,8 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/context_policy_input.rb<span class="defines">,<br>
-  lib/phronomy/agent/context_policy_input.rb</span>
+    <dd>lib/phronomy/agent/context_contract/context_policy_input.rb<span class="defines">,<br>
+  lib/phronomy/agent/context_contract/context_policy_input.rb</span>
 
 </dd>
   </dl>
@@ -612,7 +612,7 @@
 57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_normalized_instruction'>normalized_instruction</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:instruction</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -648,8 +648,8 @@
     <span class='label'>knowledge:</span> <span class='id identifier rubyid_normalized_knowledge'>normalized_knowledge</span><span class='comma'>,</span>
     <span class='label'>tools:</span> <span class='id identifier rubyid_normalized_tools'>normalized_tools</span><span class='comma'>,</span>
     <span class='label'>conversation:</span> <span class='id identifier rubyid_normalized_conversation'>normalized_conversation</span><span class='comma'>,</span>
-    <span class='label'>model_config:</span> <span class='const'><span class='object_link'><a href="Immutable.html" title="Phronomy::Agent::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="Immutable.html#copy-class_method" title="Phronomy::Agent::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:model_config</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>metadata:</span> <span class='const'><span class='object_link'><a href="Immutable.html" title="Phronomy::Agent::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="Immutable.html#copy-class_method" title="Phronomy::Agent::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+    <span class='label'>model_config:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:model_config</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>metadata:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_freeze'>freeze</span>
 <span class='kw'>end</span></pre>
@@ -710,7 +710,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_id'>agent_id</span>
   <span class='ivar'>@agent_id</span>
@@ -767,7 +767,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_mode'>call_mode</span>
   <span class='ivar'>@call_mode</span>
@@ -824,7 +824,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_sequence'>call_sequence</span>
   <span class='ivar'>@call_sequence</span>
@@ -881,7 +881,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_conversation'>conversation</span>
   <span class='ivar'>@conversation</span>
@@ -938,7 +938,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_id'>execution_id</span>
   <span class='ivar'>@execution_id</span>
@@ -995,7 +995,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_instruction'>instruction</span>
   <span class='ivar'>@instruction</span>
@@ -1052,7 +1052,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_knowledge'>knowledge</span>
   <span class='ivar'>@knowledge</span>
@@ -1109,7 +1109,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_metadata'>metadata</span>
   <span class='ivar'>@metadata</span>
@@ -1166,7 +1166,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_model_config'>model_config</span>
   <span class='ivar'>@model_config</span>
@@ -1223,7 +1223,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_previous_manifest'>previous_manifest</span>
   <span class='ivar'>@previous_manifest</span>
@@ -1280,7 +1280,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
   <span class='ivar'>@token_budget</span>
@@ -1337,7 +1337,7 @@
 7</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_policy_input.rb', line 5</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_contract/context_policy_input.rb', line 5</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tools'>tools</span>
   <span class='ivar'>@tools</span>
@@ -1353,7 +1353,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:22 2026 by
+  Generated on Wed Sep 23 17:37:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

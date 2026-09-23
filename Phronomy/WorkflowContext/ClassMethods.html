@@ -80,7 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/workflow_context.rb
+    <dd>lib/phronomy/workflow/execution/workflow_context.rb
 </dd>
   </dl>
   
@@ -170,10 +170,6 @@
       <pre class="lines">
 
 
-21
-22
-23
-24
 25
 26
 27
@@ -192,10 +188,14 @@
 40
 41
 42
-43</pre>
+43
+44
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_context.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_field'>field</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:replace</span><span class='comma'>,</span> <span class='label'>default:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='comment'># workflow_instance_id is framework-owned metadata; do not declare it as a field.
@@ -240,12 +240,12 @@
       <pre class="lines">
 
 
-45
-46
-47</pre>
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_context.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fields'>fields</span>
   <span class='ivar'>@fields</span>
@@ -260,7 +260,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:18 2026 by
+  Generated on Wed Sep 23 17:37:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

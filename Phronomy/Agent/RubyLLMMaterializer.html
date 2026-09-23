@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/ruby_llm_materializer.rb
+    <dd>lib/phronomy/agent/context_assembly/ruby_llm_materializer.rb
 </dd>
   </dl>
   
@@ -255,7 +255,7 @@
 15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/ruby_llm_materializer.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/ruby_llm_materializer.rb', line 11</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>additional_tools:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
@@ -325,7 +325,7 @@
 50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/ruby_llm_materializer.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/ruby_llm_materializer.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_materialize'>materialize</span><span class='lparen'>(</span><span class='label'>manifest:</span><span class='comma'>,</span> <span class='label'>manifest_ref:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_verify_manifest_identity!'>verify_manifest_identity!</span><span class='lparen'>(</span><span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='rparen'>)</span>
@@ -356,7 +356,7 @@
     <span class='label'>messages:</span> <span class='id identifier rubyid_materialize_message_segments'>materialize_message_segments</span><span class='lparen'>(</span><span class='id identifier rubyid_message_segments'>message_segments</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
     <span class='label'>tool_classes:</span> <span class='id identifier rubyid_tool_set'>tool_set</span><span class='period'>.</span><span class='id identifier rubyid_runtime_tools'>runtime_tools</span><span class='comma'>,</span>
     <span class='label'>ask_message:</span> <span class='id identifier rubyid_ask_message'>ask_message</span><span class='comma'>,</span>
-    <span class='label'>model_config:</span> <span class='const'><span class='object_link'><a href="Immutable.html" title="Phronomy::Agent::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="Immutable.html#copy-class_method" title="Phronomy::Agent::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_model_config'>model_config</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>model_config:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_model_config'>model_config</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>manifest:</span> <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span>
     <span class='label'>manifest_ref:</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span>
   <span class='rparen'>)</span>
@@ -386,7 +386,7 @@
 54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/ruby_llm_materializer.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/ruby_llm_materializer.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_materialize_journal_record'>materialize_journal_record</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_materialize_segment'>materialize_segment</span><span class='lparen'>(</span><span class='id identifier rubyid_segment_from_record'>segment_from_record</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='rparen'>)</span><span class='rparen'>)</span>
@@ -419,7 +419,7 @@
 61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/ruby_llm_materializer.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/ruby_llm_materializer.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_materialize_journal_records'>materialize_journal_records</span><span class='lparen'>(</span><span class='id identifier rubyid_records'>records</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_segments'>segments</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_records'>records</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='id identifier rubyid_index'>index</span><span class='op'>|</span>
@@ -437,7 +437,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:24 2026 by
+  Generated on Wed Sep 23 17:37:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

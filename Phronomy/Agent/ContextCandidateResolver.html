@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/context_candidate_resolver.rb
+    <dd>lib/phronomy/agent/context_assembly/context_candidate_resolver.rb
 </dd>
   </dl>
   
@@ -199,7 +199,7 @@
 8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_candidate_resolver.rb', line 6</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/context_candidate_resolver.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>content_loader:</span><span class='rparen'>)</span>
   <span class='ivar'>@content_loader</span> <span class='op'>=</span> <span class='id identifier rubyid_content_loader'>content_loader</span>
@@ -249,7 +249,7 @@
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_candidate_resolver.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/context_candidate_resolver.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='label'>prior_records:</span><span class='comma'>,</span> <span class='label'>working_records:</span><span class='comma'>,</span> <span class='label'>excluded_record_ids:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_excluded'>excluded</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_excluded_record_ids'>excluded_record_ids</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -277,7 +277,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:25 2026 by
+  Generated on Wed Sep 23 17:37:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

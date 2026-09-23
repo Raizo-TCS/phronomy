@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/token_usage.rb
+    <dd>lib/phronomy/llm_contract/token_usage.rb
 </dd>
   </dl>
   
@@ -444,7 +444,7 @@ value for this call).</p>
 30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cached:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cache_creation:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@input</span> <span class='op'>=</span> <span class='id identifier rubyid_input'>input</span>
@@ -493,7 +493,7 @@ value for this call).</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cache_creation'>cache_creation</span>
   <span class='ivar'>@cache_creation</span>
@@ -534,7 +534,7 @@ value for this call).</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cached'>cached</span>
   <span class='ivar'>@cached</span>
@@ -575,7 +575,7 @@ value for this call).</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input'>input</span>
   <span class='ivar'>@input</span>
@@ -616,7 +616,7 @@ value for this call).</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output'>output</span>
   <span class='ivar'>@output</span>
@@ -671,7 +671,7 @@ nil fields within the tokens object are coerced to 0.</p>
 49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_tokens'>from_tokens</span><span class='lparen'>(</span><span class='id identifier rubyid_tokens'>tokens</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_zero'>zero</span> <span class='kw'>if</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -679,8 +679,8 @@ nil fields within the tokens object are coerced to 0.</p>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
     <span class='label'>input:</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_input'>input</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
     <span class='label'>output:</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_output'>output</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
-    <span class='label'>cached:</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_cached'>cached</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
-    <span class='label'>cache_creation:</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_cache_creation'>cache_creation</span> <span class='op'>||</span> <span class='int'>0</span>
+    <span class='label'>cached:</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_cache_read'>cache_read</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>cache_creation:</span> <span class='id identifier rubyid_tokens'>tokens</span><span class='period'>.</span><span class='id identifier rubyid_cache_write'>cache_write</span> <span class='op'>||</span> <span class='int'>0</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -717,7 +717,7 @@ nil fields within the tokens object are coerced to 0.</p>
 35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_zero'>zero</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>input:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>cached:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>cache_creation:</span> <span class='int'>0</span><span class='rparen'>)</span>
@@ -771,7 +771,7 @@ When other is nil, returns self unchanged.</p>
 63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='op'>+</span><span class='lparen'>(</span><span class='id identifier rubyid_other'>other</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id identifier rubyid_other'>other</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -812,7 +812,7 @@ When other is nil, returns self unchanged.</p>
 71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='op'>==</span><span class='lparen'>(</span><span class='id identifier rubyid_other'>other</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_other'>other</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
@@ -846,7 +846,7 @@ When other is nil, returns self unchanged.</p>
 75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/token_usage.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_contract/token_usage.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='lbrace'>{</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='id identifier rubyid_output'>output</span><span class='comma'>,</span> <span class='label'>cached:</span> <span class='id identifier rubyid_cached'>cached</span><span class='comma'>,</span> <span class='label'>cache_creation:</span> <span class='id identifier rubyid_cache_creation'>cache_creation</span><span class='rbrace'>}</span>
@@ -861,7 +861,7 @@ When other is nil, returns self unchanged.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:19 2026 by
+  Generated on Wed Sep 23 17:37:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -80,7 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/recovery.rb
+    <dd>lib/phronomy/recovery/recovery.rb
 </dd>
   </dl>
   
@@ -533,7 +533,7 @@ revision identifies the post-state.</p>
 150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 123</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 123</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compare_revisioned_snapshot'>compare_revisioned_snapshot</span><span class='lparen'>(</span>
   <span class='label'>record:</span><span class='comma'>,</span>
@@ -606,7 +606,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 110</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compare_revisions'>compare_revisions</span><span class='lparen'>(</span><span class='label'>current_revision:</span><span class='comma'>,</span> <span class='label'>expected_pre_revision:</span><span class='comma'>,</span> <span class='label'>intended_post_revision:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_current_revision'>current_revision</span>
@@ -659,7 +659,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 175</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 167</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 167</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_value'>fetch_value</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>unless</span> <span class='id identifier rubyid_record'>record</span>
@@ -712,7 +712,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_normalize_outcome'>normalize_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_normalized'>normalized</span> <span class='op'>=</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
@@ -774,7 +774,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_normalize_subject'>normalize_subject</span><span class='lparen'>(</span><span class='id identifier rubyid_subject'>subject</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_hash'>hash</span> <span class='op'>=</span> <span class='id identifier rubyid_subject'>subject</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_transform_keys'>transform_keys</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_sym</span><span class='rparen'>)</span>
@@ -843,7 +843,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 165</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 152</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 152</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_normalize_value'>normalize_value</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
@@ -912,7 +912,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 106</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subject_equal?'>subject_equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_left'>left</span><span class='comma'>,</span> <span class='id identifier rubyid_right'>right</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_normalize_subject'>normalize_subject</span><span class='lparen'>(</span><span class='id identifier rubyid_left'>left</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_normalize_subject'>normalize_subject</span><span class='lparen'>(</span><span class='id identifier rubyid_right'>right</span><span class='rparen'>)</span>
@@ -965,7 +965,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 100</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 90</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subject_key'>subject_key</span><span class='lparen'>(</span><span class='id identifier rubyid_subject'>subject</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_normalized'>normalized</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_subject'>normalize_subject</span><span class='lparen'>(</span><span class='id identifier rubyid_subject'>subject</span><span class='rparen'>)</span>
@@ -1029,7 +1029,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/recovery/recovery.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_resolution_material!'>validate_resolution_material!</span><span class='lparen'>(</span><span class='label'>outcome:</span><span class='comma'>,</span> <span class='label'>result_present:</span><span class='comma'>,</span> <span class='label'>error_present:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_normalized'>normalized</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_outcome'>normalize_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
@@ -1057,7 +1057,7 @@ This is deliberately small: callers still validate entity-specific content.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:18 2026 by
+  Generated on Wed Sep 23 17:37:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

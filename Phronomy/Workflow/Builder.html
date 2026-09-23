@@ -96,28 +96,12 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/workflow.rb
+    <dd>lib/phronomy/workflow/execution/workflow.rb
 </dd>
   </dl>
   
 </div>
 
-
-  
-    <h2>
-      Constant Summary
-      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
-    </h2>
-
-    <dl class="constants">
-      
-        <dt id="FINISH-constant" class="">FINISH =
-          
-        </dt>
-        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../WorkflowRunner.html#FINISH-constant" title="Phronomy::WorkflowRunner::FINISH (constant)">FINISH</a></span></span></pre></dd>
-      
-    </dl>
-  
 
 
 
@@ -342,8 +326,6 @@
       <pre class="lines">
 
 
-77
-78
 79
 80
 81
@@ -351,10 +333,12 @@
 83
 84
 85
-86</pre>
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@context_class</span> <span class='op'>=</span> <span class='id identifier rubyid_context_class'>context_class</span>
@@ -393,8 +377,6 @@
       <pre class="lines">
 
 
-132
-133
 134
 135
 136
@@ -432,10 +414,12 @@
 168
 169
 170
-171</pre>
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 132</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_validate_graph!'>validate_graph!</span>
@@ -497,12 +481,12 @@
       <pre class="lines">
 
 
-102
-103
-104</pre>
+104
+105
+106</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_entry'>entry</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
   <span class='lparen'>(</span><span class='ivar'>@entry_actions</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callable'>callable</span>
@@ -527,12 +511,12 @@
       <pre class="lines">
 
 
-106
-107
-108</pre>
+108
+109
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_exit'>exit</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
   <span class='lparen'>(</span><span class='ivar'>@exit_actions</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callable'>callable</span>
@@ -566,12 +550,12 @@
       <pre class="lines">
 
 
-88
-89
-90</pre>
+90
+91
+92</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 90</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initial'>initial</span><span class='lparen'>(</span><span class='id identifier rubyid_state_name'>state_name</span><span class='rparen'>)</span> <span class='comment'># rubocop:disable Style/TrivialAccessors
 </span>  <span class='ivar'>@initial</span> <span class='op'>=</span> <span class='id identifier rubyid_state_name'>state_name</span>
@@ -608,13 +592,13 @@ return the context or nil. Returning Phronomy::TaskResult is an error.</p>
       <pre class="lines">
 
 
-97
-98
 99
-100</pre>
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@declared_states</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_name'>name</span>
@@ -654,8 +638,6 @@ Phronomy::TaskResult is an error; completion must arrive as a later event.</p>
       <pre class="lines">
 
 
-121
-122
 123
 124
 125
@@ -663,13 +645,15 @@ Phronomy::TaskResult is an error; completion must arrive as a later event.</p>
 127
 128
 129
-130</pre>
+130
+131
+132</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 123</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span><span class='label'>from:</span><span class='comma'>,</span> <span class='label'>to:</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_destination'>destination</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_to'>to</span> <span class='op'>==</span> <span class='symbol'>:__finish__</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='const'><span class='object_link'><a href="#FINISH-constant" title="Phronomy::Workflow::Builder::FINISH (constant)">FINISH</a></span></span> <span class='op'>:</span> <span class='id identifier rubyid_to'>to</span>
+  <span class='id identifier rubyid_destination'>destination</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_to'>to</span> <span class='op'>==</span> <span class='symbol'>:__finish__</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='const'><span class='object_link'><a href="../FSMProtocol.html" title="Phronomy::FSMProtocol (module)">FSMProtocol</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../FSMProtocol.html#FINISH-constant" title="Phronomy::FSMProtocol::FINISH (constant)">FINISH</a></span></span> <span class='op'>:</span> <span class='id identifier rubyid_to'>to</span>
   <span class='ivar'>@transitions</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span>
     <span class='label'>from:</span> <span class='id identifier rubyid_from'>from</span><span class='comma'>,</span>
     <span class='label'>to:</span> <span class='id identifier rubyid_destination'>destination</span><span class='comma'>,</span>
@@ -698,12 +682,12 @@ Phronomy::TaskResult is an error; completion must arrive as a later event.</p>
       <pre class="lines">
 
 
-110
-111
-112</pre>
+112
+113
+114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow.rb', line 112</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_state'>wait_state</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='ivar'>@wait_state_names</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_name'>name</span>
@@ -718,7 +702,7 @@ Phronomy::TaskResult is an error; completion must arrive as a later event.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:19 2026 by
+  Generated on Wed Sep 23 17:37:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

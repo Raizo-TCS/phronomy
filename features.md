@@ -20,7 +20,7 @@ for production deployments.
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
 | **Agent** — Stateful ReAct-style agents with stable `agent_id`, one mutable live owner per Runtime, persistence-backed execution state, canonical history, and conversation context | Stable |
 | **Tool authoring façade** — `Phronomy::Tool::Base` is the public authoring name for the existing Capability base class; the legacy namespace remains compatible | Beta |
-| **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by Runtime/session authority between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
+| **Unified Persistence** — One transaction domain for Agent, Team, and Workflow state; a domain-facing `Persistence` composes a record-oriented `Storage::Backend`; live Agent/Workflow state remains owned by Runtime/session authority between durable commits; custom backends implement the documented Backend SPI, including Storage-owned active-execution constraint notifications translated by domain repositories, and repository/transaction semantics | Beta |
 | **LLMAdapter SPI** — `Phronomy::LLMAdapter::Base#complete` / `#stream` define the Beta call-adapter extension boundary; Phronomy owns async/offload wrapping | Beta |
 | **Before-Large-Language-Model (LLM) Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
 | **Context Management** — Journal + Context Policy + per-LLM-call Manifest with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies | Stable |
@@ -79,14 +79,20 @@ rather than implicitly inheriting the parent revision. The Stable
 
 ## Agent and workflow patterns
 
+Agent Tool batches use a single ordinary RubyLLM chat path. Agent owns Tool
+authorization, dispatch and the barrier before the next Provider request;
+concurrency remains governed by Tool execution modes and Runtime capacity.
+The obsolete `parallel_tool_execution` configuration accessor has been removed.
+See the [migration guide](migrations/parallel-tool-chat-removal.md).
+
 | Feature | Stability |
 |---|---|
 | **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |
-| **Durable Agent Handoff** — `Agent::Handoff` and `Agent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
+| **Durable Handoff** — `Agent::Handoff` and `MultiAgent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
-| **SharedState** — Peer-agent shared-state coordination | Experimental |
+| **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; see the [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
 | **Human-in-the-loop approval** — durable suspension publishes `:approval_required` through the Agent listener; `approve` / `approve_async` resumes the same logical `execution_id` with a fresh FSMSession incarnation | Beta |
 | **`tool_approval_policy`** — Application-defined allow/approve/reject policy using a value-only `ApprovalEvaluationRequest` without live Agent/Tool references | Beta |
 

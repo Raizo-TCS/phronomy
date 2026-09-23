@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/execution.rb
+    <dd>lib/phronomy/engine/execution.rb
 </dd>
   </dl>
   
@@ -158,28 +158,6 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
     </h2>
 
     <ul class="summary">
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#__operation_binding-class_method" title="__operation_binding (class method)">.<strong>__operation_binding</strong>(invocation_context:, cancellation_token:)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Common admission binding for Agent and synchronous-work adapters.</p></div></span>
-  
-</li>
-
       
         <li class="public ">
   <span class="summary_signature">
@@ -400,7 +378,7 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
   <span class='ivar'>@invocation_context</span>
@@ -418,52 +396,7 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="__operation_binding-class_method">
-  
-    .<strong>__operation_binding</strong>(invocation_context:, cancellation_token:)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Common admission binding for Agent and synchronous-work adapters.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-65
-66
-67
-68</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 65</span>
-
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid___operation_binding'>__operation_binding</span><span class='lparen'>(</span><span class='label'>invocation_context:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/OperationBinding.html" title="Phronomy::Concurrency::OperationBinding (class)">OperationBinding</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/OperationBinding.html#initialize-instance_method" title="Phronomy::Concurrency::OperationBinding#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span>
-    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="run-class_method">
+  <h3 class="signature first" id="run-class_method">
   
     .<strong>run</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, &amp;block)  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;</tt> 
   
@@ -516,7 +449,7 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -654,7 +587,7 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run_async'>run_async</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -700,12 +633,12 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-120
-121
-122</pre>
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___cancellation_error'>__cancellation_error</span>
   <span class='ivar'>@cancellation_error</span>
@@ -743,12 +676,12 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-115
-116
-117</pre>
+108
+109
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 115</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___cancellation_token'>__cancellation_token</span>
   <span class='ivar'>@token</span>
@@ -799,12 +732,12 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-110
-111
-112</pre>
+103
+104
+105</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___open?'>__open?</span>
   <span class='ivar'>@collector</span><span class='period'>.</span><span class='id identifier rubyid_open?'>open?</span>
@@ -842,12 +775,12 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-105
-106
-107</pre>
+98
+99
+100</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 105</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 98</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___while_open'>__while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@collector</span><span class='period'>.</span><span class='id identifier rubyid_while_open'>while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -929,6 +862,13 @@ keep their original ownership. Bind before adding this run's map/flat_map.</p>
       <pre class="lines">
 
 
+69
+70
+71
+72
+73
+74
+75
 76
 77
 78
@@ -947,17 +887,10 @@ keep their original ownership. Bind before adding this run's map/flat_map.</p>
 91
 92
 93
-94
-95
-96
-97
-98
-99
-100
-101</pre>
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_observe'>observe</span><span class='lparen'>(</span><span class='id identifier rubyid_source_result'>source_result</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_source_result'>source_result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='rparen'>)</span>
@@ -995,7 +928,7 @@ keep their original ownership. Bind before adding this run's map/flat_map.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:19 2026 by
+  Generated on Wed Sep 23 17:37:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

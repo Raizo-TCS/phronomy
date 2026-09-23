@@ -89,6 +89,11 @@
   
   
   
+  <dl>
+      <dt>Includes:</dt>
+      <dd><span class='object_link'><a href="../Concurrency/WorkerInputRestricted.html" title="Phronomy::Concurrency::WorkerInputRestricted (module)">Concurrency::WorkerInputRestricted</a></span></dd>
+  </dl>
+  
   
 
   
@@ -96,7 +101,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/execution_coordinator.rb
+    <dd>lib/phronomy/agent/execution/execution_coordinator.rb
 </dd>
   </dl>
   
@@ -112,10 +117,120 @@
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="ExecutionCoordinator/DeferredTerminalCommand.html" title="Phronomy::Agent::ExecutionCoordinator::DeferredTerminalCommand (class)">DeferredTerminalCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/HandoffTerminalView.html" title="Phronomy::Agent::ExecutionCoordinator::HandoffTerminalView (class)">HandoffTerminalView</a></span>, <span class='object_link'><a href="ExecutionCoordinator/InitialPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationCommand (class)">InitialPreparationCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/InitialPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationReady (class)">InitialPreparationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/InitialPreparationRecoveryReady.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationRecoveryReady (class)">InitialPreparationRecoveryReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/InitialPreparationResult.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationResult (class)">InitialPreparationResult</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationCommand (class)">ProviderDispatchPreparationCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReady (class)">ProviderDispatchPreparationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReconciliationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationCommand (class)">ProviderDispatchPreparationReconciliationCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReconciliationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationReady (class)">ProviderDispatchPreparationReconciliationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReconciliationResult.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationResult (class)">ProviderDispatchPreparationReconciliationResult</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationResult.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationResult (class)">ProviderDispatchPreparationResult</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ResumeCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ResumeCommand (class)">ResumeCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ResumeCommitCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ResumeCommitCommand (class)">ResumeCommitCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ResumeCommitReady.html" title="Phronomy::Agent::ExecutionCoordinator::ResumeCommitReady (class)">ResumeCommitReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ResumeCommitResult.html" title="Phronomy::Agent::ExecutionCoordinator::ResumeCommitResult (class)">ResumeCommitResult</a></span>, <span class='object_link'><a href="ExecutionCoordinator/StartCommand.html" title="Phronomy::Agent::ExecutionCoordinator::StartCommand (class)">StartCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalCommitCommand.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalCommitCommand (class)">TerminalCommitCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalCommitReady.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalCommitReady (class)">TerminalCommitReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalDelivery.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalDelivery (class)">TerminalDelivery</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalOutcome.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalOutcome (class)">TerminalOutcome</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalView.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalView (class)">TerminalView</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationCommand (class)">ToolDispatchPreparationCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReady (class)">ToolDispatchPreparationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReconciliationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand (class)">ToolDispatchPreparationReconciliationCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReconciliationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady (class)">ToolDispatchPreparationReconciliationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReconciliationResult.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationResult (class)">ToolDispatchPreparationReconciliationResult</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationResult.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationResult (class)">ToolDispatchPreparationResult</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="ExecutionCoordinator/ContinueRecoveredCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ContinueRecoveredCommand (class)">ContinueRecoveredCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/DeferredTerminalCommand.html" title="Phronomy::Agent::ExecutionCoordinator::DeferredTerminalCommand (class)">DeferredTerminalCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/InitialPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationReady (class)">InitialPreparationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/InitialPreparationRecoveryReady.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationRecoveryReady (class)">InitialPreparationRecoveryReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReady (class)">ProviderDispatchPreparationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReconciliationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationReady (class)">ProviderDispatchPreparationReconciliationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/RecoverPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::RecoverPreparationCommand (class)">RecoverPreparationCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ResumeCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ResumeCommand (class)">ResumeCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ResumeCommitReady.html" title="Phronomy::Agent::ExecutionCoordinator::ResumeCommitReady (class)">ResumeCommitReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/SessionFinishedCommand.html" title="Phronomy::Agent::ExecutionCoordinator::SessionFinishedCommand (class)">SessionFinishedCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/StartCommand.html" title="Phronomy::Agent::ExecutionCoordinator::StartCommand (class)">StartCommand</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalCommitReady.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalCommitReady (class)">TerminalCommitReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/TerminalDelivery.html" title="Phronomy::Agent::ExecutionCoordinator::TerminalDelivery (class)">TerminalDelivery</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReady (class)">ToolDispatchPreparationReady</a></span>, <span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReconciliationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady (class)">ToolDispatchPreparationReconciliationReady</a></span>
     
   
 </p>
+
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="InitialPreparationCommand-constant" class="">InitialPreparationCommand =
+          <div class="docstring">
+  <div class="discussion">
+    <p>EventLoop -&gt; Offload operation-specific immutable snapshots.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="InitialPreparation.html" title="Phronomy::Agent::InitialPreparation (class)">InitialPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="InitialPreparation/Command.html" title="Phronomy::Agent::InitialPreparation::Command (class)">Command</a></span></span></pre></dd>
+      
+        <dt id="ProviderDispatchPreparationCommand-constant" class="">ProviderDispatchPreparationCommand =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ProviderCommand.html" title="Phronomy::Agent::DispatchPreparation::ProviderCommand (class)">ProviderCommand</a></span></span></pre></dd>
+      
+        <dt id="ToolDispatchPreparationCommand-constant" class="">ToolDispatchPreparationCommand =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ToolCommand.html" title="Phronomy::Agent::DispatchPreparation::ToolCommand (class)">ToolCommand</a></span></span></pre></dd>
+      
+        <dt id="ProviderDispatchPreparationReconciliationCommand-constant" class="">ProviderDispatchPreparationReconciliationCommand =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ProviderReconciliationCommand.html" title="Phronomy::Agent::DispatchPreparation::ProviderReconciliationCommand (class)">ProviderReconciliationCommand</a></span></span></pre></dd>
+      
+        <dt id="ToolDispatchPreparationReconciliationCommand-constant" class="">ToolDispatchPreparationReconciliationCommand =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ToolReconciliationCommand.html" title="Phronomy::Agent::DispatchPreparation::ToolReconciliationCommand (class)">ToolReconciliationCommand</a></span></span></pre></dd>
+      
+        <dt id="ResumeCommitCommand-constant" class="">ResumeCommitCommand =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="ApprovalResumeCommit.html" title="Phronomy::Agent::ApprovalResumeCommit (class)">ApprovalResumeCommit</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ApprovalResumeCommit/Command.html" title="Phronomy::Agent::ApprovalResumeCommit::Command (class)">Command</a></span></span></pre></dd>
+      
+        <dt id="HandoffTerminalView-constant" class="">HandoffTerminalView =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter.html" title="Phronomy::Agent::ExecutionOutcomeCommitter (class)">ExecutionOutcomeCommitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter/HandoffTerminalView.html" title="Phronomy::Agent::ExecutionOutcomeCommitter::HandoffTerminalView (class)">HandoffTerminalView</a></span></span></pre></dd>
+      
+        <dt id="TerminalView-constant" class="">TerminalView =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter.html" title="Phronomy::Agent::ExecutionOutcomeCommitter (class)">ExecutionOutcomeCommitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter/TerminalView.html" title="Phronomy::Agent::ExecutionOutcomeCommitter::TerminalView (class)">TerminalView</a></span></span></pre></dd>
+      
+        <dt id="TerminalCommitCommand-constant" class="">TerminalCommitCommand =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter.html" title="Phronomy::Agent::ExecutionOutcomeCommitter (class)">ExecutionOutcomeCommitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter/Command.html" title="Phronomy::Agent::ExecutionOutcomeCommitter::Command (class)">Command</a></span></span></pre></dd>
+      
+        <dt id="InitialPreparationResult-constant" class="">InitialPreparationResult =
+          <div class="docstring">
+  <div class="discussion">
+    <p>Offload -&gt; EventLoop operation results. No live Agent/Invocation object is
+mutated by a worker; these values are validated and applied on EventLoop.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="InitialPreparation.html" title="Phronomy::Agent::InitialPreparation (class)">InitialPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="InitialPreparation/Result.html" title="Phronomy::Agent::InitialPreparation::Result (class)">Result</a></span></span></pre></dd>
+      
+        <dt id="ProviderDispatchPreparationResult-constant" class="">ProviderDispatchPreparationResult =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ProviderResult.html" title="Phronomy::Agent::DispatchPreparation::ProviderResult (class)">ProviderResult</a></span></span></pre></dd>
+      
+        <dt id="ToolDispatchPreparationResult-constant" class="">ToolDispatchPreparationResult =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ToolResult.html" title="Phronomy::Agent::DispatchPreparation::ToolResult (class)">ToolResult</a></span></span></pre></dd>
+      
+        <dt id="ProviderDispatchPreparationReconciliationResult-constant" class="">ProviderDispatchPreparationReconciliationResult =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ProviderReconciliationResult.html" title="Phronomy::Agent::DispatchPreparation::ProviderReconciliationResult (class)">ProviderReconciliationResult</a></span></span></pre></dd>
+      
+        <dt id="ToolDispatchPreparationReconciliationResult-constant" class="">ToolDispatchPreparationReconciliationResult =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="DispatchPreparation/ToolReconciliationResult.html" title="Phronomy::Agent::DispatchPreparation::ToolReconciliationResult (class)">ToolReconciliationResult</a></span></span></pre></dd>
+      
+        <dt id="ResumeCommitResult-constant" class="">ResumeCommitResult =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="ApprovalResumeCommit.html" title="Phronomy::Agent::ApprovalResumeCommit (class)">ApprovalResumeCommit</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ApprovalResumeCommit/Result.html" title="Phronomy::Agent::ApprovalResumeCommit::Result (class)">Result</a></span></span></pre></dd>
+      
+        <dt id="TerminalOutcome-constant" class="">TerminalOutcome =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter.html" title="Phronomy::Agent::ExecutionOutcomeCommitter (class)">ExecutionOutcomeCommitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ExecutionOutcomeCommitter/Outcome.html" title="Phronomy::Agent::ExecutionOutcomeCommitter::Outcome (class)">Outcome</a></span></span></pre></dd>
+      
+    </dl>
+  
 
 
 
@@ -357,7 +472,14 @@
     
   
 
-<div id="constructor_details" class="method_details_list">
+
+  
+  
+  
+  
+  
+  
+  <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
     <div class="method_details first">
@@ -384,15 +506,23 @@
       <pre class="lines">
 
 
-128
-129
-130</pre>
+96
+97
+98
+99
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 128</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
+  <span class='ivar'>@initial_preparation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InitialPreparation.html" title="Phronomy::Agent::InitialPreparation (class)">InitialPreparation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InitialPreparation.html#initialize-instance_method" title="Phronomy::Agent::InitialPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+  <span class='ivar'>@dispatch_preparation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="DispatchPreparation.html" title="Phronomy::Agent::DispatchPreparation (class)">DispatchPreparation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="DispatchPreparation.html#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+  <span class='ivar'>@approval_resume_commit</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ApprovalResumeCommit.html" title="Phronomy::Agent::ApprovalResumeCommit (class)">ApprovalResumeCommit</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ApprovalResumeCommit.html#initialize-instance_method" title="Phronomy::Agent::ApprovalResumeCommit#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+  <span class='ivar'>@outcome_committer</span> <span class='op'>=</span> <span class='id identifier rubyid_build_outcome_committer'>build_outcome_committer</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -435,40 +565,47 @@ coordinator entry point allowed to advance Phronomy-managed live state.</p>
       <pre class="lines">
 
 
-367
-368
-369
-370
-371
-372
-373
-374
-375
-376
-377
-378
-379
-380
-381
-382
-383
-384
-385
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396
-397</pre>
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 367</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 303</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver_on_event_loop'>deliver_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
@@ -477,6 +614,13 @@ coordinator entry point allowed to advance Phronomy-managed live state.</p>
   <span class='kw'>case</span> <span class='id identifier rubyid_command'>command</span>
   <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/StartCommand.html" title="Phronomy::Agent::ExecutionCoordinator::StartCommand (class)">StartCommand</a></span></span>
     <span class='id identifier rubyid_begin_start_on_event_loop'>begin_start_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/RecoverPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::RecoverPreparationCommand (class)">RecoverPreparationCommand</a></span></span>
+    <span class='id identifier rubyid_recover_preparation_on_event_loop'>recover_preparation_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ContinueRecoveredCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ContinueRecoveredCommand (class)">ContinueRecoveredCommand</a></span></span>
+    <span class='id identifier rubyid_continue_recovered_on_event_loop'>continue_recovered_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+  <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/SessionFinishedCommand.html" title="Phronomy::Agent::ExecutionCoordinator::SessionFinishedCommand (class)">SessionFinishedCommand</a></span></span>
+    <span class='id identifier rubyid_finish_on_event_loop'>finish_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span><span class='comma'>,</span> <span class='label'>fsm_session_id:</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
   <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/InitialPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationReady (class)">InitialPreparationReady</a></span></span>
     <span class='id identifier rubyid_apply_initial_preparation_on_event_loop'>apply_initial_preparation_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/InitialPreparationRecoveryReady.html" title="Phronomy::Agent::ExecutionCoordinator::InitialPreparationRecoveryReady (class)">InitialPreparationRecoveryReady</a></span></span>
@@ -536,65 +680,29 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229</pre>
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 199</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 171</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_provider_dispatch'>prepare_provider_dispatch</span><span class='lparen'>(</span><span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='label'>event_sink:</span><span class='comma'>,</span> <span class='label'>streaming:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
-  <span class='id identifier rubyid_assert_event_loop!'>assert_event_loop!</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_agent_execution_state'>agent_execution_state</span><span class='lparen'>(</span><span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_validate_live_session!'>validate_live_session!</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
-  <span class='kw'>unless</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_state'>fsm_session_state</span><span class='lparen'>(</span><span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='symbol'>:calling_llm</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Provider dispatch preparation requires the owning FSMSession to be in :calling_llm</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationCommand (class)">ProviderDispatchPreparationCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>execution_id:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-    <span class='label'>fsm_session_id:</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
-    <span class='label'>expected_execution_revision:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
-    <span class='label'>root:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_root'>agent_root</span><span class='comma'>,</span>
-    <span class='label'>journal_records:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_journal_records_snapshot</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>execution:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span>
-    <span class='label'>base_manifest:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='comma'>,</span>
-    <span class='label'>invocation_config:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
-    <span class='label'>runtime_snapshot:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_runtime_snapshot'>runtime_snapshot</span><span class='comma'>,</span>
-    <span class='label'>streaming:</span> <span class='op'>!</span><span class='op'>!</span><span class='id identifier rubyid_streaming'>streaming</span><span class='comma'>,</span>
-    <span class='label'>pending_llm_call_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
-    <span class='label'>pending_llm_started_at:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='period'>.</span><span class='id identifier rubyid_utc'>utc</span><span class='period'>.</span><span class='id identifier rubyid_iso8601'>iso8601</span><span class='lparen'>(</span><span class='int'>6</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_dispatch_preparation_state!'>dispatch_preparation_state!</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='symbol'>:calling_llm</span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Provider</span><span class='tstring_end'>&quot;</span></span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='id identifier rubyid_capture_provider_preparation'>capture_provider_preparation</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='label'>fsm_session_id:</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='comma'>,</span> <span class='label'>streaming:</span> <span class='id identifier rubyid_streaming'>streaming</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_submit_provider_dispatch_preparation'>submit_provider_dispatch_preparation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='kw'>nil</span>
@@ -635,65 +743,29 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-232
-233
-234
-235
-236
-237
-238
-239
-240
-241
-242
-243
-244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260
-261
-262</pre>
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 232</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 186</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_tool_dispatch'>prepare_tool_dispatch</span><span class='lparen'>(</span><span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='label'>event_sink:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
-  <span class='id identifier rubyid_assert_event_loop!'>assert_event_loop!</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_agent_execution_state'>agent_execution_state</span><span class='lparen'>(</span><span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_validate_live_session!'>validate_live_session!</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span>
-  <span class='kw'>unless</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_state'>fsm_session_state</span><span class='lparen'>(</span><span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='symbol'>:dispatching_tools</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Tool dispatch preparation requires the owning FSMSession to be in :dispatching_tools</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_tool_batch_snapshot'>tool_batch_snapshot</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="RecoverySupport.html" title="Phronomy::Agent::RecoverySupport (module)">RecoverySupport</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build_tool_batch_snapshot'><span class='object_link'><a href="RecoverySupport.html#build_tool_batch_snapshot-class_method" title="Phronomy::Agent::RecoverySupport.build_tool_batch_snapshot (method)">build_tool_batch_snapshot</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_invocation'>invocation</span><span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_tool_batch_snapshot'>tool_batch_snapshot</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Tool dispatch preparation requires a non-empty Tool batch</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationCommand (class)">ToolDispatchPreparationCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>execution_id:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-    <span class='label'>fsm_session_id:</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
-    <span class='label'>expected_execution_revision:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
-    <span class='label'>root:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_root'>agent_root</span><span class='comma'>,</span>
-    <span class='label'>execution:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span>
-    <span class='label'>runtime_snapshot:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_runtime_snapshot'>runtime_snapshot</span><span class='comma'>,</span>
-    <span class='label'>tool_batch_snapshot:</span> <span class='id identifier rubyid_tool_batch_snapshot'>tool_batch_snapshot</span>
+  <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_dispatch_preparation_state!'>dispatch_preparation_state!</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='symbol'>:dispatching_tools</span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Tool</span><span class='tstring_end'>&quot;</span></span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='id identifier rubyid_capture_tool_preparation'>capture_tool_preparation</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='label'>fsm_session_id:</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='period'>.</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_submit_tool_dispatch_preparation'>submit_tool_dispatch_preparation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='kw'>nil</span>
@@ -721,36 +793,36 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193</pre>
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 167</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 139</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -799,43 +871,43 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
 132
 133
 134
 135
 136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165</pre>
+137</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 132</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
@@ -845,7 +917,7 @@ and sends only that snapshot to OffloadPool.</p>
   <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_reject_removed_generic_identity_keys!</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../TaskResult.html#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-</span><span class='embexpr_beg'>#{</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_content'>-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_mode'>mode</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:invocation_context</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_binding'>binding</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid___operation_binding'><span class='object_link'><a href="../Execution.html#__operation_binding-class_method" title="Phronomy::Execution.__operation_binding (method)">__operation_binding</a></span></span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_binding'>binding</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/OperationBinding.html" title="Phronomy::Concurrency::OperationBinding (class)">OperationBinding</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/OperationBinding.html#initialize-instance_method" title="Phronomy::Concurrency::OperationBinding#initialize (method)">new</a></span></span><span class='lparen'>(</span>
       <span class='label'>invocation_context:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:invocation_context</span><span class='rbracket'>]</span><span class='comma'>,</span>
       <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
     <span class='rparen'>)</span>
@@ -891,34 +963,34 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281
-282
-283</pre>
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 264</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 200</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit_provider_dispatch_preparation'>submit_provider_dispatch_preparation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
   <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_perform_provider_dispatch_preparation'>perform_provider_dispatch_preparation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
+    <span class='ivar'>@dispatch_preparation</span><span class='period'>.</span><span class='id identifier rubyid_prepare_provider'>prepare_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
     <span class='id identifier rubyid_ready'>ready</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReady (class)">ProviderDispatchPreparationReady</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -955,48 +1027,48 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-306
-307
-308
-309
-310
-311
-312
-313
-314
-315
-316
-317
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331
-332
-333</pre>
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 306</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 242</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit_provider_dispatch_preparation_reconciliation'>submit_provider_dispatch_preparation_reconciliation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_uncertainty'>uncertainty</span><span class='rparen'>)</span>
   <span class='comment'># simplecov:disable
 </span>  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_command'>command</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReconciliationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationCommand (class)">ProviderDispatchPreparationReconciliationCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_command'>command</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#ProviderDispatchPreparationReconciliationCommand-constant" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationCommand (constant)">ProviderDispatchPreparationReconciliationCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>operation:</span> <span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span>
     <span class='label'>intended_result:</span> <span class='id identifier rubyid_uncertainty'>uncertainty</span><span class='period'>.</span><span class='id identifier rubyid_intended_result'>intended_result</span><span class='comma'>,</span>
     <span class='label'>original_error:</span> <span class='id identifier rubyid_uncertainty'>uncertainty</span><span class='period'>.</span><span class='id identifier rubyid_original_error'>original_error</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_perform_provider_dispatch_preparation_reconciliation'>perform_provider_dispatch_preparation_reconciliation</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+    <span class='ivar'>@dispatch_preparation</span><span class='period'>.</span><span class='id identifier rubyid_reconcile_provider'>reconcile_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
     <span class='id identifier rubyid_ready'>ready</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ProviderDispatchPreparationReconciliationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ProviderDispatchPreparationReconciliationReady (class)">ProviderDispatchPreparationReconciliationReady</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1035,34 +1107,34 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-285
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302
-303
-304</pre>
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 285</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 221</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit_tool_dispatch_preparation'>submit_tool_dispatch_preparation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
   <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_perform_tool_dispatch_preparation'>perform_tool_dispatch_preparation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
+    <span class='ivar'>@dispatch_preparation</span><span class='period'>.</span><span class='id identifier rubyid_prepare_tools'>prepare_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
     <span class='id identifier rubyid_ready'>ready</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReady (class)">ToolDispatchPreparationReady</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1099,48 +1171,48 @@ and sends only that snapshot to OffloadPool.</p>
       <pre class="lines">
 
 
-335
-336
-337
-338
-339
-340
-341
-342
-343
-344
-345
-346
-347
-348
-349
-350
-351
-352
-353
-354
-355
-356
-357
-358
-359
-360
-361
-362</pre>
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 335</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_coordinator.rb', line 271</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit_tool_dispatch_preparation_reconciliation'>submit_tool_dispatch_preparation_reconciliation</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_uncertainty'>uncertainty</span><span class='rparen'>)</span>
   <span class='comment'># simplecov:disable
 </span>  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_command'>command</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReconciliationCommand.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand (class)">ToolDispatchPreparationReconciliationCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_command'>command</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#ToolDispatchPreparationReconciliationCommand-constant" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationCommand (constant)">ToolDispatchPreparationReconciliationCommand</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>operation:</span> <span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span>
     <span class='label'>intended_result:</span> <span class='id identifier rubyid_uncertainty'>uncertainty</span><span class='period'>.</span><span class='id identifier rubyid_intended_result'>intended_result</span><span class='comma'>,</span>
     <span class='label'>original_error:</span> <span class='id identifier rubyid_uncertainty'>uncertainty</span><span class='period'>.</span><span class='id identifier rubyid_original_error'>original_error</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_perform_tool_dispatch_preparation_reconciliation'>perform_tool_dispatch_preparation_reconciliation</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
+    <span class='ivar'>@dispatch_preparation</span><span class='period'>.</span><span class='id identifier rubyid_reconcile_tools'>reconcile_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
     <span class='id identifier rubyid_ready'>ready</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/ToolDispatchPreparationReconciliationReady.html" title="Phronomy::Agent::ExecutionCoordinator::ToolDispatchPreparationReconciliationReady (class)">ToolDispatchPreparationReconciliationReady</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1169,7 +1241,7 @@ and sends only that snapshot to OffloadPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:23 2026 by
+  Generated on Wed Sep 23 17:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

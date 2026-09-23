@@ -20,7 +20,13 @@ returns control to the caller. Handoff changes the active Agent for the current
 coordination lifetime.
 
 Normative Handoff intent is
-[ADR-030](../decisions/030-agent-handoff-domain-and-durable-responsibility.md).
+[ADR-030](../decisions/030-agent-handoff-domain-and-durable-responsibility.md),
+with the Runner ownership amendment in
+[ADR-034](../decisions/034-handoff-runner-coordination-ownership.md).
+
+The Runner owns the cross-Agent turn. Handoff edges, Policy, Context and
+Agent terminal/persistence integration remain in Agent during this first
+migration step. See the [Runner migration](../migrations/handoff-runner-multi-agent.md).
 
 ## 2. Public API
 
@@ -32,7 +38,7 @@ handoff = Phronomy::Agent::Handoff.new(
   policy: policy
 )
 
-runner = Phronomy::Agent::HandoffRunner.new(
+runner = Phronomy::MultiAgent::HandoffRunner.new(
   main_agent: triage,
   handoffs: [handoff]
 )

@@ -80,7 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/diagnostics.rb
+    <dd>lib/phronomy/engine/diagnostics.rb
 </dd>
   </dl>
   
@@ -231,7 +231,7 @@
 31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/diagnostics.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_assert_not_in_event_loop!'>assert_not_in_event_loop!</span>
   <span class='kw'>return</span> <span class='kw'>unless</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span>
@@ -276,7 +276,7 @@
 20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 6</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/diagnostics.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_dump'>dump</span><span class='lparen'>(</span><span class='label'>out:</span> <span class='gvar'>$stderr</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_snap'>snap</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Metrics.html" title="Phronomy::Metrics (module)">Metrics</a></span></span><span class='period'>.</span><span class='id identifier rubyid_snapshot'><span class='object_link'><a href="Metrics.html#snapshot-class_method" title="Phronomy::Metrics.snapshot (method)">snapshot</a></span></span>
@@ -318,7 +318,7 @@
 24</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/diagnostics.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'>snapshot</span>
   <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Metrics.html" title="Phronomy::Metrics (module)">Metrics</a></span></span><span class='period'>.</span><span class='id identifier rubyid_snapshot'><span class='object_link'><a href="Metrics.html#snapshot-class_method" title="Phronomy::Metrics.snapshot (method)">snapshot</a></span></span>
@@ -333,7 +333,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:18 2026 by
+  Generated on Wed Sep 23 17:37:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

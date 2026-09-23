@@ -91,7 +91,7 @@
   
   <dl>
       <dt>Includes:</dt>
-      <dd><span class='object_link'><a href="Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span>, <span class='object_link'><a href="WorkflowRecovery.html" title="Phronomy::WorkflowRecovery (module)">WorkflowRecovery</a></span></dd>
+      <dd><span class='object_link'><a href="Concurrency/WorkerInputRestricted.html" title="Phronomy::Concurrency::WorkerInputRestricted (module)">Concurrency::WorkerInputRestricted</a></span>, <span class='object_link'><a href="Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></dd>
   </dl>
   
   
@@ -101,7 +101,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/workflow_runner.rb
+    <dd>lib/phronomy/workflow/execution/workflow_runner.rb
 </dd>
   </dl>
   
@@ -140,35 +140,6 @@ to the same FSMSession before that session becomes halted/completed.</p>
     
   
 </p>
-
-  
-    <h2>
-      Constant Summary
-      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
-    </h2>
-
-    <dl class="constants">
-      
-        <dt id="FINISH-constant" class="">FINISH =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
-        </dt>
-        <dd><pre class="code"><span class='symbol'>:__end__</span></pre></dd>
-      
-    </dl>
-  
 
 
 
@@ -416,8 +387,6 @@ to the same FSMSession before that session becomes halted/completed.</p>
       <pre class="lines">
 
 
-71
-72
 73
 74
 75
@@ -446,10 +415,12 @@ to the same FSMSession before that session becomes halted/completed.</p>
 98
 99
 100
-101</pre>
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>state_class:</span><span class='comma'>,</span>
@@ -524,11 +495,6 @@ progression therefore remain EventLoop-owned.</p>
       <pre class="lines">
 
 
-165
-166
-167
-168
-169
 170
 171
 172
@@ -540,10 +506,15 @@ progression therefore remain EventLoop-owned.</p>
 178
 179
 180
-181</pre>
+181
+182
+183
+184
+185
+186</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 165</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 170</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver_on_event_loop'>deliver_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
@@ -595,13 +566,13 @@ progression therefore remain EventLoop-owned.</p>
       <pre class="lines">
 
 
-103
-104
 105
-106</pre>
+106
+107
+108</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 103</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_call_allowed!'>ensure_blocking_call_allowed!</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
@@ -640,12 +611,12 @@ progression therefore remain EventLoop-owned.</p>
       <pre class="lines">
 
 
-108
-109
-110</pre>
+110
+111
+112</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 110</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_deferred'>invoke_deferred</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_start_new_execution'>start_new_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -683,12 +654,12 @@ progression therefore remain EventLoop-owned.</p>
       <pre class="lines">
 
 
-119
-120
-121</pre>
+121
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 119</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:resume</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -726,8 +697,6 @@ progression therefore remain EventLoop-owned.</p>
       <pre class="lines">
 
 
-123
-124
 125
 126
 127
@@ -741,10 +710,12 @@ progression therefore remain EventLoop-owned.</p>
 135
 136
 137
-138</pre>
+138
+139
+140</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 123</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 125</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_call_allowed!'>ensure_blocking_call_allowed!</span><span class='lparen'>(</span><span class='symbol'>:send_event</span><span class='comma'>,</span> <span class='symbol'>:signal</span><span class='rparen'>)</span>
@@ -783,7 +754,7 @@ progression therefore remain EventLoop-owned.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Posts an application-defined event to the currently live Workflow owner.
-EventLoop resolves workflow_instance_id to the current concrete
+WorkflowExecutionRegistry resolves workflow_instance_id to the current concrete
 fsm_session_id. The opaque admission owner token is deliberately not a
 routing identity and is not exposed here.</p>
 
@@ -811,8 +782,6 @@ routing identity and is not exposed here.</p>
       <pre class="lines">
 
 
-144
-145
 146
 147
 148
@@ -826,10 +795,15 @@ routing identity and is not exposed here.</p>
 156
 157
 158
-159</pre>
+159
+160
+161
+162
+163
+164</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 144</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span><span class='label'>workflow_instance_id:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>workflow_instance_id is required</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -841,7 +815,10 @@ routing identity and is not exposed here.</p>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Valid events: </span><span class='embexpr_beg'>#{</span><span class='ivar'>@external_events</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
-  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post_to_workflow'>post_to_workflow</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_registry'>registry</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowExecutionRegistry.html" title="Phronomy::WorkflowExecutionRegistry (class)">WorkflowExecutionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_existing_for'>existing_for</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_registry'>registry</span>
+
+  <span class='id identifier rubyid_registry'>registry</span><span class='period'>.</span><span class='id identifier rubyid_post_to_workflow'>post_to_workflow</span><span class='lparen'>(</span>
     <span class='label'>workflow_instance_id:</span> <span class='id identifier rubyid_workflow_instance_id'>workflow_instance_id</span><span class='comma'>,</span>
     <span class='label'>event:</span> <span class='id identifier rubyid_event_name'>event_name</span><span class='comma'>,</span>
     <span class='label'>payload:</span> <span class='id identifier rubyid_payload'>payload</span>
@@ -893,15 +870,15 @@ routing identity and is not exposed here.</p>
       <pre class="lines">
 
 
-112
-113
 114
 115
 116
-117</pre>
+117
+118
+119</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_runner.rb', line 114</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_observer'>observer</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_call_allowed!'>ensure_blocking_call_allowed!</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
@@ -919,7 +896,7 @@ routing identity and is not exposed here.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:19 2026 by
+  Generated on Wed Sep 23 17:37:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

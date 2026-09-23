@@ -96,7 +96,9 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/generator_verifier.rb
+    <dd>lib/phronomy/generation/generator_verifier.rb<span class="defines">,<br>
+  lib/phronomy/generation/generator_verifier/pipeline_state.rb,<br> lib/phronomy/generation/generator_verifier/workflow_builder.rb,<br> lib/phronomy/generation/generator_verifier/agent_result_receiver.rb</span>
+
 </dd>
   </dl>
   
@@ -236,33 +238,33 @@ Workflow entry actions do not return or await Agent Tasks.</p>
       <pre class="lines">
 
 
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102</pre>
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>draft_agent:</span><span class='comma'>,</span>
@@ -315,26 +317,26 @@ Workflow entry actions do not return or await Agent Tasks.</p>
       <pre class="lines">
 
 
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120</pre>
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_workflow'>compiled_workflow</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -363,7 +365,7 @@ Workflow entry actions do not return or await Agent Tasks.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:20 2026 by
+  Generated on Wed Sep 23 17:37:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

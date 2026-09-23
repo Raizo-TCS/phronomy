@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/tool_invocation.rb
+    <dd>lib/phronomy/agent/tool_execution/tool_invocation.rb
 </dd>
   </dl>
   
@@ -342,11 +342,6 @@
       <pre class="lines">
 
 
-11
-12
-13
-14
-15
 16
 17
 18
@@ -354,10 +349,15 @@
 20
 21
 22
-23</pre>
+23
+24
+25
+26
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>tool_invocation_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>decision:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>facts:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>reason:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -424,12 +424,12 @@
       <pre class="lines">
 
 
-8
-9
-10</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled'>cancelled</span>
   <span class='ivar'>@cancelled</span>
@@ -481,12 +481,12 @@
       <pre class="lines">
 
 
-8
-9
-10</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decision'>decision</span>
   <span class='ivar'>@decision</span>
@@ -538,12 +538,12 @@
       <pre class="lines">
 
 
-8
-9
-10</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -595,12 +595,12 @@
       <pre class="lines">
 
 
-8
-9
-10</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_facts'>facts</span>
   <span class='ivar'>@facts</span>
@@ -652,12 +652,12 @@
       <pre class="lines">
 
 
-8
-9
-10</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reason'>reason</span>
   <span class='ivar'>@reason</span>
@@ -709,12 +709,12 @@
       <pre class="lines">
 
 
-8
-9
-10</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_execution/tool_invocation.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_invocation_id'>tool_invocation_id</span>
   <span class='ivar'>@tool_invocation_id</span>
@@ -730,7 +730,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:21 2026 by
+  Generated on Wed Sep 23 17:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

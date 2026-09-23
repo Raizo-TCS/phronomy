@@ -67,6 +67,42 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>Separate application Runtime reset and configuration replacement into
+<code>runtime_composition/global_runtime.rb</code>. Configuration access no longer owns
+Runtime lifecycle control; the reset API, shutdown ordering, timeout behavior,
+and configuration defaults are unchanged. See
+<a href="docs/decisions/039-runtime-configuration-lifecycle-ownership.md">ADR-039</a>.</li>
+<li>Group root implementations and entry-point exceptions by responsibility:
+common definitions, Engine/FSM execution contracts, Recovery, Workflow,
+Agent lifecycle contracts, LLM contracts, configuration, and feature APIs.
+Preserve public constant names, API signatures, stored formats, and lifecycle
+loading. Reserve the direct source root for version and namespace/loading
+files; share the three equivalent immutable-copy helpers. See
+<a href="docs/decisions/038-responsibility-based-source-layout.md">ADR-038</a>.</li>
+<li>Move the shared <code>Phronomy::Error</code> base exception to <code>common/error.rb</code> and
+define ownership rules for general common definitions. The public constant,
+subclass hierarchies, and rescue behavior are preserved. See
+<a href="docs/decisions/037-common-definition-ownership.md">ADR-037</a>.</li>
+<li>Group Context Policy and hook contracts, values, Manifest representation,
+and Plan validation under <code>agent/context_contract/</code>. Zeitwerk collapses the
+directory so the existing <code>Phronomy::Agent</code> constant names, Policy/hook
+protocols, and Manifest format remain unchanged. Agent execution and Context
+assembly retain their existing responsibilities. See
+<a href="docs/decisions/036-context-contract-ownership.md">ADR-036</a>.</li>
+<li>Move the internal <code>Phronomy::Agent::ToolExecutor</code> to
+<code>Phronomy::Agent::Context::Capability::ToolExecutor</code>, alongside the default
+Tool invocation contract, without an alias for the old internal constant.
+Public Tool names, <code>call_async</code> arguments, execution modes, Runtime routing,
+and Agent-owned authorization/result handling are preserved. See
+<a href="docs/decisions/035-tool-executor-capability-ownership.md">ADR-035</a>.</li>
+<li>Move <code>Phronomy::Agent::HandoffRunner</code> to
+<code>Phronomy::MultiAgent::HandoffRunner</code> without a compatibility alias on the
+architecture refactoring branch. Handoff edges and Policy remain in Agent;
+execution, persistence formats, cancellation and recovery behavior are unchanged.
+See <a href="docs/migrations/handoff-runner-multi-agent.md">the migration guide</a>.</li>
+</ul>
 <hr />
 <h2 id="_0_26_0____2026_09_14">[0.26.0] - 2026-09-14</h2>
 <h3 id="Changed">Changed</h3>
@@ -747,7 +783,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:18 2026 by
+  Generated on Wed Sep 23 17:37:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/agent/handoff.rb
+    <dd>lib/phronomy/agent/handoff/handoff.rb
 </dd>
   </dl>
   
@@ -316,7 +316,7 @@ from one live Agent instance to another.</p>
 31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff/handoff.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>source_agent:</span><span class='comma'>,</span> <span class='label'>target_agent:</span><span class='comma'>,</span> <span class='label'>policy:</span> <span class='const'><span class='object_link'><a href="HandoffPolicy.html" title="Phronomy::Agent::HandoffPolicy (class)">HandoffPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_default'><span class='object_link'><a href="HandoffPolicy.html#default-class_method" title="Phronomy::Agent::HandoffPolicy.default (method)">default</a></span></span><span class='comma'>,</span> <span class='label'>description:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_source_agent'>source_agent</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
@@ -378,7 +378,7 @@ from one live Agent instance to another.</p>
 12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff/handoff.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_description'>description</span>
   <span class='ivar'>@description</span>
@@ -419,7 +419,7 @@ from one live Agent instance to another.</p>
 12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff/handoff.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_policy'>policy</span>
   <span class='ivar'>@policy</span>
@@ -460,7 +460,7 @@ from one live Agent instance to another.</p>
 12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff/handoff.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_source_agent'>source_agent</span>
   <span class='ivar'>@source_agent</span>
@@ -501,7 +501,7 @@ from one live Agent instance to another.</p>
 12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/handoff/handoff.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_target_agent'>target_agent</span>
   <span class='ivar'>@target_agent</span>
@@ -517,7 +517,7 @@ from one live Agent instance to another.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:19 2026 by
+  Generated on Wed Sep 23 17:37:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Class: Phronomy::Storage::View
+  
+    &mdash; Documentation by YARD 0.9.45
+  
+</title>
+
+  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Storage::View";
+  relpath = '../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../_index.html">Index (V)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span>
+     &raquo; 
+    <span class="title">View</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Class: Phronomy::Storage::View
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName">Object</span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">Phronomy::Storage::View</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/storage/view.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Root handles route to the current scope; bound handles cannot outlive it.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+
+
+
+
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#atomic-instance_method" title="#atomic (instance method)">#<strong>atomic</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Keeps domain encoding/response validation inside the physical transaction.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#blobs-instance_method" title="#blobs (instance method)">#<strong>blobs</strong>(resource)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#check!-instance_method" title="#check! (instance method)">#<strong>check!</strong>(guards:, conditions:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Acquire stable anchors before evaluating conditions in the same view.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#dispatch-instance_method" title="#dispatch (instance method)">#<strong>dispatch</strong>(operation, resource, **arguments)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(backend, scope: nil, context: nil)  &#x21d2; View </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of View.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#perform-instance_method" title="#perform (instance method)">#<strong>perform</strong>(operation, resource, **arguments)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#records-instance_method" title="#records (instance method)">#<strong>records</strong>(resource)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#streams-instance_method" title="#streams (instance method)">#<strong>streams</strong>(resource)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#validate!-instance_method" title="#validate! (instance method)">#<strong>validate!</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>(backend, scope: nil, context: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Storage::View (class)">View</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns a new instance of View.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+8
+9
+10
+11</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 8</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_backend'>backend</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@backend</span><span class='comma'>,</span> <span class='ivar'>@scope</span><span class='comma'>,</span> <span class='ivar'>@context</span> <span class='op'>=</span> <span class='id identifier rubyid_backend'>backend</span><span class='comma'>,</span> <span class='id identifier rubyid_scope'>scope</span><span class='comma'>,</span> <span class='id identifier rubyid_context'>context</span>
+  <span class='ivar'>@handles</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="atomic-instance_method">
+  
+    #<strong>atomic</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Keeps domain encoding/response validation inside the physical transaction.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 56</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_atomic'>atomic</span>
+  <span class='id identifier rubyid_validate!'>validate!</span>
+  <span class='kw'>unless</span> <span class='ivar'>@scope</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_current_view'>current_view</span>
+    <span class='kw'>return</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_atomic'>atomic</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_bound'>bound</span><span class='op'>|</span> <span class='kw'>yield</span> <span class='id identifier rubyid_bound'>bound</span> <span class='rbrace'>}</span> <span class='kw'>if</span> <span class='id identifier rubyid_current'>current</span>
+    <span class='kw'>return</span> <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_bound'>bound</span><span class='op'>|</span> <span class='id identifier rubyid_bound'>bound</span><span class='period'>.</span><span class='id identifier rubyid_atomic'>atomic</span> <span class='lbrace'>{</span> <span class='kw'>yield</span> <span class='id identifier rubyid_bound'>bound</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_completed'>completed</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='kw'>begin</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>yield</span> <span class='kw'>self</span>
+    <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid_check!'>check!</span>
+    <span class='id identifier rubyid_completed'>completed</span> <span class='op'>=</span> <span class='kw'>true</span>
+    <span class='id identifier rubyid_result'>result</span>
+  <span class='kw'>ensure</span>
+    <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid_fail!'>fail!</span> <span class='kw'>unless</span> <span class='id identifier rubyid_completed'>completed</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="blobs-instance_method">
+  
+    #<strong>blobs</strong>(resource)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+18</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 18</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_blobs'>blobs</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:blobs</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="Blobs.html" title="Phronomy::Storage::Blobs (class)">Blobs</a></span></span><span class='rparen'>)</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="check!-instance_method">
+  
+    #<strong>check!</strong>(guards:, conditions:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Acquire stable anchors before evaluating conditions in the same view.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 22</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_check!'>check!</span><span class='lparen'>(</span><span class='label'>guards:</span><span class='comma'>,</span> <span class='label'>conditions:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate!'>validate!</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>guards and conditions must be arrays</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_guards'>guards</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Array</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_conditions'>conditions</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Array</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_guards'>guards</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_guard'>guard</span><span class='op'>|</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected GuardRef</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_guard'>guard</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="GuardRef.html" title="Phronomy::Storage::GuardRef (class)">GuardRef</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='id identifier rubyid_guard'>guard</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:records</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_conditions'>conditions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_condition'>condition</span><span class='op'>|</span>
+    <span class='kw'>case</span> <span class='id identifier rubyid_condition'>condition</span>
+    <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="Condition.html" title="Phronomy::Storage::Condition (module)">Condition</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Condition/RevisionIs.html" title="Phronomy::Storage::Condition::RevisionIs (class)">RevisionIs</a></span></span> <span class='kw'>then</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:records</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="Condition.html" title="Phronomy::Storage::Condition (module)">Condition</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Condition/StreamHeadIs.html" title="Phronomy::Storage::Condition::StreamHeadIs (class)">StreamHeadIs</a></span></span> <span class='kw'>then</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:streams</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="Condition.html" title="Phronomy::Storage::Condition (module)">Condition</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Condition/NoRows.html" title="Phronomy::Storage::Condition::NoRows (class)">NoRows</a></span></span> <span class='kw'>then</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:records</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_index_values'>index_values</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='comma'>,</span> <span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_equals'>equals</span><span class='rparen'>)</span>
+    <span class='kw'>else</span> <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unsupported condition</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_require_guard!'>require_guard!</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='comma'>,</span> <span class='id identifier rubyid_guards'>guards</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_atomic'>atomic</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_bound'>bound</span><span class='op'>|</span>
+    <span class='id identifier rubyid_guards'>guards</span><span class='period'>.</span><span class='id identifier rubyid_uniq'>uniq</span><span class='period'>.</span><span class='id identifier rubyid_sort_by'>sort_by</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_g'>g</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='id identifier rubyid_g'>g</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:records</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_b'>b</span><span class='comma'>,</span> <span class='id identifier rubyid_g'>g</span><span class='period'>.</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_b'>b</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_guard'>guard</span><span class='op'>|</span>
+      <span class='id identifier rubyid_bound'>bound</span><span class='period'>.</span><span class='id identifier rubyid_perform'>perform</span><span class='lparen'>(</span><span class='symbol'>:lock_guard</span><span class='comma'>,</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span><span class='id identifier rubyid_guard'>guard</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:records</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>key:</span> <span class='id identifier rubyid_guard'>guard</span><span class='period'>.</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_conditions'>conditions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_condition'>condition</span><span class='op'>|</span>
+      <span class='id identifier rubyid_matched'>matched</span> <span class='op'>=</span> <span class='kw'>case</span> <span class='id identifier rubyid_condition'>condition</span>
+      <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="Condition.html" title="Phronomy::Storage::Condition (module)">Condition</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Condition/RevisionIs.html" title="Phronomy::Storage::Condition::RevisionIs (class)">RevisionIs</a></span></span> <span class='kw'>then</span> <span class='id identifier rubyid_bound'>bound</span><span class='period'>.</span><span class='id identifier rubyid_records'>records</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_revision'>revision</span> <span class='op'>==</span> <span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_expected'>expected</span>
+      <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="Condition.html" title="Phronomy::Storage::Condition (module)">Condition</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Condition/StreamHeadIs.html" title="Phronomy::Storage::Condition::StreamHeadIs (class)">StreamHeadIs</a></span></span> <span class='kw'>then</span> <span class='id identifier rubyid_bound'>bound</span><span class='period'>.</span><span class='id identifier rubyid_streams'>streams</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_head'>head</span><span class='lparen'>(</span><span class='label'>stream:</span> <span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_stream'>stream</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_expected'>expected</span>
+      <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="Condition.html" title="Phronomy::Storage::Condition (module)">Condition</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Condition/NoRows.html" title="Phronomy::Storage::Condition::NoRows (class)">NoRows</a></span></span> <span class='kw'>then</span> <span class='id identifier rubyid_bound'>bound</span><span class='period'>.</span><span class='id identifier rubyid_records'>records</span><span class='lparen'>(</span><span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_scan'>scan</span><span class='lparen'>(</span><span class='label'>index:</span> <span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='comma'>,</span> <span class='label'>equals:</span> <span class='id identifier rubyid_condition'>condition</span><span class='period'>.</span><span class='id identifier rubyid_equals'>equals</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>1</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+      <span class='kw'>end</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="ConditionFailedError.html" title="Phronomy::Storage::ConditionFailedError (class)">ConditionFailedError</a></span></span><span class='comma'>,</span> <span class='id identifier rubyid_condition'>condition</span> <span class='kw'>unless</span> <span class='id identifier rubyid_matched'>matched</span>
+    <span class='kw'>end</span>
+    <span class='kw'>true</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="dispatch-instance_method">
+  
+    #<strong>dispatch</strong>(operation, resource, **arguments)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+80
+81
+82
+83</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 80</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_dispatch'>dispatch</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_arguments'>arguments</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate!'>validate!</span>
+  <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_execute'>execute</span><span class='lparen'>(</span><span class='ivar'>@context</span><span class='comma'>,</span> <span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_arguments'>arguments</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="perform-instance_method">
+  
+    #<strong>perform</strong>(operation, resource, **arguments)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+75
+76
+77</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 75</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_perform'>perform</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_arguments'>arguments</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_atomic'>atomic</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_bound'>bound</span><span class='op'>|</span> <span class='id identifier rubyid_bound'>bound</span><span class='period'>.</span><span class='id identifier rubyid_dispatch'>dispatch</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_arguments'>arguments</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="records-instance_method">
+  
+    #<strong>records</strong>(resource)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+14
+15</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 14</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_records'>records</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:records</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="Records.html" title="Phronomy::Storage::Records (class)">Records</a></span></span><span class='rparen'>)</span>
+<span class='comment'># @api public</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="streams-instance_method">
+  
+    #<strong>streams</strong>(resource)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_streams'>streams</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='comma'>,</span> <span class='symbol'>:streams</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="Streams.html" title="Phronomy::Storage::Streams (class)">Streams</a></span></span><span class='rparen'>)</span>
+<span class='comment'># @api public</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="validate!-instance_method">
+  
+    #<strong>validate!</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+86
+87
+88
+89</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/storage/view.rb', line 86</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_validate!'>validate!</span>
+  <span class='ivar'>@scope</span><span class='op'>&amp;.</span><span class='id identifier rubyid_check!'>check!</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Wed Sep 23 17:37:06 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.45 (ruby-3.3.12).
+</div>
+
+    </div>
+  </body>
+</html>

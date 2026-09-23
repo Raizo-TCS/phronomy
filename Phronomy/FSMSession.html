@@ -89,6 +89,11 @@
   
   
   
+  <dl>
+      <dt>Includes:</dt>
+      <dd><span class='object_link'><a href="Concurrency/WorkerInputRestricted.html" title="Phronomy::Concurrency::WorkerInputRestricted (module)">Concurrency::WorkerInputRestricted</a></span></dd>
+  </dl>
+  
   
 
   
@@ -124,22 +129,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
     
   
 </p>
-
-  
-    <h2>
-      Constant Summary
-      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
-    </h2>
-
-    <dl class="constants">
-      
-        <dt id="FINISH-constant" class="">FINISH =
-          
-        </dt>
-        <dd><pre class="code"><span class='const'><span class='object_link'><a href="WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowRunner.html#FINISH-constant" title="Phronomy::WorkflowRunner::FINISH (constant)">FINISH</a></span></span></pre></dd>
-      
-    </dl>
-  
 
 
 
@@ -320,7 +309,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_barrier: nil)  &#x21d2; FSMSession </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_policy: nil)  &#x21d2; FSMSession </a>
     
 
     
@@ -367,13 +356,20 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
     
   
 
-<div id="constructor_details" class="method_details_list">
+
+  
+  
+  
+  
+  
+  
+  <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_barrier: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::FSMSession (class)">FSMSession</a></span></tt> 
+    #<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_policy: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::FSMSession (class)">FSMSession</a></span></tt> 
   
 
   
@@ -394,10 +390,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-81
-82
-83
-84
 85
 86
 87
@@ -447,10 +439,14 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 131
 132
 133
-134</pre>
+134
+135
+136
+137
+138</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>context:</span><span class='comma'>,</span>
@@ -469,7 +465,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
   <span class='label'>context_metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>event_sink:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>identity_reservation:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>terminal_barrier:</span> <span class='kw'>nil</span>
+  <span class='label'>terminal_policy:</span> <span class='kw'>nil</span>
 <span class='rparen'>)</span>
   <span class='ivar'>@id</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_identity_reservation'>identity_reservation</span>
     <span class='kw'>unless</span> <span class='id identifier rubyid_identity_reservation'>identity_reservation</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>IdentityReservation</span><span class='rparen'>)</span>
@@ -497,7 +493,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
   <span class='ivar'>@resume_event</span> <span class='op'>=</span> <span class='id identifier rubyid_resume_event'>resume_event</span>
   <span class='ivar'>@resume_phase</span> <span class='op'>=</span> <span class='id identifier rubyid_resume_phase'>resume_phase</span>
   <span class='ivar'>@stable_observer</span> <span class='op'>=</span> <span class='id identifier rubyid_stable_observer'>stable_observer</span>
-  <span class='ivar'>@terminal_barrier</span> <span class='op'>=</span> <span class='id identifier rubyid_terminal_barrier'>terminal_barrier</span>
+  <span class='ivar'>@terminal_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_terminal_policy'>terminal_policy</span>
   <span class='ivar'>@terminal_lifecycle_state</span> <span class='op'>=</span> <span class='symbol'>:running</span>
   <span class='ivar'>@pending_terminal_type</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@pending_terminal_notify_stable</span> <span class='op'>=</span> <span class='kw'>false</span>
@@ -542,12 +538,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-65
-66
-67</pre>
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context'>context</span>
   <span class='ivar'>@context</span>
@@ -583,12 +579,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-65
-66
-67</pre>
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_sink'>event_sink</span>
   <span class='ivar'>@event_sink</span>
@@ -624,12 +620,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-65
-66
-67</pre>
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@id</span>
@@ -674,12 +670,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-77
-78
-79</pre>
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_reserve_identity'>reserve_identity</span>
   <span class='const'>IdentityReservation</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -722,13 +718,13 @@ separate from this logical Workflow phase.</p>
       <pre class="lines">
 
 
-71
-72
-73
-74</pre>
+75
+76
+77
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current_state'>current_state</span>
   <span class='kw'>return</span> <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='kw'>if</span> <span class='ivar'>@tracker</span>
@@ -754,10 +750,6 @@ separate from this logical Workflow phase.</p>
       <pre class="lines">
 
 
-160
-161
-162
-163
 164
 165
 166
@@ -778,22 +770,24 @@ separate from this logical Workflow phase.</p>
 181
 182
 183
-184</pre>
+184
+185
+186
+187</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 160</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 164</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
 
-  <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:workflow_terminal_persistence_result</span>
-    <span class='id identifier rubyid_handle_terminal_persistence_result'>handle_terminal_persistence_result</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='ivar'>@terminal_policy</span><span class='op'>&amp;.</span><span class='id identifier rubyid_handles?'>handles?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_handle_terminal_event'>handle_terminal_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
     <span class='kw'>return</span>
   <span class='kw'>end</span>
 
-  <span class='comment'># Once terminal persistence begins, ordinary Workflow events no longer
-</span>  <span class='comment'># have result authority. Only the persistence completion for this concrete
-</span>  <span class='comment'># FSMSession can advance its terminal lifecycle.
+  <span class='comment'># Once a terminal decision is pending, ordinary events cannot advance
+</span>  <span class='comment'># the state machine. Only the injected policy can permit terminalization.
 </span>  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='ivar'>@terminal_lifecycle_state</span> <span class='op'>==</span> <span class='symbol'>:running</span>
 
   <span class='id identifier rubyid_context_disposition'>context_disposition</span> <span class='op'>=</span> <span class='id identifier rubyid_apply_context_event'>apply_context_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
@@ -828,10 +822,6 @@ separate from this logical Workflow phase.</p>
       <pre class="lines">
 
 
-136
-137
-138
-139
 140
 141
 142
@@ -850,10 +840,14 @@ separate from this logical Workflow phase.</p>
 155
 156
 157
-158</pre>
+158
+159
+160
+161
+162</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 136</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 140</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>if</span> <span class='ivar'>@resume_event</span>
@@ -888,7 +882,7 @@ separate from this logical Workflow phase.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 14 12:34:20 2026 by
+  Generated on Wed Sep 23 17:37:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
