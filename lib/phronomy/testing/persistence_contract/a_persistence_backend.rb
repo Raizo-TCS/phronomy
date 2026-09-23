@@ -4,6 +4,7 @@ require "securerandom"
 
 RSpec.shared_examples "a Persistence backend" do
   include_examples "storage execution constraint notifications"
+  include_examples "storage transaction boundaries"
 
   let(:backend_agent_root) do
     Phronomy::Agent::AgentRoot.create(

@@ -59,6 +59,40 @@ RSpec.shared_examples "storage execution constraint notifications" do
         }
       end
 
+      it "preserves active-owner exclusion when an inactive execution is updated" do
+        inactive = Phronomy::Storage::DurableRecord.new(record_type: "opaque.constraint-test",
+          format_version: "0.1", payload: {"value" => "inactive"})
+        update = {owner_key => constraint_owner_id, :expected_revision => 0,
+                  :next_revision => 1, :active => false, :record => inactive}
+        constraint_repository.save(constraint_execution_id, **update)
+        competing_id = "competing-#{SecureRandom.uuid}"
+        constraint_repository.create_active(**constraint_arguments.merge(execution_key => competing_id))
+
+        error_class = (executions == :executions) ?
+          Phronomy::Storage::ActiveExecutionConflictError : Phronomy::Storage::ConflictError
+        expect do
+          constraint_repository.save(constraint_execution_id,
+            **update.merge(expected_revision: 1, next_revision: 2, active: true, record: constraint_record))
+        end.to raise_error(error_class)
+        expect(constraint_repository.list_active(constraint_owner_id).length).to eq(1)
+        expect(constraint_repository.load(constraint_execution_id).payload).to eq(inactive.payload)
+
+        # A rejected update must preserve the revision as well as the record.
+        expect do
+          constraint_repository.save(constraint_execution_id,
+            **update.merge(expected_revision: 1, next_revision: 2))
+        end.not_to raise_error
+      end
+
+      it "allows an active execution to advance without conflicting with itself" do
+        expect do
+          constraint_repository.save(constraint_execution_id,
+            **{owner_key => constraint_owner_id, :expected_revision => 0,
+               :next_revision => 1, :active => true, :record => constraint_record})
+        end.not_to raise_error
+        expect(constraint_repository.list_active(constraint_owner_id).length).to eq(1)
+      end
+
       it "rolls back preceding writes when a raw admission conflict escapes the transaction" do
         content_id = nil
         expect do

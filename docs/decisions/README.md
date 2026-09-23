@@ -106,6 +106,7 @@ resolved explicitly.
 | [`054-workflow-terminal-save-single-owner`](054-workflow-terminal-save-single-owner.md) | Accepted | Yes | Consolidates the active F1-aware terminal save in WorkflowRunner and removes its private prepend override. Amends ADR-038 loading; preserves the durable barrier and leaves FSMSession policy ownership as separate work. |
 | [`055-terminal-observer-failure-settlement`](055-terminal-observer-failure-settlement.md) | Accepted | Yes | Keeps the error path open until terminal stable notification returns. Observer failure settles the caller and releases admission without retrying or undoing an already confirmed save. Clarifies ADR-026; W2b ownership extraction remains separate. |
 | [`056-workflow-terminal-policy-ownership`](056-workflow-terminal-policy-ownership.md) | Accepted | Yes | Workflow owns persistence-result interpretation through a private policy; Engine retains generic session gating and complete/fail/retire actions. Preserves ADR-026/055 ordering and uncertainty without a public plugin API. |
+| [`057-storage-transaction-boundaries`](057-storage-transaction-boundaries.md) | Accepted | Yes | Enforces active-owner exclusion on InMemory updates, validates SQL Journal batches before writes and defines explicit nested savepoints with propagated failures. Preserves the existing SPI and record formats; the neutral SPI remains separate work. |
 
 ## Legacy duplicate `011`
 

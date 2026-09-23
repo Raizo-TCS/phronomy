@@ -107,6 +107,9 @@ module Phronomy
     # Executes a single backend transaction and exposes domain repositories
     # bound to its raw view. Codec and caller failures remain inside the backend
     # block so the backend can roll them back. The block result is returned.
+    # Explicit nested calls on this service use savepoint semantics: a failed
+    # inner scope rolls back and re-raises; a successful inner scope is committed
+    # only with its outer scope. See Storage::Backend#transaction.
     # Storage failures whose commit outcome is fundamentally
     # unknown remain backend/database failures; Phronomy does not claim
     # exactly-once semantics for such failures.

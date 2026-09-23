@@ -58,6 +58,13 @@ module Phronomy
       # Executes one atomic transaction across all eight raw repositories.
       # Yield a Storage::Repositories-compatible view bound to the transaction.
       # Return the block result; raised failures roll back this transaction.
+      # Explicit nested calls on the same backend and synchronous execution
+      # context use savepoint semantics: roll back the inner scope and re-raise
+      # the same error. If the outer scope catches it, earlier outer writes may
+      # still commit. Successful inner writes remain subject to outer rollback.
+      # Validate complete input batches before the first write. A database error
+      # after writing must escape its scope; catching it inside that same scope
+      # and continuing is not a portable recovery contract.
       # Storage failures whose commit outcome is fundamentally
       # unknown remain backend/database failures; Phronomy does not claim
       # exactly-once semantics for such failures.

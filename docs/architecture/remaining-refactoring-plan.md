@@ -6,7 +6,7 @@ and examples `2f8b467f1268dd21de4c02b1c90c8bdd211d1feb` on `refactor/architectur
 
 W1 is now verified at core `42f61514929645662e16b571afff9f4060d867d1`.
 W2a is applied and verified at core `01cd2f57549f6d1e60825254f4520d0f123e651c`.
-W2b is implemented in Refactor 33; application verification remains. See the
+W2b is applied and verified at core `fcd434c45ad98e5c93953cbce1ffef3c12246894`. See the
 [W2 design review](workflow-terminal-ownership-design.md) and
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
@@ -25,9 +25,11 @@ remaining Workflow problem.
 |---|---|---|
 | W1: Refactor 31 | Two terminal-save implementations, selected by prepend | Applied and verified. The active F1-aware implementation belongs to Runner and the override is removed. See [ADR-054](../decisions/054-workflow-terminal-save-single-owner.md). |
 | W2a: Refactor 32 | Terminal observer exceptions leave stream and admission pending | Keep the error path open through notification, preserve the original exception and any confirmed save, and verify application before ownership extraction. See [ADR-055](../decisions/055-terminal-observer-failure-settlement.md). Applied and verified at 01cd2f57. |
-| W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Implemented by WorkflowTerminalPolicy and FSMProtocol::TerminalDecision in Refactor 33; application verification remains. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
-| S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Inventory atomic operations and physical implementations below, choose the smallest neutral contracts and domain-owned backend extensions, and verify F0/F1/F2 boundaries before changing SPI. |
-| S2: Storage implementation and migration | Common/domain contracts and all backends must agree | Coordinate core, InMemory, SQLite and PostgreSQL changes in one reviewable migration. Preserve the transaction domain and record formats, prove rollback/constraints and document any intentional Beta SPI change. |
+| W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Applied and verified in Refactor 33 at fcd434c4; WorkflowTerminalPolicy and FSMProtocol::TerminalDecision own the boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
+| S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Design completed: Records/Streams/Blobs with conditions and guarded checks. The existing 37 raw methods have been inventoried; no new SPI is implemented yet. |
+| S2a: Refactor 34 | Existing update, batch validation and nested transaction differences | Candidate implemented: InMemory active-owner update exclusion, SQL Journal prevalidation and explicit nested savepoints. See ADR-057 and the migration guide. Application verification and live PostgreSQL validation remain. |
+| S2b: Neutral Storage SPI | Common/domain contracts and all backends must agree | Implement Records/Streams/Blobs, domain adapters, failed-view lifecycle and non-local-exit handling. Preserve one transaction domain and existing record formats. |
+| S2c: Integration and migration | Physical backends must satisfy the same contract | Validate live PostgreSQL locking/concurrency, all backends, API/RBS migration, durable reload and release artifact application. |
 | S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Decide names after the contract is established. Keep the public Persistence facade unless an explicit public migration is justified. Verify application and remaining dependency directions; do not rename merely to simplify a diagram. |
 
 W1 precedes W2 so the active terminal save is explicit before its session-facing
@@ -52,7 +54,7 @@ Refactor 32's observer-error ordering and committed snapshot are preserved.
 The candidate tests delayed success, known failures, F1 reconciliation,
 uncertainty/shutdown, early/duplicate/late events, ordinary events during the
 barrier, observer errors, rejected submission/delivery and shared Agent/Tool
-behavior. Verify application before proceeding to Storage S1-S3.
+behavior. Its application verification is complete; Storage S1 design followed.
 
 ## Storage operation inventory
 
@@ -86,3 +88,15 @@ existing F0/F1/F4 limits and the X0 external-effect boundary explicit.
 See the existing [persistence staged plan](persistence-refactoring-plan.md),
 [ADR-033](../decisions/033-domain-persistence-ownership.md) and
 [ADR-043](../decisions/043-storage-execution-constraint-notifications.md).
+
+## S2a candidate scope
+
+[ADR-057](../decisions/057-storage-transaction-boundaries.md) records the three
+behavioral changes. The [migration guide](../migrations/storage-transaction-boundaries.md)
+explains nested savepoints and propagated ActiveRecord::Rollback. Complete batch
+validation prevents invalid input from leaving partial Journal rows; it does not
+make arbitrary database failures safe to catch inside the failed scope.
+
+Do not mark Storage complete when S2a is applied. The neutral SPI, failed-view
+rules, non-local-exit handling, full live PostgreSQL validation and S3 naming
+review remain. Reference SQL code parity is not PostgreSQL execution evidence.

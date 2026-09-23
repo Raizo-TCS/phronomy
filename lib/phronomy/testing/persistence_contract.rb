@@ -31,6 +31,7 @@ module Phronomy
         "a Team repository",
         "a Team execution repository",
         "storage execution constraint notifications",
+        "storage transaction boundaries",
         "a Persistence backend"
       ].freeze
     end
@@ -43,6 +44,7 @@ require_relative "persistence_contract/a_journal_repository"
 require_relative "persistence_contract/an_execution_repository"
 require_relative "persistence_contract/a_workflow_state_repository"
 require_relative "persistence_contract/storage_execution_constraints"
+require_relative "persistence_contract/storage_transaction_boundaries"
 require_relative "persistence_contract/a_persistence_backend"
 
 require_relative "persistence_contract/coordination_repositories"

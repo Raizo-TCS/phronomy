@@ -238,6 +238,13 @@ module Phronomy
                   "expected #{expected + 1}, got #{next_value}"
               end
 
+              competing_active = active && @owner.state[:execution_metadata].any? do |id, metadata|
+                id != execution_key && metadata.fetch(:agent_id) == agent_key && metadata.fetch(:active)
+              end
+              if competing_active
+                raise Phronomy::Storage::ActiveExecutionConflictError, "agent is busy: #{agent_key}"
+              end
+
               @owner.state[:executions][execution_key] = record.copy
               @owner.state[:execution_metadata][execution_key] = {
                 agent_id: agent_key,
