@@ -402,34 +402,8 @@ module Phronomy
       def add_knowledge(content, metadata: {})
         __assert_live_agent!
         current = agent_root
-        next_root = nil
-        appended = nil
-        persistence.transaction do |tx|
-          tx.executions.assert_idle!(agent_id)
-          record = build_knowledge_record(
-            tx: tx,
-            root: current,
-            content: content,
-            metadata: metadata
-          )
-          appended = tx.journals.append(
-            agent_id,
-            expected_position: current.journal_position,
-            records: [record]
-          )
-          next_root = current.with(
-            agent_revision: current.agent_revision + 1,
-            context_revision: current.context_revision + 1,
-            journal_position: current.journal_position + appended.length
-          )
-          tx.agents.save(
-            agent_id,
-            expected_revision: current.agent_revision,
-            root: next_root
-          )
-        end
-        _append_journal_records(appended)
-        @root = next_root
+        update = state_writer.add_knowledge(root: current, content: content, metadata: metadata)
+        apply_state_update(update)
         self
       end
 
@@ -638,117 +612,27 @@ module Phronomy
 
       def create_agent_root!(context:, knowledge:, metadata:)
         definition = self.class.agent_definition
-        root = Agent::AgentRoot.create(
-          agent_id: agent_id,
-          agent_definition_id: definition.fetch(:id),
-          agent_definition_version: definition.fetch(:version),
-          metadata: metadata
-        )
-        persistence.transaction do |tx|
-          tx.agents.create(root)
-          records = initial_context_records(tx: tx, root: root, context: context)
-          records.concat(initial_knowledge_records(tx: tx, root: root, knowledge: knowledge))
-          unless records.empty?
-            appended = tx.journals.append(agent_id, expected_position: 0, records: records)
-            root = root.with(
-              agent_revision: 1,
-              context_revision: 1,
-              journal_position: appended.length
-            )
-            tx.agents.save(agent_id, expected_revision: 0, root: root)
-          end
-        end
-        root
-      end
-
-      def initial_context_records(tx:, root:, context:)
-        return [] unless context
-
-        imported = context.respond_to?(:records) ? context :
-          Agent::ContextImporter.import_messages(context)
-        imported.records.map do |record|
-          content_ref = case record.content_format
-          when :text then tx.contents.put_text(record.content)
-          when :json then tx.contents.put_json(record.content)
-          else
-            raise ArgumentError,
-              "unsupported imported content format: #{record.content_format.inspect}"
-          end
-          Agent::JournalRecord.new(
-            agent_id: agent_id,
-            kind: record.kind,
-            channel: record.channel,
-            role: record.role,
-            content_ref: content_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: true,
-            metadata: record.metadata
-          )
-        end
-      end
-
-      def initial_knowledge_records(tx:, root:, knowledge:)
-        Array(knowledge).map do |content|
-          build_knowledge_record(
-            tx: tx,
-            root: root,
-            content: content,
-            metadata: {}
-          )
-        end
-      end
-
-      def build_knowledge_record(tx:, root:, content:, metadata:)
-        Agent::JournalRecord.new(
-          agent_id: agent_id,
-          kind: :knowledge,
-          channel: :context,
-          role: :user,
-          content_ref: tx.contents.put_text(String(content)),
-          context_generation: root.transcript_generation,
-          context_candidate: true,
-          metadata: metadata || {}
+        state_writer.create_root(
+          definition: definition, context: context, knowledge: knowledge, metadata: metadata
         )
       end
 
       def mutate_context!(kind, context_affecting: true)
         __assert_live_agent!
         current = agent_root
-        next_root = nil
-        appended = nil
-        persistence.transaction do |tx|
-          tx.executions.assert_idle!(agent_id)
-          record = Agent::JournalRecord.new(
-            agent_id: agent_id,
-            kind: kind,
-            channel: :state,
-            context_generation: current.transcript_generation,
-            context_candidate: false
-          )
-          appended = tx.journals.append(
-            agent_id,
-            expected_position: current.journal_position,
-            records: [record]
-          )
-          proposed = yield(current)
-          next_root = proposed.with(
-            journal_position: current.journal_position + appended.length,
-            context_revision: context_affecting ?
-              yield_context_revision(current, proposed) : current.context_revision
-          )
-          tx.agents.save(
-            agent_id,
-            expected_revision: current.agent_revision,
-            root: next_root
-          )
-        end
-        _append_journal_records(appended)
-        @root = next_root
+        update = state_writer.mutate_context(
+          root: current, kind: kind, context_affecting: context_affecting
+        ) { |root| yield(root) }
+        apply_state_update(update)
       end
 
-      def yield_context_revision(current, proposed)
-        (proposed.context_revision == current.context_revision) ?
-          current.context_revision + 1 : proposed.context_revision
+      def state_writer
+        StateWriter.new(persistence: persistence, agent_id: agent_id)
+      end
+
+      def apply_state_update(update)
+        _append_journal_records(update.records)
+        @root = update.root
       end
 
       def _journal_records_snapshot
@@ -965,20 +849,7 @@ module Phronomy
           "temperature" => self.class.temperature,
           "max_output_tokens" => self.class.max_output_tokens
         }
-        opts = {}
-        model = config["model"]
-        opts[:model] = model if model
-        provider = config["provider"]
-        if provider
-          opts[:provider] = provider.to_sym
-          opts[:assume_model_exists] = true
-        end
-        chat = RubyLLM.chat(**opts)
-        chat.with_temperature(config["temperature"]) if config["temperature"]
-        if config["max_output_tokens"] && chat.respond_to?(:with_max_output_tokens)
-          chat.with_max_output_tokens(config["max_output_tokens"])
-        end
-        chat
+        RuntimeChatBuilder.build(config)
       end
 
       def build_instructions(input)
@@ -994,12 +865,7 @@ module Phronomy
       end
 
       def apply_instructions(chat, text, cache: false, provider: nil)
-        if cache && provider.to_s == "anthropic"
-          content = RubyLLM::Providers::Anthropic::Content.new(text, cache: true)
-          chat.with_instructions(content)
-        else
-          chat.with_instructions(text)
-        end
+        RuntimeChatBuilder.apply_instructions(chat, text, cache: cache, provider: provider)
       end
 
       def extract_message(input)

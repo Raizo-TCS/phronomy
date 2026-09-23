@@ -2,14 +2,14 @@
 
 ## Scope and acceptance state
 
-The applied baseline is Refactor 41: core
-`e87eb77f07251cb9ba8b17aa8087c1e5dd4f9723` and examples
+The applied baseline is Refactor 42: core
+`4a57a3c2574e2159a47291d202b7443aef4f8c25` and examples
 `68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` on `refactor/architecture`.
 W1/W2, Storage S1/S2 and Refactor 36's S3 cleanup are applied and verified.
 Refactor 37's D02, Refactor 38's R03/R11, Refactor 39's R06 and Refactor 40's R07
-changes are applied and verified. Refactor 41's R08/D08 is applied and verified. Refactor 42 implements the
-first R09 slice: Tool binding and explicit declaration-inheritance contracts.
-Its application is not yet verified; R09 remains open for Chat/state ownership.
+changes are applied and verified. Refactor 41's R08/D08 is applied and verified. Refactor 42 Tool binding and declaration rules are applied and verified.
+Refactor 43 implements the remaining Chat/state ownership; application
+verification is pending. R10 remains open.
 
 The S3 audit and its bounded Storage cleanup are verified. The initial review
 still contains open proposals. The previous remaining-work summary omitted still
@@ -89,13 +89,13 @@ completed follow-ups. The remaining items are not regressions caused by Refactor
 | R06 | Applied and verified in Refactor 39: InvocationTransitions owns Tool events, ordered external transitions and state declarations for both builders and Invocation. |
 | R07 | Applied and verified in Refactor 40: ContextAssembler describes preparation through private instruction, record-candidate, candidate-merge and current-input operations. |
 | R08 / D08 | Applied and verified in Refactor 41, one overlapping item: GeneratorVerifier keeps its facade and Result; private WorkflowBuilder, AgentResultReceiver and the moved PipelineState separate graph construction, reception and state. |
-| R09 | Partial: composition moved; Refactor 42 extracts ToolBinding and records/tests current DSL rules. Application is pending. Chat construction and state-mutation ownership still need review; inheritance changes remain a separate behavior decision. |
+| R09 | Refactor 42 Tool binding and declaration rules are applied and verified. Refactor 43 implements Chat construction and explicit state ownership; application verification is pending. Existing DSL behavior is retained. |
 | R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
 | R11 | Applied and verified in Refactor 38: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. |
 
 These entries identify real remaining proposals, not automatic authorization for
 public behavior changes. D02, R03/R11, R06, R07 and R08/D08 are applied and verified.
-Refactor 42 implements the first R09 slice; Chat/state ownership remains.
+Refactor 43 implements the remaining R09 candidate; verify application before closure.
 R10 can be coordinated with its owning changes.
 Keep R09's DSL semantics separate.
 A complete initial-review closure requires implementation and verification or an
@@ -156,7 +156,7 @@ Refactor 38 is applied and independently verified at core 690b2823, tree
 Core 2,970 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
 R03/R11 are closed. Five groups remained at that point; R06 is now applied below.
-The diagram was synchronized to applied38-01 then and is now applied41-01.
+The diagram was synchronized to applied38-01 then and is now applied42-01.
 
 
 ## R06: Agent transition ownership (Refactor 39, applied)
@@ -184,7 +184,7 @@ Refactor 39 is applied and independently verified at core 4d57614a, tree
 Core 2,993 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
 R06 is closed. Four groups remained then; R07 is now applied below.
-The diagram was synchronized to applied39-01 then and is now applied41-01.
+The diagram was synchronized to applied39-01 then and is now applied42-01.
 
 
 ## R07: Context preparation steps (Refactor 40, applied)
@@ -213,7 +213,7 @@ dcd9d1bf8efb1b488f9c2b3b1c4e99bdeda6096c. All six files and the tree match.
 Core 3,003 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style, gem and four paired
 preparation scenarios. R07 is closed. Three groups remained at that point; R08/D08 is now applied below.
-The published diagram is applied41-01; keep it until Refactor 42 application checks.
+The published diagram is applied42-01; keep it until Refactor 43 application checks.
 
 
 ## R08/D08: GeneratorVerifier ownership (Refactor 41, applied)
@@ -248,7 +248,7 @@ public/Result/state comparisons. R08/D08 is closed; R09 and R10 remain.
 The diagram is applied41-01.
 
 
-## R09: Tool binding and declaration rules (Refactor 42 candidate)
+## R09: Tool binding and declaration rules (Refactor 42, applied)
 
 See [the boundary design and inheritance matrix](agent-configuration-and-tool-binding.md).
 Base retains its preparation hook, non-Class passthrough and setting selection.
@@ -262,13 +262,35 @@ are explicit, including non-inherited model/budgets/filters, live parent lookups
 shared instructions/policy/Tool-list values and inherited aliases that nil does
 not remove. This package does not unify public configuration behavior.
 
-The initial R09 also named Chat construction and state mutation. Earlier short
-summaries omitted that detail. build_chat, _apply_runtime_projection_to_chat,
-create_agent_root!, add_knowledge and mutate_context! still remain in Base.
-Their ownership and transaction/root-publication boundaries are the next R09
-slice, not a newly invented performance or runtime requirement. Keep this work
-visible. R09 and R10 remain open after this slice's application check.
+Refactor 42 is applied and verified at core 4a57a3c2, tree
+1a43ec3fecd5457e4314afa3807eb862bbd16b52. All nine files and the tree match.
+Core 3,077 (61 pending), integration 367 (28 pending), examples 42, SQLite 116
+and the packaged persistence contract 41 pass with zero failures. Public
+contracts, API/SPI, types, style and gem loading also pass. This closes the
+first slice; the original R09 Chat/state scope is addressed below.
 
-Refactor 42 is a source candidate awaiting application. The published diagram
-remains applied41-01. No live-LLM, live PostgreSQL, candidate remote-CI or
-performance claim follows from the local validation results.
+## R09: Chat construction and explicit state ownership (Refactor 43 candidate)
+
+See [the Chat/state ownership design](agent-chat-and-state-ownership.md).
+RuntimeChatBuilder owns provider Chat creation, settings and cached instructions.
+StateWriter owns initial root/context/knowledge writes and explicit idle-Agent
+mutations, using the captured root and one transaction. Both live in the existing
+context_assembly directory. They hold no Agent reference or private callbacks.
+
+Base keeps the facade, live-owner checks, root proposals and publication. Its
+projection hook preserves instruction/Tool/message order and existing overrides.
+The writer returns root and records only after the transaction returns; Base
+publishes Journal records before replacing the live root. Initial input order,
+idle checks, CAS, revisions, exception identity and rollback behavior are retained.
+Unknown commits, local publication failure and application-owned outer
+transactions retain their existing limitations; no new reconciliation is added.
+
+Thirty-seven new behavioral examples pass against both Refactor 42 and the
+candidate. Full core/integration/examples/SQLite and API/SPI/type/style/package
+gates are recorded in the distribution. Static dependency analysis preserves
+all existing cycle memberships, with one new context_assembly -> lifecycle pair.
+This improves responsibility boundaries; it does not remove existing cycles.
+
+R09 can close after Refactor 43 application verification. R10 remains open.
+Retain the applied42-01 SVG until that verification. No live-LLM, live PostgreSQL,
+candidate remote-CI or performance claim follows from local validation.

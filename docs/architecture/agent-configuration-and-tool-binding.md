@@ -125,13 +125,11 @@ The release, API/SPI, RBS, style, isolated gem and examples gates are recorded i
 the distribution. Candidate remote CI, live PostgreSQL, live LLM and performance
 are not measured by this change.
 
-This closes only the implementation candidate for R09's Tool binding separation
-and records current declaration rules. R09 remains open. Its initial proposal
-also named Chat construction and state mutation: build_chat,
-_apply_runtime_projection_to_chat, create_agent_root!, add_knowledge and
-mutate_context! still live in Base. Review their ownership and transaction/root
-publication boundaries in the next slice; do not silently drop them from the
-remaining-work inventory. Those methods and Orchestrator are unchanged here.
+Refactor 42 is applied and independently verified at core 4a57a3c2. This
+completes the Tool binding and declaration-contract slice. Refactor 43 addresses
+the original Chat construction and explicit state-mutation scope; see the
+[Chat/state design](agent-chat-and-state-ownership.md). It preserves the Base
+hooks and operation/publication order rather than changing DSL semantics.
 
-R10 remains open. Keep the published SVG on applied41-01 until this candidate is
-applied and independently checked.
+R09 closes after Refactor 43 application verification; R10 remains open.
+The published SVG is applied42-01 until that verification.

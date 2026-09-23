@@ -84,10 +84,13 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     mutate_context = base
       .split("def mutate_context!", 2)
       .fetch(1)
-      .split("def yield_context_revision", 2)
+      .split("def state_writer", 2)
       .first
     expect(add_knowledge).not_to include("agents.load")
     expect(mutate_context).not_to include("agents.load")
+    state_writer = File.read(File.join(root, "lib/phronomy/agent/context_assembly/state_writer.rb"))
+    expect(state_writer).not_to include("agents.load", "journals.read")
+    expect(state_writer).not_to include("__replace_root", "_append_journal_records")
   end
 
   it "does not reload mutable Agent root or execution in ExecutionCoordinator" do
