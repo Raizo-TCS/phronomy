@@ -486,7 +486,7 @@ module Phronomy
             param :description, type: :string, desc: "Worker task"
             param :metadata, type: :string, desc: "Optional metadata", required: false
           else
-            param :summary, type: :string, desc: "TaskResult summary", required: false
+            param :summary, type: :string, desc: "Task generation summary", required: false
           end
           define_method(:call_async) do |args, cancellation_token: nil, config: {}|
             validated, schema_error = send(:validate_and_coerce, args)
@@ -545,7 +545,7 @@ module Phronomy
               raise Phronomy::ConfigurationError, "Cannot enqueue after finalize" if metadata["finalized"]
               task = {"id" => Digest::SHA256.hexdigest(entry_id)[0, 32], "description" => values.fetch("description"), "metadata" => values["metadata"]}
               tasks << task
-              output = "TaskResult ##{tasks.length} enqueued: #{task.fetch("description")}"
+              output = "Task ##{tasks.length} enqueued: #{task.fetch("description")}"
             else
               output = "Finalized. #{tasks.size} task(s) enqueued. #{values["summary"]}".strip
               metadata["finalized"] = true

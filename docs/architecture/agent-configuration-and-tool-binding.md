@@ -131,5 +131,7 @@ the original Chat construction and explicit state-mutation scope; see the
 [Chat/state design](agent-chat-and-state-ownership.md). It preserves the Base
 hooks and operation/publication order rather than changing DSL semantics.
 
-R09 closes after Refactor 43 application verification; R10 remains open.
-The published SVG is applied42-01 until that verification.
+Refactor 43 application was verified at core 5c4c0392; R09 is closed.
+R10 is implemented in Refactor 44, pending application verification.
+The published SVG is applied43-01. See the [naming boundary](entry-action-and-team-wording.md)
+and the separate [open Tool schema finding](tool-schema-recording-gap.md).

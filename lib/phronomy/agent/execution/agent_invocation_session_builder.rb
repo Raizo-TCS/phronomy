@@ -89,8 +89,8 @@ module Phronomy
         end
 
         {
-          filtering_input: [method(:filtering_input_action).curry.call(agent)],
-          building_context: [method(:building_context_action).curry.call(agent)],
+          filtering_input: [method(:apply_prepared_input_action).curry.call(agent)],
+          building_context: [method(:build_runtime_chat_action).curry.call(agent)],
           calling_llm: [calling_action],
           starting_tools: [method(:starting_tools_action).curry.call(runtime, event_sink)],
           dispatching_tools: [method(:dispatching_tools_action).curry.call(runtime, event_sink)],
@@ -102,13 +102,13 @@ module Phronomy
       end
       private_class_method :build_entry_actions
 
-      def self.filtering_input_action(_agent, invocation)
+      def self.apply_prepared_input_action(_agent, invocation)
         invocation.input = invocation.config.fetch(:phronomy_filtered_input)
         invocation
       end
-      private_class_method :filtering_input_action
+      private_class_method :apply_prepared_input_action
 
-      def self.building_context_action(agent, invocation)
+      def self.build_runtime_chat_action(agent, invocation)
         projection = invocation.config.fetch(:phronomy_runtime_projection)
         invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
         agent.send(
@@ -119,7 +119,7 @@ module Phronomy
         )
         invocation
       end
-      private_class_method :building_context_action
+      private_class_method :build_runtime_chat_action
 
       def self.install_tool_interceptors(chat, llm_call_id:)
         unless chat.respond_to?(:before_tool_call)

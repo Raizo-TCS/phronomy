@@ -12,15 +12,16 @@ W2b is applied and verified at core `fcd434c45ad98e5c93953cbce1ffef3c12246894`. 
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
 The current applied baseline is core
-`4a57a3c2574e2159a47291d202b7443aef4f8c25` and examples
-`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 42; examples unchanged).
+`5c4c039273eb2324fcc9e9943ccf40bd1ffb3abd` and examples
+`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 43; examples unchanged).
 S2b/S2c were verified on Refactor 35, including PostgreSQL CI against its
 core ebd99623 / examples 68a0bbd0 pair.
 Refactor 36's S3, Refactor 37's D02, Refactor 38's R03/R11, Refactor 39's R06
 and Refactor 40's R07 are applied and verified, as is Refactor 41's R08/D08.
-The diagram is on applied42-01. Refactor 42 Tool binding and current DSL
-contracts are applied and verified. Refactor 43 implements the remaining
-Chat/state ownership; its application is pending. See the
+The diagram is on applied43-01. Refactor 42 Tool binding and current DSL
+contracts and Refactor 43 Chat/state ownership are applied and verified; R09
+is closed. Refactor 44 implements R10, pending application verification. The
+new Tool schema recording finding remains open. See the
 [closure review](refactoring-closure.md) for retained names, evidence and limits.
 
 ## Completed boundaries
@@ -149,8 +150,8 @@ not silently added requirements for this responsibility refactoring.
 | R06 | Applied and verified in Refactor 39: InvocationTransitions owns Tool events, ordered external transitions and state declarations for both builders and Invocation. |
 | R07 | Applied and verified in Refactor 40: ContextAssembler describes preparation through private instruction, record-candidate, candidate-merge and current-input operations. |
 | R08 / D08 | Applied and verified in Refactor 41, one overlapping item: GeneratorVerifier keeps its facade and Result; private WorkflowBuilder, AgentResultReceiver and the moved PipelineState separate graph construction, reception and state. |
-| R09 | Refactor 42 Tool binding and declaration rules are applied and verified. Refactor 43 implements Chat construction and explicit state ownership; application verification is pending. Existing DSL behavior is retained. |
-| R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
+| R09 | Applied and verified in Refactors 42 and 43: Tool binding, declaration rules, Chat construction and explicit state ownership. Existing DSL behavior is retained. |
+| R10 | Implemented in Refactor 44: private actions describe prepared-input installation and runtime Chat construction; Team-generated text describes business tasks. Application verification is pending. |
 | R11 | Applied and verified in Refactor 38: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. |
 
 R08/D08 is one work item. R03's Tool restoration and shared metadata ownership
@@ -158,8 +159,9 @@ are complete; do not reopen those contracts. R09's configuration inheritance can
 change public behavior and needs its own explicit decision. These are existing
 proposals rediscovered by the S3 audit, not new performance or distributed-runtime
 requirements. D02, R03/R11, R06, R07 and R08/D08 are applied and verified.
-Refactor 43 completes the remaining R09 implementation candidate. Verify its
-application before closing R09, then coordinate R10 with its owners.
+Refactor 43 application is verified and R09 is closed. Refactor 44 implements
+R10; verify its application before closure. Track the new Tool schema finding
+separately from the original R/D inventory.
 
 
 ## D02: direct operation binding (Refactor 37, applied)
@@ -309,7 +311,7 @@ and the packaged persistence contract 41 pass with zero failures. Public
 contracts, API/SPI, types, style and gem loading also pass. This closes the
 first slice; the original R09 Chat/state scope is addressed below.
 
-## R09: Chat construction and explicit state ownership (Refactor 43 candidate)
+## R09: Chat construction and explicit state ownership (Refactor 43, applied)
 
 See [the Chat/state ownership design](agent-chat-and-state-ownership.md).
 RuntimeChatBuilder owns provider Chat creation, settings and cached instructions.
@@ -331,6 +333,28 @@ gates are recorded in the distribution. Static dependency analysis preserves
 all existing cycle memberships, with one new context_assembly -> lifecycle pair.
 This improves responsibility boundaries; it does not remove existing cycles.
 
-R09 can close after Refactor 43 application verification. R10 remains open.
-Retain the applied42-01 SVG until that verification. No live-LLM, live PostgreSQL,
-candidate remote-CI or performance claim follows from local validation.
+Refactor 43 is applied and verified at 5c4c0392, tree
+841bc7b5b28c2d31380ee4a12ffdc22a85ee3c37. All ten files and the full tree match.
+Core 3,114 (61 pending), integration 367 (28 pending), examples 42, SQLite 116
+and gem contract 41 pass with zero failures. R09 is closed; SVG is applied43-01.
+No live-LLM, live PostgreSQL, remote-CI success or performance claim follows
+from that local validation.
+
+
+## R10: Entry actions and Team wording (Refactor 44 candidate)
+
+See [the naming and compatibility boundary](entry-action-and-team-wording.md).
+Only two private action names and two generated Team strings change in production.
+State/event vocabulary and action bodies stay unchanged. Legacy saved operation
+results are returned as stored; new operations use business-task wording.
+The original R/D inventory has no other unimplemented item, but R10 remains
+pending application verification.
+
+## New open finding: Tool parameter schema recording
+
+The [Tool schema recording gap](tool-schema-recording-gap.md) was reproduced on
+Refactor 43 and Refactor 44 with RubyLLM 1.16.0. The actual schema reader is
+`params_schema`, whereas ToolDefinitionSet records `{}` when its expected
+`parameters_schema` reader is absent. A required/type change can evade the saved
+comparison. This is the next correctness issue to design, with explicit handling
+of historical manifests. It is not fixed by R10 or by passing its recovery tests.

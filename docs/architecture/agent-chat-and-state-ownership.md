@@ -138,8 +138,10 @@ evidence. New private helpers are distinguished from the unchanged public
 contract and retained hook signatures. Static dependency analysis rejects new
 cycle membership rather than merely checking unchanged edge counts.
 
-R09 is ready to close only after Refactor 43 application verification. Its Tool
+Refactor 43 is applied and verified at core 5c4c0392; R09 is closed. Its Tool
 binding and declaration rules were already verified in Refactor 42. Base remains
 the public facade; keeping short orchestration methods there is intentional.
-The DSL behavior itself remains unchanged. R10 naming/documentation work remains
-open. Keep the published SVG at applied42-01 until application is verified.
+The DSL behavior itself remains unchanged. R10 is implemented in Refactor 44,
+pending application verification. The published SVG is applied43-01. See the
+[naming boundary](entry-action-and-team-wording.md) and the separate
+[open Tool schema finding](tool-schema-recording-gap.md).
