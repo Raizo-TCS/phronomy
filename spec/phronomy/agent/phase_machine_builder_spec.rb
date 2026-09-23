@@ -91,7 +91,7 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
       tracker.phase = "waiting_for_tools"
     end
 
-    Phronomy::Agent::PhaseMachineBuilder::TOOL_EVENTS.each do |event_name|
+    %i[tool_authorized tool_approval_required tool_completed tool_failed tool_rejected tool_cancelled].each do |event_name|
       it "#{event_name} transitions to evaluating_tools" do
         tracker.public_send(event_name)
         expect(tracker.phase).to eq("evaluating_tools")

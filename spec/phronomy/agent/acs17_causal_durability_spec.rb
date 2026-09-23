@@ -238,9 +238,9 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "makes dispatching_tools an explicit durable-preparation state" do
-    builder = Phronomy::Agent::AgentInvocationSessionBuilder
-    expect(builder::AUTO_STATE_SET).not_to have_key(:dispatching_tools)
-    events = builder.send(:external_events)
+    transitions = Phronomy::Agent::InvocationTransitions
+    expect(transitions::AUTO_STATE_SET).not_to have_key(:dispatching_tools)
+    events = transitions::EXTERNAL_EVENTS
     expect(events.fetch(:tool_dispatch_prepared))
       .to include(hash_including(from: :dispatching_tools, to: :evaluating_tools))
     expect(events.fetch(:tool_setup_failed))

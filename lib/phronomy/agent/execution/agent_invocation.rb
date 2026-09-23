@@ -12,15 +12,6 @@ module Phronomy
 
       # execution_id is the logical Agent execution parent. Concrete Runtime
       # routing identity belongs only to the owning FSMSession incarnation.
-      TOOL_EVENT_TYPES = %i[
-        tool_authorized
-        tool_approval_required
-        tool_completed
-        tool_failed
-        tool_rejected
-        tool_cancelled
-      ].freeze
-
       LLM_EVENT_TYPES = %i[llm_completed llm_failed].freeze
       CALLBACK_FAILED_EVENTS = %i[application_callback_failed].freeze
       SETUP_FAILED_EVENTS = %i[llm_setup_failed tool_setup_failed].freeze
@@ -213,7 +204,7 @@ module Phronomy
           return true
         end
 
-        return false unless TOOL_EVENT_TYPES.include?(event.type)
+        return false unless InvocationTransitions::TOOL_EVENTS.include?(event.type)
 
         invocation = tool_invocation(event.payload&.fetch(:tool_invocation_id, nil))
         return true unless invocation

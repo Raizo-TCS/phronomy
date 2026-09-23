@@ -5,15 +5,6 @@ require "state_machines"
 module Phronomy
   module Agent
     class PhaseMachineBuilder
-      TOOL_EVENTS = %i[
-        tool_authorized
-        tool_approval_required
-        tool_completed
-        tool_failed
-        tool_rejected
-        tool_cancelled
-      ].freeze
-
       def initialize(entry_actions: {})
         @entry_actions = entry_actions
       end
@@ -21,26 +12,16 @@ module Phronomy
       def build
         entry_actions = @entry_actions
         callback_builder = method(:build_entry_callback)
+        condition_builder = method(:build_transition_condition)
+        external_events = InvocationTransitions::EXTERNAL_EVENTS
+        declared_states = InvocationTransitions::DECLARED_STATES
+        entry_point = InvocationTransitions::ENTRY_POINT
 
         Class.new do
           attr_accessor :context, :current_event
 
-          state_machine :phase, initial: :idle do
-            state :idle
-            state :filtering_input
-            state :building_context
-            state :calling_llm
-            state :starting_tools
-            state :evaluating_tools
-            state :waiting_for_tools
-            state :dispatching_tools
-            state :recording_tool_results
-            state :suspended
-            state :output_filtering
-            state :handed_off
-            state :completed
-            state :blocked
-            state :failed
+          state_machine :phase, initial: entry_point do
+            declared_states.each { |state_name| state state_name }
 
             event :state_completed do
               transition idle: :filtering_input
@@ -73,54 +54,15 @@ module Phronomy
                 if: ->(machine) { machine.context&.output_blocked? }
             end
 
-            event :llm_completed do
-              transition calling_llm: :failed,
-                if: ->(machine) { machine.context&.callback_failed? }
-              transition calling_llm: :failed,
-                if: ->(machine) { machine.context&.handoff_failed? }
-              transition calling_llm: :handed_off,
-                if: ->(machine) { machine.context&.handoff_requested? }
-              transition calling_llm: :starting_tools,
-                if: ->(machine) { machine.context&.tool_call_pending? }
-              transition calling_llm: :output_filtering
-            end
-
-            event :llm_failed do
-              transition calling_llm: :failed
-            end
-
-            event :llm_setup_failed do
-              transition calling_llm: :failed
-            end
-
-            event :tool_setup_failed do
-              transition dispatching_tools: :failed
-            end
-
-            event :tool_dispatch_prepared do
-              transition dispatching_tools: :evaluating_tools
-            end
-
-            TOOL_EVENTS.each do |event_name|
+            external_events.each do |event_name, transitions|
               event event_name do
-                transition waiting_for_tools: :evaluating_tools
+                transitions.each do |definition|
+                  transition(
+                    definition[:from] => definition[:to],
+                    :if => condition_builder.call(definition)
+                  )
+                end
               end
-            end
-
-            event :resume do
-              transition suspended: :waiting_for_tools
-            end
-
-            event :application_callback_failed do
-              transition filtering_input: :failed
-              transition building_context: :failed
-              transition calling_llm: :failed
-              transition starting_tools: :failed
-              transition evaluating_tools: :failed
-              transition waiting_for_tools: :failed
-              transition dispatching_tools: :failed
-              transition recording_tool_results: :failed
-              transition output_filtering: :failed
             end
 
             entry_actions.each do |state_name, callables|
@@ -136,6 +78,13 @@ module Phronomy
       end
 
       private
+
+      def build_transition_condition(definition)
+        guard = definition[:guard]
+        ->(machine) {
+          guard.nil? || (!machine.context.nil? && guard.call(machine.context))
+        }
+      end
 
       def build_entry_callback(callable, state_name)
         ->(machine) {

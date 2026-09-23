@@ -3,33 +3,6 @@
 module Phronomy
   module Agent
     class AgentInvocationSessionBuilder
-      AUTO_STATE_SET = {
-        idle: true,
-        filtering_input: true,
-        building_context: true,
-        starting_tools: true,
-        evaluating_tools: true,
-        recording_tool_results: true,
-        output_filtering: true
-      }.freeze
-
-      DECLARED_STATES = %i[
-        idle filtering_input building_context calling_llm starting_tools
-        evaluating_tools waiting_for_tools dispatching_tools
-        recording_tool_results suspended output_filtering handed_off completed blocked failed
-      ].freeze
-
-      WAIT_STATES = %i[suspended].freeze
-
-      TOOL_EVENTS = %i[
-        tool_authorized
-        tool_approval_required
-        tool_completed
-        tool_failed
-        tool_rejected
-        tool_cancelled
-      ].freeze
-
       def self.build(
         agent:,
         input:,
@@ -93,13 +66,13 @@ module Phronomy
         Phronomy::FSMSession.new(
           context: agent_invocation,
           event_sink: event_sink,
-          entry_point: :idle,
+          entry_point: InvocationTransitions::ENTRY_POINT,
           phase_machine_class: phase_machine,
           entry_actions: {},
-          auto_state_set: AUTO_STATE_SET,
-          declared_states: DECLARED_STATES,
-          wait_state_names: WAIT_STATES,
-          external_events: external_events,
+          auto_state_set: InvocationTransitions::AUTO_STATE_SET,
+          declared_states: InvocationTransitions::DECLARED_STATES,
+          wait_state_names: InvocationTransitions::WAIT_STATES,
+          external_events: InvocationTransitions::EXTERNAL_EVENTS,
           recursion_limit: 12 + (iterations * 8),
           event_loop: runtime.event_loop,
           resume_event: resume_event,
@@ -107,49 +80,6 @@ module Phronomy
         )
       end
       private_class_method :build_session
-
-      def self.external_events
-        tool_transitions = TOOL_EVENTS.to_h do |event_name|
-          [event_name, [{from: :waiting_for_tools, to: :evaluating_tools, guard: nil}]]
-        end
-
-        tool_transitions.merge(
-          llm_completed: [
-            {from: :calling_llm, to: :failed, guard: ->(ctx) { ctx.callback_failed? }},
-            {from: :calling_llm, to: :failed, guard: ->(ctx) { ctx.handoff_failed? }},
-            {from: :calling_llm, to: :handed_off, guard: ->(ctx) { ctx.handoff_requested? }},
-            {from: :calling_llm, to: :starting_tools, guard: ->(ctx) { ctx.tool_call_pending? }},
-            {from: :calling_llm, to: :output_filtering, guard: nil}
-          ],
-          llm_failed: [
-            {from: :calling_llm, to: :failed, guard: nil}
-          ],
-          llm_setup_failed: [
-            {from: :calling_llm, to: :failed, guard: nil}
-          ],
-          tool_setup_failed: [
-            {from: :dispatching_tools, to: :failed, guard: nil}
-          ],
-          tool_dispatch_prepared: [
-            {from: :dispatching_tools, to: :evaluating_tools, guard: nil}
-          ],
-          resume: [
-            {from: :suspended, to: :waiting_for_tools, guard: nil}
-          ],
-          application_callback_failed: [
-            {from: :filtering_input, to: :failed, guard: nil},
-            {from: :building_context, to: :failed, guard: nil},
-            {from: :calling_llm, to: :failed, guard: nil},
-            {from: :starting_tools, to: :failed, guard: nil},
-            {from: :evaluating_tools, to: :failed, guard: nil},
-            {from: :waiting_for_tools, to: :failed, guard: nil},
-            {from: :dispatching_tools, to: :failed, guard: nil},
-            {from: :recording_tool_results, to: :failed, guard: nil},
-            {from: :output_filtering, to: :failed, guard: nil}
-          ]
-        )
-      end
-      private_class_method :external_events
 
       def self.build_entry_actions(agent, runtime, mode:, event_sink:)
         calling_action = if mode.to_sym == :stream
