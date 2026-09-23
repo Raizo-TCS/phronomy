@@ -2,8 +2,8 @@
 
 Implementation baseline: core `01cd2f57549f6d1e60825254f4520d0f123e651c`
 (Refactor 32 applied) and examples `2f8b467f1268dd21de4c02b1c90c8bdd211d1feb`,
-2026-09-23. W2a is applied and verified. W2b is implemented in the Refactor 33
-candidate; application verification remains. The adopted private contract is
+2026-09-23. W2a and W2b are applied and verified; W2b is core
+`fcd434c45ad98e5c93953cbce1ffef3c12246894` (Refactor 33). The adopted private contract is
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
 ## Role and consumers
@@ -97,6 +97,8 @@ this is responsibility separation, not a total-line-count reduction.
 
 The pre-state, uncertainty/shutdown, stale-sink and rejected-delivery scenarios
 also pass on the Refactor 32 baseline; they characterize preserved behavior.
-New protocol tests establish the extracted ownership contract. W2b completion
-requires this candidate's application to be verified, followed by Storage S1-S3.
-The applied-source SVG remains on Refactor 32 until that verification.
+New protocol tests establish the extracted ownership contract. Refactor 33
+application verification completed W2b. Storage S1/S2 followed and passed on
+Refactor 35; see the [closure review](refactoring-closure.md) for S3 and the
+current applied/candidate boundary. The earlier Refactor 32 baseline remains
+historical evidence for preserved behavior.

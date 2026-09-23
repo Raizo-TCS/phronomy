@@ -25,6 +25,9 @@ separate physical table/column mapping to the neutral driver in examples
 `shared/storage`. Table names, columns, indexes, DurableRecord envelopes, payloads,
 format versions and content identities remain unchanged.
 
+The [S3 closure review](architecture/refactoring-closure.md) records why these
+names and placements remain and separates applied evidence from the candidate.
+
 ## Backend and View
 
 ```ruby

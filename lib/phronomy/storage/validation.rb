@@ -32,10 +32,6 @@ module Phronomy
         value.copy
       end
 
-      def reference(value)
-        value.is_a?(Resource) ? value : key(value)
-      end
-
       def attributes(value)
         unless value.is_a?(Hash) && value.all? { |name, item| name.is_a?(Symbol) && [String, Integer, TrueClass, FalseClass, NilClass].any? { |type| item.is_a?(type) } }
           raise ArgumentError, "attributes must contain named scalar values"

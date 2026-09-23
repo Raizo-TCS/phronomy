@@ -8,6 +8,12 @@ module Phronomy
       TYPES = [:string, :integer, :boolean, :nullable_string, :nullable_integer, :nullable_boolean].freeze
       attr_reader :id, :kind, :attributes, :immutable_attributes, :indexes, :unique, :guard
 
+      # Normalize a schema object or ID before constructing guards and conditions.
+      # @api private
+      def self.normalize_reference(value)
+        value.is_a?(Resource) ? value : Validation.key(value)
+      end
+
       # @api public
       def initialize(id:, kind:, attributes: {}, immutable_attributes: [], indexes: {}, unique: [], guard: nil)
         @id = Validation.key(id)

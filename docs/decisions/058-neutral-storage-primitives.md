@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted for implementation in Refactor 35 (Storage S2b).
+Accepted. Applied and verified in Refactor 35 (Storage S2b/S2c), core
+`ebd99623f94c8b2db2d74355bfa39f01550778a0` and examples
+`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a`.
 
 ## Context
 
@@ -55,7 +57,22 @@ Shared conformance tests cover opaque data, CAS, named constraints, parents,
 Unicode cursor ordering, streams, binary blobs, all-resource rollback, nested
 savepoints, view lifetime, thread confinement and non-local exits. Domain tests
 retain F0/F1/F4 behavior and X0 limitations. SQLite old/new/old round-trip checks
-cover all eight resources and unchanged schema. Live PostgreSQL checks against
-this candidate remain S2c; source similarity and earlier SPI CI are insufficient.
+cover all eight resources and unchanged schema. The applied SPI 2 pair passed
+[PostgreSQL 17.11 CI](https://github.com/Raizo-TCS/phronomy-examples/actions/runs/35827495677)
+on Ruby 3.2/3.3/3.4, with 119 examples per version and fresh-pool reload. Both
+checkout SHAs were verified. Earlier SPI CI was not used as substitute evidence.
 No stronger commit certainty, distributed Workflow admission or external-effect
 retry is introduced.
+
+## S3 internal responsibility clarification
+
+Refactor 36 keeps all public SPI 2 signatures and Resource identity rules.
+Resource normalizes a schema object or resource ID before GuardRef/Condition
+construction; the cooperation method is `@api private`, not a new backend
+extension point. Generic Validation handles scalar validation and copying and
+must not depend on Resource. View still enforces catalog membership and exact
+schema identity. This removes the internal Resource/Validation cycle without
+changing a public name, transaction, stored record or physical backend.
+
+See the [closure review](../architecture/refactoring-closure.md) for retained
+placements and the separate distribution application gate.

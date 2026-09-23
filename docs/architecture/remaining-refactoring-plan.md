@@ -1,7 +1,8 @@
 # Remaining responsibility refactoring
 
-This is an implementation plan, not a new Storage SPI or Workflow lifecycle
-contract. The inventory baseline is core `e4ad9948798a4f165d052bd8ab5ac3574cf48e24`
+This tracks responsibility work, remaining proposals and acceptance gates; it does
+not define a new Storage SPI or Workflow lifecycle contract. The historical
+inventory baseline was core `e4ad9948798a4f165d052bd8ab5ac3574cf48e24`
 and examples `2f8b467f1268dd21de4c02b1c90c8bdd211d1feb` on `refactor/architecture`.
 
 W1 is now verified at core `42f61514929645662e16b571afff9f4060d867d1`.
@@ -9,6 +10,14 @@ W2a is applied and verified at core `01cd2f57549f6d1e60825254f4520d0f123e651c`.
 W2b is applied and verified at core `fcd434c45ad98e5c93953cbce1ffef3c12246894`. See the
 [W2 design review](workflow-terminal-ownership-design.md) and
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
+
+The current applied baseline is core
+`ebd99623f94c8b2db2d74355bfa39f01550778a0` and examples
+`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 35).
+S2b/S2c are applied and verified, including the matching-core PostgreSQL CI.
+Refactor 36 implements S3's internal reference cleanup and documentation closure.
+Its distribution still needs application verification. See the
+[closure review](refactoring-closure.md) for retained names, evidence and limits.
 
 ## Completed boundaries
 
@@ -28,9 +37,9 @@ remaining Workflow problem.
 | W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Applied and verified in Refactor 33 at fcd434c4; WorkflowTerminalPolicy and FSMProtocol::TerminalDecision own the boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
 | S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Design completed: Records/Streams/Blobs with conditions and guarded checks. The existing 37 raw methods have been inventoried; S2b now implements that design. |
 | S2a: Refactor 34 | Existing update, batch validation and nested transaction differences | Applied and verified at core ac07b6d4 / examples ae538996, including PostgreSQL 17.11 on Ruby 3.2/3.3/3.4. See ADR-057. |
-| S2b: Neutral Storage SPI | Common/domain contracts and all backends must agree | Refactor 35 candidate implemented: Records/Streams/Blobs, feature schemas/adapters, failed-view lifecycle and non-local-exit rollback. See ADR-058. Application verification remains. |
-| S2c: Integration and migration | Physical backends must satisfy the same contract | Validate live PostgreSQL locking/concurrency, all backends, API/RBS migration, durable reload and release artifact application. |
-| S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Decide names after the contract is established. Keep the public Persistence facade unless an explicit public migration is justified. Verify application and remaining dependency directions; do not rename merely to simplify a diagram. |
+| S2b: Neutral Storage SPI | Common/domain contracts and all backends must agree | Applied and verified at ebd99623 / 68a0bbd0: Records/Streams/Blobs, feature schemas/adapters, failed-view lifecycle and non-local-exit rollback. See ADR-058. |
+| S2c: Integration and migration | Physical backends must satisfy the same contract | Completed for Refactor 35. PostgreSQL 17.11 on Ruby 3.2/3.3/3.4: 119 examples per version; SQLite: 116. All 13 CI jobs checked out the verified core/examples pair. API/RBS, gem, round-trip data compatibility and applied trees were verified. |
+| S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Reviewed and implemented in Refactor 36: retain public Persistence, neutral Storage, feature schemas and separate composition; move resource-reference normalization from generic Validation to Resource. Update stale status documents. Verify this distribution after application; do not rename merely to simplify a diagram. |
 
 W1 precedes W2 so the active terminal save is explicit before its session-facing
 ownership changes. W2 can be completed without redesigning Storage's raw SPI.
@@ -89,7 +98,7 @@ See the existing [persistence staged plan](persistence-refactoring-plan.md),
 [ADR-033](../decisions/033-domain-persistence-ownership.md) and
 [ADR-043](../decisions/043-storage-execution-constraint-notifications.md).
 
-## S2a applied boundary and S2b candidate
+## S2a and S2b applied boundaries
 
 [ADR-057](../decisions/057-storage-transaction-boundaries.md) records the three
 behavioral changes. The [migration guide](../migrations/storage-transaction-boundaries.md)
@@ -97,16 +106,51 @@ explains nested savepoints and propagated ActiveRecord::Rollback. Complete batch
 validation prevents invalid input from leaving partial Journal rows; it does not
 make arbitrary database failures safe to catch inside the failed scope.
 
-Do not mark Storage complete when S2a is applied. The neutral SPI, failed-view
-rules, non-local-exit handling, full live PostgreSQL validation and S3 naming
-review remain. Reference SQL code parity is not PostgreSQL execution evidence.
+S2a alone did not complete Storage. Refactor 35 subsequently implemented the
+neutral SPI, failed-view rules and non-local exits, then passed live PostgreSQL
+acceptance against the applied core/examples pair. Reference SQL code parity
+alone was not used as PostgreSQL execution evidence.
 
-## Refactor 35 verification boundary
+## Refactor 35 verification history
 
 Core baseline: ac07b6d4b47167ae404c8ecad8450e80a0087754.
 Examples baseline: ae538996fd276faa3dac0990839e9cf115e6dff6.
 S2b changes the raw SPI and both SQL implementations together. Domain APIs and
 stored formats remain. Candidate checks include InMemory, real SQLite, generic
 resource declarations, scope failures and old/new/old SQLite data compatibility.
-Live PostgreSQL verification against the applied S2b core/examples pair is still
-S2c. Keep the applied dependency SVG until the candidate is actually applied.
+The applied pair above passed all three examples workflows, including
+[PostgreSQL](https://github.com/Raizo-TCS/phronomy-examples/actions/runs/35827495677),
+[SQLite](https://github.com/Raizo-TCS/phronomy-examples/actions/runs/35827495667) and
+[current API](https://github.com/Raizo-TCS/phronomy-examples/actions/runs/35827495646).
+Each job's checkout SHA was verified, not just its green status. Core remote
+workflows had no runs; local core suites supplied that evidence.
+
+## Closure boundary
+
+W1, W2a, W2b, S1, S2a, S2b and S2c are applied and verified. S3's bounded Storage
+cleanup and audit are included in Refactor 36 and await application verification.
+The original review is not fully implemented: the W/S-only inventory omitted
+D02, R03's metadata boundary, R06, R07, R08/D08, parts of R09, R10 and R11.
+See the reconciled inventory below; do not count those proposals as completed. Keep the published dependency SVG tied to the
+applied tree until that check. Performance benchmarking, live-LLM behavior,
+distributed ownership and unknown-outcome recovery policy are separate scopes,
+not silently added requirements for this responsibility refactoring.
+
+## Initial review proposals still requiring disposition
+
+| Initial item | Current assessment and follow-up |
+|---|---|
+| D02 | Still unapplied: Execution.__operation_binding remains with three callers. Rebase the earlier proposal to the current tree; do not apply its old ZIP. |
+| R03 | Partial: ToolInvocation owns restoration, but ordinary AgentInvocation still reads RecoverySupport's pending-LLM metadata key. Review the shared metadata owner. |
+| R06 | Unimplemented: Tool event vocabulary and LLM transition guard order remain duplicated across Invocation and both builders. |
+| R07 | Unimplemented: ContextAssembler's prepare methods still mix preparation steps with detailed item/provenance construction. |
+| R08 / D08 | One overlapping item, not two: GeneratorVerifier still combines PipelineState, Workflow construction and result reception. |
+| R09 | Partial: composition moved, but Base's Tool binding remains. DSL inheritance differences require a behavior decision before modification. |
+| R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
+| R11 | Partial: RuntimeRecordEncoder exists, but its json_value and RecoverySupport.canonical_copy still duplicate recursive conversion. Preserve their error contracts when reviewing consolidation. |
+
+R08/D08 is one work item. R03's completed Tool restoration must not be reopened;
+its remaining concern is metadata ownership. R09's configuration inheritance can
+change public behavior and needs its own explicit decision. These are existing
+proposals rediscovered by the S3 audit, not new performance or distributed-runtime
+requirements. The next proposed implementation is D02 against the current base.
