@@ -22,7 +22,7 @@ module Phronomy
 
       begin
         unless invocation_context.nil?
-          binding = Execution.__operation_binding(invocation_context: invocation_context,
+          binding = Concurrency::OperationBinding.new(invocation_context: invocation_context,
             cancellation_token: cancellation_token)
         end
         result = Phronomy::Runtime.instance.offload.submit(

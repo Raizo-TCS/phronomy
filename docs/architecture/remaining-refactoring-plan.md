@@ -12,11 +12,12 @@ W2b is applied and verified at core `fcd434c45ad98e5c93953cbce1ffef3c12246894`. 
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
 The current applied baseline is core
-`ebd99623f94c8b2db2d74355bfa39f01550778a0` and examples
-`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 35).
-S2b/S2c are applied and verified, including the matching-core PostgreSQL CI.
-Refactor 36 implements S3's internal reference cleanup and documentation closure.
-Its distribution still needs application verification. See the
+`d98822b3b4d04f01d8b5303545747517ae49fb76` and examples
+`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 36; examples unchanged).
+S2b/S2c were verified on Refactor 35, including PostgreSQL CI against its
+core ebd99623 / examples 68a0bbd0 pair.
+Refactor 36's S3 cleanup is applied and verified, and the diagram is on applied36-01.
+Refactor 37 implements D02 as the next candidate; its application is not yet verified. See the
 [closure review](refactoring-closure.md) for retained names, evidence and limits.
 
 ## Completed boundaries
@@ -39,7 +40,7 @@ remaining Workflow problem.
 | S2a: Refactor 34 | Existing update, batch validation and nested transaction differences | Applied and verified at core ac07b6d4 / examples ae538996, including PostgreSQL 17.11 on Ruby 3.2/3.3/3.4. See ADR-057. |
 | S2b: Neutral Storage SPI | Common/domain contracts and all backends must agree | Applied and verified at ebd99623 / 68a0bbd0: Records/Streams/Blobs, feature schemas/adapters, failed-view lifecycle and non-local-exit rollback. See ADR-058. |
 | S2c: Integration and migration | Physical backends must satisfy the same contract | Completed for Refactor 35. PostgreSQL 17.11 on Ruby 3.2/3.3/3.4: 119 examples per version; SQLite: 116. All 13 CI jobs checked out the verified core/examples pair. API/RBS, gem, round-trip data compatibility and applied trees were verified. |
-| S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Reviewed and implemented in Refactor 36: retain public Persistence, neutral Storage, feature schemas and separate composition; move resource-reference normalization from generic Validation to Resource. Update stale status documents. Verify this distribution after application; do not rename merely to simplify a diagram. |
+| S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Reviewed and implemented in Refactor 36: retain public Persistence, neutral Storage, feature schemas and separate composition; move resource-reference normalization from generic Validation to Resource. Update stale status documents. Applied and verified at d98822b3; do not rename merely to simplify a diagram. |
 
 W1 precedes W2 so the active terminal save is explicit before its session-facing
 ownership changes. W2 can be completed without redesigning Storage's raw SPI.
@@ -128,11 +129,11 @@ workflows had no runs; local core suites supplied that evidence.
 ## Closure boundary
 
 W1, W2a, W2b, S1, S2a, S2b and S2c are applied and verified. S3's bounded Storage
-cleanup and audit are included in Refactor 36 and await application verification.
+cleanup and audit are applied and verified in Refactor 36.
 The original review is not fully implemented: the W/S-only inventory omitted
 D02, R03's metadata boundary, R06, R07, R08/D08, parts of R09, R10 and R11.
-See the reconciled inventory below; do not count those proposals as completed. Keep the published dependency SVG tied to the
-applied tree until that check. Performance benchmarking, live-LLM behavior,
+See the reconciled inventory below; do not count those proposals as completed.
+Keep the published dependency SVG tied to applied36-01 until Refactor 37 application verification. Performance benchmarking, live-LLM behavior,
 distributed ownership and unknown-outcome recovery policy are separate scopes,
 not silently added requirements for this responsibility refactoring.
 
@@ -140,7 +141,7 @@ not silently added requirements for this responsibility refactoring.
 
 | Initial item | Current assessment and follow-up |
 |---|---|
-| D02 | Still unapplied: Execution.__operation_binding remains with three callers. Rebase the earlier proposal to the current tree; do not apply its old ZIP. |
+| D02 | Refactor 37 candidate: Agent, Blocking and Orchestrator construct Concurrency::OperationBinding directly; the Execution wrapper is removed. Application verification remains. |
 | R03 | Partial: ToolInvocation owns restoration, but ordinary AgentInvocation still reads RecoverySupport's pending-LLM metadata key. Review the shared metadata owner. |
 | R06 | Unimplemented: Tool event vocabulary and LLM transition guard order remain duplicated across Invocation and both builders. |
 | R07 | Unimplemented: ContextAssembler's prepare methods still mix preparation steps with detailed item/provenance construction. |
@@ -153,4 +154,24 @@ R08/D08 is one work item. R03's completed Tool restoration must not be reopened;
 its remaining concern is metadata ownership. R09's configuration inheritance can
 change public behavior and needs its own explicit decision. These are existing
 proposals rediscovered by the S3 audit, not new performance or distributed-runtime
-requirements. The next proposed implementation is D02 against the current base.
+requirements. D02 is implemented in Refactor 37 against the verified current base. After its
+application check, proceed to R03/R11 shared metadata and conversion ownership.
+
+
+## D02: direct operation binding (Refactor 37 candidate)
+
+OperationBinding already owns invocation context validation, its private linked
+cancellation token, deadline subscriptions and result-scoped cleanup. Its three
+clients now construct it directly. Execution's pass-through factory has no
+additional behavior and is removed without an alias or replacement factory.
+
+Construction remains at the same points: Agent before command admission,
+Blocking only with an explicit context and before Offload submission, and
+Orchestrator for each child before invoke_async. Keep bind/track/close ordering,
+error handling, context selection and cancellation ownership unchanged.
+Orchestrator still uses Execution for fan-out/fan-in; that dependency is intended.
+The internal OperationBinding signature and body, except its ownership comment,
+are unchanged. No class, production file, public API or examples change is added.
+
+The distribution must still be applied and checked before D02 is marked closed.
+The other seven initial-proposal groups remain open or partial.

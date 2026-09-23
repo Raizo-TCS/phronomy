@@ -4,7 +4,7 @@ module Phronomy
   module Concurrency
     # Connects explicit invocation controls before operation admission. Its token
     # is private: cancelling it never cancels the application's shared tokens.
-    # Used by Execution's Agent and Blocking adapters; it owns no worker.
+    # Used by Agent, Blocking and Orchestrator admission; it owns no worker.
     # @api private
     class OperationBinding
       attr_reader :token, :scope

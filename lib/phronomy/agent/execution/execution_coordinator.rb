@@ -109,7 +109,7 @@ module Phronomy
         @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = Phronomy::TaskResult.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
         if config[:invocation_context]
-          binding = Phronomy::Execution.__operation_binding(
+          binding = Phronomy::Concurrency::OperationBinding.new(
             invocation_context: config[:invocation_context],
             cancellation_token: config[:cancellation_token]
           )

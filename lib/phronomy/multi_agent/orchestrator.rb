@@ -174,7 +174,7 @@ module Phronomy
           invocation_context: invocation_context, concurrency_limit: max_concurrency) do |child, execution|
           # Preserve a child-specific context as well as this dispatch's controls.
           # Agent admission adds that context's constraints to the supplied token.
-          binding = Phronomy::Execution.__operation_binding(
+          binding = Phronomy::Concurrency::OperationBinding.new(
             invocation_context: execution.invocation_context,
             cancellation_token: child.config[:cancellation_token]
           )

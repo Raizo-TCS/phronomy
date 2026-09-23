@@ -60,13 +60,6 @@ module Phronomy
     end
     private_class_method :__run_async
 
-    # Common admission binding for Agent and synchronous-work adapters.
-    # @api private
-    def self.__operation_binding(invocation_context:, cancellation_token:)
-      Concurrency::OperationBinding.new(invocation_context: invocation_context,
-        cancellation_token: cancellation_token)
-    end
-
     # A scoped observation copy. The source, its controls and its physical work
     # keep their original ownership. Bind before adding this run's map/flat_map.
     # @param source_result [TaskResult]
