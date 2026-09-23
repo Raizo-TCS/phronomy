@@ -1,0 +1,150 @@
+# frozen_string_literal: true
+
+module Phronomy
+  module Agent
+    class RecoveryCoordinator
+      # Both resolution apply and restart use this interpretation of saved facts.
+      # Runtime tasks and sessions are projections, never continuation authority.
+      # @api private
+      module Continuation
+        private
+
+        def recovery_action(execution)
+          return :framework_tools if framework_batch?(execution)
+
+          case execution.phase.to_sym
+          when :recovery_provider_completed
+            execution.metadata["framework_calls_pending"] ? :framework_calls : :output
+          when :recovery_tools_completed
+            execution.metadata["framework_calls_pending"] ? :framework_calls : :followup
+          when :recovery_resolved_failed
+            :failed_terminal
+          else
+            :resolution_required
+          end
+        end
+
+        # Read durable inputs before entering EventLoop. The returned messages are
+        # operation-local projections transferred to the new invocation, never a
+        # shared cache or a second source of continuation decisions.
+        def prepare_recovery_material(execution, projection: nil)
+          action = recovery_action(execution)
+          suspended = execution.status == :suspended || execution.phase.to_sym == :resuming
+          return if !suspended && %i[resolution_required failed_terminal].include?(action)
+
+          unless projection
+            _manifest, projection = SavedContextReader.materialize_projection(agent, execution.metadata.fetch("manifest_ref"))
+          end
+          records = execution.working_records.select { |record| %i[assistant_message tool_message].include?(record.kind.to_sym) }
+          materializer = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence)
+          messages = records.map { |record| materializer.materialize_journal_record(record) }.freeze
+          assistant = messages.reverse.find { |message| message.role.to_sym == :assistant }
+          output, usage = SavedContextReader.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
+          RecoveryMaterial.new(projection: projection, messages: messages,
+            assistant_message: assistant, output: output, usage: usage)
+        end
+
+        def continue_recovery_on_event_loop(execution, completion, material:)
+          event_loop = @runtime.event_loop
+          action = recovery_action(execution)
+          if action == :resolution_required
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(agent.agent_id,
+              execution_id: execution.execution_id, state: :recovery_required)
+            deliver_resolution_required(execution, coordination_recovery_descriptor(execution))
+            completion.complete({execution_id: execution.execution_id,
+                                 execution_revision: execution.execution_revision,
+                                 recovery: :resolution_required}.freeze)
+            return
+          end
+
+          observe_recovery_execution(completion, execution)
+          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
+          projection = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution.execution_id).runtime_projection
+          if action == :failed_terminal
+            invocation = build_failed_recovery_invocation(execution, main)
+          else
+            projection = material.projection
+            invocation = if action == :framework_tools
+              InvocationRestorer.build_invocation_for_suspended(agent, execution, projection, main,
+                agent.send(:_phronomy_event_listener), assistant_message: material.assistant_message)
+            else
+              InvocationRestorer.build_chat_for_recovery(agent, execution, projection, main,
+                agent.send(:_phronomy_event_listener), messages: material.messages)
+            end
+            if execution.phase.to_sym == :recovery_provider_completed
+              invocation.output, invocation.usage = material.output, material.usage
+            end
+            prepare_saved_provider_calls(execution, invocation, material.assistant_message) if action == :framework_calls
+          end
+
+          error = if action == :failed_terminal
+            failure = execution.metadata.dig(ExecutionMetadata::RECOVERY_METADATA_KEY, "failure") ||
+              {"class" => "Phronomy::Error", "message" => "Recovery-resolved failure"}
+            RecoverySupport.error_from_failure(failure)
+          end
+          main.deliver_on_event_loop(ExecutionCoordinator::ContinueRecoveredCommand.new(
+            coordinator: main,
+            execution_id: execution.execution_id,
+            expected_execution_revision: execution.execution_revision,
+            continuation: action,
+            invocation: invocation,
+            runtime_projection: projection,
+            result_task: completion,
+            error: error
+          ))
+        end
+
+        def prepare_saved_provider_calls(execution, invocation, message)
+          record = SavedContextReader.latest_assistant_record(execution)
+          calls = message.tool_calls.respond_to?(:values) ? message.tool_calls.values : Array(message.tool_calls)
+          framework_calls = calls.select { |call| agent.__framework_call?(call.name) }
+          if framework_calls.empty?
+            raise Phronomy::ExecutionRehydrationRequiredError, "Saved framework call wiring is missing"
+          end
+          invocation.accept_tool_calls!(framework_calls, llm_call_id: record.llm_call_id)
+        end
+
+        def build_failed_recovery_invocation(execution, main)
+          Phronomy::Agent::AgentInvocation.new(agent: agent, input: nil,
+            config: {execution_id: execution.execution_id, phronomy_execution_coordinator: main},
+            event_listener: agent.send(:_phronomy_event_listener),
+            mode: (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym,
+            execution_id: execution.execution_id)
+        end
+
+        def deliver_resolution_required(execution, descriptor)
+          unless descriptor
+            raise Phronomy::ExecutionRehydrationRequiredError,
+              "Recovery state has no current unresolved subject"
+          end
+          listener = agent.send(:_phronomy_event_listener)
+          unless listener
+            raise Phronomy::ConfigurationError,
+              "Recovery resolution requires an Agent on_event listener"
+          end
+          payload = RecoverySupport.event_payload(
+            execution,
+            descriptor
+          )
+          callback_error = agent.send(
+            :_deliver_stream_event,
+            listener,
+            StreamEvent.new(
+              type: :recovery_resolution_required,
+              payload: payload
+            )
+          )
+          if callback_error
+            raise agent.send(
+              :_build_stream_callback_error,
+              event_type: :recovery_resolution_required,
+              callback_error: callback_error,
+              result: payload
+            )
+          end
+          nil
+        end
+      end
+    end
+  end
+end

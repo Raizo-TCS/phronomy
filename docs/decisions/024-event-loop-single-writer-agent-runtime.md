@@ -1,6 +1,10 @@
 # ADR-024: EventLoop Single-Writer Agent Runtime State
 
-**Status**: Accepted
+**Status**: Amended
+**Implementation ownership amendment**: [042-feature-owned-execution-state](042-feature-owned-execution-state.md) moves feature execution state and decisions to Agent/Workflow receivers; the EventLoop thread remains the single writer. Its registration, delivery and drain rules refine the original descriptions below.
+
+**Worker input classification amendment**: [045-worker-input-restriction-ownership](045-worker-input-restriction-ownership.md) replaces the concrete rejection list with an execution-boundary marker declared by each owning type. The existing value/behavior restrictions and application-owned opaque-value contract remain unchanged.
+
 **Date**: 2026-08-24
 **Partially supersedes**: [ADR-014](014-unified-persistence-durable-state.md) for live Agent Runtime ownership and `AgentExecutionActivation`
 **Complements**: [ADR-010](010-cooperative-first-concurrency.md), [ADR-012](012-canonical-execution-log-and-context-policy.md), [ADR-018](018-durability-guarantees-and-failure-model.md), [ADR-022](022-agent-execution-parent-identity-and-runtime-routing-boundary.md), [ADR-023](023-fsm-session-incarnation-identity-and-routing.md)

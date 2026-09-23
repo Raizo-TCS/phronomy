@@ -177,8 +177,7 @@ RSpec.describe "Workflow transition actions" do
         from: :source,
         to: :__finish__,
         action: ->(context, event) {
-          owner_fsm_session_id = Phronomy::Runtime.instance.event_loop
-            .workflow_admission_fsm_session_id(context.workflow_instance_id)
+          owner_fsm_session_id = Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_fsm_session_id(context.workflow_instance_id)
           context.merge(
             event_type: event.type,
             event_payload: event.payload,

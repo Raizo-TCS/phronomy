@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "concurrency/worker_input_restricted"
+
 require "securerandom"
 
 module Phronomy
@@ -9,6 +11,8 @@ module Phronomy
   # FSMSession owns FSM execution only; it does not own external TaskResult handles,
   # activity tokens, callback correlation, or domain-specific stale-event policy.
   class FSMSession
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     class IdentityReservation
       attr_reader :fsm_session_id
 
@@ -30,6 +34,8 @@ module Phronomy
     private_constant :IdentityReservation
 
     class EventSink
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       attr_reader :fsm_session_id
 
       def initialize(event_loop:)
@@ -59,8 +65,6 @@ module Phronomy
         end
       end
     end
-
-    FINISH = WorkflowRunner::FINISH
 
     attr_reader :id, :context, :event_sink
 
@@ -95,7 +99,7 @@ module Phronomy
       context_metadata: {},
       event_sink: nil,
       identity_reservation: nil,
-      terminal_barrier: nil
+      terminal_policy: nil
     )
       @id = if identity_reservation
         unless identity_reservation.is_a?(IdentityReservation)
@@ -123,7 +127,7 @@ module Phronomy
       @resume_event = resume_event
       @resume_phase = resume_phase
       @stable_observer = stable_observer
-      @terminal_barrier = terminal_barrier
+      @terminal_policy = terminal_policy
       @terminal_lifecycle_state = :running
       @pending_terminal_type = nil
       @pending_terminal_notify_stable = false
@@ -160,14 +164,13 @@ module Phronomy
     def handle(event)
       return if @done
 
-      if event.type == :workflow_terminal_persistence_result
-        handle_terminal_persistence_result(event.payload)
+      if @terminal_policy&.handles?(event)
+        handle_terminal_event(event)
         return
       end
 
-      # Once terminal persistence begins, ordinary Workflow events no longer
-      # have result authority. Only the persistence completion for this concrete
-      # FSMSession can advance its terminal lifecycle.
+      # Once a terminal decision is pending, ordinary events cannot advance
+      # the state machine. Only the injected policy can permit terminalization.
       return unless @terminal_lifecycle_state == :running
 
       context_disposition = apply_context_event(event)
@@ -261,7 +264,7 @@ module Phronomy
     end
 
     def advance_or_halt
-      return finish! if @current_state == FINISH
+      return finish! if @current_state == FSMProtocol::FINISH
 
       # A wait state is the logical end of this Workflow execution segment. Its
       # public stable-state notification is therefore part of terminalization
@@ -324,7 +327,7 @@ module Phronomy
     def finish!(notify_stable: false)
       request_terminal!(
         :finished,
-        phase: :__end__,
+        phase: FSMProtocol::FINISH,
         notify_stable: notify_stable
       )
     end
@@ -339,13 +342,13 @@ module Phronomy
       apply_context_metadata!(phase: phase)
       @pending_terminal_type = terminal_type
       @pending_terminal_notify_stable = notify_stable
-      unless @terminal_barrier
+      unless @terminal_policy
         complete_terminal!(terminal_type)
         return
       end
 
-      @terminal_lifecycle_state = :persisting_terminal
-      @terminal_barrier.call(
+      @terminal_lifecycle_state = :awaiting_terminal
+      @terminal_policy.start(
         terminal_type: terminal_type,
         context: @ctx,
         event_sink: @event_sink
@@ -354,31 +357,35 @@ module Phronomy
       finish_with_error(error)
     end
 
-    def handle_terminal_persistence_result(result)
-      return unless @terminal_lifecycle_state == :persisting_terminal
+    def handle_terminal_event(event)
+      return unless @terminal_lifecycle_state == :awaiting_terminal
 
-      case result.outcome
-      when :success
+      decision = @terminal_policy.decision_for(event)
+      case decision.action
+      when :complete
         complete_terminal!(@pending_terminal_type)
-      when :known_failure
-        finish_with_error(
-          result.error || Phronomy::Error.new("Workflow terminal persistence failed")
-        )
-      when :outcome_unknown
-        @done = true
-        @terminal_lifecycle_state = :recovery_required
-        post_recovery_required_event(result.error)
+      when :fail
+        finish_with_error(decision.error)
+      when :retire
+        retire_without_result!(decision.error)
       else
         raise Phronomy::Error,
-          "unknown Workflow terminal persistence outcome: #{result.outcome.inspect}"
+          "unknown FSM terminal decision: #{decision.action.inspect}"
       end
     end
 
-    def complete_terminal!(terminal_type)
+    def retire_without_result!(error)
       @done = true
+      @terminal_lifecycle_state = :retired
+      post_recovery_required_event(error)
+    end
+
+    def complete_terminal!(terminal_type)
       @terminal_lifecycle_state =
         (terminal_type == :halted) ? :halted : :completed
+      # Keep the error path open until the observer returns successfully.
       notify_stable_state! if @pending_terminal_notify_stable
+      @done = true
       post_terminal_event(terminal_type, @ctx)
     end
 

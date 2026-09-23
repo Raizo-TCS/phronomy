@@ -217,7 +217,7 @@ RSpec.describe Phronomy::Workflow do
     end
 
     let(:increment_action) { ->(s) { s.merge(counter: s.counter + 1) } }
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
 
     let(:app) do
       action = increment_action
@@ -277,7 +277,7 @@ RSpec.describe Phronomy::Workflow do
     end
 
     it "keeps Workflow-definition Persistence fixed instead of switching per invocation" do
-      other = Phronomy::Persistence::InMemory.new
+      other = Phronomy::Persistence.in_memory
       app.invoke(
         {counter: 5},
         config: {workflow_instance_id: "fixed", persistence: other}
@@ -297,7 +297,7 @@ RSpec.describe Phronomy::Workflow do
       end
     end
 
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
 
     let(:wait_app) do
       Phronomy::Workflow.define(wait_ctx, persistence: persistence) do

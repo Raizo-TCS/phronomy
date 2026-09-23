@@ -14,7 +14,7 @@ module Phronomy
         source = values.transform_keys(&:to_s)
         raise ArgumentError, "TeamRoot schema mismatch" unless source.keys.sort == ATTRIBUTES.sort
         canonical = Phronomy::CanonicalJSON.load(Phronomy::CanonicalJSON.dump(source))
-        ATTRIBUTES.each { |key| instance_variable_set("@#{key}", Phronomy::Agent::Immutable.copy(canonical.fetch(key))) }
+        ATTRIBUTES.each { |key| instance_variable_set("@#{key}", Phronomy::Values::Immutable.copy(canonical.fetch(key))) }
         raise ArgumentError, "missing team_id" if team_id.to_s.empty?
         raise ArgumentError, "invalid team_revision" unless team_revision.is_a?(Integer) && team_revision >= 0
         raise ArgumentError, "invalid metadata" unless metadata.is_a?(Hash)

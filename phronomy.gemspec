@@ -35,9 +35,8 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # Required dependencies. Agent-owned Tool execution depends on RubyLLM's
-  # additive after_message/before_tool_call callback contract introduced in 1.15.
-  spec.add_dependency "ruby_llm", ">= 1.15", "< 2"
+  # RubyLLM 2.0 owns provider-neutral output caps and Tool schema rendering.
+  spec.add_dependency "ruby_llm", "~> 2.0.0"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"

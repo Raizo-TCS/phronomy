@@ -16,13 +16,13 @@ module Phronomy
         children.each do |child|
           begin
             exact = tx.executions.load(child.fetch("execution_id"))
-          rescue Phronomy::Persistence::NotFoundError
+          rescue Phronomy::Storage::NotFoundError
             next
           end
-          raise Phronomy::Persistence::ConflictError, "Child owner mismatch" unless exact.agent_id == child.fetch("agent_id")
+          raise Phronomy::Storage::ConflictError, "Child owner mismatch" unless exact.agent_id == child.fetch("agent_id")
           child.merge!("state" => exact.status.to_s, "result_ref" => exact.result_ref, "error_ref" => exact.error_ref)
         end
-        Array(execution.metadata[Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY]).each do |tool|
+        Array(execution.metadata[Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).each do |tool|
           registration = parent.class.registered_subagents.find { |name, _| "dispatch_to_#{name}" == tool.fetch("tool_name") }
           next unless registration
           next if children.any? { |child| child.fetch("slot") == tool.fetch("tool_invocation_id") }
@@ -50,7 +50,7 @@ module Phronomy
         completion = Phronomy::TaskResult.deferred(name: "durable-subagent:#{tool_invocation_id}")
         preparation = runtime.offload.submit(on_full: :raise) do
           current = parent.persistence.executions.load(parent_execution_id)
-          raise Phronomy::Persistence::ConflictError, "Parent owner mismatch" unless current.agent_id == parent.agent_id
+          raise Phronomy::Storage::ConflictError, "Parent owner mismatch" unless current.agent_id == parent.agent_id
           snapshot = parent.persistence.contents.fetch_json(current.metadata.fetch(KEY))
           child = snapshot.fetch("children").find { |entry| entry.fetch("slot") == tool_invocation_id }
           raise Phronomy::ExecutionRehydrationRequiredError, "Missing reserved child slot" unless child
@@ -65,7 +65,7 @@ module Phronomy
             begin
               parent.persistence.agents.load(id)
               exists = true
-            rescue Phronomy::Persistence::NotFoundError
+            rescue Phronomy::Storage::NotFoundError
               exists = false
             end
             listener = parent.send(:_phronomy_event_listener)

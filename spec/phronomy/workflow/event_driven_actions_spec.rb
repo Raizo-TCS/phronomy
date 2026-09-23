@@ -147,7 +147,7 @@ RSpec.describe "event-driven Workflow actions" do
       )
     ).to be(true)
 
-    Phronomy::Runtime.instance.event_loop.post_to_workflow(
+    Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).post_to_workflow(
       workflow_instance_id: "workflow-stale",
       event: :probe,
       payload: nil

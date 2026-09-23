@@ -19,6 +19,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
         config: {execution_id: "execution-1"}
       )
       expect(session).to be_a(Phronomy::FSMSession)
+      expect(session.instance_variable_get(:@terminal_policy)).to be_nil
     end
 
     it "lets each FSMSession own a fresh UUID identity" do

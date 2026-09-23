@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../engine/concurrency/worker_input_restricted"
+
 require "securerandom"
 require_relative "concerns/filterable"
 require_relative "concerns/before_llm_input"
@@ -31,6 +33,8 @@ module Phronomy
     #     max_iterations 15
     #   end
     class Base
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       include Phronomy::Runnable
       include Concerns::Filterable
       include Concerns::BeforeLLMInput
@@ -119,15 +123,9 @@ module Phronomy
           if val.nil?
             @max_output_tokens
           else
-            @max_output_tokens = val.to_i
-          end
-        end
-
-        def context_window(val = nil)
-          if val.nil?
-            @context_window
-          else
-            @context_window = val.to_i
+            value = Integer(val)
+            raise ArgumentError, "max_output_tokens must be positive" unless value.positive?
+            @max_output_tokens = value
           end
         end
 
@@ -204,7 +202,7 @@ module Phronomy
           runtime = Phronomy::Runtime.instance
           materialized = false
 
-          agent = runtime.__load_agent(key, expected_class: self) do |owner_runtime|
+          agent = OwnershipRegistry.for(runtime).load(key, expected_class: self) do |owner_runtime|
             materialized = true
             instance = __construct_owned_agent(
               owner_runtime,
@@ -235,14 +233,17 @@ module Phronomy
         # Returns only the process-local live Agent owner. Does not access
         # Persistence and returns nil when this Runtime has no live owner.
         def get(agent_id)
-          Phronomy::Runtime.instance.__get_agent(agent_id, expected_class: self)
+          key = agent_id.to_s
+          raise ArgumentError, "agent_id must not be empty" if key.empty?
+
+          OwnershipRegistry.existing_for(Phronomy::Runtime.instance)&.get(key, expected_class: self)
         end
 
         # Resolves the live Agent instance that currently owns execution_id in
         # this process. The Runtime returns only a read-only ownership view;
         # mutable Agent execution state remains EventLoop-owned.
         def live_for_execution(execution_id)
-          owner = Phronomy::Runtime.instance.__agent_execution_owner(execution_id)
+          owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(execution_id)
           unless owner
             raise Phronomy::ExecutionRehydrationRequiredError,
               "no live execution owner for #{execution_id}; durable rehydration is required"
@@ -338,7 +339,7 @@ module Phronomy
 
         runtime = Phronomy::Runtime.instance
         begin
-          runtime.__create_agent(effective_agent_id, expected_class: self.class) do |owner_runtime|
+          OwnershipRegistry.for(runtime).create(effective_agent_id, expected_class: self.class) do |owner_runtime|
             __prepare_runtime_owner!(owner_runtime, effective_agent_id)
             initialize_owned_state(
               agent_id: effective_agent_id,
@@ -350,7 +351,7 @@ module Phronomy
             )
             self
           end
-        rescue Phronomy::Persistence::ConflictError => error
+        rescue Phronomy::Storage::ConflictError => error
           raise Phronomy::AgentAlreadyExistsError,
             "Agent #{effective_agent_id.inspect} already exists durably: #{error.message}"
         end
@@ -395,34 +396,8 @@ module Phronomy
       def add_knowledge(content, metadata: {})
         __assert_live_agent!
         current = agent_root
-        next_root = nil
-        appended = nil
-        persistence.transaction do |tx|
-          tx.executions.assert_idle!(agent_id)
-          record = build_knowledge_record(
-            tx: tx,
-            root: current,
-            content: content,
-            metadata: metadata
-          )
-          appended = tx.journals.append(
-            agent_id,
-            expected_position: current.journal_position,
-            records: [record]
-          )
-          next_root = current.with(
-            agent_revision: current.agent_revision + 1,
-            context_revision: current.context_revision + 1,
-            journal_position: current.journal_position + appended.length
-          )
-          tx.agents.save(
-            agent_id,
-            expected_revision: current.agent_revision,
-            root: next_root
-          )
-        end
-        _append_journal_records(appended)
-        @root = next_root
+        update = state_writer.add_knowledge(root: current, content: content, metadata: metadata)
+        apply_state_update(update)
         self
       end
 
@@ -450,9 +425,10 @@ module Phronomy
 
         __assert_live_agent!
         runtime = @_phronomy_runtime_owner
-        token = runtime.__begin_agent_purge(self)
-        if runtime.__agent_execution_admitted?(agent_id)
-          runtime.__abort_agent_purge(self, token)
+        registry = OwnershipRegistry.for(runtime)
+        token = registry.begin_purge(self)
+        if Phronomy::Agent::ExecutionRegistry.existing_for(runtime)&.agent_execution_admitted?(agent_id)
+          registry.abort_purge(self, token)
           raise Phronomy::AgentBusyError,
             "Agent #{agent_id.inspect} has a nonterminal top-level execution"
         end
@@ -471,20 +447,20 @@ module Phronomy
             tx.agents.delete(agent_id)
           end
         rescue Phronomy::AgentBusyError,
-          Phronomy::Persistence::ConflictError,
-          Phronomy::Persistence::NotFoundError,
-          Phronomy::Persistence::SerializationError,
+          Phronomy::Storage::ConflictError,
+          Phronomy::Storage::NotFoundError,
+          Phronomy::Storage::SerializationError,
           ArgumentError
-          runtime.__abort_agent_purge(self, token)
+          registry.abort_purge(self, token)
           raise
         rescue
           # Without F1 reconciliation support we cannot infer that a failed
           # durable delete did not commit. Keep the identity fail-closed.
-          runtime.__leave_agent_purge_uncertain(self, token)
+          registry.leave_purge_uncertain(self, token)
           raise
         end
 
-        runtime.__complete_agent_purge(self, token)
+        registry.complete_purge(self, token)
         true
       end
 
@@ -585,7 +561,7 @@ module Phronomy
       )
         @persistence = persistence ||
           Phronomy.configuration.persistence ||
-          Phronomy::Persistence::InMemory.new
+          DefaultPersistence.build
         @agent_id = agent_id.to_s.freeze
 
         if load_existing
@@ -630,117 +606,27 @@ module Phronomy
 
       def create_agent_root!(context:, knowledge:, metadata:)
         definition = self.class.agent_definition
-        root = Agent::AgentRoot.create(
-          agent_id: agent_id,
-          agent_definition_id: definition.fetch(:id),
-          agent_definition_version: definition.fetch(:version),
-          metadata: metadata
-        )
-        persistence.transaction do |tx|
-          tx.agents.create(root)
-          records = initial_context_records(tx: tx, root: root, context: context)
-          records.concat(initial_knowledge_records(tx: tx, root: root, knowledge: knowledge))
-          unless records.empty?
-            appended = tx.journals.append(agent_id, expected_position: 0, records: records)
-            root = root.with(
-              agent_revision: 1,
-              context_revision: 1,
-              journal_position: appended.length
-            )
-            tx.agents.save(agent_id, expected_revision: 0, root: root)
-          end
-        end
-        root
-      end
-
-      def initial_context_records(tx:, root:, context:)
-        return [] unless context
-
-        imported = context.respond_to?(:records) ? context :
-          Agent::ContextImporter.import_messages(context)
-        imported.records.map do |record|
-          content_ref = case record.content_format
-          when :text then tx.contents.put_text(record.content)
-          when :json then tx.contents.put_json(record.content)
-          else
-            raise ArgumentError,
-              "unsupported imported content format: #{record.content_format.inspect}"
-          end
-          Agent::JournalRecord.new(
-            agent_id: agent_id,
-            kind: record.kind,
-            channel: record.channel,
-            role: record.role,
-            content_ref: content_ref,
-            context_generation: root.transcript_generation,
-            context_candidate: true,
-            metadata: record.metadata
-          )
-        end
-      end
-
-      def initial_knowledge_records(tx:, root:, knowledge:)
-        Array(knowledge).map do |content|
-          build_knowledge_record(
-            tx: tx,
-            root: root,
-            content: content,
-            metadata: {}
-          )
-        end
-      end
-
-      def build_knowledge_record(tx:, root:, content:, metadata:)
-        Agent::JournalRecord.new(
-          agent_id: agent_id,
-          kind: :knowledge,
-          channel: :context,
-          role: :user,
-          content_ref: tx.contents.put_text(String(content)),
-          context_generation: root.transcript_generation,
-          context_candidate: true,
-          metadata: metadata || {}
+        state_writer.create_root(
+          definition: definition, context: context, knowledge: knowledge, metadata: metadata
         )
       end
 
       def mutate_context!(kind, context_affecting: true)
         __assert_live_agent!
         current = agent_root
-        next_root = nil
-        appended = nil
-        persistence.transaction do |tx|
-          tx.executions.assert_idle!(agent_id)
-          record = Agent::JournalRecord.new(
-            agent_id: agent_id,
-            kind: kind,
-            channel: :state,
-            context_generation: current.transcript_generation,
-            context_candidate: false
-          )
-          appended = tx.journals.append(
-            agent_id,
-            expected_position: current.journal_position,
-            records: [record]
-          )
-          proposed = yield(current)
-          next_root = proposed.with(
-            journal_position: current.journal_position + appended.length,
-            context_revision: context_affecting ?
-              yield_context_revision(current, proposed) : current.context_revision
-          )
-          tx.agents.save(
-            agent_id,
-            expected_revision: current.agent_revision,
-            root: next_root
-          )
-        end
-        _append_journal_records(appended)
-        @root = next_root
+        update = state_writer.mutate_context(
+          root: current, kind: kind, context_affecting: context_affecting
+        ) { |root| yield(root) }
+        apply_state_update(update)
       end
 
-      def yield_context_revision(current, proposed)
-        (proposed.context_revision == current.context_revision) ?
-          current.context_revision + 1 : proposed.context_revision
+      def state_writer
+        StateWriter.new(persistence: persistence, agent_id: agent_id)
+      end
+
+      def apply_state_update(update)
+        _append_journal_records(update.records)
+        @root = update.root
       end
 
       def _journal_records_snapshot
@@ -789,7 +675,8 @@ module Phronomy
         return true if @_phronomy_runtime_owner_state == :constructing
 
         runtime = @_phronomy_runtime_owner
-        unless runtime&.__agent_owned?(self)
+        registry = OwnershipRegistry.existing_for(runtime) if runtime
+        unless registry&.owned?(self)
           raise Phronomy::RuntimeShutdownError,
             "Agent #{agent_id.inspect} is no longer the live owner in its Runtime"
         end
@@ -943,7 +830,7 @@ module Phronomy
           )
         end
         projection.tool_classes.each do |tool_class|
-          chat.with_tool(prepare_tool_class(tool_class, invocation: invocation))
+          chat.with_tools(prepare_tool_class(tool_class, invocation: invocation))
         end
         projection.messages.each { |message| chat.messages << message }
         chat
@@ -954,25 +841,9 @@ module Phronomy
           "model" => self.class.model,
           "provider" => self.class.provider,
           "temperature" => self.class.temperature,
-          "max_output_tokens" => self.class.max_output_tokens,
-          "parallel_tool_execution" => Phronomy.configuration.parallel_tool_execution
+          "max_output_tokens" => self.class.max_output_tokens
         }
-        opts = {}
-        model = config["model"]
-        opts[:model] = model if model
-        provider = config["provider"]
-        if provider
-          opts[:provider] = provider.to_sym
-          opts[:assume_model_exists] = true
-        end
-        parallel_class = config["parallel_tool_execution"] ?
-          Phronomy::MultiAgent::ParallelToolChat : nil
-        chat = parallel_class ? parallel_class.new(**opts) : RubyLLM.chat(**opts)
-        chat.with_temperature(config["temperature"]) if config["temperature"]
-        if config["max_output_tokens"] && chat.respond_to?(:with_max_output_tokens)
-          chat.with_max_output_tokens(config["max_output_tokens"])
-        end
-        chat
+        RuntimeChatBuilder.build(config)
       end
 
       def build_instructions(input)
@@ -988,12 +859,7 @@ module Phronomy
       end
 
       def apply_instructions(chat, text, cache: false, provider: nil)
-        if cache && provider.to_s == "anthropic"
-          content = RubyLLM::Providers::Anthropic::Content.new(text, cache: true)
-          chat.with_instructions(content)
-        else
-          chat.with_instructions(text)
-        end
+        RuntimeChatBuilder.apply_instructions(chat, text, cache: cache, provider: provider)
       end
 
       def extract_message(input)
@@ -1021,66 +887,10 @@ module Phronomy
       def prepare_tool_class(tool_class, invocation: nil)
         return tool_class unless tool_class.is_a?(Class)
 
-        resolved = if (alias_name = self.class.tool_aliases[tool_class])
-          Class.new(tool_class) do
-            tool_name alias_name
-          end
-        else
-          tool_class
-        end
-
-        result_filters = _tool_result_filters_for(tool_class)
-        return resolved if result_filters.empty?
-
-        effective_name = resolved.new.name
-        custom_async_call =
-          resolved.instance_method(:call_async).owner !=
-          Phronomy::Agent::Context::Capability::Base
-
-        Class.new(resolved) do
-          tool_name effective_name
-          define_method(:call) do |args, **kwargs|
-            result = super(args, **kwargs)
-            result_filters.inject(result) { |val, filter|
-              filter.call(val, tool_name: name, args: args)
-            }
-          end
-
-          if custom_async_call
-            define_method(:call_async) do |args, **kwargs|
-              source = super(args, **kwargs)
-              filtered = Phronomy::Concurrency::PhysicalCompletionTask.deferred(
-                name: "tool-filter-#{name}"
-              )
-              source_has_physical_signal = source.respond_to?(:on_physical_complete)
-              source.on_physical_complete { filtered.mark_physical_complete! } if
-                source_has_physical_signal
-              source.on_complete do |value, error|
-                if error
-                  filtered.mark_physical_complete! unless source_has_physical_signal
-                  if source.respond_to?(:status) && source.status == :cancelled
-                    filtered.cancel!(error)
-                  else
-                    filtered.fail(error)
-                  end
-                  next
-                end
-
-                begin
-                  result = result_filters.inject(value) { |val, filter|
-                    filter.call(val, tool_name: name, args: args)
-                  }
-                  filtered.mark_physical_complete! unless source_has_physical_signal
-                  filtered.complete(result)
-                rescue => filter_error
-                  filtered.mark_physical_complete! unless source_has_physical_signal
-                  filtered.fail(filter_error)
-                end
-              end
-              filtered
-            end
-          end
-        end
+        binding = ToolBinding.new(
+          tool_class, alias_name: self.class.tool_aliases[tool_class]
+        )
+        binding.prepare(result_filters: _tool_result_filters_for(tool_class))
       end
     end
   end

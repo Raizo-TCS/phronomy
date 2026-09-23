@@ -264,7 +264,7 @@ RSpec.describe "Durable continuation decisions" do
           begin
             child = backend.executions.load(slot.fetch("execution_id"))
             snapshots[:child_terminal] ||= backend.snapshot if child.terminal?
-          rescue Phronomy::Persistence::NotFoundError
+          rescue Phronomy::Storage::NotFoundError
             snapshots[:child_reserved] ||= backend.snapshot
           end
         end
@@ -357,7 +357,7 @@ RSpec.describe "Durable continuation decisions" do
           if child.status == :cancelled && recorded == (boundary == :team_recorded)
             captured = backend.snapshot
           end
-        rescue Phronomy::Persistence::NotFoundError
+        rescue Phronomy::Storage::NotFoundError
           nil
         end
       end

@@ -17,7 +17,7 @@ class HITLAgent < Phronomy::Agent::Base
   tools HITLTool => nil
 end
 
-FAKE_HITL_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(10, 5, 0, 0)
+FAKE_HITL_TOKENS = Struct.new(:input, :output, :cache_read, :cache_write).new(10, 5, 0, 0)
 
 def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
   tool_call_id: "call_001", final_response: "TaskResult complete.",
@@ -49,16 +49,16 @@ def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
   )
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
-  allow(dbl).to receive(:with_tool).and_return(dbl)
+  allow(dbl).to receive(:with_tools).and_return(dbl)
   allow(dbl).to receive(:with_temperature).and_return(dbl)
   allow(dbl).to receive(:messages) { messages_list + [fake_assistant_msg] }
   allow(dbl).to receive(:tools) { tools_hash }
   allow(dbl).to receive(:add_message)
   allow(dbl).to receive(:cancellation_token=)
   allow(dbl).to receive(:on_tool_call) { |&block| stored_hook = block }
-  allow(dbl).to receive(:before_tool_call) { |&block| stored_hook = block }
+  allow(dbl).to receive(:after_message) { |&block| stored_hook = block }
   allow(dbl).to receive(:on_tool_result)
-  allow(dbl).to receive(:ask) { stored_hook&.call(fake_tc) }
+  allow(dbl).to receive(:ask) { stored_hook&.call(fake_assistant_msg) }
   allow(dbl).to receive(:complete).and_return(final_resp)
   dbl
 end

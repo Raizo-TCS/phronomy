@@ -278,3 +278,14 @@ ambiguous.
 
 Rejected. Cleanup from an invocation that failed to acquire admission could then
 release the real owner's reservation. Release is owner-aware by construction.
+
+## Storage composition refinement (2026-09-17)
+
+[ADR-032](032-storage-backend-composition.md) refines the public storage boundary:
+`Persistence` is the domain-facing composed service and `Storage::Backend` is
+the raw storage extension contract. Backend inheritance from `Persistence`, the
+old raw-repository constructor, and `build_transaction_view` are replaced.
+Storage record/error constants move to `Storage`. The single atomic transaction
+domain, durable-state/live-owner split, and failure guarantees in this decision
+remain in force. Earlier API spellings in this decision are historical for this
+amended scope; use the current Backend contract and migration guide.

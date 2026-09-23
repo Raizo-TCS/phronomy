@@ -51,7 +51,7 @@ module Phronomy
           # The child Agent owns its own FSMSession/EventLoop lifecycle; this
           # method only returns its completion handle and performs a short map.
           klass.define_method(:execute_async) do |input:, cancellation_token: nil, config: {}|
-            persistence = Phronomy::Persistence::InMemory.new
+            persistence = Phronomy::Persistence.in_memory
             agent = agent_class.create(persistence: persistence)
             task_config = (config || {}).dup
             if cancellation_token && !task_config[:cancellation_token]

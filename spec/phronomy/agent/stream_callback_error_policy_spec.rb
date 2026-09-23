@@ -64,8 +64,8 @@ RSpec.describe "Agent terminal stream callback error policy" do
         "Tok",
         input: 1,
         output: 2,
-        cached: 0,
-        cache_creation: 0,
+        cache_read: 0,
+        cache_write: 0,
         to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0}
       )
     end
@@ -83,12 +83,12 @@ RSpec.describe "Agent terminal stream callback error policy" do
     def build_streaming_chat_for_policy(response)
       dbl = double("Chat")
       allow(dbl).to receive(:with_instructions).and_return(dbl)
-      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_tools).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)
       allow(dbl).to receive(:messages).and_return([response])
       allow(dbl).to receive(:cancellation_token=)
       allow(dbl).to receive(:on_tool_call)
-      allow(dbl).to receive(:before_tool_call)
+      allow(dbl).to receive(:after_message)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask) do |_msg, &blk|
         blk&.call(double("Chunk", content: "token1"))

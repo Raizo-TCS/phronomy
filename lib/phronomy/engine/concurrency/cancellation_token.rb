@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
+require_relative "worker_input_restricted"
+
 module Phronomy
   module Concurrency
     # Cooperative cancellation token for Agent/Tool work.
     class CancellationToken
+      include Phronomy::Concurrency::WorkerInputRestricted
+
       # Creates a token that expires after +seconds+ measured with the monotonic clock.
       # @api public
       def self.timeout_after(seconds)

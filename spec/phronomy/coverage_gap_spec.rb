@@ -159,7 +159,7 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
       instructions "test"
     end
 
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:agent_a) { HandoffTestAgentA.new(persistence: persistence) }
     let(:agent_b) { HandoffTestAgentB.new(persistence: persistence) }
 

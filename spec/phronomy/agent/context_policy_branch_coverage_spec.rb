@@ -127,7 +127,7 @@ RSpec.describe "Context Policy branch coverage" do
 
   describe "ProviderCallOutcome.capture" do
     let(:outcome_class) { Phronomy::Agent::ProviderCallOutcome }
-    let(:msg_struct) { Struct.new(:role, :content, :tool_calls, :tokens, :model_id) }
+    let(:msg_struct) { Struct.new(:role, :content, :tool_calls, :tokens, :model) }
     let(:call_struct) { Struct.new(:id, :name, :arguments) }
 
     it "returns nil for nil message" do

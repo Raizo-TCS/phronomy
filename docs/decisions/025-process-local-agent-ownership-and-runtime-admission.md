@@ -1,7 +1,10 @@
 # ADR-025: Process-Local Agent Ownership and Runtime Admission
 
-**Status**: Accepted
+**Status**: Amended
+**Implementation ownership amendment**: [042-feature-owned-execution-state](042-feature-owned-execution-state.md) moves feature execution state and decisions to Agent/Workflow receivers; the EventLoop thread remains the single writer. Its registration, delivery and drain rules refine the original descriptions below.
+
 **Date**: 2026-08-24
+**Amended by**: [041-feature-owned-identity-registries](041-feature-owned-identity-registries.md) for registry implementation ownership and its generic Runtime shutdown contract
 **Partially supersedes**: [ADR-014](014-unified-persistence-durable-state.md) for same-process Agent live-instance ownership and top-level execution admission
 **Complements**: [ADR-018](018-durability-guarantees-and-failure-model.md), [ADR-022](022-agent-execution-parent-identity-and-runtime-routing-boundary.md), [ADR-023](023-fsm-session-incarnation-identity-and-routing.md), [ADR-024](024-event-loop-single-writer-agent-runtime.md)
 
@@ -43,8 +46,8 @@ live ownership service.
 
 ### One `agent_id` has one mutable live Agent owner per Runtime
 
-A Runtime owns a purpose-specific Agent ownership registry keyed only by
-`agent_id`:
+Agent owns the purpose-specific registry implementation, keyed only by
+`agent_id`; Runtime strongly retains one registered instance for its lifetime:
 
 ```text
 agent_id
@@ -62,6 +65,13 @@ cannot create two independent live objects.
 The registry is separate from EventLoop's `execution_id -> AgentExecutionState`
 directory. Agent lifetime and Execution lifetime are different semantic
 lifetimes and must not be represented by one registry.
+
+The original implementation placed this registry under Runtime. ADR-041 moves
+it to `Agent::OwnershipRegistry` and removes the feature-specific Runtime
+forwarding methods. Runtime uses only the generic shutdown participant contract
+to close, wait for, and finally detach registered owners. The invariant and
+Runtime-scoped lifetime are unchanged; EventLoop admission is not moved by that
+amendment.
 
 ### Public Agent construction/resolution semantics
 

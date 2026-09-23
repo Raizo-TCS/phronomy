@@ -100,7 +100,7 @@ span.
 
 ### `multi_agent.turn`
 
-One coarse `MultiAgent::Runner` user turn. Handoff does not create a mandatory
+One coarse `MultiAgent::HandoffRunner` user turn. Handoff does not create a mandatory
 long-lived span type.
 
 ## 6. Correlation and identity

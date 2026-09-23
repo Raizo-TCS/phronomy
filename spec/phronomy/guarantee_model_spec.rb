@@ -116,12 +116,15 @@ RSpec.describe "Durability guarantee and failure-model architecture contract (AC
   end
 
   it "keeps the Persistence transaction contract explicit about F1/ exactly-once limits" do
-    persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
+    persistence = File.read(File.join(root, "lib/phronomy/persistence/api/persistence.rb"))
+    storage = File.read(File.join(root, "lib/phronomy/storage/backend.rb"))
 
-    expect(persistence).to match(
-      /commit outcome is fundamentally.*Phronomy does not claim.*exactly-once semantics/m
-    )
-    expect(persistence).to match(
+    [persistence, storage].each do |source|
+      expect(source).to match(
+        /commit outcome is fundamentally.*Phronomy does not claim.*exactly-once semantics/m
+      )
+    end
+    expect(storage).to match(
       /does not\s+#\s+mean cross-process Workflow admission or distributed locking/m
     )
   end

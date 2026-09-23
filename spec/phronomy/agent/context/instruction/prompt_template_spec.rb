@@ -73,16 +73,16 @@ end
 
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent::Base instructions with PromptTemplate" do
-  let(:fake_tokens) { double("Tokens", input: 5, output: 3, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 3, "cached" => 0, "cache_creation" => 0}) }
+  let(:fake_tokens) { double("Tokens", input: 5, output: 3, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 3, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_response) { double("Response", content: "answer", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
-    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:before_tool_call)
+    allow(dbl).to receive(:after_message)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_response)
     allow(dbl).to receive(:messages).and_return([fake_response])
@@ -104,7 +104,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
     end
 
     agent_class.new.invoke({question: "Hello", style: "helpful"})
-    expect(fake_chat).to have_received(:with_instructions).with("You are a helpful assistant.")
+    expect(fake_chat).to have_received(:with_instructions).with("You are a helpful assistant.", cache_until_here: false)
   end
 
   it "falls back to the human template when system_template is nil" do
@@ -117,6 +117,6 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
     end
 
     agent_class.new.invoke({role: "chef", message: "Hello"})
-    expect(fake_chat).to have_received(:with_instructions).with("Act as a chef.")
+    expect(fake_chat).to have_received(:with_instructions).with("Act as a chef.", cache_until_here: false)
   end
 end

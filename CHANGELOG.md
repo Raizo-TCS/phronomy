@@ -12,6 +12,42 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Separate application Runtime reset and configuration replacement into
+  `runtime_composition/global_runtime.rb`. Configuration access no longer owns
+  Runtime lifecycle control; the reset API, shutdown ordering, timeout behavior,
+  and configuration defaults are unchanged. See
+  [ADR-039](docs/decisions/039-runtime-configuration-lifecycle-ownership.md).
+- Group root implementations and entry-point exceptions by responsibility:
+  common definitions, Engine/FSM execution contracts, Recovery, Workflow,
+  Agent lifecycle contracts, LLM contracts, configuration, and feature APIs.
+  Preserve public constant names, API signatures, stored formats, and lifecycle
+  loading. Reserve the direct source root for version and namespace/loading
+  files; share the three equivalent immutable-copy helpers. See
+  [ADR-038](docs/decisions/038-responsibility-based-source-layout.md).
+- Move the shared `Phronomy::Error` base exception to `common/error.rb` and
+  define ownership rules for general common definitions. The public constant,
+  subclass hierarchies, and rescue behavior are preserved. See
+  [ADR-037](docs/decisions/037-common-definition-ownership.md).
+- Group Context Policy and hook contracts, values, Manifest representation,
+  and Plan validation under `agent/context_contract/`. Zeitwerk collapses the
+  directory so the existing `Phronomy::Agent` constant names, Policy/hook
+  protocols, and Manifest format remain unchanged. Agent execution and Context
+  assembly retain their existing responsibilities. See
+  [ADR-036](docs/decisions/036-context-contract-ownership.md).
+- Move the internal `Phronomy::Agent::ToolExecutor` to
+  `Phronomy::Agent::Context::Capability::ToolExecutor`, alongside the default
+  Tool invocation contract, without an alias for the old internal constant.
+  Public Tool names, `call_async` arguments, execution modes, Runtime routing,
+  and Agent-owned authorization/result handling are preserved. See
+  [ADR-035](docs/decisions/035-tool-executor-capability-ownership.md).
+- Move `Phronomy::Agent::HandoffRunner` to
+  `Phronomy::MultiAgent::HandoffRunner` without a compatibility alias on the
+  architecture refactoring branch. Handoff edges and Policy remain in Agent;
+  execution, persistence formats, cancellation and recovery behavior are unchanged.
+  See [the migration guide](docs/migrations/handoff-runner-multi-agent.md).
+
 ---
 
 ## [0.26.0] - 2026-09-14

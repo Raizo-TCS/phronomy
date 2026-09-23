@@ -14,9 +14,9 @@ RSpec.describe "Agent async event contract" do
       "Tokens",
       input: 3,
       output: 2,
-      cached: 0,
-      cache_creation: 0,
-      to_h: {input: 3, output: 2, cached: 0, cache_creation: 0}
+      cache_read: 0,
+      cache_write: 0,
+      to_h: {input: 3, output: 2, cache_read: 0, cache_write: 0}
     )
   end
 
@@ -34,12 +34,12 @@ RSpec.describe "Agent async event contract" do
   def build_chat(response)
     chat = double("Chat")
     allow(chat).to receive(:with_instructions).and_return(chat)
-    allow(chat).to receive(:with_tool).and_return(chat)
+    allow(chat).to receive(:with_tools).and_return(chat)
     allow(chat).to receive(:with_temperature).and_return(chat)
     allow(chat).to receive(:cancellation_token=)
     allow(chat).to receive(:messages).and_return([response])
     allow(chat).to receive(:on_tool_call)
-    allow(chat).to receive(:before_tool_call)
+    allow(chat).to receive(:after_message)
     allow(chat).to receive(:on_tool_result)
     allow(chat).to receive(:ask) do |_message, &block|
       block&.call(double("Chunk", content: "answer"))

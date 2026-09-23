@@ -4,7 +4,12 @@ module Phronomy
       def self.tool_name: (?untyped value) -> String?
       def self.description: (?String text) -> String?
       def self.desc: (?String text) -> String?
-      def self.parameters: () -> Hash[untyped, untyped]
+      def self.parameters: (?untyped schema) ?{ () -> untyped } -> untyped
+      def self.declared_parameters: () -> Hash[untyped, untyped]
+      def self.parameters_schema_definition: () -> untyped
+      def self.params: (?untyped schema) ?{ () -> untyped } -> untyped
+      def self.provider_options: (?untyped options) -> Hash[untyped, untyped]
+      def self.with_params: (**untyped options) -> untyped
       def self.params_schema_definition: () -> untyped
       def self.provider_params: () -> Hash[untyped, untyped]
       def self.param: (untyped name, ?enum: untyped, ?properties: untyped, **untyped options) -> untyped
@@ -19,6 +24,10 @@ module Phronomy
       def self.max_result_size: (?untyped value) -> untyped
 
       def name: () -> String
+      def parameters_schema: () -> untyped
+      def parameters: () -> Hash[untyped, untyped]
+      def provider_options: () -> Hash[untyped, untyped]
+      def provider_params: () -> Hash[untyped, untyped]
       def params_schema: () -> untyped
       def call: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?) -> untyped
       def call_async: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped]) -> TaskResult[untyped]

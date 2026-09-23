@@ -17,7 +17,8 @@ RSpec.describe "ideal stateful Agent API" do
 
   it "always has a Persistence backend" do
     agent = agent_class.create
-    expect(agent.persistence).to be_a(Phronomy::Persistence::InMemory)
+    expect(agent.persistence).to be_a(Phronomy::Persistence)
+    expect(agent.persistence.backend).to be_a(Phronomy::Storage::Backends::InMemory)
   end
 
   it "allows Agent.run_once to register creation-time Knowledge" do

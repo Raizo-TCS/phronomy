@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Persistence::InMemory do
-  subject(:persistence) { described_class.new }
+RSpec.describe Phronomy::Persistence do
+  subject(:persistence) { described_class.in_memory }
 
   let(:root) do
     Phronomy::Agent::AgentRoot.create(
@@ -23,7 +23,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
     end.to raise_error("rollback")
 
     expect { persistence.agents.load(root.agent_id) }
-      .to raise_error(Phronomy::Persistence::NotFoundError)
+      .to raise_error(Phronomy::Storage::NotFoundError)
     temporary_id = "sha256:#{Digest::SHA256.hexdigest("temporary")}"
     expect(persistence.contents.exist?(temporary_id)).to be(false)
   end
@@ -31,34 +31,34 @@ RSpec.describe Phronomy::Persistence::InMemory do
   it "stores structured durable state as DurableRecord rather than domain objects" do
     persistence.agents.create(root)
 
-    stored = persistence.state.fetch(:agents).fetch(root.agent_id)
-    expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+    stored = persistence.backend.view.records("agent.roots").fetch(root.agent_id).record
+    expect(stored).to be_a(Phronomy::Storage::DurableRecord)
     expect(stored.record_type).to eq("phronomy.agent_root")
     expect(stored.format_version).to eq("0.1")
     expect(stored.payload.fetch("agent_id")).to eq(root.agent_id)
     expect(stored).not_to be_a(Phronomy::Agent::AgentRoot)
-    expect(persistence.state.fetch(:agent_revisions).fetch(root.agent_id)).to eq(0)
+    expect(persistence.backend.view.records("agent.roots").fetch(root.agent_id).revision).to eq(0)
   end
 
   it "keeps raw Backend indexing independent from DurableRecord payload semantics" do
-    raw_agents = persistence.instance_variable_get(:@agents_backend)
-    opaque = Phronomy::Persistence::DurableRecord.new(
+    raw_agents = persistence.backend.view.records("agent.roots")
+    opaque = Phronomy::Storage::DurableRecord.new(
       record_type: "opaque.backend-test",
       format_version: "0.1",
       payload: {"not_an_agent_schema" => true}
     )
 
     expect do
-      raw_agents.create(
-        agent_id: "opaque-agent",
-        agent_revision: 7,
+      raw_agents.insert(
+        key: "opaque-agent",
+        revision: 7, attributes: {},
         record: opaque
       )
     end.not_to raise_error
 
-    expect(raw_agents.load("opaque-agent").payload)
+    expect(raw_agents.fetch("opaque-agent").record.payload)
       .to eq("not_an_agent_schema" => true)
-    expect(persistence.state.fetch(:agent_revisions).fetch("opaque-agent")).to eq(7)
+    expect(raw_agents.fetch("opaque-agent").revision).to eq(7)
   end
 
   it "uses ExecutionRepository as atomic Agent admission without parsing status from payload" do
@@ -85,11 +85,11 @@ RSpec.describe Phronomy::Persistence::InMemory do
       persistence.transaction { |tx| tx.executions.create_active(second) }
     end.to raise_error(Phronomy::AgentBusyError)
 
-    stored = persistence.state.fetch(:executions).fetch(first.execution_id)
-    metadata = persistence.state.fetch(:execution_metadata).fetch(first.execution_id)
-    expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+    stored = persistence.backend.view.records("agent.executions").fetch(first.execution_id).record
+    metadata = persistence.backend.view.records("agent.executions").fetch(first.execution_id).attributes
+    expect(stored).to be_a(Phronomy::Storage::DurableRecord)
     expect(stored.record_type).to eq("phronomy.agent_execution")
-    expect(metadata).to include(agent_id: root.agent_id, revision: 0, active: true)
+    expect(metadata).to include(owner: root.agent_id, active: true)
   end
 
   describe "workflow_states" do
@@ -116,9 +116,9 @@ RSpec.describe Phronomy::Persistence::InMemory do
       expect(revision).to eq(2)
       expect(persistence.workflow_states.load("workflow-1")[:revision]).to eq(2)
 
-      stored = persistence.state.fetch(:workflow_states).fetch("workflow-1")
-      expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
-      expect(persistence.state.fetch(:workflow_revisions).fetch("workflow-1")).to eq(2)
+      stored = persistence.backend.view.records("workflow.states").fetch("workflow-1").record
+      expect(stored).to be_a(Phronomy::Storage::DurableRecord)
+      expect(persistence.backend.view.records("workflow.states").fetch("workflow-1").revision).to eq(2)
     end
 
     it "rejects stale saves instead of overwriting a newer snapshot" do
@@ -134,7 +134,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
           expected_revision: nil,
           snapshot: {fields: {count: 99}, phase: "__end__"}
         )
-      end.to raise_error(Phronomy::Persistence::ConflictError)
+      end.to raise_error(Phronomy::Storage::ConflictError)
 
       expect(
         persistence.workflow_states.load("workflow-1")[:snapshot]["fields"]["count"]
@@ -167,7 +167,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
           expected_revision: nil,
           snapshot: {fields: {callable: callable}, phase: "pause"}
         )
-      end.to raise_error(Phronomy::Persistence::SerializationError, /unsupported Workflow durable value/)
+      end.to raise_error(Phronomy::Storage::SerializationError, /unsupported Workflow durable value/)
     end
 
     it "rolls Agent and Workflow durable state back in the same transaction" do
@@ -184,9 +184,9 @@ RSpec.describe Phronomy::Persistence::InMemory do
       end.to raise_error("rollback-all")
 
       expect { persistence.agents.load(root.agent_id) }
-        .to raise_error(Phronomy::Persistence::NotFoundError)
+        .to raise_error(Phronomy::Storage::NotFoundError)
       expect(persistence.workflow_states.load("workflow-1")).to be_nil
-      expect(persistence.state.fetch(:workflow_revisions)).to be_empty
+      expect(persistence.backend.view.records("workflow.states").read("workflow-rollback")).to be_nil
     end
   end
 
@@ -214,7 +214,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
           agent_revision: root.agent_revision,
           journal_position: 0
         )
-      end.to raise_error(Phronomy::Persistence::ConflictError, /agent revision/)
+      end.to raise_error(Phronomy::Storage::ConflictError, /agent revision/)
     end
 
     it "rejects a Journal position advance even when Agent revision is unchanged" do
@@ -234,8 +234,8 @@ RSpec.describe Phronomy::Persistence::InMemory do
       )
       expect(appended.first.sequence).to eq(1)
 
-      stored = persistence.state.fetch(:journals).fetch(root.agent_id).first
-      expect(stored).to be_a(Phronomy::Persistence::DurableRecord)
+      stored = persistence.backend.view.streams("agent.journal").read(stream: root.agent_id).first.record
+      expect(stored).to be_a(Phronomy::Storage::DurableRecord)
       expect(stored.record_type).to eq("phronomy.journal_record")
 
       expect do
@@ -244,7 +244,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
           agent_revision: root.agent_revision,
           journal_position: 0
         )
-      end.to raise_error(Phronomy::Persistence::ConflictError, /journal position/)
+      end.to raise_error(Phronomy::Storage::ConflictError, /journal position/)
     end
   end
 

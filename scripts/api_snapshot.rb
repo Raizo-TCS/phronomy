@@ -36,7 +36,7 @@ PUBLIC_API_ENTRIES = [
   # Beta
   Phronomy::Agent::Handoff,
   Phronomy::Agent::HandoffPolicy,
-  Phronomy::Agent::HandoffRunner,
+  Phronomy::MultiAgent::HandoffRunner,
   Phronomy::MultiAgent::Orchestrator,
   Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Filter::Base,

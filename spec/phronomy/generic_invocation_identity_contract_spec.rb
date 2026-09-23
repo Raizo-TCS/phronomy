@@ -84,7 +84,7 @@ RSpec.describe "CG-02 generic invocation identity removal" do
 
   it "does not put generic thread_id into finalized Agent model config" do
     source = File.read(
-      File.join(root, "lib/phronomy/agent/context_assembler.rb")
+      File.join(root, "lib/phronomy/agent/context_assembly/context_assembler.rb")
     )
     expect(source).not_to include(
       '"thread_id" => config[:thread_id]'
@@ -93,7 +93,7 @@ RSpec.describe "CG-02 generic invocation identity removal" do
 
   it "stops writing generic thread_id/correlation into new Agent execution" do
     source = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     expect(source).not_to include('"thread_id" => thread_id')
     expect(source).not_to include("correlation_id:")

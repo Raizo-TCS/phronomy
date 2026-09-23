@@ -2,20 +2,19 @@
 
 module Phronomy
   module LlmContextWindow
-    # Immutable arithmetic value for one resolved model context budget.
-    # Model-registry lookup belongs to Agent::TokenBudgetResolver.
+    # Immutable input-budget arithmetic. RubyLLM owns model capabilities.
     class TokenBudget
-      attr_reader :context_window, :max_output_tokens
+      attr_reader :max_input_tokens
 
       # @api private
-      def initialize(context_window:, max_output_tokens:)
-        @context_window = Integer(context_window)
-        @max_output_tokens = Integer(max_output_tokens)
+      def initialize(max_input_tokens:)
+        @max_input_tokens = Integer(max_input_tokens)
+        raise ArgumentError, "max_input_tokens must be positive" unless @max_input_tokens.positive?
       end
 
       # @api private
       def effective_input_limit
-        [@context_window - @max_output_tokens, 0].max
+        @max_input_tokens
       end
 
       # @api private

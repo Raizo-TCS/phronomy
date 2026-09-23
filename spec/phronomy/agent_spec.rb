@@ -25,17 +25,17 @@ class DefaultDefinitionAgent < Phronomy::Agent::Base
 end
 
 RSpec.describe Phronomy::Agent::Base do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cache_read: 0, cache_write: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
-    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:before_tool_call)
+    allow(dbl).to receive(:after_message)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)
@@ -167,13 +167,13 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "passes String instructions to with_instructions" do
       agent.invoke("Hello")
-      expect(fake_chat).to have_received(:with_instructions).with("You are a test assistant.")
+      expect(fake_chat).to have_received(:with_instructions).with("You are a test assistant.", cache_until_here: false)
     end
 
     it "calls Proc instructions" do
       proc_agent = InstructionProcAgent.new
       proc_agent.invoke({context: "testing"})
-      expect(fake_chat).to have_received(:with_instructions).with("Context: testing")
+      expect(fake_chat).to have_received(:with_instructions).with("Context: testing", cache_until_here: false)
     end
 
     it "returns { output:, messages: }" do
@@ -228,7 +228,7 @@ RSpec.describe Phronomy::Agent::Base do
       end
 
       before do
-        allow(RubyLLM.models).to receive(:find).with("test-model").and_return(mock_model)
+        allow(RubyLLM.models).to receive(:find).with("test-model", provider: nil).and_return(mock_model)
       end
 
       it "records conversation in the Agent Journal" do
@@ -240,14 +240,14 @@ RSpec.describe Phronomy::Agent::Base do
 end
 
 RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
-  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
+  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
-    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:before_tool_call)
+    allow(dbl).to receive(:after_message)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil, tokens: alias_tokens, tool_call?: false))
     allow(dbl).to receive(:messages).and_return([])
@@ -297,7 +297,7 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
       end
       agent_class.tools(tool_a => "alpha", tool_b => nil)
       agent_class.new.invoke("hello")
-      expect(fake_chat).to have_received(:with_tool).twice
+      expect(fake_chat).to have_received(:with_tools).twice
       aliased = Class.new(tool_a) { tool_name "alpha" }
       expect(aliased.new.name).to eq("alpha")
     end
@@ -323,17 +323,17 @@ end
 # to fail silently for temperature(0). In Ruby, 0 and 0.0 are truthy, so this
 # code is actually correct. These specs document and lock in the correct behavior.
 RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID-12)" do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cache_read: 0, cache_write: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
-    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:before_tool_call)
+    allow(dbl).to receive(:after_message)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)

@@ -1,0 +1,174 @@
+module Phronomy
+  interface _ContentRepository
+    def put: (String bytes, canonicalization_version: untyped) -> String
+    def fetch: (String content_id) -> String
+    def exist?: (String content_id) -> bool
+    def put_text: (String text) -> String
+    def put_json: (untyped value) -> String
+    def fetch_text: (String content_id) -> String
+    def fetch_json: (String content_id) -> untyped
+    def fetch_many: (Array[String] content_ids) -> Hash[String, String]
+  end
+
+  interface _StorageBackend
+    def view: () -> Storage::View
+    def capabilities: () -> Hash[Symbol, bool | Integer]
+    def transaction: [T] () { (Storage::View) -> T } -> T
+  end
+
+  module Storage
+    type attributes = Hash[Symbol, String | Integer | bool | nil]
+    type resource_ref = Resource | String
+    type condition = Condition::RevisionIs | Condition::StreamHeadIs | Condition::NoRows
+
+    class ConflictError < Phronomy::Error
+    end
+    class UniqueConstraintError < ConflictError
+      attr_reader resource: String
+      attr_reader constraint: Symbol
+      def initialize: (resource: Resource, constraint: Symbol) -> void
+    end
+    class ConditionFailedError < ConflictError
+      attr_reader condition: condition
+      def initialize: (condition) -> void
+    end
+    class BlobConflictError < ConflictError
+    end
+    class TransactionError < Phronomy::Error
+    end
+    class NotFoundError < Phronomy::Error
+    end
+    class UnsupportedBackendError < Phronomy::Error
+    end
+    class SerializationError < Phronomy::Error
+    end
+
+    class DurableRecord
+      FORMAT_VERSION_PATTERN: Regexp
+      attr_reader record_type: String
+      attr_reader format_version: String
+      attr_reader payload: Hash[String, untyped]
+      def initialize: (record_type: String, format_version: String, payload: Hash[String, untyped]) -> void
+      def copy: () -> DurableRecord
+    end
+
+    class Resource
+      attr_reader id: String
+      attr_reader kind: Symbol
+      attr_reader attributes: Hash[Symbol, Symbol]
+      attr_reader immutable_attributes: Array[Symbol]
+      attr_reader indexes: Hash[Symbol, Array[Symbol]]
+      attr_reader unique: Array[Hash[Symbol, untyped]]
+      attr_reader guard: Hash[Symbol, untyped]?
+      def initialize: (id: String, kind: Symbol, ?attributes: Hash[Symbol, Symbol], ?immutable_attributes: Array[Symbol], ?indexes: Hash[Symbol, Array[Symbol]], ?unique: Array[Hash[Symbol, untyped]], ?guard: Hash[Symbol, untyped]?) -> void
+      def validate_attributes: (attributes, ?partial: bool) -> attributes
+      def index_values: (Symbol, attributes) -> attributes
+    end
+
+    module Entry
+      class Record
+        attr_reader key: String
+        attr_reader revision: Integer
+        attr_reader attributes: attributes
+        attr_reader record: DurableRecord
+        def initialize: (key: String, revision: Integer, attributes: attributes, record: DurableRecord) -> void
+        def to_h: () -> Hash[Symbol, untyped]
+      end
+      class Append
+        attr_reader id: String
+        attr_reader record: DurableRecord
+        def initialize: (id: String, record: DurableRecord) -> void
+        def to_h: () -> Hash[Symbol, untyped]
+      end
+      class Stream
+        attr_reader position: Integer
+        attr_reader id: String
+        attr_reader record: DurableRecord
+        def initialize: (position: Integer, id: String, record: DurableRecord) -> void
+        def to_h: () -> Hash[Symbol, untyped]
+      end
+      class Blob
+        attr_reader key: String
+        attr_reader bytes: String
+        attr_reader attributes: attributes
+        def initialize: (key: String, bytes: String, attributes: attributes) -> void
+        def to_h: () -> Hash[Symbol, untyped]
+      end
+    end
+
+    class GuardRef
+      attr_reader resource: resource_ref
+      attr_reader key: String
+      def initialize: (resource: resource_ref, key: String) -> void
+    end
+    module Condition
+      class RevisionIs
+        attr_reader resource: resource_ref
+        attr_reader key: String
+        attr_reader expected: Integer
+        def initialize: (resource: resource_ref, key: String, expected: Integer) -> void
+      end
+      class StreamHeadIs
+        attr_reader resource: resource_ref
+        attr_reader stream: String
+        attr_reader expected: Integer
+        def initialize: (resource: resource_ref, stream: String, expected: Integer) -> void
+      end
+      class NoRows
+        attr_reader resource: resource_ref
+        attr_reader index: Symbol
+        attr_reader equals: attributes
+        def initialize: (resource: resource_ref, index: Symbol, equals: attributes) -> void
+      end
+    end
+
+    class Records
+      UNCHECKED: Object
+      attr_reader resource: Resource
+      def initialize: (View, Resource) -> void
+      def insert: (key: String, revision: Integer, attributes: attributes, record: DurableRecord) -> Entry::Record
+      def read: (String) -> Entry::Record?
+      def fetch: (String) -> Entry::Record
+      def replace: (key: String, expected_revision: Integer, next_revision: Integer, attributes: attributes, record: DurableRecord, ?expected_attributes: attributes) -> Entry::Record
+      def delete: (key: String, ?expected_revision: Integer | Object) -> nil
+      def scan: (index: Symbol, equals: attributes, ?after: String?, ?limit: Integer?) -> Array[Entry::Record]
+      def delete_matching: (index: Symbol, equals: attributes) -> nil
+    end
+    class Streams
+      attr_reader resource: Resource
+      def initialize: (View, Resource) -> void
+      def append: (stream: String, expected_head: Integer, entries: Array[Entry::Append]) -> Array[Entry::Stream]
+      def read: (stream: String, ?after: Integer, ?limit: Integer?) -> Array[Entry::Stream]
+      def head: (stream: String) -> Integer
+      def delete: (stream: String) -> nil
+    end
+    class Blobs
+      attr_reader resource: Resource
+      def initialize: (View, Resource) -> void
+      def put_if_absent: (key: String, bytes: String, attributes: attributes) -> Entry::Blob
+      def fetch: (String) -> Entry::Blob
+      def exist?: (String) -> bool
+    end
+    class View
+      def records: (resource_ref) -> Records
+      def streams: (resource_ref) -> Streams
+      def blobs: (resource_ref) -> Blobs
+      def check!: (guards: Array[GuardRef], conditions: Array[condition]) -> true
+      def atomic: [T] () { (View) -> T } -> T
+    end
+    class Backend
+      REQUIRED_CAPABILITIES: Hash[Symbol, bool | Integer]
+      attr_reader resources: Hash[String, Resource]
+      attr_reader view: View
+      def initialize: (resources: Array[Resource]) -> void
+      def self.validate_capabilities!: (_StorageBackend backend) -> void
+      def capabilities: () -> Hash[Symbol, bool | Integer]
+      def transaction: [T] () { (View) -> T } -> T
+    end
+    module Backends
+      class InMemory < Backend
+        def initialize: (?resources: Array[Resource]) -> void
+      end
+    end
+  end
+end

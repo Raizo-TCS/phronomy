@@ -1,0 +1,508 @@
+# frozen_string_literal: true
+
+module Phronomy
+  module Agent
+    class RecoveryCoordinator
+      # Resolution portion of durable Agent Recovery.
+      # @api private
+      module Resolution
+        private
+
+        def begin_resolve_on_event_loop(request)
+          event_loop = @runtime.event_loop
+          state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(
+            request.execution_id
+          )
+          unless state && state.agent.equal?(agent)
+            request.completion.fail(
+              Phronomy::ExecutionRehydrationRequiredError.new(
+                "no live recovered execution #{request.execution_id}"
+              )
+            )
+            return
+          end
+
+          current = state.execution
+          unless current.execution_revision ==
+              request.expected_execution_revision
+            request.completion.fail(
+              Phronomy::Storage::ConflictError.new(
+                "Recovery resolution revision conflict: expected " \
+                "#{request.expected_execution_revision}, actual " \
+                "#{current.execution_revision}"
+              )
+            )
+            return
+          end
+
+          descriptor =
+            coordination_recovery_descriptor(current)
+          unless descriptor &&
+              Phronomy::Recovery.subject_equal?(
+                descriptor.fetch(:subject),
+                request.subject
+              )
+            request.completion.fail(
+              ArgumentError.new(
+                "Recovery subject is not current for execution #{request.execution_id}"
+              )
+            )
+            return
+          end
+
+          unless Array(
+            descriptor.fetch(:allowed_outcomes)
+          ).map(&:to_sym).include?(request.outcome)
+            request.completion.fail(
+              ArgumentError.new(
+                "Recovery outcome #{request.outcome.inspect} is not allowed for the current subject"
+              )
+            )
+            return
+          end
+
+          operation = ResolutionOperation.new(
+            execution: current,
+            root: agent.agent_root,
+            subject: request.subject,
+            outcome: request.outcome,
+            result: request.result,
+            failure: request.failure
+          )
+          Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(
+            agent.agent_id,
+            execution_id: current.execution_id,
+            state: :recovery_required
+          )
+          task = @runtime.offload.submit(
+            on_full: :raise
+          ) do
+            prepare_resolution(operation)
+          end
+          task.on_complete do |result, error|
+            ready = ResolveReady.new(
+              coordinator: self,
+              request: request,
+              operation: operation,
+              result: result,
+              error: error
+            )
+            unless post_control(ready)
+              request.completion.fail(
+                Phronomy::RuntimeShutdownError.new(
+                  "EventLoop rejected Recovery resolution apply"
+                )
+              )
+            end
+          end
+        rescue => caught
+          request.completion.fail(caught)
+        end
+
+        def perform_resolution(operation)
+          case operation.subject.fetch(:type)
+          when :llm_call
+            resolve_llm(operation)
+          when :tool_invocation
+            resolve_tool(operation)
+          else
+            raise ArgumentError,
+              "unsupported Recovery subject: #{operation.subject.inspect}"
+          end
+        end
+
+        def resolve_llm(operation)
+          current = operation.execution
+          llm_call_id =
+            operation.subject.fetch(:llm_call_id).to_s
+          unless current.metadata[
+            ExecutionMetadata::PENDING_LLM_ID_KEY
+          ].to_s == llm_call_id
+            raise Phronomy::Storage::ConflictError,
+              "LLM Recovery subject is no longer pending"
+          end
+
+          case operation.outcome
+          when :not_performed
+            # The factual ambiguity is resolved, but Recovery deliberately does not
+            # invent a generic semantic-retry contract. Without an operation-
+            # specific replay contract, fail the logical execution explicitly
+            # rather than asking the Application to provide a second, non-factual
+            # "resolution" or blindly redispatching the Provider call.
+            failure = {
+              "class" => "Phronomy::Error",
+              "message" =>
+                "Recovery confirmed LLM call #{llm_call_id} was not performed; " \
+                "automatic semantic redispatch is unavailable without a replay contract"
+            }.freeze
+            recovery = {
+              "version" => ExecutionMetadata::CONTRACT_VERSION,
+              "resolution_outcome" => "not_performed",
+              "failure" => failure
+            }.freeze
+            updated = current.with(
+              phase: :recovery_resolved_failed,
+              metadata: current.metadata.merge(
+                ExecutionMetadata::RECOVERY_METADATA_KEY => recovery
+              )
+            )
+            intended = ResolutionResult.new(execution: updated)
+            save_resolution_result(current, intended)
+          when :failed
+            recovery = {
+              "version" => ExecutionMetadata::CONTRACT_VERSION,
+              "failure" => operation.failure
+            }
+            updated = current.with(
+              phase: :recovery_resolved_failed,
+              metadata: current.metadata.merge(
+                ExecutionMetadata::RECOVERY_METADATA_KEY =>
+                  recovery
+              )
+            )
+            intended = ResolutionResult.new(execution: updated)
+            save_resolution_result(current, intended)
+          when :succeeded
+            # simplecov:disable
+            outcome =
+              Phronomy::Agent::ProviderCallOutcome.from_h(
+                operation.result
+              )
+            updated = nil
+            with_resolution_f1_capture do |tx|
+              snapshot = {
+                llm_results: [{
+                  llm_call_id: llm_call_id,
+                  response: outcome,
+                  error: nil,
+                  streaming: (
+                    current.metadata[
+                      ExecutionMetadata::INVOCATION_MODE_KEY
+                    ].to_s == "stream"
+                  ),
+                  manifest_ref: current.metadata.fetch(
+                    "manifest_ref"
+                  ),
+                  started_at: current.metadata[
+                    ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY
+                  ] || current.updated_at
+                }.freeze].freeze,
+                runtime_events: [].freeze,
+                active_call: nil
+              }.freeze
+              records, calls = RuntimeRecordEncoder.encode(
+                current,
+                agent_id: agent.agent_id,
+                tx: tx,
+                snapshot: snapshot,
+                context_candidate: true,
+                agent_root: operation.root
+              )
+              subjects =
+                RecoverySupport.build_tool_subjects(
+                  current,
+                  llm_call_id,
+                  outcome
+                )
+              framework_subjects, external_subjects = subjects.partition { |entry| agent.__framework_call?(entry.fetch("tool_name")) }
+              next_phase = external_subjects.empty? ?
+                :recovery_provider_completed : :recovery_tools
+              metadata = current.metadata.dup
+              metadata.delete(
+                ExecutionMetadata::PENDING_LLM_ID_KEY
+              )
+              metadata.delete(
+                ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY
+              )
+              metadata.delete("framework_calls_pending")
+              metadata["framework_calls_pending"] = true unless framework_subjects.empty?
+              if subjects.any? && Array(metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).empty?
+                metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY] = subjects.map do |entry|
+                  {
+                    "tool_invocation_id" => entry.fetch("tool_invocation_id"),
+                    "llm_call_id" => entry.fetch("llm_call_id"),
+                    "tool_call_id" => entry.fetch("tool_call_id"),
+                    "tool_name" => entry.fetch("tool_name"),
+                    "arguments" => RecoverySupport.canonical_copy(entry.fetch("arguments", {})),
+                    "status" => "authorized"
+                  }.freeze
+                end.freeze
+              end
+              if external_subjects.empty?
+                metadata.delete(
+                  ExecutionMetadata::RECOVERY_METADATA_KEY
+                )
+              else
+                metadata[
+                  ExecutionMetadata::RECOVERY_METADATA_KEY
+                ] = RecoverySupport.build_recovery_hash(
+                  external_subjects
+                )
+              end
+              updated = current.with(
+                phase: next_phase,
+                working_records:
+                  current.working_records + records,
+                llm_calls: current.llm_calls + calls,
+                metadata: metadata
+              )
+              tx.executions.save(
+                current.execution_id,
+                expected_revision: current.execution_revision,
+                execution: updated
+              )
+              ResolutionResult.new(execution: updated)
+            end
+            # simplecov:enable
+          end
+        end
+
+        def resolve_tool(operation)
+          # simplecov:disable
+          current = operation.execution
+          recovery = RecoverySupport.recovery_hash(current)
+          if recovery.nil? &&
+              %i[resuming dispatching_tools].include?(current.phase.to_sym)
+            subjects = RecoverySupport.pending_tool_subjects(current)
+            recovery = RecoverySupport.build_recovery_hash(subjects)
+          end
+          unless recovery
+            raise Phronomy::Storage::ConflictError,
+              "Tool Recovery state is missing"
+          end
+
+          subject_entry = Array(
+            recovery["subjects"] || recovery[:subjects]
+          ).find do |entry|
+            hash = entry.to_h { |key, value| [key.to_s, value] }
+            hash.fetch("tool_invocation_id").to_s ==
+              operation.subject.fetch(:tool_invocation_id).to_s &&
+              hash.fetch("state", "unresolved") == "unresolved"
+          end
+          unless subject_entry
+            raise Phronomy::Storage::ConflictError,
+              "Tool Recovery subject is no longer unresolved"
+          end
+          subject_entry =
+            subject_entry.to_h { |key, value| [key.to_s, value] }
+
+          case operation.outcome
+          when :not_performed
+            tool_id = subject_entry.fetch("tool_invocation_id").to_s
+            failure = {
+              "class" => "Phronomy::Error",
+              "message" =>
+                "Recovery confirmed Tool invocation #{tool_id} was not performed; " \
+                "automatic semantic redispatch is unavailable without a replay contract"
+            }.freeze
+            resolved_recovery =
+              RecoverySupport.update_recovery_subject(
+                recovery,
+                tool_invocation_id: tool_id,
+                state: :resolved,
+                outcome: :not_performed
+              ).merge(
+                "resolution_outcome" => "not_performed",
+                "failure" => failure
+              ).freeze
+            updated = current.with(
+              phase: :recovery_resolved_failed,
+              metadata: current.metadata.merge(
+                ExecutionMetadata::RECOVERY_METADATA_KEY =>
+                  resolved_recovery
+              )
+            )
+            intended = ResolutionResult.new(execution: updated)
+            save_resolution_result(current, intended)
+          when :failed
+            recovery_with_failure =
+              RecoverySupport.update_recovery_subject(
+                recovery,
+                tool_invocation_id:
+                  subject_entry.fetch("tool_invocation_id"),
+                state: :resolved,
+                outcome: :failed
+              ).merge(
+                "failure" => operation.failure
+              )
+            updated = current.with(
+              phase: :recovery_resolved_failed,
+              metadata: current.metadata.merge(
+                ExecutionMetadata::RECOVERY_METADATA_KEY =>
+                  recovery_with_failure
+              )
+            )
+            intended = ResolutionResult.new(execution: updated)
+            save_resolution_result(current, intended)
+          when :succeeded
+            updated = nil
+            with_resolution_f1_capture do |tx|
+              result_ref = RuntimeRecordEncoder.put_runtime_content(
+                tx,
+                operation.result
+              )
+              message = {
+                "role" => "tool",
+                "content" => operation.result.to_s,
+                "tool_call_id" =>
+                  subject_entry.fetch("tool_call_id").to_s
+              }
+              runtime_event = StreamEvent.new(
+                type: :tool_result,
+                payload: {
+                  tool_call_id:
+                    subject_entry.fetch("tool_call_id").to_s,
+                  tool_name:
+                    subject_entry.fetch("tool_name").to_s,
+                  tool_result: operation.result,
+                  tool_message: message,
+                  llm_call_id:
+                    subject_entry.fetch("llm_call_id").to_s
+                }.freeze
+              )
+              records, _calls = RuntimeRecordEncoder.encode(
+                current,
+                agent_id: agent.agent_id,
+                tx: tx,
+                snapshot: {
+                  llm_results: [].freeze,
+                  runtime_events: [runtime_event].freeze,
+                  active_call: nil
+                }.freeze,
+                context_candidate: true,
+                agent_root: operation.root
+              )
+              next_recovery =
+                RecoverySupport.update_recovery_subject(
+                  recovery,
+                  tool_invocation_id:
+                    subject_entry.fetch("tool_invocation_id"),
+                  state: :resolved,
+                  outcome: :succeeded,
+                  result_ref: result_ref
+                )
+              unresolved =
+                RecoverySupport.unresolved_subjects(
+                  next_recovery
+                )
+              tool_batch = Array(current.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).map do |entry|
+                if entry.fetch("tool_invocation_id") == subject_entry.fetch("tool_invocation_id")
+                  entry.merge("status" => "completed", "result" => operation.result)
+                else
+                  entry
+                end
+              end
+              next_phase = unresolved.empty? ?
+                :recovery_tools_completed : :recovery_tools
+              updated = current.with(
+                phase: next_phase,
+                working_records:
+                  current.working_records + records,
+                metadata: current.metadata.merge(
+                  ExecutionMetadata::RECOVERY_METADATA_KEY => next_recovery,
+                  ExecutionMetadata::TOOL_BATCH_METADATA_KEY => tool_batch
+                )
+              )
+              tx.executions.save(
+                current.execution_id,
+                expected_revision: current.execution_revision,
+                execution: updated
+              )
+              ResolutionResult.new(execution: updated)
+            end
+          end
+        end
+        # simplecov:enable
+
+        def known_non_f1_error?(error)
+          error.is_a?(Phronomy::Storage::ConflictError) ||
+            error.is_a?(Phronomy::Storage::NotFoundError) ||
+            error.is_a?(Phronomy::Storage::SerializationError) ||
+            error.is_a?(Phronomy::Storage::UnsupportedBackendError) ||
+            error.is_a?(ArgumentError) ||
+            error.is_a?(Phronomy::ConfigurationError)
+        end
+
+        def with_resolution_f1_capture
+          intended = nil
+          begin
+            agent.persistence.transaction do |tx|
+              intended = yield(tx)
+              intended
+            end
+            intended
+          rescue => caught
+            raise if known_non_f1_error?(caught)
+            raise unless intended
+
+            raise ResolutionOutcomeUnknownError.new(
+              caught,
+              intended
+            )
+          end
+        end
+
+        def save_resolution_result(current, result)
+          with_resolution_f1_capture do |tx|
+            tx.executions.save(
+              current.execution_id,
+              expected_revision: current.execution_revision,
+              execution: result.execution
+            )
+            result
+          end
+        end
+
+        # Commit/readback and materialization share one worker operation. A read
+        # failure after a confirmed commit must retain that committed execution;
+        # it must not be mistaken for another uncertain resolution write.
+        def prepare_resolution(operation)
+          result = resolve_with_readback(operation)
+          material = prepare_recovery_material(result.execution)
+          ResolutionPreparation.new(execution: result.execution, material: material, error: nil)
+        rescue => error
+          ResolutionPreparation.new(execution: result&.execution, material: nil, error: error)
+        end
+
+        def resolve_with_readback(operation)
+          perform_resolution(operation)
+        rescue => error
+          intended = error.intended_result.execution if error.is_a?(ResolutionOutcomeUnknownError)
+          current = agent.persistence.executions.load(operation.execution.execution_id)
+          return ResolutionResult.new(execution: current) if intended && current.to_h == intended.to_h
+
+          if current.to_h == operation.execution.to_h
+            raise(error.is_a?(ResolutionOutcomeUnknownError) ? error.original_error : error)
+          end
+          raise Phronomy::Storage::ConflictError,
+            "Recovery resolution durable outcome conflicts with both expected pre-state and intended post-state"
+        end
+
+        def apply_resolve_on_event_loop(ready)
+          request = ready.request
+          event_loop = @runtime.event_loop
+          state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(request.execution_id)
+          unless state && state.agent.equal?(agent)
+            raise Phronomy::ExecutionRehydrationRequiredError,
+              "recovered execution disappeared before resolution apply"
+          end
+          unless state.execution.equal?(ready.operation.execution) && state.fsm_session_id.nil?
+            raise Phronomy::Storage::ConflictError,
+              "Recovery execution changed before resolution apply"
+          end
+          raise ready.error if ready.error
+
+          result = ready.result
+          if result.execution
+            Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(request.execution_id, execution: result.execution)
+          end
+          raise result.error if result.error
+
+          continue_recovery_on_event_loop(result.execution, request.completion, material: result.material)
+        rescue => caught
+          request.completion.fail(caught)
+        end
+      end
+    end
+  end
+end

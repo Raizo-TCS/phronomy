@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "concurrency/worker_input_restricted"
+
 module Phronomy
   # A thread-free asynchronous completion handle.
   #
@@ -13,6 +15,8 @@ module Phronomy
   # is supplied through the CancellationToken accepted by the API that created
   # the TaskResult.
   class TaskResult
+    include Phronomy::Concurrency::WorkerInputRestricted
+
     STATES = %i[pending completed failed cancelled].freeze
     TERMINAL_STATES = %i[completed failed cancelled].freeze
     private_constant :TERMINAL_STATES

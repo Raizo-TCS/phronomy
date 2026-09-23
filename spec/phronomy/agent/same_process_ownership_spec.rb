@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent same-process live ownership" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "same-process-owner-test", version: 1
@@ -81,7 +81,7 @@ RSpec.describe "Agent same-process live ownership" do
   it "keeps load strict when no durable Agent exists" do
     expect {
       agent_class.load("missing-agent", persistence: persistence)
-    }.to raise_error(Phronomy::Persistence::NotFoundError)
+    }.to raise_error(Phronomy::Storage::NotFoundError)
 
     expect(agent_class.get("missing-agent")).to be_nil
   end
@@ -111,13 +111,13 @@ RSpec.describe "Agent same-process live ownership" do
     agent_class.create(agent_id: "agent-a", persistence: persistence)
     Phronomy.reset_runtime!
 
-    original_load = persistence.agents.method(:load)
+    original_load = persistence.backend.method(:read_record)
     entered = Queue.new
     release = Queue.new
     count_mutex = Mutex.new
     load_count = 0
 
-    persistence.agents.define_singleton_method(:load) do |agent_id|
+    persistence.backend.define_singleton_method(:read_record) do |context, resource, **arguments|
       first = count_mutex.synchronize do
         load_count += 1
         load_count == 1
@@ -126,7 +126,7 @@ RSpec.describe "Agent same-process live ownership" do
         entered << true
         release.pop
       end
-      original_load.call(agent_id)
+      original_load.call(context, resource, **arguments)
     end
 
     results = Queue.new
@@ -140,7 +140,7 @@ RSpec.describe "Agent same-process live ownership" do
     end
 
     entered.pop
-    # Give the second caller an opportunity to reach the Runtime reservation.
+    # Give the second caller an opportunity to reach the ownership reservation.
     Thread.pass
     release << true
     threads.each(&:join)
@@ -170,7 +170,7 @@ RSpec.describe "Agent same-process live ownership" do
 
   it "rejects load through a different Persistence instance while the Agent is live" do
     agent_class.create(agent_id: "agent-a", persistence: persistence)
-    other_persistence = Phronomy::Persistence::InMemory.new
+    other_persistence = Phronomy::Persistence.in_memory
 
     expect {
       agent_class.load("agent-a", persistence: other_persistence)
@@ -264,18 +264,19 @@ RSpec.describe "Agent same-process live ownership" do
     agent = agent_class.create(agent_id: "agent-ownership-check", persistence: persistence)
     runtime = Phronomy::Runtime.instance
 
-    expect(runtime.__agent_owned?(nil)).to be false
-    expect(runtime.__agent_owned?(agent)).to be true
+    registry = Phronomy::Agent::OwnershipRegistry.for(runtime)
+    expect(registry.owned?(nil)).to be false
+    expect(registry.owned?(agent)).to be true
 
     agent.purge!
-    expect(runtime.__agent_owned?(agent)).to be false
+    expect(registry.owned?(agent)).to be false
   end
 
   it "raises RuntimeShutdownError when begin_purge is called on a non-live agent" do
     agent = agent_class.create(agent_id: "agent-not-live", persistence: persistence)
     agent.purge!
 
-    registry = Phronomy::Runtime.instance.instance_variable_get(:@agent_ownership_registry)
+    registry = Phronomy::Agent::OwnershipRegistry.for(Phronomy::Runtime.instance)
     expect {
       registry.begin_purge(agent)
     }.to raise_error(Phronomy::RuntimeShutdownError)

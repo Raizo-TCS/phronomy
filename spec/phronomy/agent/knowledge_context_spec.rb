@@ -3,13 +3,19 @@
 require "spec_helper"
 
 RSpec.describe "Journal-backed Agent Knowledge" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  before do
+    allow(RubyLLM.models).to receive(:find).and_call_original
+    allow(RubyLLM.models).to receive(:find).with("local-model", provider: nil)
+      .and_return(double("RubyLLM model", context_window: 1_000))
+  end
+
+  let(:persistence) { Phronomy::Persistence.in_memory }
 
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "journal-backed-knowledge-test", version: 1
       model "local-model"
-      context_window 1_000
+
       max_output_tokens 100
       instructions "Base instruction"
     end
@@ -193,7 +199,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
     tight_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "journal-backed-knowledge-tight-test", version: 1
       model "local-model"
-      context_window 200
+
       max_output_tokens 20
       instructions "Base instruction"
     end
@@ -233,7 +239,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
     tight_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "journal-backed-hook-knowledge-tight-test", version: 1
       model "local-model"
-      context_window 200
+
       max_output_tokens 20
       instructions "Base instruction"
     end

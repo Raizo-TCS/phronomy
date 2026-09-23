@@ -36,8 +36,8 @@ RSpec.describe "framework-owned short Tool execution modes" do
       agent_definition id: "shared-state-mode-researcher", version: 1
       model "test"
     end
-    shared_state = Phronomy::Agent::SharedState.new
-    store = Phronomy::Agent::SharedState::KnowledgeStore.new
+    shared_state = Phronomy::MultiAgent::SharedState.new
+    store = Phronomy::MultiAgent::SharedState::KnowledgeStore.new
 
     instrumented = shared_state.send(
       :build_instrumented_researcher,

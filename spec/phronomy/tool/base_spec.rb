@@ -794,9 +794,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
 
     context "when tool_name is not set" do
-      it "returns nil from the class method" do
+      it "uses RubyLLM naming for an anonymous class" do
         klass = Class.new(described_class)
-        expect(klass.tool_name).to be_nil
+        expect(klass.tool_name).to eq("")
       end
 
       it "#name falls back to RubyLLM automatic conversion" do
@@ -1194,9 +1194,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   describe "#call_async — direct unit tests" do
-    it "passes cancellation_token to Phronomy::Agent::ToolExecutor" do
+    it "passes cancellation_token to Phronomy::Agent::Context::Capability::ToolExecutor" do
       ct = Phronomy::Concurrency::CancellationToken.new
-      expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: ct,
@@ -1206,7 +1206,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
 
     it "passes nil cancellation_token by default" do
-      expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: nil,
@@ -1215,8 +1215,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       hello_tool.call_async({})
     end
 
-    it "delegates to Phronomy::Agent::ToolExecutor (not unqualified ToolExecutor)" do
-      expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
+    it "delegates to the internal Tool executor and returns a TaskResult" do
+      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
       expect(result).to be_a(Phronomy::TaskResult)
     end

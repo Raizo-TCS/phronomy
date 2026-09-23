@@ -65,7 +65,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored, loaded, event = pending_provider
     threads = Queue.new
     restored.before_io = ->(operation) { threads << Thread.current.name if operation == :fetch }
-    allow(Phronomy::Agent::RecoverySupport).to receive(:build_chat_for_recovery).and_wrap_original do |method, *args, **kwargs|
+    allow(Phronomy::Agent::InvocationRestorer).to receive(:build_chat_for_recovery).and_wrap_original do |method, *args, **kwargs|
       expect(Phronomy::Runtime.instance.event_loop.current?).to be(true)
       method.call(*args, **kwargs)
     end
@@ -98,7 +98,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
   [:materialization, :f1_readback].each do |boundary|
     it "lets an unrelated Agent finish while #{boundary} is blocked" do
       restored, loaded, event = pending_provider
-      independent = worker.create(agent_id: "independent", persistence: Phronomy::Persistence::InMemory.new)
+      independent = worker.create(agent_id: "independent", persistence: Phronomy::Persistence.in_memory)
       if boundary == :f1_readback
         # Throw after commit; the next execution load is the authoritative F1 read.
         restored.after_commit = proc do |_backend|
@@ -130,7 +130,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     expect(saved.phase).to eq(:recovery_provider_completed)
     expect(saved).not_to be_terminal
     expect(saved.execution_revision).to eq(event.fetch(:execution_revision) + 1)
-    expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(Phronomy::Persistence::ConflictError)
+    expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(Phronomy::Storage::ConflictError)
     recovered = reboot(restored.snapshot)
     terminal = Queue.new
     recovered.after_commit = proc do |backend|
@@ -142,7 +142,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     expect(llm.calls).to be_empty
   end
 
-  [IOError, Phronomy::Persistence::NotFoundError].each do |failure|
+  [IOError, Phronomy::Storage::NotFoundError].each do |failure|
     it "does not treat #{failure} during F1 readback as permission to redispatch" do
       restored, loaded, event = pending_provider
       restored.after_commit = proc do |_backend|
@@ -182,7 +182,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     end
     llm = LLMStub.activate(responses: ["must not replay"])
     expect { resolve_output(loaded, event).wait_result(timeout: 3) }
-      .to raise_error(Phronomy::Persistence::ConflictError, /conflicts with both/)
+      .to raise_error(Phronomy::Storage::ConflictError, /conflicts with both/)
     expect(restored.executions.load(event.fetch(:execution_id)).metadata["competing_write"]).to be(true)
     expect(llm.calls).to be_empty
   end
@@ -197,18 +197,17 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     # Model a newer lifecycle update while the old worker is materializing.
     handler = Object.new
     handler.define_singleton_method(:deliver_on_event_loop) do |_command|
-      state = event_loop.agent_execution_state(event.fetch(:execution_id))
-      event_loop.replace_agent_execution(state.execution_id,
+      state = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(event.fetch(:execution_id))
+      Phronomy::Agent::ExecutionRegistry.for(event_loop).replace_agent_execution(state.execution_id,
         execution: state.execution.with(metadata: state.execution.metadata.merge("newer_live_state" => true)))
       applied.complete(true)
     end
     command = Struct.new(:coordinator).new(handler)
-    event_loop.post(Phronomy::Event.new(type: :agent_control,
-      target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {command: command}))
+    Phronomy::Agent::ExecutionRegistry.for(event_loop).post(command, completion: applied)
     applied.wait_result(timeout: 3)
     release << true
     expect { resolution.wait_result(timeout: 3) }
-      .to raise_error(Phronomy::Persistence::ConflictError, /changed before resolution apply/)
+      .to raise_error(Phronomy::Storage::ConflictError, /changed before resolution apply/)
     expect(restored.executions.load(event.fetch(:execution_id)).phase).to eq(:recovery_provider_completed)
   ensure
     release << true if release
@@ -254,7 +253,23 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
       restored_request = Timeout.timeout(3) { approvals.pop }
       expect(restored_request.id).to eq(request.id)
       expect(calls).to eq(0)
+      owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)
+        .agent_execution_owner(request.execution_id)
+      commit = owner.coordinator.instance_variable_get(:@approval_resume_commit)
+      committed_snapshots = Queue.new
+      allow(commit).to receive(:commit).and_wrap_original do |original_commit, operation|
+        saved = original_commit.call(operation)
+        expect(calls).to eq(0)
+        committed_snapshots << saved.execution.metadata.fetch(
+          Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY
+        )
+        saved
+      end
       result = loaded.approve_async(request.execution_id, approval_request_id: request.id, approved: approved).wait_result(timeout: 3)
+      captured = Timeout.timeout(3) { committed_snapshots.pop }
+      expect(captured.map { |entry| entry.fetch("tool_invocation_id") })
+        .to eq(restored_request.items.map(&:tool_invocation_id))
+      expect(captured.first).to include("status" => "awaiting_approval", "arguments" => {})
       if approved
         expect(result[:output]).to eq("approved output")
         expect(calls).to eq(1)

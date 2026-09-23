@@ -23,11 +23,12 @@ RSpec.describe "phronomy.gemspec packaging" do
     expect(lib_files).not_to be_empty
   end
 
-  it "requires RubyLLM 1.15+ for additive Tool-control callbacks" do
+  it "requires RubyLLM 2.0 for the provider-neutral output cap and Tool API" do
     dependency = gemspec.dependencies.find { |item| item.name == "ruby_llm" }
     expect(dependency).not_to be_nil
     expect(dependency.requirement.satisfied_by?(Gem::Version.new("1.14.9"))).to be(false)
-    expect(dependency.requirement.satisfied_by?(Gem::Version.new("1.15.0"))).to be(true)
-    expect(dependency.requirement.satisfied_by?(Gem::Version.new("2.0.0"))).to be(false)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("1.16.0"))).to be(false)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("2.0.0"))).to be(true)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("3.0.0"))).to be(false)
   end
 end

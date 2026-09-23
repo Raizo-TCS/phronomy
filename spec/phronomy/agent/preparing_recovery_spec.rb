@@ -99,7 +99,7 @@ RSpec.describe "durable :preparing Agent recovery" do
     it "rejects nil, non-Hash, and non-canonical nested values before admission" do
       agent = PreparingRecoverySpecAgent.create(
         agent_id: "preparing-context-invalid",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
 
       expect {
@@ -121,7 +121,7 @@ RSpec.describe "durable :preparing Agent recovery" do
     it "round-trips, detaches, and deep-freezes the durable context" do
       agent = PreparingRecoverySpecAgent.create(
         agent_id: "preparing-context-snapshot",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
       original = {"tenant" => {"roles" => ["reader"]}}
 
@@ -143,14 +143,12 @@ RSpec.describe "durable :preparing Agent recovery" do
 
   describe "durable admission evidence" do
     it "stores replayability and preserves an explicitly empty durable context" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = PreparingRecoverySpecAgent.create(
         agent_id: "preparing-admission-evidence",
         persistence: persistence
       )
-      coordinator = agent.send(:execution_coordinator)
-
-      execution, = coordinator.send(
+      execution, = Phronomy::Agent::InitialPreparation.new(agent: agent, persistence: persistence).send(
         :admit_execution,
         "hello",
         root: agent.agent_root,
@@ -169,7 +167,7 @@ RSpec.describe "durable :preparing Agent recovery" do
     it "is conservative for non-String, Multi-Agent, and Runtime policy dependencies" do
       agent = PreparingRecoverySpecAgent.create(
         agent_id: "preparing-replayability",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
       coordinator = agent.send(:execution_coordinator)
 
@@ -212,7 +210,7 @@ RSpec.describe "durable :preparing Agent recovery" do
 
   describe "load-integrated :preparing recovery" do
     it "replays the same execution_id with restored durable_context" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = PreparingRecoveryHookFailureAgent.create(
         agent_id: "preparing-replay",
         persistence: persistence
@@ -244,7 +242,7 @@ RSpec.describe "durable :preparing Agent recovery" do
     end
 
     it "fails closed when replayability is false" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = PreparingRecoverySpecAgent.create(
         agent_id: "preparing-not-replayable",
         persistence: persistence
@@ -268,7 +266,7 @@ RSpec.describe "durable :preparing Agent recovery" do
     end
 
     it "fails closed for a legacy :preparing execution with no marker" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = PreparingRecoverySpecAgent.create(
         agent_id: "preparing-legacy",
         persistence: persistence

@@ -1,5 +1,11 @@
 # Durable semantic coordination V2 migration
 
+> Runner namespace update (2026-09-18): this document preserves the V2
+> implementation/migration record. The current Runner is
+> `Phronomy::MultiAgent::HandoffRunner` under
+> [ADR-034](../decisions/034-handoff-runner-coordination-ownership.md).
+> Handoff and HandoffPolicy remain in Agent at this stage.
+
 This Beta clean break applies to baseline `5472116cd99a63ec27875024c955ea82be612d6b`.
 
 | Previous surface | Current surface |

@@ -23,36 +23,37 @@ are defined by
 
 ## Runtime model
 
-```text
-Runtime
-├─ Agent ownership registry
-│  └─ agent_id -> one mutable live Agent instance
-├─ EventLoop (one control-plane operating-system Thread)
-│  ├─ FSMSession
-│  │  ├─ Agent
-│  │  ├─ Workflow
-│  │  ├─ ToolInvocation
-│  │  └─ MultiAgent fan-out
-│  ├─ Agent top-level admission
-│  │  └─ agent_id -> one nonterminal logical Execution admission
-│  └─ Agent execution directory
-│     └─ execution_id -> immutable live-state record
-├─ OffloadPool (bounded operating-system Threads)
-│  ├─ private Operation records
-│  ├─ blocking input/output (I/O)
-│  ├─ central-processing-unit (CPU)-bound synchronous work
-│  └─ operation-specific durable Agent/Workflow work
-├─ named OffloadPools
-└─ EventLoop-driven timers
+| Runtime-retained component | Implementation owner and responsibility |
+|---|---|
+| Shutdown participants | Feature-owned registries: Agent identity, Team identity, and MultiAgent synchronous-call admission |
+| EventLoop | Engine dispatcher thread, FSMSessions and registered feature receivers |
+| Execution receivers | Agent/Workflow own execution admission, state and idle policies; mutations run on EventLoop |
+| OffloadPool and named pools | Engine bounded workers and private physical-operation records |
+| Timers | Engine EventLoop-driven scheduling |
 
-EventLoop / FSMSession ─┐
-                       ├─> TaskResult = completion handle
-OffloadPool ────────────┘
-```
+Runtime retains participants through a generic lifecycle protocol; it does not
+construct Agent or Team identity registries. Each feature registers its own
+instance. See [ADR-041](decisions/041-feature-owned-identity-registries.md).
 
 The framework does not allocate one operating-system Thread per logical
 Agent/Workflow/Tool lifecycle. Logical waits remain explicit states plus later
 EventLoop events.
+
+## Feature execution receivers
+
+[ADR-042](decisions/042-feature-owned-execution-state.md) separates implementation
+ownership from the single-writer execution context. Agent and Workflow create
+`Agent::ExecutionRegistry` and `WorkflowExecutionRegistry` respectively; Engine
+retains registered receivers without selecting concrete feature types.
+
+Receiver registration and new request admission close before idle checks.
+Already queued requests, pending durable operations and supervised physical
+work are counted until their feature continuation settles. Worker callbacks
+only enqueue results. Workflow instance routing and generic FSM enqueue share
+one lock. After a clean join, receiver cleanup invalidates retained state;
+a failing receiver makes Runtime cleanup incomplete. Dispatcher failure instead
+notifies receivers on the failing loop thread with the original error.
+
 
 ## Live state and durable state
 
@@ -61,7 +62,7 @@ last committed durable representation and recovery source; it is not reloaded at
 every semantic boundary.
 
 For active Agents, **EventLoop is the single writer of Phronomy-managed live
-execution state**. EventLoop owns a process-local execution directory keyed by
+execution state**. `Agent::ExecutionRegistry` owns the process-local directory keyed by
 canonical `execution_id`. Each directory value is immutable and is replaced on
 EventLoop when the current AgentExecution, RuntimeProjection, AgentInvocation, or
 owning FSMSession changes. The former mutex-protected
@@ -75,7 +76,7 @@ handling; workers do not receive AgentInvocation as a mutable state authority.
 Mutable Agent/Execution/Journal state is not automatically reloaded before every
 LLM or Tool step. Durable writes use optimistic revision/position guardrails; an
 external writer that advances the durable base causes
-`Persistence::ConflictError` rather than automatic reload or merge.
+`Storage::ConflictError` rather than automatic reload or merge.
 
 For Workflows, the current `WorkflowContext` and FSMSession own the active
 logical state. A durable Workflow hydrates once at invocation/resume and saves at
@@ -88,8 +89,9 @@ content reference is value materialization rather than mutable state refresh.
 
 `agent_id` identifies one logical Agent, not a reusable lookup key for independent
 mutable objects. One Runtime therefore publishes at most one mutable live Agent
-instance for a given `agent_id`. The Runtime-owned registry is an authority, not a
-cache, and reserves the identity before create/load materialization.
+instance for a given `agent_id`. The Agent-owned registry, strongly retained by
+Runtime, is an authority, not a cache, and reserves the identity before
+create/load materialization.
 
 The application-facing identity operations are distinct:
 
@@ -100,7 +102,7 @@ new / create
 load(agent_id, persistence:)
   live -> exact same Ruby object, with no Persistence reload
   durable-only -> hydrate and publish once
-  missing -> Persistence::NotFoundError
+  missing -> Storage::NotFoundError
 
 get(agent_id)
   live Runtime lookup only; missing -> nil
@@ -114,7 +116,8 @@ invalidates the old object, deletes durable state, releases the process-local
 identity, and allows a later new Agent to reuse the textual ID.
 
 Live Agent ownership and top-level Execution admission are separate lifetimes.
-For one live Agent, EventLoop admits at most one nonterminal top-level Execution.
+For one live Agent, `Agent::ExecutionRegistry` admits at most one nonterminal
+top-level Execution on EventLoop.
 Admission is acquired **before** the initial Offload/Persistence operation:
 
 ```text
@@ -194,6 +197,15 @@ Hash, Array, and String authorization command data is recursively copied/frozen.
 Phronomy-managed live domain objects are rejected from that value data. A complete
 value-type/serialization contract for arbitrary Application-owned opaque objects is
 deferred; such objects remain Application-owned and must be worker-safe.
+
+The existing restricted types declare the internal methodless
+`Concurrency::WorkerInputRestricted` marker at their own definitions.
+ToolInvocation checks that execution-boundary contract instead of enumerating
+Agent/Workflow/Runtime classes. Frozen marked values and subclasses remain
+restricted; Hash keys and values, nested Arrays and behavior handles are all
+checked. The marker does not inspect opaque application fields or closure
+captures and is not a general restriction on every OffloadPool command.
+See [ADR-045](decisions/045-worker-input-restriction-ownership.md).
 
 Worker authorization/execution outcomes return as values carrying
 `tool_invocation_id`; the Tool FSMSession consumes a mismatched semantic result
@@ -278,6 +290,32 @@ execution requires the later coordination/fencing work; optimistic revisions
 remain durable conflict defense rather than distributed ownership.
 
 ## Tool execution modes
+
+The default dispatch helper is the private
+`Phronomy::Agent::Context::Capability::ToolExecutor`, colocated with Capability
+Base. Agent ToolInvocation supplies Runtime and admission policy for the
+standard path, and owns authorization and logical result handling. Custom
+`call_async` implementations keep the public Tool protocol. This ownership is
+defined by [ADR-035](decisions/035-tool-executor-capability-ownership.md); the
+public `Phronomy::Tool::Base` facade and its Class identity remain unchanged.
+
+Agent uses ordinary `RubyLLM::Chat` for both complete and streaming Provider
+calls. The `before_tool_call` callback takes the complete assistant Tool-call
+batch before RubyLLM executes the first Tool body. `AgentInvocation` then owns
+authorization, dispatch, approval suspension and result collection. Offloaded
+Tools can overlap within Runtime capacity; short cooperative Tools run according
+to their existing execution contract.
+
+On successful batch completion, Agent records one Tool result per call ID in
+request order and includes the whole exchange in the next Provider request.
+Worker completion order does not split the conversation or trigger a partial
+Provider continuation. Failure, cancellation and approval keep their existing
+Agent lifecycle semantics.
+
+There is no separate Chat execution path or `parallel_tool_execution` switch.
+The removed internal `MultiAgent::ParallelToolChat` class is not replaced by an
+alias. See the [Chat migration guide](migrations/parallel-tool-chat-removal.md)
+for application configuration and existing stored model-config records.
 
 Phronomy exposes two execution modes for capabilities:
 
@@ -546,6 +584,53 @@ Use these to distinguish worker saturation from EventLoop backlog/latency.
 `Runtime#shutdown` is terminal for that Runtime. It drains/terminates the
 Runtime-owned EventLoop, then closes pools and timers according to the Runtime
 shutdown contract.
+
+Internal subsystems can register one shutdown participant per Runtime-local key
+through `Runtime#__register_shutdown_participant`. This is an internal lifecycle
+contract, not a public extension API or an execution registry. Runtime does not
+construct participants or interpret their admission rules.
+
+Each participant implements two required operations:
+
+- `begin_draining` closes admission under the participant's admission lock. It
+  must be idempotent, short and nonblocking, and must not call back into Runtime.
+  Runtime invokes it under its lifecycle lock when shutdown starts or EventLoop
+  fails, so no participant can be registered after closure begins.
+- `wait_until_idle(deadline)` returns whether admitted calls have finished before
+  the shared absolute monotonic deadline. Runtime closes every participant before
+  waiting, and waits without holding its lifecycle lock. A timeout or failed hook
+  makes cleanup incomplete; other participants, pools and timers still receive
+  their shutdown calls. Incomplete cleanup prevents default Runtime replacement.
+
+Participants may also implement `after_runtime_shutdown`. Runtime calls it
+outside its lifecycle lock after every wait succeeds, EventLoop has stopped,
+and pools/timers have shut down successfully. The hook must be idempotent,
+short, and perform no I/O; its return value is ignored. A hook exception marks
+cleanup incomplete, retains the first failure, and does not skip later hooks.
+Completed releases are not rolled back; repeated shutdown returns its cached
+result without retrying hooks. A prior closure/wait failure, timeout, or worker
+shutdown failure skips finalization entirely.
+
+`Runtime#__shutdown_participant(key:)` only retrieves an existing participant,
+including during/after shutdown. Registration still requires a running Runtime,
+even for an existing key. Agent/Team `get` uses lookup without registration;
+feature gates reject new ownership changes through retained registries after
+closure. Already admitted transitions may finish. Identity registries wait only
+for active construction/purge, then detach Agent references or clear Team
+owners at finalization; live idle objects do not themselves prolong shutdown.
+
+`MultiAgent::AdmissionRegistry.for(runtime)` constructs and registers the shared
+coordination admission registry. MultiAgent::HandoffRunner and TeamCoordinator retain that
+registry, admit each synchronous call directly and release it in `ensure` after
+successful admission. The registry closes admission atomically with respect to
+`admit!`; a call admitted before closure is included in the wait, and a call after
+closure raises `RuntimeShutdownError`, including after EventLoop failure. The
+existing `HandoffError` for duplicate admission remains unchanged.
+
+This tracks the current synchronous Handoff/Team call, not the lifetime or
+completion of a durable AgentExecution or TeamExecution. Multi-Agent policy stays
+in `multi_agent`; Runtime depends only on the shutdown operations. Application
+authors do not register these participants themselves.
 
 Workflow durable admission participates in EventLoop idleness: a Workflow whose
 FSMSession has ended but whose durable save is still in flight remains owned until

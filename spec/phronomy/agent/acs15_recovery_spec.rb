@@ -19,7 +19,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
 
   describe "Agent-incarnation event binding" do
     it "binds on_event at create and returns the same live owner from load without rebinding" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       listener = ->(_event) {}
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-live-owner",
@@ -36,7 +36,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "rejects listener rebinding when load resolves an already-live Agent" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       listener = ->(_event) {}
       ACS15RecoveryAgent.create(
         agent_id: "acs15-no-rebind",
@@ -54,7 +54,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "rejects on_event and a construction block together" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
 
       expect {
         ACS15RecoveryAgent.create(
@@ -70,7 +70,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "rejects old per-invocation on_event without starting an execution" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-old-on-event",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
 
       expect {
@@ -81,7 +81,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "rejects old per-invocation approval listener" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-old-approval-listener",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
 
       expect {
@@ -95,7 +95,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "rejects old invocation event-listener blocks" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-old-block",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
 
       expect {
@@ -106,7 +106,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "requires an Agent-incarnation listener for stream_async" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-stream-listener",
-        persistence: Phronomy::Persistence::InMemory.new
+        persistence: Phronomy::Persistence.in_memory
       )
 
       expect {
@@ -249,7 +249,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "publishes recovery_resolution_required with the same logical execution_id after Runtime restart" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-restart",
         persistence: persistence
@@ -283,7 +283,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "fails load and leaves no live owner when Application action is required but no listener is supplied" do
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-restart-no-listener",
         persistence: persistence
@@ -311,7 +311,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
 
   describe "Recovery resolution via resolve / resolve_async" do
     def setup_ambiguous_llm_execution(agent_id)
-      persistence = Phronomy::Persistence::InMemory.new
+      persistence = Phronomy::Persistence.in_memory
       agent = ACS15RecoveryAgent.create(agent_id: agent_id, persistence: persistence)
       root = agent.agent_root
       active_execution = nil
@@ -490,42 +490,6 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
       end
     end
 
-    describe ".build_tool_batch_snapshot" do
-      def make_tool_inv(id:, tool_call_id:, completed:, result: nil)
-        inv = double("tool_inv_#{id}",
-          id: id,
-          tool_call_id: tool_call_id,
-          tool_name: "tool_#{id}",
-          raw_arguments: {"x" => 1},
-          status: completed ? :completed : :pending,
-          execution_completed?: completed)
-        allow(inv).to receive(:result).and_return(result) if completed
-        inv
-      end
-
-      it "excludes result key when execution is not completed" do
-        inv = make_tool_inv(id: "inv-1", tool_call_id: "call-1", completed: false)
-        invocation = double("invocation", tool_invocations: [inv], tool_batch_llm_call_id: "llm-1")
-        result = described_class.build_tool_batch_snapshot(invocation)
-        expect(result.first).not_to have_key("result")
-      end
-
-      it "includes result key when execution is completed" do
-        inv = make_tool_inv(id: "inv-2", tool_call_id: "call-2", completed: true, result: "ok")
-        invocation = double("invocation", tool_invocations: [inv], tool_batch_llm_call_id: "llm-2")
-        result = described_class.build_tool_batch_snapshot(invocation)
-        expect(result.first["result"]).to eq("ok")
-      end
-
-      it "omits tool_call_id key when nil" do
-        inv = make_tool_inv(id: "inv-3", tool_call_id: nil, completed: false)
-        invocation = double("invocation", tool_invocations: [inv], tool_batch_llm_call_id: nil)
-        result = described_class.build_tool_batch_snapshot(invocation)
-        expect(result.first).not_to have_key("tool_call_id")
-        expect(result.first).not_to have_key("llm_call_id")
-      end
-    end
-
     describe ".pending_llm_descriptor" do
       it "returns nil when metadata has no pending_llm_call_id" do
         execution = double("execution", metadata: {}, llm_calls: [])
@@ -676,78 +640,6 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
         result = described_class.unresolved_subjects(recovery)
         expect(result.length).to eq(1)
         expect(result.first["tool_invocation_id"]).to eq("inv-1")
-      end
-    end
-
-    describe ".restore_tool_snapshot!" do
-      def make_child(id: "inv-1")
-        child = double("tool_invocation")
-        allow(child).to receive(:id).and_return(id)
-        allow(child).to receive(:terminal?).and_return(false)
-        allow(child).to receive(:validate!)
-        allow(child).to receive(:instance_variable_set)
-        allow(child).to receive(:mark_awaiting_approval!)
-        allow(child).to receive(:mark_authorized!)
-        allow(child).to receive(:mark_rejected!)
-        allow(child).to receive(:mark_framework_failed!)
-        allow(child).to receive(:mark_cancelled!)
-        child
-      end
-
-      it "handles :awaiting_approval status" do
-        child = make_child
-        entry = {"status" => "awaiting_approval"}
-        described_class.restore_tool_snapshot!(child, entry, {})
-        expect(child).to have_received(:mark_awaiting_approval!)
-      end
-
-      it "handles :authorized status" do
-        child = make_child
-        entry = {"status" => "authorized"}
-        described_class.restore_tool_snapshot!(child, entry, {})
-        expect(child).to have_received(:mark_authorized!)
-      end
-
-      it "handles :completed status" do
-        child = make_child
-        entry = {"status" => "completed", "result" => "done"}
-        described_class.restore_tool_snapshot!(child, entry, {})
-        expect(child).to have_received(:instance_variable_set).with(:@result, "done")
-        expect(child).to have_received(:instance_variable_set).with(:@status, :completed)
-      end
-
-      it "handles :rejected status" do
-        child = make_child
-        described_class.restore_tool_snapshot!(child, {"status" => "rejected"}, {})
-        expect(child).to have_received(:mark_rejected!)
-      end
-
-      it "handles :failed status" do
-        child = make_child
-        described_class.restore_tool_snapshot!(child, {"status" => "failed"}, {})
-        expect(child).to have_received(:mark_framework_failed!)
-      end
-
-      it "handles :cancelled status" do
-        child = make_child
-        described_class.restore_tool_snapshot!(child, {"status" => "cancelled"}, {})
-        expect(child).to have_received(:mark_cancelled!)
-      end
-
-      it "raises for unsupported status" do
-        child = make_child
-        expect {
-          described_class.restore_tool_snapshot!(child, {"status" => "bogus"}, {})
-        }.to raise_error(Phronomy::ExecutionRehydrationRequiredError, /unsupported/)
-      end
-
-      it "applies approval_item facts when item is present" do
-        child = make_child
-        entry = {"status" => "rejected"}
-        item = double("item", facts: {role: :owner}, reason: "approved by admin")
-        described_class.restore_tool_snapshot!(child, entry, {"inv-1" => item})
-        expect(child).to have_received(:instance_variable_set).with(:@facts, anything)
-        expect(child).to have_received(:instance_variable_set).with(:@authorization_reason, "approved by admin")
       end
     end
 

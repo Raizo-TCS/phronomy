@@ -41,7 +41,7 @@ module Phronomy
             sequence: values[:sequence] && Integer(values[:sequence]),
             constraint: effective_constraint,
             priority: Integer(values[:priority] || 0),
-            metadata: Immutable.copy(values[:metadata] || {})
+            metadata: Phronomy::Values::Immutable.copy(values[:metadata] || {})
           )
 
           super(**normalized)

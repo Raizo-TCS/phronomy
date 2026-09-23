@@ -164,8 +164,8 @@ RSpec.describe "LLMAdapter abstraction" do
         "tokens",
         input: 10,
         output: 20,
-        cached: 0,
-        cache_creation: 0,
+        cache_read: 0,
+        cache_write: 0,
         to_h: {"input" => 10, "output" => 20, "cached" => 0, "cache_creation" => 0}
       )
       double("response", content: "adapter response", tokens: tokens)
@@ -190,9 +190,9 @@ RSpec.describe "LLMAdapter abstraction" do
         .to receive(:run_before_llm_input_hooks)
         .and_return(Phronomy::Agent::LLMInputPatch.empty)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
-      allow(chat).to receive(:before_tool_call)
+      allow(chat).to receive(:after_message)
       allow(chat).to receive(:respond_to?) do |method_name, *|
-        method_name.to_sym == :before_tool_call
+        method_name.to_sym == :after_message
       end
 
       result = agent_class.new.invoke("hello")

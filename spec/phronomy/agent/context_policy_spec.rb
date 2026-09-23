@@ -37,8 +37,7 @@ RSpec.describe "Context Policy semantic API" do
     knowledge_items: [],
     tool_items: [],
     conversation_groups: [],
-    context_window: 100,
-    max_output_tokens: 0
+    context_window: 100
   )
     Phronomy::Agent::ContextPolicyInput.new(
       agent_id: "agent-1",
@@ -50,8 +49,7 @@ RSpec.describe "Context Policy semantic API" do
       tools: tool_items,
       conversation: conversation_groups,
       token_budget: Phronomy::LlmContextWindow::TokenBudget.new(
-        context_window: context_window,
-        max_output_tokens: max_output_tokens
+        max_input_tokens: context_window
       ),
       model_config: {},
       previous_manifest: nil,

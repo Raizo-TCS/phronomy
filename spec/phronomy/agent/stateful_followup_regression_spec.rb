@@ -24,19 +24,13 @@ RSpec.describe "stateful manifest follow-up regressions" do
     expect(context.config[:nested][:value]).to eq(1)
   end
 
-  it "requires a valid output reserve for an explicit context window" do
-    agent = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "budget-agent", version: 1
-    end.new
-    expect {
-      Phronomy::Agent::TokenBudgetResolver.new(agent: agent).resolve(
-        "model" => "local", "context_window" => 1024
-      )
-    }.to raise_error(Phronomy::InvalidContextBudgetConfigurationError)
+  it "does not invent an input limit for unregistered models" do
+    expect(Phronomy::Agent::TokenBudgetResolver.new.resolve("model" => "unknown-local-model"))
+      .to be_nil
   end
 
   describe "build_followup model config base" do
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "followup-model-test", version: 1
@@ -109,12 +103,12 @@ RSpec.describe "stateful manifest follow-up regressions" do
   end
 
   describe "follow-up hook instruction segments" do
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "followup-hook-segment-test", version: 1
         model "local-model"
-        context_window 4096
+
         max_output_tokens 512
         instructions "Base instruction"
       end

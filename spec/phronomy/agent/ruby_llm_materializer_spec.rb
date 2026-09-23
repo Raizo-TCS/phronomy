@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::RubyLLMMaterializer do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
   let(:agent) do
     agent_class = Class.new do
       def self.tools = []
@@ -123,6 +123,6 @@ RSpec.describe Phronomy::Agent::RubyLLMMaterializer do
     )
 
     message = materializer.materialize_journal_record(record)
-    expect(message.content).to eq("answer" => 42)
+    expect(JSON.parse(message.content)).to eq("answer" => 42)
   end
 end

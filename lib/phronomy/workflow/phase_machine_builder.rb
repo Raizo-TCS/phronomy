@@ -32,7 +32,7 @@ module Phronomy
 
       def build
         entry = @entry_point
-        all_states = (@declared_states + @wait_state_names + [:__end__]).uniq
+        all_states = (@declared_states + @wait_state_names + [FSMProtocol::FINISH]).uniq
         auto_transitions = @auto_transitions
         external_events = @external_events
         entry_actions = @entry_actions
@@ -188,7 +188,7 @@ module Phronomy
       end
 
       def public_destination(destination)
-        return :__finish__ if destination == Phronomy::WorkflowRunner::FINISH
+        return :__finish__ if destination == FSMProtocol::FINISH
 
         destination
       end

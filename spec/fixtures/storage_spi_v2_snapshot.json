@@ -1,0 +1,540 @@
+{
+  "spi_version": 2,
+  "capabilities": {
+    "spi_version": 2,
+    "atomic_resources": true,
+    "record_cas": true,
+    "stream_cas": true,
+    "conditional_unique": true,
+    "guarded_checks": true,
+    "nested_savepoints": true
+  },
+  "surfaces": {
+    "Phronomy::Persistence": {
+      "agents": [],
+      "assert_agent_watermark!": [
+        [
+          "keyreq",
+          "agent_id"
+        ],
+        [
+          "keyreq",
+          "agent_revision"
+        ],
+        [
+          "keyreq",
+          "journal_position"
+        ]
+      ],
+      "backend": [],
+      "capabilities": [],
+      "contents": [],
+      "execution_result": [
+        [
+          "req",
+          "execution_id"
+        ]
+      ],
+      "executions": [],
+      "handoff_result": [
+        [
+          "req",
+          "execution_id"
+        ],
+        [
+          "key",
+          "main_agent_id"
+        ]
+      ],
+      "handoff_states": [],
+      "journals": [],
+      "list_executions": [
+        [
+          "req",
+          "agent_id"
+        ],
+        [
+          "key",
+          "after"
+        ],
+        [
+          "key",
+          "limit"
+        ]
+      ],
+      "list_team_executions": [
+        [
+          "req",
+          "team_id"
+        ],
+        [
+          "key",
+          "after"
+        ],
+        [
+          "key",
+          "limit"
+        ]
+      ],
+      "team_execution_result": [
+        [
+          "req",
+          "team_execution_id"
+        ]
+      ],
+      "team_executions": [],
+      "teams": [],
+      "transaction": [],
+      "workflow_states": []
+    },
+    "Phronomy::Storage::Backend": {
+      "capabilities": [],
+      "initialize": [
+        [
+          "keyreq",
+          "resources"
+        ]
+      ],
+      "resources": [],
+      "transaction": [],
+      "view": []
+    },
+    "Phronomy::Storage::Backends::InMemory": {
+      "capabilities": [],
+      "initialize": [
+        [
+          "key",
+          "resources"
+        ]
+      ]
+    },
+    "Phronomy::Storage::View": {
+      "blobs": [
+        [
+          "req",
+          "resource"
+        ]
+      ],
+      "check!": [
+        [
+          "keyreq",
+          "guards"
+        ],
+        [
+          "keyreq",
+          "conditions"
+        ]
+      ],
+      "records": [
+        [
+          "req",
+          "resource"
+        ]
+      ],
+      "streams": [
+        [
+          "req",
+          "resource"
+        ]
+      ]
+    },
+    "Phronomy::Storage::Resource": {
+      "attributes": [],
+      "guard": [],
+      "id": [],
+      "immutable_attributes": [],
+      "index_values": [
+        [
+          "req",
+          "index"
+        ],
+        [
+          "req",
+          "equals"
+        ]
+      ],
+      "indexes": [],
+      "initialize": [
+        [
+          "keyreq",
+          "id"
+        ],
+        [
+          "keyreq",
+          "kind"
+        ],
+        [
+          "key",
+          "attributes"
+        ],
+        [
+          "key",
+          "immutable_attributes"
+        ],
+        [
+          "key",
+          "indexes"
+        ],
+        [
+          "key",
+          "unique"
+        ],
+        [
+          "key",
+          "guard"
+        ]
+      ],
+      "kind": [],
+      "unique": [],
+      "validate_attributes": [
+        [
+          "req",
+          "values"
+        ],
+        [
+          "key",
+          "partial"
+        ]
+      ]
+    },
+    "Phronomy::Storage::Records": {
+      "delete": [
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "key",
+          "expected_revision"
+        ]
+      ],
+      "delete_matching": [
+        [
+          "keyreq",
+          "index"
+        ],
+        [
+          "keyreq",
+          "equals"
+        ]
+      ],
+      "fetch": [
+        [
+          "req",
+          "key"
+        ]
+      ],
+      "insert": [
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "keyreq",
+          "revision"
+        ],
+        [
+          "keyreq",
+          "attributes"
+        ],
+        [
+          "keyreq",
+          "record"
+        ]
+      ],
+      "read": [
+        [
+          "req",
+          "key"
+        ]
+      ],
+      "replace": [
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "keyreq",
+          "expected_revision"
+        ],
+        [
+          "keyreq",
+          "next_revision"
+        ],
+        [
+          "keyreq",
+          "attributes"
+        ],
+        [
+          "keyreq",
+          "record"
+        ],
+        [
+          "key",
+          "expected_attributes"
+        ]
+      ],
+      "resource": [],
+      "scan": [
+        [
+          "keyreq",
+          "index"
+        ],
+        [
+          "keyreq",
+          "equals"
+        ],
+        [
+          "key",
+          "after"
+        ],
+        [
+          "key",
+          "limit"
+        ]
+      ]
+    },
+    "Phronomy::Storage::Streams": {
+      "append": [
+        [
+          "keyreq",
+          "stream"
+        ],
+        [
+          "keyreq",
+          "expected_head"
+        ],
+        [
+          "keyreq",
+          "entries"
+        ]
+      ],
+      "delete": [
+        [
+          "keyreq",
+          "stream"
+        ]
+      ],
+      "head": [
+        [
+          "keyreq",
+          "stream"
+        ]
+      ],
+      "read": [
+        [
+          "keyreq",
+          "stream"
+        ],
+        [
+          "key",
+          "after"
+        ],
+        [
+          "key",
+          "limit"
+        ]
+      ],
+      "resource": []
+    },
+    "Phronomy::Storage::Blobs": {
+      "exist?": [
+        [
+          "req",
+          "key"
+        ]
+      ],
+      "fetch": [
+        [
+          "req",
+          "key"
+        ]
+      ],
+      "put_if_absent": [
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "keyreq",
+          "bytes"
+        ],
+        [
+          "keyreq",
+          "attributes"
+        ]
+      ],
+      "resource": []
+    },
+    "Phronomy::Storage::GuardRef": {
+      "initialize": [
+        [
+          "keyreq",
+          "resource"
+        ],
+        [
+          "keyreq",
+          "key"
+        ]
+      ],
+      "key": [],
+      "resource": []
+    },
+    "Phronomy::Storage::Condition::RevisionIs": {
+      "expected": [],
+      "initialize": [
+        [
+          "keyreq",
+          "resource"
+        ],
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "keyreq",
+          "expected"
+        ]
+      ],
+      "key": [],
+      "resource": []
+    },
+    "Phronomy::Storage::Condition::StreamHeadIs": {
+      "expected": [],
+      "initialize": [
+        [
+          "keyreq",
+          "resource"
+        ],
+        [
+          "keyreq",
+          "stream"
+        ],
+        [
+          "keyreq",
+          "expected"
+        ]
+      ],
+      "resource": [],
+      "stream": []
+    },
+    "Phronomy::Storage::Condition::NoRows": {
+      "equals": [],
+      "index": [],
+      "initialize": [
+        [
+          "keyreq",
+          "resource"
+        ],
+        [
+          "keyreq",
+          "index"
+        ],
+        [
+          "keyreq",
+          "equals"
+        ]
+      ],
+      "resource": []
+    },
+    "Phronomy::Storage::Entry::Record": {
+      "attributes": [],
+      "initialize": [
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "keyreq",
+          "revision"
+        ],
+        [
+          "keyreq",
+          "attributes"
+        ],
+        [
+          "keyreq",
+          "record"
+        ]
+      ],
+      "key": [],
+      "record": [],
+      "revision": []
+    },
+    "Phronomy::Storage::Entry::Stream": {
+      "id": [],
+      "initialize": [
+        [
+          "keyreq",
+          "position"
+        ],
+        [
+          "keyreq",
+          "id"
+        ],
+        [
+          "keyreq",
+          "record"
+        ]
+      ],
+      "position": [],
+      "record": []
+    },
+    "Phronomy::Storage::Entry::Append": {
+      "id": [],
+      "initialize": [
+        [
+          "keyreq",
+          "id"
+        ],
+        [
+          "keyreq",
+          "record"
+        ]
+      ],
+      "record": []
+    },
+    "Phronomy::Storage::Entry::Blob": {
+      "attributes": [],
+      "bytes": [],
+      "initialize": [
+        [
+          "keyreq",
+          "key"
+        ],
+        [
+          "keyreq",
+          "bytes"
+        ],
+        [
+          "keyreq",
+          "attributes"
+        ]
+      ],
+      "key": []
+    },
+    "Phronomy::Storage::UniqueConstraintError": {
+      "constraint": [],
+      "initialize": [
+        [
+          "keyreq",
+          "resource"
+        ],
+        [
+          "keyreq",
+          "constraint"
+        ]
+      ],
+      "resource": []
+    },
+    "Phronomy::Storage::ConditionFailedError": {
+      "condition": [],
+      "initialize": [
+        [
+          "req",
+          "condition"
+        ]
+      ]
+    }
+  }
+}

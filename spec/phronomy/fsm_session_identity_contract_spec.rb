@@ -77,7 +77,8 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   it "removes raw caller-supplied FSMSession id while retaining private reservation support" do
     keys = Phronomy::FSMSession.instance_method(:initialize).parameters.map(&:last)
     expect(keys).not_to include(:id, :graph_thread_id)
-    expect(keys).to include(:context_metadata, :event_sink, :identity_reservation, :terminal_barrier)
+    expect(keys).to include(:context_metadata, :event_sink, :identity_reservation, :terminal_policy)
+    expect(keys).not_to include(:terminal_barrier)
   end
 
   it "keeps each reserved Runtime identity single-use" do
@@ -101,8 +102,8 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "does not inject Agent or Tool domain IDs into FSMSession constructors" do
     %w[
-      lib/phronomy/agent/agent_invocation_session_builder.rb
-      lib/phronomy/agent/tool_invocation_session_builder.rb
+      lib/phronomy/agent/execution/agent_invocation_session_builder.rb
+      lib/phronomy/agent/tool_execution/tool_invocation_session_builder.rb
     ].each do |relative|
       source = File.read(File.join(root, relative))
       expect(fsm_session_constructor_keyword_names(source)).not_to include(:id)
@@ -110,16 +111,16 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   end
 
   it "keeps Workflow admission ownership separate from concrete FSMSession routing" do
-    runner = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
-    event_loop = File.read(File.join(root, "lib/phronomy/engine/event_loop.rb"))
+    runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
+    registry = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_execution_registry.rb"))
 
     expect(runner).not_to include("Phronomy::FSMSession.reserve_identity")
     expect(runner).not_to include("owner_fsm_session_id")
     expect(runner).to include("owner_token: Object.new.freeze")
     expect(runner).to include("bind_workflow_session")
-    expect(event_loop).to include("WorkflowAdmission = Data.define")
-    expect(event_loop).to include(":owner_token, :fsm_session_id, :state")
-    expect(event_loop).to include("current.owner_token.equal?(owner_token)")
+    expect(registry).to include("WorkflowAdmission = Data.define")
+    expect(registry).to include(":owner_token, :fsm_session_id, :state")
+    expect(registry).to include("current.owner_token.equal?(owner_token)")
     expect(runner).not_to include("graph_thread_id:")
   end
 
@@ -130,9 +131,9 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   end
 
   it "uses session-local sinks instead of long-lived Tool parent routing fields" do
-    tool = File.read(File.join(root, "lib/phronomy/agent/tool_invocation.rb"))
+    tool = File.read(File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation.rb"))
     builder = File.read(
-      File.join(root, "lib/phronomy/agent/tool_invocation_session_builder.rb")
+      File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation_session_builder.rb")
     )
     expect(tool).not_to include("parent_agent_invocation_id")
     expect(builder).to include("parent_event_sink")
@@ -154,10 +155,10 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "routes Provider completion before EventLoop applies semantic result state" do
     builder = File.read(
-      File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb")
+      File.join(root, "lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
     )
     invocation = File.read(
-      File.join(root, "lib/phronomy/agent/agent_invocation.rb")
+      File.join(root, "lib/phronomy/agent/execution/agent_invocation.rb")
     )
 
     expect(builder).to include("post_session_event!(event_sink, event_type, result)")

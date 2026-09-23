@@ -167,11 +167,11 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
 
   it "keeps automatic coverage on logical operations instead of blocking facade wrappers" do
     async_api = File.read(File.join(root, "lib/phronomy/agent/async_event_api.rb"))
-    coordinator = File.read(File.join(root, "lib/phronomy/agent/execution_coordinator.rb"))
-    llm = File.read(File.join(root, "lib/phronomy/agent/agent_invocation_session_builder.rb"))
-    tool = File.read(File.join(root, "lib/phronomy/agent/tool_invocation.rb"))
-    workflow = File.read(File.join(root, "lib/phronomy/workflow_runner.rb"))
-    multi = File.read(File.join(root, "lib/phronomy/agent/handoff_runner.rb"))
+    coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
+    llm = File.read(File.join(root, "lib/phronomy/agent/execution/agent_invocation_session_builder.rb"))
+    tool = File.read(File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation.rb"))
+    workflow = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
+    multi = File.read(File.join(root, "lib/phronomy/multi_agent/handoff_runner.rb"))
 
     expect(async_api).not_to include('trace("agent.invoke"')
     expect(async_api).not_to include('trace("agent.stream"')
@@ -186,7 +186,7 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
 
   it "removes the unused InvocationContext tracer_span API without adding a replacement trace context" do
     invocation_context =
-      File.read(File.join(root, "lib/phronomy/invocation_context.rb"))
+      File.read(File.join(root, "lib/phronomy/engine/invocation_context.rb"))
     runtime_rbs = File.read(File.join(root, "sig/phronomy/runtime.rbs"))
     api_snapshot =
       File.read(File.join(root, "spec/fixtures/api_snapshot.json"))

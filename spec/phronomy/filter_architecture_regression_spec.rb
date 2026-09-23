@@ -107,14 +107,16 @@ RSpec.describe "Filter architecture regression contract (ACS-03)" do
   end
 
   it "keeps raw input filtering explicit and closes Context inspection through ContextPolicy" do
-    coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+    preparation = File.read(
+      File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb")
     )
     security = File.read(
       File.join(root, "docs/architecture/security-boundaries.md")
     )
 
-    expect(coordinator).to include("run_input_filters!")
+    expect(preparation).to include("run_input_filters!")
+    steps = preparation.split("def prepare_admitted", 2).fetch(1).split(/^      def /, 2).first
+    expect(steps.index("filter_input")).to be < steps.index("prepare_context")
     expect(security).to include(
       "does **not** add a fourth `context_filter`"
     )

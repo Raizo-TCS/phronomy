@@ -45,6 +45,10 @@ Then run:
 bundle install
 ```
 
+This refactoring branch requires RubyLLM 2.0.x. See the
+[RubyLLM 2 and token-ownership migration](docs/architecture/rubyllm-2-token-ownership.md)
+for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
+
 Configure RubyLLM with the provider credentials and transport policy required by
 your application. Phronomy does not add another LLM transport retry/timeout layer.
 

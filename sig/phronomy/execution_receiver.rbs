@@ -1,0 +1,34 @@
+module Phronomy
+  # Internal Engine contract (ADR-042); not an application extension SPI.
+  class ExecutionReceiver
+    def self.for: (EventLoop event_loop) -> instance
+    def self.existing_for: (Runtime runtime) -> instance?
+    def initialize: (event_loop: EventLoop) -> void
+    def __bound_to?: (EventLoop event_loop) -> bool
+    def idle?: () -> bool
+    def deliver: (untyped message) -> untyped
+    def shutdown: (error: Exception?) -> untyped
+    def session_retired: (String fsm_session_id, reason: Symbol) -> untyped
+
+    private
+
+    def synchronize: [V] () { () -> V } -> V
+    def admit: [V] () { () -> V } -> V
+    def post_message: (untyped message, ?admission: bool, ?completion: TaskResult[untyped]?) -> bool
+    def assert_event_loop_thread!: () -> void
+  end
+
+  class EventLoop
+    def __execution_receiver: (key: untyped) -> ExecutionReceiver?
+    def __register_execution_receiver: (key: untyped, receiver: ExecutionReceiver) -> ExecutionReceiver
+    def __synchronize_execution_state: [V] () { () -> V } -> V
+    def __admit_execution: [V] (ExecutionReceiver receiver) { () -> V } -> V
+    def __post_execution: (ExecutionReceiver receiver, untyped message, ?admission: bool, ?completion: TaskResult[untyped]?) -> bool
+    def __route_execution_event: (ExecutionReceiver receiver) { () -> untyped } -> bool
+    def __receiver_cleanup_complete?: () -> bool
+  end
+
+  class Runtime
+    def __event_loop_if_initialized: () -> EventLoop?
+  end
+end

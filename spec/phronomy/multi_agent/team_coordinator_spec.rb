@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
-  let(:store) { Phronomy::Persistence::InMemory.new }
+  let(:store) { Phronomy::Persistence.in_memory }
   let(:worker) do
     Class.new(Phronomy::Agent::Base) { agent_definition id: "team-unit-worker", version: 1 }
   end
@@ -47,8 +47,8 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     team = definition.create(team_id: "owned", persistence: store)
     expect(definition.get("owned")).to equal(team)
     expect(definition.load("owned", persistence: store)).to equal(team)
-    expect { definition.new(team_id: "owned", persistence: store) }.to raise_error(Phronomy::Persistence::ConflictError)
-    expect { definition.load("owned", persistence: Phronomy::Persistence::InMemory.new) }.to raise_error(Phronomy::ConfigurationError)
+    expect { definition.new(team_id: "owned", persistence: store) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { definition.load("owned", persistence: Phronomy::Persistence.in_memory) }.to raise_error(Phronomy::ConfigurationError)
   end
 
   it "does not rebind a live Team listener" do
@@ -57,7 +57,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
   end
 
   it "loads only an existing durable Team" do
-    expect { definition.load("missing", persistence: store) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { definition.load("missing", persistence: store) }.to raise_error(Phronomy::Storage::NotFoundError)
   end
 
   it "rejects a stale Team incarnation after Runtime shutdown" do
@@ -79,7 +79,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     team = definition.create(persistence: store)
     other = definition.create(persistence: store)
     run = other.send(:admit, "one")
-    expect { team.cancel(run.team_execution_id) }.to raise_error(Phronomy::Persistence::ConflictError)
+    expect { team.cancel(run.team_execution_id) }.to raise_error(Phronomy::Storage::ConflictError)
     expect(other.executions.first.metadata["cancel_requested"]).to be(false)
   end
 end

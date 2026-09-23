@@ -3,12 +3,12 @@
 require "spec_helper"
 
 RSpec.describe "Agent logical-state ownership" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "local-state-owner-test", version: 1
       model "local-model"
-      context_window 4096
+
       max_output_tokens 512
       instructions "Test instruction"
     end
@@ -42,8 +42,8 @@ RSpec.describe "Agent logical-state ownership" do
     agent_id = agent.agent_id
     Phronomy.reset_runtime!
 
-    expect(persistence.agents).to receive(:load).once.and_call_original
-    expect(persistence.journals).to receive(:read).once.and_call_original
+    expect(persistence.backend).to receive(:read_record).with(anything, Phronomy::Agent::Persistence::StorageSchema::ROOTS, key: agent_id).once.and_call_original
+    expect(persistence.backend).to receive(:read_stream).once.and_call_original
     loaded = agent_class.load(agent_id, persistence: persistence)
 
     expect(persistence.agents).not_to receive(:load)
@@ -58,47 +58,41 @@ RSpec.describe "Agent logical-state ownership" do
   end
 
   it "keeps mutable Agent repository reload out of ExecutionCoordinator" do
-    coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
-    )
-
-    %w[reconcile_terminal_error commit_coordination_wait validate_coordination_admission!].each do |method_name|
-      coordinator = coordinator.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
+    coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
+    worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
+    reconciliation = worker.split("def reconcile_preparation", 2).fetch(1).split(/^      def /, 2).first
+    without_reconciliation = worker.sub(/^      def reconcile_preparation.*?(?=^      def )/m, "")
+    expect(reconciliation).to include("@persistence.executions.load")
+    preparation = File.read(File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb"))
+    parent_validation = preparation.split("def validate_subagent_admission!", 2).fetch(1).split(/^      def /, 2).first
+    expect(parent_validation).to include('tx.executions.load(owner.fetch("parent_execution_id"))')
+    without_parent_validation = preparation.sub(/^      def validate_subagent_admission!.*?(?=^      def )/m, "")
+    outcomes = File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb"))
+    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
+      body = outcomes.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
+      expect(body).to include("@persistence.executions.load")
+      outcomes = outcomes.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
     end
-    expect(coordinator).not_to match(/(?:tx|persistence)\.agents\.load/)
-
-    prefix, tail = coordinator.split(
-      "      def preparation_reconciliation_state",
-      2
-    )
-    reconciliation, suffix = tail.split(/^      def /, 2)
-    without_reconciliation = prefix + (suffix ? "      def #{suffix}" : "")
-    expect(reconciliation).to include("@agent.persistence.executions.load")
-    expect(without_reconciliation).not_to match(
-      /(?:tx|persistence)\.executions\.load/
-    )
-    expect(coordinator).not_to match(/(?:tx|persistence)\.journals\.read/)
+    [coordinator, outcomes, without_reconciliation, without_parent_validation].each do |source|
+      expect(source).not_to match(/(?:tx|persistence)\.agents\.load/)
+      expect(source).not_to match(/(?:tx|persistence)\.executions\.load/)
+      expect(source).not_to match(/(?:tx|persistence)\.journals\.read/)
+      expect(source).not_to include("persistence.activations")
+    end
   end
 
   it "uses the local Agent watermark before fixing a follow-up Manifest" do
-    coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
-    )
-    followup = coordinator
-      .split("def perform_provider_dispatch_preparation", 2)
-      .fetch(1)
-      .split("def apply_provider_dispatch_preparation_on_event_loop", 2)
-      .first
-
-    expect(followup.index("assert_local_durable_base!")).to be <
-      followup.index("ContextAssembler.new")
-    expect(followup.index("ContextAssembler.new")).to be <
-      followup.index("tx.executions.save")
+    worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
+    encoding = worker.split("def encode_provider_records", 2).fetch(1).split(/^      def /, 2).first
+    commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first
+    expect(encoding.index("assert_local_durable_base!")).to be < encoding.index("RuntimeRecordEncoder.encode")
+    expect(commit.index("assert_local_durable_base!")).to be < commit.index("assembler.finalize")
+    expect(commit.index("assembler.finalize")).to be < commit.index("tx.executions.save")
   end
 
   it "applies committed AgentRoot and Journal advances only through the EventLoop apply helper" do
     coordinator = File.read(
-      File.join(root, "lib/phronomy/agent/execution_coordinator.rb")
+      File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
 
     mutation_sites = coordinator.lines.each_index.filter_map do |index|

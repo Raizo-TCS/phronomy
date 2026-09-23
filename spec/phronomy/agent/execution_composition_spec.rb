@@ -11,17 +11,17 @@ end
 
 RSpec.describe "Execution with real Agent admission and terminal persistence" do
   def build_chat
-    tokens = double("Tokens", input: 1, output: 1, cached: 0, cache_creation: 0,
-      to_h: {input: 1, output: 1, cached: 0, cache_creation: 0})
+    tokens = double("Tokens", input: 1, output: 1, cache_read: 0, cache_write: 0,
+      to_h: {input: 1, output: 1, cache_read: 0, cache_write: 0})
     response = double("Response", role: :assistant, content: "answer", tool_calls: nil,
       tokens: tokens, tool_call?: false)
     chat = double("Chat")
-    [:with_instructions, :with_tool, :with_temperature].each do |method|
+    [:with_instructions, :with_tools, :with_temperature].each do |method|
       allow(chat).to receive(method).and_return(chat)
     end
     allow(chat).to receive(:cancellation_token=) { |token| @adapter_tokens << token }
     allow(chat).to receive(:messages).and_return([response])
-    [:on_tool_call, :before_tool_call, :on_tool_result].each { |method| allow(chat).to receive(method) }
+    [:on_tool_call, :after_message, :on_tool_result].each { |method| allow(chat).to receive(method) }
     allow(chat).to receive(:ask) do |*_args, &block|
       @started << true
       @release.pop if @hold

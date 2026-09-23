@@ -5,11 +5,11 @@ require_relative "../../../integration/support/llm_stub"
 RSpec.shared_context "durable coordination runtime" do
   # Captures committed DurableRecords, then materializes them in a new backend
   # and Runtime. This models F4 without retaining any Agent/TaskResult/Class handles.
-  class CoordinationFaultStore < Phronomy::Persistence::InMemory
+  class CoordinationFaultStore < Phronomy::Persistence
     attr_accessor :after_commit, :before_io
 
     def initialize
-      super
+      super(backend: Phronomy::Storage::Backends::InMemory.new(resources: Phronomy::PersistenceComposition::StorageSchema.resources))
       owner = self
       {contents => :fetch, executions => :load}.each do |repository, operation|
         repository.define_singleton_method(operation) do |*args|
@@ -43,10 +43,10 @@ RSpec.shared_context "durable coordination runtime" do
       value
     end
 
-    def snapshot = synchronize { Marshal.load(Marshal.dump(state)) }
+    def snapshot = backend.transaction { Marshal.load(Marshal.dump(backend.instance_variable_get(:@state))) }
 
     def self.restore(snapshot)
-      new.tap { |store| store.synchronize { store.state.replace(Marshal.load(Marshal.dump(snapshot))) } }
+      new.tap { |store| store.backend.transaction { store.backend.instance_variable_get(:@state).replace(Marshal.load(Marshal.dump(snapshot))) } }
     end
   end
 
@@ -83,7 +83,6 @@ RSpec.shared_context "durable coordination runtime" do
       c.openai_api_base = "https://example.test/v1"
     }
     Phronomy.configure { |c|
-      c.default_output_reserve = 4096
       c.event_loop_stop_grace_seconds = 0.5
     }
   end

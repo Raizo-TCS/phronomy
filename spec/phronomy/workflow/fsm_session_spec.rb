@@ -362,25 +362,31 @@ RSpec.describe Phronomy::FSMSession do
   end
 
   # ---------------------------------------------------------------------------
-  # handle_terminal_persistence_result edge cases.
+  # Workflow terminal policy event acceptance at the session boundary.
   # ---------------------------------------------------------------------------
   describe "terminal persistence result handling" do
     let(:simple_workflow_for_persistence) do
       Phronomy::Workflow.define(ctx_class) do
         initial :step
         state :step
-        transition from: :step, to: :__finish__
       end
     end
 
-    it "ignores a persistence result when not in persisting_terminal state" do
+    def build_durable_test_session(ctx, runner:, fake_runtime:)
+      execution = build_test_execution(ctx, recursion_limit: 25).with(
+        repository: double("Workflow repository"), persist: true
+      )
+      allow(runner).to receive(:begin_terminal_persistence_on_event_loop)
+      runner.send(:build_session_for, execution: execution, runtime: fake_runtime)
+    end
+
+    it "ignores an early persistence result before its terminal request" do
       runner = runner_from(simple_workflow_for_persistence)
       ctx = ctx_class.new(value: 0)
 
       with_fake_loop do |_fake, fake_runtime|
-        session = build_linear_session(ctx, runner: runner, fake_runtime: fake_runtime)
-        # Force terminal_lifecycle_state to :running (default) so a persistence
-        # result arriving out-of-order is silently discarded.
+        session = build_durable_test_session(ctx, runner: runner, fake_runtime: fake_runtime)
+        # The policy recognizes this event, but the session has not requested it.
         bogus_result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
           outcome: :success, revision: 1, error: nil
         )
@@ -396,13 +402,13 @@ RSpec.describe Phronomy::FSMSession do
       end
     end
 
-    it "raises an error for an unknown persistence outcome" do
+    it "posts an error for an unknown persistence outcome" do
       runner = runner_from(simple_workflow_for_persistence)
       ctx = ctx_class.new(value: 0)
 
       with_fake_loop do |fake, fake_runtime|
-        session = build_linear_session(ctx, runner: runner, fake_runtime: fake_runtime)
-        session.instance_variable_set(:@terminal_lifecycle_state, :persisting_terminal)
+        session = build_durable_test_session(ctx, runner: runner, fake_runtime: fake_runtime)
+        session.start
 
         unknown_result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
           outcome: :bogus_unknown, revision: nil, error: nil
@@ -418,6 +424,24 @@ RSpec.describe Phronomy::FSMSession do
         error_event = fake.events.find { |e| e.type == :error }
         expect(error_event).not_to be_nil
         expect(error_event.payload[:result]).to be_a(Phronomy::Error)
+      end
+    end
+
+    it "supplies a failure error when a known persistence failure has no exception" do
+      runner = runner_from(simple_workflow_for_persistence)
+      with_fake_loop do |fake, fake_runtime|
+        session = build_durable_test_session(ctx_class.new, runner: runner, fake_runtime: fake_runtime)
+        session.start
+        result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+          outcome: :known_failure, revision: nil, error: nil
+        )
+        session.handle(Phronomy::Event.new(
+          type: :workflow_terminal_persistence_result, target_id: session.id, payload: result
+        ))
+        expect(fake.events.map(&:type)).to eq([:error])
+        error = fake.events.first.payload[:result]
+        expect(error).to be_a(Phronomy::Error)
+        expect(error.message).to eq("Workflow terminal persistence failed")
       end
     end
   end

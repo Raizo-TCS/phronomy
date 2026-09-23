@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent Runtime admission" do
-  let(:persistence) { Phronomy::Persistence::InMemory.new }
+  let(:persistence) { Phronomy::Persistence.in_memory }
 
   it "rejects a competing top-level invoke on EventLoop before Persistence admission" do
     entered = Queue.new
@@ -26,7 +26,7 @@ RSpec.describe "Agent Runtime admission" do
     end
 
     agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
-    allow(persistence.executions).to receive(:create_active).and_call_original
+    allow(persistence.backend).to receive(:insert_record).and_call_original
 
     first = agent.invoke_async("first")
     expect(entered.pop).to be true
@@ -38,13 +38,13 @@ RSpec.describe "Agent Runtime admission" do
 
     # The second request was rejected by process-local EventLoop admission, and
     # the first worker is still blocked before Persistence admission.
-    expect(persistence.executions).not_to have_received(:create_active)
+    expect(persistence.backend).not_to have_received(:insert_record)
 
     release << true
     expect {
       first.wait_result(timeout: 1)
     }.to raise_error(ArgumentError, /stop first request/)
-    expect(persistence.executions).not_to have_received(:create_active)
+    expect(persistence.backend).not_to have_received(:insert_record)
   ensure
     release << true if defined?(release) && release.empty?
   end
@@ -87,7 +87,7 @@ RSpec.describe "Agent Runtime admission" do
 
     agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
     calls = 0
-    allow(persistence.executions).to receive(:create_active) do |_execution|
+    allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:create_active) do |_execution|
       calls += 1
       raise Phronomy::AgentBusyError, "durable execution already exists"
     end
@@ -108,12 +108,12 @@ RSpec.describe "Agent Runtime admission" do
 
   it "places Runtime admission before the initial Offload/Persistence operation" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
     )
     section = source
       .split("def begin_start_on_event_loop", 2)
       .fetch(1)
-      .split("def perform_initial_preparation", 2)
+      .split("def initial_preparation_replayable?", 2)
       .first
 
     admission_index = section.index("admit_agent_execution")
@@ -126,24 +126,24 @@ RSpec.describe "Agent Runtime admission" do
 
   it "keeps Persistence create_active as the durable second line of defense" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/initial_preparation.rb", __dir__)
     )
 
     expect(source).to include("tx.executions.create_active(execution)")
   end
 
   it "keeps Runtime shutdown waiting through Agent durability transitions" do
-    event_loop_source = File.read(
-      File.expand_path("../../../lib/phronomy/engine/event_loop.rb", __dir__)
+    registry_source = File.read(
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_registry.rb", __dir__)
     )
     coordinator_source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution_coordinator.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
     )
 
-    idle_helper = event_loop_source
+    idle_helper = registry_source
       .split("def agent_admission_transition_in_progress_locked?", 2)
       .fetch(1)
-      .split(/^    def /, 2)
+      .split(/^      def /, 2)
       .first
     expect(idle_helper).to include(
       "%i[admitting executing resuming cancelling terminalizing]"
@@ -153,7 +153,7 @@ RSpec.describe "Agent Runtime admission" do
     resume = coordinator_source
       .split("def begin_resume_on_event_loop", 2)
       .fetch(1)
-      .split("def perform_resume_commit", 2)
+      .split("def capture_approval_resume", 2)
       .first
     expect(resume.index("state: :resuming")).to be <
       resume.index("runtime.offload.submit")
@@ -167,20 +167,21 @@ RSpec.describe "Agent Runtime admission" do
       terminal.index("runtime.offload.submit")
   end
 
-  it "returns false when __agent_execution_admitted? is queried for an unknown agent" do
-    result = Phronomy::Runtime.instance.__agent_execution_admitted?("unknown-agent-id")
+  it "returns false when agent_execution_admitted? is queried for an unknown agent" do
+    result = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_admitted?("unknown-agent-id") || false
     expect(result).to be false
   end
 
-  it "returns false when __agent_execution_admitted? is called with nil" do
-    result = Phronomy::Runtime.instance.__agent_execution_admitted?(nil)
+  it "returns false when agent_execution_admitted? is called with nil" do
+    result = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_admitted?(nil) || false
     expect(result).to be false
   end
 
-  it "returns false when __agent_execution_admitted? is called on a fresh Runtime before any EventLoop exists" do
+  it "returns false when agent_execution_admitted? is called on a fresh Runtime before any EventLoop exists" do
     runtime = Phronomy::Runtime.new
-    result = runtime.__agent_execution_admitted?("any-agent-id")
+    result = Phronomy::Agent::ExecutionRegistry.existing_for(runtime)&.agent_execution_admitted?("any-agent-id") || false
     expect(result).to be false
+    expect(runtime.__event_loop_if_initialized).to be_nil
   ensure
     runtime&.shutdown(timeout: 2)
   end
@@ -197,20 +198,23 @@ RSpec.describe "Agent Runtime admission" do
       define_method(:extract_message) do |input|
         entered.push(true)
         release.pop
-        super(input)
+        raise ArgumentError, "purge admission probe finished"
       end
     end
 
     agent = busy_class.create(agent_id: "busy-purge-agent", persistence: persistence)
-    agent.invoke_async("work")
-    entered.pop
+    task = agent.invoke_async("work")
+    Timeout.timeout(3) { entered.pop }
 
     expect {
       agent.purge!
     }.to raise_error(Phronomy::AgentBusyError)
 
     release.push(true)
+    expect { task.wait_result(timeout: 3) }
+      .to raise_error(ArgumentError, "purge admission probe finished")
   ensure
+    release << true if release
     begin
       Phronomy.reset_runtime!
     rescue

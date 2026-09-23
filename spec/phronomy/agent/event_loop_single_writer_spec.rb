@@ -9,8 +9,19 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     File.read(File.join(root, path))
   end
 
+  it "keeps approval snapshots in explicit worker commands without a shared lookup or control objects" do
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
+    worker = source("lib/phronomy/agent/execution/approval_resume_commit.rb")
+    expect(coordinator + worker).not_to include("@recovery_resume_snapshot", "Mutex.new")
+    expect(worker).not_to include("ExecutionRegistry", "TaskResult", "SessionRunner", "@coordinator", "@agent.")
+    expect(Phronomy::Agent::ApprovalResumeCommit::Command.members)
+      .not_to include(:invocation, :config, :result_task, :listener, :coordinator)
+    expect(Phronomy::Agent::ApprovalResumeCommit.ancestors)
+      .to include(Phronomy::Concurrency::WorkerInputRestricted)
+  end
+
   it "removes the Activation shared-mutable runtime model from active source" do
-    expect(File).not_to exist(File.join(root, "lib/phronomy/agent/agent_execution_activation.rb"))
+    expect(File).not_to exist(File.join(root, "lib/phronomy/agent/execution/agent_execution_activation.rb"))
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/activation_registry.rb"))
 
     active = Dir.glob(File.join(root, "lib/phronomy/**/*.rb")).map { |path| File.read(path) }.join("\n")
@@ -21,30 +32,25 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps live Agent execution mutation on EventLoop and off worker result paths" do
-    event_loop = source("lib/phronomy/engine/event_loop.rb")
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
+    registry = source("lib/phronomy/agent/execution/execution_registry.rb")
+    source("lib/phronomy/agent/execution/execution_coordinator.rb")
 
-    expect(event_loop).to include("@agent_executions = {}")
-    expect(event_loop).to include("def install_agent_execution")
-    expect(event_loop).to include("def replace_agent_execution")
-    expect(event_loop).to include("def release_agent_execution")
-    expect(event_loop).to include("assert_event_loop_thread!")
+    expect(registry).to include("@agent_executions = {}")
+    expect(registry).to include("def install_agent_execution")
+    expect(registry).to include("def replace_agent_execution")
+    expect(registry).to include("def release_agent_execution")
+    expect(registry).to include("assert_event_loop_thread!")
 
-    worker_sections = %w[
-      perform_initial_preparation
-      perform_provider_dispatch_preparation
-      perform_tool_dispatch_preparation
-      perform_provider_dispatch_preparation_reconciliation
-      perform_tool_dispatch_preparation_reconciliation
-      perform_resume_commit
-      compute_terminal
-      commit_suspended
-      commit_completed
-      commit_failed_outcome
-    ].map do |method_name|
-      coordinator.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
-    end.join("\n")
-
+    worker_sections = source("lib/phronomy/agent/execution/execution_outcome_committer.rb") +
+      source("lib/phronomy/agent/handoff/handoff_outcome_committer.rb")
+    worker_sections += source("lib/phronomy/agent/execution/dispatch_preparation.rb")
+    worker_sections += source("lib/phronomy/agent/execution/initial_preparation.rb")
+    worker_sections += source("lib/phronomy/agent/execution/approval_resume_commit.rb")
+    expect(worker_sections).not_to include("ExecutionRegistry", "TaskResult", "SessionRunner", "@coordinator")
+    expect(Phronomy::Agent::ExecutionOutcomeCommitter.ancestors)
+      .to include(Phronomy::Concurrency::WorkerInputRestricted)
+    expect(Phronomy::Agent::HandoffOutcomeCommitter.ancestors)
+      .to include(Phronomy::Concurrency::WorkerInputRestricted)
     expect(worker_sections).not_to include("__replace_root")
     expect(worker_sections).not_to include("_append_journal_records")
     expect(worker_sections).not_to include("replace_agent_execution")
@@ -52,10 +58,10 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps TaskResult/listener delivery state outside the terminal worker command" do
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
-    command = coordinator
-      .split("TerminalCommitCommand = Data.define", 2).fetch(1)
-      .split("TerminalDelivery = Data.define", 2).first
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
+    worker = source("lib/phronomy/agent/execution/execution_outcome_committer.rb")
+    command = worker.split("Command = Data.define", 2).fetch(1)
+      .split("Outcome = Data.define", 2).first
     submit = coordinator
       .split("def submit_terminal_operation", 2).fetch(1)
       .split(/^      def /, 2).first
@@ -65,15 +71,14 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     expect(command).not_to include(":approval_listener")
     expect(command).not_to include(":runtime_projection")
     expect(command).not_to include(":handoff_request")
-    expect(submit).to include("compute_terminal(operation)")
+    expect(submit).to include("@outcome_committer.commit_outcome(operation)")
     expect(submit).to include("delivery.result_task")
   end
 
   it "keeps live Handoff Agent references outside the terminal worker snapshot" do
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
-    multi = source("lib/phronomy/agent/handoff_execution_coordinator.rb")
-    terminal_view = coordinator
-      .split("HandoffTerminalView = Data.define", 2).fetch(1)
+    worker = source("lib/phronomy/agent/execution/execution_outcome_committer.rb")
+    multi = source("lib/phronomy/agent/handoff/handoff_outcome_committer.rb")
+    terminal_view = worker.split("HandoffTerminalView = Data.define", 2).fetch(1)
       .split("TerminalView = Data.define", 2).first
 
     expect(terminal_view).to include(":target_agent_id")
@@ -83,7 +88,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "does not start a follow-up durable operation after an application callback has already failed" do
-    builder = source("lib/phronomy/agent/agent_invocation_session_builder.rb")
+    builder = source("lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
     method_source = builder
       .split("def self.prepare_and_start_llm_call", 2).fetch(1)
       .split("private_class_method :prepare_and_start_llm_call", 2).first
@@ -93,16 +98,16 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "applies a known committed follow-up execution even if runtime materialization fails" do
-    coordinator = source("lib/phronomy/agent/execution_coordinator.rb")
-    worker = coordinator
-      .split("def perform_provider_dispatch_preparation", 2).fetch(1)
+    coordinator = source("lib/phronomy/agent/execution/execution_coordinator.rb")
+    worker = source("lib/phronomy/agent/execution/dispatch_preparation.rb")
+      .split("def materialize_provider_result", 2).fetch(1)
       .split(/^      def /, 2).first
     apply = coordinator
       .split("def apply_confirmed_provider_dispatch_preparation_on_event_loop", 2).fetch(1)
       .split(/^      def /, 2).first
 
     expect(worker).to include("materialization_error")
-    expect(worker).to include("execution: updated")
+    expect(worker).to include("execution: execution")
     expect(worker).to include("error: materialization_error")
     expect(apply.index("execution: result.execution")).to be <
       apply.index("if result.error")
@@ -110,15 +115,16 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
       apply.index("if result.error")
   end
 
-  it "does not expose live mutable execution state through Runtime owner lookup" do
+  it "does not expose live mutable execution state through the Agent execution owner lookup" do
     runtime = source("lib/phronomy/engine/runtime.rb")
-    event_loop = source("lib/phronomy/engine/event_loop.rb")
+    registry = source("lib/phronomy/agent/execution/execution_registry.rb")
 
-    expect(runtime).to include("def __agent_execution_owner")
+    expect(runtime).not_to include("def __agent_execution_owner")
+    expect(registry).to include("def agent_execution_owner")
     expect(runtime).not_to include("def __agent_activations")
-    expect(event_loop).to include("AgentExecutionOwner = Data.define")
-    expect(event_loop).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:invocation/)
-    expect(event_loop).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:execution,/)
+    expect(registry).to include("AgentExecutionOwner = Data.define")
+    expect(registry).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:invocation/)
+    expect(registry).not_to match(/AgentExecutionOwner = Data\.define\([^\n]*:execution,/)
   end
 
   it "rejects a stale Provider result by semantic llm_call_id without advancing the invocation" do
@@ -239,5 +245,25 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     invocation.acknowledge_runtime_snapshot(snapshot)
 
     expect(invocation.runtime_snapshot.fetch(:runtime_events)).to eq([later])
+  end
+
+  it "keeps the dispatch worker independent of execution control and live delivery" do
+    worker = source("lib/phronomy/agent/execution/dispatch_preparation.rb")
+    %w[ExecutionCoordinator ExecutionRegistry ExecutionSessionRunner TaskResult
+      start_prepared_provider_call start_prepared_tool_dispatch].each do |dependency|
+      expect(worker).not_to include(dependency)
+    end
+    expect(worker).not_to include("Phronomy::Runtime", ".offload", "event_sink")
+  end
+
+  it "keeps initial preparation and recovery independent of execution control and delivery" do
+    worker = source("lib/phronomy/agent/execution/initial_preparation.rb")
+    %w[ExecutionCoordinator ExecutionRegistry ExecutionSessionRunner TaskResult
+      start_prepared_provider_call start_prepared_tool_dispatch].each do |dependency|
+      expect(worker).not_to include(dependency)
+    end
+    expect(worker).not_to include("Phronomy::Runtime", ".offload", "event_sink")
+    expect(Phronomy::Agent::InitialPreparation::RecoveryCommand.members)
+      .not_to include(:result_task, :load_completion, :coordinator, :listener)
   end
 end

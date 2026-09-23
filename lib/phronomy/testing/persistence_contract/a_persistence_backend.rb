@@ -3,6 +3,9 @@
 require "securerandom"
 
 RSpec.shared_examples "a Persistence backend" do
+  include_examples "neutral storage primitives"
+  include_examples "storage transaction boundaries"
+
   let(:backend_agent_root) do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "backend-agent-#{SecureRandom.uuid}",
@@ -23,8 +26,8 @@ RSpec.shared_examples "a Persistence backend" do
   end
 
   it "advertises every required capability" do
-    Phronomy::Persistence::REQUIRED_CAPABILITIES.each do |name, required_value|
-      expect(persistence.capabilities[name]).to eq(required_value)
+    Phronomy::Storage::Backend::REQUIRED_CAPABILITIES.each do |name, required_value|
+      expect(persistence.backend.capabilities[name]).to eq(required_value)
     end
   end
 
@@ -129,11 +132,11 @@ RSpec.shared_examples "a Persistence backend" do
     expect(persistence.contents.exist?(content_id)).to be(false)
     expect do
       persistence.agents.load(root.agent_id)
-    end.to raise_error(Phronomy::Persistence::NotFoundError)
+    end.to raise_error(Phronomy::Storage::NotFoundError)
     expect(persistence.journals.head(root.agent_id)).to eq(0)
     expect do
       persistence.executions.load(execution.execution_id)
-    end.to raise_error(Phronomy::Persistence::NotFoundError)
+    end.to raise_error(Phronomy::Storage::NotFoundError)
     expect(persistence.workflow_states.load(workflow_id)).to be_nil
   end
 
@@ -162,7 +165,7 @@ RSpec.shared_examples "a Persistence backend" do
         agent_revision: 0,
         journal_position: 0
       )
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Storage::ConflictError)
   end
 
   it "raises ConflictError when the durable Journal position has advanced" do
@@ -188,7 +191,7 @@ RSpec.shared_examples "a Persistence backend" do
         agent_revision: 0,
         journal_position: 0
       )
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Storage::ConflictError)
   end
 
   it "rolls back earlier writes when a watermark precondition fails" do
@@ -209,7 +212,7 @@ RSpec.shared_examples "a Persistence backend" do
           journal_position: 0
         )
       end
-    end.to raise_error(Phronomy::Persistence::ConflictError)
+    end.to raise_error(Phronomy::Storage::ConflictError)
 
     expect(persistence.contents.exist?(temporary_content_id)).to be(false)
   end

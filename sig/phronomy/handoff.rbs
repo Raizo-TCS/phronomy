@@ -25,14 +25,16 @@ module Phronomy
       def selectable_categories: () -> Array[Symbol]
       def to_h: () -> Hash[String, Hash[String, String]]
     end
+  end
 
+  module MultiAgent
     class HandoffRunner
       MAX_HANDOFFS: Integer
 
       attr_reader main_agent: ::Phronomy::Agent::Base
-      attr_reader handoffs: Array[Handoff]
+      attr_reader handoffs: Array[::Phronomy::Agent::Handoff]
 
-      def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[Handoff]) -> void
+      def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[::Phronomy::Agent::Handoff]) -> void
       def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
       def result: (String execution_id) -> Hash[Symbol, untyped]
       def cancel: (String execution_id) -> Hash[Symbol, untyped]

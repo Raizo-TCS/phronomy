@@ -21,7 +21,7 @@ unless defined?(HITLAgentForApproveAsync)
   end
 end
 
-FAKE_APPROVE_ASYNC_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(10, 5, 0, 0)
+FAKE_APPROVE_ASYNC_TOKENS = Struct.new(:input, :output, :cache_read, :cache_write).new(10, 5, 0, 0)
 
 def build_approve_async_chat(tool_instance:, final_response: "resumed")
   stored_hook = nil
@@ -44,16 +44,16 @@ def build_approve_async_chat(tool_instance:, final_response: "resumed")
   final_resp = double("FinalResp", content: final_response, tokens: FAKE_APPROVE_ASYNC_TOKENS)
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
-  allow(dbl).to receive(:with_tool).and_return(dbl)
+  allow(dbl).to receive(:with_tools).and_return(dbl)
   allow(dbl).to receive(:with_temperature).and_return(dbl)
   allow(dbl).to receive(:messages) { [fake_assistant_msg] }
   allow(dbl).to receive(:tools) { {hitl_tool: tool_instance} }
   allow(dbl).to receive(:add_message)
   allow(dbl).to receive(:cancellation_token=)
   allow(dbl).to receive(:on_tool_call) { |&block| stored_hook = block }
-  allow(dbl).to receive(:before_tool_call) { |&block| stored_hook = block }
+  allow(dbl).to receive(:after_message) { |&block| stored_hook = block }
   allow(dbl).to receive(:on_tool_result)
-  allow(dbl).to receive(:ask) { stored_hook&.call(fake_tc) }
+  allow(dbl).to receive(:ask) { stored_hook&.call(fake_assistant_msg) }
   allow(dbl).to receive(:complete).and_return(final_resp)
   dbl
 end
@@ -79,7 +79,10 @@ RSpec.describe Phronomy::Agent::Base do
       event_loop = double("event_loop", current?: true)
       runtime = double("runtime", event_loop: event_loop)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-      allow(runtime).to receive(:__create_agent).and_yield(runtime)
+      allow(Phronomy::Agent::OwnershipRegistry).to receive(:for).with(runtime)
+        .and_return(double("ownership registry", create: nil).tap do |registry|
+          allow(registry).to receive(:create).and_yield(runtime)
+        end)
 
       expect do
         agent.approve(
@@ -113,6 +116,25 @@ RSpec.describe Phronomy::Agent::Base do
       [original, approvals.pop]
     end
 
+    it "invalidates suspended execution waiters through Agent cleanup after the loop joins" do
+      original, request = invoke_and_suspend(agent, approvals)
+      runtime = Phronomy::Runtime.instance
+      event_loop = runtime.event_loop
+      registry = Phronomy::Agent::ExecutionRegistry.existing_for(runtime)
+      cleanup_context = nil
+      allow(registry).to receive(:shutdown).and_wrap_original do |method, **args|
+        cleanup_context = [event_loop.current?, event_loop.thread_alive?]
+        method.call(**args)
+      end
+
+      expect(runtime.shutdown(timeout: 3)).to be_cleanup_complete
+      expect(cleanup_context).to eq([false, false])
+      expect { original.wait_result(timeout: 1) }
+        .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+      expect(registry.agent_execution_owner(request.execution_id)).to be_nil
+      expect(registry.agent_execution_admitted?(agent.agent_id)).to be(false)
+    end
+
     it "returns a distinct pending TaskResult that joins the same terminal execution" do
       original, request = invoke_and_suspend(agent, approvals)
       allow(tool_instance).to receive(:call).and_return("done")
@@ -133,7 +155,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "resumes the same live Agent owner without exposing mutable Runtime state" do
       original, request = invoke_and_suspend(agent, approvals)
-      owner = Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id)
+      owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(request.execution_id)
 
       expect(owner.agent).to be(agent)
       expect(owner.status).to eq(:suspended)
@@ -187,7 +209,7 @@ RSpec.describe Phronomy::Agent::Base do
         /not a suspended execution of this agent/
       )
       expect(original).not_to be_done
-      expect(Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id).status)
+      expect(Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(request.execution_id)&.status)
         .to eq(:suspended)
 
       allow(tool_instance).to receive(:call).and_return("done")
@@ -201,7 +223,7 @@ RSpec.describe Phronomy::Agent::Base do
 
   describe ".live_for_execution" do
     let(:tool_instance) { HITLTool.new }
-    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:persistence) { Phronomy::Persistence.in_memory }
     let(:approvals) { Queue.new }
     let(:agent) do
       HITLAgentForApproveAsync.new(
@@ -222,7 +244,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "returns the same live owner Agent through Agent::Base" do
       _original, request = invoke_and_suspend(agent, approvals)
-      owner = Phronomy::Runtime.instance.__agent_execution_owner(request.execution_id)
+      owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(request.execution_id)
 
       resolved = Phronomy::Agent::Base.live_for_execution(request.execution_id)
 

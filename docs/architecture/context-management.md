@@ -50,6 +50,36 @@ RubyLLMMaterializer
 The normative Journal/Manifest split is
 [ADR-012](../decisions/012-canonical-execution-log-and-context-policy.md).
 
+### Contract ownership and physical layout
+
+The contracts shared by Agent execution, Context policies, and input hooks live
+in `lib/phronomy/agent/context_contract/`:
+
+| Files | Responsibility |
+|---|---|
+| `context_policy.rb`, `context_policy_input.rb` | Policy protocol, helper methods, and typed input material |
+| `context_plan.rb`, `context_plan_validator.rb` | Policy result and its validity rules |
+| `llm_input_manifest.rb` | Final logical input representation and its format validation |
+| `llm_input_build_context.rb`, `llm_input_patch.rb` | Input metadata and returned customization for hooks |
+
+Zeitwerk collapses this directory. The Ruby constants keep their existing
+`Phronomy::Agent::*` names; there is no `ContextContract` namespace or new
+registration mechanism. Applications continue to load `phronomy` and use the
+documented constants. The previous individual implementation file paths are
+not retained as forwarding files.
+
+`ContextPolicies::Default` remains a concrete strategy, while
+`ContextAssembler`, input builders, candidate resolution, Runtime connections,
+and persistence transactions remain on the execution side. The Manifest
+validates and converts record values; it does not write to a storage backend.
+Its format version, keys, and validation rules are unchanged.
+
+This ownership decision is defined by
+[ADR-036](../decisions/036-context-contract-ownership.md). Physical containment
+under `agent/` does not assign the contracts to the execution layer. The
+concrete policies and the shared contracts can occupy distinct groups at the
+same abstraction level.
+
 ## 2. Public Context Policy SPI
 
 Application code supplies an ordinary reusable Ruby strategy object:

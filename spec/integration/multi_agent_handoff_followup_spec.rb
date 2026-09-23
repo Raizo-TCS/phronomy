@@ -6,7 +6,7 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration do
   after { LLMStub.deactivate }
-  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence::InMemory.new } }
+  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence.in_memory } }
   after { Phronomy.configure { |c| c.persistence = nil } }
 
   it "keeps the current user request in the current_request Handoff category" do
@@ -64,7 +64,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::Agent::HandoffRunner.new(
+    result = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("ORIGINAL_CURRENT_REQUEST_MARKER: investigate case-42")
@@ -135,7 +135,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::Agent::HandoffRunner.new(
+    result = Phronomy::MultiAgent::HandoffRunner.new(
       main_agent: source,
       handoffs: [handoff]
     ).invoke("Transfer this request")

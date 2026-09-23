@@ -138,7 +138,7 @@ RSpec.describe "CG-03a Agent execution parent identity" do
     }
 
     record = Phronomy::Persistence::Migration::InitialFormatMigration.agent_execution(legacy)
-    restored = Phronomy::Persistence::DurableCodec.decode_agent_execution(record)
+    restored = Phronomy::Agent::Persistence::Codec.decode_agent_execution(record)
     approval = restored.approval_request
 
     expect(approval["execution_id"]).to eq("execution-1")
