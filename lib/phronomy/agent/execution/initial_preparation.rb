@@ -233,10 +233,10 @@ module Phronomy
       def initial_preparation_metadata(mode, replayable)
         {
           "preparation_replayable" => !!replayable,
-          RecoverySupport::CONTRACT_VERSION_KEY => RecoverySupport::CONTRACT_VERSION,
-          RecoverySupport::INVOCATION_MODE_KEY => mode.to_s,
-          RecoverySupport::PENDING_LLM_ID_KEY => SecureRandom.uuid.to_s.freeze,
-          RecoverySupport::PENDING_LLM_STARTED_AT_KEY => Time.now.utc.iso8601(6).freeze
+          ExecutionMetadata::CONTRACT_VERSION_KEY => ExecutionMetadata::CONTRACT_VERSION,
+          ExecutionMetadata::INVOCATION_MODE_KEY => mode.to_s,
+          ExecutionMetadata::PENDING_LLM_ID_KEY => SecureRandom.uuid.to_s.freeze,
+          ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY => Time.now.utc.iso8601(6).freeze
         }
       end
 
@@ -324,7 +324,7 @@ module Phronomy
       end
 
       def recovered_config(execution)
-        mode = (execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] || "invoke").to_sym
+        mode = (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym
         config = {phronomy_recovery_mode: mode}.merge(@agent.__coordination_config)
         if execution.metadata.key?("durable_context_ref")
           context = @persistence.contents.fetch_json(execution.metadata.fetch("durable_context_ref"))

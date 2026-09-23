@@ -32,7 +32,7 @@ module Phronomy
         by_id = (request ? request.items : []).to_h do |item|
           [item.tool_invocation_id.to_s, item]
         end
-        snapshots = Array(execution.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY])
+        snapshots = Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
         if snapshots.empty?
           raise Phronomy::ExecutionRehydrationRequiredError,
             "suspended execution #{execution.execution_id} predates the durable Tool batch snapshot"
@@ -108,7 +108,7 @@ module Phronomy
           input: projection.ask_message,
           config: config,
           event_listener: listener,
-          mode: (execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] || "invoke").to_sym,
+          mode: (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym,
           execution_id: execution.execution_id
         )
         chat = agent.send(:build_chat, model_config: projection.model_config)

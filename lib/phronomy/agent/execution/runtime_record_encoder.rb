@@ -199,23 +199,8 @@ module Phronomy
       end
 
       def json_value(value)
-        case value
-        when Hash
-          value.to_h { |key, child| [key.to_s, json_value(child)] }
-        when Array
-          value.map { |child| json_value(child) }
-        when String, Integer, Float, TrueClass, FalseClass, NilClass
-          value
-        when Symbol
-          value.to_s
-        else
-          if value.respond_to?(:to_h)
-            json_value(value.to_h)
-          else
-            raise ArgumentError,
-              "unsupported canonical runtime value: #{value.class}"
-          end
-        end
+        Phronomy::Values::Serializable.convert(value,
+          unsupported_message: "unsupported canonical runtime value")
       end
 
       private_class_method :assistant_message_ref, :assistant_message_metadata,

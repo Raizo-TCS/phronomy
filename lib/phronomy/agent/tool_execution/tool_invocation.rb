@@ -2,6 +2,7 @@
 
 require_relative "../../engine/concurrency/worker_input_restricted"
 
+require "digest"
 require "securerandom"
 
 module Phronomy
@@ -77,6 +78,20 @@ module Phronomy
         :approval_context,
         :origin,
         :metadata
+
+      # Stable identity used both before dispatch and when rebuilding facts.
+      # This does not construct, authorize, or execute a Tool invocation.
+      # @api private
+      def self.semantic_id(execution_id:, llm_call_id:, tool_call_id:, tool_name:)
+        source = [
+          "tool_invocation",
+          execution_id.to_s,
+          llm_call_id.to_s,
+          tool_call_id.to_s,
+          tool_name.to_s
+        ].join("\0")
+        "tool_invocation-#{Digest::SHA256.hexdigest(source)}".freeze
+      end
 
       def self.missing(
         execution_id:,

@@ -744,7 +744,7 @@ module Phronomy
         )
         Phronomy::Agent::ExecutionRegistry.for(event_loop).release_agent_execution(ready.execution_id)
         mode = (
-          result.execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] ||
+          result.execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] ||
             "invoke"
         ).to_sym
         request = StartCommand.new(
@@ -815,7 +815,7 @@ module Phronomy
       end
 
       def capture_tool_preparation(state, invocation, fsm_session_id:)
-        tool_batch_snapshot = RecoverySupport.build_tool_batch_snapshot(invocation)
+        tool_batch_snapshot = ExecutionMetadata.build_tool_batch_snapshot(invocation)
         if tool_batch_snapshot.empty?
           raise Phronomy::Error, "Tool dispatch preparation requires a non-empty Tool batch"
         end
@@ -1117,7 +1117,7 @@ module Phronomy
       def capture_approval_resume(state, request)
         snapshot = if state.invocation
           Phronomy::Values::Immutable.copy(
-            RecoverySupport.build_tool_batch_snapshot(state.invocation)
+            ExecutionMetadata.build_tool_batch_snapshot(state.invocation)
           )
         end
         ResumeCommitCommand.new(
@@ -1206,7 +1206,7 @@ module Phronomy
         trace_mode = state.invocation&.mode ||
           (
             ready.result.execution.metadata[
-              RecoverySupport::INVOCATION_MODE_KEY
+              ExecutionMetadata::INVOCATION_MODE_KEY
             ] || "invoke"
           ).to_sym
         Phronomy::Tracing::Automatic.observe_task(
@@ -1412,10 +1412,10 @@ module Phronomy
         fsm_session_id:
       )
         if invocation&.phase == :suspended
-          snapshot = RecoverySupport.build_tool_batch_snapshot(invocation)
-          staged_execution = RecoverySupport.with_recovery_metadata(
+          snapshot = ExecutionMetadata.build_tool_batch_snapshot(invocation)
+          staged_execution = ExecutionMetadata.with_values(
             state.execution,
-            RecoverySupport::TOOL_BATCH_METADATA_KEY => snapshot
+            ExecutionMetadata::TOOL_BATCH_METADATA_KEY => snapshot
           )
           state = state.class.new(
             **state.to_h.merge(execution: staged_execution)

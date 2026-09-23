@@ -140,7 +140,7 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
     install
     submit
     arguments["nested"].first["query"].replace("stale")
-    expect(Phronomy::Agent::RecoverySupport).not_to receive(:build_tool_batch_snapshot)
+    expect(Phronomy::Agent::ExecutionMetadata).not_to receive(:build_tool_batch_snapshot)
     stale = submit(request(approval_request_id: "old-request"))
     expect { stale.result_task.wait_result(timeout: 3) }.to raise_error(ArgumentError, /does not match/)
     expect(submitted.size).to eq(1)
@@ -155,7 +155,7 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
       when :active then install(execution: execution.with(status: :active))
       when :missing then nil
       end
-      expect(Phronomy::Agent::RecoverySupport).not_to receive(:build_tool_batch_snapshot)
+      expect(Phronomy::Agent::ExecutionMetadata).not_to receive(:build_tool_batch_snapshot)
       rejected = submit
       error = (invalid == :missing) ? Phronomy::ExecutionRehydrationRequiredError : ArgumentError
       expect { rejected.result_task.wait_result(timeout: 3) }.to raise_error(error)

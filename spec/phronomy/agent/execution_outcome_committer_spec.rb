@@ -325,7 +325,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
         end
         persistence.handoff_states.save(agent.agent_id, expected_revision: 1, state: newer)
         if conflict == :cancelled
-          current = Phronomy::Agent::RecoverySupport.with_recovery_metadata(execution,
+          current = Phronomy::Agent::ExecutionMetadata.with_values(execution,
             "coordination" => metadata.fetch("coordination").merge("handoff_revision" => 2))
           operation = operation.with(execution: current)
         end
@@ -350,7 +350,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
     it "does not acquire ordinary child-wait selection for a Handoff recovery error" do
       operation = command
       reference = persistence.contents.put_json("children" => [{"state" => "active"}])
-      current = Phronomy::Agent::RecoverySupport.with_recovery_metadata(execution,
+      current = Phronomy::Agent::ExecutionMetadata.with_values(execution,
         "multi_agent_coordination_ref" => reference)
       operation = operation.with(execution: current,
         terminal_view: view.with(source_error: Phronomy::ExecutionRehydrationRequiredError.new("recover")))

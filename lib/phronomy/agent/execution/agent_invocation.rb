@@ -155,7 +155,7 @@ module Phronomy
               execution_id
             )
           durable_id = state&.execution&.metadata&.fetch(
-            RecoverySupport::PENDING_LLM_ID_KEY,
+            ExecutionMetadata::PENDING_LLM_ID_KEY,
             nil
           )
         end

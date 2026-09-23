@@ -12,12 +12,13 @@ W2b is applied and verified at core `fcd434c45ad98e5c93953cbce1ffef3c12246894`. 
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
 The current applied baseline is core
-`d98822b3b4d04f01d8b5303545747517ae49fb76` and examples
-`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 36; examples unchanged).
+`e7e6618493df03c2eb386d78a9303796e1e13cdc` and examples
+`68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` (Refactor 37; examples unchanged).
 S2b/S2c were verified on Refactor 35, including PostgreSQL CI against its
 core ebd99623 / examples 68a0bbd0 pair.
-Refactor 36's S3 cleanup is applied and verified, and the diagram is on applied36-01.
-Refactor 37 implements D02 as the next candidate; its application is not yet verified. See the
+Refactor 36's S3 cleanup and Refactor 37's D02 are applied and verified. The diagram
+is on applied37-01. Refactor 38 implements R03/R11 as the next candidate; its
+application is not yet verified. See the
 [closure review](refactoring-closure.md) for retained names, evidence and limits.
 
 ## Completed boundaries
@@ -133,7 +134,7 @@ cleanup and audit are applied and verified in Refactor 36.
 The original review is not fully implemented: the W/S-only inventory omitted
 D02, R03's metadata boundary, R06, R07, R08/D08, parts of R09, R10 and R11.
 See the reconciled inventory below; do not count those proposals as completed.
-Keep the published dependency SVG tied to applied36-01 until Refactor 37 application verification. Performance benchmarking, live-LLM behavior,
+Keep the published dependency SVG tied to applied37-01 until Refactor 38 application verification. Performance benchmarking, live-LLM behavior,
 distributed ownership and unknown-outcome recovery policy are separate scopes,
 not silently added requirements for this responsibility refactoring.
 
@@ -141,24 +142,25 @@ not silently added requirements for this responsibility refactoring.
 
 | Initial item | Current assessment and follow-up |
 |---|---|
-| D02 | Refactor 37 candidate: Agent, Blocking and Orchestrator construct Concurrency::OperationBinding directly; the Execution wrapper is removed. Application verification remains. |
-| R03 | Partial: ToolInvocation owns restoration, but ordinary AgentInvocation still reads RecoverySupport's pending-LLM metadata key. Review the shared metadata owner. |
+| D02 | Applied and verified in Refactor 37: callers construct OperationBinding directly and retain ordering and cancellation contracts. |
+| R03 | Refactor 38 candidate: ExecutionMetadata owns shared durable keys and Tool batch snapshots; ToolInvocation owns stable identity. Earlier restoration behavior is preserved. Application verification remains. |
 | R06 | Unimplemented: Tool event vocabulary and LLM transition guard order remain duplicated across Invocation and both builders. |
 | R07 | Unimplemented: ContextAssembler's prepare methods still mix preparation steps with detailed item/provenance construction. |
 | R08 / D08 | One overlapping item, not two: GeneratorVerifier still combines PipelineState, Workflow construction and result reception. |
 | R09 | Partial: composition moved, but Base's Tool binding remains. DSL inheritance differences require a behavior decision before modification. |
 | R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
-| R11 | Partial: RuntimeRecordEncoder exists, but its json_value and RecoverySupport.canonical_copy still duplicate recursive conversion. Preserve their error contracts when reviewing consolidation. |
+| R11 | Refactor 38 candidate: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. Application verification remains. |
 
 R08/D08 is one work item. R03's completed Tool restoration must not be reopened;
 its remaining concern is metadata ownership. R09's configuration inheritance can
 change public behavior and needs its own explicit decision. These are existing
 proposals rediscovered by the S3 audit, not new performance or distributed-runtime
-requirements. D02 is implemented in Refactor 37 against the verified current base. After its
-application check, proceed to R03/R11 shared metadata and conversion ownership.
+requirements. D02 is applied and verified. R03/R11 now have a verified candidate.
+After Refactor 38 application verification, proceed to R06, then R07/R08/R09;
+coordinate R10 with its owners.
 
 
-## D02: direct operation binding (Refactor 37 candidate)
+## D02: direct operation binding (Refactor 37, applied)
 
 OperationBinding already owns invocation context validation, its private linked
 cancellation token, deadline subscriptions and result-scoped cleanup. Its three
@@ -173,5 +175,21 @@ Orchestrator still uses Execution for fan-out/fan-in; that dependency is intende
 The internal OperationBinding signature and body, except its ownership comment,
 are unchanged. No class, production file, public API or examples change is added.
 
-The distribution must still be applied and checked before D02 is marked closed.
-The other seven initial-proposal groups remain open or partial.
+The distribution is applied and verified at e7e66184. D02 is closed.
+Seven initial-proposal groups remained; R03/R11 now have a candidate below.
+
+
+## R03/R11: shared execution metadata and conversion (Refactor 38 candidate)
+
+See [the ownership and compatibility design](execution-metadata-and-values.md).
+ExecutionMetadata owns the shared keys, version, snapshot and merge.
+ToolInvocation.semantic_id owns the stable Tool identity, while
+Values::Serializable owns recursive Ruby-to-JSON-tree conversion.
+RecoverySupport retains recovery interpretation; the existing conversion entry
+points retain their distinct diagnostics. No new restoration, transaction or
+external-operation behavior is introduced.
+
+Candidate verification is complete; user application and exact-tree verification
+remain. Until then seven groups remain open/partial, including these two
+application-pending items. After verification the five other groups are R06, R07,
+R08/D08, R09 and R10. The current applied diagram remains applied37-01.

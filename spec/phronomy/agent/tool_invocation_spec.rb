@@ -3,6 +3,18 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::ToolInvocation do
+  describe ".semantic_id" do
+    it "preserves the stored identity format without constructing an invocation" do
+      expect(described_class).not_to receive(:new)
+      identity = described_class.semantic_id(execution_id: "execution-1",
+        llm_call_id: "llm-1", tool_call_id: "call-1", tool_name: "lookup")
+      expect(identity).to eq("tool_invocation-815a11f936d7517dab00e0e18274004437ceecee442e136c991f0f213aa8b705")
+      expect(identity).to be_frozen
+      expect(described_class.semantic_id(execution_id: "execution-1",
+        llm_call_id: "llm-2", tool_call_id: "call-1", tool_name: "lookup")).not_to eq(identity)
+    end
+  end
+
   ToolCall = Struct.new(:id, :name, :arguments)
 
   let(:tool_class) do

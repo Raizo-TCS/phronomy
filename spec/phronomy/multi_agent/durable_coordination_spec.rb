@@ -81,7 +81,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       if operation == :enqueue_task
         run = team.executions.first
         coordinator = store.executions.load(run.coordinator.fetch("execution_id"))
-        finalize = coordinator.metadata.fetch(Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY).last
+        finalize = coordinator.metadata.fetch(Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY).last
         original.call(id, finalize.fetch("tool_invocation_id"), :finalize, {})
       end
       original.call(id, key, operation, args)
@@ -428,7 +428,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     event = Timeout.timeout(2) { events.pop }
     payload = event.payload
     run = restored.executions.load(payload.fetch(:execution_id))
-    external_entry = run.metadata.fetch(Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY).find { |entry| entry.fetch("tool_name") == "external_effect" }
+    external_entry = run.metadata.fetch(Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY).find { |entry| entry.fetch("tool_name") == "external_effect" }
     expect(payload.fetch(:subject).fetch(:tool_invocation_id)).to eq(external_entry.fetch("tool_invocation_id"))
     resolution = loaded.resolve_async(payload.fetch(:execution_id),
       expected_execution_revision: payload.fetch(:execution_revision), subject: payload.fetch(:subject),

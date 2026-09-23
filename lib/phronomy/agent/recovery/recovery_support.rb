@@ -1,74 +1,13 @@
 # frozen_string_literal: true
 
-require "digest"
-
 module Phronomy
   module Agent
     module RecoverySupport
-      CONTRACT_VERSION = 1
-      RECOVERY_METADATA_KEY = "recovery"
-      TOOL_BATCH_METADATA_KEY = "recovery_tool_batch"
-      PENDING_LLM_ID_KEY = "pending_llm_call_id"
-      PENDING_LLM_STARTED_AT_KEY = "pending_llm_started_at"
-      INVOCATION_MODE_KEY = "invocation_mode"
-      CONTRACT_VERSION_KEY = "recovery_contract_version"
-
       module_function
 
       def canonical_copy(value)
-        case value
-        when Hash
-          value.to_h { |key, child| [key.to_s, canonical_copy(child)] }
-        when Array
-          value.map { |child| canonical_copy(child) }
-        when Symbol
-          value.to_s
-        when String, Integer, Float, TrueClass, FalseClass, NilClass
-          value
-        else
-          if value.respond_to?(:to_h)
-            canonical_copy(value.to_h)
-          else
-            raise ArgumentError,
-              "Recovery value is not canonically serializable: #{value.class}"
-          end
-        end
-      end
-
-      def build_tool_batch_snapshot(invocation)
-        Array(invocation.tool_invocations).map do |child|
-          entry = {
-            "tool_invocation_id" => child.id.to_s,
-            "tool_call_id" => child.tool_call_id&.to_s,
-            "tool_name" => child.tool_name.to_s,
-            "llm_call_id" => invocation.tool_batch_llm_call_id&.to_s,
-            "raw_arguments" => canonical_copy(child.raw_arguments || {}),
-            "arguments" => canonical_copy(child.raw_arguments || {}),
-            "status" => child.status.to_s
-          }
-          if child.execution_completed?
-            entry["result"] = canonical_copy(child.result)
-          end
-          entry.compact
-        end.freeze
-      end
-
-      def with_recovery_metadata(execution, values)
-        execution.with(
-          execution_revision: execution.execution_revision,
-          metadata: execution.metadata.merge(values)
-        )
-      end
-
-      def semantic_tool_id(execution_id:, llm_call_id:, tool_call_id:, tool_name:)
-        source = [
-          "tool_invocation",
-          execution_id.to_s,
-          llm_call_id.to_s,
-          tool_call_id.to_s,
-          tool_name.to_s
-        ].join("\0")
-        "tool_invocation-#{Digest::SHA256.hexdigest(source)}".freeze
+        Phronomy::Values::Serializable.convert(value,
+          unsupported_message: "Recovery value is not canonically serializable")
       end
 
       def tool_calls_from_outcome(outcome)
@@ -121,7 +60,7 @@ module Phronomy
       end
 
       def pending_llm_descriptor(execution)
-        llm_call_id = execution.metadata[PENDING_LLM_ID_KEY]
+        llm_call_id = execution.metadata[ExecutionMetadata::PENDING_LLM_ID_KEY]
         return unless llm_call_id
 
         {
@@ -139,7 +78,7 @@ module Phronomy
       end
 
       def recovery_hash(execution)
-        value = execution.metadata[RECOVERY_METADATA_KEY]
+        value = execution.metadata[ExecutionMetadata::RECOVERY_METADATA_KEY]
         value.is_a?(Hash) ? value : nil
       end
 
@@ -176,7 +115,7 @@ module Phronomy
       end
 
       def pending_tool_subjects(execution)
-        Array(execution.metadata[TOOL_BATCH_METADATA_KEY]).filter_map do |entry|
+        Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).filter_map do |entry|
           hash = entry.to_h { |key, value| [key.to_s, value] }
           next unless %w[authorized awaiting_approval].include?(
             hash.fetch("status")
@@ -240,7 +179,7 @@ module Phronomy
           tool_call_id = call_hash.fetch("id").to_s
           tool_name = call_hash.fetch("name").to_s
           {
-            "tool_invocation_id" => semantic_tool_id(
+            "tool_invocation_id" => ToolInvocation.semantic_id(
               execution_id: execution.execution_id,
               llm_call_id: llm_call_id,
               tool_call_id: tool_call_id,
@@ -257,7 +196,7 @@ module Phronomy
 
       def build_recovery_hash(subjects, reason: :outcome_unknown, allowed_outcomes: Phronomy::Recovery::OUTCOMES)
         {
-          "version" => CONTRACT_VERSION,
+          "version" => ExecutionMetadata::CONTRACT_VERSION,
           "reason" => reason.to_s,
           "allowed_outcomes" => Array(allowed_outcomes).map(&:to_s),
           "subjects" => Array(subjects).map { |entry| canonical_copy(entry) }

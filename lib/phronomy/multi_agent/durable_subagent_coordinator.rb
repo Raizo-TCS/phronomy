@@ -22,7 +22,7 @@ module Phronomy
           raise Phronomy::Storage::ConflictError, "Child owner mismatch" unless exact.agent_id == child.fetch("agent_id")
           child.merge!("state" => exact.status.to_s, "result_ref" => exact.result_ref, "error_ref" => exact.error_ref)
         end
-        Array(execution.metadata[Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY]).each do |tool|
+        Array(execution.metadata[Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).each do |tool|
           registration = parent.class.registered_subagents.find { |name, _| "dispatch_to_#{name}" == tool.fetch("tool_name") }
           next unless registration
           next if children.any? { |child| child.fetch("slot") == tool.fetch("tool_invocation_id") }

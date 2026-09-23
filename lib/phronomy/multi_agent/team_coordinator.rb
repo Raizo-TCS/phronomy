@@ -525,7 +525,7 @@ module Phronomy
           unless coordinator.agent_id == fresh.coordinator.fetch("agent_id")
             raise Phronomy::Storage::ConflictError, "Team coordinator owner mismatch"
           end
-          batch = Array(coordinator.metadata[Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY])
+          batch = Array(coordinator.metadata[Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
           requested = batch.find { |entry| entry.fetch("tool_invocation_id") == key }
           unless requested && requested.fetch("status") == "authorized" && requested.fetch("tool_name") == operation.to_s && requested.fetch("arguments").compact == argument_values
             raise Phronomy::Storage::ConflictError, "Team operation #{key} is not the authorized call"

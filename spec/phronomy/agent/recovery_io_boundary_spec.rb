@@ -261,7 +261,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
         saved = original_commit.call(operation)
         expect(calls).to eq(0)
         committed_snapshots << saved.execution.metadata.fetch(
-          Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY
+          Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY
         )
         saved
       end

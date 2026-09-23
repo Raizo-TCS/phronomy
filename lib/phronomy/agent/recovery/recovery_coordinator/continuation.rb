@@ -78,7 +78,7 @@ module Phronomy
           end
 
           error = if action == :failed_terminal
-            failure = execution.metadata.dig(RecoverySupport::RECOVERY_METADATA_KEY, "failure") ||
+            failure = execution.metadata.dig(ExecutionMetadata::RECOVERY_METADATA_KEY, "failure") ||
               {"class" => "Phronomy::Error", "message" => "Recovery-resolved failure"}
             RecoverySupport.error_from_failure(failure)
           end
@@ -108,7 +108,7 @@ module Phronomy
           Phronomy::Agent::AgentInvocation.new(agent: agent, input: nil,
             config: {execution_id: execution.execution_id, phronomy_execution_coordinator: main},
             event_listener: agent.send(:_phronomy_event_listener),
-            mode: (execution.metadata[RecoverySupport::INVOCATION_MODE_KEY] || "invoke").to_sym,
+            mode: (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym,
             execution_id: execution.execution_id)
         end
 

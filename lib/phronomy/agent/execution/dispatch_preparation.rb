@@ -115,11 +115,11 @@ module Phronomy
 
       def stage_provider_call(operation)
         metadata = operation.execution.metadata.dup
-        metadata.delete(RecoverySupport::TOOL_BATCH_METADATA_KEY)
-        metadata.delete(RecoverySupport::RECOVERY_METADATA_KEY)
-        metadata[RecoverySupport::PENDING_LLM_ID_KEY] = operation.pending_llm_call_id
-        metadata[RecoverySupport::PENDING_LLM_STARTED_AT_KEY] = operation.pending_llm_started_at
-        metadata[RecoverySupport::CONTRACT_VERSION_KEY] = RecoverySupport::CONTRACT_VERSION
+        metadata.delete(ExecutionMetadata::TOOL_BATCH_METADATA_KEY)
+        metadata.delete(ExecutionMetadata::RECOVERY_METADATA_KEY)
+        metadata[ExecutionMetadata::PENDING_LLM_ID_KEY] = operation.pending_llm_call_id
+        metadata[ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY] = operation.pending_llm_started_at
+        metadata[ExecutionMetadata::CONTRACT_VERSION_KEY] = ExecutionMetadata::CONTRACT_VERSION
         operation.execution.with(
           execution_revision: operation.execution.execution_revision,
           metadata: metadata
@@ -259,13 +259,14 @@ module Phronomy
 
       def tool_dispatch_metadata(operation)
         metadata = operation.execution.metadata.dup
-        metadata.delete(RecoverySupport::PENDING_LLM_ID_KEY)
-        metadata.delete(RecoverySupport::PENDING_LLM_STARTED_AT_KEY)
-        metadata.delete(RecoverySupport::RECOVERY_METADATA_KEY)
+        metadata.delete(ExecutionMetadata::PENDING_LLM_ID_KEY)
+        metadata.delete(ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY)
+        metadata.delete(ExecutionMetadata::RECOVERY_METADATA_KEY)
         metadata.delete("framework_calls_pending")
-        metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] =
-          RecoverySupport.canonical_copy(operation.tool_batch_snapshot)
-        metadata[RecoverySupport::CONTRACT_VERSION_KEY] = RecoverySupport::CONTRACT_VERSION
+        metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY] =
+          Phronomy::Values::Serializable.convert(operation.tool_batch_snapshot,
+            unsupported_message: "Recovery value is not canonically serializable")
+        metadata[ExecutionMetadata::CONTRACT_VERSION_KEY] = ExecutionMetadata::CONTRACT_VERSION
         metadata
       end
 

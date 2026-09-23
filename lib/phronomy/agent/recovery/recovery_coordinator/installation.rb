@@ -11,7 +11,7 @@ module Phronomy
         def framework_batch?(execution)
           return false unless %i[dispatching_tools resuming recovery_tools].include?(execution.phase.to_sym)
           return false if execution.status == :suspended
-          entries = Array(execution.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY])
+          entries = Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
           pending = entries.reject { |entry| %w[completed rejected failed cancelled].include?(entry.fetch("status")) }
           !pending.empty? && pending.all? do |entry|
             entry.fetch("status") == "authorized" && agent.__framework_tool_replayable?(entry.fetch("tool_name"))
@@ -23,13 +23,13 @@ module Phronomy
         # slots then resume through their normal Tool sessions.
         def coordination_recovery_descriptor(execution)
           metadata = execution.metadata.dup
-          if metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]
-            metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] = metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY].sort_by do |entry|
+          if metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY]
+            metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY] = metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY].sort_by do |entry|
               agent.__framework_tool_replayable?(entry.fetch("tool_name")) ? 1 : 0
             end
           end
-          if (recovery = metadata[RecoverySupport::RECOVERY_METADATA_KEY]) && recovery["subjects"]
-            metadata[RecoverySupport::RECOVERY_METADATA_KEY] = recovery.merge("subjects" => recovery["subjects"].sort_by do |entry|
+          if (recovery = metadata[ExecutionMetadata::RECOVERY_METADATA_KEY]) && recovery["subjects"]
+            metadata[ExecutionMetadata::RECOVERY_METADATA_KEY] = recovery.merge("subjects" => recovery["subjects"].sort_by do |entry|
               agent.__framework_tool_replayable?(entry.fetch("tool_name")) ? 1 : 0
             end)
           end
@@ -300,7 +300,7 @@ module Phronomy
             execution_id: execution.execution_id,
             mode: (
               execution.metadata[
-                RecoverySupport::INVOCATION_MODE_KEY
+                ExecutionMetadata::INVOCATION_MODE_KEY
               ] || "invoke"
             ).to_sym
           )

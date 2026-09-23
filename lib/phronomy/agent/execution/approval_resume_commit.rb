@@ -44,9 +44,9 @@ module Phronomy
       def stage_recovery_snapshot(operation)
         return operation.execution unless operation.tool_batch_snapshot
 
-        RecoverySupport.with_recovery_metadata(
+        ExecutionMetadata.with_values(
           operation.execution,
-          RecoverySupport::TOOL_BATCH_METADATA_KEY => operation.tool_batch_snapshot
+          ExecutionMetadata::TOOL_BATCH_METADATA_KEY => operation.tool_batch_snapshot
         )
       end
 

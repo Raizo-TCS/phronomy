@@ -94,8 +94,8 @@ RSpec.describe "ACS-17 causal durability" do
         "base_manifest_ref" => manifest_ref,
         "manifest_ref" => manifest_ref,
         "manifest_refs" => [manifest_ref],
-        Phronomy::Agent::RecoverySupport::PENDING_LLM_ID_KEY => "llm-1",
-        Phronomy::Agent::RecoverySupport::PENDING_LLM_STARTED_AT_KEY => now
+        Phronomy::Agent::ExecutionMetadata::PENDING_LLM_ID_KEY => "llm-1",
+        Phronomy::Agent::ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY => now
       )
     )
     persistence.executions.save(
@@ -265,12 +265,12 @@ RSpec.describe "ACS-17 causal durability" do
     expect(stored.to_h).to eq(result.execution.to_h)
     expect(stored.phase).to eq(:dispatching_tools)
     expect(stored.metadata).not_to have_key(
-      Phronomy::Agent::RecoverySupport::PENDING_LLM_ID_KEY
+      Phronomy::Agent::ExecutionMetadata::PENDING_LLM_ID_KEY
     )
     expect(stored.metadata).not_to have_key(
-      Phronomy::Agent::RecoverySupport::PENDING_LLM_STARTED_AT_KEY
+      Phronomy::Agent::ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY
     )
-    expect(stored.metadata.fetch(Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY))
+    expect(stored.metadata.fetch(Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY))
       .to eq(tool_batch_snapshot)
     expect(stored.llm_calls.map(&:llm_call_id)).to include("llm-1")
     expect(stored.working_records.map(&:kind)).to include(:assistant_message)
@@ -310,13 +310,13 @@ RSpec.describe "ACS-17 causal durability" do
 
     expect(stored.to_h).to eq(result.execution.to_h)
     expect(stored.phase).to eq(:calling_llm)
-    expect(stored.metadata.fetch(Phronomy::Agent::RecoverySupport::PENDING_LLM_ID_KEY))
+    expect(stored.metadata.fetch(Phronomy::Agent::ExecutionMetadata::PENDING_LLM_ID_KEY))
       .to eq("llm-2")
     expect(stored.metadata).not_to have_key(
-      Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY
+      Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY
     )
     expect(stored.metadata).not_to have_key(
-      Phronomy::Agent::RecoverySupport::RECOVERY_METADATA_KEY
+      Phronomy::Agent::ExecutionMetadata::RECOVERY_METADATA_KEY
     )
     expect(stored.working_records.map(&:kind)).to include(:tool_result, :tool_message)
     expect(result.runtime_projection).not_to be_nil

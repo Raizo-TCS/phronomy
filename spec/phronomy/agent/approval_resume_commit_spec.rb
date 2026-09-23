@@ -11,7 +11,7 @@ RSpec.describe Phronomy::Agent::ApprovalResumeCommit do
   end
   let(:agent) { agent_class.create(agent_id: "approval-agent", persistence: persistence) }
   let(:worker) { described_class.new(agent_id: agent.agent_id, persistence: persistence) }
-  let(:batch_key) { Phronomy::Agent::RecoverySupport::TOOL_BATCH_METADATA_KEY }
+  let(:batch_key) { Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY }
   let(:approval_request) do
     item = Phronomy::Agent::ToolApprovalRequest::Item.new(
       tool_invocation_id: "restored-child", tool_call_id: "call-1",

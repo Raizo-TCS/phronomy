@@ -453,7 +453,7 @@ module Phronomy
         children = invocation.pending_tool_calls.map do |tool_call|
           tool = invocation.chat.tools[tool_call.name.to_sym]
           tool_invocation_id =
-            RecoverySupport.semantic_tool_id(
+            ToolInvocation.semantic_id(
               execution_id: invocation.execution_id,
               llm_call_id: invocation.tool_batch_llm_call_id,
               tool_call_id: (

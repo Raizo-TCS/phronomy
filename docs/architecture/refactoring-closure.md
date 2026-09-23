@@ -2,12 +2,12 @@
 
 ## Scope and acceptance state
 
-The applied baseline is Refactor 36: core
-`d98822b3b4d04f01d8b5303545747517ae49fb76` and examples
+The applied baseline is Refactor 37: core
+`e7e6618493df03c2eb386d78a9303796e1e13cdc` and examples
 `68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` on `refactor/architecture`.
 W1/W2, Storage S1/S2 and Refactor 36's S3 cleanup are applied and verified.
-Refactor 37 implements the rediscovered D02 proposal as a separate candidate;
-its application still needs verification.
+Refactor 37's D02 change is applied and verified. Refactor 38 implements the
+remaining R03/R11 ownership work as a candidate; its application is not yet verified.
 
 The S3 audit and its bounded Storage cleanup are verified. The initial review
 still contains open proposals. The previous remaining-work summary omitted still
@@ -69,7 +69,7 @@ boundary, not a claim that all source-structure guards must disappear. A01's
 shutdown boundary and the revised A02 removal are implemented.
 
 The broader A proposals map to those same goals rather than adding another
-independent set of tasks: A03 includes the still-open D02/D08 ownership work;
+independent set of tasks: A03 includes D02 (now verified) and the open D08 work;
 A04's record/codec separation and neutral backend contract are implemented,
 while composition review overlaps R09; A05 keeps the same public Tool Class and
 places ToolExecutor beside the capability contract, preserving its documented
@@ -82,19 +82,19 @@ the recent W/S-only inventory; they are not regressions caused by Refactor 35.
 
 | Initial item | Current assessment and follow-up |
 |---|---|
-| D02 | Refactor 37 candidate: Agent, Blocking and Orchestrator construct Concurrency::OperationBinding directly; the Execution wrapper is removed. Application verification remains. |
-| R03 | Partial: ToolInvocation owns restoration, but ordinary AgentInvocation still reads RecoverySupport's pending-LLM metadata key. Review the shared metadata owner. |
+| D02 | Applied and verified in Refactor 37: callers construct OperationBinding directly and retain ordering and cancellation contracts. |
+| R03 | Refactor 38 candidate: ExecutionMetadata owns shared durable keys and Tool batch snapshots; ToolInvocation owns stable identity. Earlier restoration behavior is preserved. Application verification remains. |
 | R06 | Unimplemented: Tool event vocabulary and LLM transition guard order remain duplicated across Invocation and both builders. |
 | R07 | Unimplemented: ContextAssembler's prepare methods still mix preparation steps with detailed item/provenance construction. |
 | R08 / D08 | One overlapping item, not two: GeneratorVerifier still combines PipelineState, Workflow construction and result reception. |
 | R09 | Partial: composition moved, but Base's Tool binding remains. DSL inheritance differences require a behavior decision before modification. |
 | R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
-| R11 | Partial: RuntimeRecordEncoder exists, but its json_value and RecoverySupport.canonical_copy still duplicate recursive conversion. Preserve their error contracts when reviewing consolidation. |
+| R11 | Refactor 38 candidate: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. Application verification remains. |
 
 These entries identify real remaining proposals, not automatic authorization for
-public behavior changes. Refactor 37 implements the small, previously delivered D02 on the current base.
-After its application check, address R03/R11's shared vocabulary
-and R06's transition authority before the larger R07/R08/R09 readability work;
+public behavior changes. D02 is applied and verified. Refactor 38 implements
+R03/R11's shared vocabulary and conversion. After its application check, address
+R06's transition authority before the larger R07/R08/R09 readability work;
 R10 can be coordinated with its owning changes. Keep R09's DSL semantics separate.
 A complete initial-review closure requires implementation and verification or an
 explicit decision to defer each item. It cannot follow from this small package.
@@ -114,9 +114,11 @@ compatibility were also verified. Core remote workflows had no runs.
 Refactor 36's exact applied tree and all ten files matched its distribution.
 Core/integration/common examples/SQLite, API/RBS and gem checks passed on the
 applied source. The Resource/Validation two-file cycle is removed; the published
-SVG is applied36-01. Refactor 36 did not rerun live PostgreSQL, and the existing
+SVG was synchronized to applied36-01 then. Refactor 36 did not rerun live PostgreSQL, and the existing
 examples CI used Refactor 35's core. Do not infer newer-core CI from those runs.
-Refactor 37 must be verified as its own candidate and after application.
+Refactor 37 was independently verified after application: all seven files and
+the full tree matched, and local core/integration/examples/SQLite, API/RBS and
+gem checks passed. Core CI had no runs. Live PostgreSQL was not rerun.
 
 The existing directory cycles (8/6/3/2 members) and the other file cycles remain.
 Static constant/require analysis does not resolve all dynamic collaboration.
@@ -126,12 +128,28 @@ Those are separate design/validation scopes, not unfinished items silently
 added to this refactoring plan.
 
 
-## D02 follow-up candidate
+## D02 follow-up, applied
 
 The direct construction change removes Execution.__operation_binding and its
 three caller detours. OperationBinding keeps validation, linked cancellation,
 deadline handling and subscription cleanup. No new generic factory or public
 entry point is introduced. The three clients retain their admission and cleanup
 ordering, and Orchestrator keeps its actual fan-out/fan-in use of Execution.
-This closes the source change for D02 only; application verification is pending.
-The other seven R groups remain open or partial.
+D02 is applied and verified at e7e66184. Seven R groups remained; R03/R11
+now have a candidate below.
+
+
+## R03/R11: shared execution metadata and conversion (Refactor 38 candidate)
+
+See [the ownership and compatibility design](execution-metadata-and-values.md).
+ExecutionMetadata owns the shared keys, version, snapshot and merge.
+ToolInvocation.semantic_id owns the stable Tool identity, while
+Values::Serializable owns recursive Ruby-to-JSON-tree conversion.
+RecoverySupport retains recovery interpretation; the existing conversion entry
+points retain their distinct diagnostics. No new restoration, transaction or
+external-operation behavior is introduced.
+
+Candidate verification is complete; user application and exact-tree verification
+remain. Until then seven groups remain open/partial, including these two
+application-pending items. After verification the five other groups are R06, R07,
+R08/D08, R09 and R10. The current applied diagram remains applied37-01.

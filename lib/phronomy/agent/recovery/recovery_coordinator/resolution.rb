@@ -116,7 +116,7 @@ module Phronomy
           llm_call_id =
             operation.subject.fetch(:llm_call_id).to_s
           unless current.metadata[
-            RecoverySupport::PENDING_LLM_ID_KEY
+            ExecutionMetadata::PENDING_LLM_ID_KEY
           ].to_s == llm_call_id
             raise Phronomy::Storage::ConflictError,
               "LLM Recovery subject is no longer pending"
@@ -136,27 +136,27 @@ module Phronomy
                 "automatic semantic redispatch is unavailable without a replay contract"
             }.freeze
             recovery = {
-              "version" => RecoverySupport::CONTRACT_VERSION,
+              "version" => ExecutionMetadata::CONTRACT_VERSION,
               "resolution_outcome" => "not_performed",
               "failure" => failure
             }.freeze
             updated = current.with(
               phase: :recovery_resolved_failed,
               metadata: current.metadata.merge(
-                RecoverySupport::RECOVERY_METADATA_KEY => recovery
+                ExecutionMetadata::RECOVERY_METADATA_KEY => recovery
               )
             )
             intended = ResolutionResult.new(execution: updated)
             save_resolution_result(current, intended)
           when :failed
             recovery = {
-              "version" => RecoverySupport::CONTRACT_VERSION,
+              "version" => ExecutionMetadata::CONTRACT_VERSION,
               "failure" => operation.failure
             }
             updated = current.with(
               phase: :recovery_resolved_failed,
               metadata: current.metadata.merge(
-                RecoverySupport::RECOVERY_METADATA_KEY =>
+                ExecutionMetadata::RECOVERY_METADATA_KEY =>
                   recovery
               )
             )
@@ -177,14 +177,14 @@ module Phronomy
                   error: nil,
                   streaming: (
                     current.metadata[
-                      RecoverySupport::INVOCATION_MODE_KEY
+                      ExecutionMetadata::INVOCATION_MODE_KEY
                     ].to_s == "stream"
                   ),
                   manifest_ref: current.metadata.fetch(
                     "manifest_ref"
                   ),
                   started_at: current.metadata[
-                    RecoverySupport::PENDING_LLM_STARTED_AT_KEY
+                    ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY
                   ] || current.updated_at
                 }.freeze].freeze,
                 runtime_events: [].freeze,
@@ -209,15 +209,15 @@ module Phronomy
                 :recovery_provider_completed : :recovery_tools
               metadata = current.metadata.dup
               metadata.delete(
-                RecoverySupport::PENDING_LLM_ID_KEY
+                ExecutionMetadata::PENDING_LLM_ID_KEY
               )
               metadata.delete(
-                RecoverySupport::PENDING_LLM_STARTED_AT_KEY
+                ExecutionMetadata::PENDING_LLM_STARTED_AT_KEY
               )
               metadata.delete("framework_calls_pending")
               metadata["framework_calls_pending"] = true unless framework_subjects.empty?
-              if subjects.any? && Array(metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).empty?
-                metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY] = subjects.map do |entry|
+              if subjects.any? && Array(metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).empty?
+                metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY] = subjects.map do |entry|
                   {
                     "tool_invocation_id" => entry.fetch("tool_invocation_id"),
                     "llm_call_id" => entry.fetch("llm_call_id"),
@@ -230,11 +230,11 @@ module Phronomy
               end
               if external_subjects.empty?
                 metadata.delete(
-                  RecoverySupport::RECOVERY_METADATA_KEY
+                  ExecutionMetadata::RECOVERY_METADATA_KEY
                 )
               else
                 metadata[
-                  RecoverySupport::RECOVERY_METADATA_KEY
+                  ExecutionMetadata::RECOVERY_METADATA_KEY
                 ] = RecoverySupport.build_recovery_hash(
                   external_subjects
                 )
@@ -308,7 +308,7 @@ module Phronomy
             updated = current.with(
               phase: :recovery_resolved_failed,
               metadata: current.metadata.merge(
-                RecoverySupport::RECOVERY_METADATA_KEY =>
+                ExecutionMetadata::RECOVERY_METADATA_KEY =>
                   resolved_recovery
               )
             )
@@ -328,7 +328,7 @@ module Phronomy
             updated = current.with(
               phase: :recovery_resolved_failed,
               metadata: current.metadata.merge(
-                RecoverySupport::RECOVERY_METADATA_KEY =>
+                ExecutionMetadata::RECOVERY_METADATA_KEY =>
                   recovery_with_failure
               )
             )
@@ -385,7 +385,7 @@ module Phronomy
                 RecoverySupport.unresolved_subjects(
                   next_recovery
                 )
-              tool_batch = Array(current.metadata[RecoverySupport::TOOL_BATCH_METADATA_KEY]).map do |entry|
+              tool_batch = Array(current.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY]).map do |entry|
                 if entry.fetch("tool_invocation_id") == subject_entry.fetch("tool_invocation_id")
                   entry.merge("status" => "completed", "result" => operation.result)
                 else
@@ -399,8 +399,8 @@ module Phronomy
                 working_records:
                   current.working_records + records,
                 metadata: current.metadata.merge(
-                  RecoverySupport::RECOVERY_METADATA_KEY => next_recovery,
-                  RecoverySupport::TOOL_BATCH_METADATA_KEY => tool_batch
+                  ExecutionMetadata::RECOVERY_METADATA_KEY => next_recovery,
+                  ExecutionMetadata::TOOL_BATCH_METADATA_KEY => tool_batch
                 )
               )
               tx.executions.save(
