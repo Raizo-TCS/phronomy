@@ -82,6 +82,9 @@ add structure. This is a readability and duplicated-procedure improvement, not a
 net line-count reduction or a directory-cycle change. The methods' names give
 readers a place to choose whether they need the detailed representation.
 
-R07 remains application-pending. Keep the published diagram on applied39-01 until
-application verification. R08/D08, R09 and R10 remain afterward; do not alter
-R09 inheritance semantics or R10 action names as part of this extraction.
+R07 was independently verified after application at core b3dfbc5a, tree
+dcd9d1bf8efb1b488f9c2b3b1c4e99bdeda6096c. All six files and the full tree matched;
+core/integration/examples/SQLite/API/type/gem and four paired scenarios passed.
+R07 is complete. The published diagram is applied40-01. R08/D08 now has a Refactor
+41 candidate, with R09 and R10 remaining afterward. Their behavior and naming
+decisions are not part of Context preparation extraction.

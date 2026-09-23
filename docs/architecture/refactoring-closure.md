@@ -2,13 +2,13 @@
 
 ## Scope and acceptance state
 
-The applied baseline is Refactor 39: core
-`4d57614a2b655ab18ffec0a1f28bb668ff916053` and examples
+The applied baseline is Refactor 40: core
+`b3dfbc5a65daf3ac52a902c2f832ac4216978966` and examples
 `68a0bbd0e354b9e00bbfed728ad2b769b389ed8a` on `refactor/architecture`.
 W1/W2, Storage S1/S2 and Refactor 36's S3 cleanup are applied and verified.
-Refactor 37's D02, Refactor 38's R03/R11 and Refactor 39's R06 changes are applied
-and verified. Refactor 40 implements R07 preparation readability; its application
-is not yet verified.
+Refactor 37's D02, Refactor 38's R03/R11, Refactor 39's R06 and Refactor 40's R07
+changes are applied and verified. Refactor 41 implements R08/D08's GeneratorVerifier
+ownership; its application is not yet verified.
 
 The S3 audit and its bounded Storage cleanup are verified. The initial review
 still contains open proposals. The previous remaining-work summary omitted still
@@ -86,16 +86,16 @@ completed follow-ups. The remaining items are not regressions caused by Refactor
 | D02 | Applied and verified in Refactor 37: callers construct OperationBinding directly and retain ordering and cancellation contracts. |
 | R03 | Applied and verified in Refactor 38: ExecutionMetadata owns shared durable keys and snapshots; ToolInvocation owns stable identity. Earlier restoration behavior is preserved. |
 | R06 | Applied and verified in Refactor 39: InvocationTransitions owns Tool events, ordered external transitions and state declarations for both builders and Invocation. |
-| R07 | Refactor 40 candidate: ContextAssembler describes preparation through private instruction, record-candidate, candidate-merge and current-input operations. Application verification remains. |
-| R08 / D08 | One overlapping item, not two: GeneratorVerifier still combines PipelineState, Workflow construction and result reception. |
+| R07 | Applied and verified in Refactor 40: ContextAssembler describes preparation through private instruction, record-candidate, candidate-merge and current-input operations. |
+| R08 / D08 | Refactor 41 candidate, one overlapping item: GeneratorVerifier keeps its facade and Result; private WorkflowBuilder, AgentResultReceiver and the moved PipelineState separate graph construction, reception and state. Application verification remains. |
 | R09 | Partial: composition moved, but Base's Tool binding remains. DSL inheritance differences require a behavior decision before modification. |
 | R10 | Unimplemented: filtering_input_action/building_context_action and Team's TaskResult wording still describe different responsibilities. |
 | R11 | Applied and verified in Refactor 38: Values::Serializable owns recursive conversion. Caller-specific diagnostics and distinct immutable/canonical/codec contracts remain. |
 
 These entries identify real remaining proposals, not automatic authorization for
-public behavior changes. D02, R03/R11 and R06 are applied and verified.
-Refactor 40 implements R07 preparation readability. After its application check,
-address R08/R09's work; R10 can be coordinated with its owning changes.
+public behavior changes. D02, R03/R11, R06 and R07 are applied and verified.
+Refactor 41 implements R08/D08's GeneratorVerifier ownership. After its application
+check, address R09; R10 can be coordinated with its owning changes.
 Keep R09's DSL semantics separate.
 A complete initial-review closure requires implementation and verification or an
 explicit decision to defer each item. It cannot follow from this small package.
@@ -155,7 +155,7 @@ Refactor 38 is applied and independently verified at core 690b2823, tree
 Core 2,970 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
 R03/R11 are closed. Five groups remained at that point; R06 is now applied below.
-The diagram was synchronized to applied38-01 then and is now applied39-01.
+The diagram was synchronized to applied38-01 then and is now applied40-01.
 
 
 ## R06: Agent transition ownership (Refactor 39, applied)
@@ -182,11 +182,11 @@ Refactor 39 is applied and independently verified at core 4d57614a, tree
 654241da4b2b7f32d988602d28127bc1fa155641. All 10 full files and the tree match.
 Core 2,993 (61 pending), integration 367 (28 pending), common examples 42 and
 SQLite 116 passed with zero failures, as did API/RBS, style and gem checks.
-R06 is closed. Four groups remain: R07, R08/D08, R09 and R10.
-The published diagram is applied39-01; keep it until Refactor 40 application checks.
+R06 is closed. Four groups remained then; R07 is now applied below.
+The diagram was synchronized to applied39-01 then and is now applied40-01.
 
 
-## R07: Context preparation steps (Refactor 40 candidate)
+## R07: Context preparation steps (Refactor 40, applied)
 
 See [the preparation design and compatibility boundaries](context-preparation-steps.md).
 ContextAssembler retains its public preparation/finalization boundary and its
@@ -207,6 +207,37 @@ Four paired initial/follow-up scenarios compare complete Policy input, Prepared,
 Manifest references/bytes and content operations across separate processes.
 Full core/integration/examples/API/type/package gates are in the distribution.
 
-R07 is application-pending. After that check, three groups remain: R08/D08, R09
-and R10. Next is R08/D08's GeneratorVerifier workflow and result-reception work.
-R09's DSL inheritance semantics still require a separate behavior decision.
+Refactor 40 is applied and independently verified at core b3dfbc5a, tree
+dcd9d1bf8efb1b488f9c2b3b1c4e99bdeda6096c. All six files and the tree match.
+Core 3,003 (61 pending), integration 367 (28 pending), common examples 42 and
+SQLite 116 passed with zero failures, as did API/RBS, style, gem and four paired
+preparation scenarios. R07 is closed. Three groups remain: R08/D08, R09 and R10.
+The published diagram is applied40-01; keep it until Refactor 41 application checks.
+
+
+## R08/D08: GeneratorVerifier ownership (Refactor 41 candidate)
+
+See [the ownership and event-contract design](generator-verifier-ownership.md).
+The public facade retains configuration, lazy Workflow caching, default parsers
+and Result construction. Private WorkflowBuilder owns graph assembly, request
+startup and convergence. Private AgentResultReceiver converts Agent terminal
+events into correlated Workflow events. PipelineState moves without changing its
+canonical name, fields, correlation checks or mutation behavior.
+
+The three implementation files live below generation/generator_verifier. No
+loader change or alias is needed. This updates the original D08 location sketch:
+the pattern already has generation ownership, so it does not move to MultiAgent.
+Draft/review payload meanings remain separate. Only their identical terminal
+classification, completion-notification rescue and failure notification are shared.
+The receiver holds no request-specific mutable state and never mutates Workflow
+context; PipelineState still applies accepted results on the EventLoop.
+
+Thirty-nine additional event-contract examples pass on both baseline and candidate,
+including inline completion, failures, parser/notification exceptions, old and
+duplicate results, normalization, convergence, caching and config forwarding.
+The public signature/Result/state contract also matches. Full gates are recorded
+in the distribution. Existing semantics remain: final trust is score-based, even
+if an unapproved high-score draft is finalized at the iteration limit.
+
+R08/D08 is application-pending. After its check, two groups remain: R09 and R10.
+Keep R09's DSL inheritance behavior decision separate from internal extraction.
