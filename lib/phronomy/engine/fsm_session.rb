@@ -379,10 +379,11 @@ module Phronomy
     end
 
     def complete_terminal!(terminal_type)
-      @done = true
       @terminal_lifecycle_state =
         (terminal_type == :halted) ? :halted : :completed
+      # Keep the error path open until the observer returns successfully.
       notify_stable_state! if @pending_terminal_notify_stable
+      @done = true
       post_terminal_event(terminal_type, @ctx)
     end
 

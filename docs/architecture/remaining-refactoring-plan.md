@@ -4,6 +4,11 @@ This is an implementation plan, not a new Storage SPI or Workflow lifecycle
 contract. The inventory baseline is core `e4ad9948798a4f165d052bd8ab5ac3574cf48e24`
 and examples `2f8b467f1268dd21de4c02b1c90c8bdd211d1feb` on `refactor/architecture`.
 
+W1 is now verified at core `42f61514929645662e16b571afff9f4060d867d1`.
+W2 design validation found a pre-existing terminal-observer settlement defect.
+See the [W2 design review](workflow-terminal-ownership-design.md); fix that defect
+as W2a/Refactor 32 before extracting ownership as W2b.
+
 ## Completed boundaries
 
 ExecutionCoordinator's staged split, ToolInvocation restoration ownership and
@@ -17,8 +22,9 @@ remaining Workflow problem.
 
 | Step | Remaining concern | Scope and completion gate |
 |---|---|---|
-| W1: Refactor 31 | Two terminal-save implementations, selected by prepend | Consolidate the active F1-aware implementation in Runner and remove the override. Implemented in this candidate; application verification is still required. See [ADR-054](../decisions/054-workflow-terminal-save-single-owner.md). |
-| W2: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Design a Workflow-owned terminal controller with a small generic session boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
+| W1: Refactor 31 | Two terminal-save implementations, selected by prepend | Applied and verified. The active F1-aware implementation belongs to Runner and the override is removed. See [ADR-054](../decisions/054-workflow-terminal-save-single-owner.md). |
+| W2a: Refactor 32 | Terminal observer exceptions leave stream and admission pending | Keep the error path open through notification, preserve the original exception and any confirmed save, and verify application before ownership extraction. See [ADR-055](../decisions/055-terminal-observer-failure-settlement.md). Implemented in this candidate; application verification remains. |
+| W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Design a Workflow-owned terminal controller with a small generic session boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
 | S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Inventory atomic operations and physical implementations below, choose the smallest neutral contracts and domain-owned backend extensions, and verify F0/F1/F2 boundaries before changing SPI. |
 | S2: Storage implementation and migration | Common/domain contracts and all backends must agree | Coordinate core, InMemory, SQLite and PostgreSQL changes in one reviewable migration. Preserve the transaction domain and record formats, prove rollback/constraints and document any intentional Beta SPI change. |
 | S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Decide names after the contract is established. Keep the public Persistence facade unless an explicit public migration is justified. Verify application and remaining dependency directions; do not rename merely to simplify a diagram. |

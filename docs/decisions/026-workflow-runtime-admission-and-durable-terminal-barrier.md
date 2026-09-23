@@ -2,6 +2,7 @@
 
 **Status**: Amended
 **Implementation ownership amendment**: [042-feature-owned-execution-state](042-feature-owned-execution-state.md) moves feature execution state and decisions to Agent/Workflow receivers; the EventLoop thread remains the single writer. Its registration, delivery and drain rules refine the original descriptions below.
+**Observer failure clarification**: [055-terminal-observer-failure-settlement](055-terminal-observer-failure-settlement.md) keeps terminal observer errors on the ordinary failure path without undoing an already confirmed save.
 
 **Date**: 2026-08-24
 **Partially supersedes**: [ADR-014](014-unified-persistence-durable-state.md) for same-process Workflow admission ownership and terminal durable-barrier ordering
