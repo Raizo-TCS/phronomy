@@ -77,7 +77,8 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
   it "removes raw caller-supplied FSMSession id while retaining private reservation support" do
     keys = Phronomy::FSMSession.instance_method(:initialize).parameters.map(&:last)
     expect(keys).not_to include(:id, :graph_thread_id)
-    expect(keys).to include(:context_metadata, :event_sink, :identity_reservation, :terminal_barrier)
+    expect(keys).to include(:context_metadata, :event_sink, :identity_reservation, :terminal_policy)
+    expect(keys).not_to include(:terminal_barrier)
   end
 
   it "keeps each reserved Runtime identity single-use" do

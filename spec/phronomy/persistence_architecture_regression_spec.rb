@@ -194,6 +194,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
     registry = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_execution_registry.rb"))
     fsm = File.read(File.join(root, "lib/phronomy/engine/fsm_session.rb"))
+    policy = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_terminal_policy.rb"))
 
     expect(runner).to include("workflow_instance_id")
     expect(runner).to include("owner_token: Object.new.freeze")
@@ -206,9 +207,12 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(registry).to include(":owner_token, :fsm_session_id, :state")
     expect(registry).to include("%i[executing persisting_terminal recovery_required]")
 
-    expect(fsm).to include("workflow_terminal_persistence_result")
-    expect(fsm).to include("@terminal_lifecycle_state = :persisting_terminal")
-    expect(fsm).to include("@terminal_lifecycle_state = :recovery_required")
+    expect(fsm).not_to include("workflow_terminal_persistence_result", "known_failure", "outcome_unknown")
+    expect(fsm).not_to include("WorkflowRunner", "WorkflowTerminalPolicy", "WorkflowExecutionRegistry")
+    expect(fsm).to include("@terminal_lifecycle_state = :awaiting_terminal")
+    expect(fsm).to include("retire_without_result!")
+    expect(policy).to include("workflow_terminal_persistence_result", "known_failure", "outcome_unknown")
+    expect(policy).not_to include("TaskResult", "WorkflowExecutionRegistry", "@terminal_lifecycle_state")
     expect(fsm).to include("SecureRandom.uuid.to_s.freeze")
   end
 

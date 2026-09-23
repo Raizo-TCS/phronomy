@@ -5,9 +5,10 @@ contract. The inventory baseline is core `e4ad9948798a4f165d052bd8ab5ac3574cf48e
 and examples `2f8b467f1268dd21de4c02b1c90c8bdd211d1feb` on `refactor/architecture`.
 
 W1 is now verified at core `42f61514929645662e16b571afff9f4060d867d1`.
-W2 design validation found a pre-existing terminal-observer settlement defect.
-See the [W2 design review](workflow-terminal-ownership-design.md); fix that defect
-as W2a/Refactor 32 before extracting ownership as W2b.
+W2a is applied and verified at core `01cd2f57549f6d1e60825254f4520d0f123e651c`.
+W2b is implemented in Refactor 33; application verification remains. See the
+[W2 design review](workflow-terminal-ownership-design.md) and
+[ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
 ## Completed boundaries
 
@@ -23,8 +24,8 @@ remaining Workflow problem.
 | Step | Remaining concern | Scope and completion gate |
 |---|---|---|
 | W1: Refactor 31 | Two terminal-save implementations, selected by prepend | Applied and verified. The active F1-aware implementation belongs to Runner and the override is removed. See [ADR-054](../decisions/054-workflow-terminal-save-single-owner.md). |
-| W2a: Refactor 32 | Terminal observer exceptions leave stream and admission pending | Keep the error path open through notification, preserve the original exception and any confirmed save, and verify application before ownership extraction. See [ADR-055](../decisions/055-terminal-observer-failure-settlement.md). Implemented in this candidate; application verification remains. |
-| W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Design a Workflow-owned terminal controller with a small generic session boundary. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
+| W2a: Refactor 32 | Terminal observer exceptions leave stream and admission pending | Keep the error path open through notification, preserve the original exception and any confirmed save, and verify application before ownership extraction. See [ADR-055](../decisions/055-terminal-observer-failure-settlement.md). Applied and verified at 01cd2f57. |
+| W2b: Workflow terminal ownership | FSMSession interprets `workflow_terminal_persistence_result` and success/known-failure/unknown outcomes | Implemented by WorkflowTerminalPolicy and FSMProtocol::TerminalDecision in Refactor 33; application verification remains. Preserve session identity, event acceptance, stream barriers, admission retention/release and Task ordering. Do not simply hide the same Workflow policy behind renamed Engine methods. |
 | S1: Storage contract design | Eight fixed repository slots and Agent watermark are in the shared contract | Inventory atomic operations and physical implementations below, choose the smallest neutral contracts and domain-owned backend extensions, and verify F0/F1/F2 boundaries before changing SPI. |
 | S2: Storage implementation and migration | Common/domain contracts and all backends must agree | Coordinate core, InMemory, SQLite and PostgreSQL changes in one reviewable migration. Preserve the transaction domain and record formats, prove rollback/constraints and document any intentional Beta SPI change. |
 | S3: Naming and closure | Common framework naming and public Persistence facade can be conflated | Decide names after the contract is established. Keep the public Persistence facade unless an explicit public migration is justified. Verify application and remaining dependency directions; do not rename merely to simplify a diagram. |
@@ -35,25 +36,23 @@ Storage follows because its common contract affects all domain repositories and
 both SQL reference implementations. Verify the applied commit before producing
 the next dependent source package.
 
-## W2 design constraints
+## W2 implemented boundary
 
-Runner already owns snapshot capture, Offload submission and save reconciliation.
-The unresolved Engine code is in `FSMSession#handle`, `request_terminal!`,
-`handle_terminal_persistence_result` and related lifecycle transitions. The
-execution registry already owns Workflow admission; do not create a second
-admission owner or move its decisions back into Engine.
+Runner retains snapshot capture, Offload submission, one save and F1 readback.
+WorkflowTerminalPolicy recognizes the Workflow result event and interprets its
+outcomes. FSMSession receives only complete/fail/retire decisions and owns its
+pending state; Registry remains the sole Workflow admission owner.
 
-Prefer composition through a Workflow-owned terminal policy, but validate its
-generic session protocol against existing Agent/Tool sessions before selecting
-an implementation. The session must retain generic event identity and delivery;
-Workflow must decide what its persistence event and uncertainty mean. No new
-public lifecycle/plugin API is required by this plan.
+The private terminal_policy injection replaces terminal_barrier, without a
+public plugin API or alias. Agent/Tool and ephemeral Workflow keep immediate
+completion. Unknown outcomes retain admission and an unresolved caller until
+normal shutdown clears admission; shutdown does not synthesize a caller result.
+Refactor 32's observer-error ordering and committed snapshot are preserved.
 
-Tests must cover ephemeral completion, delayed durable success, portable known
-failure, F1 post/pre/conflicting/unreadable states, late and duplicate events,
-callback exceptions, rejected delivery, shutdown and halted-stream notification.
-All live authority stays on EventLoop. A completed worker is not permission to
-settle a Task before the owning session accepts the result.
+The candidate tests delayed success, known failures, F1 reconciliation,
+uncertainty/shutdown, early/duplicate/late events, ordinary events during the
+barrier, observer errors, rejected submission/delivery and shared Agent/Tool
+behavior. Verify application before proceeding to Storage S1-S3.
 
 ## Storage operation inventory
 

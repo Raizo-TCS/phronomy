@@ -189,4 +189,16 @@ RSpec.describe "Workflow terminal save submission contract" do
     expect(delivered.map(&:first)).to eq([:workflow_terminal_persistence_result])
     expect(delivered.first.last.to_h).to eq(outcome: :outcome_unknown, revision: nil, error: failure)
   end
+
+  it "logs a rejected delivery without retrying the save or bypassing the session" do
+    logger = double("logger")
+    allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+    allow(sink).to receive(:post).and_return(false)
+    expect(logger).to receive(:warn).with(/rejected Workflow terminal persistence result/).once
+    expect(repository).to receive(:save).once.and_return(9)
+    expect(repository).not_to receive(:load)
+    result = stages.fetch(:work).call
+    expect(sink).to receive(:post).with(:workflow_terminal_persistence_result, result).once.and_return(false)
+    stages.fetch(:completion).call(result, nil)
+  end
 end

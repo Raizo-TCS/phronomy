@@ -761,17 +761,6 @@ module Phronomy
       resume_phase: nil,
       stable_observer: nil
     )
-      terminal_barrier = if execution.repository && execution.persist
-        ->(terminal_type:, context:, event_sink:) {
-          begin_terminal_persistence_on_event_loop(
-            execution,
-            terminal_type: terminal_type,
-            context: context,
-            event_sink: event_sink
-          )
-        }
-      end
-
       Phronomy::FSMSession.new(
         context: execution.context,
         context_metadata: {
@@ -789,7 +778,22 @@ module Phronomy
         resume_event: resume_event,
         resume_phase: resume_phase,
         stable_observer: stable_observer,
-        terminal_barrier: terminal_barrier
+        terminal_policy: build_terminal_policy(execution)
+      )
+    end
+
+    def build_terminal_policy(execution)
+      return unless execution.repository && execution.persist
+
+      Phronomy::WorkflowTerminalPolicy.new(
+        persist: ->(terminal_type:, context:, event_sink:) {
+          begin_terminal_persistence_on_event_loop(
+            execution,
+            terminal_type: terminal_type,
+            context: context,
+            event_sink: event_sink
+          )
+        }
       )
     end
 
