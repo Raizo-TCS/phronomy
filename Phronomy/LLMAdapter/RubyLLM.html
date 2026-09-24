@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/llm_adapter/ruby_llm.rb
+    <dd>lib/phronomy/llm_adapter/backends/ruby_llm.rb
 </dd>
   </dl>
   
@@ -108,8 +108,9 @@
   <div class="discussion">
     <p>Default LLMAdapter SPI implementation backed by RubyLLM.</p>
 <p>The synchronous <code>chat.ask</code> / <code>chat.complete</code> calls are invoked through the
-framework-owned async bridge in <span class='object_link'><a href="Base.html" title="Phronomy::LLMAdapter::Base (class)">Base</a></span>, so adapter consumers do
-not need to manage OffloadPool themselves.</p>
+framework-owned execution client, so adapter consumers do not need to
+manage worker pools themselves. This implementation depends only on the
+synchronous <span class='object_link'><a href="Base.html" title="Phronomy::LLMAdapter::Base (class)">Base</a></span> contract.</p>
 
   </div>
 </div>
@@ -199,11 +200,6 @@ not need to manage OffloadPool themselves.</p>
   
   
   
-  
-  
-  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Base.html" title="Phronomy::LLMAdapter::Base (class)">Base</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="Base.html#complete_async-instance_method" title="Phronomy::LLMAdapter::Base#complete_async (method)">#complete_async</a></span>, <span class='object_link'><a href="Base.html#stream_async-instance_method" title="Phronomy::LLMAdapter::Base#stream_async (method)">#stream_async</a></span></p>
-
 
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
@@ -300,12 +296,12 @@ turns where the user message has already been added to the chat history
       <pre class="lines">
 
 
-29
 30
-31</pre>
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/ruby_llm.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_message'>message</span> <span class='op'>?</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span>
@@ -420,12 +416,12 @@ when message is nil.</p>
       <pre class="lines">
 
 
-42
 43
-44</pre>
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/ruby_llm.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_message'>message</span> <span class='op'>?</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -440,7 +436,7 @@ when message is nil.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 00:53:10 2026 by
+  Generated on Thu Sep 24 15:32:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

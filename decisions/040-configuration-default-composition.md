@@ -72,7 +72,10 @@ runtime factory invocation. Construction does not call `Runtime.instance`:
 the adapter's default pool is acquired later when an async method is called.
 The previous graph cycle was not infinite constructor recursion.
 
-`LLMAdapter::Base` still owns framework async wrappers and references Runtime.
+At this decision's implementation point, `LLMAdapter::Base` still owned the
+framework async wrappers and referenced Runtime.
+[ADR-059](059-backend-contracts-and-async-clients.md) subsequently moves that
+dependency to the private `LLMAdapter::AsyncClient`.
 Runtime, pools, tracing, and Agent retain other dependencies and cycles. This
 step does not claim complete provider independence or an acyclic repository.
 

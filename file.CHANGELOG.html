@@ -67,6 +67,18 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>Separate the synchronous LLMAdapter SPI, RubyLLM implementation and internal
+AsyncClient. Adapter authors implement only <code>complete</code> and <code>stream</code>; default
+configuration, provider behavior, admission/cancellation and Agent event
+delivery remain unchanged. See
+<a href="docs/decisions/059-backend-contracts-and-async-clients.md">ADR-059</a>.</li>
+<li>Replace numbered architecture layers with responsibility groups. Add the
+source-derived SVG/matrix generator and Architecture CI boundary gate; retain
+individual module boxes and stable module IDs. VectorStore/Embeddings and
+Storage async-client migrations remain pending.</li>
+</ul>
 <hr />
 <h2 id="_0_27_0____2026_09_24">[0.27.0] - 2026-09-24</h2>
 <h3 id="Changed">Changed</h3>
@@ -785,7 +797,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Thu Sep 24 00:53:08 2026 by
+  Generated on Thu Sep 24 15:32:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

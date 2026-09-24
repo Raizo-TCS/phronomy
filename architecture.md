@@ -224,8 +224,10 @@ The Agent entry explicitly preserves Agent lifecycle extension installation.
 Configuration accessors now live beside Configuration, rather than inside the
 loader. Configuration constructs fresh components through internally bound
 factories; composition selects their concrete types. Static source-reference
-graphs do not follow these injected calls. LLMAdapter's async bridge still uses
-Runtime, and other dependency cycles remain.
+graphs do not follow these injected calls. LLMAdapter's private AsyncClient now
+owns the Runtime dependency; its synchronous Base and RubyLLM implementation
+are independent of Engine. VectorStore/Embeddings migration and other cycles
+remain. See [Backend responsibilities](architecture/backend-groups.md).
 
 Agent and Team implement their identity registries in `agent/` and
 `multi_agent/`. Runtime strongly retains one of each when registered, using only
@@ -254,6 +256,7 @@ generated semantic definition IDs retain their previous values. See
 
 | Area | Current document |
 |---|---|
+| Backend Contracts, Implementations, Async Clients and dependency diagrams | [Backend responsibilities](architecture/backend-groups.md) |
 | Agent state, identity, ownership, and Context authority | [Agent Context](architecture/agent-context.md) |
 | Per-LLM-call Context Policy and Manifest construction | [Context Management](architecture/context-management.md) |
 | Journal-backed Knowledge and retrieval integration | [Knowledge and RAG](architecture/knowledge-and-rag.md) |

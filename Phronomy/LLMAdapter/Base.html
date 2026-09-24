@@ -107,11 +107,9 @@
     <p>Beta extension SPI for LLM call adapters.</p>
 <p>External adapters implement <span class='object_link'><a href="#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">#complete</a></span> and <span class='object_link'><a href="#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">#stream</a></span>. The adapter or the
 underlying provider client owns transport timeout, retry, backoff, and
-rate-limit behavior. Phronomy owns cooperative cancellation and isolates
-synchronous provider calls in OffloadPool.</p>
-<p>The Agent pipeline calls the framework-owned <span class='object_link'><a href="#complete_async-instance_method" title="Phronomy::LLMAdapter::Base#complete_async (method)">#complete_async</a></span> and
-<span class='object_link'><a href="#stream_async-instance_method" title="Phronomy::LLMAdapter::Base#stream_async (method)">#stream_async</a></span> wrappers. Adapter implementers do not need to depend on
-EventLoop, FSMSession, OffloadPool, AgentInvocation, or ExecutionCoordinator.</p>
+rate-limit behavior. The framework supplies asynchronous execution outside
+this synchronous contract. Adapter implementers provide only these two
+methods and do not depend on the execution engine or its clients.</p>
 <p>The current input to this SPI is the configured/materialized chat runtime
 object. Formalizing this SPI therefore does not imply a provider-neutral
 replacement for RubyLLMMaterializer.</p>
@@ -165,28 +163,6 @@ replacement for RubyLLMMaterializer.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#complete_async-instance_method" title="#complete_async (instance method)">#<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; Phronomy::TaskResult </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Submits a non-streaming LLM call to OffloadPool.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(chat, message, config: {}) {|chunk| ... } &#x21d2; Object </a>
     
 
@@ -202,28 +178,6 @@ replacement for RubyLLMMaterializer.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Performs a blocking streaming LLM completion.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; Phronomy::TaskResult </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Submits a streaming LLM call to OffloadPool.</p></div></span>
   
 </li>
 
@@ -341,82 +295,15 @@ response object. Transport/retry policy remains adapter-owned.</p>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+30
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#complete is not implemented</span><span class='tstring_end'>&quot;</span></span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="complete_async-instance_method">
-  
-    #<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Submits a non-streaming LLM call to OffloadPool.</p>
-<p>Transport timeout and retry remain the responsibility of the adapter or
-provider client; Phronomy does not attach an additional operation timeout.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>caller-facing completion handle</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-57
-58
-59
-60
-61
-62</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 57</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_complete_async'>complete_async</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -540,122 +427,15 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
       <pre class="lines">
 
 
-46
-47
-48</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#stream is not implemented</span><span class='tstring_end'>&quot;</span></span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="stream_async-instance_method">
-  
-    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Submits a streaming LLM call to OffloadPool.</p>
-<p>The block is invoked on an OffloadPool worker thread. Agent code must pass
-only a lightweight internal sink that posts a value to EventLoop;
-application callbacks must never be passed directly to this method.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Yields:</p>
-<ul class="yield">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>chunk</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>streaming chunk on the worker thread</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">Phronomy::TaskResult</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>caller-facing completion handle</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 73</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
-
-  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
-      <span class='id identifier rubyid_token'>token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invocation cancelled during streaming</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_chunk'>chunk</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -667,7 +447,7 @@ application callbacks must never be passed directly to this method.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 00:53:09 2026 by
+  Generated on Thu Sep 24 15:32:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -110,6 +110,8 @@ resolved explicitly.
 
 | [`058-neutral-storage-primitives`](058-neutral-storage-primitives.md) | Accepted | Yes | Neutral Records/Streams/Blobs SPI 2 and scoped transaction lifecycle; amends 032, 033, 043 and 057. |
 
+| [`059-backend-contracts-and-async-clients`](059-backend-contracts-and-async-clients.md) | Accepted | Yes | P1/P2 separates synchronous LLM contracts, implementations and internal clients; independent responsibility groups replace numbered layers. VectorStore/Storage migration remains pending. |
+
 ## Legacy duplicate `011`
 
 The repository intentionally preserves both legacy files:
