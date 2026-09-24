@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Module: Phronomy::VectorStore::AsyncBackend
+  Class: Phronomy::VectorStore::AsyncClient
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::VectorStore::AsyncBackend";
+  pathId = "Phronomy::VectorStore::AsyncClient";
   relpath = '../../';
 </script>
 
@@ -41,7 +41,7 @@
     <a href="../../_index.html">Index (A)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span>
      &raquo; 
-    <span class="title">AsyncBackend</span>
+    <span class="title">AsyncClient</span>
   
 </div>
 
@@ -61,31 +61,42 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Module: Phronomy::VectorStore::AsyncBackend
+      <div id="content"><h1>Class: Phronomy::VectorStore::AsyncClient
   
   
-  <span class="private note title">Private</span>
+  
 </h1>
 <div class="box_info">
   
-
-  
-  
-  
-  
-  
-
-  
   <dl>
-    <dt>Included in:</dt>
-    <dd><span class='object_link'><a href="Base.html" title="Phronomy::VectorStore::Base (class)">Base</a></span></dd>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName">Object</span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">Phronomy::VectorStore::AsyncClient</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
   </dl>
+  
+
+  
+  
+  
+  
+  
+
   
 
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/vector_store/async_backend.rb
+    <dd>lib/phronomy/vector_store/async/async_client.rb
 </dd>
   </dl>
   
@@ -93,20 +104,13 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This module is part of a private API.</strong>
-  You should avoid using this module if possible, as it may be removed or be changed in the future.
-</p>
-<p>Framework-owned async convenience methods for VectorStore backends.</p>
-<p>The backend extension contract is the synchronous interface defined by
-<span class='object_link'><a href="Base.html" title="Phronomy::VectorStore::Base (class)">Base</a></span>: add/search/remove/clear/size. These async convenience
-methods are inherited by backends and route that synchronous work through
-Phronomy's bounded OffloadPool. This keeps OS-thread creation, queue
-backpressure, submit timeout/cancellation, and completion semantics owned by
-the framework rather than by each backend.</p>
-<p>A future genuine native-async backend may adapt its completion into a
-<span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span> without an OffloadPool worker, but native async override is
-not part of the current backend SPI.</p>
+    <p>Framework-owned asynchronous execution of a synchronous vector backend.</p>
+<p>Backend authors implement only Base's synchronous operations. Applications
+use this client for asynchronous calls. Admission never waits for queue
+capacity; accepted calls return the pool's original TaskResult. Timeout
+includes queue wait and settles the result without interrupting running I/O.
+Construction does not start Runtime; the current default pool is resolved
+for each operation. An injected pool remains owned by its caller.</p>
 
   </div>
 </div>
@@ -175,6 +179,30 @@ not part of the current backend SPI.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(backend:, pool: nil)  &#x21d2; AsyncClient </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of AsyncClient.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#remove_async-instance_method" title="#remove_async (instance method)">#<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; Phronomy::TaskResult </a>
     
 
@@ -220,6 +248,85 @@ not part of the current backend SPI.</p>
     
   
 
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>(backend:, pool: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::VectorStore::AsyncClient (class)">AsyncClient</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns a new instance of AsyncClient.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>backend</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Base.html" title="Phronomy::VectorStore::Base (class)">VectorStore::Base</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>synchronous vector store</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>pool</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">Concurrency::OffloadPool</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional execution pool</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+19
+20
+21
+22</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 19</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>backend:</span><span class='comma'>,</span> <span class='label'>pool:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@backend</span> <span class='op'>=</span> <span class='id identifier rubyid_backend'>backend</span>
+  <span class='ivar'>@pool</span> <span class='op'>=</span> <span class='id identifier rubyid_pool'>pool</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
 
 
   <div id="instance_method_details" class="method_details_list">
@@ -328,26 +435,26 @@ not part of the current backend SPI.</p>
       <pre class="lines">
 
 
-29
-30
-31
-32
 33
 34
 35
 36
-37</pre>
+37
+38
+39
+40
+41</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_async'>add_async</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
     <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+    <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -422,26 +529,26 @@ not part of the current backend SPI.</p>
       <pre class="lines">
 
 
-80
-81
-82
-83
 84
 85
 86
 87
-88</pre>
+88
+89
+90
+91
+92</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_async'>clear_async</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
     <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_clear'>clear</span>
+    <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -527,26 +634,26 @@ not part of the current backend SPI.</p>
       <pre class="lines">
 
 
-64
-65
-66
-67
 68
 69
 70
 71
-72</pre>
+72
+73
+74
+75
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove_async'>remove_async</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
     <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+    <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -645,26 +752,26 @@ not part of the current backend SPI.</p>
       <pre class="lines">
 
 
-47
-48
-49
-50
 51
 52
 53
 54
-55</pre>
+55
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search_async'>search_async</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
     <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span> <span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='id identifier rubyid_k'>k</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+    <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span> <span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='id identifier rubyid_k'>k</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -677,7 +784,7 @@ not part of the current backend SPI.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 15:32:23 2026 by
+  Generated on Thu Sep 24 23:52:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

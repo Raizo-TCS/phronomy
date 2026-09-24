@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted; P1/P2 (LLM separation and diagram tooling) implemented. VectorStore,
-Embeddings and Storage migrations are pending, as recorded in
+Accepted; P1/P2/P3 (LLM, VectorStore and Embeddings separation plus diagram
+tooling) implemented. Storage/ContentStore migration is pending, as recorded in
 [Backend responsibilities](../architecture/backend-groups.md).
 
 ## Context
@@ -17,7 +17,12 @@ Numbered diagram bands also implied an ordering between independent concerns.
 
 1. Use independent responsibility groups with stable identifiers. Engine,
    Contracts, Async Clients and Implementations are distinct; coordinates and
-   group numbers have no hierarchy or dependency-permission semantics.
+   group numbers do not define dependency permissions. For readability, restore
+   the earlier B1-B6 horizontal display bands and topical columns; these are
+   presentation metadata independent of the responsibility annotations. Place
+   separated Contracts in B5, distinct from Engine, and Async Clients in B4.
+   Keep Implementations separately grouped in B4; mark unsplit backends there
+   as pending instead of presenting their contracts as already separated.
 2. Keep `LLMAdapter::Base` synchronous. Move internal async wrappers into
    `LLMAdapter::AsyncClient`; Agent supplies its configured adapter to the client.
    The public SPI, configuration setting and RubyLLM constant remain unchanged.
@@ -40,8 +45,11 @@ Numbered diagram bands also implied an ordering between independent concerns.
 This supersedes the remaining LLM Base-to-Runtime coupling described in ADR-040.
 ADR-027's synchronous public provider-call boundary and materialization caveat
 still apply: this change does not make RubyLLMMaterializer provider-neutral.
-No new public AsyncClient API is introduced in P2, and neither VectorStore nor
-Storage operations change yet. Other repository cycles remain visible.
+P2 keeps the LLM client internal. P3 introduces public VectorStore/Embeddings
+AsyncClients and moves async receivers off the synchronous backends. Their
+argument conventions and execution semantics are unchanged; the receiver
+migration is intentional and documented. Storage operations do not change in
+P3. Other repository cycles remain visible.
 
 Boundary tests cover direct and indirect reverse dependencies and keep group
 IDs independent from policy. Runtime tests cover sync-only custom adapters,

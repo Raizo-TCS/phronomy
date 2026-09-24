@@ -89,11 +89,6 @@
   
   
   
-  <dl>
-      <dt>Includes:</dt>
-      <dd><span class='object_link'><a href="AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span></dd>
-  </dl>
-  
   
 
   
@@ -111,8 +106,8 @@
   <div class="discussion">
     <p>Public extension SPI for vector stores.</p>
 <p>Backends implement the synchronous add/search/remove/clear/size contract.
-Phronomy supplies async convenience methods through <span class='object_link'><a href="AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span>; blocking
-backend work is offloaded through the framework-owned bounded OffloadPool.</p>
+The framework's separate execution client supplies asynchronous operations.
+Backend authors implement no asynchronous methods or execution-pool logic.</p>
 
   </div>
 </div>
@@ -253,18 +248,6 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
   
 
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  <h3 class="inherited">Methods included from <span class='object_link'><a href="AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="AsyncBackend.html#add_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#add_async (method)">#add_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#clear_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#clear_async (method)">#clear_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#remove_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#remove_async (method)">#remove_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#search_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#search_async (method)">#search_async</a></span></p>
-
 
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
@@ -338,11 +321,14 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
         <span class='name'>cancellation_token</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>#raise_if_cancelled!</tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
+      
+        &mdash;
+        <div class='inline'><p>cooperative cancellation signal</p></div>
       
     </li>
   
@@ -368,13 +354,13 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
       <pre class="lines">
 
 
+20
+21
 22
-23
-24
-25</pre>
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -422,12 +408,12 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+47
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#clear is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -492,12 +478,12 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#remove is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -558,11 +544,14 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
         <span class='name'>cancellation_token</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>#raise_if_cancelled!</tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
+      
+        &mdash;
+        <div class='inline'><p>cooperative cancellation signal</p></div>
       
     </li>
   
@@ -604,13 +593,13 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
       <pre class="lines">
 
 
+32
+33
 34
-35
-36
-37</pre>
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -671,12 +660,12 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
       <pre class="lines">
 
 
-57
-58
-59</pre>
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#size is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -691,7 +680,7 @@ backend work is offloaded through the framework-owned bounded OffloadPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 15:32:24 2026 by
+  Generated on Thu Sep 24 23:52:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

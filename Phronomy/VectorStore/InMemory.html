@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/vector_store/in_memory.rb
+    <dd>lib/phronomy/vector_store/backends/in_memory.rb
 </dd>
   </dl>
   
@@ -285,19 +285,7 @@ the document count is small enough that a linear scan is fast enough.</p>
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  <h3 class="inherited">Methods included from <span class='object_link'><a href="AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="AsyncBackend.html#add_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#add_async (method)">#add_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#clear_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#clear_async (method)">#clear_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#remove_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#remove_async (method)">#remove_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#search_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#search_async (method)">#search_async</a></span></p>
-<div id="constructor_details" class="method_details_list">
+  <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
     <div class="method_details first">
@@ -353,7 +341,7 @@ adds are not guaranteed to be race-free.</p></div>
 23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/in_memory.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>dimension:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -457,7 +445,7 @@ adds are not guaranteed to be race-free.</p></div>
 37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/in_memory.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -493,7 +481,7 @@ adds are not guaranteed to be race-free.</p></div>
 75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/in_memory.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
@@ -525,7 +513,7 @@ adds are not guaranteed to be race-free.</p></div>
 70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/in_memory.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
@@ -640,7 +628,7 @@ difference under test isolation)</p>
 65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/in_memory.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -709,7 +697,7 @@ difference under test isolation)</p>
 81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/in_memory.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -724,7 +712,7 @@ difference under test isolation)</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 15:32:24 2026 by
+  Generated on Thu Sep 24 23:52:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

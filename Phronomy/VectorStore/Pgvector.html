@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/vector_store/pgvector.rb
+    <dd>lib/phronomy/vector_store/backends/pgvector.rb
 </dd>
   </dl>
   
@@ -291,19 +291,7 @@
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  <h3 class="inherited">Methods included from <span class='object_link'><a href="AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="AsyncBackend.html#add_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#add_async (method)">#add_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#clear_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#clear_async (method)">#clear_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#remove_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#remove_async (method)">#remove_async</a></span>, <span class='object_link'><a href="AsyncBackend.html#search_async-instance_method" title="Phronomy::VectorStore::AsyncBackend#search_async (method)">#search_async</a></span></p>
-<div id="constructor_details" class="method_details_list">
+  <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
     <div class="method_details first">
@@ -379,7 +367,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/pgvector.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model_class:</span><span class='comma'>,</span> <span class='label'>dimension:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>begin</span>
@@ -491,7 +479,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/pgvector.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -528,7 +516,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/pgvector.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -560,7 +548,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/pgvector.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -674,7 +662,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/pgvector.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -730,7 +718,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 92</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/backends/pgvector.rb', line 90</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_count'>count</span>
@@ -745,7 +733,7 @@ database schema; no pre-validation is performed by Phronomy.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 15:32:24 2026 by
+  Generated on Thu Sep 24 23:52:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

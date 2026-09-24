@@ -69,15 +69,35 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="_Unreleased_">[Unreleased]</h2>
 <h3 id="Changed">Changed</h3>
 <ul>
-<li>Separate the synchronous LLMAdapter SPI, RubyLLM implementation and internal
+<li>
+<p><strong>Beta API receiver migration:</strong> move VectorStore <code>add_async</code>, <code>search_async</code>,
+<code>remove_async</code>, <code>clear_async</code> and Embeddings <code>embed_async</code> onto the public
+feature-specific <code>AsyncClient</code> objects. Synchronous backend methods and
+concrete class names remain unchanged. Remove the inherited async methods
+and <code>VectorStore::AsyncBackend</code>; see the
+<a href="docs/migrations/vector-async-clients.md">migration guide</a>.</p>
+</li>
+<li>
+<p>Split VectorStore/Embeddings implementations into collapsed <code>backends/</code>
+directories. Synchronous RBS uses structural cancellation; separate client
+signatures retain TaskResult and the full execution token. Complete P3 and
+remove the remaining backend-to-Engine edges from the measured graph.</p>
+</li>
+<li>
+<p>Separate the synchronous LLMAdapter SPI, RubyLLM implementation and internal
 AsyncClient. Adapter authors implement only <code>complete</code> and <code>stream</code>; default
 configuration, provider behavior, admission/cancellation and Agent event
 delivery remain unchanged. See
-<a href="docs/decisions/059-backend-contracts-and-async-clients.md">ADR-059</a>.</li>
-<li>Replace numbered architecture layers with responsibility groups. Add the
-source-derived SVG/matrix generator and Architecture CI boundary gate; retain
-individual module boxes and stable module IDs. VectorStore/Embeddings and
-Storage async-client migrations remain pending.</li>
+<a href="docs/decisions/059-backend-contracts-and-async-clients.md">ADR-059</a>.</p>
+</li>
+<li>
+<p>Separate responsibility groups from the diagram's B1-B6 display layers. Add
+the source-derived SVG/matrix generator and Architecture CI boundary gate;
+retain individual module boxes, stable module IDs and the earlier horizontal
+layer layout with topical columns. Separated Contracts belong in B5 beside
+the independent Engine group; clients, implementations and pending mixed
+backends are displayed in B4. Storage/ContentStore migration remains pending.</p>
+</li>
 </ul>
 <hr />
 <h2 id="_0_27_0____2026_09_24">[0.27.0] - 2026-09-24</h2>
@@ -797,7 +817,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Thu Sep 24 15:32:23 2026 by
+  Generated on Thu Sep 24 23:52:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
