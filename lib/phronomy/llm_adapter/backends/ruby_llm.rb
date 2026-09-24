@@ -5,8 +5,9 @@ module Phronomy
     # Default LLMAdapter SPI implementation backed by RubyLLM.
     #
     # The synchronous +chat.ask+ / +chat.complete+ calls are invoked through the
-    # framework-owned async bridge in {LLMAdapter::Base}, so adapter consumers do
-    # not need to manage OffloadPool themselves.
+    # framework-owned execution client, so adapter consumers do not need to
+    # manage worker pools themselves. This implementation depends only on the
+    # synchronous {LLMAdapter::Base} contract.
     #
     # @example Explicitly configuring this adapter
     #   Phronomy.configure do |c|

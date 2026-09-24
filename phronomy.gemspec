@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
         f.end_with?(".gem") ||
-        f.start_with?(*%w[bin/ Gemfile .gitignore .rspec spec/ .github/ .standard.yml vendor/])
+        f.start_with?(*%w[bin/ Gemfile .gitignore .rspec spec/ .github/ .standard.yml vendor/ tools/])
     end
   end
   spec.bindir = "exe"

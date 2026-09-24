@@ -1,0 +1,12 @@
+{
+  "phase": "llm",
+  "completed_steps": [
+    "P1",
+    "P2"
+  ],
+  "pending_steps": [
+    "P3",
+    "P4",
+    "P5"
+  ]
+}

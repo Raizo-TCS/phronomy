@@ -46,6 +46,8 @@ reconciliation must not silently promote its API stability.
 2. `Phronomy::LLMAdapter::Base#complete` and `#stream` are the public
    Provider-call extension boundary. Phronomy owns the framework-side
    asynchronous/offload wrappers around that synchronous adapter contract.
+   [ADR-059](059-backend-contracts-and-async-clients.md) locates those wrappers
+   in the private `LLMAdapter::AsyncClient`, separate from Base and RubyLLM.
 3. `Phronomy::LLMAdapter::RubyLLM` remains the default configured LLM adapter
    and RubyLLM remains Phronomy's default Provider integration.
 4. A custom LLMAdapter may replace Provider-call behavior, but the LLMAdapter

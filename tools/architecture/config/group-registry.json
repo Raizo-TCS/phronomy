@@ -1,0 +1,276 @@
+{
+  "number_semantics": "Identifiers, not ordered levels",
+  "groups": [
+    {
+      "id": "G01",
+      "title": "AGENT COORDINATION",
+      "kind": "domain"
+    },
+    {
+      "id": "G02",
+      "title": "BUILT-IN TOOLS",
+      "kind": "domain"
+    },
+    {
+      "id": "G03",
+      "title": "WORKFLOW COMPILATION",
+      "kind": "domain"
+    },
+    {
+      "id": "G04",
+      "title": "AGENT FACADE / CONCERNS / LIFECYCLE CONTRACT",
+      "kind": "domain"
+    },
+    {
+      "id": "G05",
+      "title": "RECOVERY",
+      "kind": "domain"
+    },
+    {
+      "id": "G06",
+      "title": "TOOL",
+      "kind": "domain"
+    },
+    {
+      "id": "G07",
+      "title": "CONTEXT CONSTRUCTION",
+      "kind": "domain"
+    },
+    {
+      "id": "G08",
+      "title": "VALIDATION & SELECTION",
+      "kind": "domain"
+    },
+    {
+      "id": "G10",
+      "title": "LLM: MIXED / PENDING SPLIT",
+      "kind": "mixed_backend"
+    },
+    {
+      "id": "G12",
+      "title": "VECTOR: MIXED / PENDING SPLIT",
+      "kind": "mixed_backend"
+    },
+    {
+      "id": "G14",
+      "title": "ENGINE",
+      "kind": "engine"
+    },
+    {
+      "id": "G15",
+      "title": "CONTENT: MIXED / PENDING SPLIT",
+      "kind": "mixed_backend"
+    },
+    {
+      "id": "G21",
+      "title": "AGENT PERSISTENCE",
+      "kind": "domain"
+    },
+    {
+      "id": "G22",
+      "title": "TEAM PERSISTENCE",
+      "kind": "domain"
+    },
+    {
+      "id": "G23",
+      "title": "WORKFLOW PERSISTENCE",
+      "kind": "domain"
+    },
+    {
+      "id": "G24",
+      "title": "REPOSITORY COMPOSITION",
+      "kind": "domain"
+    },
+    {
+      "id": "G25",
+      "title": "CONTEXT CONTRACTS",
+      "kind": "domain"
+    },
+    {
+      "id": "G26",
+      "title": "COMMON DEFINITIONS & VALUES",
+      "kind": "common"
+    },
+    {
+      "id": "G27",
+      "title": "AGENT API",
+      "kind": "domain"
+    },
+    {
+      "id": "G29",
+      "title": "FILTER",
+      "kind": "domain"
+    },
+    {
+      "id": "G30",
+      "title": "GENERATION",
+      "kind": "domain"
+    },
+    {
+      "id": "G32",
+      "title": "OUTPUT PARSER",
+      "kind": "domain"
+    },
+    {
+      "id": "G33",
+      "title": "PERSISTENCE API",
+      "kind": "domain"
+    },
+    {
+      "id": "G34",
+      "title": "RECOVERY SEMANTICS",
+      "kind": "domain"
+    },
+    {
+      "id": "G35",
+      "title": "RUNTIME COMPOSITION",
+      "kind": "domain"
+    },
+    {
+      "id": "G37",
+      "title": "WORKFLOW EXECUTION",
+      "kind": "domain"
+    },
+    {
+      "id": "G38",
+      "title": "CONFIGURATION",
+      "kind": "common"
+    },
+    {
+      "id": "G39",
+      "title": "AGENT COMPOSITION",
+      "kind": "domain"
+    },
+    {
+      "id": "G40",
+      "title": "AGENT LIFECYCLE",
+      "kind": "domain"
+    },
+    {
+      "id": "G41",
+      "title": "AGENT EXECUTION",
+      "kind": "domain"
+    },
+    {
+      "id": "G42",
+      "title": "TOOL EXECUTION",
+      "kind": "domain"
+    },
+    {
+      "id": "G43",
+      "title": "CONTEXT ASSEMBLY",
+      "kind": "domain"
+    },
+    {
+      "id": "G44",
+      "title": "JOURNAL VALUES",
+      "kind": "domain"
+    },
+    {
+      "id": "G45",
+      "title": "AGENT HANDOFF",
+      "kind": "domain"
+    },
+    {
+      "id": "G46",
+      "title": "ASYNC CLIENTS",
+      "kind": "async_clients"
+    },
+    {
+      "id": "G47",
+      "title": "BACKEND CONTRACTS",
+      "kind": "backend_contracts"
+    },
+    {
+      "id": "G48",
+      "title": "BACKEND IMPLEMENTATIONS",
+      "kind": "backend_implementations"
+    },
+    {
+      "id": "G49",
+      "title": "DOCUMENT PROCESSING",
+      "kind": "document_processing"
+    },
+    {
+      "id": "G50",
+      "title": "TOKEN BUDGET",
+      "kind": "token_budget"
+    },
+    {
+      "id": "G51",
+      "title": "TESTING",
+      "kind": "support"
+    },
+    {
+      "id": "G52",
+      "title": "MIGRATION",
+      "kind": "support"
+    },
+    {
+      "id": "G53",
+      "title": "TRACING",
+      "kind": "support"
+    },
+    {
+      "id": "G54",
+      "title": "NAMESPACE / VERSION",
+      "kind": "support"
+    }
+  ],
+  "retired_groups": {
+    "G19": "Split into G47 contracts and G48 implementations"
+  },
+  "retired_module_reservations": {
+    "M65": "Prior unimplemented single async directory; never reuse"
+  },
+  "planned_modules": [
+    {
+      "id": "M66",
+      "directory": "lib/phronomy/llm_adapter/async",
+      "group": "G46",
+      "phase": "llm"
+    },
+    {
+      "id": "M67",
+      "directory": "lib/phronomy/vector_store/async",
+      "group": "G46",
+      "phase": "vector"
+    },
+    {
+      "id": "M68",
+      "directory": "lib/phronomy/vector_store/embeddings/async",
+      "group": "G46",
+      "phase": "vector"
+    },
+    {
+      "id": "M69",
+      "directory": "lib/phronomy/storage/async",
+      "group": "G46",
+      "phase": "storage"
+    },
+    {
+      "id": "M70",
+      "directory": "lib/phronomy/llm_adapter/backends",
+      "group": "G48",
+      "phase": "llm"
+    },
+    {
+      "id": "M71",
+      "directory": "lib/phronomy/vector_store/backends",
+      "group": "G48",
+      "phase": "vector"
+    },
+    {
+      "id": "M72",
+      "directory": "lib/phronomy/vector_store/embeddings/backends",
+      "group": "G48",
+      "phase": "vector"
+    },
+    {
+      "id": "M73",
+      "directory": "lib/phronomy/content_store/backends",
+      "group": "G48",
+      "phase": "storage"
+    }
+  ]
+}

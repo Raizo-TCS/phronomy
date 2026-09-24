@@ -12,6 +12,18 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Separate the synchronous LLMAdapter SPI, RubyLLM implementation and internal
+  AsyncClient. Adapter authors implement only `complete` and `stream`; default
+  configuration, provider behavior, admission/cancellation and Agent event
+  delivery remain unchanged. See
+  [ADR-059](docs/decisions/059-backend-contracts-and-async-clients.md).
+- Replace numbered architecture layers with responsibility groups. Add the
+  source-derived SVG/matrix generator and Architecture CI boundary gate; retain
+  individual module boxes and stable module IDs. VectorStore/Embeddings and
+  Storage async-client migrations remain pending.
+
 ---
 
 ## [0.27.0] - 2026-09-24

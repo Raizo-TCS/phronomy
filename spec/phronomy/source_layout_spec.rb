@@ -97,6 +97,26 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
+  it "loads the LLM SPI without its implementations or Engine" do
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy/llm_adapter/base"
+      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[complete stream]
+      abort "Engine initialized by SPI" if Phronomy.const_defined?(:Runtime, false)
+      abort "implementation initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:RubyLLM, false)
+      abort "client initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:AsyncClient, false)
+
+      require "phronomy"
+      Zeitwerk::Loader.eager_load_all
+      abort "RubyLLM constant moved" unless Phronomy::LLMAdapter::RubyLLM.superclass == Phronomy::LLMAdapter::Base
+      Phronomy::LLMAdapter::AsyncClient.new(adapter: Phronomy::LLMAdapter::RubyLLM.new)
+      abort "client construction started Runtime" if Phronomy::Runtime.default_if_initialized_for_test
+      abort "unexpected Async namespace" if Phronomy.const_defined?(:Async, false)
+      abort "unexpected nested namespaces" if Phronomy::LLMAdapter.const_defined?(:Async, false) || Phronomy::LLMAdapter.const_defined?(:Backends, false)
+    RUBY
+
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+  end
+
   it "keeps concrete ownership registries and their exception contracts outside Runtime" do
     paths = [File.join(library_root, "engine/runtime.rb"),
       *Dir.glob(File.join(library_root, "engine/runtime/**/*.rb"))]

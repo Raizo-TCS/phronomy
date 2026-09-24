@@ -23,6 +23,11 @@ loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 %w[common configuration engine generation llm_contract recovery].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
+# LLM contracts, execution clients and implementations have separate source
+# directories, while keeping their existing feature namespace.
+%w[llm_adapter/async llm_adapter/backends].each do |directory|
+  loader.collapse("#{__dir__}/phronomy/#{directory}")
+end
 # Agent responsibility directories retain the existing Agent constant names.
 %w[
   context_contract lifecycle execution tool_execution context_assembly

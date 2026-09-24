@@ -254,8 +254,9 @@ module Phronomy
           **agent.send(:_build_caller_meta, config)
         )
 
+        client = Phronomy::LLMAdapter::AsyncClient.new(adapter: Phronomy.configuration.llm_adapter)
         operation = if streaming
-          Phronomy.configuration.llm_adapter.stream_async(
+          client.stream_async(
             chat, message, config: config
           ) do |chunk|
             token = config[:cancellation_token]
@@ -267,7 +268,7 @@ module Phronomy
             )
           end
         else
-          Phronomy.configuration.llm_adapter.complete_async(
+          client.complete_async(
             chat, message, config: config
           )
         end

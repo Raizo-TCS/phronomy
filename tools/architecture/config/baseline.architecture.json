@@ -1,0 +1,877 @@
+{
+  "format": "phronomy-responsibility-groups-v2",
+  "repository_url": "https://github.com/Raizo-TCS/phronomy",
+  "project_title": "PHRONOMY 0.27.0",
+  "annotation_source_commit": "84668606523e8b013ccb1cf1144694ecd28f24f8",
+  "annotation_source_revision": "groups-20260924",
+  "modules": [
+    {
+      "id": "M01",
+      "directory": "lib/phronomy",
+      "role": "Version / namespace loading",
+      "mixed": false,
+      "group": "G54"
+    },
+    {
+      "id": "M02",
+      "directory": "lib/phronomy/agent",
+      "role": "Base / event facade",
+      "mixed": false,
+      "group": "G04"
+    },
+    {
+      "id": "M42",
+      "directory": "lib/phronomy/agent/api",
+      "role": "Namespace / events / lifecycle loading",
+      "mixed": false,
+      "group": "G27"
+    },
+    {
+      "id": "M54",
+      "directory": "lib/phronomy/agent/composition",
+      "role": "Fresh one-shot Agent / Persistence",
+      "mixed": false,
+      "group": "G39"
+    },
+    {
+      "id": "M03",
+      "directory": "lib/phronomy/agent/concerns",
+      "role": "Agent mixins",
+      "mixed": false,
+      "group": "G04"
+    },
+    {
+      "id": "M04",
+      "directory": "lib/phronomy/agent/context/capability",
+      "role": "Tool contract / default dispatch",
+      "mixed": false,
+      "group": "G06"
+    },
+    {
+      "id": "M05",
+      "directory": "lib/phronomy/agent/context/instruction",
+      "role": "Prompt template",
+      "mixed": false,
+      "group": "G07"
+    },
+    {
+      "id": "M58",
+      "directory": "lib/phronomy/agent/context_assembly",
+      "role": "Assembly / saved context reads",
+      "mixed": false,
+      "group": "G43"
+    },
+    {
+      "id": "M40",
+      "directory": "lib/phronomy/agent/context_contract",
+      "role": "Context contracts / values / validation",
+      "mixed": false,
+      "group": "G25"
+    },
+    {
+      "id": "M06",
+      "directory": "lib/phronomy/agent/context_parts/validators",
+      "role": "Final token budget validation",
+      "mixed": false,
+      "group": "G08"
+    },
+    {
+      "id": "M07",
+      "directory": "lib/phronomy/agent/context_policies",
+      "role": "Default ContextPolicy",
+      "mixed": false,
+      "group": "G07"
+    },
+    {
+      "id": "M56",
+      "directory": "lib/phronomy/agent/execution",
+      "role": "Execution / records / transitions",
+      "mixed": false,
+      "group": "G41"
+    },
+    {
+      "id": "M60",
+      "directory": "lib/phronomy/agent/handoff",
+      "role": "Handoff state / coordination",
+      "mixed": false,
+      "group": "G45"
+    },
+    {
+      "id": "M59",
+      "directory": "lib/phronomy/agent/journal",
+      "role": "Records / journal projection",
+      "mixed": false,
+      "group": "G44"
+    },
+    {
+      "id": "M55",
+      "directory": "lib/phronomy/agent/lifecycle",
+      "role": "Identity / ownership / defaults",
+      "mixed": false,
+      "group": "G40"
+    },
+    {
+      "id": "M43",
+      "directory": "lib/phronomy/agent/lifecycle_contract",
+      "role": "Agent-owned lifecycle exceptions",
+      "mixed": false,
+      "group": "G04"
+    },
+    {
+      "id": "M36",
+      "directory": "lib/phronomy/agent/persistence",
+      "role": "Agent / Journal / Handoff records",
+      "mixed": false,
+      "group": "G21"
+    },
+    {
+      "id": "M61",
+      "directory": "lib/phronomy/agent/recovery",
+      "role": "Recovery / invocation restoration",
+      "mixed": false,
+      "group": "G05"
+    },
+    {
+      "id": "M08",
+      "directory": "lib/phronomy/agent/recovery/recovery_coordinator",
+      "role": "Install / resolve / continue",
+      "mixed": false,
+      "group": "G05"
+    },
+    {
+      "id": "M09",
+      "directory": "lib/phronomy/agent/selection",
+      "role": "Candidates and constraints",
+      "mixed": false,
+      "group": "G08"
+    },
+    {
+      "id": "M57",
+      "directory": "lib/phronomy/agent/tool_execution",
+      "role": "Tool invocation / result binding",
+      "mixed": false,
+      "group": "G42"
+    },
+    {
+      "id": "M41",
+      "directory": "lib/phronomy/common",
+      "role": "Error / JSON / configuration error",
+      "mixed": false,
+      "group": "G26"
+    },
+    {
+      "id": "M33",
+      "directory": "lib/phronomy/common/values",
+      "role": "Value copy / conversion",
+      "mixed": false,
+      "group": "G26"
+    },
+    {
+      "id": "M44",
+      "directory": "lib/phronomy/configuration",
+      "role": "Settings / validation / global access",
+      "mixed": false,
+      "group": "G38"
+    },
+    {
+      "id": "M10",
+      "directory": "lib/phronomy/content_store",
+      "role": "Content SPI and StoredContents backend",
+      "mixed": true,
+      "group": "G15"
+    },
+    {
+      "id": "M11",
+      "directory": "lib/phronomy/engine",
+      "role": "EventLoop / FSM / generic receivers",
+      "mixed": false,
+      "group": "G14",
+      "mixed_reason": "FSMSession still implements Workflow-oriented terminal persistence; execution registries now belong to features."
+    },
+    {
+      "id": "M12",
+      "directory": "lib/phronomy/engine/concurrency",
+      "role": "Pools / cancellation / composition",
+      "mixed": false,
+      "group": "G14"
+    },
+    {
+      "id": "M13",
+      "directory": "lib/phronomy/engine/runtime",
+      "role": "Timer / shutdown result helpers",
+      "mixed": false,
+      "group": "G14"
+    },
+    {
+      "id": "M14",
+      "directory": "lib/phronomy/filter",
+      "role": "Input filters",
+      "mixed": false,
+      "group": "G29"
+    },
+    {
+      "id": "M45",
+      "directory": "lib/phronomy/filter/contract",
+      "role": "Filter-owned exception",
+      "mixed": false,
+      "group": "G29"
+    },
+    {
+      "id": "M46",
+      "directory": "lib/phronomy/generation",
+      "role": "GeneratorVerifier public facade",
+      "mixed": false,
+      "group": "G30"
+    },
+    {
+      "id": "M15",
+      "directory": "lib/phronomy/llm_adapter",
+      "role": "LLM call SPI and adapter",
+      "mixed": true,
+      "group": "G10"
+    },
+    {
+      "id": "M16",
+      "directory": "lib/phronomy/llm_context_window",
+      "role": "Token budget and estimation",
+      "mixed": false,
+      "group": "G50"
+    },
+    {
+      "id": "M47",
+      "directory": "lib/phronomy/llm_contract",
+      "role": "LLM failures / token usage",
+      "mixed": false,
+      "group": "G47"
+    },
+    {
+      "id": "M17",
+      "directory": "lib/phronomy/multi_agent",
+      "role": "Handoff / Team / SharedState coordination",
+      "mixed": false,
+      "group": "G01",
+      "mixed_reason": "Handoff, team execution, and durable coordination remain combined."
+    },
+    {
+      "id": "M37",
+      "directory": "lib/phronomy/multi_agent/persistence",
+      "role": "Team records / result queries",
+      "mixed": false,
+      "group": "G22"
+    },
+    {
+      "id": "M18",
+      "directory": "lib/phronomy/output_parser",
+      "role": "Output parsing",
+      "mixed": false,
+      "group": "G32"
+    },
+    {
+      "id": "M48",
+      "directory": "lib/phronomy/output_parser/contract",
+      "role": "Parser-owned exception",
+      "mixed": false,
+      "group": "G32"
+    },
+    {
+      "id": "M49",
+      "directory": "lib/phronomy/persistence/api",
+      "role": "Public persistence facade",
+      "mixed": false,
+      "group": "G33"
+    },
+    {
+      "id": "M20",
+      "directory": "lib/phronomy/persistence/migration",
+      "role": "Explicit record format migration",
+      "mixed": false,
+      "group": "G52"
+    },
+    {
+      "id": "M39",
+      "directory": "lib/phronomy/persistence_composition",
+      "role": "Assemble repositories over a view",
+      "mixed": false,
+      "group": "G24"
+    },
+    {
+      "id": "M50",
+      "directory": "lib/phronomy/recovery",
+      "role": "Recovery subjects / outcome checks",
+      "mixed": false,
+      "group": "G34"
+    },
+    {
+      "id": "M51",
+      "directory": "lib/phronomy/runtime_composition",
+      "role": "Default bindings / runtime reset",
+      "mixed": false,
+      "group": "G35"
+    },
+    {
+      "id": "M34",
+      "directory": "lib/phronomy/storage",
+      "role": "Neutral Records / Streams / Blobs SPI",
+      "mixed": false,
+      "group": "G47"
+    },
+    {
+      "id": "M35",
+      "directory": "lib/phronomy/storage/backends",
+      "role": "InMemory neutral resource backend",
+      "mixed": false,
+      "group": "G48"
+    },
+    {
+      "id": "M21",
+      "directory": "lib/phronomy/testing",
+      "role": "Test support and loaders",
+      "mixed": false,
+      "group": "G51"
+    },
+    {
+      "id": "M22",
+      "directory": "lib/phronomy/testing/eval",
+      "role": "Evaluation runner and datasets",
+      "mixed": false,
+      "group": "G51"
+    },
+    {
+      "id": "M23",
+      "directory": "lib/phronomy/testing/eval/scorer",
+      "role": "Evaluation scorers",
+      "mixed": false,
+      "group": "G51"
+    },
+    {
+      "id": "M24",
+      "directory": "lib/phronomy/testing/persistence_contract",
+      "role": "Persistence conformance helpers",
+      "mixed": false,
+      "group": "G51"
+    },
+    {
+      "id": "M25",
+      "directory": "lib/phronomy/tool",
+      "role": "Public alias of M04 Tool Base",
+      "mixed": false,
+      "group": "G06"
+    },
+    {
+      "id": "M52",
+      "directory": "lib/phronomy/tool/contract",
+      "role": "Tool-owned exception",
+      "mixed": false,
+      "group": "G06"
+    },
+    {
+      "id": "M26",
+      "directory": "lib/phronomy/tools",
+      "role": "Agent / MCP / search Tools",
+      "mixed": false,
+      "group": "G02"
+    },
+    {
+      "id": "M27",
+      "directory": "lib/phronomy/tracing",
+      "role": "Instrumentation and exporters",
+      "mixed": false,
+      "group": "G53"
+    },
+    {
+      "id": "M28",
+      "directory": "lib/phronomy/vector_store",
+      "role": "Vector store SPI and backends",
+      "mixed": true,
+      "group": "G12"
+    },
+    {
+      "id": "M29",
+      "directory": "lib/phronomy/vector_store/embeddings",
+      "role": "Embedding SPI and adapter",
+      "mixed": true,
+      "group": "G12"
+    },
+    {
+      "id": "M30",
+      "directory": "lib/phronomy/vector_store/loader",
+      "role": "Document loading implementations",
+      "mixed": false,
+      "group": "G49"
+    },
+    {
+      "id": "M31",
+      "directory": "lib/phronomy/vector_store/splitter",
+      "role": "Text splitting implementations",
+      "mixed": false,
+      "group": "G49"
+    },
+    {
+      "id": "M32",
+      "directory": "lib/phronomy/workflow",
+      "role": "Workflow phase machine builder",
+      "mixed": false,
+      "group": "G03"
+    },
+    {
+      "id": "M53",
+      "directory": "lib/phronomy/workflow/execution",
+      "role": "Workflow execution / admission",
+      "mixed": false,
+      "group": "G37"
+    },
+    {
+      "id": "M38",
+      "directory": "lib/phronomy/workflow/persistence",
+      "role": "Workflow snapshot persistence",
+      "mixed": false,
+      "group": "G23"
+    },
+    {
+      "id": "M62",
+      "directory": "lib/phronomy/multi_agent/storage_contract",
+      "role": "Team resource declarations",
+      "mixed": false,
+      "group": "G22"
+    },
+    {
+      "id": "M63",
+      "directory": "lib/phronomy/workflow/storage_contract",
+      "role": "Workflow resource declarations",
+      "mixed": false,
+      "group": "G23"
+    },
+    {
+      "id": "M64",
+      "directory": "lib/phronomy/generation/generator_verifier",
+      "role": "Workflow / result reception / state",
+      "mixed": false,
+      "group": "G30"
+    }
+  ],
+  "groups": [
+    {
+      "id": "G01",
+      "title": "AGENT COORDINATION",
+      "members": [
+        "M17"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G02",
+      "title": "BUILT-IN TOOLS",
+      "members": [
+        "M26"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G03",
+      "title": "WORKFLOW COMPILATION",
+      "members": [
+        "M32"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G04",
+      "title": "AGENT FACADE / CONCERNS / LIFECYCLE CONTRACT",
+      "members": [
+        "M02",
+        "M03",
+        "M43"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G05",
+      "title": "RECOVERY",
+      "members": [
+        "M61",
+        "M08"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G06",
+      "title": "TOOL",
+      "members": [
+        "M04",
+        "M25",
+        "M52"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G07",
+      "title": "CONTEXT CONSTRUCTION",
+      "members": [
+        "M05",
+        "M07"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G08",
+      "title": "VALIDATION & SELECTION",
+      "members": [
+        "M06",
+        "M09"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G10",
+      "title": "LLM: MIXED / PENDING SPLIT",
+      "kind": "mixed_backend",
+      "members": [
+        "M15"
+      ]
+    },
+    {
+      "id": "G12",
+      "title": "VECTOR: MIXED / PENDING SPLIT",
+      "kind": "mixed_backend",
+      "members": [
+        "M28",
+        "M29"
+      ]
+    },
+    {
+      "id": "G14",
+      "title": "ENGINE",
+      "kind": "engine",
+      "members": [
+        "M11",
+        "M12",
+        "M13"
+      ]
+    },
+    {
+      "id": "G15",
+      "title": "CONTENT: MIXED / PENDING SPLIT",
+      "kind": "mixed_backend",
+      "members": [
+        "M10"
+      ]
+    },
+    {
+      "id": "G21",
+      "title": "AGENT PERSISTENCE",
+      "members": [
+        "M36"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G22",
+      "title": "TEAM PERSISTENCE",
+      "members": [
+        "M37",
+        "M62"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G23",
+      "title": "WORKFLOW PERSISTENCE",
+      "members": [
+        "M38",
+        "M63"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G24",
+      "title": "REPOSITORY COMPOSITION",
+      "members": [
+        "M39"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G25",
+      "title": "CONTEXT CONTRACTS",
+      "members": [
+        "M40"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G26",
+      "title": "COMMON DEFINITIONS & VALUES",
+      "members": [
+        "M41",
+        "M33"
+      ],
+      "kind": "common"
+    },
+    {
+      "id": "G27",
+      "title": "AGENT API",
+      "members": [
+        "M42"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G29",
+      "title": "FILTER",
+      "members": [
+        "M14",
+        "M45"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G30",
+      "title": "GENERATION",
+      "members": [
+        "M46",
+        "M64"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G32",
+      "title": "OUTPUT PARSER",
+      "members": [
+        "M18",
+        "M48"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G33",
+      "title": "PERSISTENCE API",
+      "members": [
+        "M49"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G34",
+      "title": "RECOVERY SEMANTICS",
+      "members": [
+        "M50"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G35",
+      "title": "RUNTIME COMPOSITION",
+      "members": [
+        "M51"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G37",
+      "title": "WORKFLOW EXECUTION",
+      "members": [
+        "M53"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G38",
+      "title": "CONFIGURATION",
+      "members": [
+        "M44"
+      ],
+      "kind": "common"
+    },
+    {
+      "id": "G39",
+      "title": "AGENT COMPOSITION",
+      "members": [
+        "M54"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G40",
+      "title": "AGENT LIFECYCLE",
+      "members": [
+        "M55"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G41",
+      "title": "AGENT EXECUTION",
+      "members": [
+        "M56"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G42",
+      "title": "TOOL EXECUTION",
+      "members": [
+        "M57"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G43",
+      "title": "CONTEXT ASSEMBLY",
+      "members": [
+        "M58"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G44",
+      "title": "JOURNAL VALUES",
+      "members": [
+        "M59"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G45",
+      "title": "AGENT HANDOFF",
+      "members": [
+        "M60"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G47",
+      "title": "BACKEND CONTRACTS",
+      "kind": "backend_contracts",
+      "members": [
+        "M47",
+        "M34"
+      ]
+    },
+    {
+      "id": "G48",
+      "title": "BACKEND IMPLEMENTATIONS",
+      "kind": "backend_implementations",
+      "members": [
+        "M35"
+      ]
+    },
+    {
+      "id": "G49",
+      "title": "DOCUMENT PROCESSING",
+      "kind": "document_processing",
+      "members": [
+        "M30",
+        "M31"
+      ]
+    },
+    {
+      "id": "G50",
+      "title": "TOKEN BUDGET",
+      "kind": "token_budget",
+      "members": [
+        "M16"
+      ]
+    },
+    {
+      "id": "G51",
+      "title": "TESTING",
+      "kind": "support",
+      "members": [
+        "M21",
+        "M22",
+        "M23",
+        "M24"
+      ]
+    },
+    {
+      "id": "G52",
+      "title": "MIGRATION",
+      "kind": "support",
+      "members": [
+        "M20"
+      ]
+    },
+    {
+      "id": "G53",
+      "title": "TRACING",
+      "kind": "support",
+      "members": [
+        "M27"
+      ]
+    },
+    {
+      "id": "G54",
+      "title": "NAMESPACE / VERSION",
+      "kind": "support",
+      "members": [
+        "M01"
+      ]
+    }
+  ],
+  "matrix_order": [
+    "M17",
+    "M26",
+    "M32",
+    "M39",
+    "M36",
+    "M37",
+    "M62",
+    "M38",
+    "M63",
+    "M49",
+    "M53",
+    "M46",
+    "M64",
+    "M51",
+    "M54",
+    "M02",
+    "M03",
+    "M43",
+    "M42",
+    "M55",
+    "M56",
+    "M57",
+    "M60",
+    "M58",
+    "M59",
+    "M61",
+    "M08",
+    "M50",
+    "M25",
+    "M04",
+    "M52",
+    "M40",
+    "M14",
+    "M45",
+    "M18",
+    "M48",
+    "M05",
+    "M07",
+    "M06",
+    "M09",
+    "M15",
+    "M47",
+    "M16",
+    "M10",
+    "M28",
+    "M29",
+    "M30",
+    "M31",
+    "M34",
+    "M35",
+    "M11",
+    "M12",
+    "M13",
+    "M41",
+    "M33",
+    "M44",
+    "M21",
+    "M22",
+    "M23",
+    "M24",
+    "M20",
+    "M27",
+    "M01"
+  ],
+  "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank"
+}

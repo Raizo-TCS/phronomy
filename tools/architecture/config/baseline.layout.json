@@ -1,0 +1,93 @@
+{
+  "width": 3260,
+  "box_width": 380,
+  "box_height": 128,
+  "row_step": 220,
+  "routing": {
+    "port_spread": 144,
+    "outside_distance": 99,
+    "corner_radius": 9,
+    "arrow_length": 13,
+    "arrow_width": 10
+  },
+  "label_background": "none",
+  "group_display_titles": {
+    "G04": "AGENT FACADE / LIFECYCLE CONTRACT"
+  },
+  "format": "phronomy-group-cards-v2",
+  "column_centers": [
+    330,
+    850,
+    1370,
+    1890,
+    2410,
+    2950
+  ],
+  "group_columns": [
+    [
+      "G39",
+      "G01",
+      "G21",
+      "G22",
+      "G04",
+      "G27",
+      "G40",
+      "G45"
+    ],
+    [
+      "G03",
+      "G37",
+      "G23",
+      "G02",
+      "G42",
+      "G41",
+      "G14"
+    ],
+    [
+      "G30",
+      "G43",
+      "G44",
+      "G07",
+      "G08",
+      "G25",
+      "G10",
+      "G50",
+      "G47"
+    ],
+    [
+      "G06",
+      "G29",
+      "G32",
+      "G12",
+      "G49"
+    ],
+    [
+      "G24",
+      "G33",
+      "G35",
+      "G34",
+      "G05",
+      "G15",
+      "G26",
+      "G38"
+    ],
+    [
+      "G48",
+      "G51",
+      "G52",
+      "G53",
+      "G54"
+    ]
+  ],
+  "start_y": 650,
+  "background": {
+    "target_groups": [
+      "G26",
+      "G38"
+    ],
+    "stroke": "#c6cbd1",
+    "line_opacity": 0.55,
+    "arrowhead_opacity": 0.75
+  },
+  "diagram_revision": "groups-baseline"
+}

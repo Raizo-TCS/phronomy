@@ -108,16 +108,18 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(source).not_to include("Override to use a native async driver")
   end
 
-  it "keeps LLMAdapter implementer methods separate from the private async bridge" do
-    source = File.read(
-      File.expand_path("../../lib/phronomy/llm_adapter/base.rb", __dir__)
-    )
+  it "keeps LLM contracts and implementations independent of the execution client" do
+    paths = %w[llm_adapter/base.rb llm_adapter/backends/ruby_llm.rb]
+    paths.each do |path|
+      source = File.read(File.expand_path("../../lib/phronomy/#{path}", __dir__))
+      expect(source).not_to match(/def (complete_async|stream_async)/)
+      expect(source).not_to include("Phronomy::Runtime", "pool.submit", "AsyncClient.new")
+    end
 
-    expect(source).to match(/# @api public\n\s+def complete\(/)
-    expect(source).to match(/# @api public\n\s+def stream\(/)
-    expect(source).to match(/# @api private\n\s+def complete_async\(/)
-    expect(source).to include("pool.submit")
-    expect(source).not_to include("PendingOperation")
+    client = File.read(File.expand_path("../../lib/phronomy/llm_adapter/async/async_client.rb", __dir__))
+    expect(client).to match(/# @api private\n\s+class AsyncClient/)
+    expect(client).to include("pool.submit", "on_full: :raise")
+    expect(client).not_to include("RubyLLM", "Phronomy::Agent", "Phronomy.configuration")
   end
 
   it "documents cumulative and active abandoned-worker metrics separately" do
