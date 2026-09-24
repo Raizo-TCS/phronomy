@@ -1,0 +1,19 @@
+module Phronomy
+  module VectorStore
+    class AsyncClient
+      # pool is an optional internal execution-pool injection; ordinary callers omit it.
+      def initialize: (backend: Base, ?pool: untyped) -> void
+      def add_async: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
+      def search_async: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[Array[Hash[Symbol, untyped]]]
+      def remove_async: (id: String, ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
+      def clear_async: (?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
+    end
+
+    module Embeddings
+      class AsyncClient
+        def initialize: (adapter: Base, ?pool: untyped) -> void
+        def embed_async: (String text, ?Concurrency::CancellationToken? cancellation_token, ?timeout: Numeric?) -> TaskResult[Array[Float]]
+      end
+    end
+  end
+end

@@ -225,6 +225,45 @@ RSpec.describe "Responsibility-based source layout" do
     end
   end
 
+  it "loads synchronous vector backends without loading the execution engine or clients" do
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy"
+      before = $LOADED_FEATURES.dup
+      stores = [Phronomy::VectorStore::Base, Phronomy::VectorStore::InMemory,
+        Phronomy::VectorStore::Pgvector, Phronomy::VectorStore::RedisSearch]
+      embeddings = [Phronomy::VectorStore::Embeddings::Base,
+        Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings]
+      loaded = $LOADED_FEATURES - before
+      abort "engine loaded by synchronous contracts" if loaded.any? { |p| p.include?("/phronomy/engine/") || p.end_with?("/phronomy/engine/runtime.rb") }
+      abort "client loaded by synchronous contracts" if loaded.any? { |p| p.include?("/vector_store/") && p.end_with?("/async/async_client.rb") }
+      stores.each { |c| abort "old async receiver remains" if c.method_defined?(:search_async) }
+      embeddings.each { |c| abort "old async receiver remains" if c.method_defined?(:embed_async) }
+      abort "old async mixin remains" if Phronomy::VectorStore.const_defined?(:AsyncBackend, false)
+    RUBY
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+  end
+
+  %w[Phronomy::VectorStore::AsyncClient Phronomy::VectorStore::Embeddings::AsyncClient].each do |first_constant|
+    it "preserves feature namespaces and backend identities with #{first_constant} loaded first" do
+      stdout, stderr, status = isolated_ruby(<<~RUBY)
+        require "phronomy"
+        #{first_constant}
+        names = %w[Phronomy::VectorStore::Base Phronomy::VectorStore::InMemory
+          Phronomy::VectorStore::Pgvector Phronomy::VectorStore::RedisSearch
+          Phronomy::VectorStore::Embeddings::Base Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings
+          Phronomy::VectorStore::AsyncClient Phronomy::VectorStore::Embeddings::AsyncClient]
+        originals = names.to_h { |name| [name, Object.const_get(name)] }
+        2.times { Zeitwerk::Loader.eager_load_all }
+        originals.each { |name, value| abort "constant replaced: \#{name}" unless value.equal?(Object.const_get(name)) && value.name == name }
+        [Phronomy::VectorStore, Phronomy::VectorStore::Embeddings].each do |owner|
+          abort "unexpected grouping namespace" if owner.const_defined?(:Async, false) || owner.const_defined?(:Backends, false)
+        end
+        abort "Runtime started by loading" if Phronomy::Runtime.default_if_initialized_for_test
+      RUBY
+      expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+    end
+  end
+
   it "loads SharedState from MultiAgent without retaining an Agent coordination alias" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy"

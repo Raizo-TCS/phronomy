@@ -17,15 +17,7 @@ RSpec.describe Phronomy::VectorStore::Embeddings::Base do
     end
   end
 
-  describe "#embed_async" do
-    it "delegates synchronous embed work through OffloadPool" do
-      embeddings = Class.new(Phronomy::VectorStore::Embeddings::Base) do
-        def embed(_text, _cancellation_token = nil)
-          [0.1, 0.2, 0.3]
-        end
-      end.new
-
-      expect(embeddings.embed_async("hello").wait_result).to eq([0.1, 0.2, 0.3])
-    end
+  it "does not expose asynchronous execution on the synchronous SPI" do
+    expect(adapter).not_to respond_to(:embed_async)
   end
 end

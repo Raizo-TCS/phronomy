@@ -1,9 +1,17 @@
 # Backend responsibilities and asynchronous execution clients
 
-The diagram uses responsibility **groups**, not numbered layers. `G14`, `G46`,
-`G47` and `G48` are stable identifiers. Their numbers and positions do not define
-abstraction levels or dependency permissions. Each source directory keeps its
-own module box and stable module ID.
+The diagram distinguishes responsibility **groups** from its display layers.
+The earlier B1-B6 horizontal bands and topical columns are restored for
+readability. `G14`, `G46`, `G47` and `G48` remain stable responsibility identifiers;
+boundary permissions follow those responsibilities, not B/G numbers or positions.
+Each source directory keeps its own module box and stable module ID. Restoring
+the display does not undo the separation of backend contracts and execution.
+
+The restored display puts separated Backend Contracts in B5, alongside but
+distinct from the Engine group. B4 holds Async Clients and separately grouped
+Implementations. Backend directories awaiting separation remain visibly mixed
+in B4; their contracts move to B5 in their implemented phase. These are display
+positions, not a shared architectural level or namespace.
 
 | Group | Responsibility | Dependency rule |
 |---|---|---|
@@ -17,7 +25,13 @@ are source-ownership groups, not shared Ruby namespaces. Synchronous APIs can
 be called directly. Diagram links represent source references; calls through
 injected objects require separate runtime review.
 
-## Implemented phase: P1/P2 (`llm`)
+## Implemented phase: P1/P2/P3 (`vector`)
+
+P3 adds public VectorStore and Embeddings AsyncClients. Their synchronous
+contracts and implementations have no Engine dependencies. See the
+[public receiver migration](../migrations/vector-async-clients.md).
+
+### P2: LLM
 
 - Install the AST analyzer, group annotations, SVG formatter and boundary gate
   in `tools/architecture/`. The Architecture workflow checks the committed
@@ -46,11 +60,25 @@ public loading contract. No shim in the contract directory reintroduces an
 implementation dependency. No public RBS or Stable/Beta API snapshot changes
 are needed in this phase; both are verified unchanged.
 
+### P3: VectorStore and Embeddings
+
+- `VectorStore::AsyncClient` owns public add/search/remove/clear async operations;
+  `VectorStore::Embeddings::AsyncClient` owns public `embed_async`.
+- Backends implement only synchronous methods. The old `AsyncBackend` mixin
+  and inherited async methods are removed; application callers change receiver.
+- InMemory, Pgvector, RedisSearch and RubyLLMEmbeddings move into `backends/`
+  directories. Their public constants, synchronous signatures and bodies stay
+  unchanged. Zeitwerk explicitly collapses the new `async/` and `backends/` paths.
+- Synchronous RBS uses structural `_CancellationSignal`; async signatures keep
+  TaskResult and the execution token. The public API snapshot records the new
+  receivers and the intentional removals from Base/InMemory.
+- All three original backend-to-Engine edges are removed. In the measured view,
+  M28/M29 join G47 Contracts in B5. M67/M68 are clients in B4 and M71/M72 are
+  separately grouped implementations. No pending Storage clients are drawn.
+
 ## Pending phases
 
-P3 moves VectorStore/Embeddings async calls into feature-specific public
-AsyncClients and separates their implementations. Their two old Runtime edges
-are explicitly expected during P2. P4 introduces the Storage execution client
+P4 introduces the Storage execution client
 and separates StoredContents; transaction scope and domain outcome policy
 must remain intact. P5 completes cross-repository API/docs/verification.
 

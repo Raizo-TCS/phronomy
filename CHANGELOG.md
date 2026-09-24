@@ -14,15 +14,28 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Changed
 
+- **Beta API receiver migration:** move VectorStore `add_async`, `search_async`,
+  `remove_async`, `clear_async` and Embeddings `embed_async` onto the public
+  feature-specific `AsyncClient` objects. Synchronous backend methods and
+  concrete class names remain unchanged. Remove the inherited async methods
+  and `VectorStore::AsyncBackend`; see the
+  [migration guide](docs/migrations/vector-async-clients.md).
+- Split VectorStore/Embeddings implementations into collapsed `backends/`
+  directories. Synchronous RBS uses structural cancellation; separate client
+  signatures retain TaskResult and the full execution token. Complete P3 and
+  remove the remaining backend-to-Engine edges from the measured graph.
+
 - Separate the synchronous LLMAdapter SPI, RubyLLM implementation and internal
   AsyncClient. Adapter authors implement only `complete` and `stream`; default
   configuration, provider behavior, admission/cancellation and Agent event
   delivery remain unchanged. See
   [ADR-059](docs/decisions/059-backend-contracts-and-async-clients.md).
-- Replace numbered architecture layers with responsibility groups. Add the
-  source-derived SVG/matrix generator and Architecture CI boundary gate; retain
-  individual module boxes and stable module IDs. VectorStore/Embeddings and
-  Storage async-client migrations remain pending.
+- Separate responsibility groups from the diagram's B1-B6 display layers. Add
+  the source-derived SVG/matrix generator and Architecture CI boundary gate;
+  retain individual module boxes, stable module IDs and the earlier horizontal
+  layer layout with topical columns. Separated Contracts belong in B5 beside
+  the independent Engine group; clients, implementations and pending mixed
+  backends are displayed in B4. Storage/ContentStore migration remains pending.
 
 ---
 

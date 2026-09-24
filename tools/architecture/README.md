@@ -1,8 +1,10 @@
 # Architecture evidence and responsibility groups
 
 The source graph comes from Ruby AST analysis. Configuration supplies module
-IDs and responsibility groups; layout supplies positions. Group numbers and
-coordinates are not architectural levels or permission rules.
+IDs and responsibility groups; layout supplies positions. The measured diagram
+restores the earlier B1-B6 horizontal bands, five topical columns and right-hand
+support area. These display layers organize the view; boundary permissions
+continue to depend on responsibilities, not coordinates or B/G numbers.
 
 ```sh
 python3 -m venv tmp/architecture-venv
@@ -13,7 +15,7 @@ tmp/architecture-venv/bin/python tools/architecture/refresh_diagram.py . tmp/arc
 
 Use an empty output directory and committed `lib` sources. The command never
 stages, commits or modifies Ruby source. The repository's `phase.json` declares
-the current phase (`llm`: P1/P2 complete). `--phase` can explicitly check another
+the current phase (`vector`: P1/P2/P3 complete). `--phase` can explicitly check another
 phase during development; it cannot add absent modules or remove real edges.
 New or missing directories, duplicate IDs, incomplete group membership and
 forbidden responsibility paths fail the gate.
@@ -40,3 +42,30 @@ The analyzer and parser versions are preserved from the reviewed toolkit.
 `evidence/baseline` records main 84668606 for comparison. The baseline is not
 reused as current evidence: source is analyzed afresh for every run. The
 `tools/` directory is excluded from the released Ruby gem.
+
+## Layered display
+
+Each phase layout lists `bands`, their five `columns`, and a separate `support`
+list. Every actual module ID must appear exactly once. Existing domain modules
+retain the reviewed display order. B4 contains Async Clients, separately grouped
+Implementations, document processing, and backend directories whose separation
+is still pending. B5 contains separated Backend Contracts and token-budget rules
+beside the independent Engine group. Later phases move a contract to B5 only
+after its source responsibilities are split. B1-B6 are presentation metadata
+only and never enter the architecture role annotations or boundary rules. The formatter also accepts
+the previous `group_columns` layout for reproducing older display revisions.
+
+Source analysis, group membership, dependency counts and the matrix are
+independent of the chosen layout. Regeneration always uses the committed phase
+and current source evidence, rather than restoring an older source graph.
+
+## Group colors
+
+Each phase layout defines `group_theme.palette` and the stable group-to-palette
+mapping in `group_theme.groups`. Pastel group backgrounds and caption strips
+retain the previous diagram's subdued colors; source modules stay white.
+The same group ID keeps its colors across phases. G14 Engine uses blue, G46
+Async Clients lavender, G47 Backend Contracts mint and G48 Implementations sand.
+Color does not express a layer, dependency permission or a unique namespace.
+Group backgrounds are painted behind all arrows, including muted common
+dependencies. Module boxes, source evidence and matrix cells stay intact.

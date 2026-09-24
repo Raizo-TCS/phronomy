@@ -5,10 +5,12 @@ module Phronomy
   # and text splitters.
   #
   # Sub-namespaces are auto-loaded by Zeitwerk:
+  #   Phronomy::VectorStore::AsyncClient
   #   Phronomy::VectorStore::Base
   #   Phronomy::VectorStore::InMemory
   #   Phronomy::VectorStore::Pgvector
   #   Phronomy::VectorStore::RedisSearch
+  #   Phronomy::VectorStore::Embeddings::AsyncClient
   #   Phronomy::VectorStore::Embeddings::Base
   #   Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings
   #   Phronomy::VectorStore::Loader::Base

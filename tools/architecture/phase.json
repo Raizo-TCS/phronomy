@@ -1,12 +1,5 @@
 {
-  "phase": "llm",
-  "completed_steps": [
-    "P1",
-    "P2"
-  ],
-  "pending_steps": [
-    "P3",
-    "P4",
-    "P5"
-  ]
+  "phase": "vector",
+  "completed_steps": ["P1", "P2", "P3"],
+  "pending_steps": ["P4", "P5"]
 }

@@ -531,14 +531,21 @@
     "type": "class",
     "public_instance_methods": [
       "add",
-      "add_async",
       "clear",
-      "clear_async",
       "remove",
-      "remove_async",
       "search",
-      "search_async",
       "size"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::VectorStore::AsyncClient",
+    "type": "class",
+    "public_instance_methods": [
+      "add_async",
+      "clear_async",
+      "remove_async",
+      "search_async"
     ],
     "public_class_methods": []
   },
@@ -547,13 +554,9 @@
     "type": "class",
     "public_instance_methods": [
       "add",
-      "add_async",
       "clear",
-      "clear_async",
       "remove",
-      "remove_async",
       "search",
-      "search_async",
       "size"
     ],
     "public_class_methods": []
@@ -562,7 +565,14 @@
     "name": "Phronomy::VectorStore::Embeddings::Base",
     "type": "class",
     "public_instance_methods": [
-      "embed",
+      "embed"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::VectorStore::Embeddings::AsyncClient",
+    "type": "class",
+    "public_instance_methods": [
       "embed_async"
     ],
     "public_class_methods": []

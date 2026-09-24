@@ -28,7 +28,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
     end
 
     it "raises TimeoutError via embed_async when backend hangs" do
-      op = embedder.embed_async("hello", timeout: 0.1)
+      op = Phronomy::VectorStore::Embeddings::AsyncClient.new(adapter: embedder).embed_async("hello", timeout: 0.1)
       expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
     end
   end
@@ -44,7 +44,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
     end
 
     it "raises TimeoutError via search_async when backend hangs" do
-      op = vs.search_async(query_embedding: [0.1], k: 3, timeout: 0.1)
+      op = Phronomy::VectorStore::AsyncClient.new(backend: vs).search_async(query_embedding: [0.1], k: 3, timeout: 0.1)
       expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
     end
   end

@@ -22,22 +22,16 @@ module Phronomy
 
   module VectorStore
     class Base
-      def add: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?) -> untyped
-      def search: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: Concurrency::CancellationToken?) -> Array[Hash[Symbol, untyped]]
+      def add: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: _CancellationSignal?) -> untyped
+      def search: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: _CancellationSignal?) -> Array[Hash[Symbol, untyped]]
       def remove: (id: String) -> untyped
       def clear: () -> untyped
       def size: () -> Integer
-
-      def add_async: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
-      def search_async: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[Array[Hash[Symbol, untyped]]]
-      def remove_async: (id: String, ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
-      def clear_async: (?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
     end
 
     module Embeddings
       class Base
-        def embed: (String text, ?Concurrency::CancellationToken? cancellation_token) -> Array[Float]
-        def embed_async: (String text, ?Concurrency::CancellationToken? cancellation_token, ?timeout: Numeric?) -> TaskResult[Array[Float]]
+        def embed: (String text, ?_CancellationSignal? cancellation_token) -> Array[Float]
       end
     end
   end

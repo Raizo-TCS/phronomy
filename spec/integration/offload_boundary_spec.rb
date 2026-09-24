@@ -172,7 +172,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # -------------------------------------------------------------------------
   # TC-004: embeddings — Embeddings#embed_async routes through pool
   # -------------------------------------------------------------------------
-  describe "TC-004: embeddings — Embeddings::Base#embed_async routes through pool" do
+  describe "TC-004: embeddings — Embeddings::AsyncClient#embed_async routes through pool" do
     let(:embedder) do
       Class.new(Phronomy::VectorStore::Embeddings::Base) do
         def embed(text, _cancellation_token = nil)
@@ -183,7 +183,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
 
     it "routes embed_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = embedder.embed_async("anything").wait_result
+        result = Phronomy::VectorStore::Embeddings::AsyncClient.new(adapter: embedder).embed_async("anything").wait_result
         expect(result).to eq([8.0, 1.0])
         expect(counts.size).to eq(1)
       end
@@ -193,7 +193,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # -------------------------------------------------------------------------
   # TC-005: vector_store — VectorStore#search_async routes through pool
   # -------------------------------------------------------------------------
-  describe "TC-005: vector_store — VectorStore::Base#search_async routes through pool" do
+  describe "TC-005: vector_store — VectorStore::AsyncClient#search_async routes through pool" do
     let(:vector_store) { Phronomy::VectorStore::InMemory.new }
 
     before do
@@ -202,7 +202,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
 
     it "routes search_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = vector_store.search_async(query_embedding: [0.5, 0.5], k: 1).wait_result
+        result = Phronomy::VectorStore::AsyncClient.new(backend: vector_store).search_async(query_embedding: [0.5, 0.5], k: 1).wait_result
         expect(result).to be_an(Array)
         expect(counts.size).to eq(1)
       end

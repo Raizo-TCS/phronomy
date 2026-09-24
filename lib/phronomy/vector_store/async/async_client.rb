@@ -2,21 +2,25 @@
 
 module Phronomy
   module VectorStore
-    # Framework-owned async convenience methods for VectorStore backends.
+    # Framework-owned asynchronous execution of a synchronous vector backend.
     #
-    # The backend extension contract is the synchronous interface defined by
-    # {VectorStore::Base}: add/search/remove/clear/size. These async convenience
-    # methods are inherited by backends and route that synchronous work through
-    # Phronomy's bounded {OffloadPool}. This keeps OS-thread creation, queue
-    # backpressure, submit timeout/cancellation, and completion semantics owned by
-    # the framework rather than by each backend.
+    # Backend authors implement only Base's synchronous operations. Applications
+    # use this client for asynchronous calls. Admission never waits for queue
+    # capacity; accepted calls return the pool's original TaskResult. Timeout
+    # includes queue wait and settles the result without interrupting running I/O.
+    # Construction does not start Runtime; the current default pool is resolved
+    # for each operation. An injected pool remains owned by its caller.
     #
-    # A future genuine native-async backend may adapt its completion into a
-    # {Phronomy::TaskResult} without an OffloadPool worker, but native async override is
-    # not part of the current backend SPI.
-    #
-    # @api private
-    module AsyncBackend
+    # @api public
+    class AsyncClient
+      # @param backend [VectorStore::Base] synchronous vector store
+      # @param pool [Concurrency::OffloadPool, nil] optional execution pool
+      # @api public
+      def initialize(backend:, pool: nil)
+        @backend = backend
+        @pool = pool
+      end
+
       # Async variant of {VectorStore::Base#add}.
       #
       # @param id                 [String]
@@ -27,12 +31,12 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def add_async(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.offload.submit(
+        default_pool.submit(
           timeout: timeout,
           cancellation_token: cancellation_token,
           on_full: :raise
         ) do
-          add(id: id, embedding: embedding, metadata: metadata, cancellation_token: cancellation_token)
+          @backend.add(id: id, embedding: embedding, metadata: metadata, cancellation_token: cancellation_token)
         end
       end
 
@@ -45,12 +49,12 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.offload.submit(
+        default_pool.submit(
           timeout: timeout,
           cancellation_token: cancellation_token,
           on_full: :raise
         ) do
-          search(query_embedding: query_embedding, k: k, cancellation_token: cancellation_token)
+          @backend.search(query_embedding: query_embedding, k: k, cancellation_token: cancellation_token)
         end
       end
 
@@ -62,12 +66,12 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def remove_async(id:, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.offload.submit(
+        default_pool.submit(
           timeout: timeout,
           cancellation_token: cancellation_token,
           on_full: :raise
         ) do
-          remove(id: id)
+          @backend.remove(id: id)
         end
       end
 
@@ -78,13 +82,19 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def clear_async(cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.offload.submit(
+        default_pool.submit(
           timeout: timeout,
           cancellation_token: cancellation_token,
           on_full: :raise
         ) do
-          clear
+          @backend.clear
         end
+      end
+
+      private
+
+      def default_pool
+        @pool || Phronomy::Runtime.instance.offload
       end
     end
   end

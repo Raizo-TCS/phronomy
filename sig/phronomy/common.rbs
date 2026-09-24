@@ -1,0 +1,6 @@
+module Phronomy
+  # Synchronous backends need only cooperative cancellation, not Runtime services.
+  interface _CancellationSignal
+    def raise_if_cancelled!: (?String message) -> nil
+  end
+end

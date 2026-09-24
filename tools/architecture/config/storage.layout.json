@@ -1,8 +1,202 @@
 {
+  "format": "phronomy-layered-display-v5",
+  "diagram_revision": "contracts-b5-storage",
   "width": 3260,
+  "column_centers": [
+    330,
+    850,
+    1370,
+    1890,
+    2410
+  ],
+  "support_center": 2950,
   "box_width": 380,
   "box_height": 128,
   "row_step": 220,
+  "columns": [
+    {
+      "title": "AGENT",
+      "subtitle": "Identity / lifecycle / teams"
+    },
+    {
+      "title": "EXECUTION / TOOLS",
+      "subtitle": "Workflow / coordination / dispatch"
+    },
+    {
+      "title": "CONTEXT / LLM",
+      "subtitle": "Prompt / policy / model"
+    },
+    {
+      "title": "INPUT / OUTPUT / DATA",
+      "subtitle": "Filters / parsing / vectors"
+    },
+    {
+      "title": "PERSISTENCE / PLATFORM",
+      "subtitle": "Recovery / storage / settings"
+    }
+  ],
+  "bands": [
+    {
+      "id": "B1",
+      "title": "DOMAIN COMPOSITION & PERSISTENCE",
+      "columns": [
+        [
+          "M54",
+          "M17",
+          "M36",
+          "M37",
+          "M62"
+        ],
+        [
+          "M32",
+          "M53",
+          "M38",
+          "M63",
+          "M26"
+        ],
+        [
+          "M46",
+          "M64"
+        ],
+        [],
+        [
+          "M39",
+          "M49",
+          "M51"
+        ]
+      ]
+    },
+    {
+      "id": "B2",
+      "title": "AGENT EXECUTION & RECOVERY",
+      "columns": [
+        [
+          "M02",
+          "M03",
+          "M43",
+          "M42",
+          "M55"
+        ],
+        [
+          "M56",
+          "M60",
+          "M57"
+        ],
+        [
+          "M58"
+        ],
+        [
+          "M59"
+        ],
+        [
+          "M61",
+          "M08",
+          "M50"
+        ]
+      ]
+    },
+    {
+      "id": "B3",
+      "title": "POLICIES / TOOLS / INPUT & OUTPUT",
+      "columns": [
+        [],
+        [
+          "M25",
+          "M04",
+          "M52"
+        ],
+        [
+          "M40",
+          "M05",
+          "M07",
+          "M09",
+          "M06"
+        ],
+        [
+          "M14",
+          "M45",
+          "M18",
+          "M48"
+        ],
+        []
+      ]
+    },
+    {
+      "id": "B4",
+      "title": "ASYNC CLIENTS / IMPLEMENTATIONS / TRANSITION",
+      "columns": [
+        [],
+        [],
+        [
+          "M66",
+          "M70"
+        ],
+        [
+          "M30",
+          "M31",
+          "M67",
+          "M68",
+          "M71",
+          "M72"
+        ],
+        [
+          "M35",
+          "M69",
+          "M73"
+        ]
+      ]
+    },
+    {
+      "id": "B5",
+      "title": "ENGINE / BACKEND CONTRACTS",
+      "columns": [
+        [],
+        [
+          "M11",
+          "M12",
+          "M13"
+        ],
+        [
+          "M15",
+          "M47",
+          "M16"
+        ],
+        [
+          "M28",
+          "M29"
+        ],
+        [
+          "M10",
+          "M34"
+        ]
+      ]
+    },
+    {
+      "id": "B6",
+      "title": "COMMON DEFINITIONS & SETTINGS",
+      "columns": [
+        [],
+        [],
+        [],
+        [
+          "M33"
+        ],
+        [
+          "M41",
+          "M44"
+        ]
+      ]
+    }
+  ],
+  "support": [
+    "M21",
+    "M22",
+    "M23",
+    "M24",
+    "M20",
+    "M27",
+    "M01"
+  ],
   "routing": {
     "port_spread": 144,
     "outside_distance": 99,
@@ -10,74 +204,6 @@
     "arrow_length": 13,
     "arrow_width": 10
   },
-  "label_background": "none",
-  "group_display_titles": {
-    "G04": "AGENT FACADE / LIFECYCLE CONTRACT"
-  },
-  "format": "phronomy-group-cards-v2",
-  "column_centers": [
-    330,
-    850,
-    1370,
-    1890,
-    2410,
-    2950
-  ],
-  "group_columns": [
-    [
-      "G39",
-      "G01",
-      "G21",
-      "G22",
-      "G04",
-      "G27",
-      "G40",
-      "G45"
-    ],
-    [
-      "G03",
-      "G37",
-      "G23",
-      "G02",
-      "G42",
-      "G41",
-      "G14"
-    ],
-    [
-      "G30",
-      "G43",
-      "G44",
-      "G07",
-      "G08",
-      "G25",
-      "G50",
-      "G47"
-    ],
-    [
-      "G06",
-      "G29",
-      "G32",
-      "G49",
-      "G46"
-    ],
-    [
-      "G24",
-      "G33",
-      "G35",
-      "G34",
-      "G05",
-      "G26",
-      "G38"
-    ],
-    [
-      "G48",
-      "G51",
-      "G52",
-      "G53",
-      "G54"
-    ]
-  ],
-  "start_y": 650,
   "background": {
     "target_groups": [
       "G26",
@@ -87,5 +213,105 @@
     "line_opacity": 0.55,
     "arrowhead_opacity": 0.75
   },
-  "diagram_revision": "groups-storage"
+  "group_display_titles": {
+    "G04": "AGENT FACADE / LIFECYCLE CONTRACT"
+  },
+  "band_start_y": 634,
+  "group_theme": {
+    "palette": {
+      "blue": {
+        "fill": "#f0f5fa",
+        "stroke": "#b8ccdd",
+        "label_fill": "#dfebf5",
+        "label_color": "#476b86"
+      },
+      "slate": {
+        "fill": "#f3f7fa",
+        "stroke": "#c4d1db",
+        "label_fill": "#e8f0f6",
+        "label_color": "#526e80"
+      },
+      "lavender": {
+        "fill": "#f5f2fa",
+        "stroke": "#cfc3df",
+        "label_fill": "#eae2f3",
+        "label_color": "#685381"
+      },
+      "mint": {
+        "fill": "#f0f7f2",
+        "stroke": "#bad3c4",
+        "label_fill": "#deeee4",
+        "label_color": "#476f58"
+      },
+      "sand": {
+        "fill": "#faf5ed",
+        "stroke": "#d9c7a9",
+        "label_fill": "#f2e7d5",
+        "label_color": "#7c6440"
+      },
+      "teal": {
+        "fill": "#eff7f7",
+        "stroke": "#b9d3d1",
+        "label_fill": "#deeeec",
+        "label_color": "#496f6b"
+      },
+      "gray": {
+        "fill": "#f4f5f6",
+        "stroke": "#cbd1d6",
+        "label_fill": "#e8ebee",
+        "label_color": "#5c6871"
+      },
+      "support": {
+        "fill": "#f8f8f4",
+        "stroke": "#d7d7c8",
+        "label_fill": "#eeeeE5",
+        "label_color": "#686c51"
+      }
+    },
+    "groups": {
+      "G01": "lavender",
+      "G02": "teal",
+      "G03": "lavender",
+      "G04": "blue",
+      "G05": "slate",
+      "G06": "teal",
+      "G07": "slate",
+      "G08": "slate",
+      "G10": "sand",
+      "G12": "sand",
+      "G14": "blue",
+      "G15": "sand",
+      "G21": "teal",
+      "G22": "teal",
+      "G23": "teal",
+      "G24": "teal",
+      "G25": "slate",
+      "G26": "gray",
+      "G27": "blue",
+      "G29": "teal",
+      "G30": "lavender",
+      "G32": "teal",
+      "G33": "teal",
+      "G34": "slate",
+      "G35": "sand",
+      "G37": "lavender",
+      "G38": "gray",
+      "G39": "blue",
+      "G40": "blue",
+      "G41": "blue",
+      "G42": "blue",
+      "G43": "blue",
+      "G44": "blue",
+      "G45": "blue",
+      "G46": "lavender",
+      "G47": "mint",
+      "G48": "sand",
+      "G49": "teal",
+      "G50": "mint",
+      "G51": "support",
+      "G52": "support",
+      "G53": "support",
+      "G54": "gray"
+    }
+  }
 }

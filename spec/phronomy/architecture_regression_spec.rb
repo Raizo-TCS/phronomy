@@ -97,15 +97,19 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(tool).not_to include(":session_id")
   end
 
-  it "keeps synchronous VectorStore async convenience on OffloadPool" do
-    source = File.read(
-      File.expand_path("../../lib/phronomy/vector_store/async_backend.rb", __dir__)
-    )
-
-    expect(source).to include("Phronomy::Runtime.instance.offload.submit")
-    expect(source).to include("@return [Phronomy::TaskResult]")
-    expect(source).not_to include("PendingOperation")
-    expect(source).not_to include("Override to use a native async driver")
+  it "keeps VectorStore and Embeddings contracts and implementations independent of execution" do
+    %w[vector_store vector_store/embeddings].each do |feature|
+      paths = Dir[File.expand_path("../../lib/phronomy/#{feature}/*.rb", __dir__)] +
+        Dir[File.expand_path("../../lib/phronomy/#{feature}/backends/*.rb", __dir__)]
+      paths.each do |path|
+        source = File.read(path)
+        expect(source).not_to include("Phronomy::Runtime", "AsyncBackend", "AsyncClient.new", "pool.submit")
+        expect(source).not_to match(/def \w+_async/)
+      end
+      client = File.read(File.expand_path("../../lib/phronomy/#{feature}/async/async_client.rb", __dir__))
+      expect(client).to include("default_pool.submit", "on_full: :raise", "@return [Phronomy::TaskResult]")
+      expect(client).not_to include("RubyLLM", "InMemory", "Phronomy::Agent", "Phronomy.configuration")
+    end
   end
 
   it "keeps LLM contracts and implementations independent of the execution client" do

@@ -69,23 +69,63 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     modules = {m["id"]: m for m in meta["modules"]}
     edges = sorted(meta["edges"], key=lambda e: (e["from"], e["to"]))
     groups = meta["groups"]
-    if "bands" in config or any("layer" in m or "rank" in m for m in modules.values()):
-        raise ValueError("Use group cards without band, layer or rank metadata")
-    positions, cells = {}, {}
+    theme = config.get("group_theme", {})
+    palette = theme.get("palette", {})
+
+    def group_style(gid):
+        return palette.get(theme.get("groups", {}).get(gid), {
+            "fill": "#f3f7fa", "stroke": "#c4d1db",
+            "label_fill": "#e8f0f6", "label_color": "#526e80"
+        })
+
+    if any("layer" in m or "rank" in m for m in modules.values()):
+        raise ValueError("Keep architecture roles independent of display-layer positions")
+    positions, cells, bands = {}, {}, []
     by_group = {g["id"]: g for g in groups}
-    placed = [gid for col in config["group_columns"] for gid in col]
-    if set(placed) != set(by_group) or len(placed) != len(set(placed)):
-        raise ValueError("Layout must contain each responsibility group exactly once")
-    for column, gids in enumerate(config["group_columns"]):
-        row = 0
-        for gid in gids:
-            for mid in by_group[gid]["members"]:
-                if mid in positions:
-                    raise ValueError(f"Duplicate layout module: {mid}")
-                positions[mid] = (config["column_centers"][column], config["start_y"] + config["row_step"] * row)
-                cells[mid] = (gid, column, row)
+    if "bands" in config:
+        y = config["band_start_y"]
+        all_rows = []
+        band_ids = [b["id"] for b in config["bands"]]
+        if len(band_ids) != len(set(band_ids)):
+            raise ValueError("Duplicate display-layer ID")
+        for band in config["bands"]:
+            if len(band["columns"]) != len(config["column_centers"]):
+                raise ValueError("Display-layer column count must match the column centers")
+            rows = max(map(len, band["columns"]))
+            bottom = y + 90 + config["row_step"] * rows
+            info = {"id": band["id"], "title": band["title"], "top": y,
+                    "bottom": bottom, "members": []}
+            all_rows.extend(y + 180 + config["row_step"] * row for row in range(rows))
+            for column, ids in enumerate(band["columns"]):
+                for row, mid in enumerate(ids):
+                    if mid in positions:
+                        raise ValueError(f"Duplicate layout module: {mid}")
+                    positions[mid] = (config["column_centers"][column], y + 180 + config["row_step"] * row)
+                    cells[mid] = (band["id"], column, row)
+                    info["members"].append(mid)
+            bands.append(info)
+            y = bottom
+        if len(config["support"]) > len(all_rows):
+            raise ValueError("Support modules exceed the available display rows")
+        for row, mid in enumerate(config["support"]):
+            if mid in positions:
+                raise ValueError(f"Duplicate layout module: {mid}")
+            positions[mid] = (config["support_center"], all_rows[row])
+            cells[mid] = ("support", len(config["column_centers"]), row)
+    else:
+        placed = [gid for col in config["group_columns"] for gid in col]
+        if set(placed) != set(by_group) or len(placed) != len(set(placed)):
+            raise ValueError("Layout must contain each responsibility group exactly once")
+        for column, gids in enumerate(config["group_columns"]):
+            row = 0
+            for gid in gids:
+                for mid in by_group[gid]["members"]:
+                    if mid in positions:
+                        raise ValueError(f"Duplicate layout module: {mid}")
+                    positions[mid] = (config["column_centers"][column], config["start_y"] + config["row_step"] * row)
+                    cells[mid] = (gid, column, row)
+                    row += 1
                 row += 1
-            row += 1  # visual breathing room; carries no dependency meaning
     if set(positions) != set(modules):
         raise ValueError(f"Update layout for changed module set: {sorted(set(positions) ^ set(modules))}")
     for mid, point in positions.items():
@@ -121,8 +161,8 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         node.append(deepcopy(original.find(S + "title")))
         return node
 
-    add("title", text="Phronomy dependencies: independent responsibility groups", id="chart-title")
-    add("desc", text="Measured Ruby dependencies grouped by responsibility. Group IDs and card positions have no hierarchy. Arrowheads identify dependency targets; common dependencies are muted. Mixed directories remain explicitly marked until source refactoring.", id="chart-description")
+    add("title", text="Phronomy dependencies: layered display and responsibility groups", id="chart-title")
+    add("desc", text="Measured Ruby dependencies in the previous horizontal layer layout and topical columns. B1-B6 identify display bands; G IDs identify responsibilities. Boundary checks use responsibilities rather than positions. Individual module boxes and source evidence are preserved.", id="chart-description")
     metadata_node = add("metadata")
     add("rect", x=0, y=0, width=width, height=height, fill="#fff")
     style = add("style")
@@ -133,7 +173,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     text(70, 205, meta.get("commit_label", "Reviewed commit: ") + meta["commit"], 19)
     text(70, 237, "Source tree: " + meta["source_tree"], 17, "#627988")
     text(70, 281, "Arrows start at hidden box centers; boundary crossings are spread out. Solid triangles mark the target.", 21)
-    text(70, 316, "Group IDs identify responsibilities only. Card positions do not imply hierarchy, abstraction order or dependency permission.", 19)
+    text(70, 316, "B4: clients / implementations / pending split. B5: Engine / separated Contracts. G IDs identify independent responsibilities.", 19)
     counts = Counter(e["direction"] for e in edges)
     for j, (key, label) in enumerate([("external", "Between groups"), ("internal", "Within group")]):
         x = 72 + j * 440
@@ -145,8 +185,36 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     directory_cycles = " / ".join(map(str, meta["stats"]["module_scc_sizes"]["all"])) or "none"
     file_cycles = " / ".join(map(str, meta["stats"]["file_scc_sizes"])) or "none"
     text(70, 413, f"Directory cycles: {directory_cycles}. File cycles: {file_cycles}. Orange borders mark cycle membership.", 18, "#627988")
+    for index, (gid, label) in enumerate([("G14", "Engine"), ("G46", "Async Clients"),
+                                        ("G47", "Backend Contracts"), ("G48", "Backend Implementations")]):
+        if gid in by_group:
+            color = group_style(gid)
+            x = 72 + index * 610
+            add("rect", x=x, y=431, width=25, height=20, rx=3,
+                fill=color["label_fill"], stroke=color["stroke"])
+            text(x + 36, 448, gid + "  " + label, 18, color["label_color"])
     text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending.", 20, "#7a5737")
     text(70, 509, "Backend Implementations are production code. Testing, Migration and Tracing retain their own groups.", 19, "#526b7a")
+    if bands:
+        backdrop = add("g", id="display-layers")
+        for column, description in enumerate(config["columns"]):
+            cx = config["column_centers"][column]
+            add("rect", backdrop, x=cx - 245, y=550, width=490, height=68, rx=8, fill="#e8f0f6")
+            text(cx, 578, description["title"], 18, parent=backdrop, text_anchor="middle", font_weight=750)
+            text(cx, 603, description["subtitle"], 14, "#526b7a", backdrop, text_anchor="middle")
+        text(config["support_center"], 578, "SUPPORT / CROSS-CUTTING", 19,
+             parent=backdrop, text_anchor="middle", font_weight=700)
+        for band in bands:
+            add("rect", backdrop, id="display_layer_" + band["id"], x=50, y=band["top"], width=2620,
+                height=band["bottom"] - band["top"], fill="#f3f7fa" if band["id"] in ["B2", "B4", "B6"] else "#fafcfd",
+                stroke="#d9e4eb")
+            text(75, band["top"] + 34, band["id"] + "   " + band["title"], 23, parent=backdrop, font_weight=700)
+        for x in [590, 1110, 1630, 2150]:
+            add("line", backdrop, x1=x, x2=x, y1=bands[0]["top"], y2=bands[-1]["bottom"],
+                stroke="#e1e8ee", stroke_dasharray="3 9")
+        support_bottom = max(positions[mid][1] for mid in config["support"]) + 120
+        add("rect", backdrop, x=2720, y=bands[0]["top"], width=480,
+            height=support_bottom - bands[0]["top"], rx=12, fill="#f8f8f4", stroke="#dddccf")
 
     # Assign distinct ports jointly to incoming and outgoing edges on each face.
     # The actual path endpoints remain the box centers and are covered by nodes.
@@ -224,6 +292,9 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         for i, item in enumerate(sorted(items)):
             row_tracks[item[2], item[3], item[4]] = low + (high - low) * (i + 1) / (len(items) + 1)
 
+    # Group fills belong behind every dependency, including muted common edges.
+    # Outlines and captions are added later, without covering paths with a fill.
+    group_backgrounds = add("g", id="ownership-backgrounds")
     edge_root = add("g", id="dependency-edges")
     back = add("g", edge_root, id="common-background-edges")
     normal = add("g", edge_root, id="primary-dependency-edges")
@@ -297,16 +368,20 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     # Nodes are opaque and drawn after every edge, hiding center-to-border lines.
     frames = add("g", id="ownership-frames")
     for group in groups:
+        color = group_style(group["id"])
         for index, part in enumerate(group_components(group["members"], cells)):
             xs, ys = zip(*(positions[mid] for mid in part))
             x, y = min(xs) - 203, min(ys) - 104
             w, h = max(xs) - min(xs) + 406, max(ys) - min(ys) + 184
             frame = add("g", frames, id=f"ownership_{group['id']}_{index}")
-            add("rect", frame, x=x, y=y, width=w, height=h, rx=10, fill="none", stroke="#c4d1db", stroke_width=1)
+            add("rect", group_backgrounds, id=f"ownership_fill_{group['id']}_{index}",
+                x=x, y=y, width=w, height=h, rx=10, fill=color["fill"])
+            add("rect", frame, x=x, y=y, width=w, height=h, rx=10,
+                fill="none", stroke=color["stroke"], stroke_width=1)
             title = config["group_display_titles"].get(group["id"], group["title"])
             add("rect", frame, x=x + 6, y=y + 6, width=w - 12, height=22, rx=3,
-                fill=config.get("label_background", "none"))
-            text(x + 10, y + 22, group["id"] + "  " + title, 13, "#526e80", frame, font_weight=600)
+                fill=color["label_fill"])
+            text(x + 10, y + 22, group["id"] + "  " + title, 13, color["label_color"], frame, font_weight=600)
     nodes = add("g", id="module-nodes")
     for mid, module in sorted(modules.items()):
         x, y = positions[mid]
@@ -337,7 +412,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
 
     text(70, notes_top, "HOW TO READ THIS REVISION", 25, font_weight=750)
     notes = [
-        "Group IDs are stable references, not levels. Engine, Backend Contracts, Async Clients and Implementations are separate responsibilities.",
+        "B1-B6 restore the previous horizontal layout. G IDs and pastel fills distinguish responsibilities; white boxes show source modules.",
         f"All {len(edges)} measured dependency pairs remain visible and are repeated in the complete matrix below.",
         "Each path starts behind its source box. Distributed boundary crossings and solid triangular arrowheads identify the dependency target.",
         "Dependencies on common definitions / configuration are light gray behind other edges. Hover to emphasize; click for source evidence.",
@@ -374,13 +449,15 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         view=meta.get("view_label", f"applied Refactor {applied_refactor}; responsibility groups and distributed connections"),
         relocated_node_ids=sorted(modules), new_node_ids=[],
         formatting={"format": config["format"], "configuration": config,
+            "display_layers": bands, "layout_is_dependency_policy": False,
             "source_anchor": "center, covered by opaque source box", "target_anchor": "center, with triangle at the visible boundary",
             "ports": "distinct per node face across incoming and outgoing edges", "arrowhead": "filled triangle",
+            "group_fills": "pastel backgrounds behind all edges; same group ID keeps its palette across phases",
             "matrix_order": "preserved", "ownership_frames": "connected pieces; repeated group labels retain the same owner"},
         edge_presentation={"rule": "Common-target dependencies use light gray behind other edges; no coordinate-based rules",
             **config["background"], "edge_count": len(back), "paint_order": ["common-background-edges", "primary-dependency-edges"], "matrix_unchanged": True})
     meta["notes_ja"] = [
-        "グループ番号は識別子。階層・順位・抽象度を表さず、図の座標に依存規則を持たせない。",
+        "B1〜B6 の横帯・分野別の列・右側の補助領域を復元。G 番号は責務を示し、境界検査は配置ではなく責務に基づく。",
         "現状の混在ディレクトリを明示。構想図と実測図を区別し、分離前の依存もすべて残す。",
         "全依存対・行列・根拠リンクを維持。Engine と Backend Contracts は独立した責務。"
     ]
@@ -401,6 +478,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     assert len(normal) + len(back) == len(edges)
     assert len(list(root.iter(S + "polygon"))) == len(edges)
     assert list(root).index(edge_root) < list(root).index(nodes)
+    assert list(root).index(group_backgrounds) < list(root).index(edge_root)
     assert all(0 < x < width and 430 < y < graph_bottom + 30
                for route in routing_records for x, y in route["control_points"])
     for key, items in incidence.items():

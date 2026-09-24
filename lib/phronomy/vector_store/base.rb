@@ -5,19 +5,17 @@ module Phronomy
     # Public extension SPI for vector stores.
     #
     # Backends implement the synchronous add/search/remove/clear/size contract.
-    # Phronomy supplies async convenience methods through {AsyncBackend}; blocking
-    # backend work is offloaded through the framework-owned bounded OffloadPool.
+    # The framework's separate execution client supplies asynchronous operations.
+    # Backend authors implement no asynchronous methods or execution-pool logic.
     #
     # @api public
     class Base
-      include AsyncBackend
-
       # Add a document with its vector embedding.
       #
       # @param id                 [String] unique document identifier
       # @param embedding          [Array<Float>] vector embedding
       # @param metadata           [Hash] arbitrary metadata
-      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
+      # @param cancellation_token [#raise_if_cancelled!, nil] cooperative cancellation signal
       # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
@@ -28,7 +26,7 @@ module Phronomy
       #
       # @param query_embedding    [Array<Float>]
       # @param k                  [Integer] number of results
-      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
+      # @param cancellation_token [#raise_if_cancelled!, nil] cooperative cancellation signal
       # @return [Array<Hash>] each element: { id:, score:, metadata: }
       # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)

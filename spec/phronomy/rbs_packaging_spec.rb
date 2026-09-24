@@ -16,7 +16,9 @@ RSpec.describe "RBS gem packaging" do
       "sig/phronomy/agent.rbs",
       "sig/phronomy/workflow.rbs",
       "sig/phronomy/persistence.rbs",
-      "sig/phronomy/extensions.rbs"
+      "sig/phronomy/extensions.rbs",
+      "sig/phronomy/common.rbs",
+      "sig/phronomy/async_clients.rbs"
     )
   end
 end

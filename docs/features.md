@@ -46,11 +46,15 @@ rather than implicitly inheriting the parent revision. The Stable
 |---|---|
 | **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`, selected per LLM call by Context Policy | Beta |
 | **`VectorStore#size`** — Document count for InMemory, RedisSearch, and Pgvector backends | Beta |
-| **VectorStore async convenience** — `add_async` / `search_async` / `remove_async` / `clear_async` offload the synchronous Backend SPI through Phronomy and return `TaskResult`; native async override is not part of the current Backend SPI | Beta |
-| **Embedding async convenience** — `embed_async` offloads synchronous `embed` through Phronomy and returns `TaskResult` | Beta |
+| **VectorStore::AsyncClient** — `add_async` / `search_async` / `remove_async` / `clear_async` offload the synchronous Backend SPI through Phronomy and return `TaskResult`; native async override is not part of the current Backend SPI | Beta |
+| **VectorStore::Embeddings::AsyncClient** — `embed_async` offloads synchronous `embed` through Phronomy and returns `TaskResult` | Beta |
 | **Model Context Protocol (MCP) Tool** — `Phronomy::Tools::Mcp` integration through the official `mcp` gem | Beta |
 | **Agent Tool** — `Phronomy::Tools::Agent.from_agent` exposes a child Agent as a Tool without occupying a worker while waiting | Beta |
 | **Vector Search Tool** — `Phronomy::Tools::VectorSearch` wraps VectorStore and Embeddings adapters | Beta |
+
+Applications previously calling async methods on backend objects must
+[move those calls to explicit clients](migrations/vector-async-clients.md).
+Backend authors continue to implement the synchronous SPI only.
 
 ## Execution and reliability
 
