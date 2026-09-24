@@ -12,6 +12,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+---
+
+## [0.27.0] - 2026-09-24
+
 ### Changed
 
 - Separate application Runtime reset and configuration replacement into
