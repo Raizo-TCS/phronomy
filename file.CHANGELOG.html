@@ -70,6 +70,22 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="Changed">Changed</h3>
 <ul>
 <li>
+<p>Add public Beta <code>Storage::AsyncClient#transaction_async</code> and route 16 existing
+durable Agent/Workflow/coordination execution units through its private submit
+boundary. Preserve transaction/savepoint, result reconciliation and admission
+policy; do not add cancellation or timeout to existing terminal writes.</p>
+</li>
+<li>
+<p>Move StoredContents into <code>content_store/backends/</code> without changing its
+constant or behavior. Complete P4; see the
+<a href="docs/migrations/storage-async-client.md">Storage client guide</a>.</p>
+</li>
+<li>
+<p>Preserve transparent text panels and module outlines in generated diagrams.
+Hide arrows into M33/M41/M44 as a display choice; keep their measured source
+dependencies, evidence and complete matrix.</p>
+</li>
+<li>
 <p><strong>Beta API receiver migration:</strong> move VectorStore <code>add_async</code>, <code>search_async</code>,
 <code>remove_async</code>, <code>clear_async</code> and Embeddings <code>embed_async</code> onto the public
 feature-specific <code>AsyncClient</code> objects. Synchronous backend methods and
@@ -817,7 +833,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Thu Sep 24 23:52:12 2026 by
+  Generated on Fri Sep 25 03:43:49 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/content_store/stored_contents.rb
+    <dd>lib/phronomy/content_store/backends/stored_contents.rb
 </dd>
   </dl>
   
@@ -272,7 +272,7 @@
 8</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 8</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_view'>view</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@view</span> <span class='op'>=</span> <span class='id identifier rubyid_view'>view</span></pre>
     </td>
@@ -331,7 +331,7 @@
 32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_exist?'>exist?</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@view</span><span class='period'>.</span><span class='id identifier rubyid_blobs'>blobs</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StorageSchema.html" title="Phronomy::ContentStore::StorageSchema (module)">StorageSchema</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="StorageSchema.html#CONTENTS-constant" title="Phronomy::ContentStore::StorageSchema::CONTENTS (constant)">CONTENTS</a></span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_exist?'>exist?</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span></pre>
     </td>
@@ -377,7 +377,7 @@
 30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='id identifier rubyid_content_id'>content_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -434,7 +434,7 @@
 21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_put'>put</span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='comma'>,</span> <span class='label'>canonicalization_version:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='const'>String</span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_b'>b</span>
@@ -458,7 +458,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu Sep 24 23:52:16 2026 by
+  Generated on Fri Sep 25 03:43:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
