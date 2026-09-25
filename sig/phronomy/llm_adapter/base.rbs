@@ -5,7 +5,5 @@ module Phronomy
       def stream: (untyped chat, String? message, ?config: Hash[untyped, untyped]) { (untyped chunk) -> void } -> untyped
     end
 
-    class RubyLLM < Base
-    end
   end
 end

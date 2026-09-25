@@ -1,0 +1,12 @@
+module Phronomy
+  module VectorStore
+    class Base
+      def add: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: _CancellationSignal?) -> untyped
+      def search: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: _CancellationSignal?) -> Array[Hash[Symbol, untyped]]
+      def remove: (id: String) -> untyped
+      def clear: () -> untyped
+      def size: () -> Integer
+    end
+
+  end
+end

@@ -12,13 +12,21 @@ RSpec.describe "RBS gem packaging" do
       "sig/phronomy.rbs",
       "sig/phronomy/runtime.rbs",
       "sig/phronomy/tool.rbs",
-      "sig/phronomy/llm_adapter.rbs",
+      "sig/phronomy/llm_adapter/base.rbs",
+      "sig/phronomy/llm_adapter/backends/ruby_llm.rbs",
       "sig/phronomy/agent.rbs",
       "sig/phronomy/workflow.rbs",
       "sig/phronomy/persistence.rbs",
       "sig/phronomy/extensions.rbs",
       "sig/phronomy/common.rbs",
-      "sig/phronomy/async_clients.rbs"
+      "sig/phronomy/vector_store/base.rbs",
+      "sig/phronomy/vector_store/embeddings/base.rbs",
+      "sig/phronomy/vector_store/async/async_client.rbs",
+      "sig/phronomy/vector_store/embeddings/async/async_client.rbs",
+      "sig/phronomy/storage/async/async_client.rbs",
+      "sig/phronomy/storage/contracts.rbs",
+      "sig/phronomy/storage/backends/in_memory.rbs",
+      "sig/phronomy/content_store/contracts.rbs"
     )
   end
 end

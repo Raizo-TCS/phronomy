@@ -1,0 +1,6 @@
+module Phronomy
+  module LLMAdapter
+    class RubyLLM < Base
+    end
+  end
+end

@@ -9,18 +9,5 @@ module Phronomy
       def clear_async: (?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> TaskResult[untyped]
     end
 
-    module Embeddings
-      class AsyncClient
-        def initialize: (adapter: Base, ?pool: untyped) -> void
-        def embed_async: (String text, ?Concurrency::CancellationToken? cancellation_token, ?timeout: Numeric?) -> TaskResult[Array[Float]]
-      end
-    end
-  end
-
-  module Storage
-    class AsyncClient
-      def initialize: (backend: _StorageBackend, ?pool: untyped) -> void
-      def transaction_async: [T] (?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) { (View) -> T } -> TaskResult[T]
-    end
   end
 end

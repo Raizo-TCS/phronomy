@@ -1,0 +1,10 @@
+# Framework-internal API. Loaded by -I sig; not exported by gem library loading.
+module Phronomy
+  module LLMAdapter
+    class AsyncClient
+      def initialize: (adapter: Base, ?pool: untyped) -> void
+      def complete_async: (untyped chat, String? message, ?config: Hash[untyped, untyped], ?pool: untyped) -> TaskResult[untyped]
+      def stream_async: (untyped chat, String? message, ?config: Hash[untyped, untyped], ?pool: untyped) { (untyped chunk) -> void } -> TaskResult[untyped]
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Phronomy
+  module VectorStore
+    module Embeddings
+      class AsyncClient
+        def initialize: (adapter: Base, ?pool: untyped) -> void
+        def embed_async: (String text, ?Concurrency::CancellationToken? cancellation_token, ?timeout: Numeric?) -> TaskResult[Array[Float]]
+      end
+    end
+  end
+
+end

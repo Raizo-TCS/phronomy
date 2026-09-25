@@ -86,7 +86,8 @@ backend effects. These are the existing OffloadPool semantics.
 Synchronous RBS signatures accept the structural `_CancellationSignal`
 interface, which requires only `raise_if_cancelled!`. Existing
 `Concurrency::CancellationToken` objects still satisfy it. Async RBS signatures
-live in `sig/phronomy/async_clients.rbs` and retain the full CancellationToken
+live in `sig/phronomy/vector_store/async/async_client.rbs` and
+`sig/phronomy/vector_store/embeddings/async/async_client.rbs` and retain the full CancellationToken
 and TaskResult contract needed by the execution pool. Do not substitute a
 minimal synchronous signal for an async operation's full token.
 

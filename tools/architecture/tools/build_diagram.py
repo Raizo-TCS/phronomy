@@ -26,7 +26,7 @@ def git(repo, *args):
 
 def fingerprint(repo):
     return {str(p.relative_to(repo)): hashlib.sha256(p.read_bytes()).hexdigest()
-            for p in sorted((repo / 'lib').rglob('*.rb'))}
+            for p in sorted([*(repo / 'lib').rglob('*.rb'), *(repo / 'sig').rglob('*.rbs')])}
 
 
 def anchor(parent, url, title):
@@ -78,12 +78,15 @@ def make_source(audit, architecture, tree, revision, candidate=False):
         a, b = bydir[pair['from']], bydir[pair['to']]
         direction = 'internal' if a['group'] == b['group'] else 'external'
         refs, requires = pair['references'], pair['requires']
-        proof = (refs or requires)[0]
-        edge = {'from': a['id'], 'to': b['id'], 'direction': direction, 'c': len(refs), 'l': len(requires),
-                'exception_only': bool(refs) and not requires and all(p['category'] == 'error' for p in refs)}
+        types = pair.get('rbs_references', [])
+        proof = (refs or requires or types)[0]
+        edge = {'from': a['id'], 'to': b['id'], 'direction': direction, 'c': len(refs), 'l': len(requires), 't': len(types),
+                'evidence': [{'origin': origin, **ref} for origin, records in [('ruby_constant', refs), ('ruby_require', requires), ('rbs', types)] for ref in records],
+                'exception_only': bool(refs) and not requires and not types and all(p['category'] == 'error' for p in refs)}
         edges.append(edge)
         url = f"{repository}/blob/{commit}/{proof['file']}#L{proof['line']}"
-        title = f"{a['id']} -> {b['id']}; C={len(refs)}, L={len(requires)}; {direction}; {proof['file']}:{proof['line']}"
+        title = f"{a['id']} -> {b['id']}; C={len(refs)}, L={len(requires)}, T={len(types)}; {direction}; {proof['file']}:{proof['line']}"
+        title += '\n' + '\n'.join(f"{r['origin']}: {r['file']}:{r['line']}" + (f" {r['owner']} {r['member'] or ''} -> {r['name']}" if r['origin'] == 'rbs' else '') for r in edge['evidence'])
         proofs[a['id'], b['id']] = (None if candidate else url, title)
         anchor(ET.SubElement(eg, S + 'g', {'id': f"edge_{a['id']}_{b['id']}"}), None if candidate else url, title)
     for item in modules:
@@ -97,7 +100,7 @@ def make_source(audit, architecture, tree, revision, candidate=False):
         el.text = value
     text(70, 4210, 'COMPLETE DEPENDENCY MATRIX', 28)
     instruction = 'Hover a cell for source evidence; GitHub links disabled.' if candidate else 'Hover or click a cell for source evidence.'
-    text(70, 4249, 'Rows: source. Columns: target. C = constant reference; L = require; + = both. ' + instruction, 19)
+    text(70, 4249, 'Rows: source. Columns: target. C = Ruby constant; L = require; T = RBS type; + = multiple kinds. ' + instruction, 19)
     cell, x0, y0 = 31, 790, 4360
     colors = {'internal': '#76808d', 'external': '#427c98'}
     emap = {(e['from'], e['to']): e for e in edges}
@@ -120,8 +123,8 @@ def make_source(audit, architecture, tree, revision, candidate=False):
                           'height': str(cell - 6), 'rx': '4', 'fill': colors[edge['direction']]})
             el = ET.SubElement(a, S + 'text', {'x': str(x + cell / 2), 'y': str(y + 22), 'font-size': '16',
                               'fill': '#fff', 'text-anchor': 'middle', 'font-family': 'DejaVu Sans, sans-serif'})
-            el.text = '+' if edge['c'] and edge['l'] else 'C' if edge['c'] else 'L'
-    footer = f'Source: fresh Ruby AST analysis. Diagram revision: {revision} | ARCHITECTURE LABELS FROM CONFIGURATION.'
+            el.text = '+' if sum(bool(edge[k]) for k in ('c', 'l', 't')) > 1 else 'C' if edge['c'] else 'L' if edge['l'] else 'T'
+    footer = f'Source: fresh Ruby AST + resolved RBS analysis. Diagram revision: {revision} | ARCHITECTURE LABELS FROM CONFIGURATION.'
     if candidate:
         footer += ' | LOCAL CANDIDATE / SOURCE LINKS DISABLED'
     y = y0 + len(order) * cell + 46
@@ -132,13 +135,13 @@ def make_source(audit, architecture, tree, revision, candidate=False):
             'candidate': candidate, 'source_links_enabled': not candidate, 'scope': audit['scope'], 'stats': audit['summary'], 'modules': modules, 'groups': groups, 'edges': edges,
             'analyzer_to_diagram_ids': {m['id']: bydir[m['directory']]['id'] for m in audit['modules']},
             'diagram_revision': revision, 'project_title': architecture['project_title'],
-            'diagram_subtitle': ('LOCAL CANDIDATE / NOT APPLIED / source links disabled' if candidate else 'Ruby source analysis / architecture labels from configuration'),
+            'diagram_subtitle': ('LOCAL CANDIDATE / NOT APPLIED / source links disabled' if candidate else 'Ruby + RBS analysis / architecture labels from configuration'),
             'commit_label': 'Local candidate commit: ' if candidate else 'Analyzed commit: ', 'matrix_footer': footer,
             'view_label': 'Fresh static source analysis; architecture annotations supplied separately',
             'architecture_note': 'Responsibility groups are supplied annotations. IDs and coordinates have no order or abstraction rank.',
             'annotation_source_commit': architecture['annotation_source_commit'],
             'annotation_source_revision': architecture['annotation_source_revision'],
-            'verification_method': 'Fresh execution of preserved analyzer; evidence and SCC regenerated from Ruby sources'}
+            'verification_method': 'Ruby AST and official RBS parser/resolver; union graph and SCC regenerated from lib and sig; file SCC remains Ruby-only'}
     metadata.text = json.dumps(meta, ensure_ascii=False)
     return ET.tostring(root, encoding='utf-8', xml_declaration=True)
 
@@ -156,8 +159,8 @@ def main():
     if not (repo / 'lib/phronomy').is_dir():
         raise ValueError('Expected a Phronomy checkout with lib/phronomy')
     head, tree = git(repo, 'rev-parse', 'HEAD'), git(repo, 'rev-parse', 'HEAD^{tree}')
-    if git(repo, 'status', '--porcelain', '--', 'lib'):
-        raise ValueError('SVG source links require committed lib sources. Use analyze_dependencies.py alone for uncommitted changes.')
+    if git(repo, 'status', '--porcelain', '--', 'lib', 'sig'):
+        raise ValueError('SVG source links require committed lib and sig sources. Use analyze_dependencies.py alone for uncommitted changes.')
     before = fingerprint(repo)
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.dependency-build-', dir=output) as temporary:
@@ -173,7 +176,7 @@ def main():
         (work / 'source.svg').write_bytes(make_source(audit, architecture, tree, revision, candidate=args.candidate))
         (work / 'layout.json').write_text(json.dumps(layout, indent=2) + '\n')
         format_svg(work / 'source.svg', work / 'dependencies.svg', work / 'layout.json', work / 'validation.json')
-        if before != fingerprint(repo) or git(repo, 'rev-parse', 'HEAD') != head or git(repo, 'status', '--porcelain', '--', 'lib'):
+        if before != fingerprint(repo) or git(repo, 'rev-parse', 'HEAD') != head or git(repo, 'status', '--porcelain', '--', 'lib', 'sig'):
             raise ValueError('Source changed during diagram generation')
         (work / 'source_sha256.json').write_text(json.dumps(before, indent=2) + '\n')
         for path in sorted(work.iterdir()):

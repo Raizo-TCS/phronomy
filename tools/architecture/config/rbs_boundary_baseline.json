@@ -1,0 +1,39 @@
+{
+  "baseline_commit": "cab117e6aab79ddb710fb0da1f693814cf950cc5",
+  "status": "Existing type boundary debt, not resolved by this tooling change",
+  "reason": "Configuration exposes application LLM and Agent hook types. Directory-level transitive analysis connects Engine configuration reads to these unrelated attributes. Preserve the public types and full graph; scope future checks by member or separate configuration contracts before removing this baseline.",
+  "references": [
+    {
+      "identity": {
+        "owner": "Phronomy::Configuration",
+        "member": "llm_adapter",
+        "member_kind": "instance",
+        "name": "Phronomy::LLMAdapter::Base",
+        "category": "type",
+        "from": "lib/phronomy/configuration",
+        "to": "lib/phronomy/llm_adapter"
+      },
+      "baseline_evidence": {
+        "file": "sig/phronomy.rbs",
+        "line": 56,
+        "text": "LLMAdapter::Base"
+      }
+    },
+    {
+      "identity": {
+        "owner": "Phronomy::Configuration",
+        "member": "before_llm_input",
+        "member_kind": "instance",
+        "name": "Phronomy::Agent::_BeforeLLMInputHook",
+        "category": "type",
+        "from": "lib/phronomy/configuration",
+        "to": "lib/phronomy/agent/context_contract"
+      },
+      "baseline_evidence": {
+        "file": "sig/phronomy.rbs",
+        "line": 57,
+        "text": "Agent::_BeforeLLMInputHook"
+      }
+    }
+  ]
+}

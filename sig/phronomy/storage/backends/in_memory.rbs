@@ -1,0 +1,9 @@
+module Phronomy
+  module Storage
+    module Backends
+      class InMemory < Backend
+        def initialize: (?resources: Array[Resource]) -> void
+      end
+    end
+  end
+end

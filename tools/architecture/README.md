@@ -1,20 +1,23 @@
 # Architecture evidence and responsibility groups
 
-The source graph comes from Ruby AST analysis. Configuration supplies module
+The source graph is the union of Ruby AST dependencies and declared RBS type
+references resolved by the official RBS parser. Configuration supplies module
 IDs and responsibility groups; layout supplies positions. The measured diagram
 restores the earlier B1-B6 horizontal bands, five topical columns and right-hand
 support area. These display layers organize the view; boundary permissions
 continue to depend on responsibilities, not coordinates or B/G numbers.
 
 ```sh
+bundle install
+bundle exec rbs -I sig validate
 python3 -m venv tmp/architecture-venv
 tmp/architecture-venv/bin/python -m pip install -r tools/architecture/tools/requirements.txt
 tmp/architecture-venv/bin/python -m unittest discover -s tools/architecture/tests -v
 tmp/architecture-venv/bin/python tools/architecture/refresh_diagram.py . tmp/architecture
 ```
 
-Use an empty output directory and committed `lib` sources. The command never
-stages, commits or modifies Ruby source. The repository's `phase.json` declares
+Use an empty output directory and committed `lib` and `sig` sources. The command never
+stages, commits or modifies Ruby or RBS source. The repository's `phase.json` declares
 the current phase (`storage`: P1/P2/P3/P4 complete). `--phase` can explicitly check another
 phase during development; it cannot add absent modules or remove real edges.
 New or missing directories, duplicate IDs, incomplete group membership and
@@ -24,8 +27,9 @@ Outputs include the full SVG/matrix, all/scoped AST JSON, source fingerprints,
 module-to-ID annotations, boundary results, graph/SCC differences from baseline,
 and source/configuration/tool provenance. Directory paths can overapproximate
 indirect dependencies; inspect the file references when reviewing a violation.
-Dynamic injection, root-loader wiring, RBS and runtime behavior need Ruby tests
-and review in addition to this gate.
+Untyped dynamic injection, root-loader wiring and runtime behavior need Ruby
+tests and review in addition to this gate. Type references express declared
+contracts, not proof of which injected concrete implementation executes.
 
 For a committed but unpublished local candidate, use `--candidate`. This labels
 the SVG as an unapplied candidate and disables GitHub links while preserving
@@ -77,7 +81,75 @@ Every phase layout retains `presentation.transparent_text_panels: true` and
 `presentation.hidden_incoming_targets: ["M33", "M41", "M44"]`. Hidden arrows
 remain in the SVG with `display="none"`; metadata, links and the complete matrix
 retain all measured edges. Counts distinguish measured pairs and visible arrows.
-The boundary gate always checks the full AST graph before presentation filtering.
+Boundary analysis always receives the full Ruby + RBS graph before presentation filtering.
+The regression gate records two pre-existing Configuration type references as
+explicit debt; the full-union report and SVG still include them (see below).
 With transparent nodes, paths end at box boundaries instead of exposing the
 previous center-to-border segments. This changes neither group membership nor
 dependency permission. Remove the target IDs to show those arrows again.
+
+## RBS layout and evidence
+
+Public gem signatures remain under `sig/`. Backend contracts, implementations
+and clients use subdirectories corresponding to their Ruby responsibilities:
+`sig/phronomy/llm_adapter/base.rbs`, `llm_adapter/backends/ruby_llm.rbs`,
+`vector_store/async/async_client.rbs`, and so on. RBS imposes no one-file-per-class
+requirement; other consolidated signatures remain supported. The internal LLM
+AsyncClient signature is under `sig/_private/phronomy/llm_adapter/async/`.
+RBS loads underscore directories with `-I sig` for development; gem library
+loading excludes them, so this addition does not publish the internal API.
+See the [RBS gem documentation](https://github.com/ruby/rbs/blob/master/docs/gem.md).
+
+`extract_rbs.rb` uses `RBS::Environment.resolve_type_names` with the installed
+Gemfile version (currently 4.1.x). It traverses nested method/block/proc types,
+attributes, variables, generic bounds/defaults, aliases, inheritance, mixins and
+module self types. Unknown types, unsupported AST nodes and missing ownership
+fail rather than silently omitting dependencies. Core/external references are
+retained separately and do not become Phronomy modules.
+
+RBS declarations are attached to their actual Ruby declaration owners; singleton
+members use their actual Ruby method definition when available. The RBS filename
+is source evidence, not a synthetic module. `config/rbs_owners.json` assigns only
+RBS-only interfaces/type aliases to existing responsibilities. It contains no
+dependency arrows. In particular, `_CancellationSignal` belongs to neutral
+common contracts, not the Engine's concrete CancellationToken. `untyped` values
+and implicit receiver implementations are not guessed.
+
+A directed directory pair is drawn once even when multiple sources support it.
+SVG metadata and cell/arrow hover text preserve every evidence kind/file/line.
+Matrix keys are C (Ruby constant), L (literal require), T (RBS type), and + (more
+than one kind). The complete union drives directory SCCs and fan-in/out. Ruby
+file SCCs keep their previous Ruby-only meaning; they are labelled accordingly.
+Display filters never alter the audit, matrix or SCC calculation.
+
+- `module_audit.json`: original unscoped Ruby AST evidence.
+- `module_audit_ruby_scoped.json`: Ruby-only scoped graph for comparable history.
+- `rbs_audit.json`: resolved RBS references, external references and ownership.
+- `module_audit_scoped.json`: complete scoped Ruby + RBS union and evidence.
+- `graph_delta.json`: Ruby-only comparison with the historic Ruby-only baseline,
+  plus RBS-added pairs and the new union SCCs.
+- `source_sha256.json`: every analyzed Ruby and RBS file, including `_private`.
+- `provenance.json`: parser version, source commit/tree, scripts and configuration.
+
+## Existing type boundary debt
+
+Adding RBS reveals two already-present references in main `cab117e6`:
+`Configuration#llm_adapter` references `LLMAdapter::Base`, and
+`Configuration#before_llm_input` references `Agent::_BeforeLLMInputHook`.
+Directory-level transitive analysis connects Engine configuration reads to these
+application-oriented attributes. These types were not introduced by this change.
+They remain visible in the union graph, SCCs and `boundary_validation.json`'s
+`full_union` report; that report does **not** pass the strict boundary policy.
+
+`config/rbs_boundary_baseline.json` records the exact two owner/member/type
+identities and their original file/line evidence. The CI regression gate exempts
+only those RBS occurrences. Other references between the same directories,
+including Ruby references, are still checked. Missing or duplicated baseline
+occurrences fail so that stale allowances cannot silently accumulate. The SVG
+is generated only if this regression gate passes; its success is not a claim
+that the full type graph is violation-free.
+
+Resolving this debt requires member-level configuration analysis or separating
+application configuration contracts from the Engine-facing configuration view.
+It must not be hidden by changing the public types to `untyped` or relocating
+RBS files to assign misleading owners.

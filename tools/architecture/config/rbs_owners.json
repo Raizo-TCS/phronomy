@@ -1,0 +1,17 @@
+{
+  "Phronomy::_CancellationSignal": "lib/phronomy/common",
+  "Phronomy::_StorageBackend": "lib/phronomy/storage",
+  "Phronomy::_ContentRepository": "lib/phronomy/content_store",
+  "Phronomy::Agent::_BeforeLLMInputHook": "lib/phronomy/agent/context_contract",
+  "Phronomy::_AgentRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_JournalRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_ExecutionRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_WorkflowStateRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_HandoffStateRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_TeamRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_TeamExecutionRepository": "lib/phronomy/persistence/api",
+  "Phronomy::_PersistenceTransactionView": "lib/phronomy/persistence/api",
+  "Phronomy::Storage::attributes": "lib/phronomy/storage",
+  "Phronomy::Storage::resource_ref": "lib/phronomy/storage",
+  "Phronomy::Storage::condition": "lib/phronomy/storage"
+}

@@ -6,6 +6,7 @@ It never modifies the repository and never rewrites extracted dependency edges.
 """
 
 import argparse
+from copy import deepcopy
 from collections import deque
 import hashlib
 import json
@@ -116,20 +117,57 @@ def check_boundaries(audit, phase, repo, architecture=None):
             violations.append({"kind":"missing-phase-source","file":relative})
     return {"phase":phase,"commit":audit["commit"],"passed":not violations,
             "remaining_legacy_pairs":sorted(actual),"rules_basis":"semantic responsibilities, independent of IDs and coordinates",
-            "violations":violations,"limitations":["Static Ruby constants and literal requires only", "Directory aggregation may overapproximate indirect paths; inspect file evidence", "RBS, root loader, injection and runtime/API compatibility require separate checks"]}
+            "violations":violations,"limitations":["Static Ruby constants, literal requires and declared RBS type references", "Directory aggregation may overapproximate indirect paths; inspect member/file evidence", "Untyped injection, root-loader wiring and runtime/API compatibility require separate checks"]}
+
+
+def check_with_type_baseline(audit, phase, repo, baseline=None):
+    """Keep pre-existing type debt explicit; reject new violations, not old RBS APIs.
+
+    The full graph/report/SVG remain untouched. Only two exact pre-existing RBS
+    attribute references are exempted from the regression gate. Ruby references
+    and any other evidence between those same directories are never exempted.
+    """
+    baseline = baseline or json.loads((HERE / "config/rbs_boundary_baseline.json").read_text())
+    full = check_boundaries(audit, phase, repo)
+    checked = deepcopy(audit)
+    counts = [0] * len(baseline["references"])
+    for pair in checked["module_pairs"]:
+        remaining = []
+        for ref in pair.get("rbs_references", []):
+            matches = [i for i, item in enumerate(baseline["references"])
+                       if all(ref.get(k) == v for k, v in item["identity"].items())]
+            if matches:
+                for i in matches:
+                    counts[i] += 1
+            else:
+                remaining.append(ref)
+        pair["rbs_references"] = remaining
+    checked["module_pairs"] = [p for p in checked["module_pairs"]
+                               if p["references"] or p["requires"] or p["rbs_references"]]
+    regression = check_boundaries(checked, phase, repo)
+    if counts != [1] * len(counts):
+        regression["violations"].append({"kind": "stale-type-boundary-baseline", "match_counts": counts})
+        regression["passed"] = False
+    return {"passed": regression["passed"], "phase": phase, "commit": audit["commit"],
+            "full_union": full, "regression_gate": regression,
+            "existing_type_debt": baseline, "matched_reference_counts": counts}
 
 
 def graph_delta(baseline, current):
     def pairs(audit):
         return {(p["from"], p["to"]) for p in audit["module_pairs"]}
-    before, after = pairs(baseline), pairs(current)
+    before = pairs(baseline)
+    after = {(p['from'], p['to']) for p in current['module_pairs'] if p['references'] or p['requires']}
     return {
         "baseline_commit": baseline["commit"],
         "source_commit": current["commit"],
         "added_pairs": sorted(after - before),
         "removed_pairs": sorted(before - after),
         "baseline_scc": [c for c in baseline["scc_all"] if len(c) > 1],
-        "source_scc": [c for c in current["scc_all"] if len(c) > 1],
+        "comparison_basis": "Ruby-only graphs (historical baseline has no RBS evidence)",
+        "source_scc": [c for c in current.get("scc_ruby", current["scc_all"]) if len(c) > 1],
+        "rbs_added_pairs": sorted(pairs(current) - after),
+        "union_scc": [c for c in current["scc_all"] if len(c) > 1],
     }
 
 
@@ -148,8 +186,8 @@ def main():
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use an empty output directory to avoid mixing source revisions")
     head = git(repo, "rev-parse", "HEAD")
-    if git(repo, "status", "--porcelain", "--", "lib"):
-        raise ValueError("Commit lib changes before generating a source-linked SVG")
+    if git(repo, "status", "--porcelain", "--", "lib", "sig"):
+        raise ValueError("Commit lib and sig changes before generating a source-linked SVG")
     version_text = (repo / "lib/phronomy/version.rb").read_text()
     match = re.search(r'VERSION\s*=\s*["\x27]([^"\x27]+)', version_text)
     if not match:
@@ -161,7 +199,7 @@ def main():
         audit = json.loads((analysis / "module_audit_scoped.json").read_text())
         if audit["commit"] != head or audit["source_changed"]:
             raise ValueError("Source changed during boundary analysis")
-        report = check_boundaries(audit, args.phase, repo)
+        report = check_with_type_baseline(audit, args.phase, repo)
         if not report["passed"]:
             print(json.dumps(report, indent=2), file=sys.stderr)
             raise ValueError("Phase boundary check failed; no SVG generated")
@@ -184,13 +222,14 @@ def main():
         (built / "architecture.json").write_text(config.read_text())
         provenance = {"source_commit": head, "source_tree": git(repo, "rev-parse", "HEAD^{tree}"), "phase": args.phase, "candidate": args.candidate,
                       "phase_file_sha256": hashlib.sha256((HERE / "phase.json").read_bytes()).hexdigest(),
-                      "configuration_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in [architecture_path, layout_path]},
-                      "scripts_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__), *sorted((HERE / "tools").glob("*.py"))]}}
+                      "rbs_parser": {k: audit["rbs"][k] for k in ["parser", "version"]},
+                      "configuration_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in [architecture_path, layout_path, HERE / "config/rbs_owners.json", HERE / "config/rbs_boundary_baseline.json"]},
+                      "scripts_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__), *sorted((HERE / "tools").glob("*.py")), *sorted((HERE / "tools").glob("*.rb"))]}}
         (built / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
         output.mkdir(parents=True, exist_ok=True)
         for file in sorted(built.iterdir()):
             (output / file.name).write_bytes(file.read_bytes())
-    print(json.dumps({"phase": args.phase, "commit": head, "svg": str(output / "dependencies.svg"), "static_boundary_gate": "passed"}, indent=2))
+    print(json.dumps({"phase": args.phase, "commit": head, "svg": str(output / "dependencies.svg"), "static_boundary_regression_gate": "passed", "full_union_boundary_passed": report["full_union"]["passed"], "existing_type_debt_references": len(report["existing_type_debt"]["references"])}, indent=2))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+module Phronomy
+  module VectorStore
+    module Embeddings
+      class Base
+        def embed: (String text, ?_CancellationSignal? cancellation_token) -> Array[Float]
+      end
+    end
+  end
+end

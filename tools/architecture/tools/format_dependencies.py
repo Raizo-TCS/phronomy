@@ -169,14 +169,14 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         return node
 
     add("title", text="Phronomy dependencies: layered display and responsibility groups", id="chart-title")
-    add("desc", text="Measured Ruby dependencies in the previous horizontal layer layout and topical columns. B1-B6 identify display bands; G IDs identify responsibilities. Boundary checks use responsibilities rather than positions. Individual module boxes and source evidence are preserved.", id="chart-description")
+    add("desc", text="Measured Ruby and declared RBS dependencies in the previous horizontal layer layout and topical columns. B1-B6 identify display bands; G IDs identify responsibilities. Boundary checks use responsibilities rather than positions. Individual module boxes and source evidence are preserved.", id="chart-description")
     metadata_node = add("metadata")
     add("rect", x=0, y=0, width=width, height=height, fill="#fff")
     style = add("style")
     style.text = ".edge:hover .edge-line{stroke-opacity:1;stroke-width:3}.edge:hover .arrowhead{fill-opacity:1}.edge{cursor:pointer}"
     text(70, 75, meta.get("project_title", "PHRONOMY 0.26.0"), 42, font_weight=750)
     text(70, 120, meta.get("diagram_subtitle", f"Applied Refactor {applied_refactor} / Topical columns & distributed connections"), 29)
-    text(70, 164, f"{len(modules)} modules / {meta['stats']['files']} Ruby files / {len(edges)} dependency pairs / {len(groups)} responsibility groups / {len(visible_edges)} arrows shown", 23)
+    text(70, 164, f"{len(modules)} modules / {meta['stats']['files']} Ruby files / {meta['stats'].get('rbs_files', 0)} RBS files / {len(edges)} dependency pairs / {len(groups)} responsibility groups / {len(visible_edges)} arrows shown", 23)
     text(70, 205, meta.get("commit_label", "Reviewed commit: ") + meta["commit"], 19)
     text(70, 237, "Source tree: " + meta["source_tree"], 17, "#627988")
     text(70, 281, "Arrows connect box boundaries. Text panels are transparent; solid triangles mark the target." if transparent else
@@ -195,7 +195,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
          "Common targets: light gray / behind", 18, parent=background_legend)
     directory_cycles = " / ".join(map(str, meta["stats"]["module_scc_sizes"]["all"])) or "none"
     file_cycles = " / ".join(map(str, meta["stats"]["file_scc_sizes"])) or "none"
-    text(70, 413, f"Directory cycles: {directory_cycles}. File cycles: {file_cycles}. Orange borders mark cycle membership.", 18, "#627988")
+    text(70, 413, f"Directory cycles (union): {directory_cycles}. Ruby file cycles: {file_cycles}. Orange borders mark cycle membership.", 18, "#627988")
     for index, (gid, label) in enumerate([("G14", "Engine"), ("G46", "Async Clients"),
                                         ("G47", "Backend Contracts"), ("G48", "Backend Implementations")]):
         if gid in by_group:

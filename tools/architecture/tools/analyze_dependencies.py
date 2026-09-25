@@ -13,7 +13,7 @@ ROOT = Path(args.repository).resolve()
 HERE = Path(args.output_directory).resolve()
 HERE.mkdir(parents=True, exist_ok=True)
 commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
-source_changed = bool(subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain', '--', 'lib'], text=True))
+source_changed = bool(subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain', '--', 'lib', 'sig'], text=True))
 parser=Parser(Language(tree_sitter_ruby.language()))
 sources={str(p.relative_to(ROOT)):p.read_bytes() for p in sorted(ROOT.glob('lib/**/*.rb'))}
 trees={f:parser.parse(b) for f,b in sources.items()}
@@ -277,6 +277,12 @@ def count_defs(node):
 summary['methods'] = sum(count_defs(trees[f].root_node) for f in files)
 summary['nonblank_noncomment_lines'] = sum(sum(bool(line.strip()) and not line.lstrip().startswith(b'#') for line in sources[f].splitlines()) for f in files)
 d['summary'] = summary
+(HERE/'module_audit_ruby_scoped.json').write_text(json.dumps(d, ensure_ascii=False, indent=2)+'\n')
+from rbs_dependencies import extract, integrate
+rbs = extract(ROOT, decls, singleton_definitions, primary)
+(HERE/'rbs_audit.json').write_text(json.dumps(rbs, ensure_ascii=False, indent=2)+'\n')
+d = integrate(d, rbs, components)
+summary = d['summary']
 (HERE/'module_audit_scoped.json').write_text(json.dumps(d, ensure_ascii=False, indent=2)+'\n')
 (HERE/'module_summary_scoped.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2)+'\n')
 print(json.dumps(summary, ensure_ascii=False, indent=2))

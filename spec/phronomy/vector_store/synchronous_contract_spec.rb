@@ -30,7 +30,9 @@ RSpec.describe "Synchronous backend cancellation contract" do
   end
 
   it "keeps synchronous signatures free of execution-engine types and async return handles" do
-    signature = File.read(File.expand_path("../../../sig/phronomy/extensions.rbs", __dir__))
+    signature = ["vector_store/base.rbs", "vector_store/embeddings/base.rbs"].map do |file|
+      File.read(File.expand_path("../../../sig/phronomy/#{file}", __dir__))
+    end.join("\n")
     expect(signature).to include("_CancellationSignal?")
     expect(signature).not_to include("Concurrency::", "TaskResult", "_async:")
     expect(Phronomy::VectorStore::Base.public_instance_methods(false)).to contain_exactly(:add, :search, :remove, :clear, :size)

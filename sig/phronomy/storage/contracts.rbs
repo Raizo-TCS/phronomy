@@ -1,15 +1,4 @@
 module Phronomy
-  interface _ContentRepository
-    def put: (String bytes, canonicalization_version: untyped) -> String
-    def fetch: (String content_id) -> String
-    def exist?: (String content_id) -> bool
-    def put_text: (String text) -> String
-    def put_json: (untyped value) -> String
-    def fetch_text: (String content_id) -> String
-    def fetch_json: (String content_id) -> untyped
-    def fetch_many: (Array[String] content_ids) -> Hash[String, String]
-  end
-
   interface _StorageBackend
     def view: () -> Storage::View
     def capabilities: () -> Hash[Symbol, bool | Integer]
@@ -164,11 +153,6 @@ module Phronomy
       def self.validate_capabilities!: (_StorageBackend backend) -> void
       def capabilities: () -> Hash[Symbol, bool | Integer]
       def transaction: [T] () { (View) -> T } -> T
-    end
-    module Backends
-      class InMemory < Backend
-        def initialize: (?resources: Array[Resource]) -> void
-      end
     end
   end
 end

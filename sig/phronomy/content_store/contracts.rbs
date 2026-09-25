@@ -1,0 +1,13 @@
+module Phronomy
+  interface _ContentRepository
+    def put: (String bytes, canonicalization_version: untyped) -> String
+    def fetch: (String content_id) -> String
+    def exist?: (String content_id) -> bool
+    def put_text: (String text) -> String
+    def put_json: (untyped value) -> String
+    def fetch_text: (String content_id) -> String
+    def fetch_json: (String content_id) -> untyped
+    def fetch_many: (Array[String] content_ids) -> Hash[String, String]
+  end
+
+end

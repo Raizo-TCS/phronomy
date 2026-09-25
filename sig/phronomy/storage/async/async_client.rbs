@@ -1,0 +1,8 @@
+module Phronomy
+  module Storage
+    class AsyncClient
+      def initialize: (backend: _StorageBackend, ?pool: untyped) -> void
+      def transaction_async: [T] (?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) { (View) -> T } -> TaskResult[T]
+    end
+  end
+end
