@@ -199,7 +199,7 @@ module Phronomy
 
       def submit_provider_dispatch_preparation(operation)
         runtime = Phronomy::Runtime.instance
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @dispatch_preparation.prepare_provider(operation)
         end
         task.on_complete do |result, error|
@@ -220,7 +220,7 @@ module Phronomy
 
       def submit_tool_dispatch_preparation(operation)
         runtime = Phronomy::Runtime.instance
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @dispatch_preparation.prepare_tools(operation)
         end
         task.on_complete do |result, error|
@@ -247,7 +247,7 @@ module Phronomy
           intended_result: uncertainty.intended_result,
           original_error: uncertainty.original_error
         )
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @dispatch_preparation.reconcile_provider(command)
         end
         task.on_complete do |result, error|
@@ -276,7 +276,7 @@ module Phronomy
           intended_result: uncertainty.intended_result,
           original_error: uncertainty.original_error
         )
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @dispatch_preparation.reconcile_tools(command)
         end
         task.on_complete do |result, error|
@@ -378,7 +378,7 @@ module Phronomy
         @agent.send(:__assert_live_agent!)
 
         operation = capture_initial_preparation(request, root)
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @initial_preparation.prepare(operation)
         end
         submitted = true
@@ -608,7 +608,7 @@ module Phronomy
           root: @agent.agent_root,
           journal_records: @agent.send(:_journal_records_snapshot)
         )
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @initial_preparation.recover(operation)
         end
         task.on_complete do |result, error|
@@ -1087,7 +1087,7 @@ module Phronomy
           state: :resuming
         )
         resume_transition_started = true
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           @approval_resume_commit.commit(operation)
         end
         submitted = true
@@ -1503,7 +1503,7 @@ module Phronomy
           operation.execution_id,
           delivery.result_task
         )
-        task = runtime.offload.submit(on_full: :raise) do
+        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. TaskResult/listener delivery state stays outside it.
           @outcome_committer.commit_outcome(operation)

@@ -25,7 +25,7 @@ are source-ownership groups, not shared Ruby namespaces. Synchronous APIs can
 be called directly. Diagram links represent source references; calls through
 injected objects require separate runtime review.
 
-## Implemented phase: P1/P2/P3 (`vector`)
+## Implemented phase: P1/P2/P3/P4 (`storage`)
 
 P3 adds public VectorStore and Embeddings AsyncClients. Their synchronous
 contracts and implementations have no Engine dependencies. See the
@@ -76,15 +76,24 @@ are needed in this phase; both are verified unchanged.
   M28/M29 join G47 Contracts in B5. M67/M68 are clients in B4 and M71/M72 are
   separately grouped implementations. No pending Storage clients are drawn.
 
-## Pending phases
+### P4: Storage and ContentStore
 
-P4 introduces the Storage execution client
-and separates StoredContents; transaction scope and domain outcome policy
-must remain intact. P5 completes cross-repository API/docs/verification.
+- Public `Storage::AsyncClient#transaction_async` opens the raw backend transaction
+  on a worker and yields its scoped Storage::View. Backends stay synchronous.
+- Private `Storage::AsyncClient.submit(pool:)` executes existing domain units
+  without adding a transaction, timeout or token. All 16 durable submission sites
+  are recorded in the [execution inventory](storage-execution-boundaries.md).
+- StoredContents moves to collapsed `content_store/backends/`; its implementation
+  body is unchanged. Existing `Storage::Backends` is not collapsed.
+- M10 joins Contracts in B5. M69 is an Async Client and M73 a concrete backend
+  in B4. No pending mixed backend directory remains in this phase.
+- See the [public API and transaction rules](../migrations/storage-async-client.md).
 
-The complete target concept therefore includes modules not implemented yet.
-The measured SVG always reflects actual Ruby source and marks the remaining
-mixed directories. It never inserts planned modules into an AST result.
+## Pending phase
+
+P5 completes the final cross-repository/API/docs review after application.
+All P2-P4 planned modules now exist in source. The measured SVG still comes from
+actual Ruby analysis; the target concept is a separate explanatory artifact.
 
 ## Regenerate and review
 
@@ -105,3 +114,7 @@ An unpublished local candidate must use `--candidate`. Its SVG states that it
 is unapplied and disables GitHub source links. Applied commits and CI output
 use actual source links. CI artifacts are generated after the source commit;
 there is no self-referential SVG commit hash or automatic commit/push.
+
+Text panels are transparent and module outlines/group colors remain intact.
+Arrows into M33/M41/M44 are hidden by presentation settings; their AST edges,
+source evidence and matrix cells are preserved. Boundary rules inspect all edges.

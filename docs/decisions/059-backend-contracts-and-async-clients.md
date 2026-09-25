@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted; P1/P2/P3 (LLM, VectorStore and Embeddings separation plus diagram
-tooling) implemented. Storage/ContentStore migration is pending, as recorded in
+Accepted; P1/P2/P3/P4 (LLM, VectorStore, Embeddings, Storage/ContentStore and
+diagram tooling) implemented. Final P5 review remains pending, as recorded in
 [Backend responsibilities](../architecture/backend-groups.md).
 
 ## Context
@@ -49,7 +49,14 @@ P2 keeps the LLM client internal. P3 introduces public VectorStore/Embeddings
 AsyncClients and moves async receivers off the synchronous backends. Their
 argument conventions and execution semantics are unchanged; the receiver
 migration is intentional and documented. Storage operations do not change in
-P3. Other repository cycles remain visible.
+P3. P4 adds public raw `transaction_async` and a private submit path for existing
+Agent/Workflow/coordination units. The latter opens no transaction and leaves
+uncertain-result policy with each owner. ContentStore implementation moves to
+its own directory. Other repository cycles remain visible.
+
+Transparent module/caption panels and hidden incoming arrows to M33/M41/M44 are
+presentation settings only. The full measured graph, matrix and boundary rules
+remain unchanged by that filtering.
 
 Boundary tests cover direct and indirect reverse dependencies and keep group
 IDs independent from policy. Runtime tests cover sync-only custom adapters,

@@ -69,6 +69,13 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     modules = {m["id"]: m for m in meta["modules"]}
     edges = sorted(meta["edges"], key=lambda e: (e["from"], e["to"]))
     groups = meta["groups"]
+    presentation = config.get("presentation", {})
+    transparent = presentation.get("transparent_text_panels", False)
+    hidden_targets = set(presentation.get("hidden_incoming_targets", []))
+    if hidden_targets - modules.keys():
+        raise ValueError("Hidden arrow target is not an actual module")
+    visible_edges = [edge for edge in edges if edge["to"] not in hidden_targets]
+    hidden_count = len(edges) - len(visible_edges)
     theme = config.get("group_theme", {})
     palette = theme.get("palette", {})
 
@@ -169,19 +176,23 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     style.text = ".edge:hover .edge-line{stroke-opacity:1;stroke-width:3}.edge:hover .arrowhead{fill-opacity:1}.edge{cursor:pointer}"
     text(70, 75, meta.get("project_title", "PHRONOMY 0.26.0"), 42, font_weight=750)
     text(70, 120, meta.get("diagram_subtitle", f"Applied Refactor {applied_refactor} / Topical columns & distributed connections"), 29)
-    text(70, 164, f"{len(modules)} modules / {meta['stats']['files']} Ruby files / {len(edges)} dependency pairs / {len(groups)} responsibility groups", 23)
+    text(70, 164, f"{len(modules)} modules / {meta['stats']['files']} Ruby files / {len(edges)} dependency pairs / {len(groups)} responsibility groups / {len(visible_edges)} arrows shown", 23)
     text(70, 205, meta.get("commit_label", "Reviewed commit: ") + meta["commit"], 19)
     text(70, 237, "Source tree: " + meta["source_tree"], 17, "#627988")
-    text(70, 281, "Arrows start at hidden box centers; boundary crossings are spread out. Solid triangles mark the target.", 21)
-    text(70, 316, "B4: clients / implementations / pending split. B5: Engine / separated Contracts. G IDs identify independent responsibilities.", 19)
-    counts = Counter(e["direction"] for e in edges)
+    text(70, 281, "Arrows connect box boundaries. Text panels are transparent; solid triangles mark the target." if transparent else
+         "Arrows start at hidden box centers; boundary crossings are spread out. Solid triangles mark the target.", 21)
+    mixed = any(module.get("mixed", False) for module in modules.values())
+    b4_roles = "clients / implementations / pending split" if mixed else "clients / implementations"
+    text(70, 316, f"B4: {b4_roles}. B5: Engine / separated Contracts. G IDs identify independent responsibilities.", 19)
+    counts = Counter(e["direction"] for e in visible_edges)
     for j, (key, label) in enumerate([("external", "Between groups"), ("internal", "Within group")]):
         x = 72 + j * 440
         add("rect", x=x, y=349, width=18, height=18, rx=4, fill=COLORS[key])
-        text(x + 30, 366, f"{label}: {counts[key]}", 18)
+        text(x + 30, 366, f"{label}: {counts[key]} shown", 18)
     background_legend = add("g", id="common-background-legend")
     add("rect", background_legend, x=2300, y=349, width=18, height=18, rx=4, fill=config["background"]["stroke"])
-    text(2330, 366, "Common targets: light gray / behind", 18, parent=background_legend)
+    text(2330, 366, " / ".join(sorted(hidden_targets)) + ": incoming arrows hidden" if hidden_targets else
+         "Common targets: light gray / behind", 18, parent=background_legend)
     directory_cycles = " / ".join(map(str, meta["stats"]["module_scc_sizes"]["all"])) or "none"
     file_cycles = " / ".join(map(str, meta["stats"]["file_scc_sizes"])) or "none"
     text(70, 413, f"Directory cycles: {directory_cycles}. File cycles: {file_cycles}. Orange borders mark cycle membership.", 18, "#627988")
@@ -193,13 +204,14 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
             add("rect", x=x, y=431, width=25, height=20, rx=3,
                 fill=color["label_fill"], stroke=color["stroke"])
             text(x + 36, 448, gid + "  " + label, 18, color["label_color"])
-    text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending.", 20, "#7a5737")
+    text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending." if mixed else
+         "Backend contracts and implementations occupy separate source directories.", 20, "#7a5737" if mixed else "#526b7a")
     text(70, 509, "Backend Implementations are production code. Testing, Migration and Tracing retain their own groups.", 19, "#526b7a")
     if bands:
         backdrop = add("g", id="display-layers")
         for column, description in enumerate(config["columns"]):
             cx = config["column_centers"][column]
-            add("rect", backdrop, x=cx - 245, y=550, width=490, height=68, rx=8, fill="#e8f0f6")
+            add("rect", backdrop, x=cx - 245, y=550, width=490, height=68, rx=8, fill="none" if transparent else "#e8f0f6")
             text(cx, 578, description["title"], 18, parent=backdrop, text_anchor="middle", font_weight=750)
             text(cx, 603, description["subtitle"], 14, "#526b7a", backdrop, text_anchor="middle")
         text(config["support_center"], 578, "SUPPORT / CROSS-CUTTING", 19,
@@ -344,6 +356,11 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         color = config["background"]["stroke"] if muted else COLORS[edge["direction"]]
         layer = back if muted else normal
         group = add("g", layer, id=f"edge_{f}_{t}", **{"class": "edge"})
+        if t in hidden_targets:
+            group.set("display", "none")
+            group.set("data-hidden-reason", "incoming-to-common-target")
+        if transparent:
+            points[0], points[-1] = source_boundary, boundary
         link = anchor(group, by_id[f"edge_{f}_{t}"].find(S + "a"))
         add("path", link, d=rounded_path(points, config["routing"]["corner_radius"]),
             fill="none", stroke=color, stroke_width=min(1.9, 1.05 + edge["c"] * .022),
@@ -365,7 +382,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
             "route_kind": kind, "control_points": points})
 
     # Ownership frames may form multiple connected pieces with the same group ID.
-    # Nodes are opaque and drawn after every edge, hiding center-to-border lines.
+    # Transparent nodes use boundary endpoints; opaque nodes cover center segments.
     frames = add("g", id="ownership-frames")
     for group in groups:
         color = group_style(group["id"])
@@ -380,7 +397,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
                 fill="none", stroke=color["stroke"], stroke_width=1)
             title = config["group_display_titles"].get(group["id"], group["title"])
             add("rect", frame, x=x + 6, y=y + 6, width=w - 12, height=22, rx=3,
-                fill=color["label_fill"])
+                fill="none" if transparent else color["label_fill"])
             text(x + 10, y + 22, group["id"] + "  " + title, 13, color["label_color"], frame, font_weight=600)
     nodes = add("g", id="module-nodes")
     for mid, module in sorted(modules.items()):
@@ -388,7 +405,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         node = add("g", nodes, id="node_" + mid, **{"class": "node"})
         link = anchor(node, by_id["node_" + mid].find(S + "a"))
         add("rect", link, x=x - config["box_width"] / 2, y=y - half_height,
-            width=config["box_width"], height=config["box_height"], rx=9, fill="#fff",
+            width=config["box_width"], height=config["box_height"], rx=9, fill="none" if transparent else "#fff", pointer_events="all",
             stroke="#bc7048" if module["scc"] else "#7896aa", stroke_width=1.7)
         cycle = f"  [S{module['scc_group']}]" if module["scc"] else ""
         text(x - 176, y - 41, mid + cycle + (" *" if module.get("mixed") else ""), 18, parent=link, font_weight=750)
@@ -419,7 +436,14 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         "Mixed source directories remain marked until actual separation. Coordinates and line colors do not certify boundary correctness.",
         "Entry lib/phronomy.rb is excluded. Dynamic injection, reflective calls, RBS and external example implementations require separate review."
     ]
-    if meta.get("candidate"):
+    if transparent:
+        notes[0] = "B1-B6 retain the horizontal layout. Pastel groups distinguish responsibilities; transparent boxes show source modules."
+        notes[2] = "Paths start and end at box boundaries; transparent text panels reveal no center-to-border segments."
+    if hidden_targets:
+        targets = "/".join(sorted(hidden_targets))
+        notes[1] = f"{len(visible_edges)} arrows are shown; {hidden_count} incoming arrows to {targets} are hidden. All {len(edges)} pairs remain in the matrix."
+        notes[3] = "Hidden arrows are a display choice. Full source evidence and measured relationships remain in the matrix."
+    if meta.get("candidate") and not hidden_targets:
         notes[3] = "Common dependencies are light gray. Hover for source locations; GitHub links are disabled for this unpublished candidate."
     for i, line in enumerate(notes):
         text(70, notes_top + 43 + i * 33, line, 19, "#526b7a")
@@ -450,17 +474,22 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         relocated_node_ids=sorted(modules), new_node_ids=[],
         formatting={"format": config["format"], "configuration": config,
             "display_layers": bands, "layout_is_dependency_policy": False,
-            "source_anchor": "center, covered by opaque source box", "target_anchor": "center, with triangle at the visible boundary",
+            "source_anchor": "boundary" if transparent else "center, covered by opaque source box",
+            "target_anchor": "boundary" if transparent else "center, with triangle at the visible boundary",
             "ports": "distinct per node face across incoming and outgoing edges", "arrowhead": "filled triangle",
             "group_fills": "pastel backgrounds behind all edges; same group ID keeps its palette across phases",
             "matrix_order": "preserved", "ownership_frames": "connected pieces; repeated group labels retain the same owner"},
         edge_presentation={"rule": "Common-target dependencies use light gray behind other edges; no coordinate-based rules",
-            **config["background"], "edge_count": len(back), "paint_order": ["common-background-edges", "primary-dependency-edges"], "matrix_unchanged": True})
+            **config["background"], "edge_count": len(back),
+            "hidden_incoming_targets": sorted(hidden_targets), "hidden_edges": hidden_count,
+            "visible_edges": len(visible_edges), "transparent_text_panels": transparent, "paint_order": ["common-background-edges", "primary-dependency-edges"], "matrix_unchanged": True})
     meta["notes_ja"] = [
         "B1〜B6 の横帯・分野別の列・右側の補助領域を復元。G 番号は責務を示し、境界検査は配置ではなく責務に基づく。",
         "現状の混在ディレクトリを明示。構想図と実測図を区別し、分離前の依存もすべて残す。",
         "全依存対・行列・根拠リンクを維持。Engine と Backend Contracts は独立した責務。"
     ]
+    if hidden_targets:
+        meta["notes_ja"].append("共通定義への指定矢印は表示のみ非表示。解析データ・全依存行列・根拠を保持。")
     metadata_node.text = json.dumps(meta, ensure_ascii=False)
 
     # Verify the presentation change does not silently change the reviewed graph.
@@ -490,7 +519,8 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     validation = {"commit": meta["commit"], "revision": meta["diagram_revision"], "modules": len(modules),
         "edges": len(edges), "filled_triangles": len(edges), "background_edges": len(back), "primary_edges": len(normal),
         "evidence_anchors": sum(hrefs(root).values()), "source_links": sum(1 for n in root.iter(S + "a") if n.get(X + "href")), "matrix_cells_identical": len(before_cells),
-        "source_graph_unchanged": True, "source_centers_hidden_by_nodes": True, "ports_unique_on_each_face": True,
+        "source_graph_unchanged": True, "source_centers_hidden_by_nodes": not transparent, "paths_end_at_boundaries": transparent,
+        "hidden_edges": hidden_count, "visible_edges": len(visible_edges), "visible_filled_triangles": len(visible_edges), "ports_unique_on_each_face": True,
         "width": width, "height": height, "sha256": hashlib.sha256(rendered).hexdigest(), "routes": routing_records}
     validation["route_kinds"] = dict(Counter(r["route_kind"] for r in routing_records))
     if validation_path:

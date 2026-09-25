@@ -14,6 +14,17 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Changed
 
+- Add public Beta `Storage::AsyncClient#transaction_async` and route 16 existing
+  durable Agent/Workflow/coordination execution units through its private submit
+  boundary. Preserve transaction/savepoint, result reconciliation and admission
+  policy; do not add cancellation or timeout to existing terminal writes.
+- Move StoredContents into `content_store/backends/` without changing its
+  constant or behavior. Complete P4; see the
+  [Storage client guide](docs/migrations/storage-async-client.md).
+- Preserve transparent text panels and module outlines in generated diagrams.
+  Hide arrows into M33/M41/M44 as a display choice; keep their measured source
+  dependencies, evidence and complete matrix.
+
 - **Beta API receiver migration:** move VectorStore `add_async`, `search_async`,
   `remove_async`, `clear_async` and Embeddings `embed_async` onto the public
   feature-specific `AsyncClient` objects. Synchronous backend methods and

@@ -15,7 +15,7 @@ tmp/architecture-venv/bin/python tools/architecture/refresh_diagram.py . tmp/arc
 
 Use an empty output directory and committed `lib` sources. The command never
 stages, commits or modifies Ruby source. The repository's `phase.json` declares
-the current phase (`vector`: P1/P2/P3 complete). `--phase` can explicitly check another
+the current phase (`storage`: P1/P2/P3/P4 complete). `--phase` can explicitly check another
 phase during development; it cannot add absent modules or remove real edges.
 New or missing directories, duplicate IDs, incomplete group membership and
 forbidden responsibility paths fail the gate.
@@ -62,10 +62,22 @@ and current source evidence, rather than restoring an older source graph.
 ## Group colors
 
 Each phase layout defines `group_theme.palette` and the stable group-to-palette
-mapping in `group_theme.groups`. Pastel group backgrounds and caption strips
-retain the previous diagram's subdued colors; source modules stay white.
+mapping in `group_theme.groups`. Pastel group backgrounds retain the previous
+diagram's subdued colors; module and caption panels are transparent, with the
+individual module outlines retained.
 The same group ID keeps its colors across phases. G14 Engine uses blue, G46
 Async Clients lavender, G47 Backend Contracts mint and G48 Implementations sand.
 Color does not express a layer, dependency permission or a unique namespace.
 Group backgrounds are painted behind all arrows, including muted common
 dependencies. Module boxes, source evidence and matrix cells stay intact.
+
+## Display filters
+
+Every phase layout retains `presentation.transparent_text_panels: true` and
+`presentation.hidden_incoming_targets: ["M33", "M41", "M44"]`. Hidden arrows
+remain in the SVG with `display="none"`; metadata, links and the complete matrix
+retain all measured edges. Counts distinguish measured pairs and visible arrows.
+The boundary gate always checks the full AST graph before presentation filtering.
+With transparent nodes, paths end at box boundaries instead of exposing the
+previous center-to-border segments. This changes neither group membership nor
+dependency permission. Remove the target IDs to show those arrows again.

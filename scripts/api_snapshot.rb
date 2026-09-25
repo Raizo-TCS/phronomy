@@ -41,6 +41,7 @@ PUBLIC_API_ENTRIES = [
   Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Filter::Base,
   Phronomy::Filter::PromptInjectionFilter,
+  Phronomy::Storage::AsyncClient,
   Phronomy::VectorStore::Base,
   Phronomy::VectorStore::AsyncClient,
   Phronomy::VectorStore::InMemory,
@@ -75,7 +76,8 @@ def snapshot_entry(klass)
     internal_context_methods = (klass == Phronomy::InvocationContext) ?
       %i[__bind_execution __execution_scope] : []
     instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS - internal_context_methods).sort
-    class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS).sort
+    internal_class_methods = (klass == Phronomy::Storage::AsyncClient) ? %i[submit] : []
+    class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS - internal_class_methods).sort
     {
       "name" => klass.name,
       "type" => "class",

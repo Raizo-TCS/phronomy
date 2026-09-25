@@ -118,7 +118,7 @@ RSpec.describe "Agent Runtime admission" do
 
     admission_index = section.index("admit_agent_execution")
     post_admission_owner_check = section.index("__assert_live_agent!", admission_index)
-    submit_index = section.index("runtime.offload.submit")
+    submit_index = section.index("Phronomy::Storage::AsyncClient.submit(pool: runtime.offload)")
 
     expect(admission_index).to be < post_admission_owner_check
     expect(post_admission_owner_check).to be < submit_index
@@ -156,7 +156,7 @@ RSpec.describe "Agent Runtime admission" do
       .split("def capture_approval_resume", 2)
       .first
     expect(resume.index("state: :resuming")).to be <
-      resume.index("runtime.offload.submit")
+      resume.index("Phronomy::Storage::AsyncClient.submit(pool: runtime.offload)")
 
     terminal = coordinator_source
       .split("def submit_terminal_operation", 2)
@@ -164,7 +164,7 @@ RSpec.describe "Agent Runtime admission" do
       .split("def terminal_view", 2)
       .first
     expect(terminal.index("state: :terminalizing")).to be <
-      terminal.index("runtime.offload.submit")
+      terminal.index("Phronomy::Storage::AsyncClient.submit(pool: runtime.offload)")
   end
 
   it "returns false when agent_execution_admitted? is queried for an unknown agent" do

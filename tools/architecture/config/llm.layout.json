@@ -306,5 +306,13 @@
       "G53": "support",
       "G54": "gray"
     }
+  },
+  "presentation": {
+    "transparent_text_panels": true,
+    "hidden_incoming_targets": [
+      "M33",
+      "M41",
+      "M44"
+    ]
   }
 }

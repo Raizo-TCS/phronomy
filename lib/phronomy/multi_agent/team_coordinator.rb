@@ -283,7 +283,7 @@ module Phronomy
         token = Phronomy::Concurrency::CancellationToken.new
         @tokens_mutex.synchronize { @tokens[id] = token }
         external = config[:cancellation_token]
-        callback = proc { @runtime.offload.submit(on_full: :raise) { cancel(id) } }
+        callback = proc { Phronomy::Storage::AsyncClient.submit(pool: @runtime.offload) { cancel(id) } }
         external&.on_cancel(&callback)
         token.cancel! if current.metadata["cancel_requested"]
         begin
@@ -497,7 +497,7 @@ module Phronomy
           end
           define_method(:execute_async) do |config: {}, cancellation_token: nil, **arguments|
             key = config.fetch(:phronomy_tool_invocation_id)
-            Phronomy::Runtime.instance.offload.submit(on_full: :raise) do
+            Phronomy::Storage::AsyncClient.submit(pool: Phronomy::Runtime.instance.offload) do
               team.send(:apply_operation, run_id, key, operation, arguments)
             rescue Phronomy::CancellationError
               raise

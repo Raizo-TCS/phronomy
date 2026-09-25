@@ -83,7 +83,7 @@ class BoundaryTests(unittest.TestCase):
         changed['modules'].append({'directory': 'lib/phronomy/unreviewed_feature'})
         self.assertFalse(self.check_graph(changed)['passed'])
 
-    def test_rejects_declaring_the_unimplemented_final_phase(self):
+    def test_rejects_claiming_storage_phase_for_a_partial_llm_graph(self):
         self.assertFalse(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
 
 
@@ -105,6 +105,11 @@ class DiagramTests(unittest.TestCase):
                     self.assertEqual(count, len(metadata['modules']))
                     self.assertEqual(edge_count, len(metadata['edges']))
                     self.assertEqual(edge_count, len(list(root.iter(S + 'polygon'))))
+                    hidden = [e for e in metadata['edges'] if e['to'] in {'M33', 'M41', 'M44'}]
+                    arrows = [n for n in root.iter(S + 'g') if n.get('class') == 'edge']
+                    self.assertEqual(len(hidden), sum(n.get('display') == 'none' for n in arrows))
+                    nodes = next(n for n in root.iter() if n.get('id') == 'module-nodes')
+                    self.assertTrue(all(n.get('fill') == 'none' for n in nodes.iter(S + 'rect')))
                     self.assertEqual(count ** 2, sum(n.get('class') == 'matrix-cell' for n in root.iter()))
                     links = [n.get(X + 'href') for n in root.iter(S + 'a') if n.get(X + 'href')]
                     self.assertEqual(0 if candidate else 2 * edge_count + count, len(links))

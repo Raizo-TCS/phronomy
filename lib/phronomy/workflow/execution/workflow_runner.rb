@@ -384,7 +384,7 @@ module Phronomy
         repository: repository,
         workflow_instance_id: workflow_instance_id.to_s.freeze
       )
-      task = runtime.offload.submit(on_full: :raise) do
+      task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
         record = operation.repository.load(operation.workflow_instance_id)
         WorkflowLoadResult.new(
           repository: operation.repository,
@@ -643,7 +643,7 @@ module Phronomy
         snapshot: deep_immutable_copy(snapshot_for(context))
       )
 
-      task = runtime.offload.submit(on_full: :raise) do
+      task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
         persist_terminal_snapshot(operation)
       end
       task.on_complete do |result, operation_error|

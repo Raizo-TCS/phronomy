@@ -112,6 +112,20 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     end
   end
 
+  it "keeps Storage and ContentStore contracts and implementations synchronous" do
+    %w[storage content_store].each do |feature|
+      paths = Dir[File.expand_path("../../lib/phronomy/#{feature}/*.rb", __dir__)] +
+        Dir[File.expand_path("../../lib/phronomy/#{feature}/backends/*.rb", __dir__)]
+      paths.each do |path|
+        source = File.read(path)
+        expect(source).not_to include("Phronomy::Runtime", "AsyncClient", "pool.submit")
+        expect(source).not_to match(/def \w+_async/)
+      end
+    end
+    client = File.read(File.expand_path("../../lib/phronomy/storage/async/async_client.rb", __dir__))
+    expect(client).not_to include("Backends::", "Phronomy::Agent", "Phronomy::Workflow", "Phronomy::Persistence")
+  end
+
   it "keeps LLM contracts and implementations independent of the execution client" do
     paths = %w[llm_adapter/base.rb llm_adapter/backends/ruby_llm.rb]
     paths.each do |path|

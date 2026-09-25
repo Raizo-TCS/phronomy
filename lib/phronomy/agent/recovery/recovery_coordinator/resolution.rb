@@ -74,9 +74,7 @@ module Phronomy
             execution_id: current.execution_id,
             state: :recovery_required
           )
-          task = @runtime.offload.submit(
-            on_full: :raise
-          ) do
+          task = Phronomy::Storage::AsyncClient.submit(pool: @runtime.offload) do
             prepare_resolution(operation)
           end
           task.on_complete do |result, error|
