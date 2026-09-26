@@ -155,6 +155,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [MCP client](docs/mcp-client.md) — Model Context Protocol (MCP) integration and supported schema subset.
 - [Migration from 0.15-era APIs](docs/migrations/0.15.md).
 - [0.16 cleanup migration](docs/migrations/0.16.md).
+- [Persistence failure contract migration](docs/migrations/persistence-failure-contracts.md) — domain rescue clauses and unchanged raw backend errors.
 - [0.19 unified Persistence migration](docs/migrations/0.19.md).
 - [0.22 semantic Multi-Agent Handoff migration](docs/migrations/0.22.md).
 - [Architecture Decision Records](docs/decisions/) — design rationale and superseding decisions.

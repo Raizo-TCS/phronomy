@@ -113,6 +113,8 @@ resolved explicitly.
 | [`059-backend-contracts-and-async-clients`](059-backend-contracts-and-async-clients.md) | Accepted | Yes | P1/P2 separates synchronous LLM contracts, implementations and internal clients; independent responsibility groups replace numbered layers. VectorStore/Storage migration remains pending. |
 | [`060-runtime-settings-and-application-configuration`](060-runtime-settings-and-application-configuration.md) | Accepted | Yes | Separates neutral Engine settings from typed application Configuration; preserves public settings/lifecycle semantics and requires the complete Ruby + RBS boundary gate without exceptions. |
 
+| [`061-persistence-failure-contracts`](061-persistence-failure-contracts.md) | Accepted | Yes | Independent domain failure contracts and explicit raw Storage translation; public rescue-clause migration, preserved transaction/admission/uncertainty semantics. |
+
 ## Legacy duplicate `011`
 
 The repository intentionally preserves both legacy files:

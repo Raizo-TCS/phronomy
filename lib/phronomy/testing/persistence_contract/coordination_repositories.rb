@@ -43,14 +43,14 @@ RSpec.shared_examples "a Handoff state repository" do
     persistence.handoff_states.save(value.main_agent_id, expected_revision: 1, state: updated)
     expect do
       persistence.handoff_states.save(value.main_agent_id, expected_revision: 1, state: updated)
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
     expect(persistence.handoff_states.load(value.main_agent_id).handoff_revision).to eq(2)
   end
 
   it "rejects a snapshot for a different routing anchor" do
     expect do
       persistence.handoff_states.save("other", expected_revision: nil, state: coordination_handoff)
-    end.to raise_error(Phronomy::Storage::SerializationError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 end
 
@@ -60,7 +60,7 @@ RSpec.shared_examples "a Team repository" do
   it "round-trips a Team lineage and rejects duplicate creation" do
     persistence.teams.create(coordination_team)
     expect(persistence.teams.load(coordination_team.team_id).to_h).to eq(coordination_team.to_h)
-    expect { persistence.teams.create(coordination_team) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { persistence.teams.create(coordination_team) }.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rejects a stale Team revision" do
@@ -69,11 +69,11 @@ RSpec.shared_examples "a Team repository" do
     persistence.teams.save(coordination_team.team_id, expected_revision: 0, root: updated)
     expect do
       persistence.teams.save(coordination_team.team_id, expected_revision: 0, root: updated)
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "raises NotFoundError for an absent Team" do
-    expect { persistence.teams.load(SecureRandom.uuid) }.to raise_error(Phronomy::Storage::NotFoundError)
+    expect { persistence.teams.load(SecureRandom.uuid) }.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 end
 
@@ -100,11 +100,11 @@ RSpec.shared_examples "a Team execution repository" do
     expect(persistence.team_executions.list("other-team")).to be_empty
     expect do
       persistence.team_executions.save(completed.team_execution_id, expected_revision: 0, execution: completed)
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
     expect do
       persistence.team_executions.save(completed.team_execution_id, expected_revision: 1,
         execution: completed.with(status: "active", phase: "coordinator"))
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rolls the new three repositories back with the existing transaction domain" do
@@ -129,7 +129,7 @@ RSpec.shared_examples "a Team execution repository" do
     expect(persistence.teams.load(coordination_team.team_id).team_revision).to eq(0)
     expect(persistence.handoff_states.load(handoff.main_agent_id)).to be_nil
     expect(persistence.team_executions.list(coordination_team.team_id)).to be_empty
-    expect { persistence.agents.load(root_id) }.to raise_error(Phronomy::Storage::NotFoundError)
+    expect { persistence.agents.load(root_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.executions.list(root_id)).to be_empty
     expect(persistence.workflow_states.load(root_id)).to be_nil
     expect(persistence.contents.exist?(content_ref)).to be(false)

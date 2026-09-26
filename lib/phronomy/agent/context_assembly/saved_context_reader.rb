@@ -9,8 +9,10 @@ module Phronomy
       module_function
 
       def manifest_from_ref(agent, ref)
-        raw = agent.persistence.contents.fetch_json(ref)
-        Phronomy::Agent::LLMInputManifest.from_h(raw)
+        Phronomy::Persistence::StorageBoundary.call do
+          raw = agent.persistence.contents.fetch_json(ref)
+          Phronomy::Agent::LLMInputManifest.from_h(raw)
+        end
       end
 
       def materialize_projection(agent, manifest_ref)

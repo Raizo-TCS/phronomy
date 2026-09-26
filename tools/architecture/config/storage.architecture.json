@@ -503,6 +503,20 @@
       "group": "G48",
       "role": "StoredContents implementation",
       "mixed": false
+    },
+    {
+      "id": "M74",
+      "directory": "lib/phronomy/persistence",
+      "role": "Storage failure translation / content repository",
+      "mixed": false,
+      "group": "G55"
+    },
+    {
+      "id": "M75",
+      "directory": "lib/phronomy/persistence/contract",
+      "role": "Domain persistence failure contracts",
+      "mixed": false,
+      "group": "G56"
     }
   ],
   "groups": [
@@ -856,6 +870,22 @@
       "members": [
         "M01"
       ]
+    },
+    {
+      "id": "G55",
+      "title": "PERSISTENCE STORAGE BOUNDARY",
+      "members": [
+        "M74"
+      ],
+      "kind": "domain"
+    },
+    {
+      "id": "G56",
+      "title": "PERSISTENCE CONTRACTS",
+      "members": [
+        "M75"
+      ],
+      "kind": "domain"
     }
   ],
   "matrix_order": [
@@ -929,7 +959,9 @@
     "M70",
     "M71",
     "M72",
-    "M73"
+    "M73",
+    "M74",
+    "M75"
   ],
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank"
 }

@@ -107,6 +107,19 @@ def check_boundaries(audit, phase, repo, architecture=None):
             route = path_to(graph, source, lambda t: roles.get(t) != "common")
             if route:
                 violations.append({"kind": "runtime-settings-reaches-feature", "path": route})
+    persistence_contract = "lib/phronomy/persistence/contract"
+    if persistence_contract in modules:
+        route = path_to(graph, persistence_contract, lambda t: roles.get(t) != "common")
+        if route:
+            violations.append({"kind": "persistence-contract-reaches-implementation", "path": route})
+        # Runners consume persistence failures, not the raw Storage error SPI.
+        domain_consumers = ["agent", "agent/execution", "agent/handoff", "agent/lifecycle",
+                            "agent/recovery", "agent/recovery/recovery_coordinator",
+                            "multi_agent", "workflow/execution"]
+        for consumer in domain_consumers:
+            pair = ("lib/phronomy/" + consumer, "lib/phronomy/storage")
+            if pair in pairs:
+                violations.append({"kind": "domain-consumer-reaches-raw-storage", "pair": pair})
     required=[]
     for feature in policy["features"]:
         required.append("lib/phronomy/"+feature+"/async/async_client.rb")

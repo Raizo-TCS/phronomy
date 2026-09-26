@@ -22,13 +22,13 @@ RSpec.shared_examples "an Agent repository" do
 
     expect do
       agent_repository.create(agent_root)
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "raises NotFoundError for a missing Agent" do
     expect do
       agent_repository.load("missing-#{SecureRandom.uuid}")
-    end.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 
   it "saves only at the expected revision" do
@@ -54,7 +54,7 @@ RSpec.shared_examples "an Agent repository" do
 
     expect do
       agent_repository.save(agent_root.agent_id, expected_revision: 0, root: stale)
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rejects an Agent identity mismatch" do
@@ -71,7 +71,7 @@ RSpec.shared_examples "an Agent repository" do
         expected_revision: 0,
         root: other
       )
-    end.to raise_error(Phronomy::Storage::SerializationError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 
   it "requires revision to advance exactly once" do
@@ -84,7 +84,7 @@ RSpec.shared_examples "an Agent repository" do
         expected_revision: 0,
         root: skipped
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "deletes idempotently" do
@@ -94,6 +94,6 @@ RSpec.shared_examples "an Agent repository" do
 
     expect do
       agent_repository.load(agent_root.agent_id)
-    end.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 end

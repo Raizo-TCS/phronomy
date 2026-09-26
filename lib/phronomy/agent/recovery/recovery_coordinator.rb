@@ -57,14 +57,14 @@ module Phronomy
           Array(tx.executions.list_active(agent.agent_id))
         end
         if active.length > 1
-          raise Phronomy::Storage::ConflictError,
+          raise Phronomy::Persistence::StateConflictError,
             "multiple active AgentExecutions exist for #{agent.agent_id}"
         end
         return agent if active.empty?
 
         execution = active.first
         unless execution.agent_id.to_s == agent.agent_id.to_s
-          raise Phronomy::Storage::ConflictError,
+          raise Phronomy::Persistence::StateConflictError,
             "active AgentExecution belongs to another Agent: #{execution.agent_id}"
         end
 

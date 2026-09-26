@@ -62,7 +62,7 @@ module Phronomy
             else
               exact = unfinished.fetch(0)
               unless unfinished.size == 1 && exact.metadata.dig("coordination", "main_agent_id") == main_agent.agent_id
-                raise Phronomy::Storage::ConflictError, "Active Agent execution belongs to another coordination turn"
+                raise Phronomy::Persistence::StateConflictError, "Active Agent execution belongs to another coordination turn"
               end
               wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(exact.execution_id)
               stored_input = @persistence.contents.fetch_text(exact.metadata.fetch("current_input_ref"))
@@ -118,25 +118,25 @@ module Phronomy
           @persistence.transaction do |tx|
             first = tx.executions.load(execution_id)
             unless first.metadata.dig("coordination", "main_agent_id") == main_agent.agent_id
-              raise Phronomy::Storage::ConflictError, "Execution does not belong to this Handoff anchor"
+              raise Phronomy::Persistence::StateConflictError, "Execution does not belong to this Handoff anchor"
             end
             leaf = first
             leaf_id = first.execution_id
             seen = {}
             while leaf&.status == :handed_off
-              raise Phronomy::Storage::SerializationError, "Cyclic Handoff chain" if seen[leaf_id]
+              raise Phronomy::Persistence::SerializationError, "Cyclic Handoff chain" if seen[leaf_id]
               seen[leaf_id] = true
               leaf_id = leaf.metadata.fetch("handoff_target_execution_id")
               begin
                 leaf = tx.executions.load(leaf_id)
-              rescue Phronomy::Storage::NotFoundError
+              rescue Phronomy::Persistence::NotFoundError
                 leaf = nil
               end
             end
             next if leaf&.terminal?
             routing = tx.handoff_states.load(main_agent.agent_id)
             unless routing && (leaf ? routing.active_agent_id == leaf.agent_id : routing.pending_target_execution_id == leaf_id)
-              raise Phronomy::Storage::ConflictError, "Handoff routing no longer owns the requested turn"
+              raise Phronomy::Persistence::StateConflictError, "Handoff routing no longer owns the requested turn"
             end
             ids = (Array(routing.metadata["cancelled_execution_ids"]) + [leaf_id]).uniq
             intended = routing.with(phase: leaf ? routing.phase : "stable",

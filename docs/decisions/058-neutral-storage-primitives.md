@@ -6,6 +6,11 @@ Accepted. Applied and verified in Refactor 35 (Storage S2b/S2c), core
 `ebd99623f94c8b2db2d74355bfa39f01550778a0` and examples
 `68a0bbd0e354b9e00bbfed728ad2b769b389ed8a`.
 
+Domain-facing exception ownership is further amended by
+[061-persistence-failure-contracts](061-persistence-failure-contracts.md).
+Raw backend exceptions remain owned by Storage; domain repository exits now
+translate their known categories to independent Persistence exceptions.
+
 ## Context
 
 S1 inventoried 37 raw methods across eight required domain slots. Moving their

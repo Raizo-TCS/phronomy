@@ -49,9 +49,9 @@ module Phronomy
           # A durable nonterminal execution keeps Runtime admission fail-closed
           # until recovery can establish its lineage, including after F4 loss.
           return unadmitted_result(operation, error, :recovery_required)
-        rescue Phronomy::Storage::ConflictError,
-          Phronomy::Storage::NotFoundError,
-          Phronomy::Storage::SerializationError,
+        rescue Phronomy::Persistence::ConflictError,
+          Phronomy::Persistence::NotFoundError,
+          Phronomy::Persistence::SerializationError,
           ArgumentError,
           Phronomy::ConfigurationError => error
           return unadmitted_result(operation, error, :not_established)
@@ -294,7 +294,7 @@ module Phronomy
           worker&.merge("execution_id" => assignment.fetch("execution_id"))
         end
         unless slot && slot.fetch("execution_id") == execution.execution_id && slot.fetch("agent_id") == execution.agent_id
-          raise Phronomy::Storage::ConflictError, "Team reserved child identity mismatch"
+          raise Phronomy::Persistence::StateConflictError, "Team reserved child identity mismatch"
         end
       end
 
@@ -306,20 +306,20 @@ module Phronomy
         snapshot = tx.contents.fetch_json(parent.metadata.fetch("multi_agent_coordination_ref"))
         slot = snapshot.fetch("children").find { |entry| entry.fetch("slot") == owner.fetch("slot") }
         unless slot && slot.fetch("agent_id") == execution.agent_id && slot.fetch("execution_id") == execution.execution_id
-          raise Phronomy::Storage::ConflictError, "Parent reserved child identity mismatch"
+          raise Phronomy::Persistence::StateConflictError, "Parent reserved child identity mismatch"
         end
       end
 
       def validate_handoff_admission!(tx, execution, owner)
         routing = tx.handoff_states.load(owner.fetch("main_agent_id"))
         unless routing && routing.active_agent_id == execution.agent_id
-          raise Phronomy::Storage::ConflictError, "Handoff responsibility changed before admission"
+          raise Phronomy::Persistence::StateConflictError, "Handoff responsibility changed before admission"
         end
         if Array(routing.metadata["cancelled_execution_ids"]).include?(execution.execution_id)
           raise Phronomy::CancellationError, "Handoff reservation was cancelled"
         end
         if routing.phase != "stable" && routing.pending_target_execution_id != execution.execution_id
-          raise Phronomy::Storage::ConflictError, "Handoff reserved Target identity mismatch"
+          raise Phronomy::Persistence::StateConflictError, "Handoff reserved Target identity mismatch"
         end
       end
 

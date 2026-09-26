@@ -132,11 +132,11 @@ RSpec.shared_examples "a Persistence backend" do
     expect(persistence.contents.exist?(content_id)).to be(false)
     expect do
       persistence.agents.load(root.agent_id)
-    end.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.journals.head(root.agent_id)).to eq(0)
     expect do
       persistence.executions.load(execution.execution_id)
-    end.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.workflow_states.load(workflow_id)).to be_nil
   end
 
@@ -165,7 +165,7 @@ RSpec.shared_examples "a Persistence backend" do
         agent_revision: 0,
         journal_position: 0
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "raises ConflictError when the durable Journal position has advanced" do
@@ -191,7 +191,7 @@ RSpec.shared_examples "a Persistence backend" do
         agent_revision: 0,
         journal_position: 0
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rolls back earlier writes when a watermark precondition fails" do
@@ -212,7 +212,7 @@ RSpec.shared_examples "a Persistence backend" do
           journal_position: 0
         )
       end
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
 
     expect(persistence.contents.exist?(temporary_content_id)).to be(false)
   end

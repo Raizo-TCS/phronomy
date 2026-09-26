@@ -497,7 +497,7 @@ RSpec.describe "ACS-17 causal durability" do
 
     expect {
       dispatch_preparation(agent).prepare_tools(operation)
-    }.to raise_error(Phronomy::Storage::ConflictError)
+    }.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "keeps physical Provider and Tool dispatch behind confirmed apply helpers only" do
@@ -610,7 +610,7 @@ RSpec.describe "ACS-17 causal durability" do
     end
 
     expect { dispatch_preparation(agent).prepare_provider(operation) }
-      .to raise_error(Phronomy::Storage::ConflictError)
+      .to raise_error(Phronomy::Persistence::ConflictError)
     expect(persistence.executions.load(operation.execution_id).to_h).to eq(operation.execution.to_h)
   end
 

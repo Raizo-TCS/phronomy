@@ -238,7 +238,7 @@ RSpec.describe "Workflow durable admission" do
     failing_repository = Object.new
     failing_repository.define_singleton_method(:load) { |id| repository.load(id) }
     failing_repository.define_singleton_method(:save) do |_id, expected_revision:, snapshot:|
-      raise Phronomy::Storage::ConflictError,
+      raise Phronomy::Persistence::ConflictError,
         "forced conflict revision=#{expected_revision.inspect} snapshot=#{!snapshot.nil?}"
     end
     failing_repository.define_singleton_method(:delete) do |id, expected_revision:|
@@ -250,7 +250,7 @@ RSpec.describe "Workflow durable admission" do
     task = workflow.invoke_async({}, config: {workflow_instance_id: "known-failure"})
 
     expect { task.wait_result }
-      .to raise_error(Phronomy::Storage::ConflictError, /forced conflict/)
+      .to raise_error(Phronomy::Persistence::ConflictError, /forced conflict/)
     expect(Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_owner("known-failure"))
       .to be_nil
   end
@@ -325,7 +325,7 @@ RSpec.describe "Workflow durable admission" do
     repo.save("diverged", expected_revision: 1, snapshot: {fields: {value: 99}, phase: nil})
 
     expect { workflow.send_event(state: halted, event: :finish) }
-      .to raise_error(Phronomy::Storage::ConflictError)
+      .to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "propagates a repository load error during durable Workflow start" do

@@ -277,7 +277,7 @@ module Phronomy
         routing = tx.handoff_states.load(coordination.fetch("main_agent_id"))
         return unless routing && routing.pending_target_execution_id == execution.execution_id && routing.phase != "stable"
         unless routing.active_agent_id == execution.agent_id
-          raise Phronomy::Storage::ConflictError, "Handoff Target owner mismatch"
+          raise Phronomy::Persistence::StateConflictError, "Handoff Target owner mismatch"
         end
         tx.handoff_states.save(routing.main_agent_id, expected_revision: routing.handoff_revision,
           state: routing.with(phase: "stable"))

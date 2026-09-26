@@ -40,7 +40,7 @@ RSpec.shared_examples "an Execution repository" do
   it "raises NotFoundError for a missing execution" do
     expect do
       execution_repository.load("missing-#{SecureRandom.uuid}")
-    end.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 
   it "rejects a duplicate execution_id" do
@@ -49,7 +49,7 @@ RSpec.shared_examples "an Execution repository" do
 
     expect do
       execution_repository.create_active(execution)
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "admits at most one active or suspended execution for one Agent" do
@@ -107,7 +107,7 @@ RSpec.shared_examples "an Execution repository" do
         expected_revision: 0,
         execution: updated
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rejects an execution identity mismatch" do
@@ -131,7 +131,7 @@ RSpec.shared_examples "an Execution repository" do
         expected_revision: 0,
         execution: other
       )
-    end.to raise_error(Phronomy::Storage::SerializationError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 
   it "requires execution revision to advance exactly once" do
@@ -149,7 +149,7 @@ RSpec.shared_examples "an Execution repository" do
         expected_revision: 0,
         execution: skipped
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "lists active executions for one Agent" do
@@ -179,7 +179,7 @@ RSpec.shared_examples "an Execution repository" do
 
     expect do
       execution_repository.load(execution.execution_id)
-    end.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 
   it "deletes all executions for one Agent without deleting other Agents' executions" do

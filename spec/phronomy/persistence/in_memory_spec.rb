@@ -23,7 +23,7 @@ RSpec.describe Phronomy::Persistence do
     end.to raise_error("rollback")
 
     expect { persistence.agents.load(root.agent_id) }
-      .to raise_error(Phronomy::Storage::NotFoundError)
+      .to raise_error(Phronomy::Persistence::NotFoundError)
     temporary_id = "sha256:#{Digest::SHA256.hexdigest("temporary")}"
     expect(persistence.contents.exist?(temporary_id)).to be(false)
   end
@@ -134,7 +134,7 @@ RSpec.describe Phronomy::Persistence do
           expected_revision: nil,
           snapshot: {fields: {count: 99}, phase: "__end__"}
         )
-      end.to raise_error(Phronomy::Storage::ConflictError)
+      end.to raise_error(Phronomy::Persistence::ConflictError)
 
       expect(
         persistence.workflow_states.load("workflow-1")[:snapshot]["fields"]["count"]
@@ -167,7 +167,7 @@ RSpec.describe Phronomy::Persistence do
           expected_revision: nil,
           snapshot: {fields: {callable: callable}, phase: "pause"}
         )
-      end.to raise_error(Phronomy::Storage::SerializationError, /unsupported Workflow durable value/)
+      end.to raise_error(Phronomy::Persistence::SerializationError, /unsupported Workflow durable value/)
     end
 
     it "rolls Agent and Workflow durable state back in the same transaction" do
@@ -184,7 +184,7 @@ RSpec.describe Phronomy::Persistence do
       end.to raise_error("rollback-all")
 
       expect { persistence.agents.load(root.agent_id) }
-        .to raise_error(Phronomy::Storage::NotFoundError)
+        .to raise_error(Phronomy::Persistence::NotFoundError)
       expect(persistence.workflow_states.load("workflow-1")).to be_nil
       expect(persistence.backend.view.records("workflow.states").read("workflow-rollback")).to be_nil
     end
@@ -214,7 +214,7 @@ RSpec.describe Phronomy::Persistence do
           agent_revision: root.agent_revision,
           journal_position: 0
         )
-      end.to raise_error(Phronomy::Storage::ConflictError, /agent revision/)
+      end.to raise_error(Phronomy::Persistence::ConflictError, /agent revision/)
     end
 
     it "rejects a Journal position advance even when Agent revision is unchanged" do
@@ -244,7 +244,7 @@ RSpec.describe Phronomy::Persistence do
           agent_revision: root.agent_revision,
           journal_position: 0
         )
-      end.to raise_error(Phronomy::Storage::ConflictError, /journal position/)
+      end.to raise_error(Phronomy::Persistence::ConflictError, /journal position/)
     end
   end
 

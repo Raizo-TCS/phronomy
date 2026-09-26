@@ -90,10 +90,12 @@ module Phronomy
     # Assembles domain repositories over one synchronous storage backend.
     # @api public
     def initialize(backend:)
-      Phronomy::Storage::Backend.validate_capabilities!(backend)
-      PersistenceComposition::StorageSchema.validate!(backend.view)
-      @backend = backend
-      @repositories = PersistenceComposition::Repositories.new(backend.view)
+      Phronomy::Persistence::StorageBoundary.call do
+        Phronomy::Storage::Backend.validate_capabilities!(backend)
+        PersistenceComposition::StorageSchema.validate!(backend.view)
+        @backend = backend
+        @repositories = PersistenceComposition::Repositories.new(backend.view)
+      end
     end
 
     # Constructs an isolated in-memory storage domain with standard codecs.
@@ -116,9 +118,11 @@ module Phronomy
     # exactly-once semantics for such failures.
     # @api public
     def transaction
-      backend.transaction do |raw_view|
-        repositories = PersistenceComposition::Repositories.new(raw_view)
-        yield repositories
+      Phronomy::Persistence::StorageBoundary.call do
+        backend.transaction do |raw_view|
+          repositories = PersistenceComposition::Repositories.new(raw_view)
+          yield repositories
+        end
       end
     end
 

@@ -9,7 +9,7 @@ module Phronomy
 
       def initialize(view)
         @view = view
-        @contents = Phronomy::ContentStore::StoredContents.new(view)
+        @contents = Phronomy::Persistence::ContentRepository.new(Phronomy::ContentStore::StoredContents.new(view))
         @domain_repositories = {}
         @repository_lock = Mutex.new
       end

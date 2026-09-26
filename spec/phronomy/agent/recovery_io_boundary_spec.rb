@@ -130,7 +130,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     expect(saved.phase).to eq(:recovery_provider_completed)
     expect(saved).not_to be_terminal
     expect(saved.execution_revision).to eq(event.fetch(:execution_revision) + 1)
-    expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(Phronomy::Persistence::ConflictError)
     recovered = reboot(restored.snapshot)
     terminal = Queue.new
     recovered.after_commit = proc do |backend|
@@ -142,7 +142,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     expect(llm.calls).to be_empty
   end
 
-  [IOError, Phronomy::Storage::NotFoundError].each do |failure|
+  [IOError, Phronomy::Persistence::NotFoundError].each do |failure|
     it "does not treat #{failure} during F1 readback as permission to redispatch" do
       restored, loaded, event = pending_provider
       restored.after_commit = proc do |_backend|
@@ -182,7 +182,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     end
     llm = LLMStub.activate(responses: ["must not replay"])
     expect { resolve_output(loaded, event).wait_result(timeout: 3) }
-      .to raise_error(Phronomy::Storage::ConflictError, /conflicts with both/)
+      .to raise_error(Phronomy::Persistence::ConflictError, /conflicts with both/)
     expect(restored.executions.load(event.fetch(:execution_id)).metadata["competing_write"]).to be(true)
     expect(llm.calls).to be_empty
   end
@@ -207,7 +207,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     applied.wait_result(timeout: 3)
     release << true
     expect { resolution.wait_result(timeout: 3) }
-      .to raise_error(Phronomy::Storage::ConflictError, /changed before resolution apply/)
+      .to raise_error(Phronomy::Persistence::ConflictError, /changed before resolution apply/)
     expect(restored.executions.load(event.fetch(:execution_id)).phase).to eq(:recovery_provider_completed)
   ensure
     release << true if release

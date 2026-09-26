@@ -27,11 +27,11 @@ module Phronomy
           current = execution_id.to_s
           reserved_agent_id = nil
           loop do
-            raise Phronomy::Storage::SerializationError, "Cyclic durable Handoff chain" if seen[current]
+            raise Phronomy::Persistence::SerializationError, "Cyclic durable Handoff chain" if seen[current]
             seen[current] = true
             begin
               execution = @repositories.executions.load(current)
-            rescue Phronomy::Storage::NotFoundError
+            rescue Phronomy::Persistence::NotFoundError
               routing = @repositories.handoff_states.load(anchor)
               if routing && Array(routing.metadata["cancelled_execution_ids"]).include?(current)
                 return {execution_id: current, agent_id: reserved_agent_id, status: :cancelled, result: nil, error: nil}.freeze
@@ -44,7 +44,7 @@ module Phronomy
             end
             anchor ||= execution.metadata.dig("coordination", "main_agent_id")
             unless anchor && execution.metadata.dig("coordination", "main_agent_id") == anchor
-              raise Phronomy::Storage::ConflictError, "Execution does not belong to this Handoff anchor"
+              raise Phronomy::Persistence::StateConflictError, "Execution does not belong to this Handoff anchor"
             end
             return @repositories.execution_result(current) unless execution.status == :handed_off
             reserved_agent_id = execution.metadata.fetch("handoff_target_agent_id")

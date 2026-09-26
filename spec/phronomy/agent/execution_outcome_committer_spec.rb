@@ -159,7 +159,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
     operation = command
     concurrent = operation.root.with(agent_revision: operation.root.agent_revision + 1)
     persistence.agents.save(agent.agent_id, expected_revision: operation.root.agent_revision, root: concurrent)
-    expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::Persistence::ConflictError)
     expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
     expect(persistence.journals.read(agent.agent_id, after: 0)).to be_empty
     expect(persistence.agents.load(agent.agent_id).to_h).to eq(concurrent.to_h)
@@ -291,7 +291,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       expect(result.appended_records.map(&:kind)).to eq(%i[external_message execution_handed_off])
       expect(result.root.context_revision).to eq(operation.root.context_revision + 1)
       expect(persistence.contents.fetch_json(transfer.active_handoff_context_ref)["responsibility"]).to eq("Continue")
-      expect { persistence.executions.load(target_id) }.to raise_error(Phronomy::Storage::NotFoundError)
+      expect { persistence.executions.load(target_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
       expect(agent.agent_root).to equal(operation.root)
     end
 
@@ -308,8 +308,8 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
 
     it "rolls back transfer and Source when the Root save fails" do
       operation = command
-      allow_any_instance_of(Phronomy::Agent::Persistence::AgentRepository).to receive(:save).and_raise(Phronomy::Storage::ConflictError, "Root conflict")
-      expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::Storage::ConflictError)
+      allow_any_instance_of(Phronomy::Agent::Persistence::AgentRepository).to receive(:save).and_raise(Phronomy::Persistence::ConflictError, "Root conflict")
+      expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::Persistence::ConflictError)
       expect(persistence.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
       expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
       expect(persistence.journals.read(agent.agent_id, after: 0)).to be_empty
@@ -329,7 +329,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
             "coordination" => metadata.fetch("coordination").merge("handoff_revision" => 2))
           operation = operation.with(execution: current)
         end
-        error_class = (conflict == :cancelled) ? Phronomy::CancellationError : Phronomy::Storage::ConflictError
+        error_class = (conflict == :cancelled) ? Phronomy::CancellationError : Phronomy::Persistence::ConflictError
         expect { worker.commit_outcome(operation) }.to raise_error(error_class)
         expect(persistence.handoff_states.load(agent.agent_id).to_h).to eq(newer.to_h)
         expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)

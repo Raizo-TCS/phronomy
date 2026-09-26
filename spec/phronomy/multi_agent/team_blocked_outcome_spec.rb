@@ -32,7 +32,7 @@ RSpec.describe "Team propagation of blocked Agent outcomes" do
             boundary = (slot.fetch("state") == "blocked") ? :team_recorded : :child_terminal
             snapshots[boundary] ||= backend.snapshot
           end
-        rescue Phronomy::Storage::NotFoundError
+        rescue Phronomy::Persistence::NotFoundError
           nil
         end
       end

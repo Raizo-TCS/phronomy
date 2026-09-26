@@ -285,10 +285,10 @@ module Phronomy
       end
 
       def known_durable_failure?(error)
-        error.is_a?(Phronomy::Storage::ConflictError) ||
-          error.is_a?(Phronomy::Storage::NotFoundError) ||
-          error.is_a?(Phronomy::Storage::SerializationError) ||
-          error.is_a?(Phronomy::Storage::UnsupportedBackendError) ||
+        error.is_a?(Phronomy::Persistence::ConflictError) ||
+          error.is_a?(Phronomy::Persistence::NotFoundError) ||
+          error.is_a?(Phronomy::Persistence::SerializationError) ||
+          error.is_a?(Phronomy::Persistence::UnsupportedBackendError) ||
           error.is_a?(ArgumentError) ||
           error.is_a?(Phronomy::ConfigurationError)
       end

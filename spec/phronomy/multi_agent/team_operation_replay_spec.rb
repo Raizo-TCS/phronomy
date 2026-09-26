@@ -34,7 +34,7 @@ RSpec.describe "Team operation result replay" do
 
     expect do
       loaded.send(:apply_operation, run.team_execution_id, key, :enqueue_task, {description: "changed"})
-    end.to raise_error(Phronomy::Storage::ConflictError, /identity mismatch/)
+    end.to raise_error(Phronomy::Persistence::ConflictError, /identity mismatch/)
     expect(loaded.executions.first.to_h).to eq(before)
   end
 end

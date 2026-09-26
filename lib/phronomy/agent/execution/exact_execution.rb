@@ -80,7 +80,7 @@ module Phronomy
           return reconcile(nil)
         end
         unless state.agent.equal?(command.agent)
-          raise Phronomy::Storage::ConflictError, "Exact execution #{@id} owner mismatch"
+          raise Phronomy::Persistence::StateConflictError, "Exact execution #{@id} owner mismatch"
         end
         if @config[:cancellation_token]&.cancelled?
           state.invocation&.config&.fetch(:cancellation_token, nil)&.cancel!
@@ -103,11 +103,11 @@ module Phronomy
       def read_execution
         begin
           execution = @agent.persistence.executions.load(@id)
-        rescue Phronomy::Storage::NotFoundError
+        rescue Phronomy::Persistence::NotFoundError
           return nil
         end
         unless execution.agent_id == @agent.agent_id
-          raise Phronomy::Storage::ConflictError, "Reserved execution #{@id} belongs to another Agent"
+          raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} belongs to another Agent"
         end
         expected = @config[:phronomy_coordination]
         stored = execution.metadata["coordination"]
@@ -115,12 +115,12 @@ module Phronomy
           actual_identity = stored&.except("handoff_revision")
           expected_identity = expected.except("handoff_revision")
           unless actual_identity == expected_identity
-            raise Phronomy::Storage::ConflictError, "Reserved execution #{@id} coordination mismatch"
+            raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} coordination mismatch"
           end
         end
         ref = execution.metadata["current_input_ref"]
         if ref && @agent.persistence.contents.fetch_text(ref) != @input
-          raise Phronomy::Storage::ConflictError, "Reserved execution #{@id} input mismatch"
+          raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} input mismatch"
         end
         execution
       end

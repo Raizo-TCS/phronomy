@@ -9,32 +9,41 @@ module Phronomy
         def initialize(view) = @view = view
 
         def append(agent_id, expected_position:, records:)
-          expected = Integer(expected_position)
-          entries = Array(records).each_with_index.map do |record, index|
-            unless record.agent_id.to_s == agent_id.to_s
-              raise Phronomy::Storage::SerializationError, "Journal record Agent mismatch"
+          Phronomy::Persistence::StorageBoundary.call do
+            expected = Integer(expected_position)
+            entries = Array(records).each_with_index.map do |record, index|
+              unless record.agent_id.to_s == agent_id.to_s
+                raise Phronomy::Storage::SerializationError, "Journal record Agent mismatch"
+              end
+              sequenced = record.with_sequence(expected + index + 1)
+              Phronomy::Storage::Entry::Append.new(id: sequenced.record_id.to_s, record: Codec.encode_journal_record(sequenced))
             end
-            sequenced = record.with_sequence(expected + index + 1)
-            Phronomy::Storage::Entry::Append.new(id: sequenced.record_id.to_s, record: Codec.encode_journal_record(sequenced))
-          end
-          @view.atomic do |bound|
-            stored = bound.streams(StorageSchema::JOURNAL).append(stream: agent_id.to_s,
-              expected_head: expected, entries: entries)
-            decode(stored, agent_id, after: expected)
+            @view.atomic do |bound|
+              stored = bound.streams(StorageSchema::JOURNAL).append(stream: agent_id.to_s,
+                expected_head: expected, entries: entries)
+              decode(stored, agent_id, after: expected)
+            end
           end
         end
 
         def read(agent_id, after: nil, limit: nil)
-          position = after.nil? ? 0 : Integer(after)
-          count = limit.nil? ? nil : Integer(limit)
-          @view.atomic do |bound|
-            stored = (count == 0) ? [] : bound.streams(StorageSchema::JOURNAL).read(stream: agent_id.to_s, after: position, limit: count)
-            decode(stored, agent_id, after: position)
+          Phronomy::Persistence::StorageBoundary.call do
+            position = after.nil? ? 0 : Integer(after)
+            count = limit.nil? ? nil : Integer(limit)
+            @view.atomic do |bound|
+              stored = (count == 0) ? [] : bound.streams(StorageSchema::JOURNAL).read(stream: agent_id.to_s, after: position, limit: count)
+              decode(stored, agent_id, after: position)
+            end
           end
         end
 
-        def head(agent_id) = @view.streams(StorageSchema::JOURNAL).head(stream: agent_id.to_s)
-        def delete(agent_id) = @view.streams(StorageSchema::JOURNAL).delete(stream: agent_id.to_s)
+        def head(agent_id)
+          Phronomy::Persistence::StorageBoundary.call { @view.streams(StorageSchema::JOURNAL).head(stream: agent_id.to_s) }
+        end
+
+        def delete(agent_id)
+          Phronomy::Persistence::StorageBoundary.call { @view.streams(StorageSchema::JOURNAL).delete(stream: agent_id.to_s) }
+        end
 
         private
 

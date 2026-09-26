@@ -61,12 +61,20 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no
             }
           end
 
-          it "does not relabel ordinary conflicts, I/O failures or legacy lifecycle errors" do
+          it "maps ordinary conflicts without confusing them with admission and preserves unknown failures" do
             [Phronomy::Storage::ConflictError.new("duplicate ID or stale revision"),
               IOError.new("storage unavailable"),
               Phronomy::AgentBusyError.new("legacy backend")].each do |error|
               allow(raw).to receive({create_active: :insert, save: :replace, assert_idle!: :check!}.fetch(operation)).and_raise(error)
-              expect(&invoke_operation).to raise_error { |caught| expect(caught).to equal(error) }
+              expect(&invoke_operation).to raise_error do |caught|
+                if error.is_a?(Phronomy::Storage::ConflictError)
+                  expect(caught).to be_a(Phronomy::Persistence::ConflictError)
+                  expect(caught).not_to be_a(Phronomy::AgentBusyError)
+                  expect(caught.cause).to equal(error)
+                else
+                  expect(caught).to equal(error)
+                end
+              end
             end
           end
         end

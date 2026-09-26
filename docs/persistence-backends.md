@@ -43,7 +43,7 @@ The backend declares `spi_version: 2` and true values for `atomic_resources`,
 `record_cas`, `stream_cas`, `conditional_unique`, `guarded_checks` and
 `nested_savepoints`. Persistence validates these capabilities and the required
 resource declarations before exposing repositories. Old duck-typed backends are
-rejected with `UnsupportedBackendError`; there is no eight-slot compatibility
+rejected by `Persistence.new` with `Persistence::UnsupportedBackendError`; there is no eight-slot compatibility
 adapter. Public Persistence capabilities retain `atomic_all`, `atomic_admission`
 and `optimistic_revision`, derived by composition from these primitives.
 
@@ -139,12 +139,22 @@ stale revisions and ordinary constraint conflicts remain `ConflictError`.
 meanings; `TransactionError` identifies invalid scope use. The removed
 `ActiveExecutionConflictError` and `Storage::Repositories` have no aliases.
 
-The following sections describe the retained **domain Persistence** surface.
+The following sections describe the **domain Persistence** surface. Unqualified
+ConflictError, NotFoundError, SerializationError and UnsupportedBackendError in
+these domain sections refer to `Phronomy::Persistence` errors. Repository exits
+translate the four raw Storage categories, preserving `cause`, message and trace.
+Backend implementation code continues to raise `Phronomy::Storage` errors as
+specified above. Unknown/transport errors and Storage::TransactionError are not
+translated. See [ADR-061](decisions/061-persistence-failure-contracts.md) and the
+[application migration](migrations/persistence-failure-contracts.md).
 
 ## Contents repository
 
-`ContentStore::StoredContents < ContentStore::Base` supplies this domain surface
-over neutral Blobs, with text/JSON helpers and canonical content-ID calculation.
+`ContentStore::StoredContents < ContentStore::Base` supplies text/JSON helpers
+and canonical content-ID calculation over neutral Blobs. The private
+Persistence::ContentRepository adapts its primitive methods to the upper failure
+contract when accessed through `persistence.contents`. Direct StoredContents
+callers retain the raw Storage error surface.
 
 Required primitive surface:
 
@@ -159,7 +169,7 @@ Required semantics:
 - content is immutable and content-addressed;
 - writing identical bytes is idempotent and returns the same content ID;
 - `fetch` returns a binary `String` isolated from caller mutation;
-- a missing content ID raises `Storage::NotFoundError`;
+- a missing content ID through `persistence.contents` raises `Persistence::NotFoundError`;
 - one content ID must never resolve to different bytes; a digest-integrity
   violation raises `ContentStore::IntegrityError`.
 
@@ -361,8 +371,9 @@ Array of supported values
 Hash with String/Symbol keys and supported values
 ```
 
-If a value cannot be represented, raise `Storage::SerializationError` rather
-than silently converting it into a lossy form. JSON backends may return String
+If a value cannot be represented, the backend/codec raises
+`Storage::SerializationError`; the domain repository exposes
+`Persistence::SerializationError`. Do not silently convert it into a lossy form. JSON backends may return String
 keys after decoding; `WorkflowRunner` deliberately accepts String and Symbol keys
 and normalizes them when comparing durable snapshots.
 

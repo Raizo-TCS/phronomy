@@ -34,9 +34,11 @@ RSpec.describe "Domain persistence ownership boundary" do
       abort "Team execution changed" unless runs.load(execution.team_execution_id).to_h == execution.to_h
       directory = File.expand_path(ARGV.fetch(0))
       prohibited = %w[agent workflow persistence persistence_composition engine]
+      shared_boundaries = ["persistence/storage_boundary.rb"]
       leaks = ($LOADED_FEATURES - loaded_at_entry).select do |path|
         next false unless path.start_with?(directory + "/")
         relative = path.delete_prefix(directory + "/")
+        next false if shared_boundaries.include?(relative) || relative.start_with?("persistence/contract/")
         prohibited.any? { |name| relative == "#{name}.rb" || relative.start_with?("#{name}/") }
       end
       abort "unrelated implementation loaded: #{leaks.join(', ')}" unless leaks.empty?
@@ -102,10 +104,10 @@ RSpec.describe "Domain persistence ownership boundary" do
         tx.agents.create(agent)
         tx.teams.create(team)
       end
-    end.to raise_error(Phronomy::Storage::SerializationError, /backend returned another Team/)
+    end.to raise_error(Phronomy::Persistence::SerializationError, /backend returned another Team/)
 
-    expect { persistence.agents.load(agent.agent_id) }.to raise_error(Phronomy::Storage::NotFoundError)
-    expect { persistence.teams.load(team.team_id) }.to raise_error(Phronomy::Storage::NotFoundError)
+    expect { persistence.agents.load(agent.agent_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { persistence.teams.load(team.team_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.contents.exist?(content_id)).to be(false)
   end
 end

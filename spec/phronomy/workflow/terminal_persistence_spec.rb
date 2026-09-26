@@ -69,7 +69,7 @@ RSpec.describe "WorkflowRunner terminal persistence" do
     )
 
     expect(result.outcome).to eq(:outcome_unknown)
-    expect(result.error).to be_a(Phronomy::Storage::ConflictError)
+    expect(result.error).to be_a(Phronomy::Persistence::ConflictError)
   end
 end
 
@@ -137,8 +137,8 @@ RSpec.describe "Workflow terminal save submission contract" do
     expect(result.to_h).to eq(outcome: :success, revision: 9, error: nil)
   end
 
-  [Phronomy::Storage::ConflictError, Phronomy::Storage::NotFoundError,
-    Phronomy::Storage::SerializationError, Phronomy::Storage::UnsupportedBackendError].each do |error_class|
+  [Phronomy::Persistence::ConflictError, Phronomy::Persistence::NotFoundError,
+    Phronomy::Persistence::SerializationError, Phronomy::Persistence::UnsupportedBackendError].each do |error_class|
     it "preserves #{error_class.name} as known failure without readback or retry" do
       failure = error_class.new("save failed")
       expect(repository).to receive(:save).once.and_raise(failure)
@@ -170,7 +170,7 @@ RSpec.describe "Workflow terminal save submission contract" do
     result = finish_operation
     expect(result.outcome).to eq(:outcome_unknown)
     expect(result.revision).to be_nil
-    expect(result.error).to be_a(Phronomy::Storage::ConflictError)
+    expect(result.error).to be_a(Phronomy::Persistence::ConflictError)
     expect(result.error.message).to include("conflicts with both expected pre-state and intended post-state")
   end
 

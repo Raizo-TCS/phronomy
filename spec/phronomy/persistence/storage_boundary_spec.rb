@@ -59,8 +59,8 @@ RSpec.describe "Storage dependency and transaction boundary" do
         content_id = tx.contents.put_text("must roll back")
         tx.agents.create(root)
       end
-    end.to raise_error(Phronomy::Storage::SerializationError, /backend returned another Agent/)
-    expect { persistence.agents.load(root.agent_id) }.to raise_error(Phronomy::Storage::NotFoundError)
+    end.to raise_error(Phronomy::Persistence::SerializationError, /backend returned another Agent/)
+    expect { persistence.agents.load(root.agent_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.contents.exist?(content_id)).to be(false)
   end
 end

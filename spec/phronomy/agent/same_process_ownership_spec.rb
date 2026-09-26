@@ -81,7 +81,7 @@ RSpec.describe "Agent same-process live ownership" do
   it "keeps load strict when no durable Agent exists" do
     expect {
       agent_class.load("missing-agent", persistence: persistence)
-    }.to raise_error(Phronomy::Storage::NotFoundError)
+    }.to raise_error(Phronomy::Persistence::NotFoundError)
 
     expect(agent_class.get("missing-agent")).to be_nil
   end

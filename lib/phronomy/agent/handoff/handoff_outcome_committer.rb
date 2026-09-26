@@ -55,7 +55,7 @@ module Phronomy
         coordination = current.metadata.fetch("coordination")
         routing = tx.handoff_states.load(coordination.fetch("main_agent_id"))
         unless routing && routing.active_agent_id == @agent.agent_id && routing.handoff_revision == coordination.fetch("handoff_revision")
-          raise Phronomy::Storage::ConflictError, "Handoff routing changed before Source transfer"
+          raise Phronomy::Persistence::StateConflictError, "Handoff routing changed before Source transfer"
         end
         if Array(routing.metadata["cancelled_execution_ids"]).include?(current.execution_id)
           raise Phronomy::CancellationError, "Handoff Source turn was cancelled"

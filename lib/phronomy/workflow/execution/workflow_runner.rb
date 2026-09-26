@@ -508,7 +508,7 @@ module Phronomy
       local_snapshot = normalize_snapshot(snapshot_for(state))
       return durable_revision if normalized_durable == local_snapshot
 
-      raise Phronomy::Storage::ConflictError,
+      raise Phronomy::Persistence::StateConflictError,
         "Workflow state changed since the supplied halted context for " \
         "workflow_instance_id #{state.workflow_instance_id.inspect}; explicit reload/reconciliation is required"
     end
@@ -663,10 +663,10 @@ module Phronomy
         revision: revision,
         error: nil
       )
-    rescue Phronomy::Storage::ConflictError,
-      Phronomy::Storage::NotFoundError,
-      Phronomy::Storage::SerializationError,
-      Phronomy::Storage::UnsupportedBackendError => error
+    rescue Phronomy::Persistence::ConflictError,
+      Phronomy::Persistence::NotFoundError,
+      Phronomy::Persistence::SerializationError,
+      Phronomy::Persistence::UnsupportedBackendError => error
       Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
         outcome: :known_failure,
         revision: nil,
@@ -719,7 +719,7 @@ module Phronomy
           error: original_error
         )
       else
-        conflict = Phronomy::Storage::ConflictError.new(
+        conflict = Phronomy::Persistence::StateConflictError.new(
           "Workflow terminal Persistence outcome conflicts with both expected " \
           "pre-state and intended post-state for #{operation.workflow_instance_id.inspect}"
         )

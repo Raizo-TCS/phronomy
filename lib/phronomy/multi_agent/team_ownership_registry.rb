@@ -28,7 +28,7 @@ module Phronomy
           loop do
             raise Phronomy::RuntimeShutdownError, "Runtime is draining" if @draining
             if (owner = @owners[id])
-              raise Phronomy::Storage::ConflictError, "Team #{id} already exists" if create
+              raise Phronomy::Persistence::StateConflictError, "Team #{id} already exists" if create
               unless owner.is_a?(klass) && owner.persistence.equal?(persistence)
                 raise Phronomy::ConfigurationError, "Team #{id} owner or Persistence mismatch"
               end

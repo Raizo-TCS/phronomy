@@ -51,7 +51,7 @@ RSpec.shared_examples "a Journal repository" do
         expected_position: 1,
         records: [record]
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rejects a duplicate record_id already present in the Journal" do
@@ -76,7 +76,7 @@ RSpec.shared_examples "a Journal repository" do
         expected_position: 1,
         records: [duplicate]
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rejects duplicate record_ids within one append" do
@@ -94,7 +94,7 @@ RSpec.shared_examples "a Journal repository" do
         expected_position: 0,
         records: records
       )
-    end.to raise_error(Phronomy::Storage::ConflictError)
+    end.to raise_error(Phronomy::Persistence::ConflictError)
   end
 
   it "rejects records belonging to another Agent" do
@@ -106,7 +106,7 @@ RSpec.shared_examples "a Journal repository" do
         expected_position: 0,
         records: [record]
       )
-    end.to raise_error(Phronomy::Storage::SerializationError)
+    end.to raise_error(Phronomy::Persistence::SerializationError)
   end
 
   it "reads records in sequence order and supports after/limit" do

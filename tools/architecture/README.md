@@ -82,8 +82,6 @@ Every phase layout retains `presentation.transparent_text_panels: true` and
 remain in the SVG with `display="none"`; metadata, links and the complete matrix
 retain all measured edges. Counts distinguish measured pairs and visible arrows.
 Boundary analysis always receives the full Ruby + RBS graph before presentation filtering.
-The regression gate records two pre-existing Configuration type references as
-explicit debt; the full-union report and SVG still include them (see below).
 With transparent nodes, paths end at box boundaries instead of exposing the
 previous center-to-border segments. This changes neither group membership nor
 dependency permission. Remove the target IDs to show those arrows again.
@@ -151,3 +149,22 @@ The graph remains directory-based: application configuration and lifecycle
 composition share a directory, so aggregating their references can join SCCs.
 Use file/member evidence to distinguish this from an Engine-to-domain path.
 See [ADR-060](../../docs/decisions/060-runtime-settings-and-application-configuration.md).
+
+## Domain persistence failure boundary
+
+G55 (M74, `persistence/`) contains the private raw-to-domain failure translator
+and content repository. G56 (M75, `persistence/contract/`) contains independent
+public Persistence failure classes. They retain the existing B1/B3 placement
+conventions without assigning any boundary permission to a display band.
+
+The complete Ruby + RBS gate rejects non-Common dependencies reachable from the
+failure contract and rejects raw Storage references from the eight reviewed
+Agent execution/lifecycle/Handoff/recovery, MultiAgent and Workflow execution
+directories. Their dedicated Storage AsyncClient references remain permitted;
+repository/codec dependencies on raw Storage retain their actual evidence.
+
+The canonical `Phronomy::Persistence` declaration belongs to
+`persistence/api/persistence.rb`, matching the real service definition. Namespace
+reopenings in storage_boundary.rb or contract files do not move that ownership.
+The analyzer regression checks the Ruby declaration owner, independent of RBS
+filename; no type reference or measured edge is suppressed by this correction.

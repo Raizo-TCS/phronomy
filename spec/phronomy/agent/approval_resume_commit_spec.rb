@@ -109,7 +109,7 @@ RSpec.describe Phronomy::Agent::ApprovalResumeCommit do
     second = command(tool_batch_snapshot: Phronomy::Values::Immutable.copy([{"winner" => "second"}]))
     winner = worker.commit(second)
 
-    expect { worker.commit(first) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { worker.commit(first) }.to raise_error(Phronomy::Persistence::ConflictError)
     expect(persistence.executions.load(execution.execution_id).to_h).to eq(winner.execution.to_h)
     expect(persistence.agents.load(agent.agent_id).to_h).to eq(winner.root.to_h)
     expect(winner.execution.working_records.count { |record| record.kind == :approval_decided }).to eq(1)
@@ -122,7 +122,7 @@ RSpec.describe Phronomy::Agent::ApprovalResumeCommit do
       tx.agents.save(agent.agent_id, expected_revision: operation.root.agent_revision, root: concurrent_root)
     end
 
-    expect { worker.commit(operation) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { worker.commit(operation) }.to raise_error(Phronomy::Persistence::ConflictError)
     expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
     expect(persistence.agents.load(agent.agent_id).to_h).to eq(concurrent_root.to_h)
   end

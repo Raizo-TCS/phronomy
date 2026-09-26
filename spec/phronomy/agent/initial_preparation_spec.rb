@@ -139,7 +139,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
   it "releases a known failed durable admission without running input filters" do
     command = operation
-    allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:create_active).and_raise(Phronomy::Storage::ConflictError, "stale root")
+    allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:create_active).and_raise(Phronomy::Persistence::ConflictError, "stale root")
     expect(agent).not_to receive(:run_input_filters!)
 
     result = worker.prepare(command)
@@ -170,7 +170,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     persistence.arm(2)
     expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
 
-    expect { worker.prepare(command) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { worker.prepare(command) }.to raise_error(Phronomy::Persistence::ConflictError)
 
     stored = persistence.executions.list_active(agent.agent_id).first
     expect(stored.status).to eq(:active)
@@ -257,7 +257,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     end
     expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
 
-    expect { worker.prepare(command) }.to raise_error(Phronomy::Storage::ConflictError)
+    expect { worker.prepare(command) }.to raise_error(Phronomy::Persistence::ConflictError)
 
     expect(persistence.agents.load(agent.agent_id).to_h).to eq(advanced_root.to_h)
     expect(persistence.executions.list_active(agent.agent_id).first.status).to eq(:preparing)

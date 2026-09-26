@@ -64,7 +64,7 @@ RSpec.describe "Agent initial and explicit state mutation contract" do
       fail_in_transaction(repository, operation, error)
       expect { agent_class.new(agent_id: "failed-create", persistence: persistence, knowledge: ["fact"]) }
         .to raise_error { |actual| expect(actual).to equal(error) }
-      expect { persistence.agents.load("failed-create") }.to raise_error(Phronomy::Storage::NotFoundError)
+      expect { persistence.agents.load("failed-create") }.to raise_error(Phronomy::Persistence::NotFoundError)
       expect(persisted_records("failed-create")).to be_empty
     end
   end
@@ -77,7 +77,7 @@ RSpec.describe "Agent initial and explicit state mutation contract" do
     context = Phronomy::Agent::ContextImporter::ImportedContext.new(records: [record])
     expect { agent_class.new(agent_id: "bad-import", persistence: persistence, context: context) }
       .to raise_error(ArgumentError, /unsupported imported content format: :binary/)
-    expect { persistence.agents.load("bad-import") }.to raise_error(Phronomy::Storage::NotFoundError)
+    expect { persistence.agents.load("bad-import") }.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 
   it "uses the live root and publishes journal then root only after the transaction returns" do
@@ -155,7 +155,7 @@ RSpec.describe "Agent initial and explicit state mutation contract" do
     it "rolls back journal and keeps live state on a save failure in #{operation}" do
       current = agent.agent_root
       before_records = agent.send(:_journal_records_snapshot)
-      error = Phronomy::Storage::ConflictError.new("stale root")
+      error = Phronomy::Persistence::ConflictError.new("stale root")
       fail_in_transaction(:agents, :save, error)
       args = (operation == :add_knowledge) ? ["fact"] : []
       expect { agent.public_send(operation, *args) }.to raise_error { |actual| expect(actual).to equal(error) }

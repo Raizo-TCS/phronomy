@@ -19,12 +19,12 @@ RSpec.describe "Persistence and Storage SPI 2 public contract" do
   it "rejects old duck-typed backends before domain composition" do
     old_backend = Object.new
     def old_backend.capabilities = {atomic_all: true, atomic_admission: true, optimistic_revision: true}
-    expect { Phronomy::Persistence.new(backend: old_backend) }.to raise_error(Phronomy::Storage::UnsupportedBackendError, /SPI 2/)
+    expect { Phronomy::Persistence.new(backend: old_backend) }.to raise_error(Phronomy::Persistence::UnsupportedBackendError, /SPI 2/)
   end
 
   it "rejects an incomplete capability declaration" do
     allow(backend).to receive(:capabilities).and_return(backend.capabilities.merge(guarded_checks: false))
-    expect { Phronomy::Persistence.new(backend: backend) }.to raise_error(Phronomy::Storage::UnsupportedBackendError, /guarded_checks/)
+    expect { Phronomy::Persistence.new(backend: backend) }.to raise_error(Phronomy::Persistence::UnsupportedBackendError, /guarded_checks/)
   end
 
   it "does not retain the removed eight-slot view or domain-named error alias" do

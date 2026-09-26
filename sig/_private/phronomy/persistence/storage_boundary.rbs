@@ -1,0 +1,7 @@
+module Phronomy
+  class Persistence
+    module StorageBoundary
+      def self.call: [T] () { () -> T } -> T
+    end
+  end
+end

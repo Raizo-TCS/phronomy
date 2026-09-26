@@ -150,7 +150,10 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
     paths = ["lib/phronomy/agent/base.rb", "lib/phronomy/agent/api/agent.rb",
       "lib/phronomy/agent/lifecycle/default_persistence.rb"]
     paths.each do |path|
-      tokens = Ripper.lex(File.read(File.join(project_root, path)))
+      source = File.read(File.join(project_root, path))
+      # Independent failure contracts do not select or construct a Persistence service.
+      source = source.gsub(/(?:Phronomy::)?Persistence::(?:ConflictError|StateConflictError|NotFoundError|SerializationError|UnsupportedBackendError)\b/, "FailureContract")
+      tokens = Ripper.lex(source)
       constants = tokens.filter_map { |_, type, token, _| token if type == :on_const }
       expect(constants).not_to include("Persistence", "InMemory")
       requires = File.read(File.join(project_root, path)).scan(/^\s*require(?:_relative)?\s+["']([^"']+)/).flatten

@@ -29,7 +29,7 @@ end
   llm_adapter/async llm_adapter/backends
   vector_store/async vector_store/backends
   vector_store/embeddings/async vector_store/embeddings/backends
-  storage/async content_store/backends
+  storage/async content_store/backends persistence/contract
 ].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
@@ -60,6 +60,7 @@ end
 
 # These files wire composition, reopen namespaces, or patch a dependency.
 loader.ignore(
+  "#{__dir__}/phronomy/persistence/api/persistence.rb",
   "#{__dir__}/phronomy/runtime_composition/global_configuration.rb",
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
@@ -71,6 +72,9 @@ loader.ignore(
   "#{__dir__}/phronomy/testing/persistence_contract.rb",
   "#{__dir__}/phronomy/testing/persistence_contract"
 )
+# Failure contracts can define Persistence before ordinary framework loading.
+# Explicitly install its service methods without constructing a backend/Runtime.
+require_relative "phronomy/persistence/api/persistence"
 loader.setup
 
 require_relative "phronomy/runtime_composition/configuration_defaults"

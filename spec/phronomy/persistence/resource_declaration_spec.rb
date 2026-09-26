@@ -55,7 +55,7 @@ RSpec.describe Phronomy::Storage::Resource do
     backend = Phronomy::Storage::Backends::InMemory.new(resources: [resource])
     expect { backend.view.streams(resource) }.to raise_error(Phronomy::Storage::UnsupportedBackendError)
     expect { backend.view.records(described_class.new(id: "records", kind: :records)) }.to raise_error(Phronomy::Storage::UnsupportedBackendError)
-    expect { Phronomy::Persistence.new(backend: backend) }.to raise_error(Phronomy::Storage::UnsupportedBackendError)
+    expect { Phronomy::Persistence.new(backend: backend) }.to raise_error(Phronomy::Persistence::UnsupportedBackendError)
   end
 
   it "copies guard and condition references and rejects non-text keys" do
