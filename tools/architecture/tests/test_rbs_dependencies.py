@@ -107,24 +107,22 @@ class ProjectTests(unittest.TestCase):
         self.assertTrue(aliases)
         self.assertTrue(all(r['to'] == 'lib/phronomy/storage' for r in aliases))
         configuration = next(r for r in refs if r['owner'] == 'Phronomy' and r['member'] == 'configuration')
-        self.assertEqual('lib/phronomy/configuration', configuration['from'])
-        self.assertEqual('lib/phronomy/configuration/global_configuration.rb', configuration['source_definition']['file'])
+        self.assertEqual('lib/phronomy/runtime_composition', configuration['from'])
+        self.assertEqual('lib/phronomy/runtime_composition/global_configuration.rb', configuration['source_definition']['file'])
 
-    def test_rbs_boundary_debt_is_visible_and_new_evidence_is_not_exempted(self):
-        before = deepcopy(self.audit)
-        result = refresh.check_with_type_baseline(self.audit, 'storage', REPO)
-        self.assertTrue(result['passed'])
-        self.assertFalse(result['full_union']['passed'])
-        self.assertEqual([1, 1], result['matched_reference_counts'])
-        self.assertEqual(before, self.audit)
-        for origin in ['rbs_references', 'references']:
+    def test_complete_type_graph_passes_without_a_baseline_and_rejects_reverse_references(self):
+        result = refresh.check_boundaries(self.audit, 'storage', REPO)
+        self.assertTrue(result['passed'], result)
+        self.assertEqual([], result['violations'])
+        self.assertFalse((HERE / 'config/rbs_boundary_baseline.json').exists())
+        for target in ['lib/phronomy/agent/context_contract', 'lib/phronomy/llm_adapter',
+                       'lib/phronomy/runtime_composition']:
             changed = deepcopy(self.audit)
-            pair = next(p for p in changed['module_pairs'] if p['from'] == 'lib/phronomy/configuration' and p['to'] == 'lib/phronomy/llm_adapter')
-            new = deepcopy(pair['rbs_references'][0])
-            new['member'] = 'another_dependency'
-            pair[origin].append(new)
-            with self.subTest(origin=origin):
-                self.assertFalse(refresh.check_with_type_baseline(changed, 'storage', REPO)['passed'])
+            changed['module_pairs'].append({'from': 'lib/phronomy/configuration', 'to': target,
+                                           'references': [], 'requires': [],
+                                           'rbs_references': [{'origin': 'rbs'}]})
+            with self.subTest(target=target):
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
 
     def test_svg_keeps_rbs_evidence_and_marks_type_only_matrix_cells(self):
         svg = make_source(self.audit, refresh.read_architecture('storage'), 'TEST_TREE', 'rbs-test', candidate=True)

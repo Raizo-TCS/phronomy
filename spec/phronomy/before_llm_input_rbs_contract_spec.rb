@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
   let(:root) { File.expand_path("../..", __dir__) }
   let(:agent_rbs) { File.read(File.join(root, "sig/phronomy/agent.rbs")) }
-  let(:top_rbs) { File.read(File.join(root, "sig/phronomy.rbs")) }
+  let(:top_rbs) { File.read(File.join(root, "sig/phronomy/runtime_composition/configuration.rbs")) }
 
   it "keeps the three Stable registration tiers represented in runtime and RBS" do
     expect(Phronomy.configuration).to respond_to(

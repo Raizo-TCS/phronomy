@@ -24,3 +24,7 @@ module Phronomy
     end
   end
 end
+
+# The provider yields only the Engine-facing value object, never Configuration.
+# It is intentionally lazy and follows reset_configuration!/with_configuration.
+Phronomy::RuntimeSettings.install_provider { Phronomy.configuration.__runtime_settings }

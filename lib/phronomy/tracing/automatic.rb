@@ -19,7 +19,7 @@ module Phronomy
 
       def start(name, input: nil, **metadata)
         trace_pii = false
-        configuration = Phronomy.configuration
+        configuration = Phronomy::RuntimeSettings.current
         trace_pii = !!configuration.trace_pii
         tracer = configuration.tracer
         span = tracer.start_span(
@@ -164,7 +164,7 @@ module Phronomy
         message =
           "[Phronomy] automatic tracing #{stage} failed for " \
           "#{name}: #{error.class}#{detail}"
-        logger = Phronomy.configuration.logger
+        logger = Phronomy::RuntimeSettings.current.logger
         logger ? logger.warn(message) : Kernel.warn(message)
         nil
       rescue

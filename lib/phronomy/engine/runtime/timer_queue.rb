@@ -68,7 +68,7 @@ module Phronomy
         callbacks.each do |callback|
           callback.call
         rescue => error
-          Phronomy.configuration.logger&.error do
+          Phronomy::RuntimeSettings.current.logger&.error do
             "[TimerQueue] callback raised #{error.class}: #{error.message}"
           end
         end

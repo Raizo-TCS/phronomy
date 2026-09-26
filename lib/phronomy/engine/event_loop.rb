@@ -632,7 +632,7 @@ module Phronomy
     end
 
     def warn_queue_backlog(message)
-      logger = Phronomy.configuration.logger
+      logger = Phronomy::RuntimeSettings.current.logger
       logger ? logger.warn(message) : Kernel.warn(message)
     rescue
       nil
@@ -648,11 +648,11 @@ module Phronomy
     end
 
     def check_starvation_lag(lag_ns, event)
-      threshold = Phronomy.configuration.event_loop_starvation_threshold_seconds
+      threshold = Phronomy::RuntimeSettings.current.event_loop_starvation_threshold_seconds
       return unless threshold
       return unless lag_ns > (threshold * 1_000_000_000)
 
-      Phronomy.configuration.logger&.warn do
+      Phronomy::RuntimeSettings.current.logger&.warn do
         "[Phronomy::EventLoop] Starvation detected: event #{event.type.inspect} " \
           "for target #{event.target_id.inspect} waited " \
           "#{format("%.3f", lag_ns / 1_000_000_000.0)}s in queue " \
@@ -661,13 +661,13 @@ module Phronomy
     end
 
     def check_dispatch_time(dispatch_start_ns, event)
-      threshold = Phronomy.configuration.event_loop_dispatch_threshold_seconds
+      threshold = Phronomy::RuntimeSettings.current.event_loop_dispatch_threshold_seconds
       return unless threshold
 
       elapsed_ns = monotonic_nanoseconds - dispatch_start_ns
       return unless elapsed_ns > (threshold * 1_000_000_000)
 
-      Phronomy.configuration.logger&.warn do
+      Phronomy::RuntimeSettings.current.logger&.warn do
         "[Phronomy::EventLoop] Long dispatch: event #{event.type.inspect} " \
           "for target #{event.target_id.inspect} took " \
           "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s on the EventLoop thread " \

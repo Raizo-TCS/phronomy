@@ -13,6 +13,14 @@ Amends the configuration ownership in
 Its loading rules, direct-root allowlist, and compatibility requirements remain
 in force.
 
+## Amendment: neutral runtime settings
+
+[060-runtime-settings-and-application-configuration](060-runtime-settings-and-application-configuration.md)
+amends configuration placement and Engine access: application configuration and
+global accessors belong to `runtime_composition/`, while `configuration/` owns
+only neutral `RuntimeSettings`. Concrete defaults remain composition-owned;
+public configuration and Runtime reset behavior remain unchanged.
+
 ## Context
 
 `Phronomy.reset_runtime!` shuts down the default Runtime and replaces global

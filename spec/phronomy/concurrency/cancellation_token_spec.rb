@@ -384,7 +384,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     it "logs errors raised by on_cancel callbacks when a logger is configured" do
       logger = double("logger")
       allow(logger).to receive(:error)
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
 
       token = described_class.new
       token.on_cancel { raise "callback error" }

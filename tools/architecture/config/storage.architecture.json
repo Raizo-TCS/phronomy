@@ -169,7 +169,7 @@
     {
       "id": "M44",
       "directory": "lib/phronomy/configuration",
-      "role": "Settings / validation / global access",
+      "role": "Engine settings / logging / pool defaults",
       "mixed": false,
       "group": "G38"
     },
@@ -304,7 +304,7 @@
     {
       "id": "M51",
       "directory": "lib/phronomy/runtime_composition",
-      "role": "Default bindings / runtime reset",
+      "role": "Application configuration / defaults / runtime reset",
       "mixed": false,
       "group": "G35"
     },
@@ -707,7 +707,7 @@
     },
     {
       "id": "G38",
-      "title": "CONFIGURATION",
+      "title": "RUNTIME SETTINGS",
       "members": [
         "M44"
       ],

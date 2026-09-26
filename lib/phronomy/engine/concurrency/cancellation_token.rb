@@ -98,7 +98,7 @@ module Phronomy
       def deliver_cancel_callback(callback)
         callback.call
       rescue => error
-        Phronomy.configuration.logger&.error do
+        Phronomy::RuntimeSettings.current.logger&.error do
           "[CancellationToken] on_cancel callback raised #{error.class}: #{error.message}"
         end
       end

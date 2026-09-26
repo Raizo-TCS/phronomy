@@ -260,7 +260,7 @@ module Phronomy
         def notify_abandoned
           @on_abandoned&.call(self)
         rescue => error
-          Phronomy.configuration.logger&.error do
+          Phronomy::RuntimeSettings.current.logger&.error do
             "OffloadPool abandoned callback failed: #{error.class}: #{error.message}"
           end
         end

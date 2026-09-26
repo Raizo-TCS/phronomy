@@ -33,7 +33,7 @@ module Phronomy
         instance_mutex.synchronize { @instance = runtime }
       end
 
-      def reset_default!(timeout: Phronomy.configuration.event_loop_stop_grace_seconds)
+      def reset_default!(timeout: Phronomy::RuntimeSettings.current.event_loop_stop_grace_seconds)
         runtime = instance_mutex.synchronize { @instance }
         return ShutdownResult.not_started unless runtime
 
@@ -81,8 +81,8 @@ module Phronomy
     end
 
     def offload(
-      pool_size: Phronomy.configuration.offload_pool_size,
-      queue_size: Phronomy.configuration.offload_queue_size
+      pool_size: Phronomy::RuntimeSettings.current.offload_pool_size,
+      queue_size: Phronomy::RuntimeSettings.current.offload_queue_size
     )
       ensure_accepting_work!
       @pool_registry.default_pool(pool_size: pool_size, queue_size: queue_size)
@@ -177,7 +177,7 @@ module Phronomy
     end
 
     def shutdown(
-      timeout: Phronomy.configuration.event_loop_stop_grace_seconds,
+      timeout: Phronomy::RuntimeSettings.current.event_loop_stop_grace_seconds,
       cancel_grace: timeout
     )
       if event_loop_current?

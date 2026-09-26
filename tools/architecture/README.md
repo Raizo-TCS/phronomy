@@ -131,25 +131,23 @@ Display filters never alter the audit, matrix or SCC calculation.
 - `source_sha256.json`: every analyzed Ruby and RBS file, including `_private`.
 - `provenance.json`: parser version, source commit/tree, scripts and configuration.
 
-## Existing type boundary debt
+## Strict configuration boundary
 
-Adding RBS reveals two already-present references in main `cab117e6`:
-`Configuration#llm_adapter` references `LLMAdapter::Base`, and
-`Configuration#before_llm_input` references `Agent::_BeforeLLMInputHook`.
-Directory-level transitive analysis connects Engine configuration reads to these
-application-oriented attributes. These types were not introduced by this change.
-They remain visible in the union graph, SCCs and `boundary_validation.json`'s
-`full_union` report; that report does **not** pass the strict boundary policy.
+Engine reads only the internal `RuntimeSettings` value object in
+`lib/phronomy/configuration/`. It contains no Agent, LLM adapter, persistence or
+concrete tracer class references. Application-facing `Configuration` and its
+global/scoped accessors belong to `runtime_composition/`; they compose these
+neutral settings with application options. Their public RBS signatures retain
+the same types and follow the Ruby declaration owner.
 
-`config/rbs_boundary_baseline.json` records the exact two owner/member/type
-identities and their original file/line evidence. The CI regression gate exempts
-only those RBS occurrences. Other references between the same directories,
-including Ruby references, are still checked. Missing or duplicated baseline
-occurrences fail so that stale allowances cannot silently accumulate. The SVG
-is generated only if this regression gate passes; its success is not a claim
-that the full type graph is violation-free.
+The lazy provider is installed by application composition and returns only
+`RuntimeSettings`. Reset and scoped restoration are resolved on every read;
+Engine does not receive the application `Configuration` object.
 
-Resolving this debt requires member-level configuration analysis or separating
-application configuration contracts from the Engine-facing configuration view.
-It must not be hidden by changing the public types to `untyped` or relocating
-RBS files to assign misleading owners.
+The full Ruby + RBS union now must pass the boundary policy without exemptions.
+The former two-reference RBS baseline has been removed. A new guard also rejects
+any transitive path from neutral settings to a non-common responsibility.
+The graph remains directory-based: application configuration and lifecycle
+composition share a directory, so aggregating their references can join SCCs.
+Use file/member evidence to distinguish this from an Engine-to-domain path.
+See [ADR-060](../../docs/decisions/060-runtime-settings-and-application-configuration.md).

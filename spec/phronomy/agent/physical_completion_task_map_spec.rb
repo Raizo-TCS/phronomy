@@ -88,7 +88,7 @@ RSpec.describe Phronomy::Concurrency::PhysicalCompletionTask do
 
   it "logs a raising on_physical_complete callback when a logger is configured" do
     logger = instance_double(Logger, error: nil)
-    allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+    Phronomy.configuration.logger = logger
 
     task = described_class.deferred(name: "test")
     task.on_physical_complete { raise "callback failure" }

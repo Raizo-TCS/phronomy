@@ -32,7 +32,7 @@ module Phronomy
               expected: expected.to_s,
               actual: actual.to_s
             )
-            response = Phronomy::Runtime.instance.offload.submit do
+            response = Phronomy::Blocking.call_async do
               RubyLLM.chat(model: @model, provider: @provider, assume_model_exists: @assume_model_exists).ask(prompt)
             end.wait_result
             response.content.to_s.strip.scan(/-?\d+\.?\d*/).first.to_f.clamp(0.0, 1.0)

@@ -16,47 +16,4 @@ module Phronomy
   class TimeoutError < Error
   end
 
-  class ConfigurationError < Error
-  end
-
-  class HandoffError < Error
-  end
-
-  class TransportError < Error
-  end
-
-  class RateLimitError < TransportError
-  end
-
-  class AuthenticationError < TransportError
-  end
-
-  class ContextLengthError < Error
-  end
-
-  class CancellationError < Error
-  end
-
-  class EventLoopReentrancyError < Error
-  end
-
-  class AgentAlreadyExistsError < Error
-  end
-
-  class AgentPurgedError < Error
-  end
-
-  class PoolShutdownError < Error
-  end
-
-  class BackpressureError < Error
-  end
-
-  class Configuration
-    attr_accessor llm_adapter: LLMAdapter::Base
-    attr_accessor before_llm_input: Agent::_BeforeLLMInputHook?
-  end
-
-  def self.configuration: () -> Configuration
-  def self.configure: () { (Configuration) -> void } -> void
 end

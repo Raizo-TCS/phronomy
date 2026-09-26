@@ -10,6 +10,7 @@ RSpec.describe "RBS gem packaging" do
     expect(specification).not_to be_nil
     expect(specification.files).to include(
       "sig/phronomy.rbs",
+      "sig/phronomy/runtime_composition/configuration.rbs",
       "sig/phronomy/runtime.rbs",
       "sig/phronomy/tool.rbs",
       "sig/phronomy/llm_adapter/base.rbs",

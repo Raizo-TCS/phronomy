@@ -11,6 +11,14 @@ Their loading, public compatibility, and Runtime reset rules remain in force.
 The provider-call and framework-owned async boundary in
 [027-llm-adapter-provider-boundary](027-llm-adapter-provider-boundary.md) is unchanged.
 
+## Amendment: neutral runtime settings
+
+[060-runtime-settings-and-application-configuration](060-runtime-settings-and-application-configuration.md)
+amends configuration placement and Engine access: application configuration and
+global accessors belong to `runtime_composition/`, while `configuration/` owns
+only neutral `RuntimeSettings`. Concrete defaults remain composition-owned;
+public configuration and Runtime reset behavior remain unchanged.
+
 ## Context
 
 `Configuration` holds settings read by Engine and other framework components.

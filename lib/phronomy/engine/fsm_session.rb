@@ -407,7 +407,7 @@ module Phronomy
       )
       return if accepted
 
-      Phronomy.configuration.logger&.warn(
+      Phronomy::RuntimeSettings.current.logger&.warn(
         "[Phronomy::FSMSession] EventLoop rejected recovery-required event for #{@id}"
       )
     end
@@ -422,7 +422,7 @@ module Phronomy
       )
       return if accepted
 
-      Phronomy.configuration.logger&.warn(
+      Phronomy::RuntimeSettings.current.logger&.warn(
         "[Phronomy::FSMSession] EventLoop rejected terminal event " \
           "#{type.inspect} for #{@id}"
       )

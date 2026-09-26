@@ -20,7 +20,7 @@ loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 # These responsibility directories do not add a public Ruby namespace.
-%w[common configuration engine generation llm_contract recovery].each do |directory|
+%w[common configuration engine generation llm_contract recovery runtime_composition].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
 # Backend contracts, execution clients and implementations have separate source
@@ -60,7 +60,7 @@ end
 
 # These files wire composition, reopen namespaces, or patch a dependency.
 loader.ignore(
-  "#{__dir__}/phronomy/configuration/global_configuration.rb",
+  "#{__dir__}/phronomy/runtime_composition/global_configuration.rb",
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/configuration_defaults.rb",
@@ -75,7 +75,7 @@ loader.setup
 
 require_relative "phronomy/runtime_composition/configuration_defaults"
 require_relative "phronomy/llm_contract/token_usage"
-require_relative "phronomy/configuration/global_configuration"
+require_relative "phronomy/runtime_composition/global_configuration"
 require_relative "phronomy/runtime_composition/global_runtime"
 
 # Explicitly install the Agent namespace extensions even if its factory
