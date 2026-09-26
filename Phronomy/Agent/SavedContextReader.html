@@ -241,15 +241,15 @@ Callers perform these reads before applying live state on EventLoop.</p>
       <pre class="lines">
 
 
-25
-26
 27
 28
 29
-30</pre>
+30
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_latest_assistant_record'>latest_assistant_record</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='label'>llm_call_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_working_records'>working_records</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_reverse'>reverse</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='op'>|</span>
@@ -293,14 +293,18 @@ Callers perform these reads before applying live state on EventLoop.</p>
 11
 12
 13
-14</pre>
+14
+15
+16</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 11</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_manifest_from_ref'>manifest_from_ref</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_ref'>ref</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raw'>raw</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_ref'>ref</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="LLMInputManifest.html#from_h-class_method" title="Phronomy::Agent::LLMInputManifest.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_raw'>raw</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence/StorageBoundary.html" title="Phronomy::Persistence::StorageBoundary (module)">StorageBoundary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../Persistence/StorageBoundary.html#call-class_method" title="Phronomy::Persistence::StorageBoundary.call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_raw'>raw</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_ref'>ref</span><span class='rparen'>)</span>
+    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="LLMInputManifest.html" title="Phronomy::Agent::LLMInputManifest (class)">LLMInputManifest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="LLMInputManifest.html#from_h-class_method" title="Phronomy::Agent::LLMInputManifest.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_raw'>raw</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -335,17 +339,17 @@ Callers perform these reads before applying live state on EventLoop.</p>
       <pre class="lines">
 
 
-16
-17
 18
 19
 20
 21
 22
-23</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_materialize_projection'>materialize_projection</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='id identifier rubyid_manifest_from_ref'>manifest_from_ref</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='rparen'>)</span>
@@ -388,8 +392,6 @@ Callers perform these reads before applying live state on EventLoop.</p>
       <pre class="lines">
 
 
-32
-33
 34
 35
 36
@@ -406,10 +408,12 @@ Callers perform these reads before applying live state on EventLoop.</p>
 47
 48
 49
-50</pre>
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembly/saved_context_reader.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_provider_output_and_usage'>provider_output_and_usage</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assistant'>assistant</span> <span class='op'>=</span> <span class='id identifier rubyid_latest_assistant_record'>latest_assistant_record</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
@@ -440,7 +444,7 @@ Callers perform these reads before applying live state on EventLoop.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 26 03:01:56 2026 by
+  Generated on Sat Sep 26 17:46:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

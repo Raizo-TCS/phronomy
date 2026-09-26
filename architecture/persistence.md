@@ -27,6 +27,14 @@ facades bound to the raw backend view for that transaction.
 See [ADR-032](../decisions/032-storage-backend-composition.md) and
 [ADR-033](../decisions/033-domain-persistence-ownership.md).
 
+`persistence/contract/` owns independent domain-facing failure classes. Repository
+boundaries translate four known raw Storage categories to Persistence categories,
+retaining the original exception as `cause`. Upper domain state contradictions
+use `Persistence::StateConflictError < Persistence::ConflictError`. Unknown and
+commit-outcome-uncertain exceptions are not reclassified. Backend contracts never
+depend on these upper errors. See [ADR-061](../decisions/061-persistence-failure-contracts.md)
+and the [rescue-clause migration](../migrations/persistence-failure-contracts.md).
+
 Shared value copying belongs to `Values::Immutable` in `values/`. Agent records,
 Team records, Recovery classifications, and Persistence result views use this
 internal helper without borrowing an Agent implementation. It copies and freezes
@@ -93,7 +101,7 @@ Defined semantic durable transitions are atomic according to the Persistence
 transaction contract and conforming backend.
 
 Revision/watermark/CAS checks reject stale durable transitions with
-`Storage::ConflictError` rather than silently merging/reloading competing
+`Persistence::ConflictError` rather than silently merging/reloading competing
 state.
 
 Conflict detection is not competing-execution exclusion and cannot undo an

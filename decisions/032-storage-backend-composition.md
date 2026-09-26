@@ -9,6 +9,11 @@ The raw fixed-repository/error portions are amended by
 [ADR-058](058-neutral-storage-primitives.md). Domain ownership and applicable
 transaction/uncertainty decisions below remain in force.
 
+Domain-facing exception ownership is further amended by
+[061-persistence-failure-contracts](061-persistence-failure-contracts.md).
+Raw backend exceptions remain owned by Storage; domain repository exits now
+translate their known categories to independent Persistence exceptions.
+
 ## Context
 
 The previous `Persistence` class combined raw storage contracts with domain
