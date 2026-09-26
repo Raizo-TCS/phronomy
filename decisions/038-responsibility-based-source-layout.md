@@ -17,6 +17,14 @@ Amends the extraction scope of
 [037-common-definition-ownership](037-common-definition-ownership.md).
 Its common-ownership rule and public Error contract remain unchanged.
 
+## Amendment: neutral runtime settings
+
+[060-runtime-settings-and-application-configuration](060-runtime-settings-and-application-configuration.md)
+amends configuration placement and Engine access: application configuration and
+global accessors belong to `runtime_composition/`, while `configuration/` owns
+only neutral `RuntimeSettings`. Concrete defaults remain composition-owned;
+public configuration and Runtime reset behavior remain unchanged.
+
 ## Context
 
 The application loading entry point and the direct `lib/phronomy/` directory

@@ -466,7 +466,7 @@ durable span state, or backend-native parent/child semantics.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_trace_pii'>trace_pii</span> <span class='op'>=</span> <span class='kw'>false</span>
-  <span class='id identifier rubyid_configuration'>configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span>
+  <span class='id identifier rubyid_configuration'>configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="../RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span>
   <span class='id identifier rubyid_trace_pii'>trace_pii</span> <span class='op'>=</span> <span class='op'>!</span><span class='op'>!</span><span class='id identifier rubyid_configuration'>configuration</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>
   <span class='id identifier rubyid_tracer'>tracer</span> <span class='op'>=</span> <span class='id identifier rubyid_configuration'>configuration</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>
   <span class='id identifier rubyid_span'>span</span> <span class='op'>=</span> <span class='id identifier rubyid_tracer'>tracer</span><span class='period'>.</span><span class='id identifier rubyid_start_span'>start_span</span><span class='lparen'>(</span>
@@ -549,7 +549,7 @@ durable span state, or backend-native parent/child semantics.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Sep 25 18:34:08 2026 by
+  Generated on Sat Sep 26 03:01:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

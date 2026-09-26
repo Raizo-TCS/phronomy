@@ -88,7 +88,7 @@ resolved explicitly.
 | [`037-common-definition-ownership`](037-common-definition-ownership.md) | Amended | Yes | Defines the common responsibility group and initially extracts the shared base exception; [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md) extends the extraction scope while preserving ownership rules and exception contracts. |
 | [`038-responsibility-based-source-layout`](038-responsibility-based-source-layout.md) | Amended | Yes | Reserves the direct root for version/namespace loading, groups common definitions and feature implementation/contracts, and preserves canonical constants and lifecycle loading through explicit Zeitwerk roots. ADR-039 separates cross-owner Runtime lifecycle coordination. |
 | [`039-runtime-configuration-lifecycle-ownership`](039-runtime-configuration-lifecycle-ownership.md) | Amended | Yes | Separates application Runtime reset and configuration replacement into runtime_composition; configuration access and Engine mechanics retain their own ownership and existing API behavior. ADR-040 separates concrete-default selection without changing Runtime reset. |
-| [`040-configuration-default-composition`](040-configuration-default-composition.md) | Accepted | Yes | Settings consume internal fresh-instance factories; runtime_composition selects and binds the concrete adapter/tracer defaults. Preserves Configuration.new and the adapter SPI. |
+| [`040-configuration-default-composition`](040-configuration-default-composition.md) | Amended | Yes | Settings consume internal fresh-instance factories; runtime_composition selects and binds the concrete adapter/tracer defaults. Preserves Configuration.new and the adapter SPI. |
 | [`041-feature-owned-identity-registries`](041-feature-owned-identity-registries.md) | Accepted | Yes | Agent and MultiAgent own identity registries; Runtime retains them through generic lookup, drain/wait, and optional finalization. Preserves product APIs and single-owner lifetime; Execution state is separately assigned by ADR-042. |
 
 | [`042-feature-owned-execution-state`](042-feature-owned-execution-state.md) | Accepted | Yes | Agent/Workflow own execution state; Engine retains generic receiver delivery, synchronization and shutdown boundaries. Single-writer and durable barriers remain. |
@@ -111,6 +111,7 @@ resolved explicitly.
 | [`058-neutral-storage-primitives`](058-neutral-storage-primitives.md) | Accepted | Yes | Neutral Records/Streams/Blobs SPI 2 and scoped transaction lifecycle; amends 032, 033, 043 and 057. |
 
 | [`059-backend-contracts-and-async-clients`](059-backend-contracts-and-async-clients.md) | Accepted | Yes | P1/P2 separates synchronous LLM contracts, implementations and internal clients; independent responsibility groups replace numbered layers. VectorStore/Storage migration remains pending. |
+| [`060-runtime-settings-and-application-configuration`](060-runtime-settings-and-application-configuration.md) | Accepted | Yes | Separates neutral Engine settings from typed application Configuration; preserves public settings/lifecycle semantics and requires the complete Ruby + RBS boundary gate without exceptions. |
 
 ## Legacy duplicate `011`
 

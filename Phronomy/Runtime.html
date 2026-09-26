@@ -225,7 +225,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#reset_default!-class_method" title="reset_default! (class method)">.<strong>reset_default!</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds)  &#x21d2; Object </a>
+      <a href="#reset_default!-class_method" title="reset_default! (class method)">.<strong>reset_default!</strong>(timeout: Phronomy::RuntimeSettings.current.event_loop_stop_grace_seconds)  &#x21d2; Object </a>
     
 
     
@@ -457,7 +457,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#offload-instance_method" title="#offload (instance method)">#<strong>offload</strong>(pool_size: Phronomy.configuration.offload_pool_size, queue_size: Phronomy.configuration.offload_queue_size)  &#x21d2; Object </a>
+      <a href="#offload-instance_method" title="#offload (instance method)">#<strong>offload</strong>(pool_size: Phronomy::RuntimeSettings.current.offload_pool_size, queue_size: Phronomy::RuntimeSettings.current.offload_queue_size)  &#x21d2; Object </a>
     
 
     
@@ -501,7 +501,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, cancel_grace: timeout)  &#x21d2; Object </a>
+      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(timeout: Phronomy::RuntimeSettings.current.event_loop_stop_grace_seconds, cancel_grace: timeout)  &#x21d2; Object </a>
     
 
     
@@ -801,7 +801,7 @@
       <div class="method_details ">
   <h3 class="signature " id="reset_default!-class_method">
   
-    .<strong>reset_default!</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds)  &#x21d2; <tt>Object</tt> 
+    .<strong>reset_default!</strong>(timeout: Phronomy::RuntimeSettings.current.event_loop_stop_grace_seconds)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -832,7 +832,7 @@
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 36</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_reset_default!'>reset_default!</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_reset_default!'>reset_default!</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'><span class='object_link'><a href="RuntimeSettings.html#event_loop_stop_grace_seconds-instance_method" title="Phronomy::RuntimeSettings#event_loop_stop_grace_seconds (method)">event_loop_stop_grace_seconds</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
   <span class='kw'>return</span> <span class='const'><span class='object_link'><a href="Runtime/ShutdownResult.html" title="Phronomy::Runtime::ShutdownResult (class)">ShutdownResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_not_started'><span class='object_link'><a href="Runtime/ShutdownResult.html#not_started-class_method" title="Phronomy::Runtime::ShutdownResult.not_started (method)">not_started</a></span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_runtime'>runtime</span>
 
@@ -1238,7 +1238,7 @@ Retained participants remain available during and after shutdown.</p>
       <div class="method_details ">
   <h3 class="signature " id="offload-instance_method">
   
-    #<strong>offload</strong>(pool_size: Phronomy.configuration.offload_pool_size, queue_size: Phronomy.configuration.offload_queue_size)  &#x21d2; <tt>Object</tt> 
+    #<strong>offload</strong>(pool_size: Phronomy::RuntimeSettings.current.offload_pool_size, queue_size: Phronomy::RuntimeSettings.current.offload_queue_size)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1262,8 +1262,8 @@ Retained participants remain available during and after shutdown.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 83</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload'>offload</span><span class='lparen'>(</span>
-  <span class='label'>pool_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span><span class='comma'>,</span>
-  <span class='label'>queue_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_queue_size'>offload_queue_size</span>
+  <span class='label'>pool_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'><span class='object_link'><a href="RuntimeSettings.html#offload_pool_size-instance_method" title="Phronomy::RuntimeSettings#offload_pool_size (method)">offload_pool_size</a></span></span><span class='comma'>,</span>
+  <span class='label'>queue_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_queue_size'><span class='object_link'><a href="RuntimeSettings.html#offload_queue_size-instance_method" title="Phronomy::RuntimeSettings#offload_queue_size (method)">offload_queue_size</a></span></span>
 <span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
   <span class='ivar'>@pool_registry</span><span class='period'>.</span><span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
@@ -1308,7 +1308,7 @@ Retained participants remain available during and after shutdown.</p>
       <div class="method_details ">
   <h3 class="signature " id="shutdown-instance_method">
   
-    #<strong>shutdown</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, cancel_grace: timeout)  &#x21d2; <tt>Object</tt> 
+    #<strong>shutdown</strong>(timeout: Phronomy::RuntimeSettings.current.event_loop_stop_grace_seconds, cancel_grace: timeout)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1393,7 +1393,7 @@ Retained participants remain available during and after shutdown.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 179</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span>
-  <span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span>
+  <span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'><span class='object_link'><a href="RuntimeSettings.html#event_loop_stop_grace_seconds-instance_method" title="Phronomy::RuntimeSettings#event_loop_stop_grace_seconds (method)">event_loop_stop_grace_seconds</a></span></span><span class='comma'>,</span>
   <span class='label'>cancel_grace:</span> <span class='id identifier rubyid_timeout'>timeout</span>
 <span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_event_loop_current?'>event_loop_current?</span>
@@ -1536,7 +1536,7 @@ Retained participants remain available during and after shutdown.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Sep 25 18:34:09 2026 by
+  Generated on Sat Sep 26 03:01:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
