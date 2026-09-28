@@ -2,7 +2,8 @@
 
 module Phronomy
   module ContentStore
-    # Content identity and digest validation belong to ContentStore, not Blobs.
+    # Content-addressed storage service over an injected Storage view.
+    # Content identity and digest validation belong here; Storage owns I/O.
     # @api private
     class StoredContents < Base
       def initialize(view) = @view = view

@@ -38,9 +38,10 @@ and committing the changes, regenerate without this flag. CI does this for the
 actual checkout SHA and uploads an artifact; no action writes back to the repo.
 A source commit must not contain an SVG that purports to embed its own SHA.
 
-`draw_target.py --output tmp/backend-target.svg` draws the scoped, unimplemented
-end-state concept. It retains the individual white module boxes and thin group
-frames. It is not the measured diagram and is not proof that P3/P4 are complete.
+`draw_target.py --output tmp/content-service-target.svg` draws the scoped
+responsibility concept with ContentStore as a service over Storage. It retains
+the individual module boxes and thin group frames. It is not the measured
+diagram and is not proof that a candidate has been applied.
 
 The analyzer and parser versions are preserved from the reviewed toolkit.
 `evidence/baseline` records main 84668606 for comparison. The baseline is not
@@ -72,6 +73,12 @@ individual module outlines retained.
 The same group ID keeps its colors across phases. G14 Engine uses blue, G46
 Async Clients lavender, G47 Backend Contracts mint and G48 Implementations sand.
 Color does not express a layer, dependency permission or a unique namespace.
+G57 Content Service uses teal and M10 moves to B3's persistence column. M73 is
+retired after merging its implementation into M10; it is removed from current
+nodes and the matrix. Historical phase/baseline evidence remains unchanged.
+ContentStore is not a backend family. Its measured Storage dependency is kept;
+the gate permits only neutral Storage and Common dependencies from the service,
+and rejects reverse backend/Engine dependencies on it, including RBS-only paths.
 Group backgrounds are painted behind all arrows, including muted common
 dependencies. Module boxes, source evidence and matrix cells stay intact.
 

@@ -164,6 +164,33 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(['T'], [n.text for n in matrix.iter(S + 'text')])
         self.assertIn('sig/_private/phronomy/llm_adapter/async/async_client.rbs', next(matrix.iter(S + 'title')).text)
 
+    def test_content_service_uses_storage_without_reverse_or_concrete_dependencies(self):
+        config = refresh.read_architecture('storage')
+        kinds = {g['id']: g['kind'] for g in config['groups']}
+        content = 'lib/phronomy/content_store'
+        storage = 'lib/phronomy/storage'
+        module = next(m for m in config['modules'] if m['directory'] == content)
+        self.assertEqual('content_service', kinds[module['group']])
+        self.assertIn((content, storage), {(p['from'], p['to']) for p in self.audit['module_pairs']})
+        self.assertTrue(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
+        for source, target in [(storage, content), (storage + '/backends', content),
+                               ('lib/phronomy/engine', content),
+                               ('lib/phronomy/llm_adapter', content),
+                               (content, storage + '/backends'), (content, storage + '/async'),
+                               (content, 'lib/phronomy/engine'),
+                               (content, 'lib/phronomy/persistence/api')]:
+            with self.subTest(source=source, target=target):
+                changed = deepcopy(self.audit)
+                changed['module_pairs'].append({'from': source, 'to': target,
+                                               'references': [], 'requires': [],
+                                               'rbs_references': [{'origin': 'rbs'}]})
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
+        changed = deepcopy(self.audit)
+        changed['module_pairs'].append({'from': 'lib/phronomy/common', 'to': 'lib/phronomy/engine'})
+        result = refresh.check_boundaries(changed, 'storage', REPO)
+        self.assertTrue(any(v['kind'] == 'content-service-reaches-unrelated-responsibility'
+                            for v in result['violations']))
+
     def test_source_fingerprint_covers_private_and_public_signatures(self):
         hashes = fingerprint(REPO)
         self.assertEqual({str(p.relative_to(REPO)) for p in REPO.glob('sig/**/*.rbs')}, {p for p in hashes if p.startswith('sig/')})

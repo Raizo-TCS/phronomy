@@ -19,6 +19,7 @@ positions, not a shared architectural level or namespace.
 | G46 Async Clients | Execute synchronous backend operations through Engine | Use Contracts and Engine; do not select concrete backends |
 | G47 Backend Contracts | Synchronous SPI, values, errors and shared rules | No Engine, Async Client or concrete implementation dependencies |
 | G48 Backend Implementations | Implement the synchronous backend SPI | Depend on the corresponding Contracts; no Engine or client dependencies |
+| G57 Content Service | Content IDs, canonical text/JSON and digest integrity over Storage | Uses neutral Storage and Common; no physical backend, Engine or domain orchestration dependencies |
 
 Composition chooses concrete backends and supplies them to consumers. These
 are source-ownership groups, not shared Ruby namespaces. Synchronous APIs can
@@ -76,23 +77,38 @@ are needed in this phase; both are verified unchanged.
   M28/M29 join G47 Contracts in B5. M67/M68 are clients in B4 and M71/M72 are
   separately grouped implementations. No pending Storage clients are drawn.
 
-### P4: Storage and ContentStore
+### P4: Storage execution
 
 - Public `Storage::AsyncClient#transaction_async` opens the raw backend transaction
   on a worker and yields its scoped Storage::View. Backends stay synchronous.
 - Private `Storage::AsyncClient.submit(pool:)` executes existing domain units
   without adding a transaction, timeout or token. All 16 durable submission sites
   are recorded in the [execution inventory](storage-execution-boundaries.md).
-- StoredContents moves to collapsed `content_store/backends/`; its implementation
-  body is unchanged. Existing `Storage::Backends` is not collapsed.
-- M10 joins Contracts in B5. M69 is an Async Client and M73 a concrete backend
-  in B4. No pending mixed backend directory remains in this phase.
+- M69 is an Async Client and M35 a concrete Storage backend in B4.
+  Existing `Storage::Backends` is not collapsed.
 - See the [public API and transaction rules](../migrations/storage-async-client.md).
+
+### ContentStore service ownership
+
+ContentStore is a content management service using Storage, not a peer physical
+backend. Its API, canonicalization, StoredContents implementation and owned
+StorageSchema live in `content_store/`. Base remains shared by StoredContents
+and the Persistence exception facade. The unnecessary `backends/` subdivision
+and Zeitwerk collapse are removed without a forwarding file or alias.
+
+M10 belongs to G57 Content Service in the persistence column of display band B3.
+M73 is retired, not reused. G47/G48 contain no ContentStore modules. The real
+M10-to-Storage dependency remains in both the drawing and the full graph.
+The boundary gate rejects reverse Storage-to-ContentStore dependencies and any
+service path to a physical backend, Engine, client or domain orchestration.
+Public constants, signatures, content IDs, exceptions and transaction behavior
+remain unchanged. See [ADR-062](../decisions/062-content-store-service.md).
 
 ## Pending phase
 
 P5 completes the final cross-repository/API/docs review after application.
-All P2-P4 planned modules now exist in source. The measured SVG still comes from
+All retained P2-P4 responsibilities exist in source; the unnecessary M73 split
+is superseded by G57 service ownership. The measured SVG still comes from
 actual Ruby analysis; the target concept is a separate explanatory artifact.
 
 ## Regenerate and review

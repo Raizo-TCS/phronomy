@@ -21,13 +21,12 @@ ENGINE = "lib/phronomy/engine"
 BASELINE_COMMIT = "84668606523e8b013ccb1cf1144694ecd28f24f8"
 FEATURES = ["llm_adapter", "vector_store", "vector_store/embeddings", "storage"]
 CLIENTS = {"lib/phronomy/" + f + "/async" for f in FEATURES}
-BASE_MODULES = {"lib/phronomy/" + f for f in [*FEATURES, "llm_contract", "llm_context_window", "vector_store/loader", "vector_store/splitter", "content_store", "storage/backends"]}
+BASE_MODULES = {"lib/phronomy/" + f for f in [*FEATURES, "llm_contract", "llm_context_window", "vector_store/loader", "vector_store/splitter", "storage/backends"]}
 IMPLEMENTATIONS = {
     "lib/phronomy/llm_adapter/backends": "lib/phronomy/llm_adapter",
     "lib/phronomy/vector_store/backends": "lib/phronomy/vector_store",
     "lib/phronomy/vector_store/embeddings/backends": "lib/phronomy/vector_store/embeddings",
     "lib/phronomy/storage/backends": "lib/phronomy/storage",
-    "lib/phronomy/content_store/backends": "lib/phronomy/content_store",
 }
 PHASES = {
     "baseline": {"features": [], "remaining": ["llm_adapter", "vector_store", "vector_store/embeddings"]},
@@ -82,10 +81,10 @@ def check_boundaries(audit, phase, repo, architecture=None):
         violations.append({"kind":"legacy-engine-edges", "expected":sorted(expected), "actual":sorted(actual)})
     # Rules use semantic roles, never group numbers, drawing order or coordinates.
     forbidden_roles = {
-        "backend_contracts": {"backend_implementations", "async_clients", "engine", "mixed_backend", "domain", "support"},
-        "backend_implementations": {"async_clients", "engine", "domain", "support"},
-        "engine": {"backend_contracts", "backend_implementations", "async_clients", "mixed_backend", "domain"},
-        "async_clients": {"backend_implementations", "mixed_backend", "domain", "support"},
+        "backend_contracts": {"backend_implementations", "async_clients", "engine", "mixed_backend", "domain", "support", "content_service"},
+        "backend_implementations": {"async_clients", "engine", "domain", "support", "content_service"},
+        "engine": {"backend_contracts", "backend_implementations", "async_clients", "mixed_backend", "domain", "content_service"},
+        "async_clients": {"backend_implementations", "mixed_backend", "domain", "support", "content_service"},
         "document_processing": {"engine", "async_clients"},
         "token_budget": {"engine", "async_clients"},
     }
@@ -101,6 +100,14 @@ def check_boundaries(audit, phase, repo, architecture=None):
     for impl, contract in IMPLEMENTATIONS.items():
         if impl in modules and not path_to(graph, impl, lambda t: t == contract):
             violations.append({"kind":"implementation-missing-contract-dependency", "implementation":impl,"contract":contract})
+    # Content management uses neutral Storage, not a physical backend, Engine
+    # or domain orchestration. Inspect transitive paths in the full Ruby + RBS graph.
+    for source in sorted(modules):
+        if roles.get(source) == "content_service":
+            route = path_to(graph, source, lambda t: t != source and
+                            t != "lib/phronomy/storage" and roles.get(t) != "common")
+            if route:
+                violations.append({"kind": "content-service-reaches-unrelated-responsibility", "path": route})
     settings = "lib/phronomy/configuration"
     for source in sorted(modules):
         if source == settings:
@@ -127,7 +134,7 @@ def check_boundaries(audit, phase, repo, architecture=None):
         "llm_adapter": ["llm_adapter/backends/ruby_llm.rb"],
         "vector_store": ["vector_store/backends/in_memory.rb", "vector_store/backends/pgvector.rb", "vector_store/backends/redis_search.rb"],
         "vector_store/embeddings": ["vector_store/embeddings/backends/ruby_llm_embeddings.rb"],
-        "storage": ["content_store/backends/stored_contents.rb"],
+        "storage": ["content_store/stored_contents.rb"],
     }
     required += ["lib/phronomy/"+f for feature in policy["features"] for f in files[feature]]
     for relative in required:

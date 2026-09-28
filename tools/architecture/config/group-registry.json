@@ -215,13 +215,29 @@
       "id": "G54",
       "title": "NAMESPACE / VERSION",
       "kind": "support"
+    },
+    {
+      "id": "G55",
+      "title": "PERSISTENCE STORAGE BOUNDARY",
+      "kind": "domain"
+    },
+    {
+      "id": "G56",
+      "title": "PERSISTENCE CONTRACTS",
+      "kind": "domain"
+    },
+    {
+      "id": "G57",
+      "title": "CONTENT SERVICE",
+      "kind": "content_service"
     }
   ],
   "retired_groups": {
     "G19": "Split into G47 contracts and G48 implementations"
   },
   "retired_module_reservations": {
-    "M65": "Prior unimplemented single async directory; never reuse"
+    "M65": "Prior unimplemented single async directory; never reuse",
+    "M73": "ContentStore implementation merged into M10 content service; never reuse"
   },
   "planned_modules": [
     {
@@ -265,12 +281,6 @@
       "directory": "lib/phronomy/vector_store/embeddings/backends",
       "group": "G48",
       "phase": "vector"
-    },
-    {
-      "id": "M73",
-      "directory": "lib/phronomy/content_store/backends",
-      "group": "G48",
-      "phase": "storage"
     }
   ]
 }

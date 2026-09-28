@@ -197,7 +197,8 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     file_cycles = " / ".join(map(str, meta["stats"]["file_scc_sizes"])) or "none"
     text(70, 413, f"Directory cycles (union): {directory_cycles}. Ruby file cycles: {file_cycles}. Orange borders mark cycle membership.", 18, "#627988")
     for index, (gid, label) in enumerate([("G14", "Engine"), ("G46", "Async Clients"),
-                                        ("G47", "Backend Contracts"), ("G48", "Backend Implementations")]):
+                                        ("G47", "Backend Contracts"), ("G48", "Backend Implementations"),
+                                        ("G57", "Content Service")]):
         if gid in by_group:
             color = group_style(gid)
             x = 72 + index * 610
@@ -206,7 +207,8 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
             text(x + 36, 448, gid + "  " + label, 18, color["label_color"])
     text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending." if mixed else
          "Backend contracts and implementations occupy separate source directories.", 20, "#7a5737" if mixed else "#526b7a")
-    text(70, 509, "Backend Implementations are production code. Testing, Migration and Tracing retain their own groups.", 19, "#526b7a")
+    text(70, 509, "G57 Content Service uses Storage; it is outside Backend Contracts / Implementations." if "G57" in by_group else
+         "Backend Implementations are production code. Testing, Migration and Tracing retain their own groups.", 19, "#526b7a")
     if bands:
         backdrop = add("g", id="display-layers")
         for column, description in enumerate(config["columns"]):

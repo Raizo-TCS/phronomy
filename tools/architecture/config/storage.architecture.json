@@ -3,7 +3,7 @@
   "repository_url": "https://github.com/Raizo-TCS/phronomy",
   "project_title": "PHRONOMY 0.27.0",
   "annotation_source_commit": "84668606523e8b013ccb1cf1144694ecd28f24f8",
-  "annotation_source_revision": "groups-20260924",
+  "annotation_source_revision": "content-store-service-20260928",
   "modules": [
     {
       "id": "M01",
@@ -176,9 +176,9 @@
     {
       "id": "M10",
       "directory": "lib/phronomy/content_store",
-      "role": "Content SPI / schema declaration",
+      "role": "Content IDs / canonicalization / integrity over Storage",
       "mixed": false,
-      "group": "G47"
+      "group": "G57"
     },
     {
       "id": "M11",
@@ -498,13 +498,6 @@
       "mixed": false
     },
     {
-      "id": "M73",
-      "directory": "lib/phronomy/content_store/backends",
-      "group": "G48",
-      "role": "StoredContents implementation",
-      "mixed": false
-    },
-    {
       "id": "M74",
       "directory": "lib/phronomy/persistence",
       "role": "Storage failure translation / content repository",
@@ -799,7 +792,6 @@
       "title": "BACKEND CONTRACTS",
       "kind": "backend_contracts",
       "members": [
-        "M10",
         "M15",
         "M47",
         "M34",
@@ -815,8 +807,7 @@
         "M35",
         "M70",
         "M71",
-        "M72",
-        "M73"
+        "M72"
       ]
     },
     {
@@ -886,6 +877,14 @@
         "M75"
       ],
       "kind": "domain"
+    },
+    {
+      "id": "G57",
+      "title": "CONTENT SERVICE",
+      "kind": "content_service",
+      "members": [
+        "M10"
+      ]
     }
   ],
   "matrix_order": [
@@ -899,6 +898,7 @@
     "M38",
     "M63",
     "M49",
+    "M10",
     "M53",
     "M46",
     "M64",
@@ -932,7 +932,6 @@
     "M15",
     "M47",
     "M16",
-    "M10",
     "M28",
     "M29",
     "M30",
@@ -959,7 +958,6 @@
     "M70",
     "M71",
     "M72",
-    "M73",
     "M74",
     "M75"
   ],

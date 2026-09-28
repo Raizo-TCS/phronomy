@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "contracts-b5-storage",
+  "diagram_revision": "content-store-service-20260928",
   "width": 3260,
   "column_centers": [
     330,
@@ -120,7 +120,8 @@
           "M48"
         ],
         [
-          "M75"
+          "M75",
+          "M10"
         ]
       ]
     },
@@ -144,8 +145,7 @@
         ],
         [
           "M35",
-          "M69",
-          "M73"
+          "M69"
         ]
       ]
     },
@@ -169,7 +169,6 @@
           "M29"
         ],
         [
-          "M10",
           "M34"
         ]
       ]
@@ -316,7 +315,8 @@
       "G53": "support",
       "G54": "gray",
       "G55": "teal",
-      "G56": "mint"
+      "G56": "mint",
+      "G57": "teal"
     }
   },
   "presentation": {

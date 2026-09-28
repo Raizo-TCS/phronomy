@@ -14,7 +14,7 @@ RSpec.describe "Storage and ContentStore source ownership" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
-  it "loads contracts and implementations without loading a client or additional Engine code" do
+  it "loads Storage and the content service without loading a client or additional Engine code" do
     isolated(<<~RUBY)
       require "phronomy"
       before = $LOADED_FEATURES.dup
@@ -22,13 +22,13 @@ RSpec.describe "Storage and ContentStore source ownership" do
       Phronomy::ContentStore::Base
       Phronomy::ContentStore::StorageSchema
       loaded = $LOADED_FEATURES - before
-      abort "contracts loaded implementations" unless loaded.grep(%r{/(storage|content_store)/backends/}).empty?
+      abort "definitions loaded implementations" unless loaded.grep(%r{/storage/backends/|/content_store/stored_contents.rb}).empty?
       backend = Phronomy::Storage::Backends::InMemory.new
       implementation = Phronomy::ContentStore::StoredContents
       implementation.new(backend.view)
       abort "StoredContents contract changed" unless implementation.superclass == Phronomy::ContentStore::Base
       loaded = $LOADED_FEATURES - before
-      abort "backend loaded Engine/client" unless loaded.grep(%r{/phronomy/(engine/|storage/async/)}).empty?
+      abort "storage or content service loaded Engine/client" unless loaded.grep(%r{/phronomy/(engine/|storage/async/)}).empty?
       abort "Storage backend namespace changed" unless backend.class.name == "Phronomy::Storage::Backends::InMemory"
       abort "ContentStore backend namespace leaked" if Phronomy::ContentStore.const_defined?(:Backends, false)
     RUBY

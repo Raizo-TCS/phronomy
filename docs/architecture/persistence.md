@@ -20,6 +20,13 @@ directories own their domain codecs and repositories. Agent and Team result
 queries live with those domains. `storage/record_codec.rb` contains only shared
 record-envelope and scalar validation; it does not select a domain schema.
 `persistence_composition/` assembles the domain repositories over one raw view.
+`content_store/` is a content management service over Storage, not a physical
+backend family. Its Base shares text/JSON conversion with StoredContents and
+the Persistence content facade. StoredContents generates content IDs, verifies
+digest identity and uses the injected view's Blobs. Its StorageSchema belongs
+to this service. Storage owns byte immutability, transactions and physical I/O.
+The service and its schema live together; there is no `content_store/backends/`
+directory or backend-selection API. See [ADR-062](../decisions/062-content-store-service.md).
 The public `Phronomy::Persistence` entry point delegates to those components and
 retains its observation-thread guard.
 The root and transaction paths use the same facade construction, with transaction

@@ -29,7 +29,7 @@ end
   llm_adapter/async llm_adapter/backends
   vector_store/async vector_store/backends
   vector_store/embeddings/async vector_store/embeddings/backends
-  storage/async content_store/backends persistence/contract
+  storage/async persistence/contract
 ].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end

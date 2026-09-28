@@ -87,14 +87,17 @@ execution boundaries.
 
 ## ContentStore path and diagram
 
-`ContentStore::StoredContents` moves from `content_store/stored_contents.rb` to
-`content_store/backends/stored_contents.rb`. Its body, constant, synchronous
-operations and digest rules are unchanged. Zeitwerk collapses this new directory
-and `storage/async/`. Existing `Storage::Backends` remains a namespace.
-Use normal `require "phronomy"`; no shim reintroduces an implementation dependency
-into the ContentStore contract. ContentStore receives no artificial async API.
+P4 originally moved `ContentStore::StoredContents` into
+`content_store/backends/stored_contents.rb`. [ADR-062](../decisions/062-content-store-service.md)
+supersedes that split: the implementation now lives at
+`content_store/stored_contents.rb`, beside its shared API and owned schema.
+The obsolete backend directory and collapse entry are deleted without a shim.
+Its constant, synchronous operations, digest rules and exceptions are unchanged.
+Use normal `require "phronomy"`; internal file paths are not a public load API.
+Zeitwerk still collapses `storage/async/`. `Storage::Backends` remains a namespace.
+ContentStore receives no artificial async API.
 
-The measured diagram now places M10 ContentStore with Contracts in B5 and adds
-M69 Storage AsyncClient and M73 StoredContents implementation in B4. Text panels
-are transparent. Arrows targeting M33/M41/M44 are hidden by display settings;
-all measured dependencies, source evidence and matrix cells remain available.
+M10 is G57 Content Service in B3, outside Backend Contracts/Implementations;
+M73 is retired. M69 Storage AsyncClient stays in B4. Text panels are transparent.
+Arrows targeting M33/M41/M44 are hidden by display settings; all measured
+dependencies, source evidence and matrix cells remain available.
