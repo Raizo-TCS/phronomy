@@ -5,6 +5,10 @@
 **Refines**: [024-event-loop-single-writer-agent-runtime](024-event-loop-single-writer-agent-runtime.md)
 and [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md)
 
+Source placement is superseded by [ADR-063](063-execution-contracts-and-services.md):
+the same marker now lives in `execution_contract/concurrency/`. Its namespace,
+18-type inventory and worker-input behavior remain unchanged.
+
 ## Problem
 
 Tool authorization snapshots exclude framework-managed live objects from value

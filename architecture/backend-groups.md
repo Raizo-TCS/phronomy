@@ -8,17 +8,19 @@ Each source directory keeps its own module box and stable module ID. Restoring
 the display does not undo the separation of backend contracts and execution.
 
 The restored display puts separated Backend Contracts in B5, alongside but
-distinct from the Engine group. B4 holds Async Clients and separately grouped
+distinct from Engine Internals and Execution Contracts. B4 holds Execution Services, Async Clients and separately grouped
 Implementations. Backend directories awaiting separation remain visibly mixed
 in B4; their contracts move to B5 in their implemented phase. These are display
 positions, not a shared architectural level or namespace.
 
 | Group | Responsibility | Dependency rule |
 |---|---|---|
-| G14 Engine | Runtime, workers, TaskResult, EventLoop | No feature-specific backend or client dependencies |
-| G46 Async Clients | Execute synchronous backend operations through Engine | Use Contracts and Engine; do not select concrete backends |
-| G47 Backend Contracts | Synchronous SPI, values, errors and shared rules | No Engine, Async Client or concrete implementation dependencies |
-| G48 Backend Implementations | Implement the synchronous backend SPI | Depend on the corresponding Contracts; no Engine or client dependencies |
+| G14 Engine Internals | Runtime, workers, FSM and EventLoop | No feature-specific backend or client dependencies |
+| G58 Execution Contracts | Shared callable/value/error/token/input-marker contracts | Only Execution Contracts and Common, including neutral settings |
+| G59 Execution Services | TaskResult, Execution and Blocking | Contracts and Engine machinery; no feature-specific backend/client dependencies |
+| G46 Async Clients | Execute synchronous backend operations through Engine | Use Backend/Execution Contracts, Execution Services and Engine; do not select concrete backends |
+| G47 Backend Contracts | Synchronous SPI, values, errors and shared rules | No Engine, Execution Services, Async Client or concrete implementation dependencies |
+| G48 Backend Implementations | Implement the synchronous backend SPI | Depend on the corresponding Contracts; no Engine, Execution Services or client dependencies |
 | G57 Content Service | Content IDs, canonical text/JSON and digest integrity over Storage | Uses neutral Storage and Common; no physical backend, Engine or domain orchestration dependencies |
 
 Composition chooses concrete backends and supplies them to consumers. These
@@ -103,6 +105,17 @@ The boundary gate rejects reverse Storage-to-ContentStore dependencies and any
 service path to a physical backend, Engine, client or domain orchestration.
 Public constants, signatures, content IDs, exceptions and transaction behavior
 remain unchanged. See [ADR-062](../decisions/062-content-store-service.md).
+
+## Execution responsibility split
+
+G58 (M76/M77) contains shared execution contracts in B5. G59 (M78) contains
+implemented result/call services in B4. Existing Engine module IDs remain in G14.
+Public constants and RBS types are unchanged; there are no forwarding aliases.
+Engine and Services still depend on each other. These groups are responsibilities,
+not an acyclic dependency hierarchy. ToolBinding uses shared result composition,
+and generic tracing/approval work uses Blocking with failure observation.
+See [ADR-063](../decisions/063-execution-contracts-and-services.md) and the
+[operation inventory](execution-boundaries.md).
 
 ## Pending phase
 

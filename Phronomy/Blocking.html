@@ -80,7 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/engine/blocking.rb
+    <dd>lib/phronomy/execution_services/blocking.rb
 </dd>
   </dl>
   
@@ -291,7 +291,7 @@ The block must not wait for another Agent, Workflow, or TaskResult.</p>
 39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/blocking.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/blocking.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Blocking.call_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -323,7 +323,7 @@ The block must not wait for another Agent, Workflow, or TaskResult.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 04:51:22 2026 by
+  Generated on Mon Sep 28 09:17:26 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
