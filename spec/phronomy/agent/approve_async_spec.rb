@@ -76,13 +76,9 @@ RSpec.describe Phronomy::Agent::Base do
 
   describe "#approve EventLoop re-entry guard" do
     it "raises EventLoopReentrancyError when called from the EventLoop thread" do
-      event_loop = double("event_loop", current?: true)
-      runtime = double("runtime", event_loop: event_loop)
-      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-      allow(Phronomy::Agent::OwnershipRegistry).to receive(:for).with(runtime)
-        .and_return(double("ownership registry", create: nil).tap do |registry|
-          allow(registry).to receive(:create).and_yield(runtime)
-        end)
+      agent
+      event_loop = Phronomy::Runtime.instance.event_loop
+      allow(event_loop).to receive(:current?).and_return(true)
 
       expect do
         agent.approve(
@@ -94,6 +90,8 @@ RSpec.describe Phronomy::Agent::Base do
         Phronomy::EventLoopReentrancyError,
         /approve_async/
       )
+    ensure
+      allow(event_loop).to receive(:current?).and_call_original if event_loop
     end
   end
 

@@ -116,6 +116,8 @@ resolved explicitly.
 | [`061-persistence-failure-contracts`](061-persistence-failure-contracts.md) | Accepted | Yes | Independent domain failure contracts and explicit raw Storage translation; public rescue-clause migration, preserved transaction/admission/uncertainty semantics. |
 | [`062-content-store-service`](062-content-store-service.md) | Accepted | Yes | Content management over neutral Storage; removes the unnecessary backend subdivision and preserves content/Persistence behavior. |
 
+| [`063-execution-contracts-and-services`](063-execution-contracts-and-services.md) | Accepted | Yes | Shared execution contracts and result/call services separated from Engine internals; preserves public APIs and fixes filtered physical completion. |
+
 ## Legacy duplicate `011`
 
 The repository intentionally preserves both legacy files:

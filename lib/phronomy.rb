@@ -20,7 +20,7 @@ loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 # These responsibility directories do not add a public Ruby namespace.
-%w[common configuration engine generation llm_contract recovery runtime_composition].each do |directory|
+%w[common configuration engine execution_contract execution_services generation llm_contract recovery runtime_composition].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
 # Backend contracts, execution clients and implementations have separate source

@@ -194,7 +194,7 @@ RSpec.describe "Agent Tool binding contract" do
       agent = agent_for(tool)
       agent.add_tool_result_filter(filter { |value, **| "#{value}:filtered" })
       filtered = bind(agent, tool).new.call_async({})
-      expect(filtered.physical_complete?).to be(true)
+      expect(filtered.physical_complete?).to eq(completed_before_binding)
       expect(filtered.done?).to eq(completed_before_binding)
       source.complete("ready") unless completed_before_binding
       expect(filtered.wait_result).to eq("ready:filtered")
@@ -237,5 +237,96 @@ RSpec.describe "Agent Tool binding contract" do
     agent.add_tool_result_filter(filter { |value, **| value })
     expect { bind(agent, tool).new.call_async({}) }
       .to raise_error { |actual| expect(actual).to equal(error) }
+  end
+
+  [false, true].each do |filter_fails|
+    it "waits for an active filter after worker completion (failure: #{filter_fails})" do
+      pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 2)
+      source_release = Queue.new
+      filter_entered = Queue.new
+      filter_release = Queue.new
+      physical = Queue.new
+      error = RuntimeError.new("filter failed")
+      source = pool.submit {
+        source_release.pop
+        "raw"
+      }
+      tool = tool_class(source: source)
+      agent = agent_for(tool)
+      agent.add_tool_result_filter(filter do |value, **|
+        filter_entered << true
+        filter_release.pop
+        raise error if filter_fails
+        "#{value}:filtered"
+      end)
+      filtered = bind(agent, tool).new.call_async({})
+      filtered.on_physical_complete { physical << true }
+      source_release << true
+      Timeout.timeout(3) { filter_entered.pop }
+
+      expect(source.physical_complete?).to be(true)
+      expect(filtered.status).to eq(:pending)
+      expect(filtered.physical_complete?).to be(false)
+      expect(physical).to be_empty
+      filter_release << true
+      if filter_fails
+        expect { filtered.wait_result(timeout: 3) }.to raise_error { |actual| expect(actual).to equal(error) }
+      else
+        expect(filtered.wait_result(timeout: 3)).to eq("raw:filtered")
+      end
+      expect(Timeout.timeout(3) { physical.pop }).to be(true)
+      expect(physical).to be_empty
+    ensure
+      source_release << true if source_release
+      filter_release << true if filter_release
+      pool&.shutdown(drain_timeout: 1)
+    end
+  end
+
+  it "decorates a callback-only handle without requiring TaskResult implementation methods" do
+    completions = []
+    source = Object.new
+    source.define_singleton_method(:on_complete) { |&callback| completions << callback }
+    tool = tool_class(source: source)
+    agent = agent_for(tool)
+    calls = []
+    agent.add_tool_result_filter(filter { |value, **|
+      calls << value
+      "#{value}:filtered"
+    })
+    filtered = bind(agent, tool).new.call_async({})
+    expect(filtered.physical_complete?).to be(false)
+    completions.first.call("raw", nil)
+    completions.first.call("duplicate", nil)
+    expect(filtered.wait_result).to eq("raw:filtered")
+    expect(filtered.physical_complete?).to be(true)
+    expect(calls).to eq(["raw"])
+  end
+
+  it "preserves callback-only failure identity without running filters" do
+    error = RuntimeError.new("custom failure")
+    source = Object.new
+    source.define_singleton_method(:on_complete) { |&callback| callback.call(nil, error) }
+    tool = tool_class(source: source)
+    agent = agent_for(tool)
+    agent.add_tool_result_filter(filter { |*| raise "must not transform failure" })
+    filtered = bind(agent, tool).new.call_async({})
+    expect(filtered.status).to eq(:failed)
+    expect(filtered.physical_complete?).to be(true)
+    expect { filtered.wait_result }.to raise_error { |actual| expect(actual).to equal(error) }
+  end
+
+  it "keeps framework decoration independent of the source's application scope and parent" do
+    parent = Phronomy::TaskResult.deferred
+    source = Phronomy::TaskResult.deferred(parent: parent).__bind_execution(Object.new)
+    expect(source).not_to receive(:__execution_scope)
+    tool = tool_class(source: source)
+    agent = agent_for(tool)
+    agent.add_tool_result_filter(filter { |value, **| "#{value}:filtered" })
+    filtered = bind(agent, tool).new.call_async({})
+    expect(filtered.__execution_scope).to be_nil
+    expect(filtered.parent).to be_nil
+    source.complete("raw")
+    expect(filtered.wait_result).to eq("raw:filtered")
   end
 end

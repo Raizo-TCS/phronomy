@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../engine/concurrency/worker_input_restricted"
+require_relative "../../execution_contract/concurrency/worker_input_restricted"
 
 require "time"
 require "securerandom"
@@ -1803,10 +1803,16 @@ module Phronomy
       def dispatch_approval_listener(listener, request)
         return unless listener
 
-        Phronomy::Runtime.instance.offload.submit(on_full: :raise) do
+        Phronomy::Blocking.call_async do
           listener.call(request)
+        end.on_complete do |_value, error|
+          report_approval_dispatch_failure(error) if error
         end
       rescue => error
+        report_approval_dispatch_failure(error)
+      end
+
+      def report_approval_dispatch_failure(error)
         Phronomy.configuration.logger&.warn(
           "[Phronomy] approval listener dispatch failed: #{error.class}: #{error.message}"
         )

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "concurrency/worker_input_restricted"
+require_relative "../execution_contract/concurrency/worker_input_restricted"
 
 module Phronomy
   # Runtime-owned FIFO event loop for FSMSession instances.

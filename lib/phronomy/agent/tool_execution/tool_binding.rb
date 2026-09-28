@@ -50,40 +50,8 @@ module Phronomy
       private
 
       def filter_async_result(source, tool_name, &filter_result)
-        filtered = Phronomy::Concurrency::PhysicalCompletionTask.deferred(
-          name: "tool-filter-#{tool_name}"
-        )
-        source_has_physical_signal = source.respond_to?(:on_physical_complete)
-        source.on_physical_complete { filtered.mark_physical_complete! } if
-          source_has_physical_signal
-        source.on_complete do |value, error|
-          if error
-            propagate_failure(filtered, source, error, source_has_physical_signal)
-          else
-            complete_filtered_result(filtered, source_has_physical_signal) do
-              filter_result.call(value)
-            end
-          end
-        end
-        filtered
-      end
-
-      def propagate_failure(filtered, source, error, source_has_physical_signal)
-        filtered.mark_physical_complete! unless source_has_physical_signal
-        if source.respond_to?(:status) && source.status == :cancelled
-          filtered.cancel!(error)
-        else
-          filtered.fail(error)
-        end
-      end
-
-      def complete_filtered_result(filtered, source_has_physical_signal)
-        result = yield
-        filtered.mark_physical_complete! unless source_has_physical_signal
-        filtered.complete(result)
-      rescue => filter_error
-        filtered.mark_physical_complete! unless source_has_physical_signal
-        filtered.fail(filter_error)
+        Phronomy::TaskResult.__map_completion(source,
+          name: "tool-filter-#{tool_name}", &filter_result)
       end
     end
   end

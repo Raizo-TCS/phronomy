@@ -6,15 +6,19 @@ module Phronomy
     # boundary. Observing a result never mutates that result or its cancellation.
     # @api private
     class ResultComposition
-      def initialize(source, flatten:, &block)
+      def initialize(source, flatten:, name: nil, completion_only: false, &block)
         @source = source
-        @scope = source.__execution_scope
+        # Framework decorators also accept callback-only handles. They observe
+        # the source without inheriting application Execution controls or parents.
+        @completion_only = completion_only
+        @scope = completion_only ? nil : source.__execution_scope
         @flatten = flatten
         @block = block
-        physical = flatten || source.respond_to?(:on_physical_complete)
+        physical = completion_only || flatten || source.respond_to?(:on_physical_complete)
         klass = physical ? PhysicalCompletionTask : TaskResult
-        @result = klass.deferred(name: "#{source.name}-#{flatten ? "flat-mapped" : "mapped"}",
-          parent: source.parent).__bind_execution(@scope)
+        result_name = name || "#{source.name}-#{flatten ? "flat-mapped" : "mapped"}"
+        @result = klass.deferred(name: result_name,
+          parent: completion_only ? nil : source.parent).__bind_execution(@scope)
         @mutex = Mutex.new
         @phase = :waiting
         @source_physical = !source.respond_to?(:on_physical_complete)
@@ -30,7 +34,18 @@ module Phronomy
             finish_physical
           end
         end
-        @subscriptions.result(@source) { receive_source }
+        if @completion_only
+          @source.on_complete do |value, error|
+            status = if error
+              (@source.respond_to?(:status) && @source.status == :cancelled) ? :cancelled : :failed
+            else
+              :completed
+            end
+            receive_source(status, value, error)
+          end
+        else
+          @subscriptions.result(@source) { receive_source(*@source.__snapshot) }
+        end
         if @scope
           @subscriptions.cancellation(@scope.__cancellation_token) { suppress }
           suppress unless @scope.__open?
@@ -40,8 +55,7 @@ module Phronomy
 
       private
 
-      def receive_source
-        status, value, error = @source.__snapshot
+      def receive_source(status, value, error)
         if status != :completed
           started = @mutex.synchronize do
             next false unless @phase == :waiting
@@ -66,7 +80,7 @@ module Phronomy
         end
         allowed = @scope ? @scope.__while_open(&claim) : claim.call
         unless allowed
-          suppress
+          suppress if @scope
           return
         end
 

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "../../engine/concurrency/worker_input_restricted"
+require_relative "../../execution_contract/concurrency/worker_input_restricted"
 
 require_relative "workflow_runner"
-require_relative "../../engine/runnable"
+require_relative "../../execution_contract/runnable"
 
 module Phronomy
   # StateChart-style Workflow definition DSL.

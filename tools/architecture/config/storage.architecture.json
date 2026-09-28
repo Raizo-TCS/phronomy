@@ -183,15 +183,14 @@
     {
       "id": "M11",
       "directory": "lib/phronomy/engine",
-      "role": "EventLoop / FSM / generic receivers",
+      "role": "Runtime / EventLoop / FSM / receivers",
       "mixed": false,
-      "group": "G14",
-      "mixed_reason": "FSMSession still implements Workflow-oriented terminal persistence; execution registries now belong to features."
+      "group": "G14"
     },
     {
       "id": "M12",
       "directory": "lib/phronomy/engine/concurrency",
-      "role": "Pools / cancellation / composition",
+      "role": "Worker pools / result composition / control binding",
       "mixed": false,
       "group": "G14"
     },
@@ -510,6 +509,27 @@
       "role": "Domain persistence failure contracts",
       "mixed": false,
       "group": "G56"
+    },
+    {
+      "id": "M76",
+      "directory": "lib/phronomy/execution_contract",
+      "role": "Invocation / callable / event / failure contracts",
+      "mixed": false,
+      "group": "G58"
+    },
+    {
+      "id": "M77",
+      "directory": "lib/phronomy/execution_contract/concurrency",
+      "role": "Cancellation token / worker-input restriction",
+      "mixed": false,
+      "group": "G58"
+    },
+    {
+      "id": "M78",
+      "directory": "lib/phronomy/execution_services",
+      "role": "TaskResult / result decoration / Execution / Blocking",
+      "mixed": false,
+      "group": "G59"
     }
   ],
   "groups": [
@@ -586,7 +606,7 @@
     },
     {
       "id": "G14",
-      "title": "ENGINE",
+      "title": "ENGINE INTERNALS",
       "kind": "engine",
       "members": [
         "M11",
@@ -885,6 +905,23 @@
       "members": [
         "M10"
       ]
+    },
+    {
+      "id": "G58",
+      "title": "EXECUTION CONTRACTS",
+      "kind": "execution_contracts",
+      "members": [
+        "M76",
+        "M77"
+      ]
+    },
+    {
+      "id": "G59",
+      "title": "EXECUTION SERVICES",
+      "kind": "execution_services",
+      "members": [
+        "M78"
+      ]
     }
   ],
   "matrix_order": [
@@ -959,7 +996,10 @@
     "M71",
     "M72",
     "M74",
-    "M75"
+    "M75",
+    "M76",
+    "M77",
+    "M78"
   ],
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank"
 }

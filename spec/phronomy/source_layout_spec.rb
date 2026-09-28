@@ -72,6 +72,34 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
+  it "loads execution vocabulary alone and preserves its identity during eager application loading" do
+    stdout, stderr, status = isolated_ruby(<<~RUBY)
+      require "phronomy/execution_contract/runnable"
+      require "phronomy/execution_contract/invocation_context"
+      require "phronomy/execution_contract/fsm_protocol"
+      require "phronomy/execution_contract/cancellation_error"
+      require "phronomy/execution_contract/concurrency/cancellation_token"
+      marker = Phronomy::Concurrency::WorkerInputRestricted
+      token_class = Phronomy::Concurrency::CancellationToken
+      token = token_class.new.cancel!
+      abort "cancellation changed" unless token.cancelled?
+      abort "runtime eagerly loaded" if Phronomy.const_defined?(:Runtime, false)
+      abort "service eagerly loaded" if Phronomy.const_defined?(:TaskResult, false)
+      require "phronomy"
+      Zeitwerk::Loader.eager_load_all
+      abort "marker identity changed" unless Phronomy::Concurrency::WorkerInputRestricted.equal?(marker)
+      abort "token identity changed" unless Phronomy::Concurrency::CancellationToken.equal?(token_class)
+      abort "unexpected namespace" if Phronomy.const_defined?(:ExecutionContract, false) || Phronomy.const_defined?(:ExecutionServices, false)
+      abort "default Runtime started" if Phronomy::Runtime.default_if_initialized_for_test
+      location = Phronomy.const_source_location(:TaskResult).first
+      abort "service not moved" unless location.end_with?("/execution_services/task_result.rb")
+      agent = Phronomy::Agent::Base.allocate
+      agent.send(:_check_event_loop_reentrancy, :invoke, :invoke_async)
+      abort "guard started Runtime" if Phronomy::Runtime.default_if_initialized_for_test
+    RUBY
+    expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+  end
+
   it "keeps concrete defaults and Runtime coordination outside configuration definitions" do
     configuration_files = Dir.glob(File.join(library_root, "configuration/**/*.rb"))
     concrete_references = configuration_files.select do |path|

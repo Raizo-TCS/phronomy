@@ -1,0 +1,20 @@
+module Phronomy
+  class Execution
+    attr_reader invocation_context: InvocationContext
+
+    def self.run_async: [I, V] (Array[I] inputs, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?) { (I, Execution) -> TaskResult[V] } -> TaskResult[Array[TaskResult::Outcome[V]]]
+    def self.run: [I, V] (Array[I] inputs, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?) { (I, Execution) -> TaskResult[V] } -> Array[TaskResult::Outcome[V]]
+    def observe: [V] (TaskResult[V] source_result) -> TaskResult[V]
+  end
+
+  class ExecutionTimeoutError < TimeoutError
+    attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+  end
+
+  class ExecutionCancellationError < CancellationError
+    attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+  end
+
+end

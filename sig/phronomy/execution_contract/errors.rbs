@@ -1,0 +1,7 @@
+module Phronomy
+  class RecursionLimitError < Error
+  end
+
+  class TimeoutError < Error
+  end
+end

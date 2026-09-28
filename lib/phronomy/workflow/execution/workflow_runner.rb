@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../engine/concurrency/worker_input_restricted"
+require_relative "../../execution_contract/concurrency/worker_input_restricted"
 
 require "securerandom"
 
@@ -211,7 +211,7 @@ module Phronomy
     end
 
     def ensure_blocking_call_allowed!(method_name, async_alternative)
-      return unless Phronomy::Runtime.instance.event_loop.current?
+      return unless Phronomy::Runtime.in_event_loop_context?
 
       raise Phronomy::Error,
         "Cannot call Workflow##{method_name} from the EventLoop thread. " \

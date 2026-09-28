@@ -130,8 +130,13 @@ module Phronomy
       private_class_method :task_usage
 
       def submit_finish(handle, attributes)
-        Phronomy::Runtime.instance.offload.submit(on_full: :raise) do
+        Phronomy::Blocking.call_async do
           finish_now(handle, attributes)
+        end.on_complete do |_value, error|
+          if error
+            report_failure(:finish, handle.name, error,
+              include_message: handle.trace_pii)
+          end
         end
         nil
       rescue => error

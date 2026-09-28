@@ -140,7 +140,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
   [false, true].each do |preload|
     it "preserves normal/preloaded/eager identity without starting Runtime (preload: #{preload})" do
       source = <<~RUBY
-        require "phronomy/engine/concurrency/worker_input_restricted" if #{preload}
+        require "phronomy/execution_contract/concurrency/worker_input_restricted" if #{preload}
         original = Phronomy::Concurrency::WorkerInputRestricted if #{preload}
         require "phronomy"
         marker = Phronomy::Concurrency::WorkerInputRestricted
@@ -167,7 +167,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
 
   it "loads the methodless marker alone without Agent, Workflow or runtime implementation" do
     source = <<~RUBY
-      require "phronomy/engine/concurrency/worker_input_restricted"
+      require "phronomy/execution_contract/concurrency/worker_input_restricted"
       marker = Phronomy::Concurrency::WorkerInputRestricted
       abort "instance behavior" unless marker.instance_methods(false).empty?
       abort "singleton behavior" unless marker.singleton_methods(false).empty?
@@ -188,7 +188,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
       constants = Ripper.lex(File.read(path)).filter_map { |_, type, token, _| token if type == :on_const }
       expect(constants).not_to include("Workflow", "WorkflowRunner", "WorkflowContext")
     end
-    path = File.join(project_root, "lib/phronomy/engine/concurrency/worker_input_restricted.rb")
+    path = File.join(project_root, "lib/phronomy/execution_contract/concurrency/worker_input_restricted.rb")
     source = File.read(path)
     constants = Ripper.lex(source).filter_map { |_, type, token, _| token if type == :on_const }
     expect(constants.uniq).to match_array(%w[Phronomy Concurrency WorkerInputRestricted])

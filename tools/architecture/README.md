@@ -38,8 +38,9 @@ and committing the changes, regenerate without this flag. CI does this for the
 actual checkout SHA and uploads an artifact; no action writes back to the repo.
 A source commit must not contain an SVG that purports to embed its own SHA.
 
-`draw_target.py --output tmp/content-service-target.svg` draws the scoped
-responsibility concept with ContentStore as a service over Storage. It retains
+`draw_target.py --output tmp/engine-responsibilities-target.svg` draws the scoped
+responsibility concept with ContentStore over Storage and separate Execution
+Contracts, Execution Services and Engine Internals. It retains
 the individual module boxes and thin group frames. It is not the measured
 diagram and is not proof that a candidate has been applied.
 
@@ -52,10 +53,10 @@ reused as current evidence: source is analyzed afresh for every run. The
 
 Each phase layout lists `bands`, their five `columns`, and a separate `support`
 list. Every actual module ID must appear exactly once. Existing domain modules
-retain the reviewed display order. B4 contains Async Clients, separately grouped
+retain the reviewed display order. B4 contains Execution Services, Async Clients, separately grouped
 Implementations, document processing, and backend directories whose separation
-is still pending. B5 contains separated Backend Contracts and token-budget rules
-beside the independent Engine group. Later phases move a contract to B5 only
+is still pending. B5 contains separated Backend Contracts, Execution Contracts and token-budget
+rules beside Engine Internals. Later phases move a contract to B5 only
 after its source responsibilities are split. B1-B6 are presentation metadata
 only and never enter the architecture role annotations or boundary rules. The formatter also accepts
 the previous `group_columns` layout for reproducing older display revisions.
@@ -70,8 +71,9 @@ Each phase layout defines `group_theme.palette` and the stable group-to-palette
 mapping in `group_theme.groups`. Pastel group backgrounds retain the previous
 diagram's subdued colors; module and caption panels are transparent, with the
 individual module outlines retained.
-The same group ID keeps its colors across phases. G14 Engine uses blue, G46
+The same group ID keeps its colors across phases. G14 Engine Internals uses blue, G46
 Async Clients lavender, G47 Backend Contracts mint and G48 Implementations sand.
+G58 Execution Contracts uses mint and G59 Execution Services lavender.
 Color does not express a layer, dependency permission or a unique namespace.
 G57 Content Service uses teal and M10 moves to B3's persistence column. M73 is
 retired after merging its implementation into M10; it is removed from current
@@ -175,3 +177,20 @@ The canonical `Phronomy::Persistence` declaration belongs to
 reopenings in storage_boundary.rb or contract files do not move that ownership.
 The analyzer regression checks the Ruby declaration owner, independent of RBS
 filename; no type reference or measured edge is suppressed by this correction.
+
+## Execution contracts, services and internals
+
+G58 owns `execution_contract/` (M76) and its `concurrency/` directory (M77).
+G59 owns `execution_services/` (M78). Public RBS declarations formerly combined
+in `runtime.rbs` follow those source owners; the Engine receiver declaration is
+under `sig/phronomy/engine/`. Constant names and signature types are unchanged.
+The complete Ruby/RBS gate rejects direct or transitive dependencies from G58
+outside Execution Contracts/Common. Backend contracts and implementations may
+not reach Execution Services; Services and Engine may not reach feature-specific
+backends, clients or domain orchestration. Regression tests inject forbidden
+RBS-only edges as well as checking real ownership.
+
+Services contain implementation. TaskResult uses result composition and wait
+guards in Engine; pools create TaskResult. This mutual dependency is measured,
+not exempted or drawn as an acyclic layer. B4/B5 placement is only presentation.
+See [ADR-063](../../docs/decisions/063-execution-contracts-and-services.md).

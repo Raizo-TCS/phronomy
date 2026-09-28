@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../engine/concurrency/worker_input_restricted"
+require_relative "../execution_contract/concurrency/worker_input_restricted"
 
 require "securerandom"
 require_relative "concerns/filterable"
@@ -708,7 +708,7 @@ module Phronomy
       end
 
       def _check_event_loop_reentrancy(sync_method, async_method)
-        if Phronomy::Runtime.instance.event_loop.current?
+        if Phronomy::Runtime.in_event_loop_context?
           raise Phronomy::EventLoopReentrancyError,
             "#{self.class.name}##{sync_method} cannot run on the EventLoop thread. " \
             "Use #{async_method} and return immediately."

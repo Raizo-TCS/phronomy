@@ -7,7 +7,7 @@ require "rbconfig"
 RSpec.describe "FSM dependency contract" do
   it "loads the session and compiles a terminal transition without a WorkflowRunner definition" do
     source = <<~RUBY
-      require "phronomy/engine/fsm_protocol"
+      require "phronomy/execution_contract/fsm_protocol"
       require "phronomy/engine/fsm_session"
       require "phronomy/workflow/phase_machine_builder"
 

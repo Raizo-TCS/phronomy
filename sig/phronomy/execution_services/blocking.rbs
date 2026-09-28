@@ -1,0 +1,5 @@
+module Phronomy
+  module Blocking
+    def self.call_async: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?) { () -> V } -> TaskResult[V]
+  end
+end

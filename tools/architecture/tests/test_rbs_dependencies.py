@@ -195,6 +195,39 @@ class ProjectTests(unittest.TestCase):
         hashes = fingerprint(REPO)
         self.assertEqual({str(p.relative_to(REPO)) for p in REPO.glob('sig/**/*.rbs')}, {p for p in hashes if p.startswith('sig/')})
 
+    def test_execution_contracts_follow_ruby_owners_and_reject_indirect_implementation_dependencies(self):
+        contract = 'lib/phronomy/execution_contract'
+        token = contract + '/concurrency'
+        services = 'lib/phronomy/execution_services'
+        pairs = {(p['from'], p['to']) for p in self.audit['module_pairs']}
+        for source in ['lib/phronomy/agent/context/instruction', 'lib/phronomy/output_parser']:
+            self.assertIn((source, contract), pairs)
+            self.assertNotIn((source, 'lib/phronomy/engine'), pairs)
+        for source in ['lib/phronomy/tool', 'lib/phronomy/storage/async',
+                       'lib/phronomy/vector_store/async', 'lib/phronomy/vector_store/embeddings/async']:
+            self.assertIn((source, token), pairs)
+            self.assertIn((source, services), pairs)
+            self.assertNotIn((source, 'lib/phronomy/engine/concurrency'), pairs)
+        for source, target in [(contract, services), (token, 'lib/phronomy/engine'),
+                               ('lib/phronomy/common', 'lib/phronomy/engine'),
+                               (services, 'lib/phronomy/agent'),
+                               ('lib/phronomy/storage', services),
+                               ('lib/phronomy/storage/backends', services),
+                               ('lib/phronomy/configuration', contract)]:
+            with self.subTest(source=source, target=target):
+                changed = deepcopy(self.audit)
+                changed['module_pairs'].append({'from': source, 'to': target,
+                                               'references': [], 'requires': [],
+                                               'rbs_references': [{'origin': 'rbs'}]})
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
+        rbs = self.audit['rbs']['references']
+        result = next(r for r in rbs if r['owner'] == 'Phronomy::Storage::AsyncClient'
+                      and r['name'] == 'Phronomy::TaskResult')
+        self.assertEqual(services, result['to'])
+        cancellation = next(r for r in rbs if r['owner'] == 'Phronomy::Storage::AsyncClient'
+                            and r['name'] == 'Phronomy::Concurrency::CancellationToken')
+        self.assertEqual(token, cancellation['to'])
+
 
 if __name__ == '__main__':
     unittest.main()

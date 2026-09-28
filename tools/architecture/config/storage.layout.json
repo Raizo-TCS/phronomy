@@ -127,10 +127,12 @@
     },
     {
       "id": "B4",
-      "title": "ASYNC CLIENTS / IMPLEMENTATIONS",
+      "title": "EXECUTION SERVICES / ASYNC CLIENTS / IMPLEMENTATIONS",
       "columns": [
         [],
-        [],
+        [
+          "M78"
+        ],
         [
           "M66",
           "M70"
@@ -151,9 +153,12 @@
     },
     {
       "id": "B5",
-      "title": "ENGINE / BACKEND CONTRACTS",
+      "title": "ENGINE INTERNALS / EXECUTION & BACKEND CONTRACTS",
       "columns": [
-        [],
+        [
+          "M76",
+          "M77"
+        ],
         [
           "M11",
           "M12",
@@ -316,7 +321,9 @@
       "G54": "gray",
       "G55": "teal",
       "G56": "mint",
-      "G57": "teal"
+      "G57": "teal",
+      "G58": "mint",
+      "G59": "lavender"
     }
   },
   "presentation": {

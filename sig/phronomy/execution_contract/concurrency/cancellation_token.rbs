@@ -1,0 +1,13 @@
+module Phronomy
+  module Concurrency
+    class CancellationToken
+      def self.timeout_after: (Numeric seconds) -> CancellationToken
+      def initialize: (?monotonic_deadline: Float?) -> void
+      def remaining_monotonic_seconds: () -> Float?
+      def on_cancel: () { () -> void } -> self
+      def cancel!: () -> self
+      def cancelled?: () -> bool
+      def raise_if_cancelled!: (?String message) -> nil
+    end
+  end
+end

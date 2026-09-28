@@ -7,13 +7,7 @@ module Phronomy
   class ParseError < Error
   end
 
-  class RecursionLimitError < Error
-  end
-
   class ToolError < Error
-  end
-
-  class TimeoutError < Error
   end
 
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "timeout_error"
+require_relative "../execution_contract/timeout_error"
 
 module Phronomy
   class ExecutionTimeoutError < TimeoutError

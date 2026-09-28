@@ -183,7 +183,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
          "Arrows start at hidden box centers; boundary crossings are spread out. Solid triangles mark the target.", 21)
     mixed = any(module.get("mixed", False) for module in modules.values())
     b4_roles = "clients / implementations / pending split" if mixed else "clients / implementations"
-    text(70, 316, f"B4: {b4_roles}. B5: Engine / separated Contracts. G IDs identify independent responsibilities.", 19)
+    text(70, 316, f"B4: {'execution services / ' if 'G59' in by_group else ''}{b4_roles}. B5: Engine / separated Contracts. G IDs identify responsibilities.", 19)
     counts = Counter(e["direction"] for e in visible_edges)
     for j, (key, label) in enumerate([("external", "Between groups"), ("internal", "Within group")]):
         x = 72 + j * 440
@@ -196,17 +196,20 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     directory_cycles = " / ".join(map(str, meta["stats"]["module_scc_sizes"]["all"])) or "none"
     file_cycles = " / ".join(map(str, meta["stats"]["file_scc_sizes"])) or "none"
     text(70, 413, f"Directory cycles (union): {directory_cycles}. Ruby file cycles: {file_cycles}. Orange borders mark cycle membership.", 18, "#627988")
-    for index, (gid, label) in enumerate([("G14", "Engine"), ("G46", "Async Clients"),
+    for index, (gid, label) in enumerate([("G14", "Engine Internals" if "G58" in by_group else "Engine"), ("G46", "Async Clients"),
                                         ("G47", "Backend Contracts"), ("G48", "Backend Implementations"),
-                                        ("G57", "Content Service")]):
+                                        ("G57", "Content Service"), ("G58", "Execution Contracts"),
+                                        ("G59", "Execution Services")]):
         if gid in by_group:
             color = group_style(gid)
-            x = 72 + index * 610
-            add("rect", x=x, y=431, width=25, height=20, rx=3,
+            x = 72 + (index % 5) * 610
+            y = 431 + (index // 5) * 40
+            add("rect", x=x, y=y, width=25, height=20, rx=3,
                 fill=color["label_fill"], stroke=color["stroke"])
-            text(x + 36, 448, gid + "  " + label, 18, color["label_color"])
-    text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending." if mixed else
-         "Backend contracts and implementations occupy separate source directories.", 20, "#7a5737" if mixed else "#526b7a")
+            text(x + 36, y + 17, gid + "  " + label, 18, color["label_color"])
+    if "G58" not in by_group:
+        text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending." if mixed else
+             "Backend contracts and implementations occupy separate source directories.", 20, "#7a5737" if mixed else "#526b7a")
     text(70, 509, "G57 Content Service uses Storage; it is outside Backend Contracts / Implementations." if "G57" in by_group else
          "Backend Implementations are production code. Testing, Migration and Tracing retain their own groups.", 19, "#526b7a")
     if bands:

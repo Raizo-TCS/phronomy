@@ -88,6 +88,11 @@ def check_boundaries(audit, phase, repo, architecture=None):
         "document_processing": {"engine", "async_clients"},
         "token_budget": {"engine", "async_clients"},
     }
+    # Execution APIs contain mechanisms, unlike neutral shared vocabulary.
+    # Moving an API out of engine/ must not let a synchronous backend reach it.
+    for role in ["backend_contracts", "backend_implementations", "document_processing", "token_budget"]:
+        forbidden_roles[role].add("execution_services")
+    forbidden_roles["execution_services"] = forbidden_roles["engine"]
     for source in sorted(modules):
         denied = forbidden_roles.get(roles.get(source), set())
         route = path_to(graph, source, lambda t: roles.get(t) in denied)
@@ -103,6 +108,10 @@ def check_boundaries(audit, phase, repo, architecture=None):
     # Content management uses neutral Storage, not a physical backend, Engine
     # or domain orchestration. Inspect transitive paths in the full Ruby + RBS graph.
     for source in sorted(modules):
+        if roles.get(source) == "execution_contracts":
+            route = path_to(graph, source, lambda t: roles.get(t) not in {"common", "execution_contracts"})
+            if route:
+                violations.append({"kind": "execution-contract-reaches-implementation", "path": route})
         if roles.get(source) == "content_service":
             route = path_to(graph, source, lambda t: t != source and
                             t != "lib/phronomy/storage" and roles.get(t) != "common")

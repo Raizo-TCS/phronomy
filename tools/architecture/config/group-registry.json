@@ -53,7 +53,7 @@
     },
     {
       "id": "G14",
-      "title": "ENGINE",
+      "title": "ENGINE INTERNALS",
       "kind": "engine"
     },
     {
@@ -230,6 +230,16 @@
       "id": "G57",
       "title": "CONTENT SERVICE",
       "kind": "content_service"
+    },
+    {
+      "id": "G58",
+      "title": "EXECUTION CONTRACTS",
+      "kind": "execution_contracts"
+    },
+    {
+      "id": "G59",
+      "title": "EXECUTION SERVICES",
+      "kind": "execution_services"
     }
   ],
   "retired_groups": {
@@ -281,6 +291,24 @@
       "directory": "lib/phronomy/vector_store/embeddings/backends",
       "group": "G48",
       "phase": "vector"
+    },
+    {
+      "id": "M76",
+      "directory": "lib/phronomy/execution_contract",
+      "group": "G58",
+      "phase": "storage"
+    },
+    {
+      "id": "M77",
+      "directory": "lib/phronomy/execution_contract/concurrency",
+      "group": "G58",
+      "phase": "storage"
+    },
+    {
+      "id": "M78",
+      "directory": "lib/phronomy/execution_services",
+      "group": "G59",
+      "phase": "storage"
     }
   ]
 }

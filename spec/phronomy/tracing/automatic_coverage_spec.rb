@@ -184,10 +184,38 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     expect(multi).to include('"multi_agent.turn"')
   end
 
+  it "reports rejected asynchronous finish without blocking or losing the operation result" do
+    logger = double("logger", warn: nil)
+    Phronomy.configure do |config|
+      config.logger = logger
+      config.tracer = recording_tracer
+      config.offload_pool_size = 1
+      config.offload_queue_size = 1
+    end
+    started = Queue.new
+    release = Queue.new
+    running = Phronomy::Blocking.call_async {
+      started << true
+      release.pop
+    }
+    Timeout.timeout(3) { started.pop }
+    queued = Phronomy::Blocking.call_async { :queued }
+    allow(Phronomy::Runtime).to receive(:in_event_loop_context?).and_return(true)
+    handle = Phronomy::Tracing::Automatic.start("full-pool")
+    expect(Phronomy::Tracing::Automatic.finish(handle, output: "original")).to be_nil
+    expect(logger).to have_received(:warn).with(/automatic tracing finish failed.*BackpressureError/).once
+    allow(Phronomy::Runtime).to receive(:in_event_loop_context?).and_call_original
+    release << true
+    running.wait_result(timeout: 3)
+    expect(queued.wait_result(timeout: 3)).to eq(:queued)
+  ensure
+    release << true if release
+  end
+
   it "removes the unused InvocationContext tracer_span API without adding a replacement trace context" do
     invocation_context =
-      File.read(File.join(root, "lib/phronomy/engine/invocation_context.rb"))
-    runtime_rbs = File.read(File.join(root, "sig/phronomy/runtime.rbs"))
+      File.read(File.join(root, "lib/phronomy/execution_contract/invocation_context.rb"))
+    runtime_rbs = File.read(File.join(root, "sig/phronomy/execution_contract/invocation_context.rbs"))
     api_snapshot =
       File.read(File.join(root, "spec/fixtures/api_snapshot.json"))
     automatic =

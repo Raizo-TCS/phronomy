@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "concurrency/worker_input_restricted"
+require_relative "../execution_contract/concurrency/worker_input_restricted"
 
 module Phronomy
   # A thread-free asynchronous completion handle.
@@ -59,6 +59,18 @@ module Phronomy
     # @api private
     def self.deferred(name: nil, parent: nil)
       new(name: name, parent: parent)
+    end
+
+    # Framework-owned value decoration of a callback completion handle. Physical
+    # completion waits for both the source and the transformation. This does not
+    # inherit an application execution scope or cancel the source; public map
+    # and flat_map retain their scoped composition semantics.
+    # @api private
+    def self.__map_completion(source, name:, &block)
+      raise ArgumentError, "completion mapping requires a block" unless block
+
+      Concurrency::ResultComposition.new(source, flatten: false,
+        name: name, completion_only: true, &block).start
     end
 
     # Public factories for already-settled values. No execution is started.
