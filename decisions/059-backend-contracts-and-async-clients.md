@@ -6,6 +6,11 @@ Accepted; P1/P2/P3/P4 (LLM, VectorStore, Embeddings, Storage/ContentStore and
 diagram tooling) implemented. Final P5 review remains pending, as recorded in
 [Backend responsibilities](../architecture/backend-groups.md).
 
+ContentStore's classification and directory split are superseded by
+[ADR-062](062-content-store-service.md): content management is a service over
+Storage, outside Backend Contracts and Backend Implementations. The other
+contract/client/backend separations remain in force.
+
 ## Context
 
 The synchronous LLMAdapter SPI and its RubyLLM implementation shared a directory
@@ -51,8 +56,9 @@ argument conventions and execution semantics are unchanged; the receiver
 migration is intentional and documented. Storage operations do not change in
 P3. P4 adds public raw `transaction_async` and a private submit path for existing
 Agent/Workflow/coordination units. The latter opens no transaction and leaves
-uncertain-result policy with each owner. ContentStore implementation moves to
-its own directory. Other repository cycles remain visible.
+uncertain-result policy with each owner. P4 originally moved ContentStore's
+implementation into a backend directory; ADR-062 removes that unnecessary split
+and classifies it as a content service. Other repository cycles remain visible.
 
 Transparent module/caption panels and hidden incoming arrows to M33/M41/M44 are
 presentation settings only. The full measured graph, matrix and boundary rules

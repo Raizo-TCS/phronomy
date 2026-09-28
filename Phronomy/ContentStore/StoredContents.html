@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/content_store/backends/stored_contents.rb
+    <dd>lib/phronomy/content_store/stored_contents.rb
 </dd>
   </dl>
   
@@ -110,7 +110,8 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Content identity and digest validation belong to ContentStore, not Blobs.</p>
+<p>Content-addressed storage service over an injected Storage view.
+Content identity and digest validation belong here; Storage owns I/O.</p>
 
   </div>
 </div>
@@ -269,10 +270,10 @@
       <pre class="lines">
 
 
-8</pre>
+9</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 9</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_view'>view</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@view</span> <span class='op'>=</span> <span class='id identifier rubyid_view'>view</span></pre>
     </td>
@@ -328,10 +329,10 @@
       <pre class="lines">
 
 
-32</pre>
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_exist?'>exist?</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='ivar'>@view</span><span class='period'>.</span><span class='id identifier rubyid_blobs'>blobs</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StorageSchema.html" title="Phronomy::ContentStore::StorageSchema (module)">StorageSchema</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="StorageSchema.html#CONTENTS-constant" title="Phronomy::ContentStore::StorageSchema::CONTENTS (constant)">CONTENTS</a></span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_exist?'>exist?</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span></pre>
     </td>
@@ -367,17 +368,17 @@
       <pre class="lines">
 
 
-23
 24
 25
 26
 27
 28
 29
-30</pre>
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='id identifier rubyid_content_id'>content_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -420,7 +421,6 @@
       <pre class="lines">
 
 
-10
 11
 12
 13
@@ -431,10 +431,11 @@
 18
 19
 20
-21</pre>
+21
+22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/backends/stored_contents.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/stored_contents.rb', line 11</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_put'>put</span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='comma'>,</span> <span class='label'>canonicalization_version:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='const'>String</span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_b'>b</span>
@@ -458,7 +459,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat Sep 26 17:46:08 2026 by
+  Generated on Mon Sep 28 04:51:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

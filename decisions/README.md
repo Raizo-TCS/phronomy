@@ -114,6 +114,7 @@ resolved explicitly.
 | [`060-runtime-settings-and-application-configuration`](060-runtime-settings-and-application-configuration.md) | Accepted | Yes | Separates neutral Engine settings from typed application Configuration; preserves public settings/lifecycle semantics and requires the complete Ruby + RBS boundary gate without exceptions. |
 
 | [`061-persistence-failure-contracts`](061-persistence-failure-contracts.md) | Accepted | Yes | Independent domain failure contracts and explicit raw Storage translation; public rescue-clause migration, preserved transaction/admission/uncertainty semantics. |
+| [`062-content-store-service`](062-content-store-service.md) | Accepted | Yes | Content management over neutral Storage; removes the unnecessary backend subdivision and preserves content/Persistence behavior. |
 
 ## Legacy duplicate `011`
 
