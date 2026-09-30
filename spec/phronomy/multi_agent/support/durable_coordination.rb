@@ -28,7 +28,7 @@ RSpec.shared_context "durable coordination runtime" do
       before_io&.call(operation)
     end
 
-    def transaction
+    def atomic
       check_io_thread!(:transaction)
       value = super { |tx| yield tx }
       hook = after_commit

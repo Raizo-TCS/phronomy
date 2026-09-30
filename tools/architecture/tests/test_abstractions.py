@@ -10,6 +10,24 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_agent_admission_does_not_interpret_parent_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/agent/admission.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('scope.participate {}\n# tx.team_executions\ntx.team_executions\nx.send(:assignments)\n')
+            self.assertEqual([3, 4], [v['line'] for v in violations(repo)])
+
+    def test_transaction_framework_does_not_select_a_domain_or_its_composition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/persistence/transaction.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('# Agent is only a comment\nPhronomy::Agent::Base\nPersistenceComposition::Repositories\n')
+            found = violations(repo)
+            self.assertEqual([2, 3], [v['line'] for v in found])
+            self.assertEqual({'transaction-knows-domain-or-composition'}, {v['kind'] for v in found})
+
     def test_checks_real_calls_including_reflection_but_not_comments_or_owners(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

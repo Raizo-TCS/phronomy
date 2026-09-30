@@ -218,7 +218,7 @@
     },
     {
       "id": "G55",
-      "title": "PERSISTENCE STORAGE BOUNDARY",
+      "title": "PERSISTENCE / TRANSACTION",
       "kind": "domain"
     },
     {

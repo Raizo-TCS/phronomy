@@ -118,11 +118,8 @@ module Phronomy
     # exactly-once semantics for such failures.
     # @api public
     def transaction
-      Phronomy::Persistence::StorageBoundary.call do
-        backend.transaction do |raw_view|
-          repositories = PersistenceComposition::Repositories.new(raw_view)
-          yield repositories
-        end
+      atomic do |scope|
+        scope.participate(persistence: self, adapter: PersistenceComposition::Repositories) { |records| yield records }
       end
     end
 

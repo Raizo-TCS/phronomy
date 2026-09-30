@@ -23,5 +23,7 @@
   "Phronomy::_ExecutionBackend": "lib/phronomy/execution",
   "Phronomy::_ExecutionPool": "lib/phronomy/execution",
   "Phronomy::_ExecutionRuntime": "lib/phronomy/execution",
-  "Phronomy::Tool::_AuthorizationRequest": "lib/phronomy/tool"
+  "Phronomy::Tool::_AuthorizationRequest": "lib/phronomy/tool",
+  "Phronomy::Persistence::_Participant": "lib/phronomy/persistence",
+  "Phronomy::Agent::_AdmissionOwner": "lib/phronomy/agent"
 }

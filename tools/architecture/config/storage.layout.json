@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "r8-unit1-context-tool-execution-20260930",
+  "diagram_revision": "r8-unit2-parent-admission-20260930",
   "width": 3260,
   "column_centers": [
     330,
@@ -321,5 +321,5 @@
       "M44"
     ]
   },
-  "scope_note": "r8 UNIT 1 ONLY: Context / Tool / Execution. Persistence participation and remaining domain refactoring are unfinished."
+  "scope_note": "r8 UNIT 2: parent reservation + Agent admission. Legacy Persistence facade / result projections / other domain refactoring remain."
 }

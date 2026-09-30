@@ -17,6 +17,19 @@ module Phronomy
           end
         end
 
+        # Lock before inspecting child existence so cancellation cannot decide
+        # that a child is absent using a snapshot from before its admission.
+        def load_locked(main_agent_id)
+          Phronomy::Persistence::StorageBoundary.call do
+            @view.atomic do |bound|
+              bound.check!(guards: [Phronomy::Storage::GuardRef.new(
+                resource: StorageSchema::HANDOFF_STATES, key: main_agent_id.to_s
+              )], conditions: [])
+              self.class.new(bound).load(main_agent_id)
+            end
+          end
+        end
+
         def save(main_agent_id, expected_revision:, state:)
           Phronomy::Persistence::StorageBoundary.call do
             expected = expected_revision.nil? ? nil : Integer(expected_revision)

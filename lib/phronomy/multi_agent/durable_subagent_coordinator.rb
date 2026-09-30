@@ -97,6 +97,9 @@ module Phronomy
                           invocation_context: config[:invocation_context],
                           phronomy_coordination: {"kind" => "subagent", "parent_execution_id" => parent_execution_id,
                                                   "parent_agent_id" => parent.agent_id, "slot" => tool_invocation_id}}.compact
+          child_config = child_config.merge(phronomy_admission: ReservedChildAdmission.new(
+            persistence: parent.persistence, owner: child_config.fetch(:phronomy_coordination)
+          ))
           child_config = child_config.merge(durable_context: durable_context) if child["durable_context_ref"]
           source = Phronomy::Agent::ExactExecution.start(agent: agent,
             execution_id: child.fetch("execution_id"), input: input, config: child_config)

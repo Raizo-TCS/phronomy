@@ -54,6 +54,9 @@ module Phronomy
           wiring = config.merge(phronomy_handoff_bindings: @bindings.fetch(active.agent_id, []),
             phronomy_handoff_context: context,
             phronomy_coordination: {"kind" => "handoff", "main_agent_id" => main_agent.agent_id, "handoff_revision" => state.handoff_revision}).freeze
+          wiring = wiring.merge(phronomy_admission: ReservedChildAdmission.new(
+            persistence: @persistence, owner: wiring.fetch(:phronomy_coordination)
+          )).freeze
           active.instance_variable_set(:@_phronomy_coordination_config, wiring)
           result = if state.phase == "stable"
             unfinished = @persistence.executions.list_active(active.agent_id)
@@ -116,23 +119,12 @@ module Phronomy
         intended = leaf = leaf_id = nil
         begin
           @persistence.transaction do |tx|
-            first = tx.executions.load(execution_id)
-            unless first.metadata.dig("coordination", "main_agent_id") == main_agent.agent_id
-              raise Phronomy::Persistence::StateConflictError, "Execution does not belong to this Handoff anchor"
-            end
-            leaf = first
-            leaf_id = first.execution_id
-            seen = {}
-            while leaf&.status == :handed_off
-              raise Phronomy::Persistence::SerializationError, "Cyclic Handoff chain" if seen[leaf_id]
-              seen[leaf_id] = true
-              leaf_id = leaf.metadata.fetch("handoff_target_execution_id")
-              begin
-                leaf = tx.executions.load(leaf_id)
-              rescue Phronomy::Persistence::NotFoundError
-                leaf = nil
-              end
-            end
+            leaf, leaf_id = cancellation_leaf(tx, execution_id)
+            next if leaf&.terminal?
+            tx.handoff_states.load_locked(main_agent.agent_id)
+            # Admission may have committed while we waited for the routing lock.
+            # Re-read the chain before deciding whether a live child needs a signal.
+            leaf, leaf_id = cancellation_leaf(tx, execution_id)
             next if leaf&.terminal?
             routing = tx.handoff_states.load(main_agent.agent_id)
             unless routing && (leaf ? routing.active_agent_id == leaf.agent_id : routing.pending_target_execution_id == leaf_id)
@@ -159,6 +151,27 @@ module Phronomy
       end
 
       private
+
+      def cancellation_leaf(tx, execution_id)
+        first = tx.executions.load(execution_id)
+        unless first.metadata.dig("coordination", "main_agent_id") == main_agent.agent_id
+          raise Phronomy::Persistence::StateConflictError, "Execution does not belong to this Handoff anchor"
+        end
+        leaf = first
+        leaf_id = first.execution_id
+        seen = {}
+        while leaf&.status == :handed_off
+          raise Phronomy::Persistence::SerializationError, "Cyclic Handoff chain" if seen[leaf_id]
+          seen[leaf_id] = true
+          leaf_id = leaf.metadata.fetch("handoff_target_execution_id")
+          begin
+            leaf = tx.executions.load(leaf_id)
+          rescue Phronomy::Persistence::NotFoundError
+            leaf = nil
+          end
+        end
+        [leaf, leaf_id]
+      end
 
       def load_state
         state = @persistence.handoff_states.load(main_agent.agent_id)

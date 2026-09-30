@@ -98,7 +98,7 @@ def check_boundaries(audit, phase, repo, architecture=None):
         forbidden_roles[role].add("execution_services")
     # In r8 the previously separate services and values share one framework.
     # Synchronous backend extensions do not acquire that execution dependency.
-    if architecture.get("annotation_source_revision") == "r8-unit1-context-tool-execution":
+    if architecture.get("execution_framework_unified", False):
         for role in ["backend_contracts", "backend_implementations", "document_processing", "token_budget"]:
             forbidden_roles[role].add("execution_contracts")
     forbidden_roles["execution_services"] = set(forbidden_roles["engine"])

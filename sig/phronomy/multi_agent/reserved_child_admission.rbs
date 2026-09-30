@@ -1,0 +1,8 @@
+module Phronomy
+  module MultiAgent
+    class ReservedChildAdmission
+      def initialize: (persistence: ::Phronomy::Persistence, owner: Hash[String, untyped]) -> void
+      def admit: (::Phronomy::Agent::Admission admission) -> nil
+    end
+  end
+end

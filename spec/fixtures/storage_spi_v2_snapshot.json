@@ -26,6 +26,7 @@
           "journal_position"
         ]
       ],
+      "atomic": [],
       "backend": [],
       "capabilities": [],
       "contents": [],

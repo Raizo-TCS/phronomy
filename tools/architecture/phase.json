@@ -21,5 +21,21 @@
       "Remaining r8 domain regrouping",
       "155 pair / 393 triangle semantic review"
     ]
+  },
+  "r8_unit2": {
+    "status": "partial_spec_implementation",
+    "completed_scope": [
+      "Synchronous Persistence participation with savepoint/commit ownership",
+      "Parent-owned Team/subagent/Handoff reservation validation",
+      "Reservation locking and Handoff cancellation re-read"
+    ],
+    "pending_scope": [
+      "PostgreSQL real concurrency CI for unit2",
+      "Persistence facade removal / composition separation",
+      "Parent result and authorization projections",
+      "Domain FSM connection decomposition",
+      "Workflow durable child protocol / persistence evidence",
+      "Remaining r8 domain regrouping and semantic dependency review"
+    ]
   }
 }

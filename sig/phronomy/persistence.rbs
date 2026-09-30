@@ -36,6 +36,7 @@ module Phronomy
   # not need to interpret DurableRecord#payload.
   interface _HandoffStateRepository
     def load: (String main_agent_id) -> untyped
+    def load_locked: (String main_agent_id) -> untyped
     def save: (String main_agent_id, expected_revision: Integer?, state: untyped) -> untyped
     def delete: (String main_agent_id, expected_revision: Integer) -> untyped
   end

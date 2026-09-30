@@ -80,6 +80,7 @@ loader.ignore("#{__dir__}/phronomy/agent/stream_callback_error.rb")
 loader.ignore("#{__dir__}/phronomy/agent/handoff_error.rb")
 loader.ignore("#{__dir__}/phronomy/agent/agent_already_exists_error.rb")
 loader.setup
+require_relative "phronomy/persistence/transaction"
 require_relative "phronomy/tool/tool_error"
 require_relative "phronomy/filter/filter_block_error"
 require_relative "phronomy/output_parser/parse_error"

@@ -228,6 +228,14 @@ class ProjectTests(unittest.TestCase):
                             and r['name'] == 'Phronomy::Concurrency::CancellationToken')
         self.assertEqual(token, cancellation['to'])
 
+    def test_revision_label_does_not_disable_synchronous_backend_boundary(self):
+        changed = deepcopy(self.audit)
+        changed['module_pairs'].append({'from': 'lib/phronomy/storage/backends',
+                                       'to': 'lib/phronomy/execution'})
+        architecture = refresh.read_architecture('storage')
+        architecture['annotation_source_revision'] = 'future-display-label'
+        self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO, architecture)['passed'])
+
     def test_neutral_results_and_worker_mechanisms_reject_upward_paths(self):
         self.assertTrue(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
         prefix = 'lib/phronomy/'

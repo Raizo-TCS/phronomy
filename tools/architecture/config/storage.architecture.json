@@ -2,8 +2,8 @@
   "format": "phronomy-responsibility-groups-v2",
   "repository_url": "https://github.com/Raizo-TCS/phronomy",
   "project_title": "PHRONOMY 0.27.0",
-  "annotation_source_commit": "653e255a34fe4062d4beca47530e084fdd3a6ba9",
-  "annotation_source_revision": "r8-unit1-context-tool-execution",
+  "annotation_source_commit": "16e6fcb2dd49836735598525114abfc256d0773e",
+  "annotation_source_revision": "r8-unit2-parent-admission",
   "modules": [
     {
       "id": "M01",
@@ -15,7 +15,7 @@
     {
       "id": "M02",
       "directory": "lib/phronomy/agent",
-      "role": "Agent lifecycle / context snapshot / runtime input",
+      "role": "Agent lifecycle / state / admission",
       "mixed": false,
       "group": "G04"
     },
@@ -183,7 +183,7 @@
     {
       "id": "M17",
       "directory": "lib/phronomy/multi_agent",
-      "role": "Handoff / Team / SharedState coordination",
+      "role": "Handoff / Team / parent admission",
       "mixed": false,
       "group": "G01",
       "mixed_reason": "Handoff, team execution, and durable coordination remain combined."
@@ -191,7 +191,7 @@
     {
       "id": "M37",
       "directory": "lib/phronomy/multi_agent/persistence",
-      "role": "Team records / result queries",
+      "role": "Team records / reservation evidence",
       "mixed": false,
       "group": "G22"
     },
@@ -422,7 +422,7 @@
     {
       "id": "M74",
       "directory": "lib/phronomy/persistence",
-      "role": "Storage failure translation / content repository",
+      "role": "Transaction participation / storage boundary",
       "mixed": false,
       "group": "G55"
     },
@@ -767,7 +767,7 @@
     },
     {
       "id": "G55",
-      "title": "PERSISTENCE STORAGE BOUNDARY",
+      "title": "PERSISTENCE / TRANSACTION",
       "members": [
         "M74"
       ],
@@ -874,5 +874,6 @@
   ],
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
-  "scope_note": "r8 unit 1 only; Persistence participation, parent/child admission and remaining domain refactoring are not complete."
+  "execution_framework_unified": true,
+  "scope_note": "r8 unit 2: atomic parent reservation and Agent admission. Legacy Persistence facade, result projection and remaining domain boundaries are unfinished."
 }

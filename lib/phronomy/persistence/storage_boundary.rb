@@ -3,7 +3,7 @@
 module Phronomy
   class Persistence
     # Translate only the backend's existing known failure categories. Unknown
-    # transport/commit outcomes, TransactionError and application exceptions pass
+    # transport/commit outcomes and application exceptions pass
     # through unchanged so the operation's existing reconciliation stays in charge.
     # @api private
     module StorageBoundary
@@ -15,6 +15,8 @@ module Phronomy
         raise_domain_error(NotFoundError, error)
       rescue Phronomy::Storage::SerializationError => error
         raise_domain_error(SerializationError, error)
+      rescue Phronomy::Storage::TransactionError => error
+        raise_domain_error(TransactionError, error)
       rescue Phronomy::Storage::UnsupportedBackendError => error
         raise_domain_error(UnsupportedBackendError, error)
       end

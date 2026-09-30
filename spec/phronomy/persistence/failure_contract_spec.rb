@@ -42,7 +42,7 @@ RSpec.describe "Persistence failure boundary" do
   end
 
   # Inject at the real raw backend dispatch, not at the already translated repository.
-  [:ConflictError, :NotFoundError, :SerializationError, :UnsupportedBackendError].each do |category|
+  [:ConflictError, :NotFoundError, :SerializationError, :UnsupportedBackendError, :TransactionError].each do |category|
     [:agents, :executions, :teams, :team_executions, :workflow_states, :handoff_states, :journals, :contents].each do |repository|
       it "translates #{category} through #{repository} without losing cause or the original trace" do
         raw = Phronomy::Storage.const_get(category).new("driver failure")
@@ -62,7 +62,7 @@ RSpec.describe "Persistence failure boundary" do
     end
   end
 
-  [IOError, Phronomy::Storage::TransactionError, Phronomy::AgentBusyError, Phronomy::Persistence::Error].each do |kind|
+  [IOError, Phronomy::Persistence::TransactionError, Phronomy::AgentBusyError, Phronomy::Persistence::Error].each do |kind|
     it "preserves #{kind} without declaring its outcome known" do
       original = kind.new("unchanged")
       allow(backend).to receive(:execute).and_raise(original)

@@ -27,6 +27,7 @@ RSpec.describe Phronomy::Storage::AsyncClient do
     backend = Object.new
     backend.define_singleton_method(:capabilities) { delegate.capabilities }
     backend.define_singleton_method(:view) { delegate.view }
+    backend.define_singleton_method(:transaction_open?) { delegate.transaction_open? }
     backend.define_singleton_method(:transaction) { |&work| delegate.transaction(&work) }
     value = Object.new
     result = described_class.new(backend: backend).transaction_async { value }.wait_result(timeout: 2)

@@ -398,6 +398,9 @@ module Phronomy
         child_config = config.merge(cancellation_token: token,
           phronomy_coordination: {"kind" => "team", "team_id" => team_id,
                                   "team_execution_id" => current.team_execution_id, "slot" => purpose})
+        child_config = child_config.merge(phronomy_admission: ReservedChildAdmission.new(
+          persistence: persistence, owner: child_config.fetch(:phronomy_coordination)
+        ))
         if (context_ref = current.metadata["durable_context_ref"])
           child_config = child_config.merge(durable_context: persistence.contents.fetch_json(context_ref))
         end

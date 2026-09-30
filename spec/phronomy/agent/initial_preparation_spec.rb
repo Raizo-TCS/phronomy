@@ -18,9 +18,9 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       @lost_response_transaction = transaction
     end
 
-    def transaction
+    def atomic
       @transaction_count += 1
-      result = @delegate.transaction { |tx| yield tx }
+      result = super { |scope| yield scope }
       if @transaction_count == @lost_response_transaction
         raise IOError, "preparation response lost after commit"
       end
@@ -84,7 +84,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       expect(transaction_open).to be(false)
       events << :policy
     end
-    allow(persistence).to receive(:transaction).and_wrap_original do |original, &action|
+    allow(persistence).to receive(:atomic).and_wrap_original do |original, &action|
       transaction_open = true
       events << :transaction_started
       original.call(&action)

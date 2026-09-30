@@ -239,3 +239,13 @@ python3 tools/architecture/tools/find_dependency_triangles.py \
   OUTPUT/module_audit_scoped.json OUTPUT/architecture.json \
   tools/architecture/config/storage.layout.json OUTPUT
 ```
+
+## r8 unit 2: parent reservation and Agent admission
+
+`Persistence::Transaction` owns synchronous participation and commit status;
+`Agent::Admission` owns acceptance; MultiAgent owns the reservation check.
+The gate now rejects parent repository access from Agent admission and domain
+selection inside the transaction framework. These targeted rules do not prove
+that the remaining legacy facade or all domain dependencies are correct.
+The existing display bands and hidden common arrows are preserved.
+See [the implementation boundaries](../../docs/architecture/r8-unit2.md).

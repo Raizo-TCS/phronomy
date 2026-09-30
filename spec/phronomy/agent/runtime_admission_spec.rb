@@ -126,10 +126,10 @@ RSpec.describe "Agent Runtime admission" do
 
   it "keeps Persistence create_active as the durable second line of defense" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution/initial_preparation.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/admission.rb", __dir__)
     )
 
-    expect(source).to include("tx.executions.create_active(execution)")
+    expect(source).to include("records.executions.create_active(execution)")
   end
 
   it "keeps Runtime shutdown waiting through Agent durability transitions" do
