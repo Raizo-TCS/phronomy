@@ -31,7 +31,7 @@ RSpec.describe "Tool#call_async compatibility" do
 
   it "keeps runtime out of the public Tool#call_async signature" do
     [
-      Phronomy::Agent::Context::Capability::Base,
+      Phronomy::Tool::Base,
       Phronomy::Tools::Agent
     ].each do |tool_class|
       keyword_names = tool_class
@@ -44,7 +44,7 @@ RSpec.describe "Tool#call_async compatibility" do
   end
 
   it "keeps Runtime injection and admission policy internal for the default call_async implementation" do
-    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    tool_class = Class.new(Phronomy::Tool::Base) do
       tool_name "offloaded_tool"
       description "Offloaded Tool"
       execution_mode :offloaded
@@ -64,7 +64,7 @@ RSpec.describe "Tool#call_async compatibility" do
     operation = Phronomy::TaskResult.deferred(name: "offloaded-tool")
     operation.complete("ok")
 
-    expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
+    expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).with(
       tool: tool,
       args: {value: "ok"},
       cancellation_token: nil,
@@ -81,7 +81,7 @@ RSpec.describe "Tool#call_async compatibility" do
   end
 
   it "does not pass runtime to a Tool that overrides the public call_async protocol" do
-    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    tool_class = Class.new(Phronomy::Tool::Base) do
       tool_name "custom_async_tool"
       description "Custom async Tool"
       execution_mode :cooperative
@@ -109,7 +109,7 @@ RSpec.describe "Tool#call_async compatibility" do
     registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
     allow(Phronomy::Agent::ExecutionRegistry).to receive(:for).with(event_loop_dbl).and_return(registry)
 
-    expect(Phronomy::Agent::Context::Capability::ToolExecutor).not_to receive(:call_async)
+    expect(Phronomy::Tool::ToolExecutor).not_to receive(:call_async)
 
     outcome = nil
     invocation.start_execution(runtime: runtime) { |value| outcome = value }
@@ -119,7 +119,7 @@ RSpec.describe "Tool#call_async compatibility" do
   end
 
   it "returns an error outcome immediately when start_execution is called before authorization" do
-    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    tool_class = Class.new(Phronomy::Tool::Base) do
       tool_name "unauth_tool"
       description "Unauthorized tool"
       param :value, type: :string, desc: "Value"
@@ -144,7 +144,7 @@ RSpec.describe "Tool#call_async compatibility" do
   end
 
   it "raises when start_execution is called without a block" do
-    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    tool_class = Class.new(Phronomy::Tool::Base) do
       tool_name "nocallback_tool"
       description "Tool without callback"
       param :value, type: :string, desc: "Value"

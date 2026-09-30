@@ -19,7 +19,7 @@ RSpec.describe "before_llm_input hook" do
     Phronomy.configuration.before_llm_input = nil
   end
 
-  describe Phronomy::Agent::LLMInputBuildContext do
+  describe Phronomy::Context::LLMInputBuildContext do
     let(:agent) { HookBaseAgent.new }
     let(:config) { {user_id: "u1"} }
 
@@ -51,7 +51,7 @@ RSpec.describe "before_llm_input hook" do
     end
   end
 
-  describe Phronomy::Agent::LLMInputPatch do
+  describe Phronomy::Context::LLMInputPatch do
     it ".empty returns a patch with all nil fields" do
       patch = described_class.empty
       expect(patch.model_config_patch).to be_nil
@@ -66,7 +66,7 @@ RSpec.describe "before_llm_input hook" do
 
   describe ".before_llm_input" do
     it "stores and reads a callable" do
-      callable = ->(_ctx) { Phronomy::Agent::LLMInputPatch.empty }
+      callable = ->(_ctx) { Phronomy::Context::LLMInputPatch.empty }
       HookBaseAgent.before_llm_input callable
       expect(HookBaseAgent._before_llm_input).to be(callable)
     end
@@ -76,7 +76,7 @@ RSpec.describe "before_llm_input hook" do
     end
 
     it "accepts a block" do
-      HookBaseAgent.before_llm_input { |_ctx| Phronomy::Agent::LLMInputPatch.empty }
+      HookBaseAgent.before_llm_input { |_ctx| Phronomy::Context::LLMInputPatch.empty }
       expect(HookBaseAgent._before_llm_input).to respond_to(:call)
     end
 
@@ -90,7 +90,7 @@ RSpec.describe "before_llm_input hook" do
   describe "#before_llm_input=" do
     it "stores an instance-level callable independent of the class" do
       agent = HookBaseAgent.new
-      callable = ->(_ctx) { Phronomy::Agent::LLMInputPatch.empty }
+      callable = ->(_ctx) { Phronomy::Context::LLMInputPatch.empty }
       agent.before_llm_input = callable
       expect(agent.before_llm_input).to be(callable)
       expect(HookBaseAgent._before_llm_input).to be_nil
@@ -103,7 +103,7 @@ RSpec.describe "before_llm_input hook" do
     it "returns LLMInputPatch.empty when no hooks are registered" do
       agent = HookBaseAgent.new
       result = agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: config)
-      expect(result).to eq(Phronomy::Agent::LLMInputPatch.empty)
+      expect(result).to eq(Phronomy::Context::LLMInputPatch.empty)
     end
 
     it "calls the global hook with an LLMInputBuildContext" do
@@ -114,7 +114,7 @@ RSpec.describe "before_llm_input hook" do
       }
       agent = HookBaseAgent.new
       agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: config)
-      expect(received_ctx).to be_a(Phronomy::Agent::LLMInputBuildContext)
+      expect(received_ctx).to be_a(Phronomy::Context::LLMInputBuildContext)
       expect(received_ctx.agent_id).to eq(agent.agent_id)
       expect(received_ctx.call_sequence).to eq(1)
       expect(received_ctx.config).to eq(config)
@@ -162,10 +162,10 @@ RSpec.describe "before_llm_input hook" do
     end
 
     it "merges model_config_patch from multiple hooks (later hooks win)" do
-      patch_a = Phronomy::Agent::LLMInputPatch.new(
+      patch_a = Phronomy::Context::LLMInputPatch.new(
         model_config_patch: {temperature: 0.5, model: "model-a"}
       )
-      patch_b = Phronomy::Agent::LLMInputPatch.new(
+      patch_b = Phronomy::Context::LLMInputPatch.new(
         model_config_patch: {model: "model-b"}
       )
       Phronomy.configuration.before_llm_input = ->(_ctx) { patch_a }
@@ -179,8 +179,8 @@ RSpec.describe "before_llm_input hook" do
     it "appends segment_candidates from multiple hooks" do
       seg_a = {content: "hello", category: :knowledge, role: :user}
       seg_b = {content: "world", category: :knowledge, role: :user}
-      patch_a = Phronomy::Agent::LLMInputPatch.new(segment_candidates: [seg_a])
-      patch_b = Phronomy::Agent::LLMInputPatch.new(segment_candidates: [seg_b])
+      patch_a = Phronomy::Context::LLMInputPatch.new(segment_candidates: [seg_a])
+      patch_b = Phronomy::Context::LLMInputPatch.new(segment_candidates: [seg_b])
       Phronomy.configuration.before_llm_input = ->(_ctx) { patch_a }
       agent = HookBaseAgent.new
       agent.before_llm_input = ->(_ctx) { patch_b }

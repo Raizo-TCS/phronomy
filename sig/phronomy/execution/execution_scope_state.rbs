@@ -1,0 +1,9 @@
+module Phronomy
+  class ExecutionScopeState
+    def __while_open: [V] () { () -> V } -> V?
+    def __open?: () -> bool
+    def __cancellation_token: () -> Concurrency::CancellationToken
+    def __cancellation_error: () -> Exception
+    def __set_cancellation_error: (Exception error) -> Exception
+  end
+end

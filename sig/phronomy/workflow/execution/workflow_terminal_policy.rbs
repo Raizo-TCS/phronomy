@@ -1,0 +1,7 @@
+module Phronomy
+  class WorkflowTerminalPolicy
+    def start: (terminal_type: Symbol, context: untyped, event_sink: _FSMEventSink) -> untyped
+    def handles?: (Event event) -> bool
+    def decision_for: (Event event) -> TerminalDecision
+  end
+end

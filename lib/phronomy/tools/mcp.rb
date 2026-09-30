@@ -7,7 +7,7 @@ require "uri"
 
 module Phronomy
   module Tools
-    # A Phronomy::Agent::Context::Capability::Base subclass that wraps a tool exposed by an external
+    # A Phronomy::Tool::Base subclass that wraps a tool exposed by an external
     # MCP (Model Context Protocol) server.
     #
     # Uses the official MCP Ruby SDK v1.x for transport handling, which provides
@@ -27,7 +27,7 @@ module Phronomy
     #     tool_name: "search_web"
     #   )
     #   agent_class.tools(web_search)
-    class Mcp < Phronomy::Agent::Context::Capability::Base
+    class Mcp < Phronomy::Tool::Base
       SUPPORTED_SCHEMA_DIALECTS = [
         "https://json-schema.org/draft/2020-12/schema",
         "https://json-schema.org/draft/2020-12/schema#"
@@ -478,12 +478,12 @@ module Phronomy
       end
 
       def schedule_transport_cleanup(transport)
-        cleanup_pool = Phronomy::Runtime.instance.pool(
-          :mcp_cleanup,
+        Phronomy::Execution.submit(
+          pool_name: :mcp_cleanup,
           size: MCP_CLEANUP_POOL_SIZE,
-          queue_size: MCP_CLEANUP_QUEUE_SIZE
-        )
-        cleanup_pool.submit(on_full: :raise) do
+          queue_size: MCP_CLEANUP_QUEUE_SIZE,
+          on_full: :raise
+        ) do
           self.class.send(:close_transport_safely, transport)
         end
       rescue Phronomy::BackpressureError, Phronomy::PoolShutdownError

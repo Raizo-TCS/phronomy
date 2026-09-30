@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
 
@@ -91,7 +91,7 @@ module Phronomy
       @entry_point = entry_point
       @wait_state_names = wait_state_names
       @persistence = persistence
-      @phase_machine_class = Workflow::PhaseMachineBuilder.new(
+      @phase_machine_class = WorkflowPhaseMachineBuilder.new(
         entry_point: @entry_point,
         declared_states: @declared_states,
         wait_state_names: @wait_state_names,
@@ -211,7 +211,7 @@ module Phronomy
     end
 
     def ensure_blocking_call_allowed!(method_name, async_alternative)
-      return unless Phronomy::Runtime.in_event_loop_context?
+      return unless Phronomy::WaitPolicy.blocking_forbidden?
 
       raise Phronomy::Error,
         "Cannot call Workflow##{method_name} from the EventLoop thread. " \
@@ -384,7 +384,7 @@ module Phronomy
         repository: repository,
         workflow_instance_id: workflow_instance_id.to_s.freeze
       )
-      task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+      task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
         record = operation.repository.load(operation.workflow_instance_id)
         WorkflowLoadResult.new(
           repository: operation.repository,
@@ -643,7 +643,7 @@ module Phronomy
         snapshot: deep_immutable_copy(snapshot_for(context))
       )
 
-      task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+      task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
         persist_terminal_snapshot(operation)
       end
       task.on_complete do |result, operation_error|

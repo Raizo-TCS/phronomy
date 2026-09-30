@@ -19,7 +19,7 @@ module Phronomy
       # Resumes retained static child coordination with current class wiring.
       # @api public
       def resume(execution_id, config: {})
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError, "Orchestrator#resume cannot block EventLoop"
         end
         execution = persistence.executions.load(execution_id)
@@ -60,7 +60,7 @@ module Phronomy
               super(args, cancellation_token: cancellation_token, config: config)
             end
           rescue => error
-            Phronomy::TaskResult.deferred(name: "subagent-dispatch-failed").tap { |task| task.fail(error) }
+            Phronomy::TaskResult.failed(error, name: "subagent-dispatch-failed")
           end
 
           define_method(:execute_async) do |input:, cancellation_token: nil, config: {}|
@@ -89,24 +89,14 @@ module Phronomy
                 agent.add_knowledge(entry.fetch(:content), metadata: entry.fetch(:metadata, {}))
               end
             end
-            source = agent.invoke_async(input, config: task_config)
-            result_task = Phronomy::TaskResult.deferred(
-              name: "subagent-tool-#{name}"
-            )
-            source.on_complete do |result, error|
-              if error
-                (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
-              else
-                result_task.complete(result[:output])
-              end
+            Phronomy::AsyncOperation.call(name: "subagent-tool-#{name}",
+              on_error: ->(error) { raise error if on_error == :raise },
+              transform: ->(result) { result[:output] }) do
+              agent.invoke_async(input, config: task_config)
             end
-            result_task
           rescue => error
-            result_task ||= Phronomy::TaskResult.deferred(
-              name: "subagent-tool-#{name}"
-            )
-            (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
-            result_task
+            Phronomy::AsyncOperation.capture(name: "subagent-tool-#{name}",
+              on_error: ->(failure) { raise failure if on_error == :raise }) { raise error }
           end
           private :execute_async
         end
@@ -138,7 +128,7 @@ module Phronomy
         invocation_context: nil,
         inherit_knowledge: true
       )
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError,
             "dispatch_parallel cannot block the EventLoop; use dispatch_parallel_async"
         end
@@ -169,25 +159,17 @@ module Phronomy
           invocation_context: nil,
           inherit_knowledge: inherit_knowledge
         )
-        Phronomy::Execution.send(:__run_async, children,
+        Phronomy::Execution.run_async(children,
           timeout: timeout, cancellation_token: cancellation_token,
-          invocation_context: invocation_context, concurrency_limit: max_concurrency) do |child, execution|
-          # Preserve a child-specific context as well as this dispatch's controls.
-          # Agent admission adds that context's constraints to the supplied token.
-          binding = Phronomy::Concurrency::OperationBinding.new(
-            invocation_context: execution.invocation_context,
-            cancellation_token: child.config[:cancellation_token]
-          )
-          child_context = child.config[:invocation_context] ||
-            execution.invocation_context.merge(parent_task_id: invocation_context&.task_id)
-          begin
-            source = child.agent.invoke_async(child.input,
-              config: child.config.merge(cancellation_token: binding.token),
+          invocation_context: invocation_context, max_concurrency: max_concurrency) do |child, execution|
+          execution.start_child(
+            invocation_context: child.config[:invocation_context],
+            cancellation_token: child.config[:cancellation_token],
+            parent_task_id: invocation_context&.task_id
+          ) do |child_context, token|
+            child.agent.invoke_async(child.input,
+              config: child.config.merge(cancellation_token: token),
               invocation_context: child_context)
-            binding.track(source)
-          rescue
-            binding.close
-            raise
           end
         end.map do |outcomes|
           failure = outcomes.find { |outcome| outcome.status != :completed }
@@ -203,7 +185,7 @@ module Phronomy
         config: nil,
         inherit_knowledge: true
       )
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError,
             "subagent cannot block the EventLoop; use the async Agent API"
         end

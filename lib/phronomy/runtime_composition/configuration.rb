@@ -26,7 +26,6 @@ module Phronomy
     attr_accessor :before_llm_input
     attr_accessor :recursion_limit
     attr_accessor :persistence
-    attr_accessor :tool_result_max_size
     attr_accessor :llm_adapter
     attr_reader :stream_callback_error_policy
     attr_accessor :authorization_pool_size
@@ -69,6 +68,14 @@ module Phronomy
 
     def logger=(value)
       @__runtime_settings.logger = value
+    end
+
+    def tool_result_max_size
+      @__runtime_settings.tool_result_max_size
+    end
+
+    def tool_result_max_size=(value)
+      @__runtime_settings.tool_result_max_size = value
     end
 
     def event_loop_stop_grace_seconds

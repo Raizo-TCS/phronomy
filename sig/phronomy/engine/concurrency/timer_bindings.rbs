@@ -1,0 +1,18 @@
+module Phronomy
+  interface _TimerQueue
+    def schedule: (seconds: Numeric) { () -> void } -> self
+    def cancel: (^() -> void callback) -> bool
+  end
+
+  module Concurrency
+    class OffloadPool
+      @timer_queue_provider: (^() -> _TimerQueue)?
+      def initialize: (?pool_size: Integer, ?queue_size: Integer, ?name: (String | Symbol)?, ?logger: untyped, ?timer_queue_provider: (^() -> _TimerQueue)?) -> void
+    end
+
+    class PoolRegistry
+      @timer_queue_provider: (^() -> _TimerQueue)?
+      def initialize: (?timer_queue_provider: (^() -> _TimerQueue)?) -> void
+    end
+  end
+end

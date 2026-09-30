@@ -6,6 +6,10 @@ module Phronomy
     # The EventLoop remains the sole writer during execution.
     # @api private
     class ExecutionRegistry < Phronomy::ExecutionReceiver
+      def self.existing_current
+        existing_for(Phronomy::Runtime.instance)
+      end
+
       # Immutable Agent-owned value. The map containing these records is the
       # mutable authority; records are replaced rather than mutated in place.
       AgentExecutionState = Data.define(

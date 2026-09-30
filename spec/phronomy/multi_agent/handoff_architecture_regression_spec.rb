@@ -23,8 +23,8 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
   it "keeps only the internal Selection candidate normalization used by Context assembly" do
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/context_candidate.rb"))
     expect(File).not_to exist(File.join(root, "lib/phronomy/agent/context_selection_unit.rb"))
-    expect(Phronomy::Agent::Selection::Candidate).to be_a(Class)
-    expect(Phronomy::Agent::Selection.const_defined?(:Unit, false)).to be(false)
+    expect(Phronomy::Context::Candidate).to be_a(Class)
+    expect(Phronomy::Context.const_defined?(:Unit, false)).to be(false)
   end
 
   it "does not restore the removed Agent::Runner public surface" do

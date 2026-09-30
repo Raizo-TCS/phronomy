@@ -88,7 +88,7 @@ puts result[:output]
 ```
 
 `Phronomy::Tool::Base` is the public authoring name for the existing Tool base
-class. The legacy `Phronomy::Agent::Context::Capability::Base` constant remains
+class. The legacy `Phronomy::Tool::Base` constant remains
 valid for compatibility.
 
 For non-blocking top-level use, call `invoke_async` and keep the returned

@@ -36,7 +36,7 @@ module Phronomy
             _manifest, projection = SavedContextReader.materialize_projection(agent, execution.metadata.fetch("manifest_ref"))
           end
           records = execution.working_records.select { |record| %i[assistant_message tool_message].include?(record.kind.to_sym) }
-          materializer = RubyLLMMaterializer.new(agent: agent, persistence: agent.persistence)
+          materializer = RuntimeInput.new(agent: agent, persistence: agent.persistence)
           messages = records.map { |record| materializer.materialize_journal_record(record) }.freeze
           assistant = messages.reverse.find { |message| message.role.to_sym == :assistant }
           output, usage = SavedContextReader.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed

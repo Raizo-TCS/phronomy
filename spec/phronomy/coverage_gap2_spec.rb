@@ -5,29 +5,29 @@ require "spec_helper"
 # Targeted branch-coverage fill-in for medium-complexity utility classes.
 
 RSpec.describe "Coverage gap fill-in (round 2)" do
-  describe "Phronomy::Agent::ToolDefinitionSet.normalize" do
+  describe "Phronomy::Tool::DefinitionSet.normalize" do
     it "converts an Array recursively" do
-      expect(Phronomy::Agent::ToolDefinitionSet.normalize([:a, "b"])).to eq(["a", "b"])
+      expect(Phronomy::Tool::DefinitionSet.normalize([:a, "b"])).to eq(["a", "b"])
     end
 
     it "converts a Symbol to a String" do
-      expect(Phronomy::Agent::ToolDefinitionSet.normalize(:my_key)).to eq("my_key")
+      expect(Phronomy::Tool::DefinitionSet.normalize(:my_key)).to eq("my_key")
     end
 
     it "delegates to to_json_schema when available" do
       obj = Class.new { def to_json_schema = {type: "string"} }.new
-      expect(Phronomy::Agent::ToolDefinitionSet.normalize(obj)).to eq({"type" => "string"})
+      expect(Phronomy::Tool::DefinitionSet.normalize(obj)).to eq({"type" => "string"})
     end
 
     it "delegates to to_h when to_json_schema is absent" do
       obj = Struct.new(:x).new(1)
-      expect(Phronomy::Agent::ToolDefinitionSet.normalize(obj)).to eq({"x" => 1})
+      expect(Phronomy::Tool::DefinitionSet.normalize(obj)).to eq({"x" => 1})
     end
 
     it "raises for values that cannot be serialized" do
       # Object.new has neither to_json_schema nor to_h
       expect {
-        Phronomy::Agent::ToolDefinitionSet.normalize(Object.new)
+        Phronomy::Tool::DefinitionSet.normalize(Object.new)
       }.to raise_error(ArgumentError, /unsupported tool definition/)
     end
   end

@@ -145,7 +145,7 @@ RSpec.describe "Runnable#trace helper" do
     end.new
 
     Phronomy.configure { |c| c.tracer = spy_tracer }
-    runnable.trace("hello_op") { ["done", nil] }
+    Phronomy::Tracing::Observation.trace("hello_op") { ["done", nil] }
     expect(spans).to include("hello_op")
   end
 end

@@ -86,8 +86,8 @@ RSpec.describe "Agent logical-state ownership" do
     encoding = worker.split("def encode_provider_records", 2).fetch(1).split(/^      def /, 2).first
     commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first
     expect(encoding.index("assert_local_durable_base!")).to be < encoding.index("RuntimeRecordEncoder.encode")
-    expect(commit.index("assert_local_durable_base!")).to be < commit.index("assembler.finalize")
-    expect(commit.index("assembler.finalize")).to be < commit.index("tx.executions.save")
+    expect(commit.index("assert_local_durable_base!")).to be < commit.index("Phronomy::Context::Assembly.new.store")
+    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("tx.executions.save")
   end
 
   it "applies committed AgentRoot and Journal advances only through the EventLoop apply helper" do

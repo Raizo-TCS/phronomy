@@ -40,7 +40,7 @@ RSpec.describe "Security specs (Issue #214)" do
       include Phronomy::Runnable
 
       def invoke(input, config: {})
-        trace("step", input: input) { [input.upcase, nil] }
+        Phronomy::Tracing::Observation.trace("step", input: input) { [input.upcase, nil] }
       end
     end.new
   end
@@ -97,7 +97,7 @@ RSpec.describe "Security specs (Issue #214)" do
 
     let(:sensitive_tool_class) do
       log = audit_log
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         tool_name "sensitive_op"
         description "Performs a sensitive operation"
         requires_approval true
@@ -273,7 +273,7 @@ RSpec.describe "Security specs (Issue #214)" do
   # -------------------------------------------------------------------------
   describe "tool result trust boundary" do
     let(:injection_tool) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         tool_name "echo_tool"
         description "Echoes the given text"
         param :text, type: :string, desc: "Text to echo"
@@ -346,7 +346,7 @@ RSpec.describe "Security specs (Issue #214)" do
   # Tool call arguments (passed as input) and tool results (returned as output)
   # must not appear in any tracer span when trace_pii is false.
   #
-  # Since Phronomy::Agent::Context::Capability::Base does not create independent spans, this is verified via a
+  # Since Phronomy::Tool::Base does not create independent spans, this is verified via a
   # minimal Runnable that mimics the agent.invoke span shape carrying a
   # tool-result payload.  This guards against regressions if tool spans are
   # added in the future.
@@ -364,7 +364,7 @@ RSpec.describe "Security specs (Issue #214)" do
         define_method(:invoke) do |input, config: {}|
           # Simulate the shape that agent.invoke returns: a Hash with :output
           # and :messages keys, where :output may contain tool call data.
-          trace("agent.invoke", input: input) do
+          Phronomy::Tracing::Observation.trace("agent.invoke", input: input) do
             [{output: result_ref, messages: []}, nil]
           end
         end

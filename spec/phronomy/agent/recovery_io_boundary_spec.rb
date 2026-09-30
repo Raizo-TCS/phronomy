@@ -231,7 +231,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
   [true, false].each do |approved|
     it "restores approval waiting off EventLoop and resumes with approved=#{approved}" do
       calls = 0
-      capability = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      capability = Class.new(Phronomy::Tool::Base) do
         tool_name "protected_operation"
         description "Requires approval"
         requires_approval true

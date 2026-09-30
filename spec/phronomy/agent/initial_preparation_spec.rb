@@ -56,10 +56,10 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
   end
 
   def observe_policy(&observe)
-    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy = Class.new(Phronomy::Context::ContextPolicy) do
       define_method(:call) do |input|
         observe.call
-        Phronomy::Agent::ContextPolicies::Default.instance.call(input)
+        Phronomy::Context::DefaultPolicy.instance.call(input)
       end
     end.new
     agent.class.context_policy(policy)
@@ -102,7 +102,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       events << :hook
       original.call(**kwargs)
     end
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **kwargs|
       materializer = original.call(**kwargs)
       allow(materializer).to receive(:materialize).and_wrap_original do |method, **args|
         expect(transaction_open).to be(false)
@@ -168,7 +168,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
   it "does not advance its failure base after a lost active-commit response" do
     command = operation
     persistence.arm(2)
-    expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
+    expect(Phronomy::Agent::RuntimeInput).not_to receive(:new)
 
     expect { worker.prepare(command) }.to raise_error(Phronomy::Persistence::ConflictError)
 
@@ -201,7 +201,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
   it "terminalizes a materialization failure from the confirmed active revision" do
     command = operation
     failure = ArgumentError.new("cannot materialize committed input")
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **kwargs|
       instance = original.call(**kwargs)
       allow(instance).to receive(:materialize).and_raise(failure)
       instance
@@ -224,7 +224,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     token = Phronomy::Concurrency::CancellationToken.new
     command = operation(cancellation_token: token)
     observe_policy { token.cancel! }
-    expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
+    expect(Phronomy::Agent::RuntimeInput).not_to receive(:new)
 
     result = worker.prepare(command)
 
@@ -255,7 +255,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       advanced_root = stored.with(agent_revision: stored.agent_revision + 1)
       persistence.agents.save(agent.agent_id, expected_revision: stored.agent_revision, root: advanced_root)
     end
-    expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
+    expect(Phronomy::Agent::RuntimeInput).not_to receive(:new)
 
     expect { worker.prepare(command) }.to raise_error(Phronomy::Persistence::ConflictError)
 

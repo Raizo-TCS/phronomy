@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe "Agent Tool binding contract" do
   def tool_class(source: nil, calls: [])
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "binding_tool"
       description "Binding contract"
       define_method(:call) do |args, **kwargs|
@@ -123,8 +123,8 @@ RSpec.describe "Agent Tool binding contract" do
       "#{value}:filtered"
     })
     prepared = bind(agent, tool)
-    expect(prepared.instance_method(:call_async).owner).to equal(Phronomy::Agent::Context::Capability::Base)
-    allow(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async) do |tool:, args:, **|
+    expect(prepared.instance_method(:call_async).owner).to equal(Phronomy::Tool::Base)
+    allow(Phronomy::Tool::ToolExecutor).to receive(:call_async) do |tool:, args:, **|
       Phronomy::TaskResult.completed(tool.call(args))
     end
     expect(prepared.new.call_async({}).wait_result).to eq("raw:filtered")

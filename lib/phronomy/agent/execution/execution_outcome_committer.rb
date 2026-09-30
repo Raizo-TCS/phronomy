@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   module Agent
@@ -144,7 +144,7 @@ module Phronomy
       end
 
       def commit_failed_outcome(operation, error)
-        translated_error = @agent.send(:_translated_error, error)
+        translated_error = error
         failed = next_root = appended = nil
         @persistence.transaction do |tx|
           records, failed = encode_failure(tx, operation, translated_error)
@@ -318,7 +318,7 @@ module Phronomy
       end
 
       def transcript_messages(root, journal_records, persistence: @persistence)
-        materializer = RubyLLMMaterializer.new(
+        materializer = RuntimeInput.new(
           agent: @agent,
           persistence: persistence
         )

@@ -38,11 +38,29 @@ module Phronomy
     end
   end
 
-  module Agent
-    module Context
-      module Capability
-        class Base = ::Phronomy::Tool::Base
+end
+
+module Phronomy
+  module Tool
+    interface _AuthorizationRequest
+      def origin: () -> Symbol
+      def with: (?facts: Hash[untyped, untyped], ?default_decision: Symbol?) -> _AuthorizationRequest
+    end
+
+    module Authorization
+      class Decision
+        attr_reader decision: Symbol
+        attr_reader facts: Hash[untyped, untyped]
+        attr_reader reason: String?
       end
+      def self.call: (request: _AuthorizationRequest, arguments: Hash[untyped, untyped], context: Hash[untyped, untyped], ?facts: (^(Hash[untyped, untyped], Hash[untyped, untyped]) -> Hash[untyped, untyped]?)?, ?requirement: bool? | (^(_AuthorizationRequest) -> bool?), ?policy: (^(_AuthorizationRequest) -> Symbol)?) -> Decision
+    end
+
+    class DefinitionSet
+      attr_reader runtime_tools: Array[untyped]
+      attr_reader definitions: Array[Hash[String, untyped]]
+      def self.build: (tools: Array[untyped], ?runtime_tools: Array[untyped]) -> DefinitionSet
+      def select_definitions: (Array[Hash[String, untyped]] expected_definitions) -> DefinitionSet
     end
   end
 end

@@ -219,12 +219,12 @@ The authoritative subject list is `.mutant.yml`. It currently includes:
 
 - `Phronomy::WorkflowContext`
 - `Phronomy::WorkflowRunner`
-- `Phronomy::Agent::Context::Capability::Base`
+- `Phronomy::Tool::Base`
 - `Phronomy::LlmContextWindow::TokenBudget`
-- `Phronomy::Agent::ContextAssembler`
-- `Phronomy::Agent::ContextPolicies::Default`
-- `Phronomy::Agent::ContextPolicyInputBuilder`
-- `Phronomy::Agent::ContextPlanValidator`
+- `Phronomy::Agent::ContextPreparation`
+- `Phronomy::Context::DefaultPolicy`
+- `Phronomy::Context::ContextPolicyInputBuilder`
+- `Phronomy::Context::ContextPlanValidator`
 - `Phronomy::Agent::HandoffPolicy`
 - `Phronomy::Agent::HandoffProjection`
 - `Phronomy::VectorStore::InMemory`
@@ -235,7 +235,7 @@ configuration-consistency guard that fails if the nightly subject set diverges
 from `.mutant.yml`.
 
 The Tool mutation subject intentionally uses
-`Phronomy::Agent::Context::Capability::Base`, which is the implementation
+`Phronomy::Tool::Base`, which is the implementation
 canonical name returned by the single Class object's runtime `Class#name`.
 `Phronomy::Tool::Base` is the public facade constant alias to that same Class
 object; it is not a second Tool base class.

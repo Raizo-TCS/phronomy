@@ -1,0 +1,7 @@
+module Phronomy
+  module Concurrency
+    class ResultComposition
+      @scope: _ExecutionScope?
+    end
+  end
+end

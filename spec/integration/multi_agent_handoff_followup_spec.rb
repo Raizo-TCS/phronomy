@@ -81,7 +81,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
     expect(target_text).to include("lookup result for case-42")
   end
   it "transfers Policy-generated Conversation history with an Application-specific kind" do
-    generated_policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    generated_policy = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: "POLICY_GENERATED_HISTORY_MARKER",

@@ -2,7 +2,7 @@
   "Phronomy::_CancellationSignal": "lib/phronomy/common",
   "Phronomy::_StorageBackend": "lib/phronomy/storage",
   "Phronomy::_ContentRepository": "lib/phronomy/content_store",
-  "Phronomy::Agent::_BeforeLLMInputHook": "lib/phronomy/agent/context_contract",
+  "Phronomy::Agent::_BeforeLLMInputHook": "lib/phronomy/agent",
   "Phronomy::_AgentRepository": "lib/phronomy/persistence/api",
   "Phronomy::_JournalRepository": "lib/phronomy/persistence/api",
   "Phronomy::_ExecutionRepository": "lib/phronomy/persistence/api",
@@ -13,5 +13,15 @@
   "Phronomy::_PersistenceTransactionView": "lib/phronomy/persistence/api",
   "Phronomy::Storage::attributes": "lib/phronomy/storage",
   "Phronomy::Storage::resource_ref": "lib/phronomy/storage",
-  "Phronomy::Storage::condition": "lib/phronomy/storage"
+  "Phronomy::Storage::condition": "lib/phronomy/storage",
+  "Phronomy::_ExecutionScope": "lib/phronomy/execution",
+  "Phronomy::_TimerQueue": "lib/phronomy/engine/concurrency",
+  "Phronomy::_ExecutionReceiver": "lib/phronomy/engine",
+  "Phronomy::_FSMEventSink": "lib/phronomy/engine",
+  "Phronomy::_TerminalPolicy": "lib/phronomy/engine",
+  "Phronomy::_CompletionHandle": "lib/phronomy/execution",
+  "Phronomy::_ExecutionBackend": "lib/phronomy/execution",
+  "Phronomy::_ExecutionPool": "lib/phronomy/execution",
+  "Phronomy::_ExecutionRuntime": "lib/phronomy/execution",
+  "Phronomy::Tool::_AuthorizationRequest": "lib/phronomy/tool"
 }

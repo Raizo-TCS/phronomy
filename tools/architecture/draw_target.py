@@ -62,7 +62,7 @@ def build():
     module('M12','G14',320,1590,'engine/concurrency','OffloadPool / result composition','Private concurrency mechanisms')
     module('M13','G14',320,1810,'engine/runtime','Timer / shutdown helpers','Existing runtime helpers')
     module('M76','G58',320,2180,'execution_contract','Runnable / invocation / event / errors','Shared contracts and default behavior')
-    module('M77','G58',320,2460,'execution_contract/concurrency','Cancellation token / worker-input marker','Existing Concurrency namespace')
+    module('M77','G58',320,2460,'execution/concurrency','Cancellation token / worker-input marker','Existing Concurrency namespace')
     module('M78','G59',1030,1860,'execution_services','TaskResult / Execution / Blocking','Service implementations; not pure contracts')
     for mid,y,directory,role in [
         ('M66',640,'llm_adapter/async','LLMAdapter::AsyncClient'),

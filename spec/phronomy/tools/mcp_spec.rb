@@ -3,8 +3,8 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Tools::Mcp do
-  it "is a subclass of Phronomy::Agent::Context::Capability::Base" do
-    expect(described_class).to be < Phronomy::Agent::Context::Capability::Base
+  it "is a subclass of Phronomy::Tool::Base" do
+    expect(described_class).to be < Phronomy::Tool::Base
   end
 
   # Build a MCP::Client::Tool double.

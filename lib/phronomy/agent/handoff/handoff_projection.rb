@@ -26,8 +26,8 @@ module Phronomy
         unless request.is_a?(HandoffRequest) || request.is_a?(Snapshot)
           raise ArgumentError, "request must be a HandoffRequest"
         end
-        unless manifest.is_a?(Phronomy::Agent::LLMInputManifest)
-          raise ArgumentError, "manifest must be an LLMInputManifest"
+        unless manifest.is_a?(Phronomy::Context::LLMInputManifest)
+          raise ArgumentError, "manifest must be an Phronomy::Context::LLMInputManifest"
         end
 
         groups = project_visible_groups(manifest)
@@ -116,7 +116,7 @@ module Phronomy
         end
 
         # Compatibility for finalized pre-ACS-04 manifests. New manifests use
-        # context_policy_conversation_group_id and do not recreate Selection::Unit.
+        # context_policy_conversation_group_id and do not recreate Phronomy::Context::Unit.
         unit_id = segment.metadata["selection_unit_id"] ||
           segment.metadata[:selection_unit_id]
         return "unit:#{unit_id}" if unit_id
@@ -169,7 +169,7 @@ module Phronomy
           metadata[:context_policy_content_format]
         if explicit
           format = explicit.to_sym
-          unless Phronomy::Agent::ContextPolicyInput::CONTENT_FORMATS.include?(format)
+          unless Phronomy::Context::ContextPolicyInput::CONTENT_FORMATS.include?(format)
             raise Phronomy::HandoffError,
               "unsupported Context content format in Manifest: #{explicit.inspect}"
           end

@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "../execution_contract/concurrency/worker_input_restricted"
+require_relative "../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
-require_relative "concerns/filterable"
-require_relative "concerns/before_llm_input"
-require_relative "concerns/error_translation"
+require_relative "filterable"
+require_relative "before_llm_input"
 
 module Phronomy
   module Agent
@@ -36,9 +35,8 @@ module Phronomy
       include Phronomy::Concurrency::WorkerInputRestricted
 
       include Phronomy::Runnable
-      include Concerns::Filterable
-      include Concerns::BeforeLLMInput
-      include Concerns::ErrorTranslation
+      include Filterable
+      include BeforeLLMInput
 
       APPROVAL_CONFIGURATION_INIT_MUTEX = Mutex.new
       private_constant :APPROVAL_CONFIGURATION_INIT_MUTEX
@@ -129,18 +127,18 @@ module Phronomy
           end
         end
 
-        # Binds one Application-constructed ContextPolicy instance to this
+        # Binds one Application-constructed Phronomy::Context::ContextPolicy instance to this
         # Agent class. Policy binding is Application code/runtime wiring rather
         # than durable Agent state.
         def context_policy(*args)
           if args.empty?
             return @context_policy if instance_variable_defined?(:@context_policy)
             return superclass.context_policy if superclass.respond_to?(:context_policy)
-            return ContextPolicies::Default.instance
+            return Phronomy::Context::DefaultPolicy.instance
           end
-          unless args.length == 1 && args.first.is_a?(ContextPolicy)
+          unless args.length == 1 && args.first.is_a?(Phronomy::Context::ContextPolicy)
             raise ArgumentError,
-              "context_policy expects one Phronomy::Agent::ContextPolicy instance"
+              "context_policy expects one Phronomy::Context::ContextPolicy instance"
           end
 
           @context_policy = args.first
@@ -199,10 +197,9 @@ module Phronomy
           raise ArgumentError, "agent_id must not be empty" if key.empty?
 
           listener_supplied = !on_event.nil? || !event_block.nil?
-          runtime = Phronomy::Runtime.instance
           materialized = false
 
-          agent = OwnershipRegistry.for(runtime).load(key, expected_class: self) do |owner_runtime|
+          agent = OwnershipRegistry.current.load(key, expected_class: self) do |owner_runtime|
             materialized = true
             instance = __construct_owned_agent(
               owner_runtime,
@@ -236,14 +233,14 @@ module Phronomy
           key = agent_id.to_s
           raise ArgumentError, "agent_id must not be empty" if key.empty?
 
-          OwnershipRegistry.existing_for(Phronomy::Runtime.instance)&.get(key, expected_class: self)
+          OwnershipRegistry.existing_current&.get(key, expected_class: self)
         end
 
         # Resolves the live Agent instance that currently owns execution_id in
         # this process. The Runtime returns only a read-only ownership view;
         # mutable Agent execution state remains EventLoop-owned.
         def live_for_execution(execution_id)
-          owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(execution_id)
+          owner = Phronomy::Agent::ExecutionRegistry.existing_current&.agent_execution_owner(execution_id)
           unless owner
             raise Phronomy::ExecutionRehydrationRequiredError,
               "no live execution owner for #{execution_id}; durable rehydration is required"
@@ -337,9 +334,8 @@ module Phronomy
             "load_existing: is an internal hydration option; use .load(agent_id, persistence:)"
         end
 
-        runtime = Phronomy::Runtime.instance
         begin
-          OwnershipRegistry.for(runtime).create(effective_agent_id, expected_class: self.class) do |owner_runtime|
+          OwnershipRegistry.current.create(effective_agent_id, expected_class: self.class) do |owner_runtime|
             __prepare_runtime_owner!(owner_runtime, effective_agent_id)
             initialize_owned_state(
               agent_id: effective_agent_id,
@@ -708,7 +704,7 @@ module Phronomy
       end
 
       def _check_event_loop_reentrancy(sync_method, async_method)
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError,
             "#{self.class.name}##{sync_method} cannot run on the EventLoop thread. " \
             "Use #{async_method} and return immediately."
@@ -721,12 +717,6 @@ module Phronomy
 
       def _fail_result_task(task, error)
         task.fail(error)
-      end
-
-      def _translated_error(error)
-        translate_and_reraise!(error)
-      rescue => translated
-        translated
       end
 
       def _deliver_stream_event(listener, event)
@@ -821,19 +811,12 @@ module Phronomy
       end
 
       def _apply_runtime_projection_to_chat(chat, projection, invocation: nil)
-        if projection.system
-          apply_instructions(
-            chat,
-            projection.system,
-            cache: projection.model_config["cache_instructions"],
-            provider: projection.model_config["provider"]
-          )
-        end
-        projection.tool_classes.each do |tool_class|
-          chat.with_tools(prepare_tool_class(tool_class, invocation: invocation))
-        end
-        projection.messages.each { |message| chat.messages << message }
-        chat
+        tools = projection.tool_classes.map { |tool| prepare_tool_class(tool, invocation: invocation) }
+        Phronomy.configuration.llm_adapter.configure_chat(
+          chat, system: projection.system,
+          cache: projection.model_config["cache_instructions"],
+          tools: tools, messages: projection.messages
+        )
       end
 
       def build_chat(model_config: nil)
@@ -843,23 +826,19 @@ module Phronomy
           "temperature" => self.class.temperature,
           "max_output_tokens" => self.class.max_output_tokens
         }
-        RuntimeChatBuilder.build(config)
+        Phronomy.configuration.llm_adapter.build_chat(config)
       end
 
       def build_instructions(input)
         instr = self.class.instructions
         case instr
-        when Phronomy::Agent::Context::Instruction::PromptTemplate
+        when Phronomy::Context::PromptTemplate
           vars = input.is_a?(Hash) ? input : {input: input}
           instr.format_system(**vars) || instr.format(**vars)
         when String then instr
         when Proc then instr.call(input)
         when nil then nil
         end
-      end
-
-      def apply_instructions(chat, text, cache: false, provider: nil)
-        RuntimeChatBuilder.apply_instructions(chat, text, cache: cache, provider: provider)
       end
 
       def extract_message(input)
@@ -882,6 +861,14 @@ module Phronomy
           raise Phronomy::TimeoutError, message
         end
         raise Phronomy::CancellationError, message
+      end
+
+      def tool_definition_set(additional_tools: [])
+        runtime_tools = (self.class.tools + Array(additional_tools)).freeze
+        Phronomy::Tool::DefinitionSet.build(
+          tools: runtime_tools.map { |tool| prepare_tool_class(tool) },
+          runtime_tools: runtime_tools
+        )
       end
 
       def prepare_tool_class(tool_class, invocation: nil)

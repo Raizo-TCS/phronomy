@@ -183,7 +183,7 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
          "Arrows start at hidden box centers; boundary crossings are spread out. Solid triangles mark the target.", 21)
     mixed = any(module.get("mixed", False) for module in modules.values())
     b4_roles = "clients / implementations / pending split" if mixed else "clients / implementations"
-    text(70, 316, f"B4: {'execution services / ' if 'G59' in by_group else ''}{b4_roles}. B5: Engine / separated Contracts. G IDs identify responsibilities.", 19)
+    text(70, 316, f"B4: {'execution services / ' if 'G59' in by_group else ''}{b4_roles}. B5: Engine / Contracts (including completion handles). G IDs identify responsibilities.", 19)
     counts = Counter(e["direction"] for e in visible_edges)
     for j, (key, label) in enumerate([("external", "Between groups"), ("internal", "Within group")]):
         x = 72 + j * 440
@@ -199,19 +199,22 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
     for index, (gid, label) in enumerate([("G14", "Engine Internals" if "G58" in by_group else "Engine"), ("G46", "Async Clients"),
                                         ("G47", "Backend Contracts"), ("G48", "Backend Implementations"),
                                         ("G57", "Content Service"), ("G58", "Execution Contracts"),
-                                        ("G59", "Execution Services")]):
+                                        ("G59", "Execution Services"), ("G60", "Execution Results"),
+                                        ("G61", "Engine Concurrency")]):
         if gid in by_group:
             color = group_style(gid)
             x = 72 + (index % 5) * 610
             y = 431 + (index // 5) * 40
             add("rect", x=x, y=y, width=25, height=20, rx=3,
                 fill=color["label_fill"], stroke=color["stroke"])
-            text(x + 36, y + 17, gid + "  " + label, 18, color["label_color"])
+            text(x + 36, y + 17, gid + "  " + (by_group[gid]["title"].title() if gid == "G58" else label), 18, color["label_color"])
     if "G58" not in by_group:
         text(70, 472, "* MIXED: contract and implementation share a source directory; separation is still pending." if mixed else
              "Backend contracts and implementations occupy separate source directories.", 20, "#7a5737" if mixed else "#526b7a")
     text(70, 509, "G57 Content Service uses Storage; it is outside Backend Contracts / Implementations." if "G57" in by_group else
          "Backend Implementations are production code. Testing, Migration and Tracing retain their own groups.", 19, "#526b7a")
+    if config.get("scope_note"):
+        text(70, 539, config["scope_note"], 18, "#9a582c")
     if bands:
         backdrop = add("g", id="display-layers")
         for column, description in enumerate(config["columns"]):
@@ -450,6 +453,9 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
         notes[3] = "Hidden arrows are a display choice. Full source evidence and measured relationships remain in the matrix."
     if meta.get("candidate") and not hidden_targets:
         notes[3] = "Common dependencies are light gray. Hover for source locations; GitHub links are disabled for this unpublished candidate."
+    if config.get("scope_note"):
+        notes[4] = config["scope_note"]
+        notes[5] = "Ruby and RBS are included. Root-loader wiring, dynamic injection and external examples also require operation-level review."
     for i, line in enumerate(notes):
         text(70, notes_top + 43 + i * 33, line, 19, "#526b7a")
     matrix_group = add("g", id="dependency-matrix", transform=f"translate({(width - 2800) / 2:g} {matrix_shift:g})")

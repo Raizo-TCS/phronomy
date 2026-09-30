@@ -23,7 +23,7 @@ and interpreted its save outcomes. WorkflowTerminalPolicy now owns that rule.
 |---|---|
 | FSMSession | Identity/sink, transitions, live context, pending terminal kind/notification flag, event acceptance and final notification/event ordering. |
 | WorkflowTerminalPolicy | Start the injected save callback; recognize the Workflow result event; map its outcome to a generic terminal decision. |
-| FSMProtocol::TerminalDecision | Immutable `action` and `error` value shared by a domain policy and the session. No live session authority. |
+| Phronomy::TerminalDecision | Immutable `action` and `error` value shared by a domain policy and the session. No live session authority. |
 | WorkflowRunner | Construct a policy for durable execution; retain snapshot capture, one save, F1 readback and caller completion. |
 | WorkflowExecutionRegistry | Admission, owner tokens, session routing binding and recovery-required ownership. |
 | EventLoop | Event routing, management events, retirement, source completion and shutdown. |

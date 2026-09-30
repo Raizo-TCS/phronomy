@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-class HITLTool < Phronomy::Agent::Context::Capability::Base
+class HITLTool < Phronomy::Tool::Base
   tool_name "hitl_tool"
   description "A tool requiring human approval"
   requires_approval true

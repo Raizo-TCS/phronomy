@@ -292,7 +292,7 @@ remain durable conflict defense rather than distributed ownership.
 ## Tool execution modes
 
 The default dispatch helper is the private
-`Phronomy::Agent::Context::Capability::ToolExecutor`, colocated with Capability
+`Phronomy::Tool::ToolExecutor`, colocated with Capability
 Base. Agent ToolInvocation supplies Runtime and admission policy for the
 standard path, and owns authorization and logical result handling. Custom
 `call_async` implementations keep the public Tool protocol. This ownership is

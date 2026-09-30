@@ -16,7 +16,7 @@ module Phronomy
         description = handoff.description
         policy = handoff.policy
 
-        klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
+        klass = Class.new(Phronomy::Tool::Base) do
           self.tool_name(tool_name)
           self.description(description)
           execution_mode :cooperative

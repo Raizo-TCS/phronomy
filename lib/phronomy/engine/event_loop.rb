@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../execution_contract/concurrency/worker_input_restricted"
+require_relative "../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   # Runtime-owned FIFO event loop for FSMSession instances.
@@ -53,7 +53,7 @@ module Phronomy
       @dispatch_count = 0
       @total_lag_ns = 0
 
-      @thread = Thread.new { run_loop }
+      @thread = Thread.new { Phronomy::WaitPolicy.without_blocking { run_loop } }
       @thread.name = "phronomy-event-loop"
     end
 

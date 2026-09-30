@@ -22,7 +22,7 @@ module Phronomy
         effective_name = @tool_class.new.name
         custom_async_call =
           @tool_class.instance_method(:call_async).owner !=
-          Phronomy::Agent::Context::Capability::Base
+          Phronomy::Tool::Base
         filter_async_result = method(:filter_async_result)
 
         Class.new(@tool_class) do
@@ -50,7 +50,7 @@ module Phronomy
       private
 
       def filter_async_result(source, tool_name, &filter_result)
-        Phronomy::TaskResult.__map_completion(source,
+        Phronomy::AsyncOperation.map(source,
           name: "tool-filter-#{tool_name}", &filter_result)
       end
     end

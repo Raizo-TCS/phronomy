@@ -19,7 +19,7 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     it "exposes only the synchronous implementer contract" do
-      expect(described_class.public_instance_methods(false)).to contain_exactly(:complete, :stream)
+      expect(described_class.public_instance_methods(false)).to contain_exactly(:complete, :stream, :identity, :input_budget, :build_chat, :configure_chat, :message, :tool_call)
       expect(adapter).not_to respond_to(:complete_async, :stream_async)
     end
   end
@@ -108,17 +108,18 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     let(:fake_adapter) do
-      instance_double(Phronomy::LLMAdapter::RubyLLM, complete: fake_response)
+      instance_double(Phronomy::LLMAdapter::RubyLLM, complete: fake_response, input_budget: nil, identity: {})
     end
 
     before do
       Phronomy.configure { |config| config.llm_adapter = fake_adapter }
       chat = double("chat", messages: [], on_tool_call: nil, on_tool_result: nil)
       allow_any_instance_of(agent_class).to receive(:build_chat).and_return(chat)
-      allow_any_instance_of(agent_class).to receive(:apply_instructions)
+      allow(fake_adapter).to receive(:configure_chat).and_return(chat)
+      allow(fake_adapter).to receive(:message) { |**attrs| RubyLLM::Message.new(**attrs) }
       allow_any_instance_of(agent_class)
         .to receive(:run_before_llm_input_hooks)
-        .and_return(Phronomy::Agent::LLMInputPatch.empty)
+        .and_return(Phronomy::Context::LLMInputPatch.empty)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
       allow(chat).to receive(:after_message)
       allow(chat).to receive(:respond_to?) do |method_name, *|

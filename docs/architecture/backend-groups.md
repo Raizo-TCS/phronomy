@@ -8,17 +8,16 @@ Each source directory keeps its own module box and stable module ID. Restoring
 the display does not undo the separation of backend contracts and execution.
 
 The restored display puts separated Backend Contracts in B5, alongside but
-distinct from Engine Internals and Execution Contracts. B4 holds Execution Services, Async Clients and separately grouped
-Implementations. Backend directories awaiting separation remain visibly mixed
+distinct from Engine Internals and Execution Contracts. B4 holds Async Clients and separately grouped Implementations. Execution
+operations and values now share G58; the former G59 service split is removed. Backend directories awaiting separation remain visibly mixed
 in B4; their contracts move to B5 in their implemented phase. These are display
 positions, not a shared architectural level or namespace.
 
 | Group | Responsibility | Dependency rule |
 |---|---|---|
 | G14 Engine Internals | Runtime, workers, FSM and EventLoop | No feature-specific backend or client dependencies |
-| G58 Execution Contracts | Shared callable/value/error/token/input-marker contracts | Only Execution Contracts and Common, including neutral settings |
-| G59 Execution Services | TaskResult, Execution and Blocking | Contracts and Engine machinery; no feature-specific backend/client dependencies |
-| G46 Async Clients | Execute synchronous backend operations through Engine | Use Backend/Execution Contracts, Execution Services and Engine; do not select concrete backends |
+| G58 Execution Framework | Submission protocol, TaskResult, Execution, Blocking, controls and common rules | Only Execution and Common, including neutral settings; Engine implements the mechanism |
+| G46 Async Clients | Execute synchronous backend operations through Execution | Use Backend and Execution contracts; no direct Engine or concrete backend selection |
 | G47 Backend Contracts | Synchronous SPI, values, errors and shared rules | No Engine, Execution Services, Async Client or concrete implementation dependencies |
 | G48 Backend Implementations | Implement the synchronous backend SPI | Depend on the corresponding Contracts; no Engine, Execution Services or client dependencies |
 | G57 Content Service | Content IDs, canonical text/JSON and digest integrity over Storage | Uses neutral Storage and Common; no physical backend, Engine or domain orchestration dependencies |
@@ -39,7 +38,10 @@ contracts and implementations have no Engine dependencies. See the
 - Install the AST analyzer, group annotations, SVG formatter and boundary gate
   in `tools/architecture/`. The Architecture workflow checks the committed
   phase and generates evidence for its actual checkout SHA.
-- `LLMAdapter::Base` defines only synchronous `complete` and `stream`.
+- `LLMAdapter::Base` now defines synchronous generation plus chat construction,
+  configuration, message/tool-call values, identity and optional input budget.
+  RubyLLM-specific construction and error translation belong to its backend.
+  Adapter extensions must implement the new operations; no legacy wrapper remains.
 - `LLMAdapter::AsyncClient` owns the internal `complete_async` and `stream_async`
   operations in `llm_adapter/async/`. It is not a public extension API.
 - `LLMAdapter::RubyLLM` lives in `llm_adapter/backends/` and still inherits Base.
@@ -106,16 +108,17 @@ service path to a physical backend, Engine, client or domain orchestration.
 Public constants, signatures, content IDs, exceptions and transaction behavior
 remain unchanged. See [ADR-062](../decisions/062-content-store-service.md).
 
-## Execution responsibility split
+## r8 unit 1 framework boundaries
 
-G58 (M76/M77) contains shared execution contracts in B5. G59 (M78) contains
-implemented result/call services in B4. Existing Engine module IDs remain in G14.
-Public constants and RBS types are unchanged; there are no forwarding aliases.
-Engine and Services still depend on each other. These groups are responsibilities,
-not an acyclic dependency hierarchy. ToolBinding uses shared result composition,
-and generic tracing/approval work uses Blocking with failure observation.
-See [ADR-063](../decisions/063-execution-contracts-and-services.md) and the
-[operation inventory](execution-boundaries.md).
+G58/M76/M77 now owns the common Execution framework under `execution/`.
+Engine owns FSM-specific values and the pool/timer/runtime binding, while
+composition selects that binding. Tracing owns explicit observation. Context
+and Tool now own their shared operations, not merely value/error declarations.
+The former G59/M78 split is retired. See [r8 unit 1](r8-unit1.md) for the exact
+implemented scope, API removals and incomplete Persistence/domain work.
+
+The full architecture still contains existing cycles outside the checked scope.
+The recorded graph is not an ideal final r8 diagram.
 
 ## Pending phase
 

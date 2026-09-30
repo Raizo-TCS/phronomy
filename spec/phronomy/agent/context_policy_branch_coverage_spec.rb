@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe "Context Policy branch coverage" do
   let(:provenance) do
-    Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal)
+    Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :journal)
   end
 
   def conversation_item(id:, kind:, sequence:, tool_call_id: nil, tool_call_ids: [], required: false)
@@ -16,7 +16,7 @@ RSpec.describe "Context Policy branch coverage" do
     else
       id
     end
-    Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+    Phronomy::Context::ContextPolicyInput::ConversationItem.new(
       id: id, kind: kind, role: ((kind == :tool_message) ? :tool : :assistant),
       content: content, content_format: content.is_a?(String) ? :text : :json,
       sequence: sequence, estimated_tokens: 5, required: required,
@@ -26,14 +26,14 @@ RSpec.describe "Context Policy branch coverage" do
   end
 
   def empty_input(conversation: [])
-    Phronomy::Agent::ContextPolicyInput.new(
+    Phronomy::Context::ContextPolicyInput.new(
       agent_id: "a", execution_id: "e", call_sequence: 1, call_mode: :complete,
       instruction: [], knowledge: [], tools: [], conversation: conversation,
       token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
     )
   end
 
-  describe Phronomy::Agent::ContextPlanValidator do
+  describe Phronomy::Context::ContextPlanValidator do
     it "rejects a non-ContextPlan" do
       expect { described_class.new.validate!(input: empty_input, plan: Object.new) }
         .to raise_error(ArgumentError, /expected.*ContextPlan/)
@@ -42,13 +42,13 @@ RSpec.describe "Context Policy branch coverage" do
     it "rejects duplicate Plan item IDs" do
       item = conversation_item(id: "same", kind: :external_message, sequence: 1)
       policy_input = empty_input(conversation: [[item]])
-      generated = Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+      generated = Phronomy::Context::ContextPolicyInput::KnowledgeItem.new(
         id: "same", kind: :knowledge, role: :user, content: "x",
         content_format: :text, estimated_tokens: 1, required: false,
-        provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :policy_generated),
+        provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :policy_generated),
         metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(
+      plan = Phronomy::Context::ContextPlan.new(
         knowledge: [generated], conversation: [[item]]
       )
 
@@ -61,20 +61,20 @@ RSpec.describe "Context Policy branch coverage" do
       policy_input = empty_input(conversation: [[item]])
 
       expect {
-        described_class.new.validate!(input: policy_input, plan: Phronomy::Agent::ContextPlan.new)
-      }.to raise_error(Phronomy::ContextBudgetExceededError, /required conversation/)
+        described_class.new.validate!(input: policy_input, plan: Phronomy::Context::ContextPlan.new)
+      }.to raise_error(Phronomy::Context::BudgetExceededError, /required conversation/)
     end
   end
 
-  describe Phronomy::Agent::ContextPolicyInputBuilder do
+  describe Phronomy::Context::ContextPolicyInputBuilder do
     def candidate(id:, category:, sequence:, tool_call_id: nil, tool_call_ids: [])
-      Phronomy::Agent::Selection::Candidate.new(
+      Phronomy::Context::Candidate.new(
         candidate_id: id, source_kind: :working, category: category,
         role: ((category == :tool_message) ? :tool : :assistant),
         content_ref: "ref-#{id}", record_id: "record-#{id}", agent_id: "a",
         execution_id: "e", llm_call_id: "llm", tool_call_id: tool_call_id,
         sequence: sequence,
-        constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :context_policy),
+        constraint: Phronomy::Context::Constraint.selectable(origin: :context_policy),
         priority: 0,
         metadata: {"estimated_tokens" => 5, "tool_call_ids" => tool_call_ids}
       )
@@ -160,7 +160,7 @@ RSpec.describe "Context Policy branch coverage" do
 
   describe "ContextPolicyInput validation edge cases" do
     let(:instruction_item) do
-      Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "instr-1", kind: :instruction, role: :system, content: "Hello",
         content_format: :text, estimated_tokens: 2, required: true,
         provenance: provenance, metadata: {}
@@ -169,7 +169,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects non-positive call_sequence" do
       expect {
-        Phronomy::Agent::ContextPolicyInput.new(
+        Phronomy::Context::ContextPolicyInput.new(
           agent_id: "a", execution_id: "e", call_sequence: 0, call_mode: :complete,
           instruction: [], knowledge: [], tools: [], conversation: [],
           token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
@@ -179,7 +179,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects unknown call_mode" do
       expect {
-        Phronomy::Agent::ContextPolicyInput.new(
+        Phronomy::Context::ContextPolicyInput.new(
           agent_id: "a", execution_id: "e", call_sequence: 1, call_mode: :unknown_mode,
           instruction: [], knowledge: [], tools: [], conversation: [],
           token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
@@ -189,7 +189,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects empty conversation group" do
       expect {
-        Phronomy::Agent::ContextPolicyInput.new(
+        Phronomy::Context::ContextPolicyInput.new(
           agent_id: "a", execution_id: "e", call_sequence: 1, call_mode: :complete,
           instruction: [], knowledge: [], tools: [], conversation: [[]],
           token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
@@ -199,7 +199,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects a ToolItem with a non-Hash definition" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::ToolItem.new(
+        Phronomy::Context::ContextPolicyInput::ToolItem.new(
           id: "tool-1", definition: "not-a-hash", estimated_tokens: 3, required: false,
           provenance: provenance, metadata: {}
         )
@@ -208,7 +208,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects negative estimated_tokens on an InstructionItem" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+        Phronomy::Context::ContextPolicyInput::InstructionItem.new(
           id: "instr-1", kind: :instruction, role: :system, content: "Hi",
           content_format: :text, estimated_tokens: -1, required: false,
           provenance: provenance, metadata: {}
@@ -217,22 +217,22 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "rejects reserved metadata keys on a Policy-generated Plan item" do
-      generated = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      generated = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "gen-1", kind: :external_message, role: :user, content: "Hi",
         content_format: :text, sequence: 1, estimated_tokens: 2, required: false,
-        provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :policy_generated),
+        provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :policy_generated),
         tool_call_id: nil, tool_call_ids: [], delivery: :chat_message,
         metadata: {"context_policy_origin" => "app"}
       )
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [[generated]])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [[generated]])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
       }.to raise_error(ArgumentError, /Framework-reserved key/)
     end
 
     it "rejects a Provenance value of the wrong type" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+        Phronomy::Context::ContextPolicyInput::InstructionItem.new(
           id: "instr-1", kind: :instruction, role: :system, content: "Hi",
           content_format: :text, estimated_tokens: 2, required: false,
           provenance: 42, metadata: {}
@@ -244,133 +244,133 @@ RSpec.describe "Context Policy branch coverage" do
   describe "ContextPlanValidator additional error paths" do
     it "rejects validate! when input is not a ContextPolicyInput" do
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: "wrong", plan: Phronomy::Agent::ContextPlan.new)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: "wrong", plan: Phronomy::Context::ContextPlan.new)
       }.to raise_error(ArgumentError, /ContextPlanValidator expected ContextPolicyInput/)
     end
 
     it "rejects a Plan conversation group containing a non-ConversationItem" do
       input = empty_input
-      bad_group = [Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      bad_group = [Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "x", kind: :instruction, role: :system, content: "X",
         content_format: :text, estimated_tokens: 1, required: false,
         provenance: provenance, metadata: {}
       )]
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [bad_group])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [bad_group])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
       }.to raise_error(ArgumentError, /non-ConversationItem/)
     end
 
     it "rejects a Plan conversation with an empty group" do
       input = empty_input
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [[]])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [[]])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
       }.to raise_error(ArgumentError, /non-empty Arrays/)
     end
 
     it "rejects a Plan conversation with a modified input item" do
       item = conversation_item(id: "c1", kind: :external_message, sequence: 1)
       input = empty_input(conversation: [[item]])
-      modified = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      modified = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "c1", kind: :external_message, role: :user,
         content: "modified", content_format: :text, sequence: 1,
         estimated_tokens: 99, required: false, provenance: provenance,
         tool_call_id: nil, tool_call_ids: [], delivery: :chat_message, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [[modified]])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [[modified]])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
       }.to raise_error(ArgumentError, /modified an input conversation group/)
     end
 
     it "rejects a Policy-generated group with non-policy-generated provenance" do
-      generated_with_wrong_origin = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      generated_with_wrong_origin = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "gen-1", kind: :external_message, role: :user,
         content: "generated", content_format: :text, sequence: 2,
         estimated_tokens: 3, required: false,
-        provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal),
+        provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :journal),
         tool_call_id: nil, tool_call_ids: [], delivery: :chat_message, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [[generated_with_wrong_origin]])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [[generated_with_wrong_origin]])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
       }.to raise_error(ArgumentError, /contains unknown conversation item/)
     end
 
     it "rejects all-policy-generated group where not all items have policy_generated origin" do
-      item1 = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      item1 = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "gen-1", kind: :external_message, role: :user, content: "A",
         content_format: :text, sequence: 1, estimated_tokens: 1, required: false,
-        provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :policy_generated),
+        provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :policy_generated),
         tool_call_id: nil, tool_call_ids: [], delivery: :chat_message, metadata: {}
       )
-      item2 = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      item2 = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "gen-2", kind: :external_message, role: :user, content: "B",
         content_format: :text, sequence: 2, estimated_tokens: 1, required: false,
-        provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal),
+        provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :journal),
         tool_call_id: nil, tool_call_ids: [], delivery: :chat_message, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [[item1, item2]])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [[item1, item2]])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
       }.to raise_error(ArgumentError, /contains unknown conversation item/)
     end
 
     it "rejects a Plan instruction item that is not an InstructionItem" do
-      wrong = Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+      wrong = Phronomy::Context::ContextPolicyInput::KnowledgeItem.new(
         id: "k1", kind: :knowledge, role: :user, content: "Know",
         content_format: :text, estimated_tokens: 2, required: false,
         provenance: provenance, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(instruction: [wrong])
+      plan = Phronomy::Context::ContextPlan.new(instruction: [wrong])
       input = empty_input
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
       }.to raise_error(ArgumentError, /expected.*InstructionItem/)
     end
 
     it "rejects a Plan instruction item that differs from its input source" do
-      orig = Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      orig = Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "instr-1", kind: :instruction, role: :system, content: "Original",
         content_format: :text, estimated_tokens: 5, required: true,
         provenance: provenance, metadata: {}
       )
-      modified = Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      modified = Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "instr-1", kind: :instruction, role: :system, content: "Modified",
         content_format: :text, estimated_tokens: 5, required: true,
         provenance: provenance, metadata: {}
       )
-      input = Phronomy::Agent::ContextPolicyInput.new(
+      input = Phronomy::Context::ContextPolicyInput.new(
         agent_id: "a", execution_id: "e", call_sequence: 1, call_mode: :complete,
         instruction: [orig], knowledge: [], tools: [], conversation: [],
         token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(instruction: [modified])
+      plan = Phronomy::Context::ContextPlan.new(instruction: [modified])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
       }.to raise_error(ArgumentError, /modified input item/)
     end
 
     it "raises ContextBudgetExceededError when Plan omits a required instruction" do
-      req = Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      req = Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "req-1", kind: :instruction, role: :system, content: "Must include",
         content_format: :text, estimated_tokens: 5, required: true,
         provenance: provenance, metadata: {}
       )
-      input = Phronomy::Agent::ContextPolicyInput.new(
+      input = Phronomy::Context::ContextPolicyInput.new(
         agent_id: "a", execution_id: "e", call_sequence: 1, call_mode: :complete,
         instruction: [req], knowledge: [], tools: [], conversation: [],
         token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(instruction: [])
+      plan = Phronomy::Context::ContextPlan.new(instruction: [])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
-      }.to raise_error(Phronomy::ContextBudgetExceededError, /required.*instruction/)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
+      }.to raise_error(Phronomy::Context::BudgetExceededError, /required.*instruction/)
     end
 
     it "accepts nil execution_id in ContextPolicyInput" do
-      input = Phronomy::Agent::ContextPolicyInput.new(
+      input = Phronomy::Context::ContextPolicyInput.new(
         agent_id: "a", execution_id: nil, call_sequence: 1, call_mode: :complete,
         instruction: [], knowledge: [], tools: [], conversation: [],
         token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
@@ -379,21 +379,21 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "rejects a Plan knowledge item that is not a KnowledgeItem" do
-      wrong = Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      wrong = Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "k1", kind: :instruction, role: :system, content: "Hi",
         content_format: :text, estimated_tokens: 2, required: false,
         provenance: provenance, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(knowledge: [wrong])
+      plan = Phronomy::Context::ContextPlan.new(knowledge: [wrong])
       input = empty_input
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: input, plan: plan)
       }.to raise_error(ArgumentError, /expected.*KnowledgeItem/)
     end
 
     it "rejects a ConversationItem with an unknown delivery in the constructor" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+        Phronomy::Context::ContextPolicyInput::ConversationItem.new(
           id: "c1", kind: :external_message, role: :user, content: "Hi",
           content_format: :text, sequence: 1, estimated_tokens: 2, required: false,
           provenance: provenance, tool_call_id: nil, tool_call_ids: [],
@@ -403,13 +403,13 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "rejects a ContextPolicyInput with wrong item type in instructions" do
-      wrong = Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+      wrong = Phronomy::Context::ContextPolicyInput::KnowledgeItem.new(
         id: "k1", kind: :knowledge, role: :user, content: "K",
         content_format: :text, estimated_tokens: 2, required: false,
         provenance: provenance, metadata: {}
       )
       expect {
-        Phronomy::Agent::ContextPolicyInput.new(
+        Phronomy::Context::ContextPolicyInput.new(
           agent_id: "a", execution_id: "e", call_sequence: 1, call_mode: :complete,
           instruction: [wrong], knowledge: [], tools: [], conversation: [],
           token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
@@ -419,7 +419,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects a ToolItem with empty id" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::ToolItem.new(
+        Phronomy::Context::ContextPolicyInput::ToolItem.new(
           id: "", definition: {"name" => "my_tool"}, estimated_tokens: 3, required: false,
           provenance: provenance, metadata: {}
         )
@@ -428,7 +428,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects an InstructionItem with empty id" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+        Phronomy::Context::ContextPolicyInput::InstructionItem.new(
           id: "", kind: :instruction, role: :system, content: "Hi",
           content_format: :text, estimated_tokens: 2, required: false,
           provenance: provenance, metadata: {}
@@ -438,7 +438,7 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "rejects an InstructionItem with unknown content_format" do
       expect {
-        Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+        Phronomy::Context::ContextPolicyInput::InstructionItem.new(
           id: "i1", kind: :instruction, role: :system, content: "Hi",
           content_format: :binary, estimated_tokens: 2, required: false,
           provenance: provenance, metadata: {}
@@ -447,33 +447,33 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "builds Provenance from a Hash" do
-      item = Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+      item = Phronomy::Context::ContextPolicyInput::InstructionItem.new(
         id: "i1", kind: :instruction, role: :system, content: "Hi",
         content_format: :text, estimated_tokens: 2, required: false,
         provenance: {origin: :journal, content_ref: "sha256:abc"}, metadata: {}
       )
-      expect(item.provenance).to be_a(Phronomy::Agent::ContextPolicyInput::Provenance)
+      expect(item.provenance).to be_a(Phronomy::Context::ContextPolicyInput::Provenance)
       expect(item.provenance.origin).to eq(:journal)
     end
 
     it "rejects a Policy-generated group with mixed protocol and non-protocol items" do
-      gen_prov = Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :policy_generated)
-      assistant = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      gen_prov = Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :policy_generated)
+      assistant = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "a1", kind: :assistant_message, role: :assistant,
         content: {"role" => "assistant", "content" => nil, "tool_calls" => [{"id" => "call-1", "name" => "t", "arguments" => {}}]},
         content_format: :json, sequence: 1, estimated_tokens: 5, required: false,
         provenance: gen_prov, tool_call_id: nil, tool_call_ids: ["call-1"],
         delivery: :chat_message, metadata: {}
       )
-      non_protocol = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+      non_protocol = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
         id: "e1", kind: :external_message, role: :user, content: "Hi",
         content_format: :text, sequence: 2, estimated_tokens: 2, required: false,
         provenance: gen_prov, tool_call_id: nil, tool_call_ids: [],
         delivery: :chat_message, metadata: {}
       )
-      plan = Phronomy::Agent::ContextPlan.new(conversation: [[assistant, non_protocol]])
+      plan = Phronomy::Context::ContextPlan.new(conversation: [[assistant, non_protocol]])
       expect {
-        Phronomy::Agent::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
+        Phronomy::Context::ContextPlanValidator.new.validate!(input: empty_input, plan: plan)
       }.to raise_error(ArgumentError, /only assistant_message and tool_message/)
     end
   end

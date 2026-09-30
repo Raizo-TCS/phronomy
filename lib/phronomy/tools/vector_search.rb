@@ -19,7 +19,7 @@ module Phronomy
     #   agent.tools tool
     #
     # @api public
-    class VectorSearch < Phronomy::Agent::Context::Capability::Base
+    class VectorSearch < Phronomy::Tool::Base
       description "Search for relevant documents using semantic similarity."
       param :query, type: :string, desc: "The natural-language search query"
 

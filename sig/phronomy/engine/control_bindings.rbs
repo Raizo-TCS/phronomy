@@ -1,0 +1,11 @@
+module Phronomy
+  class FSMSession
+    @terminal_policy: _TerminalPolicy?
+    @event_sink: _FSMEventSink
+  end
+
+  class EventLoop
+    @execution_receivers: Hash[untyped, _ExecutionReceiver]
+    @session_receivers: Hash[String, _ExecutionReceiver]
+  end
+end

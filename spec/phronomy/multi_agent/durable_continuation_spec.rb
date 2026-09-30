@@ -64,7 +64,7 @@ RSpec.describe "Durable continuation decisions" do
 
   it "resolves only external facts after restoring a mixed Provider response" do
     effects = 0
-    external = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    external = Class.new(Phronomy::Tool::Base) do
       tool_name "review_external"
       description "Application external effect"
       define_method(:execute) {
@@ -147,7 +147,7 @@ RSpec.describe "Durable continuation decisions" do
   end
   it "continues pending framework calls after a second crash at external resolution commit", :aggregate_failures do
     effects = 0
-    external = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    external = Class.new(Phronomy::Tool::Base) do
       tool_name "review_external"
       description "Application external effect"
       define_method(:execute) {
@@ -215,7 +215,7 @@ RSpec.describe "Durable continuation decisions" do
   [[], [:external], [:worker], [:external, :worker], [:worker, :external], [:external, :worker, :external]].product([false, true]).each do |composition, lose_commit_response|
     it "continues #{composition.inspect} after each Recovery commit (F1=#{lose_commit_response})" do
       effects = 0
-      external = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      external = Class.new(Phronomy::Tool::Base) do
         tool_name "matrix_external"
         description "Application external effect"
         define_method(:execute) {
@@ -407,7 +407,7 @@ RSpec.describe "Durable continuation decisions" do
   [:llm_call, :tool_invocation].product([:failed, :not_performed]).each do |subject_type, resolution_outcome|
     it "retains #{subject_type} #{resolution_outcome} across resolution commit and restart" do
       effects = 0
-      external = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      external = Class.new(Phronomy::Tool::Base) do
         tool_name "failure_external"
         description "Application external effect"
         define_method(:execute) {

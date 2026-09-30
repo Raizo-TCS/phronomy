@@ -18,7 +18,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
   ToolCall = Struct.new(:id, :name, :arguments)
 
   let(:tool_class) do
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "send_message"
       description "Send a message"
       param :recipients, type: :array, desc: "Recipients"
@@ -78,7 +78,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
 
   it "validates arguments before evaluating approval facts" do
     invocation.validate!
-    outcome = invocation.send(:evaluate_authorization)
+    outcome = Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, invocation.send(:authorization_command))
 
     expect(invocation.arguments).to include(body: "secret")
     expect(outcome.decision).to eq(:require_approval)
@@ -105,14 +105,14 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     )
 
     invocation.validate!
-    outcome = invocation.send(:evaluate_authorization)
+    outcome = Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, invocation.send(:authorization_command))
 
     expect(outcome.decision).to eq(:reject)
   end
 
   it "redacts sensitive arguments and String-valued facts from UI output" do
     invocation.validate!
-    invocation.send(:apply_authorization_outcome, invocation.send(:evaluate_authorization))
+    invocation.send(:apply_authorization_outcome, Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, invocation.send(:authorization_command)))
 
     expect(invocation.display_arguments[:body]).to eq("[REDACTED]")
     expect(invocation.display_facts[:recipient_count]).to eq(11)
@@ -146,7 +146,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     end
 
     it "uses :local origin when tool does not respond to tool_origin" do
-      basic_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      basic_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "basic"
         description "basic"
         def execute
@@ -174,7 +174,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
 
   describe "#validate!" do
     it "returns :completed status when schema validation fails with return_error policy" do
-      err_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      err_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "err_tool"
         description "d"
         on_schema_error :return_error
@@ -194,7 +194,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     end
 
     it "returns :failed status when schema validation fails with :raise policy" do
-      raise_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      raise_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "raise_tool"
         description "d"
         on_schema_error :raise
@@ -254,24 +254,24 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       invocation.instance_variable_set(:@status, :valid)
       invocation.instance_variable_set(:@arguments, {}.freeze)
       error = Phronomy::TimeoutError.new("timeout")
-      outcome = invocation.send(:authorization_failure_outcome, error)
+      outcome = Phronomy::Agent::ToolInvocation.send(:authorization_failure_result, invocation.id, error)
       expect(outcome.decision).to eq(:require_approval)
     end
 
     it "returns cancelled outcome on CancellationError" do
       error = Phronomy::CancellationError.new("cancelled")
-      outcome = invocation.send(:authorization_failure_outcome, error)
+      outcome = Phronomy::Agent::ToolInvocation.send(:authorization_failure_result, invocation.id, error)
       expect(outcome.cancelled).to be true
     end
 
     it "returns error outcome on unexpected error" do
       error = RuntimeError.new("boom")
-      outcome = invocation.send(:authorization_failure_outcome, error)
+      outcome = Phronomy::Agent::ToolInvocation.send(:authorization_failure_result, invocation.id, error)
       expect(outcome.error).to be(error)
     end
 
     it "sets MCP-specific reason when origin is :mcp" do
-      mcp_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      mcp_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "mcp_tool"
         description "d"
         requires_approval true
@@ -290,7 +290,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: stub, config: {}
       )
       inv.validate!
-      outcome = inv.send(:evaluate_authorization)
+      outcome = Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command))
       expect(outcome.reason).to include("MCP")
     end
 
@@ -302,13 +302,13 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: tool_call, config: {}, approval_policy: bad_policy
       )
       inv.validate!
-      expect { inv.send(:evaluate_authorization) }.to raise_error(Phronomy::ConfigurationError)
+      expect { Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command)) }.to raise_error(Phronomy::ConfigurationError)
     end
   end
 
   describe "evaluate_facts" do
     it "returns empty hash when tool has no approval_facts" do
-      plain_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      plain_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "plain"
         description "d"
         def execute
@@ -322,12 +322,12 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: stub, config: {}
       )
       inv.validate!
-      facts = inv.send(:evaluate_facts)
+      facts = Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command)).facts
       expect(facts).to eq({})
     end
 
     it "raises ConfigurationError when approval_facts returns non-Hash" do
-      bad_facts_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      bad_facts_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "bad_facts"
         description "d"
         approval_facts { |_args, _ctx| "not_a_hash" }
@@ -342,13 +342,13 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: stub, config: {}
       )
       inv.validate!
-      expect { inv.send(:evaluate_facts) }.to raise_error(Phronomy::ConfigurationError)
+      expect { Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command)).facts }.to raise_error(Phronomy::ConfigurationError)
     end
   end
 
   describe "evaluate_default_decision" do
     it "returns :require_approval when requires_approval is true" do
-      req_true = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      req_true = Class.new(Phronomy::Tool::Base) do
         tool_name "req"
         description "d"
         requires_approval true
@@ -363,12 +363,12 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: stub, config: {}
       )
       inv.validate!
-      request = inv.send(:build_request, facts: {}, default_decision: nil)
-      expect(inv.send(:evaluate_default_decision, request)).to eq(:require_approval)
+
+      expect(Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command)).decision).to eq(:require_approval)
     end
 
     it "returns :allow when requires_approval is false" do
-      req_false = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      req_false = Class.new(Phronomy::Tool::Base) do
         tool_name "noq"
         description "d"
         requires_approval false
@@ -383,12 +383,12 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: stub, config: {}
       )
       inv.validate!
-      request = inv.send(:build_request, facts: {}, default_decision: nil)
-      expect(inv.send(:evaluate_default_decision, request)).to eq(:allow)
+
+      expect(Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command)).decision).to eq(:allow)
     end
 
     it "raises ConfigurationError when callable returns invalid value" do
-      bad_callable = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      bad_callable = Class.new(Phronomy::Tool::Base) do
         tool_name "bad_callable"
         description "d"
         requires_approval { |_req| "invalid" }
@@ -403,8 +403,8 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         tool_call: stub, config: {}
       )
       inv.validate!
-      request = inv.send(:build_request, facts: {}, default_decision: nil)
-      expect { inv.send(:evaluate_default_decision, request) }.to raise_error(Phronomy::ConfigurationError)
+
+      expect { Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, inv.send(:authorization_command)).decision }.to raise_error(Phronomy::ConfigurationError)
     end
   end
 
@@ -470,7 +470,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     end
 
     it "validation_completed? true when schema error returns result" do
-      err_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      err_tool = Class.new(Phronomy::Tool::Base) do
         tool_name "ecomplete"
         description "d"
         on_schema_error :return_error

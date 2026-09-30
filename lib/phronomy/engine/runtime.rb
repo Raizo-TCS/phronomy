@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../execution_contract/concurrency/worker_input_restricted"
+require_relative "../execution/concurrency/worker_input_restricted"
 
 require_relative "runtime/timer_queue"
 require_relative "runtime/shutdown_result"
@@ -50,8 +50,7 @@ module Phronomy
       end
 
       def in_event_loop_context?
-        runtime = instance_mutex.synchronize { @instance }
-        runtime&.event_loop_current? || false
+        Phronomy::WaitPolicy.blocking_forbidden?
       end
 
       private

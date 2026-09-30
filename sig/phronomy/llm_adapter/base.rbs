@@ -1,6 +1,12 @@
 module Phronomy
   module LLMAdapter
     class Base
+      def identity: () -> Hash[String, String?]
+      def input_budget: (Hash[String, untyped] model_config) -> LlmContextWindow::TokenBudget?
+      def build_chat: (Hash[String, untyped] model_config) -> untyped
+      def configure_chat: (untyped chat, system: String?, cache: bool?, tools: Array[untyped], messages: Array[untyped]) -> untyped
+      def message: (**untyped attributes) -> untyped
+      def tool_call: (**untyped attributes) -> untyped
       def complete: (untyped chat, String? message, ?config: Hash[untyped, untyped]) -> untyped
       def stream: (untyped chat, String? message, ?config: Hash[untyped, untyped]) { (untyped chunk) -> void } -> untyped
     end

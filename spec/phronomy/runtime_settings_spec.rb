@@ -10,6 +10,7 @@ RSpec.describe Phronomy::RuntimeSettings do
       config.logger = logger
       config.tracer = tracer
       config.trace_pii = true
+      config.tool_result_max_size = 32
       config.event_loop_stop_grace_seconds = 3
       config.event_loop_starvation_threshold_seconds = 0.25
       config.event_loop_dispatch_threshold_seconds = 0.5
@@ -23,6 +24,7 @@ RSpec.describe Phronomy::RuntimeSettings do
     expect(settings.logger).to equal(logger)
     expect(settings.tracer).to equal(tracer)
     expect(settings.trace_pii).to be(true)
+    expect(settings.tool_result_max_size).to eq(32)
     expect(settings.event_loop_stop_grace_seconds).to eq(3)
     expect(settings.event_loop_starvation_threshold_seconds).to eq(0.25)
     expect(settings.event_loop_dispatch_threshold_seconds).to eq(0.5)

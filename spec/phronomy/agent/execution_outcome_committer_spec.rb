@@ -142,7 +142,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
 
   it "rolls back a transcript failure and does not attempt a second terminal transition" do
     operation = command
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **args|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **args|
       reader = original.call(**args)
       allow(reader).to receive(:materialize_journal_records).and_raise(IOError, "transcript unavailable")
       reader
@@ -259,7 +259,7 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
         created_at: Time.now.utc.iso8601(6), updated_at: Time.now.utc.iso8601(6), metadata: {})
     end
     let(:manifest) do
-      Phronomy::Agent::LLMInputManifest.new(call_sequence: 1, call_mode: :complete, segments: [],
+      Phronomy::Context::LLMInputManifest.new(call_sequence: 1, call_mode: :complete, segments: [],
         model_config_ref: persistence.contents.put_json({}), assembly_policy_version: 7)
     end
     let(:metadata) do

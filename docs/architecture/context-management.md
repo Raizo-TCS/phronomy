@@ -85,7 +85,7 @@ same abstraction level.
 Application code supplies an ordinary reusable Ruby strategy object:
 
 ```ruby
-class SearchContextPolicy < Phronomy::Agent::ContextPolicy
+class SearchContextPolicy < Phronomy::Context::ContextPolicy
   def initialize(search:)
     @search = search
   end

@@ -103,11 +103,11 @@ RSpec.describe "EventLoop-first architecture regression guards" do
         Dir[File.expand_path("../../lib/phronomy/#{feature}/backends/*.rb", __dir__)]
       paths.each do |path|
         source = File.read(path)
-        expect(source).not_to include("Phronomy::Runtime", "AsyncBackend", "AsyncClient.new", "pool.submit")
+        expect(source).not_to include("Phronomy::Runtime", "AsyncBackend", "AsyncClient.new", "Phronomy::Execution.submit(pool: pool")
         expect(source).not_to match(/def \w+_async/)
       end
       client = File.read(File.expand_path("../../lib/phronomy/#{feature}/async/async_client.rb", __dir__))
-      expect(client).to include("default_pool.submit", "on_full: :raise", "@return [Phronomy::TaskResult]")
+      expect(client).to include("Phronomy::Execution.submit(pool: default_pool", "on_full: :raise", "@return [Phronomy::TaskResult]")
       expect(client).not_to include("RubyLLM", "InMemory", "Phronomy::Agent", "Phronomy.configuration")
     end
   end
@@ -118,7 +118,7 @@ RSpec.describe "EventLoop-first architecture regression guards" do
         Dir[File.expand_path("../../lib/phronomy/#{feature}/backends/*.rb", __dir__)]
       paths.each do |path|
         source = File.read(path)
-        expect(source).not_to include("Phronomy::Runtime", "AsyncClient", "pool.submit")
+        expect(source).not_to include("Phronomy::Runtime", "AsyncClient", "Phronomy::Execution.submit(pool: pool")
         expect(source).not_to match(/def \w+_async/)
       end
     end
@@ -131,12 +131,12 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     paths.each do |path|
       source = File.read(File.expand_path("../../lib/phronomy/#{path}", __dir__))
       expect(source).not_to match(/def (complete_async|stream_async)/)
-      expect(source).not_to include("Phronomy::Runtime", "pool.submit", "AsyncClient.new")
+      expect(source).not_to include("Phronomy::Runtime", "Phronomy::Execution.submit(pool: pool", "AsyncClient.new")
     end
 
     client = File.read(File.expand_path("../../lib/phronomy/llm_adapter/async/async_client.rb", __dir__))
     expect(client).to match(/# @api private\n\s+class AsyncClient/)
-    expect(client).to include("pool.submit", "on_full: :raise")
+    expect(client).to include("Phronomy::Execution.submit(pool: pool", "on_full: :raise")
     expect(client).not_to include("RubyLLM", "Phronomy::Agent", "Phronomy.configuration")
   end
 

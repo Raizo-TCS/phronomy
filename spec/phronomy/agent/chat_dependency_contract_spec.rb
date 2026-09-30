@@ -47,12 +47,12 @@ RSpec.describe "Agent chat dependency contract" do
       agent = klass.new(persistence: persistence)
       stored_config = {"model" => "test-model", "provider" => "openai", "parallel_tool_execution" => legacy_value}
       config_ref = persistence.contents.put_json(stored_config)
-      manifest = Phronomy::Agent::LLMInputManifest.new(
+      manifest = Phronomy::Context::LLMInputManifest.new(
         call_sequence: 1, call_mode: :complete, segments: [], model_config_ref: config_ref
       )
       manifest_ref = persistence.contents.put_json(manifest.to_h)
-      reloaded = Phronomy::Agent::LLMInputManifest.from_h(persistence.contents.fetch_json(manifest_ref))
-      projection = Phronomy::Agent::RubyLLMMaterializer.new(agent: agent, persistence: persistence)
+      reloaded = Phronomy::Context::LLMInputManifest.from_h(persistence.contents.fetch_json(manifest_ref))
+      projection = Phronomy::Agent::RuntimeInput.new(agent: agent, persistence: persistence)
         .materialize(manifest: reloaded, manifest_ref: manifest_ref)
       chat = agent.send(:build_chat, model_config: projection.model_config)
 

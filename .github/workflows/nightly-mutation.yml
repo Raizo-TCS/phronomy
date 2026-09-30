@@ -22,17 +22,19 @@ jobs:
           - subject: Phronomy::WorkflowRunner
             label: WorkflowRunner
             timeout_minutes: 60
-          - subject: Phronomy::Agent::Context::Capability::Base
+          - subject: Phronomy::Tool::Base
             label: Tool::Base
           - subject: Phronomy::LlmContextWindow::TokenBudget
             label: LlmContextWindow::TokenBudget
-          - subject: Phronomy::Agent::ContextAssembler
-            label: Agent::ContextAssembler
-          - subject: Phronomy::Agent::ContextPolicies::Default
-            label: ContextPolicies::Default
-          - subject: Phronomy::Agent::ContextPolicyInputBuilder
+          - subject: Phronomy::Context::Assembly
+            label: Context::Assembly
+          - subject: Phronomy::Agent::ContextPreparation
+            label: Agent::ContextPreparation
+          - subject: Phronomy::Context::DefaultPolicy
+            label: Context::DefaultPolicy
+          - subject: Phronomy::Context::ContextPolicyInputBuilder
             label: ContextPolicyInputBuilder
-          - subject: Phronomy::Agent::ContextPlanValidator
+          - subject: Phronomy::Context::ContextPlanValidator
             label: ContextPlanValidator
           - subject: Phronomy::Agent::HandoffPolicy
             label: Agent::HandoffPolicy

@@ -13,14 +13,13 @@ loader.inflector.inflect("llm_adapter" => "LLMAdapter")
 loader.inflector.inflect("llm_operation_result" => "LLMOperationResult")
 loader.inflector.inflect("ruby_llm" => "RubyLLM")
 loader.inflector.inflect("canonical_json" => "CanonicalJSON")
-loader.inflector.inflect("ruby_llm_materializer" => "RubyLLMMaterializer")
 loader.inflector.inflect("llm_call_record" => "LLMCallRecord")
 loader.inflector.inflect("llm_input_manifest" => "LLMInputManifest")
 loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 # These responsibility directories do not add a public Ruby namespace.
-%w[common configuration engine execution_contract execution_services generation llm_contract recovery runtime_composition].each do |directory|
+%w[common configuration engine execution generation llm_contract recovery runtime_composition].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
 # Backend contracts, execution clients and implementations have separate source
@@ -35,7 +34,7 @@ end
 end
 # Agent responsibility directories retain the existing Agent constant names.
 %w[
-  context_contract lifecycle execution tool_execution context_assembly
+  lifecycle execution tool_execution
   journal handoff recovery
 ].each do |directory|
   loader.collapse("#{__dir__}/phronomy/agent/#{directory}")
@@ -46,11 +45,7 @@ end
 # beside the feature they belong to, without aliases or a new partial-load API.
 %w[
   agent/api
-  agent/lifecycle_contract
-  filter/contract
-  output_parser/contract
   persistence/api
-  tool/contract
   workflow/execution
   workflow/storage_contract
   multi_agent/storage_contract
@@ -65,7 +60,8 @@ loader.ignore(
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/configuration_defaults.rb",
-  "#{__dir__}/phronomy/runtime_composition/global_runtime.rb"
+  "#{__dir__}/phronomy/runtime_composition/global_runtime.rb",
+  "#{__dir__}/phronomy/runtime_composition/execution_defaults.rb"
 )
 # Persistence conformance support must never make production loading require RSpec.
 loader.ignore(
@@ -75,12 +71,29 @@ loader.ignore(
 # Failure contracts can define Persistence before ordinary framework loading.
 # Explicitly install its service methods without constructing a backend/Runtime.
 require_relative "phronomy/persistence/api/persistence"
+loader.ignore("#{__dir__}/phronomy/tool/tool_error.rb")
+loader.ignore("#{__dir__}/phronomy/filter/filter_block_error.rb")
+loader.ignore("#{__dir__}/phronomy/output_parser/parse_error.rb")
+loader.ignore("#{__dir__}/phronomy/agent/agent_busy_error.rb")
+loader.ignore("#{__dir__}/phronomy/agent/agent_purged_error.rb")
+loader.ignore("#{__dir__}/phronomy/agent/stream_callback_error.rb")
+loader.ignore("#{__dir__}/phronomy/agent/handoff_error.rb")
+loader.ignore("#{__dir__}/phronomy/agent/agent_already_exists_error.rb")
 loader.setup
+require_relative "phronomy/tool/tool_error"
+require_relative "phronomy/filter/filter_block_error"
+require_relative "phronomy/output_parser/parse_error"
+require_relative "phronomy/agent/agent_busy_error"
+require_relative "phronomy/agent/agent_purged_error"
+require_relative "phronomy/agent/stream_callback_error"
+require_relative "phronomy/agent/handoff_error"
+require_relative "phronomy/agent/agent_already_exists_error"
 
 require_relative "phronomy/runtime_composition/configuration_defaults"
 require_relative "phronomy/llm_contract/token_usage"
 require_relative "phronomy/runtime_composition/global_configuration"
 require_relative "phronomy/runtime_composition/global_runtime"
+require_relative "phronomy/runtime_composition/execution_defaults"
 
 # Explicitly install the Agent namespace extensions even if its factory
 # contract was loaded first. Composition owns both concrete binding and the

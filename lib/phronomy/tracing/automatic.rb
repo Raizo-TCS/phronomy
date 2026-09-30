@@ -47,7 +47,7 @@ module Phronomy
           error: traced_error(error, trace_pii: handle.trace_pii)
         }.freeze
 
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           submit_finish(handle, attributes)
         else
           finish_now(handle, attributes)

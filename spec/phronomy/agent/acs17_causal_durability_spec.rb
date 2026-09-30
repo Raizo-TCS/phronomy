@@ -64,13 +64,13 @@ RSpec.describe "ACS-17 causal durability" do
       "cache_instructions" => false
     )
     tool_ref = persistence.contents.put_json([])
-    manifest = Phronomy::Agent::LLMInputManifest.new(
+    manifest = Phronomy::Context::LLMInputManifest.new(
       call_sequence: 1,
       call_mode: :complete,
       segments: [],
       model_config_ref: model_ref,
       tool_definitions_ref: tool_ref,
-      assembly_policy_version: Phronomy::Agent::ContextAssembler::ASSEMBLY_POLICY_VERSION,
+      assembly_policy_version: Phronomy::Context::Assembly::ASSEMBLY_POLICY_VERSION,
       ruby_llm_version: defined?(RubyLLM::VERSION) ? RubyLLM::VERSION : nil,
       adapter_name: Phronomy.configuration.llm_adapter.class.name
     )
@@ -533,10 +533,10 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   def bind_observed_policy(agent, &observe)
-    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy = Class.new(Phronomy::Context::ContextPolicy) do
       define_method(:call) do |input|
         observe.call
-        Phronomy::Agent::ContextPolicies::Default.instance.call(input)
+        Phronomy::Context::DefaultPolicy.instance.call(input)
       end
     end.new
     agent.class.context_policy(policy)
@@ -567,7 +567,7 @@ RSpec.describe "ACS-17 causal durability" do
       events << :hook
       original.call(**kwargs)
     end
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **kwargs|
       materializer = original.call(**kwargs)
       allow(materializer).to receive(:materialize).and_wrap_original do |materialize, **args|
         expect(transaction_open).to be(false)
@@ -632,7 +632,7 @@ RSpec.describe "ACS-17 causal durability" do
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     failure = IOError.new("projection unavailable")
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **kwargs|
       materializer = original.call(**kwargs)
       allow(materializer).to receive(:materialize).and_raise(failure)
       materializer

@@ -43,9 +43,9 @@ RSpec.describe "Agent configuration inheritance contract" do
   end
 
   it "inherits ContextPolicy by identity and lets a child replace it" do
-    first = Phronomy::Agent::ContextPolicy.new
-    second = Phronomy::Agent::ContextPolicy.new
-    expect(child.context_policy).to equal(Phronomy::Agent::ContextPolicies::Default.instance)
+    first = Phronomy::Context::ContextPolicy.new
+    second = Phronomy::Context::ContextPolicy.new
+    expect(child.context_policy).to equal(Phronomy::Context::DefaultPolicy.instance)
     parent.context_policy(first)
     expect(child.context_policy).to equal(first)
     child.context_policy(second)

@@ -1,0 +1,7 @@
+module Phronomy
+  module Tracing
+    module Observation
+      def self.trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, TokenUsage?] } -> A
+    end
+  end
+end

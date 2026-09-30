@@ -3,7 +3,7 @@
 require "spec_helper"
 
 unless defined?(HITLTool)
-  class HITLTool < Phronomy::Agent::Context::Capability::Base
+  class HITLTool < Phronomy::Tool::Base
     tool_name "hitl_tool"
     description "A tool requiring human approval"
     requires_approval true
@@ -78,7 +78,7 @@ RSpec.describe Phronomy::Agent::Base do
     it "raises EventLoopReentrancyError when called from the EventLoop thread" do
       agent
       event_loop = Phronomy::Runtime.instance.event_loop
-      allow(event_loop).to receive(:current?).and_return(true)
+      allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_return(true)
 
       expect do
         agent.approve(
@@ -172,8 +172,8 @@ RSpec.describe Phronomy::Agent::Base do
       original, request = invoke_and_suspend(agent, approvals)
       allow(tool_instance).to receive(:call).and_return("done")
 
-      event_loop = Phronomy::Runtime.instance.event_loop
-      allow(event_loop).to receive(:current?).and_return(true)
+      Phronomy::Runtime.instance.event_loop
+      allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_return(true)
 
       task = agent.approve_async(
         request.execution_id,
@@ -181,7 +181,7 @@ RSpec.describe Phronomy::Agent::Base do
       )
       expect(task).to be_a(Phronomy::TaskResult)
 
-      allow(event_loop).to receive(:current?).and_call_original
+      allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_call_original
       expect(task.wait_result[:output]).to eq("resumed")
       expect(original.wait_result[:output]).to eq("resumed")
     end

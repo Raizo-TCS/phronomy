@@ -66,18 +66,18 @@ RSpec.describe "Agent Chat construction and projection contract" do
   it "preserves Anthropic instruction caching and the chat setter return value" do
     result = Object.new
     expect(chat).to receive(:with_instructions).with("system", cache_until_here: true).and_return(result)
-    expect(agent.send(:apply_instructions, chat, "system", cache: true, provider: :anthropic)).to equal(result)
+    expect(Phronomy.configuration.llm_adapter.configure_chat(chat, system: "system", cache: true, tools: [], messages: [])).to equal(chat)
   end
 
   [[false, "anthropic"], [true, "openai"], [true, nil]].each do |cache, provider|
     it "passes ordinary instructions unchanged with cache=#{cache} provider=#{provider.inspect}" do
       text = Object.new
       expect(chat).to receive(:with_instructions).with(text, cache_until_here: cache).and_return(chat)
-      expect(agent.send(:apply_instructions, chat, text, cache: cache, provider: provider)).to equal(chat)
+      expect(Phronomy.configuration.llm_adapter.configure_chat(chat, system: text, cache: cache, tools: [], messages: [])).to equal(chat)
     end
   end
 
-  it "installs instructions, prepared tools and original messages in order through existing hooks" do
+  it "prepares tools before installing instructions, tools and original messages in order" do
     tools = [Object.new, Object.new]
     prepared = [Object.new, Object.new]
     invocation = Object.new
@@ -87,11 +87,11 @@ RSpec.describe "Agent Chat construction and projection contract" do
     projection = Struct.new(:system, :model_config, :tool_classes, :messages).new(
       "saved system", {"provider" => "anthropic", "cache_instructions" => true}, tools, messages
     )
-    expect(agent).to receive(:apply_instructions).with(chat, "saved system", cache: true, provider: "anthropic").ordered
     tools.each_with_index do |tool, index|
       expect(agent).to receive(:prepare_tool_class).with(tool, invocation: invocation).ordered.and_return(prepared[index])
-      expect(chat).to receive(:with_tools).with(prepared[index]).ordered
     end
+    expect(chat).to receive(:with_instructions).with("saved system", cache_until_here: true).ordered
+    prepared.each { |tool| expect(chat).to receive(:with_tools).with(tool).ordered }
     expect(chat).to receive(:messages).twice.ordered.and_return(destination)
     expect(agent.send(:_apply_runtime_projection_to_chat, chat, projection, invocation: invocation)).to equal(chat)
     expect(destination).to eq([existing, *messages])
@@ -100,15 +100,15 @@ RSpec.describe "Agent Chat construction and projection contract" do
   end
 
   it "leaves instructions alone when the projection has no system segment" do
-    projection = Struct.new(:system, :tool_classes, :messages).new(nil, [], [])
-    expect(agent).not_to receive(:apply_instructions)
+    projection = Struct.new(:system, :tool_classes, :messages, :model_config).new(nil, [], [], {})
+    expect(chat).not_to receive(:with_instructions)
     expect(agent.send(:_apply_runtime_projection_to_chat, chat, projection)).to equal(chat)
   end
 
   it "stops projection installation at the original preparation error" do
     error = RuntimeError.new("tool preparation failed")
     tools = [Object.new, Object.new]
-    projection = Struct.new(:system, :tool_classes, :messages).new(nil, tools, [Object.new])
+    projection = Struct.new(:system, :tool_classes, :messages, :model_config).new(nil, tools, [Object.new], {})
     expect(agent).to receive(:prepare_tool_class).with(tools[0], invocation: nil).and_raise(error)
     expect(agent).not_to receive(:prepare_tool_class).with(tools[1], invocation: nil)
     expect(chat).not_to receive(:with_tools)

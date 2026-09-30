@@ -34,7 +34,6 @@
       "stream",
       "stream_async",
       "tool_approval_policy",
-      "trace",
       "transcript"
     ],
     "public_class_methods": [
@@ -64,7 +63,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPolicy",
+    "name": "Phronomy::Context::ContextPolicy",
     "type": "class",
     "public_instance_methods": [
       "call"
@@ -72,7 +71,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::ContextPolicyInput",
+    "name": "Phronomy::Context::ContextPolicyInput",
     "type": "class",
     "public_instance_methods": [
       "agent_id",
@@ -99,7 +98,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPolicyInput::Provenance",
+    "name": "Phronomy::Context::ContextPolicyInput::Provenance",
     "type": "class",
     "public_instance_methods": [
       "agent_id",
@@ -120,7 +119,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPolicyInput::InstructionItem",
+    "name": "Phronomy::Context::ContextPolicyInput::InstructionItem",
     "type": "class",
     "public_instance_methods": [
       "content",
@@ -145,7 +144,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPolicyInput::KnowledgeItem",
+    "name": "Phronomy::Context::ContextPolicyInput::KnowledgeItem",
     "type": "class",
     "public_instance_methods": [
       "content",
@@ -170,7 +169,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPolicyInput::ToolItem",
+    "name": "Phronomy::Context::ContextPolicyInput::ToolItem",
     "type": "class",
     "public_instance_methods": [
       "deconstruct",
@@ -192,7 +191,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPolicyInput::ConversationItem",
+    "name": "Phronomy::Context::ContextPolicyInput::ConversationItem",
     "type": "class",
     "public_instance_methods": [
       "content",
@@ -222,7 +221,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::ContextPlan",
+    "name": "Phronomy::Context::ContextPlan",
     "type": "class",
     "public_instance_methods": [
       "conversation",
@@ -248,8 +247,6 @@
       "approval_policy",
       "cancellation_token",
       "deadline",
-      "effective_cancellation_token",
-      "effective_timeout_token",
       "merge",
       "parent_task_id",
       "redaction_policy",
@@ -260,7 +257,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::Context::Capability::Base",
+    "name": "Phronomy::Tool::Base",
     "type": "class",
     "public_instance_methods": [
       "approval_metadata",
@@ -319,8 +316,7 @@
       "resume",
       "send_event",
       "signal",
-      "stream",
-      "trace"
+      "stream"
     ],
     "public_class_methods": [
       "define"
@@ -344,12 +340,11 @@
     "public_instance_methods": [
       "batch",
       "invoke",
-      "stream",
-      "trace"
+      "stream"
     ]
   },
   {
-    "name": "Phronomy::Agent::Context::Instruction::PromptTemplate",
+    "name": "Phronomy::Context::PromptTemplate",
     "type": "class",
     "public_instance_methods": [
       "batch",
@@ -359,7 +354,6 @@
       "stream",
       "system_template",
       "template",
-      "trace",
       "variables"
     ],
     "public_class_methods": []
@@ -444,7 +438,6 @@
       "stream_async",
       "subagent",
       "tool_approval_policy",
-      "trace",
       "transcript"
     ],
     "public_class_methods": [

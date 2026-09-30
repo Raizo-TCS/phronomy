@@ -25,7 +25,8 @@ module PoolSpy
     counts = []
     original = pool.method(:submit)
     pool.define_singleton_method(:submit) do |**kwargs, &blk|
-      counts << caller(1, 1).first
+      # Submission now has a Execution binding; retain the originating client too.
+      counts << caller.join("\n")
       original.call(**kwargs, &blk)
     end
     yield counts
@@ -122,7 +123,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       PoolSpy.instrument(pool) do |counts|
         result = agent_class.new.invoke("run tools")
         expect(result[:output]).to be_a(String)
-        tool_dispatches = counts.grep(%r{agent/context/capability/tool_executor\.rb})
+        tool_dispatches = counts.grep(%r{tool/tool_executor\.rb})
         expect(tool_dispatches.size).to eq(2)
       end
     end
@@ -160,7 +161,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       result = agent_class.new.invoke("run cooperative tool")
       expect(result[:output]).to be_a(String)
 
-      tool_dispatches = calls_before_tool.grep(%r{agent/context/capability/tool_executor\.rb})
+      tool_dispatches = calls_before_tool.grep(%r{tool/tool_executor\.rb})
       expect(tool_dispatches).to be_empty
     ensure
       class << pool

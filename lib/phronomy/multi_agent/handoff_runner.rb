@@ -35,7 +35,7 @@ module Phronomy
           input: input, main_agent_id: main_agent.agent_id,
           **main_agent.send(:_build_caller_meta, config))
         operation_error = result = nil
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError, "HandoffRunner#invoke cannot block EventLoop"
         end
         unless Phronomy::Runtime.instance.equal?(@runtime)
@@ -110,7 +110,7 @@ module Phronomy
       # Target reservation. A completed older turn never cancels a later turn.
       # @api public
       def cancel(execution_id)
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError, "HandoffRunner#cancel cannot block EventLoop"
         end
         intended = leaf = leaf_id = nil

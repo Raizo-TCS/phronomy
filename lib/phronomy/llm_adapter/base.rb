@@ -4,18 +4,39 @@ module Phronomy
   module LLMAdapter
     # Beta extension SPI for LLM call adapters.
     #
-    # External adapters implement {#complete} and {#stream}. The adapter or the
-    # underlying provider client owns transport timeout, retry, backoff, and
-    # rate-limit behavior. The framework supplies asynchronous execution outside
-    # this synchronous contract. Adapter implementers provide only these two
-    # methods and do not depend on the execution engine or its clients.
-    #
-    # The current input to this SPI is the configured/materialized chat runtime
-    # object. Formalizing this SPI therefore does not imply a provider-neutral
-    # replacement for RubyLLMMaterializer.
+    # Adapters own chat construction, model information, input materialization
+    # and provider failure translation, as well as completion and streaming.
+    # The asynchronous client owns worker submission. No provider SDK is required
+    # to load this contract.
     #
     # @api public
     class Base
+      # Adapter identity is saved with canonical context to reject incompatible replay.
+      def identity
+        {"adapter_name" => self.class.name}.freeze
+      end
+
+      # Unknown model capacity is allowed; the application may supply its own policy.
+      def input_budget(model_config)
+        nil
+      end
+
+      def build_chat(model_config)
+        raise NotImplementedError, "#{self.class}#build_chat is not implemented"
+      end
+
+      def configure_chat(chat, system:, cache:, tools:, messages:)
+        raise NotImplementedError, "#{self.class}#configure_chat is not implemented"
+      end
+
+      def message(**attributes)
+        raise NotImplementedError, "#{self.class}#message is not implemented"
+      end
+
+      def tool_call(**attributes)
+        raise NotImplementedError, "#{self.class}#tool_call is not implemented"
+      end
+
       # Performs a blocking (non-streaming) LLM completion.
       #
       # Implementors call the configured chat/runtime client and return its

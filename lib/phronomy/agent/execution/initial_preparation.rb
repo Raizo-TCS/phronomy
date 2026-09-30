@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
 require "time"
@@ -97,7 +97,7 @@ module Phronomy
           filtered_input: nil,
           config: operation.config,
           appended_records: [].freeze,
-          error: translated(error),
+          error: error,
           admission_outcome: outcome
         )
       end
@@ -114,7 +114,7 @@ module Phronomy
           # Advance the failure base only after the commit response is known.
           # F1 response loss must not be reported as a confirmed terminal result.
           current_execution = active_execution
-          projection = RubyLLMMaterializer.new(
+          projection = RuntimeInput.new(
             agent: @agent, persistence: @persistence
           ).materialize(manifest: manifest, manifest_ref: manifest_ref)
           Result.new(
@@ -166,7 +166,7 @@ module Phronomy
       end
 
       def prepare_context(staged, root, input, config, journal_records)
-        assembler = ContextAssembler.new(
+        assembler = ContextPreparation.new(
           agent: @agent, persistence: @persistence, journal_records: journal_records
         )
         prepared = assembler.prepare_initial(
@@ -184,7 +184,7 @@ module Phronomy
         active = manifest = manifest_ref = nil
         @persistence.transaction do |tx|
           assert_local_durable_base!(tx, root)
-          manifest, manifest_ref = assembler.finalize(prepared, persistence: tx)
+          manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
           active = execution_with_initial_manifest(staged, manifest_ref)
           tx.executions.save(
             staged.execution_id,
@@ -353,7 +353,7 @@ module Phronomy
       end
 
       def commit_preparation_failure(execution, root, error)
-        translated_error = translated(error)
+        translated_error = error
         failed = next_root = appended = nil
         @persistence.transaction do |tx|
           error_ref = tx.contents.put_json(
@@ -411,10 +411,6 @@ module Phronomy
           agent_revision: root.agent_revision,
           journal_position: root.journal_position
         )
-      end
-
-      def translated(error)
-        @agent.send(:_translated_error, error)
       end
     end
   end

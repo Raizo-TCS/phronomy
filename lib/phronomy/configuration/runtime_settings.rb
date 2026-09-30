@@ -3,7 +3,7 @@
 require_relative "../common/configuration_error"
 
 module Phronomy
-  # Engine-facing values only. Application composition supplies the current
+  # Neutral runtime values only. Application composition supplies the current
   # settings object; this contract knows no Agent, adapter or tracer class.
   # @api private
   class RuntimeSettings
@@ -28,7 +28,7 @@ module Phronomy
       settings
     end
 
-    attr_accessor :tracer, :trace_pii, :logger
+    attr_accessor :tracer, :trace_pii, :logger, :tool_result_max_size
     attr_accessor :event_loop_stop_grace_seconds
     attr_accessor :event_loop_starvation_threshold_seconds
     attr_accessor :event_loop_dispatch_threshold_seconds

@@ -16,7 +16,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
 
   it "deep-copies hook config" do
     config = {nested: {value: 1}}
-    context = Phronomy::Agent::LLMInputBuildContext.new(
+    context = Phronomy::Context::LLMInputBuildContext.new(
       agent_id: "a", agent_definition_id: "d", agent_definition_version: 1,
       config: config, call_sequence: 1
     )
@@ -25,7 +25,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
   end
 
   it "does not invent an input limit for unregistered models" do
-    expect(Phronomy::Agent::TokenBudgetResolver.new.resolve("model" => "unknown-local-model"))
+    expect(Phronomy.configuration.llm_adapter.input_budget("model" => "unknown-local-model"))
       .to be_nil
   end
 
@@ -43,7 +43,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
       model_cfg = {"model" => model_name}
       model_ref = persistence.contents.put_json(model_cfg)
       tool_ref = persistence.contents.put_json([])
-      Phronomy::Agent::LLMInputManifest.new(
+      Phronomy::Context::LLMInputManifest.new(
         call_sequence: 1, call_mode: :complete,
         segments: [], model_config_ref: model_ref,
         tool_definitions_ref: tool_ref,
@@ -69,11 +69,11 @@ RSpec.describe "stateful manifest follow-up regressions" do
       ).with(execution_revision: 0, working_records: [])
       base_manifest = build_test_manifest("call-one-model")
 
-      assembler = Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
+      assembler = Phronomy::Agent::ContextPreparation.new(agent: agent, persistence: persistence)
       prepared = assembler.prepare_followup(
         base_manifest: base_manifest, agent_root: root, execution: execution, config: {}
       )
-      result_manifest, _ref = assembler.finalize(prepared)
+      result_manifest, _ref = Phronomy::Context::Assembly.new.store(prepared, contents: persistence.contents)
       expect(resolve_model_from_manifest(result_manifest)).to eq("base-model")
     end
 
@@ -91,13 +91,13 @@ RSpec.describe "stateful manifest follow-up regressions" do
       ).with(execution_revision: 0, working_records: [])
       base_manifest = build_test_manifest("call-one-model")
 
-      patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {model: "call-two-model"})
-      assembler = Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
+      patch = Phronomy::Context::LLMInputPatch.new(model_config_patch: {model: "call-two-model"})
+      assembler = Phronomy::Agent::ContextPreparation.new(agent: agent, persistence: persistence)
       prepared = assembler.prepare_followup(
         base_manifest: base_manifest, agent_root: root, execution: execution,
         config: {}, patch: patch
       )
-      result_manifest, _ref = assembler.finalize(prepared)
+      result_manifest, _ref = Phronomy::Context::Assembly.new.store(prepared, contents: persistence.contents)
       expect(resolve_model_from_manifest(result_manifest)).to eq("call-two-model")
     end
   end
@@ -115,11 +115,11 @@ RSpec.describe "stateful manifest follow-up regressions" do
     end
     let(:agent) { agent_class.new(persistence: persistence) }
     let(:assembler) do
-      Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
+      Phronomy::Agent::ContextPreparation.new(agent: agent, persistence: persistence)
     end
 
     def hook_instruction_patch(content)
-      Phronomy::Agent::LLMInputPatch.new(
+      Phronomy::Context::LLMInputPatch.new(
         segment_candidates: [{category: :instruction, role: :system, content: content}]
       )
     end
@@ -157,13 +157,13 @@ RSpec.describe "stateful manifest follow-up regressions" do
         input: "hello", agent_root: root, execution: execution,
         patch: hook_instruction_patch("Be concise")
       )
-      manifest, = assembler.finalize(prepared)
+      manifest, = Phronomy::Context::Assembly.new.store(prepared, contents: persistence.contents)
       hook_segment = manifest.segments.find do |segment|
         persistence.contents.fetch_text(segment.content_ref) == "Be concise"
       end
       expect(hook_segment.metadata).to include("context_policy_origin" => "hook")
       expect(manifest.assembly_policy_version)
-        .to eq(Phronomy::Agent::ContextAssembler::ASSEMBLY_POLICY_VERSION)
+        .to eq(Phronomy::Context::Assembly::ASSEMBLY_POLICY_VERSION)
     end
 
     it "includes the same hook instruction only once in a follow-up Call" do
@@ -172,13 +172,13 @@ RSpec.describe "stateful manifest follow-up regressions" do
         input: "hello", agent_root: root, execution: execution,
         patch: hook_instruction_patch("Be concise")
       )
-      initial_manifest, initial_ref = assembler.finalize(initial_prepared)
+      initial_manifest, initial_ref = Phronomy::Context::Assembly.new.store(initial_prepared, contents: persistence.contents)
       next_execution = followup_execution(execution, initial_ref)
       followup_prepared = assembler.prepare_followup(
         base_manifest: initial_manifest, agent_root: root, execution: next_execution,
         patch: hook_instruction_patch("Be concise")
       )
-      followup_manifest, = assembler.finalize(followup_prepared)
+      followup_manifest, = Phronomy::Context::Assembly.new.store(followup_prepared, contents: persistence.contents)
       expect(segment_contents(followup_manifest).count("Be concise")).to eq(1)
       expect(segment_contents(followup_manifest)).to include("Base instruction")
     end
@@ -189,13 +189,13 @@ RSpec.describe "stateful manifest follow-up regressions" do
         input: "hello", agent_root: root, execution: execution,
         patch: hook_instruction_patch("Use tools when useful")
       )
-      initial_manifest, initial_ref = assembler.finalize(initial_prepared)
+      initial_manifest, initial_ref = Phronomy::Context::Assembly.new.store(initial_prepared, contents: persistence.contents)
       next_execution = followup_execution(execution, initial_ref)
       followup_prepared = assembler.prepare_followup(
         base_manifest: initial_manifest, agent_root: root, execution: next_execution,
         patch: hook_instruction_patch("Do not call more tools")
       )
-      followup_manifest, = assembler.finalize(followup_prepared)
+      followup_manifest, = Phronomy::Context::Assembly.new.store(followup_prepared, contents: persistence.contents)
       contents = segment_contents(followup_manifest)
       expect(contents).to include("Do not call more tools")
       expect(contents).not_to include("Use tools when useful")

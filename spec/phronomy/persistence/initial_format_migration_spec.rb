@@ -251,7 +251,7 @@ RSpec.describe Phronomy::Persistence::Migration::InitialFormatMigration do
     migrated = described_class.llm_input_manifest(old)
 
     expect(migrated.fetch("version")).to eq("0.1")
-    expect(Phronomy::Agent::LLMInputManifest.from_h(migrated).version).to eq("0.1")
+    expect(Phronomy::Context::LLMInputManifest.from_h(migrated).version).to eq("0.1")
   end
 
   it "rejects an unsupported pre-S3 LLMInputManifest version" do

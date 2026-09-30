@@ -49,49 +49,6 @@ RSpec.describe Phronomy::InvocationContext do
     end
   end
 
-  describe "#effective_cancellation_token" do
-    it "returns the assigned token when present" do
-      token = Phronomy::Concurrency::CancellationToken.new
-      ctx = described_class.new(cancellation_token: token)
-      expect(ctx.effective_cancellation_token).to be(token)
-    end
-
-    it "returns a fresh token when none was assigned" do
-      expect(ctx.effective_cancellation_token)
-        .to be_a(Phronomy::Concurrency::CancellationToken)
-    end
-  end
-
-  describe "#effective_timeout_token" do
-    it "returns nil when neither cancellation_token nor deadline is set" do
-      expect(ctx.effective_timeout_token).to be_nil
-    end
-
-    it "returns the explicit cancellation_token when set" do
-      token = Phronomy::Concurrency::CancellationToken.new
-      ic = described_class.new(cancellation_token: token)
-      expect(ic.effective_timeout_token).to be(token)
-    end
-
-    it "returns a new token and attaches the deadline when only deadline is set" do
-      ic = described_class.new(
-        deadline: Phronomy::Concurrency::Deadline.in(30)
-      )
-      tok = ic.effective_timeout_token
-      expect(tok).to be_a(Phronomy::Concurrency::CancellationToken)
-      expect(tok).not_to be_nil
-    end
-
-    it "cancels the token when an attached deadline expires" do
-      ic = described_class.new(
-        deadline: Phronomy::Concurrency::Deadline.in(0.02)
-      )
-      tok = ic.effective_timeout_token
-      sleep 0.15
-      expect(tok.cancelled?).to be true
-    end
-  end
-
   describe "keyword arguments" do
     it "accepts remaining purpose-specific control and tracing attributes" do
       token = Phronomy::Concurrency::CancellationToken.new

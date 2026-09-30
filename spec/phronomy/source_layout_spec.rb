@@ -74,11 +74,11 @@ RSpec.describe "Responsibility-based source layout" do
 
   it "loads execution vocabulary alone and preserves its identity during eager application loading" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
-      require "phronomy/execution_contract/runnable"
-      require "phronomy/execution_contract/invocation_context"
-      require "phronomy/execution_contract/fsm_protocol"
-      require "phronomy/execution_contract/cancellation_error"
-      require "phronomy/execution_contract/concurrency/cancellation_token"
+      require "phronomy/execution/runnable"
+      require "phronomy/execution/invocation_context"
+      require "phronomy/engine/fsm_protocol"
+      require "phronomy/execution/cancellation_error"
+      require "phronomy/execution/concurrency/cancellation_token"
       marker = Phronomy::Concurrency::WorkerInputRestricted
       token_class = Phronomy::Concurrency::CancellationToken
       token = token_class.new.cancel!
@@ -92,7 +92,7 @@ RSpec.describe "Responsibility-based source layout" do
       abort "unexpected namespace" if Phronomy.const_defined?(:ExecutionContract, false) || Phronomy.const_defined?(:ExecutionServices, false)
       abort "default Runtime started" if Phronomy::Runtime.default_if_initialized_for_test
       location = Phronomy.const_source_location(:TaskResult).first
-      abort "service not moved" unless location.end_with?("/execution_services/task_result.rb")
+      abort "service not moved" unless location.end_with?("/execution/task_result.rb")
       agent = Phronomy::Agent::Base.allocate
       agent.send(:_check_event_loop_reentrancy, :invoke, :invoke_async)
       abort "guard started Runtime" if Phronomy::Runtime.default_if_initialized_for_test
@@ -128,7 +128,7 @@ RSpec.describe "Responsibility-based source layout" do
   it "loads the LLM SPI without its implementations or Engine" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/llm_adapter/base"
-      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[complete stream]
+      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[build_chat complete configure_chat identity input_budget message stream tool_call]
       abort "Engine initialized by SPI" if Phronomy.const_defined?(:Runtime, false)
       abort "implementation initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:RubyLLM, false)
       abort "client initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:AsyncClient, false)
@@ -252,9 +252,9 @@ RSpec.describe "Responsibility-based source layout" do
 
   [
     "Phronomy::MultiAgent::SharedState",
-    "Phronomy::Workflow::PhaseMachineBuilder",
+    "Phronomy::WorkflowPhaseMachineBuilder",
     "Phronomy::Workflow::Persistence::Codec",
-    "Phronomy::Agent::ContextPolicy",
+    "Phronomy::Context::ContextPolicy",
     "Phronomy::Agent",
     "Phronomy::Persistence",
     "Phronomy::AgentBusyError"

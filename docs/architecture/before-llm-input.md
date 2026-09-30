@@ -28,10 +28,10 @@ candidates are accumulated in hook order.
 
 ## 3. Input and result
 
-Hooks receive immutable `Phronomy::Agent::LLMInputBuildContext` metadata. They do
+Hooks receive immutable `Phronomy::Context::LLMInputBuildContext` metadata. They do
 not receive a mutable Provider chat/message array.
 
-A hook returns `Phronomy::Agent::LLMInputPatch` or `nil`.
+A hook returns `Phronomy::Context::LLMInputPatch` or `nil`.
 
 These two types live in the shared `agent/context_contract/` implementation
 directory together with the Policy input and result contracts. Zeitwerk
@@ -40,7 +40,7 @@ names. Hook registration, invocation, and result handling are unchanged; see
 [ADR-036](../decisions/036-context-contract-ownership.md).
 
 ```ruby
-Phronomy::Agent::LLMInputPatch.new(
+Phronomy::Context::LLMInputPatch.new(
   model_config_patch: {temperature: 0.2},
   segment_candidates: [
     {

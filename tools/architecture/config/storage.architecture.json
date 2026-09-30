@@ -2,8 +2,8 @@
   "format": "phronomy-responsibility-groups-v2",
   "repository_url": "https://github.com/Raizo-TCS/phronomy",
   "project_title": "PHRONOMY 0.27.0",
-  "annotation_source_commit": "84668606523e8b013ccb1cf1144694ecd28f24f8",
-  "annotation_source_revision": "content-store-service-20260928",
+  "annotation_source_commit": "653e255a34fe4062d4beca47530e084fdd3a6ba9",
+  "annotation_source_revision": "r8-unit1-context-tool-execution",
   "modules": [
     {
       "id": "M01",
@@ -15,7 +15,7 @@
     {
       "id": "M02",
       "directory": "lib/phronomy/agent",
-      "role": "Base / event facade",
+      "role": "Agent lifecycle / context snapshot / runtime input",
       "mixed": false,
       "group": "G04"
     },
@@ -34,53 +34,11 @@
       "group": "G39"
     },
     {
-      "id": "M03",
-      "directory": "lib/phronomy/agent/concerns",
-      "role": "Agent mixins",
-      "mixed": false,
-      "group": "G04"
-    },
-    {
-      "id": "M04",
-      "directory": "lib/phronomy/agent/context/capability",
-      "role": "Tool contract / default dispatch",
-      "mixed": false,
-      "group": "G06"
-    },
-    {
-      "id": "M05",
-      "directory": "lib/phronomy/agent/context/instruction",
-      "role": "Prompt template",
-      "mixed": false,
-      "group": "G07"
-    },
-    {
-      "id": "M58",
-      "directory": "lib/phronomy/agent/context_assembly",
-      "role": "Assembly / saved context reads",
-      "mixed": false,
-      "group": "G43"
-    },
-    {
       "id": "M40",
-      "directory": "lib/phronomy/agent/context_contract",
-      "role": "Context contracts / values / validation",
+      "directory": "lib/phronomy/context",
+      "role": "Policy framework / canonical input / budget / prompt",
       "mixed": false,
       "group": "G25"
-    },
-    {
-      "id": "M06",
-      "directory": "lib/phronomy/agent/context_parts/validators",
-      "role": "Final token budget validation",
-      "mixed": false,
-      "group": "G08"
-    },
-    {
-      "id": "M07",
-      "directory": "lib/phronomy/agent/context_policies",
-      "role": "Default ContextPolicy",
-      "mixed": false,
-      "group": "G07"
     },
     {
       "id": "M56",
@@ -111,13 +69,6 @@
       "group": "G40"
     },
     {
-      "id": "M43",
-      "directory": "lib/phronomy/agent/lifecycle_contract",
-      "role": "Agent-owned lifecycle exceptions",
-      "mixed": false,
-      "group": "G04"
-    },
-    {
       "id": "M36",
       "directory": "lib/phronomy/agent/persistence",
       "role": "Agent / Journal / Handoff records",
@@ -137,13 +88,6 @@
       "role": "Install / resolve / continue",
       "mixed": false,
       "group": "G05"
-    },
-    {
-      "id": "M09",
-      "directory": "lib/phronomy/agent/selection",
-      "role": "Candidates and constraints",
-      "mixed": false,
-      "group": "G08"
     },
     {
       "id": "M57",
@@ -190,9 +134,9 @@
     {
       "id": "M12",
       "directory": "lib/phronomy/engine/concurrency",
-      "role": "Worker pools / result composition / control binding",
+      "role": "Worker pool / pool registry / async queue",
       "mixed": false,
-      "group": "G14"
+      "group": "G61"
     },
     {
       "id": "M13",
@@ -205,13 +149,6 @@
       "id": "M14",
       "directory": "lib/phronomy/filter",
       "role": "Input filters",
-      "mixed": false,
-      "group": "G29"
-    },
-    {
-      "id": "M45",
-      "directory": "lib/phronomy/filter/contract",
-      "role": "Filter-owned exception",
       "mixed": false,
       "group": "G29"
     },
@@ -262,13 +199,6 @@
       "id": "M18",
       "directory": "lib/phronomy/output_parser",
       "role": "Output parsing",
-      "mixed": false,
-      "group": "G32"
-    },
-    {
-      "id": "M48",
-      "directory": "lib/phronomy/output_parser/contract",
-      "role": "Parser-owned exception",
       "mixed": false,
       "group": "G32"
     },
@@ -352,14 +282,7 @@
     {
       "id": "M25",
       "directory": "lib/phronomy/tool",
-      "role": "Public alias of M04 Tool Base",
-      "mixed": false,
-      "group": "G06"
-    },
-    {
-      "id": "M52",
-      "directory": "lib/phronomy/tool/contract",
-      "role": "Tool-owned exception",
+      "role": "Definitions / authorization / dispatch",
       "mixed": false,
       "group": "G06"
     },
@@ -408,14 +331,14 @@
     {
       "id": "M32",
       "directory": "lib/phronomy/workflow",
-      "role": "Workflow phase machine builder",
+      "role": "Workflow definition / completion vocabulary",
       "mixed": false,
       "group": "G03"
     },
     {
       "id": "M53",
       "directory": "lib/phronomy/workflow/execution",
-      "role": "Workflow execution / admission",
+      "role": "Runner / FSM adapter / terminal policy",
       "mixed": false,
       "group": "G37"
     },
@@ -512,24 +435,17 @@
     },
     {
       "id": "M76",
-      "directory": "lib/phronomy/execution_contract",
-      "role": "Invocation / callable / event / failure contracts",
+      "directory": "lib/phronomy/execution",
+      "role": "Results / controls / execution rules",
       "mixed": false,
       "group": "G58"
     },
     {
       "id": "M77",
-      "directory": "lib/phronomy/execution_contract/concurrency",
-      "role": "Cancellation token / worker-input restriction",
+      "directory": "lib/phronomy/execution/concurrency",
+      "role": "Cancellation / deadline / composition / subscriptions",
       "mixed": false,
       "group": "G58"
-    },
-    {
-      "id": "M78",
-      "directory": "lib/phronomy/execution_services",
-      "role": "TaskResult / result decoration / Execution / Blocking",
-      "mixed": false,
-      "group": "G59"
     }
   ],
   "groups": [
@@ -559,11 +475,9 @@
     },
     {
       "id": "G04",
-      "title": "AGENT FACADE / CONCERNS / LIFECYCLE CONTRACT",
+      "title": "AGENT FRAMEWORK / STATE",
       "members": [
-        "M02",
-        "M03",
-        "M43"
+        "M02"
       ],
       "kind": "domain"
     },
@@ -578,29 +492,9 @@
     },
     {
       "id": "G06",
-      "title": "TOOL",
+      "title": "TOOL FRAMEWORK",
       "members": [
-        "M04",
-        "M25",
-        "M52"
-      ],
-      "kind": "domain"
-    },
-    {
-      "id": "G07",
-      "title": "CONTEXT CONSTRUCTION",
-      "members": [
-        "M05",
-        "M07"
-      ],
-      "kind": "domain"
-    },
-    {
-      "id": "G08",
-      "title": "VALIDATION & SELECTION",
-      "members": [
-        "M06",
-        "M09"
+        "M25"
       ],
       "kind": "domain"
     },
@@ -610,7 +504,6 @@
       "kind": "engine",
       "members": [
         "M11",
-        "M12",
         "M13"
       ]
     },
@@ -650,7 +543,7 @@
     },
     {
       "id": "G25",
-      "title": "CONTEXT CONTRACTS",
+      "title": "CONTEXT FRAMEWORK",
       "members": [
         "M40"
       ],
@@ -677,8 +570,7 @@
       "id": "G29",
       "title": "FILTER",
       "members": [
-        "M14",
-        "M45"
+        "M14"
       ],
       "kind": "domain"
     },
@@ -695,8 +587,7 @@
       "id": "G32",
       "title": "OUTPUT PARSER",
       "members": [
-        "M18",
-        "M48"
+        "M18"
       ],
       "kind": "domain"
     },
@@ -769,14 +660,6 @@
       "title": "TOOL EXECUTION",
       "members": [
         "M57"
-      ],
-      "kind": "domain"
-    },
-    {
-      "id": "G43",
-      "title": "CONTEXT ASSEMBLY",
-      "members": [
-        "M58"
       ],
       "kind": "domain"
     },
@@ -908,7 +791,7 @@
     },
     {
       "id": "G58",
-      "title": "EXECUTION CONTRACTS",
+      "title": "EXECUTION FRAMEWORK",
       "kind": "execution_contracts",
       "members": [
         "M76",
@@ -916,11 +799,11 @@
       ]
     },
     {
-      "id": "G59",
-      "title": "EXECUTION SERVICES",
-      "kind": "execution_services",
+      "id": "G61",
+      "title": "ENGINE CONCURRENCY",
+      "kind": "engine_concurrency",
       "members": [
-        "M78"
+        "M12"
       ]
     }
   ],
@@ -942,30 +825,19 @@
     "M51",
     "M54",
     "M02",
-    "M03",
-    "M43",
     "M42",
     "M55",
     "M56",
     "M57",
     "M60",
-    "M58",
     "M59",
     "M61",
     "M08",
     "M50",
     "M25",
-    "M04",
-    "M52",
     "M40",
     "M14",
-    "M45",
     "M18",
-    "M48",
-    "M05",
-    "M07",
-    "M06",
-    "M09",
     "M15",
     "M47",
     "M16",
@@ -998,8 +870,9 @@
     "M74",
     "M75",
     "M76",
-    "M77",
-    "M78"
+    "M77"
   ],
-  "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank"
+  "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
+  "execution_abstraction_revision": 3,
+  "scope_note": "r8 unit 1 only; Persistence participation, parent/child admission and remaining domain refactoring are not complete."
 }

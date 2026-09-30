@@ -87,7 +87,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     describe "DSL inheritance via Class.new (anonymous subclass)" do
       let(:tool_a) {
-        Class.new(Phronomy::Agent::Context::Capability::Base) {
+        Class.new(Phronomy::Tool::Base) {
           tool_name "tool_a"
           def execute = "a"
         }
@@ -132,7 +132,7 @@ RSpec.describe Phronomy::Agent::Base do
       end
 
       it "uses the subclass tools when explicitly overridden" do
-        tool_b = Class.new(Phronomy::Agent::Context::Capability::Base) {
+        tool_b = Class.new(Phronomy::Tool::Base) {
           tool_name "tool_b"
           def execute = "b"
         }
@@ -257,14 +257,14 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
   before { allow(RubyLLM).to receive(:chat).and_return(fake_chat) }
 
   let(:tool_a) do
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       description "Tool A"
       def execute = "a"
     end
   end
 
   let(:tool_b) do
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "tool_b"
       description "Tool B"
       def execute = "b"
@@ -303,7 +303,7 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
     end
 
     it "nil alias leaves the original tool_name intact" do
-      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      klass = Class.new(Phronomy::Tool::Base) do
         tool_name "original_name"
         def execute = ""
       end
@@ -375,8 +375,8 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 end
 
 RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
-  let(:tool_a) { Class.new(Phronomy::Agent::Context::Capability::Base) { description "a" } }
-  let(:tool_b) { Class.new(Phronomy::Agent::Context::Capability::Base) { description "b" } }
+  let(:tool_a) { Class.new(Phronomy::Tool::Base) { description "a" } }
+  let(:tool_b) { Class.new(Phronomy::Tool::Base) { description "b" } }
 
   it "returns an empty hash when no aliases are defined" do
     klass = Class.new(Phronomy::Agent::Base)

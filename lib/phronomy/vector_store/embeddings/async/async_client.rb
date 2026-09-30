@@ -27,11 +27,10 @@ module Phronomy
         # @return [Phronomy::TaskResult] the pool's original completion handle
         # @api public
         def embed_async(text, cancellation_token = nil, timeout: nil)
-          default_pool.submit(
+          Phronomy::Execution.submit(pool: default_pool,
             timeout: timeout,
             cancellation_token: cancellation_token,
-            on_full: :raise
-          ) do
+            on_full: :raise) do
             @adapter.embed(text, cancellation_token)
           end
         end
@@ -39,7 +38,7 @@ module Phronomy
         private
 
         def default_pool
-          @pool || Phronomy::Runtime.instance.offload
+          @pool
         end
       end
     end

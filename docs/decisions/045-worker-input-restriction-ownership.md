@@ -6,7 +6,7 @@
 and [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md)
 
 Source placement is superseded by [ADR-063](063-execution-contracts-and-services.md):
-the same marker now lives in `execution_contract/concurrency/`. Its namespace,
+the same marker now lives in `execution/concurrency/`. Its namespace,
 18-type inventory and worker-input behavior remain unchanged.
 
 ## Problem

@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "content-store-service-20260928",
+  "diagram_revision": "r8-unit1-context-tool-execution-20260930",
   "width": 3260,
   "column_centers": [
     330,
@@ -73,8 +73,6 @@
       "columns": [
         [
           "M02",
-          "M03",
-          "M43",
           "M42",
           "M55"
         ],
@@ -83,9 +81,7 @@
           "M60",
           "M57"
         ],
-        [
-          "M58"
-        ],
+        [],
         [
           "M59"
         ],
@@ -102,22 +98,14 @@
       "columns": [
         [],
         [
-          "M25",
-          "M04",
-          "M52"
+          "M25"
         ],
         [
-          "M40",
-          "M05",
-          "M07",
-          "M09",
-          "M06"
+          "M40"
         ],
         [
           "M14",
-          "M45",
-          "M18",
-          "M48"
+          "M18"
         ],
         [
           "M75",
@@ -127,12 +115,10 @@
     },
     {
       "id": "B4",
-      "title": "EXECUTION SERVICES / ASYNC CLIENTS / IMPLEMENTATIONS",
+      "title": "ASYNC CLIENTS / BACKEND IMPLEMENTATIONS",
       "columns": [
         [],
-        [
-          "M78"
-        ],
+        [],
         [
           "M66",
           "M70"
@@ -153,7 +139,7 @@
     },
     {
       "id": "B5",
-      "title": "ENGINE INTERNALS / EXECUTION & BACKEND CONTRACTS",
+      "title": "ENGINE / EXECUTION FRAMEWORK / BACKEND CONTRACTS",
       "columns": [
         [
           "M76",
@@ -161,8 +147,8 @@
         ],
         [
           "M11",
-          "M12",
-          "M13"
+          "M13",
+          "M12"
         ],
         [
           "M15",
@@ -221,7 +207,7 @@
     "arrowhead_opacity": 0.75
   },
   "group_display_titles": {
-    "G04": "AGENT FACADE / LIFECYCLE CONTRACT"
+    "G04": "AGENT FRAMEWORK / STATE"
   },
   "band_start_y": 634,
   "group_theme": {
@@ -323,7 +309,8 @@
       "G56": "mint",
       "G57": "teal",
       "G58": "mint",
-      "G59": "lavender"
+      "G59": "lavender",
+      "G61": "blue"
     }
   },
   "presentation": {
@@ -333,5 +320,6 @@
       "M41",
       "M44"
     ]
-  }
+  },
+  "scope_note": "r8 UNIT 1 ONLY: Context / Tool / Execution. Persistence participation and remaining domain refactoring are unfinished."
 }

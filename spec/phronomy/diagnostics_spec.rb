@@ -53,8 +53,8 @@ RSpec.describe "Offload operation diagnostics" do
     end
 
     it "raises EventLoopReentrancyError when called from EventLoop thread" do
-      event_loop = Phronomy::Runtime.instance.event_loop
-      allow(event_loop).to receive(:current?).and_return(true)
+      Phronomy::Runtime.instance.event_loop
+      allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_return(true)
       expect {
         Phronomy::Diagnostics.assert_not_in_event_loop!
       }.to raise_error(Phronomy::EventLoopReentrancyError)

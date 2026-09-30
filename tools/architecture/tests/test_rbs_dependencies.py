@@ -83,14 +83,15 @@ class ProjectTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.work.cleanup()
 
-    def test_all_four_clients_reference_contracts_and_engine_without_contract_reverse_edges(self):
+    def test_all_four_clients_reference_contracts_and_services_without_contract_reverse_edges(self):
         pairs = {(p['from'], p['to']): p for p in self.audit['module_pairs']}
         for feature in ['llm_adapter', 'vector_store', 'vector_store/embeddings', 'storage']:
             base = 'lib/phronomy/' + feature
             with self.subTest(feature=feature):
                 pair = pairs[base + '/async', base]
                 self.assertTrue(pair['rbs_references'])
-                self.assertIn((base + '/async', 'lib/phronomy/engine'), pairs)
+                self.assertIn((base + '/async', 'lib/phronomy/execution'), set(pairs))
+                self.assertNotIn((base + '/async', 'lib/phronomy/engine'), set(pairs))
                 self.assertNotIn((base, base + '/async'), pairs)
                 self.assertNotIn((base, 'lib/phronomy/engine'), pairs)
         self.assertEqual(len(pairs), len(self.audit['module_pairs']))
@@ -121,7 +122,7 @@ class ProjectTests(unittest.TestCase):
         self.assertTrue(result['passed'], result)
         self.assertEqual([], result['violations'])
         self.assertFalse((HERE / 'config/rbs_boundary_baseline.json').exists())
-        for target in ['lib/phronomy/agent/context_contract', 'lib/phronomy/llm_adapter',
+        for target in ['lib/phronomy/context', 'lib/phronomy/llm_adapter',
                        'lib/phronomy/runtime_composition']:
             changed = deepcopy(self.audit)
             changed['module_pairs'].append({'from': 'lib/phronomy/configuration', 'to': target,
@@ -196,23 +197,22 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual({str(p.relative_to(REPO)) for p in REPO.glob('sig/**/*.rbs')}, {p for p in hashes if p.startswith('sig/')})
 
     def test_execution_contracts_follow_ruby_owners_and_reject_indirect_implementation_dependencies(self):
-        contract = 'lib/phronomy/execution_contract'
+        contract = 'lib/phronomy/execution'
         token = contract + '/concurrency'
-        services = 'lib/phronomy/execution_services'
         pairs = {(p['from'], p['to']) for p in self.audit['module_pairs']}
-        for source in ['lib/phronomy/agent/context/instruction', 'lib/phronomy/output_parser']:
+        for source in ['lib/phronomy/context', 'lib/phronomy/output_parser']:
             self.assertIn((source, contract), pairs)
             self.assertNotIn((source, 'lib/phronomy/engine'), pairs)
         for source in ['lib/phronomy/tool', 'lib/phronomy/storage/async',
                        'lib/phronomy/vector_store/async', 'lib/phronomy/vector_store/embeddings/async']:
             self.assertIn((source, token), pairs)
-            self.assertIn((source, services), pairs)
+            self.assertIn((source, 'lib/phronomy/execution'), pairs)
             self.assertNotIn((source, 'lib/phronomy/engine/concurrency'), pairs)
-        for source, target in [(contract, services), (token, 'lib/phronomy/engine'),
+        for source, target in [(contract, 'lib/phronomy/engine'), (token, 'lib/phronomy/engine'),
                                ('lib/phronomy/common', 'lib/phronomy/engine'),
-                               (services, 'lib/phronomy/agent'),
-                               ('lib/phronomy/storage', services),
-                               ('lib/phronomy/storage/backends', services),
+                               (contract, 'lib/phronomy/agent'),
+                               ('lib/phronomy/storage', contract),
+                               ('lib/phronomy/storage/backends', contract),
                                ('lib/phronomy/configuration', contract)]:
             with self.subTest(source=source, target=target):
                 changed = deepcopy(self.audit)
@@ -223,10 +223,44 @@ class ProjectTests(unittest.TestCase):
         rbs = self.audit['rbs']['references']
         result = next(r for r in rbs if r['owner'] == 'Phronomy::Storage::AsyncClient'
                       and r['name'] == 'Phronomy::TaskResult')
-        self.assertEqual(services, result['to'])
+        self.assertEqual('lib/phronomy/execution', result['to'])
         cancellation = next(r for r in rbs if r['owner'] == 'Phronomy::Storage::AsyncClient'
                             and r['name'] == 'Phronomy::Concurrency::CancellationToken')
         self.assertEqual(token, cancellation['to'])
+
+    def test_neutral_results_and_worker_mechanisms_reject_upward_paths(self):
+        self.assertTrue(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
+        prefix = 'lib/phronomy/'
+        for source, target in [
+            ('execution', 'engine'),
+            ('execution', 'tracing'),
+            ('execution/concurrency', 'engine'),
+            ('execution/concurrency', 'tracing'),
+            ('engine/concurrency', 'engine'),
+            ('common', 'execution'),
+            ('context', 'agent'),
+            ('context', 'engine'),
+            ('tool', 'agent'),
+            ('tool', 'engine'),
+        ]:
+            with self.subTest(source=source, target=target):
+                changed = deepcopy(self.audit)
+                changed['module_pairs'].append({'from': prefix + source, 'to': prefix + target})
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
+
+    def test_scope_and_mechanism_interfaces_follow_actual_owners(self):
+        refs = self.audit['rbs']['references']
+        owners = {
+            '_ExecutionScope': 'execution',
+            '_TimerQueue': 'engine/concurrency',
+            '_ExecutionReceiver': 'engine',
+            '_FSMEventSink': 'engine',
+            '_TerminalPolicy': 'engine',
+        }
+        for name, owner in owners.items():
+            selected = [r for r in refs if r['name'] == 'Phronomy::' + name]
+            self.assertTrue(selected, name)
+            self.assertTrue(all(r['to'] == 'lib/phronomy/' + owner for r in selected), name)
 
 
 if __name__ == '__main__':

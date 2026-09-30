@@ -1,0 +1,18 @@
+module Phronomy
+  # Only the operations used across the execution boundary; no concrete runtime.
+  interface _CompletionHandle[A]
+    def on_complete: () { (A?, Exception?) -> void } -> untyped
+  end
+
+  interface _ExecutionScope
+    def __while_open: [V] () { () -> V } -> V?
+    def __open?: () -> bool
+    def __cancellation_token: () -> Concurrency::CancellationToken
+    def __cancellation_error: () -> Exception
+  end
+
+  module WaitPolicy
+    def self.blocking_forbidden?: () -> bool
+    def self.without_blocking: [V] () { () -> V } -> V
+  end
+end

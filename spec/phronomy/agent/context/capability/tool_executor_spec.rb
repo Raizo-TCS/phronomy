@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Context::Capability::ToolExecutor do
+RSpec.describe Phronomy::Tool::ToolExecutor do
   def make_tool(mode)
-    klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    klass = Class.new(Phronomy::Tool::Base) do
       description "test tool"
       execution_mode mode
       param :x, type: :string, desc: "input"
@@ -63,7 +63,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::ToolExecutor do
     end
 
     it "accepts CPU-heavy synchronous work as ordinary :offloaded work" do
-      tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_class = Class.new(Phronomy::Tool::Base) do
         execution_mode :offloaded
         description "CPU-heavy synthetic tool"
         param :n, type: :integer, desc: "upper bound"

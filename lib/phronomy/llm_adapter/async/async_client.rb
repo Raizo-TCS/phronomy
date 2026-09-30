@@ -24,7 +24,7 @@ module Phronomy
       # @api private
       def complete_async(chat, message, config: {}, pool: default_pool)
         token = config[:cancellation_token]
-        pool.submit(cancellation_token: token, on_full: :raise) do
+        Phronomy::Execution.submit(pool: pool, cancellation_token: token, on_full: :raise) do
           @adapter.complete(chat, message, config: config)
         end
       end
@@ -40,7 +40,7 @@ module Phronomy
         raise ArgumentError, "stream_async requires a block" unless block
 
         token = config[:cancellation_token]
-        pool.submit(cancellation_token: token, on_full: :raise) do
+        Phronomy::Execution.submit(pool: pool, cancellation_token: token, on_full: :raise) do
           @adapter.stream(chat, message, config: config) do |chunk|
             token&.raise_if_cancelled!("invocation cancelled during streaming")
             block.call(chunk)
@@ -51,7 +51,7 @@ module Phronomy
       private
 
       def default_pool
-        @pool || Phronomy::Runtime.instance.offload
+        @pool
       end
     end
   end

@@ -85,7 +85,7 @@ RSpec.describe Phronomy::Runnable do
         include Phronomy::Runnable
 
         def invoke(input, config: {})
-          trace("step", input: input) { input }
+          Phronomy::Tracing::Observation.trace("step", input: input) { input }
         end
       end.new
     end

@@ -38,29 +38,4 @@ RSpec.describe Phronomy::Concurrency::Deadline do
       expect(d.expired?).to be(true)
     end
   end
-
-  describe "#attach_to" do
-    it "cancels the token when the deadline passes" do
-      token = Phronomy::Concurrency::CancellationToken.new
-      described_class.in(0.05).attach_to(token)
-      expect(token.cancelled?).to be(false)
-      sleep 0.1
-      expect(token.cancelled?).to be(true)
-    end
-
-    it "returns self" do
-      d = described_class.in(10)
-      token = Phronomy::Concurrency::CancellationToken.new
-      expect(d.attach_to(token)).to be(d)
-    end
-
-    it "does nothing when already expired" do
-      token = Phronomy::Concurrency::CancellationToken.new
-      described_class.in(0).attach_to(token)
-      # Token starts out not-cancelled — attach should not touch it immediately
-      # (background thread exits immediately, cancel! may or may not run)
-      sleep 0.05
-      # At this point either it fired or it was a no-op; test just ensures no crash
-    end
-  end
 end

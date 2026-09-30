@@ -391,7 +391,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
 
   it "recovers a mixed external/owned Tool batch by resolving only the external fact" do
     effects = 0
-    external = Class.new(Phronomy::Agent::Context::Capability::Base) do
+    external = Class.new(Phronomy::Tool::Base) do
       tool_name "external_effect"
       description "Record an Application side effect."
       define_method(:execute) {

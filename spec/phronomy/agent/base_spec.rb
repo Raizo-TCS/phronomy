@@ -239,14 +239,6 @@ RSpec.describe Phronomy::Agent::Base do
       expect(event_loop_flags).to all(be(true))
     end
 
-    it "keeps an immediately completed terminal callback on the EventLoop thread" do
-      skip "obsolete: terminal delivery always routes through EventLoop system channel in new architecture"
-    end
-
-    it "does not invoke a terminal callback when completion escapes the EventLoop" do
-      skip "obsolete: deliver_on_event_loop is always called from the EventLoop thread in new architecture"
-    end
-
     it "requires a callback block" do
       expect { agent.stream_async("hi") }.to raise_error(ArgumentError)
       expect { agent.stream("hi") }.to raise_error(ArgumentError)

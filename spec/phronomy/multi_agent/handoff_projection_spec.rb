@@ -29,7 +29,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   def manifest(persistence, segments)
-    Phronomy::Agent::LLMInputManifest.new(
+    Phronomy::Context::LLMInputManifest.new(
       call_sequence: 1,
       call_mode: :complete,
       segments: segments,
@@ -39,7 +39,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   def segment(position:, category:, content_ref:, role: :user, tool_call_id: nil, metadata: {})
-    Phronomy::Agent::LLMInputManifest::Segment.new(
+    Phronomy::Context::LLMInputManifest::Segment.new(
       position: position,
       category: category,
       role: role,
@@ -231,7 +231,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
       items: [item]
     )
     execution = Struct.new(:execution_id).new("target-execution")
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextPreparation.new(
       agent: target,
       persistence: target.persistence
     )

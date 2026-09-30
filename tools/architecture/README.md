@@ -74,6 +74,15 @@ individual module outlines retained.
 The same group ID keeps its colors across phases. G14 Engine Internals uses blue, G46
 Async Clients lavender, G47 Backend Contracts mint and G48 Implementations sand.
 G58 Execution Contracts uses mint and G59 Execution Services lavender.
+The refined candidate integrates neutral TaskResult and its implementation into
+the existing Execution Contracts group (G58). The extra errors and Results
+directories, M79/M80/M81 and G60 are retired. G61 Engine Concurrency remains
+blue. Invocation controls and completion adaptation belong to Services in B4.
+The boundary gate rejects Contracts reaching Services/Engine, Engine reaching
+Services, and Concurrency reaching parent Engine/Services, including indirect
+Ruby + RBS paths. A separate AST gate checks leaks of private scope and result
+settlement into domain consumers. Dependency triangles are investigation
+candidates, not automatically forbidden edges or layering rules.
 Color does not express a layer, dependency permission or a unique namespace.
 G57 Content Service uses teal and M10 moves to B3's persistence column. M73 is
 retired after merging its implementation into M10; it is removed from current
@@ -178,19 +187,55 @@ reopenings in storage_boundary.rb or contract files do not move that ownership.
 The analyzer regression checks the Ruby declaration owner, independent of RBS
 filename; no type reference or measured edge is suppressed by this correction.
 
-## Execution contracts, services and internals
+## r8 unit 1: Context, Tool and Execution
 
-G58 owns `execution_contract/` (M76) and its `concurrency/` directory (M77).
-G59 owns `execution_services/` (M78). Public RBS declarations formerly combined
-in `runtime.rbs` follow those source owners; the Engine receiver declaration is
-under `sig/phronomy/engine/`. Constant names and signature types are unchanged.
-The complete Ruby/RBS gate rejects direct or transitive dependencies from G58
-outside Execution Contracts/Common. Backend contracts and implementations may
-not reach Execution Services; Services and Engine may not reach feature-specific
-backends, clients or domain orchestration. Regression tests inject forbidden
-RBS-only edges as well as checking real ownership.
+This is the first implementation unit of r8, not completion of the whole specification.
+`phase.json` retains the older backend phase label `storage`; its P1-P5 numbers
+are unrelated to the r8 Persistence design items. The `r8_unit1` member records
+scope and remaining work. See [the implementation report](../../docs/architecture/r8-unit1.md).
 
-Services contain implementation. TaskResult uses result composition and wait
-guards in Engine; pools create TaskResult. This mutual dependency is measured,
-not exempted or drawn as an acyclic layer. B4/B5 placement is only presentation.
-See [ADR-063](../../docs/decisions/063-execution-contracts-and-services.md).
+G58 now owns `execution/` (M76) and `execution/concurrency/` (M77).
+The former `execution_contract/` and `execution_services/` directories are removed.
+TaskResult composition, controls and waiting use shared rules in this framework.
+Pool/runtime/timer access belongs to `engine/execution_binding.rb`, installed
+lazily by composition through the Execution backend protocol. Creating or
+observing a settled result does not instantiate Runtime. Runnable tracing is
+owned by `Tracing::Observation`; FSM-only values and receiver protocols belong
+to Engine. Engine depends on Execution; Execution has no source or type
+reference to Engine, Tracing or domain orchestration.
+
+G25/M40 owns `context/`: policy execution, canonical input, validation, budget
+and manifest handling. G06/M25 owns Tool definitions, authorization evaluation
+and calling. Their Agent lifecycle consumers remain separate. The complete
+Ruby/RBS gate checks direct and transitive reverse paths for these boundaries,
+as well as the existing backend restrictions. RBS-only edges are tested too.
+
+Agent, Workflow and MultiAgent still have mixed domain/mechanism and persistence
+responsibilities. Existing measured cycles remain visible; passing this scoped
+gate does not prove all domain contracts are acyclic or all triangle candidates
+are acceptable. B/G positions remain presentation, not dependency permissions.
+
+### Transitive dependency triangles (review aid)
+
+`refresh_diagram.py` also writes `dependency_triangles.json` and `.csv`.
+For every three distinct modules with M0→M1, M1→M2 and M0→M2, it preserves all
+three edges' source evidence. Adjacent descending display bands are listed first,
+then other descending bands, then other graph triangles. Sidebar modules and
+incoming arrows hidden in the SVG are still included. RBS-only direct references
+are marked separately; they are often legitimate return/input contracts.
+
+A triangle is an investigation candidate, **not a failure**. Inspect M0's direct
+use: an internal detail normally belongs behind M1, composition wiring may belong
+in a composition owner, and an intentionally shared public contract can stay.
+Absence of a triangle does not prove absence of leaks (dynamic dispatch and
+module aggregation limit this heuristic). The narrow Ruby AST gate independently
+protects already-corrected private scope access and result settlement in selected
+consumers; it is not a whole-program architecture proof.
+
+To inspect any existing audit without regenerating the SVG:
+
+```sh
+python3 tools/architecture/tools/find_dependency_triangles.py \
+  OUTPUT/module_audit_scoped.json OUTPUT/architecture.json \
+  tools/architecture/config/storage.layout.json OUTPUT
+```

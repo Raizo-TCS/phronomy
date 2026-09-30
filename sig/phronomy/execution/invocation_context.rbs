@@ -1,0 +1,18 @@
+module Phronomy
+  class InvocationContext
+    @execution_scope: _ExecutionScope?
+    def __bind_execution: (_ExecutionScope? scope) -> self
+    def __execution_scope: () -> _ExecutionScope?
+
+    attr_reader user_id: String?
+    attr_reader cancellation_token: Concurrency::CancellationToken?
+    attr_reader deadline: Concurrency::Deadline?
+    attr_reader token_budget: Integer?
+    attr_reader approval_policy: untyped
+    attr_reader redaction_policy: untyped
+    attr_reader task_id: String?
+    attr_reader parent_task_id: String?
+
+    def initialize: (?user_id: String?, ?cancellation_token: Concurrency::CancellationToken?, ?deadline: Concurrency::Deadline?, ?token_budget: Integer?, ?approval_policy: untyped, ?redaction_policy: untyped, ?task_id: String?, ?parent_task_id: String?) -> void
+  end
+end

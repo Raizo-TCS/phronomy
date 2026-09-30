@@ -16,7 +16,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
     Phronomy::Agent::ToolInvocation,
     Phronomy::Agent::JournalProjection,
     Phronomy::Agent::ExecutionCoordinator,
-    Phronomy::Agent::Context::Capability::Base,
+    Phronomy::Tool::Base,
     Phronomy::Workflow,
     Phronomy::WorkflowRunner,
     Phronomy::WorkflowContext,
@@ -42,11 +42,11 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
           value = klass.allocate
           value.freeze if frozen
           [value, {value => "key"}, {nested: {item: value}}, {nested: ["ok", [value]]}].each do |data|
-            expect { evaluator.send(:immutable_command_copy, data) }
+            expect { Phronomy::Tool::Authorization.snapshot(data) }
               .to raise_error(Phronomy::ConfigurationError, /Phronomy-managed live domain object/)
           end
           %w[approval_policy approval_facts requires_approval].each do |name|
-            expect { evaluator.send(:safe_behavior_handle, value, name) }
+            expect { Phronomy::Tool::Authorization.behavior(value, name) }
               .to raise_error(Phronomy::ConfigurationError, /#{name} must not be a Phronomy-managed/)
           end
         end
@@ -63,20 +63,20 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
     values = [opaque, callable, runnable, outcome, Object.new, Phronomy::Workflow, Phronomy::WorkflowContext]
 
     values.each do |value|
-      copy = evaluator.send(:immutable_command_copy, {nested: [value]})
+      copy = Phronomy::Tool::Authorization.snapshot({nested: [value]})
       expect(copy[:nested].first).to equal(value)
-      expect(evaluator.send(:safe_behavior_handle, value, "approval_policy")).to equal(value)
+      expect(Phronomy::Tool::Authorization.behavior(value, "approval_policy")).to equal(value)
     end
     [nil, false, true].each do |value|
-      expect(evaluator.send(:safe_behavior_handle, value, "requires_approval")).to equal(value)
+      expect(Phronomy::Tool::Authorization.behavior(value, "requires_approval")).to equal(value)
     end
   end
 
   it "rejects a previously unknown marked type without adding it to the evaluator" do
     value = Class.new { include Phronomy::Concurrency::WorkerInputRestricted }.new
-    expect { evaluator.send(:immutable_command_copy, {nested: [value]}) }
+    expect { Phronomy::Tool::Authorization.snapshot({nested: [value]}) }
       .to raise_error(Phronomy::ConfigurationError, /Phronomy-managed live domain object/)
-    expect { evaluator.send(:safe_behavior_handle, value, "approval_policy") }
+    expect { Phronomy::Tool::Authorization.behavior(value, "approval_policy") }
       .to raise_error(Phronomy::ConfigurationError, /Phronomy-managed live domain object/)
   end
 
@@ -91,7 +91,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
       end
     end
     let(:tool) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         tool_name "restricted_input_tool"
         description "Worker input boundary test"
 
@@ -140,7 +140,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
   [false, true].each do |preload|
     it "preserves normal/preloaded/eager identity without starting Runtime (preload: #{preload})" do
       source = <<~RUBY
-        require "phronomy/execution_contract/concurrency/worker_input_restricted" if #{preload}
+        require "phronomy/execution/concurrency/worker_input_restricted" if #{preload}
         original = Phronomy::Concurrency::WorkerInputRestricted if #{preload}
         require "phronomy"
         marker = Phronomy::Concurrency::WorkerInputRestricted
@@ -167,7 +167,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
 
   it "loads the methodless marker alone without Agent, Workflow or runtime implementation" do
     source = <<~RUBY
-      require "phronomy/execution_contract/concurrency/worker_input_restricted"
+      require "phronomy/execution/concurrency/worker_input_restricted"
       marker = Phronomy::Concurrency::WorkerInputRestricted
       abort "instance behavior" unless marker.instance_methods(false).empty?
       abort "singleton behavior" unless marker.singleton_methods(false).empty?
@@ -188,7 +188,7 @@ RSpec.describe "Worker input restriction ownership (ADR-045)" do
       constants = Ripper.lex(File.read(path)).filter_map { |_, type, token, _| token if type == :on_const }
       expect(constants).not_to include("Workflow", "WorkflowRunner", "WorkflowContext")
     end
-    path = File.join(project_root, "lib/phronomy/execution_contract/concurrency/worker_input_restricted.rb")
+    path = File.join(project_root, "lib/phronomy/execution/concurrency/worker_input_restricted.rb")
     source = File.read(path)
     constants = Ripper.lex(source).filter_map { |_, type, token, _| token if type == :on_const }
     expect(constants.uniq).to match_array(%w[Phronomy Concurrency WorkerInputRestricted])

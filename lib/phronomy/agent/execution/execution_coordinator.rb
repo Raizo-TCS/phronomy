@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "time"
 require "securerandom"
@@ -14,7 +14,7 @@ module Phronomy
       StartCommand = Data.define(
         :coordinator, :input, :config, :mode,
         :approval_policy, :approval_listener, :on_event, :result_task,
-        :admission_token
+        :admission_token, :controls
       )
       ResumeCommand = Data.define(
         :coordinator, :execution_id, :approval_request_id,
@@ -108,14 +108,10 @@ module Phronomy
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = Phronomy::TaskResult.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
-        if config[:invocation_context]
-          binding = Phronomy::Concurrency::OperationBinding.new(
-            invocation_context: config[:invocation_context],
-            cancellation_token: config[:cancellation_token]
-          )
-          binding.bind(result_task)
-          config = config.merge(cancellation_token: binding.token)
-        end
+        controls = Phronomy::InvocationControls.attach(result_task,
+          invocation_context: config[:invocation_context],
+          cancellation_token: config[:cancellation_token])
+        config = config.merge(cancellation_token: controls.token)
         command = StartCommand.new(
           coordinator: self,
           input: input,
@@ -125,14 +121,15 @@ module Phronomy
           approval_listener: approval_listener,
           on_event: on_event,
           result_task: result_task,
-          admission_token: Object.new.freeze
+          admission_token: Object.new.freeze,
+          controls: controls
         )
         unless post_control(Phronomy::Runtime.instance, command)
           fail_task(result_task, runtime_rejected_error(:start))
         end
         result_task
       rescue => error
-        fail_task(result_task, translated(error)) if defined?(result_task) && result_task
+        fail_task(result_task, error) if defined?(result_task) && result_task
         result_task
       end
 
@@ -160,7 +157,7 @@ module Phronomy
         end
         result_task
       rescue => error
-        fail_task(result_task, translated(error)) if defined?(result_task) && result_task
+        fail_task(result_task, error) if defined?(result_task) && result_task
         result_task
       end
 
@@ -178,7 +175,7 @@ module Phronomy
         submit_provider_dispatch_preparation(operation)
         nil
       rescue => error
-        event_sink.post(:llm_setup_failed, translated(error))
+        event_sink.post(:llm_setup_failed, error)
         nil
       end
 
@@ -193,13 +190,13 @@ module Phronomy
         submit_tool_dispatch_preparation(operation)
         nil
       rescue => error
-        event_sink.post(:tool_setup_failed, translated(error))
+        event_sink.post(:tool_setup_failed, error)
         nil
       end
 
       def submit_provider_dispatch_preparation(operation)
         runtime = Phronomy::Runtime.instance
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @dispatch_preparation.prepare_provider(operation)
         end
         task.on_complete do |result, error|
@@ -220,7 +217,7 @@ module Phronomy
 
       def submit_tool_dispatch_preparation(operation)
         runtime = Phronomy::Runtime.instance
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @dispatch_preparation.prepare_tools(operation)
         end
         task.on_complete do |result, error|
@@ -247,7 +244,7 @@ module Phronomy
           intended_result: uncertainty.intended_result,
           original_error: uncertainty.original_error
         )
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @dispatch_preparation.reconcile_provider(command)
         end
         task.on_complete do |result, error|
@@ -276,7 +273,7 @@ module Phronomy
           intended_result: uncertainty.intended_result,
           original_error: uncertainty.original_error
         )
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @dispatch_preparation.reconcile_tools(command)
         end
         task.on_complete do |result, error|
@@ -348,11 +345,7 @@ module Phronomy
       def begin_start_on_event_loop(request)
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
-        scope = request.config[:invocation_context]&.__execution_scope
-        if scope && (!scope.__open? || request.config[:cancellation_token]&.cancelled?)
-          deliver_start_failure_on_event_loop(request, scope.__cancellation_error)
-          return
-        end
+        request.controls.check_start!
         root = @agent.agent_root
         if root.lifecycle_status == :closed
           deliver_start_failure_on_event_loop(
@@ -378,7 +371,7 @@ module Phronomy
         @agent.send(:__assert_live_agent!)
 
         operation = capture_initial_preparation(request, root)
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @initial_preparation.prepare(operation)
         end
         submitted = true
@@ -406,7 +399,7 @@ module Phronomy
             )
           end
         end
-        deliver_start_failure_on_event_loop(request, translated(error))
+        deliver_start_failure_on_event_loop(request, error)
       end
 
       def capture_initial_preparation(request, root)
@@ -448,7 +441,7 @@ module Phronomy
             @agent.agent_id,
             owner_token: request.admission_token
           )
-          deliver_start_failure_on_event_loop(request, translated(ready.error))
+          deliver_start_failure_on_event_loop(request, ready.error)
           return
         end
 
@@ -608,7 +601,7 @@ module Phronomy
           root: @agent.agent_root,
           journal_records: @agent.send(:_journal_records_snapshot)
         )
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @initial_preparation.recover(operation)
         end
         task.on_complete do |result, error|
@@ -639,7 +632,7 @@ module Phronomy
         rescue
           nil
         end
-        translated_error = translated(error)
+        translated_error = error
         fail_task(result_task, translated_error)
         load_completion.fail(translated_error)
         # simplecov:enable
@@ -665,7 +658,7 @@ module Phronomy
             event_loop,
             ready.execution_id
           )
-          error = translated(ready.error)
+          error = ready.error
           fail_task(ready.result_task, error)
           ready.load_completion.fail(error)
           return
@@ -700,7 +693,7 @@ module Phronomy
         rescue
           nil
         end
-        translated_error = translated(error)
+        translated_error = error
         fail_task(ready.result_task, translated_error)
         ready.load_completion.fail(translated_error)
         # simplecov:enable
@@ -756,7 +749,8 @@ module Phronomy
           approval_listener: nil,
           on_event: @agent.send(:_phronomy_event_listener),
           result_task: ready.result_task,
-          admission_token: Object.new.freeze
+          admission_token: Object.new.freeze,
+          controls: nil
         )
         begin
           register_initial_session_on_event_loop(request, result)
@@ -848,7 +842,7 @@ module Phronomy
               ready.error
             )
           else
-            state.invocation.event_sink.post(:llm_setup_failed, translated(ready.error))
+            state.invocation.event_sink.post(:llm_setup_failed, ready.error)
           end
           return
         end
@@ -859,7 +853,7 @@ module Phronomy
           state
         )
       rescue => error
-        state&.invocation&.event_sink&.post(:llm_setup_failed, translated(error))
+        state&.invocation&.event_sink&.post(:llm_setup_failed, error)
       end
 
       def apply_tool_dispatch_preparation_on_event_loop(ready)
@@ -879,7 +873,7 @@ module Phronomy
               ready.error
             )
           else
-            state.invocation.event_sink.post(:tool_setup_failed, translated(ready.error))
+            state.invocation.event_sink.post(:tool_setup_failed, ready.error)
           end
           return
         end
@@ -890,7 +884,7 @@ module Phronomy
           state
         )
       rescue => error
-        state&.invocation&.event_sink&.post(:tool_setup_failed, translated(error))
+        state&.invocation&.event_sink&.post(:tool_setup_failed, error)
       end
 
       def apply_confirmed_provider_dispatch_preparation_on_event_loop(
@@ -914,7 +908,7 @@ module Phronomy
         state.invocation.acknowledge_runtime_snapshot(operation.runtime_snapshot)
 
         if result.error
-          state.invocation.event_sink.post(:llm_setup_failed, translated(result.error))
+          state.invocation.event_sink.post(:llm_setup_failed, result.error)
           return
         end
 
@@ -972,7 +966,7 @@ module Phronomy
         when :not_committed
           state.invocation.event_sink.post(
             :llm_setup_failed,
-            translated(command.original_error)
+            command.original_error
           )
         when :conflict
           mark_barrier_recovery_required(operation, command.original_error)
@@ -1011,7 +1005,7 @@ module Phronomy
         when :not_committed
           state.invocation.event_sink.post(
             :tool_setup_failed,
-            translated(command.original_error)
+            command.original_error
           )
         when :conflict
           mark_barrier_recovery_required(operation, command.original_error)
@@ -1087,7 +1081,7 @@ module Phronomy
           state: :resuming
         )
         resume_transition_started = true
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           @approval_resume_commit.commit(operation)
         end
         submitted = true
@@ -1110,7 +1104,7 @@ module Phronomy
             state: submitted ? :recovery_required : :suspended
           )
         end
-        fail_task(request.result_task, translated(error))
+        fail_task(request.result_task, error)
         raise unless resume_transition_started
       end
 
@@ -1154,7 +1148,7 @@ module Phronomy
             execution_id: operation.execution_id,
             state: :recovery_required
           )
-          fail_task(request.result_task, translated(ready.error))
+          fail_task(request.result_task, ready.error)
           return
         end
 
@@ -1175,7 +1169,7 @@ module Phronomy
             fsm_session_id: state.fsm_session_id
           )
         else
-          fail_task(request.result_task, translated(error))
+          fail_task(request.result_task, error)
         end
       end
 
@@ -1234,8 +1228,8 @@ module Phronomy
           state.execution, command.result_task, load_completion: command.load_completion
         )
       rescue => error
-        fail_task(command.result_task, translated(error))
-        command.load_completion.fail(translated(error))
+        fail_task(command.result_task, error)
+        command.load_completion.fail(error)
       end
 
       def continue_recovered_on_event_loop(command)
@@ -1442,7 +1436,7 @@ module Phronomy
       end
 
       def begin_terminal_without_session_on_event_loop(request:, prepared:, error:)
-        return deliver_start_failure_on_event_loop(request, translated(error)) unless prepared&.execution
+        return deliver_start_failure_on_event_loop(request, error) unless prepared&.execution
 
         operation = build_terminal_operation(
           execution: prepared.execution,
@@ -1503,7 +1497,7 @@ module Phronomy
           operation.execution_id,
           delivery.result_task
         )
-        task = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. TaskResult/listener delivery state stays outside it.
           @outcome_committer.commit_outcome(operation)
@@ -1533,7 +1527,7 @@ module Phronomy
           return
         end
 
-        fail_task(delivery.result_task, translated(error))
+        fail_task(delivery.result_task, error)
         raise
       end
 
@@ -1913,10 +1907,6 @@ module Phronomy
         Phronomy::RuntimeShutdownError.new(
           "EventLoop is not accepting Agent #{operation} control delivery"
         )
-      end
-
-      def translated(error)
-        @agent.send(:_translated_error, error)
       end
 
       def complete_task(task, result)

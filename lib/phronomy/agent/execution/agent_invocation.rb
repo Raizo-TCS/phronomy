@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
 require "time"
@@ -140,7 +140,7 @@ module Phronomy
 
         durable_id = llm_call_id
         if durable_id.nil? &&
-            Phronomy::Runtime.in_event_loop_context?
+            Phronomy::WaitPolicy.blocking_forbidden?
           state =
             Phronomy::Agent::ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_execution_state(
               execution_id

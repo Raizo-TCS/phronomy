@@ -20,7 +20,7 @@ module IntegrationFactors
   # Fixture Tool classes
   # ---------------------------------------------------------------------------
 
-  class CalculatorTool < Phronomy::Agent::Context::Capability::Base
+  class CalculatorTool < Phronomy::Tool::Base
     description "Adds two integers and returns the sum as a string"
     param :a, type: :integer, desc: "First integer"
     param :b, type: :integer, desc: "Second integer"
@@ -30,7 +30,7 @@ module IntegrationFactors
     end
   end
 
-  class WeatherTool < Phronomy::Agent::Context::Capability::Base
+  class WeatherTool < Phronomy::Tool::Base
     description "Returns a brief weather description for a city"
     param :city, type: :string, desc: "Name of the city"
 
@@ -39,7 +39,7 @@ module IntegrationFactors
     end
   end
 
-  class AlwaysErrorTool < Phronomy::Agent::Context::Capability::Base
+  class AlwaysErrorTool < Phronomy::Tool::Base
     description "Always raises a RuntimeError (used to test on_error: :raise)"
     param :input, type: :string, desc: "Any string input"
 
@@ -48,7 +48,7 @@ module IntegrationFactors
     end
   end
 
-  class SuppressOnErrorTool < Phronomy::Agent::Context::Capability::Base
+  class SuppressOnErrorTool < Phronomy::Tool::Base
     description "Always raises but suppresses the error"
     param :input, type: :string, desc: "Any string input"
 
@@ -59,7 +59,7 @@ module IntegrationFactors
     end
   end
 
-  class EnumCitySelectorTool < Phronomy::Agent::Context::Capability::Base
+  class EnumCitySelectorTool < Phronomy::Tool::Base
     description "Returns a short fact about a supported city: Tokyo, London, Paris"
     on_schema_error :raise
     param :city, type: :string,
@@ -167,14 +167,14 @@ module IntegrationFactors
   def self.prompt_template(label)
     case label
     when "human_only"
-      Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "Answer this question: {{question}}")
+      Phronomy::Context::PromptTemplate.new(template: "Answer this question: {{question}}")
     when "with_system"
-      Phronomy::Agent::Context::Instruction::PromptTemplate.new(
+      Phronomy::Context::PromptTemplate.new(
         template: "Answer this question: {{question}}",
         system_template: "You are a {{role}} expert. Keep answers very short."
       )
     when "multi_variable"
-      Phronomy::Agent::Context::Instruction::PromptTemplate.new(
+      Phronomy::Context::PromptTemplate.new(
         template: "Translate {{text}} from {{source_lang}} to {{target_lang}}.",
         system_template: "You are a professional translator."
       )
@@ -315,7 +315,7 @@ module IntegrationFactors
     Phronomy::Testing::Eval::Dataset.from_array(all_pairs.first(count))
   end
 
-  class NoApprovalTool < Phronomy::Agent::Context::Capability::Base
+  class NoApprovalTool < Phronomy::Tool::Base
     tool_name "no_approval_tool"
     description "A test tool that does not require approval"
     param :value, type: :string, desc: "Input value"
@@ -325,7 +325,7 @@ module IntegrationFactors
     end
   end
 
-  class RequiresApprovalTool < Phronomy::Agent::Context::Capability::Base
+  class RequiresApprovalTool < Phronomy::Tool::Base
     tool_name "requires_approval_tool"
     description "A test tool that requires approval"
     requires_approval true
@@ -372,7 +372,7 @@ module IntegrationFactors
     policy = policy_label.to_sym
     result = execute_result
 
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "schema_test_tool"
       description "Integration test tool for schema error policies"
       on_schema_error policy
@@ -427,16 +427,16 @@ module IntegrationFactors
     when "nil"
       ->(_ctx) {}
     when "empty_hash"
-      ->(_ctx) { Phronomy::Agent::LLMInputPatch.empty }
+      ->(_ctx) { Phronomy::Context::LLMInputPatch.empty }
     when "param_merge"
       ->(_ctx) {
-        Phronomy::Agent::LLMInputPatch.new(
+        Phronomy::Context::LLMInputPatch.new(
           model_config_patch: {temperature: 0.1}
         )
       }
     when "model_override"
       ->(_ctx) {
-        Phronomy::Agent::LLMInputPatch.new(
+        Phronomy::Context::LLMInputPatch.new(
           model_config_patch: {model: LM_STUDIO_MODEL}
         )
       }
@@ -562,7 +562,7 @@ module IntegrationFactors
   LM_MODEL_30 = LM_STUDIO_MODEL
 
   def self.approval_tool(result_value: "approval_tool_result")
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "approval_required_tool"
       description "A tool that requires approval"
       param :query, type: :string, desc: "Input for the tool"
@@ -575,7 +575,7 @@ module IntegrationFactors
   end
 
   def self.second_approval_tool(result_value: "second_approval_tool_result")
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "second_approval_required_tool"
       description "A second tool that requires approval"
       param :query, type: :string, desc: "Input for the tool"
@@ -849,7 +849,7 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Group 37: OffloadPool boundary fixtures
   # ---------------------------------------------------------------------------
-  class BbBlockingTool < Phronomy::Agent::Context::Capability::Base
+  class BbBlockingTool < Phronomy::Tool::Base
     tool_name "bb_blocking_tool"
     description "A offload tool used to verify pool routing"
     param :input, type: :string, desc: "Any string input"
@@ -860,7 +860,7 @@ module IntegrationFactors
     end
   end
 
-  class BbCooperativeTool < Phronomy::Agent::Context::Capability::Base
+  class BbCooperativeTool < Phronomy::Tool::Base
     tool_name "bb_cooperative_tool"
     description "A cooperative tool used to verify it bypasses the pool"
     param :input, type: :string, desc: "Any string input"
@@ -886,7 +886,7 @@ module IntegrationFactors
     end
   end
 
-  class FbBlockingTool < Phronomy::Agent::Context::Capability::Base
+  class FbBlockingTool < Phronomy::Tool::Base
     tool_name "fb_blocking_tool"
     description "A offload tool for fiber backend upper-layer tests"
     param :input, type: :string, desc: "Any string input"
@@ -897,7 +897,7 @@ module IntegrationFactors
     end
   end
 
-  class FbCooperativeTool < Phronomy::Agent::Context::Capability::Base
+  class FbCooperativeTool < Phronomy::Tool::Base
     tool_name "fb_cooperative_tool"
     description "A cooperative tool for fiber backend upper-layer tests"
     param :input, type: :string, desc: "Any string input"

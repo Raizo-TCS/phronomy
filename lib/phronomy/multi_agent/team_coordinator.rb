@@ -92,7 +92,7 @@ module Phronomy
         private
 
         def construct(id, persistence, metadata, listener, create:)
-          raise Phronomy::EventLoopReentrancyError, "Team construction cannot block EventLoop" if Phronomy::Runtime.in_event_loop_context?
+          raise Phronomy::EventLoopReentrancyError, "Team construction cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
           key = id.to_s
           raise ArgumentError, "team_id must not be empty" if key.empty?
           store = persistence || Phronomy.configuration.persistence || Phronomy::Persistence.in_memory
@@ -184,7 +184,7 @@ module Phronomy
       end
 
       def assert_caller!
-        raise Phronomy::EventLoopReentrancyError, "Team operation cannot block EventLoop" if Phronomy::Runtime.in_event_loop_context?
+        raise Phronomy::EventLoopReentrancyError, "Team operation cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
         unless @runtime.equal?(Phronomy::Runtime.instance)
           raise Phronomy::RuntimeShutdownError, "Team #{team_id} belongs to a previous Runtime"
         end
@@ -283,7 +283,7 @@ module Phronomy
         token = Phronomy::Concurrency::CancellationToken.new
         @tokens_mutex.synchronize { @tokens[id] = token }
         external = config[:cancellation_token]
-        callback = proc { Phronomy::Storage::AsyncClient.submit(pool: @runtime.offload) { cancel(id) } }
+        callback = proc { Phronomy::Execution.submit(runtime: @runtime, on_full: :raise) { cancel(id) } }
         external&.on_cancel(&callback)
         token.cancel! if current.metadata["cancel_requested"]
         begin
@@ -477,7 +477,7 @@ module Phronomy
 
       def build_operation_tool(run_id, operation)
         team = self
-        Class.new(Phronomy::Agent::Context::Capability::Base) do
+        Class.new(Phronomy::Tool::Base) do
           def self.__framework_owned_operation? = true
           tool_name operation.to_s
           description((operation == :enqueue_task) ? "Add a task to the worker queue." : "Finish task generation.")
@@ -497,7 +497,7 @@ module Phronomy
           end
           define_method(:execute_async) do |config: {}, cancellation_token: nil, **arguments|
             key = config.fetch(:phronomy_tool_invocation_id)
-            Phronomy::Storage::AsyncClient.submit(pool: Phronomy::Runtime.instance.offload) do
+            Phronomy::Execution.submit(on_full: :raise) do
               team.send(:apply_operation, run_id, key, operation, arguments)
             rescue Phronomy::CancellationError
               raise

@@ -3,7 +3,7 @@
 require "spec_helper"
 require "timeout"
 
-class ACS16BlockingTool < Phronomy::Agent::Context::Capability::Base
+class ACS16BlockingTool < Phronomy::Tool::Base
   tool_name "acs16_blocking_tool"
   description "Blocks until the test releases it"
   param :value, type: :string, desc: "Input"
@@ -351,7 +351,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       persistence = Phronomy::Persistence.in_memory
 
       # Minimal HITL tool that requires approval.
-      hitl_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      hitl_cls = Class.new(Phronomy::Tool::Base) do
         tool_name "acs16_hitl_tool"
         description "Requires approval"
         requires_approval true
@@ -411,7 +411,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       # This exercises the `elsif operation.respond_to?(:done?)` branch in
       # supervise_agent_operation, which fires when the operation lacks
       # physical_complete? but has done?.
-      cooperative_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      cooperative_cls = Class.new(Phronomy::Tool::Base) do
         tool_name "acs16_cooperative_tool"
         description "Cooperative tool returning a plain TaskResult"
         execution_mode :cooperative
@@ -464,7 +464,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       # A cooperative tool that returns a custom completion handle with only on_complete.
       # This exercises the `else false` branch of supervise_agent_operation and
       # the `else operation.on_complete` branch (no on_physical_complete).
-      custom_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      custom_cls = Class.new(Phronomy::Tool::Base) do
         tool_name "acs16_custom_handle_tool"
         description "Returns a custom completion handle"
         execution_mode :cooperative

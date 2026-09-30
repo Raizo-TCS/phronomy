@@ -50,7 +50,7 @@ Install only the backend gems required by your application:
 ## Define a Tool and Agent
 
 Use `Phronomy::Tool::Base` as the application-facing authoring API. It is an
-exact alias of the existing `Phronomy::Agent::Context::Capability::Base`, so
+exact alias of the existing `Phronomy::Tool::Base`, so
 existing Tool definitions using the longer namespace remain compatible.
 
 ```ruby

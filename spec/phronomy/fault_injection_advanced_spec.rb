@@ -88,7 +88,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   describe "Tool failure is not replayed by Phronomy" do
     it "executes the Tool body once and propagates ToolError" do
       attempts = 0
-      tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_class = Class.new(Phronomy::Tool::Base) do
         description "Fails and never succeeds"
 
         define_method(:execute) do

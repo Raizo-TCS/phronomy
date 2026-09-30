@@ -12,6 +12,14 @@ module Phronomy
       # Candidates have no side effects. Runtime retains the first registration.
       # Existing instances remain available for lookup and transition completion
       # after admission closes; their own gate rejects new ownership changes.
+      def self.current
+        self.for(Phronomy::Runtime.instance)
+      end
+
+      def self.existing_current
+        existing_for(Phronomy::Runtime.instance)
+      end
+
       def self.for(runtime)
         existing_for(runtime) || runtime.__register_shutdown_participant(
           key: self, participant: new(runtime: runtime)

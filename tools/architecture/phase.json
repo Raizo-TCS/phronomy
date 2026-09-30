@@ -1,5 +1,25 @@
 {
   "phase": "storage",
-  "completed_steps": ["P1", "P2", "P3", "P4"],
-  "pending_steps": ["P5"]
+  "completed_steps": [
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ],
+  "pending_steps": [
+    "P5"
+  ],
+  "r8_unit1": {
+    "status": "partial_spec_implementation",
+    "completed_scope": [
+      "Context and Tool common operations",
+      "Execution common framework and Engine binding"
+    ],
+    "pending_scope": [
+      "Persistence participation API and parent admission",
+      "Domain FSM connection decomposition",
+      "Remaining r8 domain regrouping",
+      "155 pair / 393 triangle semantic review"
+    ]
+  }
 }

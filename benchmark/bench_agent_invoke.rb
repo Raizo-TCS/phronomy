@@ -61,7 +61,7 @@ class BenchStubChat
 end
 
 # A stub tool that does nothing but conforms to the Tool::Base interface.
-class BenchNullTool < Phronomy::Agent::Context::Capability::Base
+class BenchNullTool < Phronomy::Tool::Base
   description "No-op benchmark tool"
   param :x, type: :string, desc: "input"
 

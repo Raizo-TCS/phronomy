@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   module Agent
@@ -154,7 +154,7 @@ module Phronomy
           call_sequence: recorded.llm_calls.length + 1,
           config: operation.invocation_config
         )
-        assembler = ContextAssembler.new(
+        assembler = ContextPreparation.new(
           agent: @agent,
           persistence: @persistence,
           journal_records: operation.journal_records
@@ -179,7 +179,7 @@ module Phronomy
         begin
           @persistence.transaction do |tx|
             assert_local_durable_base!(tx, operation.root)
-            manifest, manifest_ref = assembler.finalize(prepared, persistence: tx)
+            manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
             updated = execution_with_provider_manifest(recorded, manifest_ref)
             updated = @agent.__prepare_coordination_record(updated, tx: tx)
             tx.executions.save(
@@ -213,7 +213,7 @@ module Phronomy
       def materialize_provider_result(execution, manifest, manifest_ref)
         projection = materialization_error = nil
         begin
-          projection = RubyLLMMaterializer.new(
+          projection = RuntimeInput.new(
             agent: @agent, persistence: @persistence
           ).materialize(manifest: manifest, manifest_ref: manifest_ref)
         rescue => error

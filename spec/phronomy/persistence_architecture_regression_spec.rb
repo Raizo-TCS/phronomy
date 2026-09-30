@@ -71,7 +71,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
     expect(class_api).to include("def live_for_execution")
     expect(class_api).not_to match(/\bdef approve(?:_async)?\b/)
-    expect(lookup).to include("ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner")
+    expect(lookup).to include("ExecutionRegistry.existing_current&.agent_execution_owner")
     expect(lookup).not_to include("persistence.executions.load")
     expect(lookup).not_to include("persistence.agents.load")
     expect(base).to include("records: _journal_records_snapshot")
@@ -88,7 +88,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       .first
     expect(add_knowledge).not_to include("agents.load")
     expect(mutate_context).not_to include("agents.load")
-    state_writer = File.read(File.join(root, "lib/phronomy/agent/context_assembly/state_writer.rb"))
+    state_writer = File.read(File.join(root, "lib/phronomy/agent/state_writer.rb"))
     expect(state_writer).not_to include("agents.load", "journals.read")
     expect(state_writer).not_to include("__replace_root", "_append_journal_records")
   end
@@ -123,8 +123,8 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     encoding = worker.split("def encode_provider_records", 2).fetch(1).split(/^      def /, 2).first
     commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first
     expect(encoding.index("assert_local_durable_base!")).to be < encoding.index("RuntimeRecordEncoder.encode")
-    expect(commit.index("assert_local_durable_base!")).to be < commit.index("assembler.finalize")
-    expect(commit.index("assembler.finalize")).to be < commit.index("tx.executions.save")
+    expect(commit.index("assert_local_durable_base!")).to be < commit.index("Phronomy::Context::Assembly.new.store")
+    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("tx.executions.save")
   end
 
   it "starts a follow-up Provider Call only after EventLoop validates and applies preparation" do

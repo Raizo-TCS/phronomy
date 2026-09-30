@@ -43,10 +43,10 @@ RSpec.describe "Tracing extension contract (ACS-05)" do
       config.trace_pii = true
     end
 
-    runnable = Class.new { include Phronomy::Runnable }.new
+    Class.new { include Phronomy::Runnable }.new
     threads = 2.times.map do |index|
       Thread.new do
-        runnable.trace("op-#{index}") { ["result-#{index}", nil] }
+        Phronomy::Tracing::Observation.trace("op-#{index}") { ["result-#{index}", nil] }
       end
     end
 

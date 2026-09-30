@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   module Concurrency
@@ -81,7 +81,7 @@ module Phronomy
           @submitted_at = submitted_at ||
             Process.clock_gettime(Process::CLOCK_MONOTONIC)
           @mutex = Mutex.new
-          @timer_subscriptions = Subscriptions.new
+          @timer_subscriptions = ResultSubscriptions.new
 
           # Explicit submit cancellation is operation-wide. Deadline-only tokens are
           # promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
@@ -384,7 +384,7 @@ module Phronomy
         full_timeout: nil,
         &block
       )
-        if Phronomy::Runtime.in_event_loop_context? && on_full != :raise
+        if Phronomy::WaitPolicy.blocking_forbidden? && on_full != :raise
           raise Phronomy::EventLoopReentrancyError,
             "OffloadPool admission cannot wait on EventLoop; use on_full: :raise"
         end

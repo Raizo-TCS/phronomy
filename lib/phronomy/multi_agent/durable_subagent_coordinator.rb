@@ -46,9 +46,8 @@ module Phronomy
       end
 
       def self.start(parent:, tool_invocation_id:, parent_execution_id:, config:)
-        runtime = Phronomy::Runtime.instance
         completion = Phronomy::TaskResult.deferred(name: "durable-subagent:#{tool_invocation_id}")
-        preparation = Phronomy::Storage::AsyncClient.submit(pool: runtime.offload) do
+        preparation = Phronomy::Execution.submit(on_full: :raise) do
           current = parent.persistence.executions.load(parent_execution_id)
           raise Phronomy::Persistence::StateConflictError, "Parent owner mismatch" unless current.agent_id == parent.agent_id
           snapshot = parent.persistence.contents.fetch_json(current.metadata.fetch(KEY))

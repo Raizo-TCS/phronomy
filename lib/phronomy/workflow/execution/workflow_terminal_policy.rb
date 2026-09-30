@@ -23,14 +23,14 @@ module Phronomy
       result = event.payload
       case result.outcome
       when :success
-        FSMProtocol::TerminalDecision.new(action: :complete, error: nil)
+        Phronomy::TerminalDecision.new(action: :complete, error: nil)
       when :known_failure
-        FSMProtocol::TerminalDecision.new(
+        Phronomy::TerminalDecision.new(
           action: :fail,
           error: result.error || Phronomy::Error.new("Workflow terminal persistence failed")
         )
       when :outcome_unknown
-        FSMProtocol::TerminalDecision.new(action: :retire, error: result.error)
+        Phronomy::TerminalDecision.new(action: :retire, error: result.error)
       else
         raise Phronomy::Error,
           "unknown Workflow terminal persistence outcome: #{result.outcome.inspect}"

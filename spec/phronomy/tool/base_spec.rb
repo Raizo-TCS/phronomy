@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Context::Capability::Base do
+RSpec.describe Phronomy::Tool::Base do
   # A simple tool for testing
   let(:hello_tool_class) do
     Class.new(described_class) do
@@ -206,13 +206,13 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         suppress_class.new.call({})
         expect(logged.first).to include("boom")
       end
 
       it "writes to stderr when on_error :suppress and no logger is configured" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         expect { suppress_class.new.call({}) }.to output(/boom/).to_stderr
       end
 
@@ -220,24 +220,24 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         tool = suppress_class.new
         tool.call({})
-        expect(logged.first).to match(/Phronomy::Agent::Context::Capability::Base|Tool/)
+        expect(logged.first).to match(/Phronomy::Tool::Base|Tool/)
       end
 
       it "includes e.class and e.message in the suppression message" do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         suppress_class.new.call({})
         expect(logged.first).to include("RuntimeError")
         expect(logged.first).to include("boom")
       end
 
       it "includes e.message (not just e) in the return string" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         result = suppress_class.new.call({})
         expect(result).to eq("Tool error suppressed: boom")
       end
@@ -448,7 +448,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         tool.call({})
         logged.first
       end
@@ -1194,9 +1194,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   describe "#call_async — direct unit tests" do
-    it "passes cancellation_token to Phronomy::Agent::Context::Capability::ToolExecutor" do
+    it "passes cancellation_token to Phronomy::Tool::ToolExecutor" do
       ct = Phronomy::Concurrency::CancellationToken.new
-      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: ct,
@@ -1206,7 +1206,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
 
     it "passes nil cancellation_token by default" do
-      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: nil,
@@ -1216,7 +1216,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
 
     it "delegates to the internal Tool executor and returns a TaskResult" do
-      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).and_call_original
+      expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
       expect(result).to be_a(Phronomy::TaskResult)
     end
@@ -1655,13 +1655,13 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         limited_tool.send(:truncate_result_if_needed, "a" * 20)
         expect(logged.first).to include("20 chars > 10 limit")
       end
 
       it "emits warning to stderr when no logger is configured" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         expect { limited_tool.send(:truncate_result_if_needed, "a" * 20) }
           .to output(/20 chars > 10 limit/).to_stderr
       end
@@ -1673,7 +1673,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
 
       it "truncates to exactly max characters (verifies result[0, max] not full string)" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         result = limited_tool.send(:truncate_result_if_needed, "abcdefghijklmno")
         expect(result).to eq("abcdefghij...[truncated]")
       end
@@ -1681,8 +1681,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
     context "when global tool_result_max_size is set" do
       it "truncates using the global limit" do
-        allow(Phronomy.configuration).to receive(:tool_result_max_size).and_return(5)
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.tool_result_max_size = 5
+        Phronomy.configuration.logger = nil
         result = tool.send(:truncate_result_if_needed, "abcdefghij")
         expect(result).to start_with("abcde")
         expect(result).to end_with("...[truncated]")
@@ -2481,7 +2481,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       logged = []
       logger = double("Logger")
       allow(logger).to receive(:warn) { |msg| logged << msg }
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
       expect { Class.new(described_class) { on_error :return_empty } }
         .to raise_error(ArgumentError)
     end
@@ -2507,7 +2507,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       logged = []
       logger = double("Logger")
       allow(logger).to receive(:warn) { |msg| logged << msg }
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
       Class.new(described_class) { on_error :suppress }
       expect(logged).to be_empty
     end
@@ -2522,7 +2522,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       described_class.new.execute
     rescue NotImplementedError => e
       expect(e.message).to include("#execute is not implemented")
-      expect(e.message).to include("Phronomy::Agent::Context::Capability::Base")
+      expect(e.message).to include("Phronomy::Tool::Base")
     end
 
     it "error message mentions the class name" do
@@ -2538,12 +2538,12 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
     it "error message uses class name format not instance representation" do
       # Kills mutation [32]: "#{self}#execute..." vs "#{self.class}#execute..."
-      # self.to_s = "#<Phronomy::Agent::Context::Capability::Base:0x...>", self.class.to_s = "Phronomy::Agent::Context::Capability::Base"
+      # self.to_s = "#<Phronomy::Tool::Base:0x...>", self.class.to_s = "Phronomy::Tool::Base"
 
       described_class.new.execute
     rescue NotImplementedError => e
-      expect(e.message).to start_with("Phronomy::Agent::Context::Capability::Base#execute")
-      expect(e.message).not_to include("#<Phronomy::Agent::Context::Capability::Base:")
+      expect(e.message).to start_with("Phronomy::Tool::Base#execute")
+      expect(e.message).not_to include("#<Phronomy::Tool::Base:")
     end
   end
 

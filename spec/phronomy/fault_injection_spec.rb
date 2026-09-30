@@ -44,17 +44,14 @@ RSpec.describe "Fault injection (Issue #213)" do
   # -------------------------------------------------------------------------
   describe "Error translation at retry boundary" do
     let(:translator) do
-      Class.new do
-        include Phronomy::Agent::Concerns::ErrorTranslation
-
-        def test_translate(error)
-          raise error
-        rescue
-          translate_and_reraise!($!)
+      adapter = Phronomy::LLMAdapter::RubyLLM.new
+      Object.new.tap do |probe|
+        probe.define_singleton_method(:test_translate) do |error|
+          chat = Object.new
+          chat.define_singleton_method(:ask) { |_message| raise error }
+          adapter.complete(chat, "fault injection")
         end
-
-        public :test_translate
-      end.new
+      end
     end
 
     it "translates RubyLLM::RateLimitError to Phronomy::RateLimitError" do

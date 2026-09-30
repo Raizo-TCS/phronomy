@@ -136,7 +136,7 @@ module Phronomy
     private
 
     def assert_observation_thread!
-      if Phronomy::Runtime.in_event_loop_context?
+      if Phronomy::WaitPolicy.blocking_forbidden?
         raise Phronomy::EventLoopReentrancyError, "Persistence observation cannot block EventLoop"
       end
     end
