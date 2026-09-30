@@ -556,7 +556,7 @@ module Phronomy
         load_existing:
       )
         @persistence = persistence ||
-          Phronomy.configuration.persistence ||
+          Phronomy.configuration.agent_store ||
           DefaultPersistence.build
         @agent_id = agent_id.to_s.freeze
 

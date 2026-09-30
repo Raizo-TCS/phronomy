@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "r8-unit2-parent-admission-20260930",
+  "diagram_revision": "r8-unit3-persistence-boundaries",
   "width": 3260,
   "column_centers": [
     330,
@@ -44,14 +44,12 @@
           "M54",
           "M17",
           "M36",
-          "M37",
-          "M62"
+          "M37"
         ],
         [
           "M32",
           "M53",
           "M38",
-          "M63",
           "M26"
         ],
         [
@@ -61,7 +59,6 @@
         [],
         [
           "M39",
-          "M49",
           "M51",
           "M74"
         ]
@@ -108,7 +105,6 @@
           "M18"
         ],
         [
-          "M75",
           "M10"
         ]
       ]
@@ -207,7 +203,9 @@
     "arrowhead_opacity": 0.75
   },
   "group_display_titles": {
-    "G04": "AGENT FRAMEWORK / STATE"
+    "G04": "AGENT FRAMEWORK / STATE",
+    "G55": "PERSISTENCE FRAMEWORK",
+    "G24": "PERSISTENCE COMPOSITION"
   },
   "band_start_y": 634,
   "group_theme": {
@@ -284,7 +282,6 @@
       "G29": "teal",
       "G30": "lavender",
       "G32": "teal",
-      "G33": "teal",
       "G34": "slate",
       "G35": "sand",
       "G37": "lavender",
@@ -306,7 +303,6 @@
       "G53": "support",
       "G54": "gray",
       "G55": "teal",
-      "G56": "mint",
       "G57": "teal",
       "G58": "mint",
       "G59": "lavender",
@@ -321,5 +317,5 @@
       "M44"
     ]
   },
-  "scope_note": "r8 UNIT 2: parent reservation + Agent admission. Legacy Persistence facade / result projections / other domain refactoring remain."
+  "scope_note": "Neutral Persistence / injected domain stores. Remaining reverse dependencies are visible."
 }

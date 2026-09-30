@@ -6,8 +6,8 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration do
   after { LLMStub.deactivate }
-  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence.in_memory } }
-  after { Phronomy.configure { |c| c.persistence = nil } }
+  before { Phronomy.configure { |c| c.agent_store = Phronomy::PersistenceComposition.in_memory.agent } }
+  after { Phronomy.configure { |c| c.agent_store = nil } }
 
   it "keeps the current user request in the current_request Handoff category" do
     lookup_tool = Class.new(Phronomy::Tool::Base) do

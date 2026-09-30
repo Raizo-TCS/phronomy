@@ -4,7 +4,8 @@ require "spec_helper"
 
 RSpec.describe "Feature-owned identity and Runtime shutdown" do
   let(:runtime) { Phronomy::Runtime.instance }
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "ownership-shutdown-agent", version: 1
@@ -18,6 +19,7 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
 
   %i[agent team].each do |kind|
     context "with #{kind} ownership" do
+      let(:store) { stores.public_send(kind) }
       let(:owner_class) { (kind == :agent) ? agent_class : team_class }
       let(:registry_class) do
         (kind == :agent) ? Phronomy::Agent::OwnershipRegistry : Phronomy::MultiAgent::TeamOwnershipRegistry

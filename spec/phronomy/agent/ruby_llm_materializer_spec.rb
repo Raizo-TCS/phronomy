@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::RuntimeInput do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent) do
     agent_class = Class.new do
       def self.tools = []

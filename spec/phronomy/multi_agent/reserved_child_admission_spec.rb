@@ -3,10 +3,12 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.agent }
+  let(:team_store) { stores.team }
   let(:root) { Phronomy::Agent::AgentRoot.create(agent_id: "child", agent_definition_id: "child", agent_definition_version: 1) }
   let(:owner) { {"kind" => "team", "team_id" => "parent", "team_execution_id" => "run", "slot" => "coordinator"} }
-  let(:reservation) { described_class.new(persistence: store, owner: owner) }
+  let(:reservation) { described_class.new(persistence: team_store, owner: owner) }
   let(:admission) do
     Phronomy::Agent::Admission.new(persistence: store, root: root, input: "input",
       config: {phronomy_reserved_execution_id: "child-run", phronomy_coordination: owner}, preparation_metadata: {})
@@ -27,17 +29,17 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
 
   before do
     store.agents.create(root)
-    store.teams.create(team)
-    store.team_executions.create_active(run)
+    team_store.teams.create(team)
+    team_store.team_executions.create_active(run)
   end
 
   it "locks the parent before reading its reservation and committing Agent admission" do
     calls = []
-    allow(store.backend).to receive(:lock_guard).and_wrap_original do |method, context, resource, **args|
+    allow(store.coordinator.backend).to receive(:lock_guard).and_wrap_original do |method, context, resource, **args|
       calls << [:lock, resource.id]
       method.call(context, resource, **args)
     end
-    allow(store.backend).to receive(:read_record).and_wrap_original do |method, context, resource, **args|
+    allow(store.coordinator.backend).to receive(:read_record).and_wrap_original do |method, context, resource, **args|
       calls << [:read, resource.id]
       method.call(context, resource, **args)
     end
@@ -52,14 +54,14 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
   end
 
   it "does not admit a child after a committed parent cancellation" do
-    store.team_executions.save("run", expected_revision: 0, execution: run.with(metadata: {"cancel_requested" => true}))
+    team_store.team_executions.save("run", expected_revision: 0, execution: run.with(metadata: {"cancel_requested" => true}))
     expect { reservation.admit(admission) }.to raise_error(Phronomy::CancellationError)
     expect(store.executions.list("child")).to be_empty
     expect(store.agents.load("child").agent_revision).to eq(0)
   end
 
   it "rejects a changed child identity without persisting input or execution" do
-    store.team_executions.save("run", expected_revision: 0,
+    team_store.team_executions.save("run", expected_revision: 0,
       execution: run.with(coordinator: {"agent_id" => "child", "execution_id" => "other-run"}))
     expect { reservation.admit(admission) }.to raise_error(Phronomy::Persistence::StateConflictError)
     expect(store.executions.list("child")).to be_empty
@@ -74,7 +76,7 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
 
   it "cannot expose a result inside an enclosing transaction or after its rollback" do
     expect do
-      store.atomic do
+      store.coordinator.atomic do
         reservation.admit(admission)
         admission.result
       end
@@ -83,8 +85,8 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
   end
 
   it "rejects another Persistence participant and a second use of a request" do
-    other = Phronomy::Persistence.in_memory
-    expect { other.atomic { |scope| admission.accept_in(scope) } }
+    other = Phronomy::PersistenceComposition.in_memory.agent
+    expect { other.coordinator.atomic { |scope| admission.accept_in(scope) } }
       .to raise_error(Phronomy::Persistence::TransactionError)
     expect { admission.accept }.to raise_error(Phronomy::ConfigurationError, /single-use/)
   end

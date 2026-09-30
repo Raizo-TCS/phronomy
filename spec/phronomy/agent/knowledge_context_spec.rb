@@ -9,7 +9,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
       .and_return(double("RubyLLM model", context_window: 1_000))
   end
 
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
 
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do

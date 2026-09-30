@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.shared_examples "a persistence content store" do
-  let(:content_store) { persistence.contents }
+  let(:content_store) { stores.agent.contents }
 
   it "returns the same content_id for the same bytes" do
     first = content_store.put("same".b, canonicalization_version: 1)

@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent logical-state ownership" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "local-state-owner-test", version: 1
@@ -42,8 +42,8 @@ RSpec.describe "Agent logical-state ownership" do
     agent_id = agent.agent_id
     Phronomy.reset_runtime!
 
-    expect(persistence.backend).to receive(:read_record).with(anything, Phronomy::Agent::Persistence::StorageSchema::ROOTS, key: agent_id).once.and_call_original
-    expect(persistence.backend).to receive(:read_stream).once.and_call_original
+    expect(persistence.coordinator.backend).to receive(:read_record).with(anything, Phronomy::Agent::Persistence::StorageSchema::ROOTS, key: agent_id).once.and_call_original
+    expect(persistence.coordinator.backend).to receive(:read_stream).once.and_call_original
     loaded = agent_class.load(agent_id, persistence: persistence)
 
     expect(persistence.agents).not_to receive(:load)

@@ -40,7 +40,7 @@ RSpec.describe "Storage dependency and transaction boundary" do
   end
 
   it "rolls back writes when decoding the backend response fails inside a transaction" do
-    backend = Phronomy::Persistence.in_memory.backend
+    backend = Phronomy::PersistenceComposition.in_memory.coordinator.backend
     # Persist the correct value, then return a corrupt identity. This exercises
     # F0 rollback after a physical write, without an external effect boundary.
     backend.define_singleton_method(:insert_record) do |context, resource, **arguments|
@@ -50,7 +50,7 @@ RSpec.describe "Storage dependency and transaction boundary" do
         format_version: record.format_version, payload: record.payload.merge("agent_id" => "wrong"))
       Phronomy::Storage::Entry::Record.new(**entry.to_h.merge(record: corrupt))
     end
-    persistence = Phronomy::Persistence.new(backend: backend)
+    persistence = Phronomy::PersistenceComposition.build(backend: backend).agent
     root = Phronomy::Agent::AgentRoot.create(agent_id: "rollback-agent",
       agent_definition_id: "storage-boundary", agent_definition_version: 1)
     content_id = nil

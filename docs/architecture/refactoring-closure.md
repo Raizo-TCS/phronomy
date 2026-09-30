@@ -21,7 +21,7 @@ because the later W/S sequence has reached its final step.
 
 | Owner | Name and location | Reason |
 |---|---|---|
-| Application facade | `Phronomy::Persistence`, `persistence/api` | Users address domain repositories and queries. This class is not the neutral backend contract. |
+| Persistence framework | `Phronomy::Persistence`, `persistence/` | Neutral atomic scopes. Domain stores own queries; composition supplies adapters. The previous shared facade is removed in [r8 unit 3](r8-unit3.md). |
 | Domain persistence | Agent, MultiAgent and Workflow `persistence` directories | Codecs, durable meanings, result queries and business constraints belong to the feature. |
 | Resource declarations | Agent persistence, Team/Workflow `storage_contract`, ContentStore | Schemas describe domain metadata; the nested roots keep existing Ruby identities without loading feature runtime just to obtain declarations. |
 | Common storage | `Phronomy::Storage`, `storage` | Resource/Record/Stream/Blob, conditions and transactions describe backend-neutral mechanisms. |

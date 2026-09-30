@@ -108,7 +108,7 @@ def primary(k):
     canonical = {
         'Phronomy::Agent': 'lib/phronomy/agent/api/agent.rb',
         'Phronomy::Workflow': 'lib/phronomy/workflow/execution/workflow.rb',
-        'Phronomy::Persistence': 'lib/phronomy/persistence/api/persistence.rb',
+        'Phronomy::Persistence': 'lib/phronomy/persistence/persistence.rb',
     }
     if k in canonical:
         matches = [d for d in decls[k] if d['file'] == canonical[k]]

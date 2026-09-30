@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:store) { Phronomy::PersistenceComposition.in_memory.team }
   let(:worker) do
     Class.new(Phronomy::Agent::Base) { agent_definition id: "team-unit-worker", version: 1 }
   end
@@ -48,7 +48,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     expect(definition.get("owned")).to equal(team)
     expect(definition.load("owned", persistence: store)).to equal(team)
     expect { definition.new(team_id: "owned", persistence: store) }.to raise_error(Phronomy::Persistence::ConflictError)
-    expect { definition.load("owned", persistence: Phronomy::Persistence.in_memory) }.to raise_error(Phronomy::ConfigurationError)
+    expect { definition.load("owned", persistence: Phronomy::PersistenceComposition.in_memory.team) }.to raise_error(Phronomy::ConfigurationError)
   end
 
   it "does not rebind a live Team listener" do

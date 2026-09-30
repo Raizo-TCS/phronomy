@@ -144,7 +144,7 @@ module Phronomy
       end
 
       def materialize(execution)
-        result = @agent.persistence.execution_result(execution.execution_id)
+        result = @agent.persistence.result(execution.execution_id)
         result.merge(output: result[:result]).freeze
       end
     end

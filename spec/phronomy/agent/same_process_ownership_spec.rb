@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent same-process live ownership" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "same-process-owner-test", version: 1
@@ -111,13 +111,13 @@ RSpec.describe "Agent same-process live ownership" do
     agent_class.create(agent_id: "agent-a", persistence: persistence)
     Phronomy.reset_runtime!
 
-    original_load = persistence.backend.method(:read_record)
+    original_load = persistence.coordinator.backend.method(:read_record)
     entered = Queue.new
     release = Queue.new
     count_mutex = Mutex.new
     load_count = 0
 
-    persistence.backend.define_singleton_method(:read_record) do |context, resource, **arguments|
+    persistence.coordinator.backend.define_singleton_method(:read_record) do |context, resource, **arguments|
       first = count_mutex.synchronize do
         load_count += 1
         load_count == 1
@@ -170,7 +170,7 @@ RSpec.describe "Agent same-process live ownership" do
 
   it "rejects load through a different Persistence instance while the Agent is live" do
     agent_class.create(agent_id: "agent-a", persistence: persistence)
-    other_persistence = Phronomy::Persistence.in_memory
+    other_persistence = Phronomy::PersistenceComposition.in_memory.agent
 
     expect {
       agent_class.load("agent-a", persistence: other_persistence)

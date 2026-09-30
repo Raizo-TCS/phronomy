@@ -4,7 +4,7 @@ require "spec_helper"
 
 # These expectations also run on the implementation before private extraction.
 RSpec.describe Phronomy::Agent::ContextPreparation do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:policy) do
     Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
@@ -194,7 +194,7 @@ RSpec.describe Phronomy::Agent::ContextPreparation do
     prepared = prepare_initial
     expect(policy_inputs).to eq([prepared.input])
     # A separate service over the same backend supplies the commit transaction.
-    commit_service = Phronomy::Persistence.new(backend: persistence.backend)
+    commit_service = Phronomy::PersistenceComposition.build(backend: persistence.coordinator.backend).agent
     expect(policy).not_to receive(:call)
     manifest, ref = commit_service.transaction { |tx| Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents) }
     expect(manifest.call_mode).to eq(:ask)

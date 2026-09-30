@@ -28,7 +28,7 @@ module Phronomy
 
     class TeamCoordinator
       attr_reader team_id: String
-      attr_reader persistence: ::Phronomy::Persistence
+      attr_reader persistence: Store
       def self.team_definition: (?id: String?, ?version: Integer?) -> Hash[Symbol, String | Integer]
       def self.coordinator_model: (?String? value) -> String?
       def self.coordinator_instructions: (?String? value) -> String?
@@ -36,9 +36,9 @@ module Phronomy
       def self.pool: (size: Integer, agent: singleton(::Phronomy::Agent::Base), ?on_error: Symbol) -> untyped
       def self.schedule: () { (Array[untyped]) -> untyped } -> untyped
       def self.aggregate: () { (Array[Hash[Symbol, untyped]]) -> untyped } -> untyped
-      def self.new: (?team_id: String, ?persistence: ::Phronomy::Persistence?, ?metadata: Hash[String, untyped], ?on_event: ^(untyped) -> untyped) -> instance
+      def self.new: (?team_id: String, ?persistence: Store?, ?metadata: Hash[String, untyped], ?on_event: ^(untyped) -> untyped) -> instance
       def self.create: (**untyped options) -> instance
-      def self.load: (String team_id, persistence: ::Phronomy::Persistence, ?on_event: ^(untyped) -> untyped) -> instance
+      def self.load: (String team_id, persistence: Store, ?on_event: ^(untyped) -> untyped) -> instance
       def self.get: (String team_id) -> instance?
       def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> untyped
       def stream: (untyped input, ?config: Hash[Symbol, untyped]) ?{ (Hash[Symbol, untyped]) -> untyped } -> untyped

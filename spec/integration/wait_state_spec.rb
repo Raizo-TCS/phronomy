@@ -20,7 +20,7 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   # Each test gets an isolated Persistence.in_memory backend so halt/resume
   # exercises Persistence#workflow_states rather than a no-op legacy store helper.
   def build_wait_state_workflow(resume_event: :proceed)
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
     Phronomy::Workflow.define(
       WaitStateTestContext,
       persistence: persistence

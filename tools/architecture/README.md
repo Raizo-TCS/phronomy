@@ -1,3 +1,18 @@
+## r8 unit 3 update
+
+The source diagram removes `persistence/api`, `persistence/contract`,
+`multi_agent/storage_contract`, and `workflow/storage_contract`. Common
+Persistence is defined in `persistence/persistence.rb`; failures are consolidated
+in `persistence/errors.rb`. Agent and Team store protocols are owned by their
+domains, including their RBS declarations. The full Ruby/RBS gate rejects common
+Persistence reaching domain implementations or composition. Targeted AST checks
+also reject fixed record adapter selection in the admission/store framework and
+Team access to Agent repositories, journal positions, and execution metadata.
+Subagent/Handoff internal coordination dependencies remain visible and unresolved.
+
+The sections below include earlier implementation checkpoints; their historical
+module counts and removed paths do not override the current source diagram.
+
 # Architecture evidence and responsibility groups
 
 The source graph is the union of Ruby AST dependencies and declared RBS type

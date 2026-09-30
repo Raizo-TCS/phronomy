@@ -9,7 +9,7 @@ RSpec.describe "Recovered execution continuation ownership (F2/F3; no X0 dispatc
       model "local-model"
     end
   end
-  let(:agent) { agent_class.new(agent_id: "continuation-owner", persistence: Phronomy::Persistence.in_memory) }
+  let(:agent) { agent_class.new(agent_id: "continuation-owner", persistence: Phronomy::PersistenceComposition.in_memory.agent) }
   let(:coordinator) { agent.send(:execution_coordinator) }
   let(:runtime) { Phronomy::Runtime.instance }
   let(:registry) { Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop) }
@@ -85,7 +85,7 @@ RSpec.describe "Recovered execution continuation ownership (F2/F3; no X0 dispatc
     it "leaves the current state untouched for a #{conflict} conflict" do
       replacement = case conflict
       when :revision then {execution: execution.with(metadata: {"newer" => true})}
-      when :owner then {agent: agent_class.new(agent_id: "other-owner", persistence: Phronomy::Persistence.in_memory)}
+      when :owner then {agent: agent_class.new(agent_id: "other-owner", persistence: Phronomy::PersistenceComposition.in_memory.agent)}
       when :coordinator then {coordinator: Phronomy::Agent::ExecutionCoordinator.new(agent)}
       when :session then {fsm_session_id: "already-running-session"}
       when :terminal then {execution: execution.with(status: :completed, execution_revision: execution.execution_revision)}

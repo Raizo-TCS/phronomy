@@ -41,7 +41,7 @@ RSpec.describe "CG-05 Handoff architecture regression guards" do
       klass = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "handoff-boundary", version: 1
       end
-      store = Phronomy::Persistence.in_memory
+      store = Phronomy::PersistenceComposition.agent
       first = klass.create(persistence: store)
       second = klass.create(persistence: store)
       edge = Phronomy::Agent::Handoff.new(source_agent: first, target_agent: second)

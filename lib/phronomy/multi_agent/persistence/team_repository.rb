@@ -12,7 +12,7 @@ module Phronomy
           Phronomy::Persistence::StorageBoundary.call do
             record = Codec.encode_team_root(root)
             @view.atomic do |bound|
-              entry = bound.records(Phronomy::TeamStorageSchema::ROOTS).insert(key: root.team_id.to_s,
+              entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS).insert(key: root.team_id.to_s,
                 revision: Integer(root.team_revision), attributes: {}, record: record)
               decode(entry, root.team_id, revision: root.team_revision)
             end
@@ -22,7 +22,7 @@ module Phronomy
         def load(team_id)
           Phronomy::Persistence::StorageBoundary.call do
             value = @view.atomic do |bound|
-              entry = bound.records(Phronomy::TeamStorageSchema::ROOTS).read(team_id.to_s)
+              entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS).read(team_id.to_s)
               entry && decode(entry, team_id)
             end
             value || raise(Phronomy::Storage::NotFoundError, "Team not found: #{team_id}")
@@ -39,7 +39,7 @@ module Phronomy
             end
             record = Codec.encode_team_root(root)
             @view.atomic do |bound|
-              entry = bound.records(Phronomy::TeamStorageSchema::ROOTS).replace(key: team_id.to_s,
+              entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS).replace(key: team_id.to_s,
                 expected_revision: expected, next_revision: revision, attributes: {}, record: record)
               decode(entry, team_id, revision: revision)
             end
@@ -48,7 +48,7 @@ module Phronomy
 
         def delete(team_id)
           Phronomy::Persistence::StorageBoundary.call do
-            @view.records(Phronomy::TeamStorageSchema::ROOTS).delete(key: team_id.to_s)
+            @view.records(Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS).delete(key: team_id.to_s)
           end
         end
 

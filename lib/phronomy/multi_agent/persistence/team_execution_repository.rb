@@ -14,7 +14,7 @@ module Phronomy
             record = Codec.encode_team_execution(execution)
             admission do
               @view.atomic do |bound|
-                entry = bound.records(Phronomy::TeamStorageSchema::EXECUTIONS).insert(key: execution.team_execution_id.to_s,
+                entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).insert(key: execution.team_execution_id.to_s,
                   revision: Integer(execution.execution_revision), attributes: attributes(execution), record: record)
                 decode(entry, execution.team_execution_id, owner: execution.team_id,
                   revision: execution.execution_revision, active: true)
@@ -26,7 +26,7 @@ module Phronomy
         def load(team_execution_id)
           Phronomy::Persistence::StorageBoundary.call do
             value = @view.atomic do |bound|
-              entry = bound.records(Phronomy::TeamStorageSchema::EXECUTIONS).read(team_execution_id.to_s)
+              entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).read(team_execution_id.to_s)
               entry && decode(entry, team_execution_id)
             end
             value || raise(Phronomy::Storage::NotFoundError, "TeamExecution not found: #{team_execution_id}")
@@ -44,7 +44,7 @@ module Phronomy
             record = Codec.encode_team_execution(execution)
             admission do
               @view.atomic do |bound|
-                entry = bound.records(Phronomy::TeamStorageSchema::EXECUTIONS).replace(key: team_execution_id.to_s,
+                entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).replace(key: team_execution_id.to_s,
                   expected_revision: expected, next_revision: revision, attributes: attributes(execution),
                   expected_attributes: execution.active? ? {active: true} : {}, record: record)
                 decode(entry, team_execution_id, owner: execution.team_id, revision: revision, active: execution.active?)
@@ -56,7 +56,7 @@ module Phronomy
         def list_active(team_id)
           Phronomy::Persistence::StorageBoundary.call do
             @view.atomic do |bound|
-              bound.records(Phronomy::TeamStorageSchema::EXECUTIONS).scan(index: :owner_active,
+              bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).scan(index: :owner_active,
                 equals: {owner: team_id.to_s, active: true}).map { |entry| decode(entry, entry.key, owner: team_id, active: true) }.freeze
             end
           end
@@ -66,7 +66,7 @@ module Phronomy
           Phronomy::Persistence::StorageBoundary.call do
             raise ArgumentError, "limit must be a positive Integer" unless limit.is_a?(Integer) && limit.positive?
             @view.atomic do |bound|
-              bound.records(Phronomy::TeamStorageSchema::EXECUTIONS).scan(index: :owner, equals: {owner: team_id.to_s},
+              bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).scan(index: :owner, equals: {owner: team_id.to_s},
                 after: after&.to_s, limit: limit).map { |entry| decode(entry, entry.key, owner: team_id) }.freeze
             end
           end
@@ -74,21 +74,21 @@ module Phronomy
 
         def delete(team_execution_id)
           Phronomy::Persistence::StorageBoundary.call do
-            @view.records(Phronomy::TeamStorageSchema::EXECUTIONS).delete(key: team_execution_id.to_s)
+            @view.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).delete(key: team_execution_id.to_s)
           end
         end
 
         def delete_for_team(team_id)
           Phronomy::Persistence::StorageBoundary.call do
-            @view.records(Phronomy::TeamStorageSchema::EXECUTIONS).delete_matching(index: :owner, equals: {owner: team_id.to_s})
+            @view.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).delete_matching(index: :owner, equals: {owner: team_id.to_s})
           end
         end
 
         def assert_idle!(team_id)
           Phronomy::Persistence::StorageBoundary.call do
-            condition = Phronomy::Storage::Condition::NoRows.new(resource: Phronomy::TeamStorageSchema::EXECUTIONS,
+            condition = Phronomy::Storage::Condition::NoRows.new(resource: Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS,
               index: :owner_active, equals: {owner: team_id.to_s, active: true})
-            @view.check!(guards: [Phronomy::Storage::GuardRef.new(resource: Phronomy::TeamStorageSchema::ROOTS, key: team_id.to_s)],
+            @view.check!(guards: [Phronomy::Storage::GuardRef.new(resource: Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS, key: team_id.to_s)],
               conditions: [condition])
           rescue Phronomy::Storage::ConditionFailedError => error
             raise unless error.condition.equal?(condition)
@@ -103,7 +103,7 @@ module Phronomy
         def admission
           yield
         rescue Phronomy::Storage::UniqueConstraintError => error
-          raise unless error.resource == Phronomy::TeamStorageSchema::EXECUTIONS.id && error.constraint == :one_active_owner
+          raise unless error.resource == Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS.id && error.constraint == :one_active_owner
           raise Phronomy::AgentBusyError, error.message
         end
 

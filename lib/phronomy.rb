@@ -28,7 +28,7 @@ end
   llm_adapter/async llm_adapter/backends
   vector_store/async vector_store/backends
   vector_store/embeddings/async vector_store/embeddings/backends
-  storage/async persistence/contract
+  storage/async
 ].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
@@ -45,17 +45,16 @@ end
 # beside the feature they belong to, without aliases or a new partial-load API.
 %w[
   agent/api
-  persistence/api
   workflow/execution
-  workflow/storage_contract
-  multi_agent/storage_contract
 ].each do |directory|
   loader.push_dir("#{__dir__}/phronomy/#{directory}", namespace: Phronomy)
 end
 
 # These files wire composition, reopen namespaces, or patch a dependency.
 loader.ignore(
-  "#{__dir__}/phronomy/persistence/api/persistence.rb",
+  "#{__dir__}/phronomy/persistence/persistence.rb",
+  "#{__dir__}/phronomy/persistence/errors.rb",
+  "#{__dir__}/phronomy/persistence_composition/stores.rb",
   "#{__dir__}/phronomy/runtime_composition/global_configuration.rb",
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
@@ -70,7 +69,8 @@ loader.ignore(
 )
 # Failure contracts can define Persistence before ordinary framework loading.
 # Explicitly install its service methods without constructing a backend/Runtime.
-require_relative "phronomy/persistence/api/persistence"
+require_relative "phronomy/persistence/persistence"
+require_relative "phronomy/persistence/errors"
 loader.ignore("#{__dir__}/phronomy/tool/tool_error.rb")
 loader.ignore("#{__dir__}/phronomy/filter/filter_block_error.rb")
 loader.ignore("#{__dir__}/phronomy/output_parser/parse_error.rb")
@@ -81,6 +81,7 @@ loader.ignore("#{__dir__}/phronomy/agent/handoff_error.rb")
 loader.ignore("#{__dir__}/phronomy/agent/agent_already_exists_error.rb")
 loader.setup
 require_relative "phronomy/persistence/transaction"
+require_relative "phronomy/persistence_composition/stores"
 require_relative "phronomy/tool/tool_error"
 require_relative "phronomy/filter/filter_block_error"
 require_relative "phronomy/output_parser/parse_error"

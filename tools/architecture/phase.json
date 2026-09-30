@@ -30,12 +30,34 @@
       "Reservation locking and Handoff cancellation re-read"
     ],
     "pending_scope": [
-      "PostgreSQL real concurrency CI for unit2",
       "Persistence facade removal / composition separation",
       "Parent result and authorization projections",
       "Domain FSM connection decomposition",
       "Workflow durable child protocol / persistence evidence",
       "Remaining r8 domain regrouping and semantic dependency review"
+    ],
+    "postgresql_verification": {
+      "examples_commit": "70b7244c9f6542062849869a7106c5a627868a80",
+      "core_commit": "a82974a7fd2360a13af71831a0c3ddc75942fae3",
+      "run_id": 36690643058,
+      "status": "success on Ruby 3.2/3.3/3.4; 127 examples each"
+    }
+  },
+  "r8_unit3": {
+    "status": "partial_spec_implementation",
+    "completed_scope": [
+      "Neutral Persistence; shared facade removed",
+      "Domain-owned Agent/Team stores with injected record adapters",
+      "Application assembly and separate Workflow checkpoint port",
+      "Persistence failures and domain schemas consolidated",
+      "Team authorization uses immutable Agent public operation projection in the same scope",
+      "Team scheduling uses its own assignment history, not Agent journal_position"
+    ],
+    "pending_scope": [
+      "Subagent/Handoff and Orchestrator record/metadata ownership and public operations",
+      "Domain FSM connections",
+      "Workflow durable children and cross-record outcome evidence",
+      "Full semantic dependency review"
     ]
   }
 }

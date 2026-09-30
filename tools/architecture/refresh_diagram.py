@@ -143,11 +143,23 @@ def check_boundaries(audit, phase, repo, architecture=None):
             if route:
                 violations.append({"kind": "runtime-settings-reaches-feature", "path": route})
     persistence_contract = "lib/phronomy/persistence/contract"
-    if persistence_contract in modules:
+    persistence = "lib/phronomy/persistence"
+    if architecture.get("persistence_framework_separated"):
+        allowed = {persistence, "lib/phronomy/storage", "lib/phronomy/content_store"}
+        route = path_to(graph, persistence, lambda t: t not in allowed and roles.get(t) != "common")
+        if route:
+            violations.append({"kind": "persistence-framework-reaches-domain-or-composition", "path": route})
+        for source in ["lib/phronomy/storage", "lib/phronomy/storage/backends"]:
+            route = path_to(graph, source, lambda t: beneath(t, persistence))
+            if route:
+                violations.append({"kind": "storage-reaches-persistence", "path": route})
+    elif persistence_contract in modules:
         route = path_to(graph, persistence_contract, lambda t: roles.get(t) != "common")
         if route:
             violations.append({"kind": "persistence-contract-reaches-implementation", "path": route})
-        # Runners consume persistence failures, not the raw Storage error SPI.
+    if persistence_contract in modules or architecture.get("persistence_framework_separated"):
+        # Domain operations consume their own record protocol and common
+        # Persistence failures, never the raw Storage view/error SPI.
         domain_consumers = ["agent", "agent/execution", "agent/handoff", "agent/lifecycle",
                             "agent/recovery", "agent/recovery/recovery_coordinator",
                             "multi_agent", "workflow/execution"]

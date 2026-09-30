@@ -3,5 +3,9 @@
 # Select the Agent default at the application composition boundary. Binding
 # does not create Persistence, global configuration, or a Runtime.
 Phronomy::Agent::DefaultPersistence.install_factory(
-  -> { Phronomy::Persistence.in_memory }
+  -> { Phronomy::PersistenceComposition.agent }
+)
+
+Phronomy::MultiAgent::TeamCoordinator.install_persistence_factory(
+  -> { Phronomy::PersistenceComposition.in_memory.team }
 )

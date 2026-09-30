@@ -63,8 +63,8 @@ RSpec.describe "Feature execution drain boundaries (ADR-042; F0/F3, no X0)" do
 
   it "finishes an accepted Workflow load and terminal save while draining" do
     entered, release, writer_threads = Queue.new, Queue.new, Queue.new
-    persistence = Phronomy::Persistence.in_memory
-    repository = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repository = persistence
     allow(repository).to receive(:load).and_wrap_original do |original, *args|
       entered << true
       release.pop

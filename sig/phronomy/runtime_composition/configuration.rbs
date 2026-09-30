@@ -36,6 +36,9 @@ module Phronomy
   end
 
   class Configuration
+    attr_accessor agent_store: Agent::Store?
+    attr_accessor team_store: MultiAgent::Store?
+    attr_accessor workflow_store: _WorkflowStateRepository?
     attr_accessor llm_adapter: LLMAdapter::Base
     attr_accessor before_llm_input: Agent::_BeforeLLMInputHook?
   end

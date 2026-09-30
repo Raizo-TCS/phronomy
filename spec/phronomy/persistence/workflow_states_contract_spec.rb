@@ -5,7 +5,7 @@ require_relative "../../support/shared_examples/a_workflow_state_repository"
 
 RSpec.describe "Persistence workflow_states repository contract" do
   context "with Persistence.in_memory" do
-    let(:persistence) { Phronomy::Persistence.in_memory }
+    let(:stores) { Phronomy::PersistenceComposition.in_memory }
 
     it_behaves_like "a workflow state repository"
   end

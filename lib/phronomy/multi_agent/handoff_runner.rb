@@ -139,7 +139,7 @@ module Phronomy
           confirmed = @persistence.handoff_states.load(main_agent.agent_id)
           raise error unless intended && confirmed && Array(confirmed.metadata["cancelled_execution_ids"]).include?(leaf_id)
         end
-        return @persistence.execution_result(leaf_id) if leaf&.terminal?
+        return @persistence.result(leaf_id) if leaf&.terminal?
         Phronomy::Agent::ExecutionCancellation.signal(leaf_id, leaf.agent_id) if leaf&.active?
         {execution_id: leaf_id, cancellation_requested: !leaf&.terminal?}.freeze
       end

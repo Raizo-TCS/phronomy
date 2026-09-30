@@ -111,11 +111,11 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual('lib/phronomy/runtime_composition', configuration['from'])
         self.assertEqual('lib/phronomy/runtime_composition/global_configuration.rb', configuration['source_definition']['file'])
         # Namespace-only reopenings must not take ownership of Persistence's API.
-        repository = next(r for r in refs if r['owner'] == 'Phronomy::Persistence' and r['member'] == 'agents')
-        self.assertEqual('lib/phronomy/persistence/api', repository['from'])
-        self.assertEqual('lib/phronomy/persistence/api/persistence.rb', repository['source_definition']['file'])
+        repository = next(r for r in refs if r['owner'] == 'Phronomy::Persistence' and r['member'] == 'backend')
+        self.assertEqual('lib/phronomy/persistence', repository['from'])
+        self.assertEqual('lib/phronomy/persistence/persistence.rb', repository['source_definition']['file'])
         identity = self.audit['rbs']['ownership']['Phronomy::Persistence']
-        self.assertEqual('lib/phronomy/persistence/api/persistence.rb', identity['file'])
+        self.assertEqual('lib/phronomy/persistence/persistence.rb', identity['file'])
 
     def test_complete_type_graph_passes_without_a_baseline_and_rejects_reverse_references(self):
         result = refresh.check_boundaries(self.audit, 'storage', REPO)
@@ -133,8 +133,8 @@ class ProjectTests(unittest.TestCase):
 
     def test_persistence_contracts_and_domain_consumers_reject_raw_storage_coupling(self):
         pairs = {(p['from'], p['to']) for p in self.audit['module_pairs']}
-        contract = 'lib/phronomy/persistence/contract'
-        self.assertEqual({'lib/phronomy/common'}, {t for s, t in pairs if s == contract})
+        contract = 'lib/phronomy/persistence'
+        self.assertEqual({'lib/phronomy/common', 'lib/phronomy/storage', 'lib/phronomy/content_store'}, {t for s, t in pairs if s == contract})
         for consumer in ['agent', 'agent/execution', 'agent/handoff', 'agent/lifecycle',
                          'agent/recovery', 'agent/recovery/recovery_coordinator',
                          'multi_agent', 'workflow/execution']:
@@ -146,7 +146,9 @@ class ProjectTests(unittest.TestCase):
                                            'references': [], 'requires': [],
                                            'rbs_references': [{'origin': 'rbs'}]})
             self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
-        for source, target in [(contract, 'lib/phronomy/storage'),
+        for source, target in [(contract, 'lib/phronomy/agent'),
+                               (contract, 'lib/phronomy/persistence_composition'),
+                               (contract, 'lib/phronomy/workflow/persistence'),
                                ('lib/phronomy/storage', contract),
                                ('lib/phronomy/storage/backends', contract)]:
             changed = deepcopy(self.audit)
@@ -179,7 +181,7 @@ class ProjectTests(unittest.TestCase):
                                ('lib/phronomy/llm_adapter', content),
                                (content, storage + '/backends'), (content, storage + '/async'),
                                (content, 'lib/phronomy/engine'),
-                               (content, 'lib/phronomy/persistence/api')]:
+                               (content, 'lib/phronomy/persistence')]:
             with self.subTest(source=source, target=target):
                 changed = deepcopy(self.audit)
                 changed['module_pairs'].append({'from': source, 'to': target,

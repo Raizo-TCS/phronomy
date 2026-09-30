@@ -7,11 +7,14 @@ RSpec.shared_context "durable coordination runtime" do
   # and Runtime. This models F4 without retaining any Agent/TaskResult/Class handles.
   class CoordinationFaultStore < Phronomy::Persistence
     attr_accessor :after_commit, :before_io
+    attr_reader :agent, :team
 
     def initialize
       super(backend: Phronomy::Storage::Backends::InMemory.new(resources: Phronomy::PersistenceComposition::StorageSchema.resources))
+      @agent = Phronomy::Agent::Store.new(coordinator: self, records: Phronomy::Agent::Persistence::Records)
+      @team = Phronomy::MultiAgent::Store.new(coordinator: self, records: Phronomy::MultiAgent::Persistence::Records, agent_store: @agent)
       owner = self
-      {contents => :fetch, executions => :load}.each do |repository, operation|
+      {@agent.contents => :fetch, @agent.executions => :load}.each do |repository, operation|
         repository.define_singleton_method(operation) do |*args|
           owner.check_io_thread!(operation)
           super(*args)

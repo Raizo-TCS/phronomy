@@ -18,7 +18,7 @@ module Phronomy
         raise ArgumentError, "Provide either on_event: or a block, not both"
       end
 
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.agent
       agent = definition.create(
         context: context,
         knowledge: knowledge,

@@ -11,7 +11,7 @@ module Phronomy
         def load(workflow_instance_id)
           Phronomy::Persistence::StorageBoundary.call do
             @view.atomic do |bound|
-              entry = bound.records(Phronomy::WorkflowStorageSchema::STATES).read(workflow_instance_id.to_s)
+              entry = bound.records(Phronomy::Workflow::Persistence::StorageSchema::STATES).read(workflow_instance_id.to_s)
               entry && decode(entry, workflow_instance_id)
             end
           end
@@ -24,7 +24,7 @@ module Phronomy
             record = Codec.encode_workflow_state(workflow_instance_id: workflow_instance_id,
               workflow_revision: revision, snapshot: snapshot)
             @view.atomic do |bound|
-              records = bound.records(Phronomy::WorkflowStorageSchema::STATES)
+              records = bound.records(Phronomy::Workflow::Persistence::StorageSchema::STATES)
               values = {key: workflow_instance_id.to_s, attributes: {}, record: record}
               entry = if expected.nil?
                 records.insert(**values, revision: revision)
@@ -44,7 +44,7 @@ module Phronomy
 
         def delete(workflow_instance_id, expected_revision:)
           Phronomy::Persistence::StorageBoundary.call do
-            @view.records(Phronomy::WorkflowStorageSchema::STATES).delete(key: workflow_instance_id.to_s, expected_revision: Integer(expected_revision))
+            @view.records(Phronomy::Workflow::Persistence::StorageSchema::STATES).delete(key: workflow_instance_id.to_s, expected_revision: Integer(expected_revision))
           end
         end
 

@@ -28,6 +28,29 @@ class AbstractionTests(unittest.TestCase):
             self.assertEqual([2, 3], [v['line'] for v in found])
             self.assertEqual({'transaction-knows-domain-or-composition'}, {v['kind'] for v in found})
 
+    def test_domain_operations_cannot_select_concrete_record_adapters(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/agent/admission.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('store.participate(scope) {}\nAgent::Persistence::Records.new(view)\n')
+            self.assertEqual({'domain-selects-storage-implementation'}, {v['kind'] for v in violations(repo)})
+
+    def test_team_uses_public_agent_operations_instead_of_records_or_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/multi_agent/team_coordinator.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('''persistence.agent_store.authorized_operations(scope)
+persistence.agent_store.exist?(id)
+persistence.agent_store.executions.load(id)
+persistence.agent_store.send(:participate, scope)
+Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY
+root.journal_position
+''')
+            self.assertEqual([3, 4, 5, 6], [v['line'] for v in violations(repo)])
+            self.assertEqual({'team-reads-agent-internals'}, {v['kind'] for v in violations(repo)})
+
     def test_checks_real_calls_including_reflection_but_not_comments_or_owners(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

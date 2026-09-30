@@ -560,8 +560,7 @@ module Phronomy
     end
 
     def configured_repository
-      persistence = @persistence || Phronomy.configuration.persistence
-      persistence&.workflow_states
+      @persistence || Phronomy.configuration.workflow_store
     end
 
     def register_execution(

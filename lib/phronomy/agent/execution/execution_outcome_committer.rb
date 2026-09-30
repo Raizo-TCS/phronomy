@@ -100,7 +100,7 @@ module Phronomy
         root = @persistence.agents.load(@agent.agent_id)
         records = @persistence.journals.read(@agent.agent_id,
           after: operation.root.journal_position, limit: root.journal_position - operation.root.journal_position)
-        result = @persistence.execution_result(confirmed.execution_id)
+        result = @persistence.result(confirmed.execution_id)
         failure = result[:error] && RecoverySupport.error_from_failure(result[:error])
         type = if failure
           :failed

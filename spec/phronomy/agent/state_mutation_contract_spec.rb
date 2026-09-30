@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent initial and explicit state mutation contract" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "state-mutation-contract", version: 1

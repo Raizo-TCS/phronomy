@@ -117,7 +117,7 @@ RSpec.describe "Coverage gap fill-in (round 2)" do
     }
 
     def install_calling_llm_execution(agent_id)
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       agent = ACS15RecoveryAgentForErrors.create(agent_id: agent_id, persistence: persistence)
       root = agent.agent_root
       active_execution = nil

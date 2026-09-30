@@ -1,8 +1,5 @@
 module Phronomy
   class Persistence
-    class TransactionError < Error
-    end
-
     interface _Participant[T]
       def new: (Storage::View view) -> T
     end

@@ -6,8 +6,8 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff", :integration do
   after { LLMStub.deactivate }
-  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence.in_memory } }
-  after { Phronomy.configure { |c| c.persistence = nil } }
+  before { Phronomy.configure { |c| c.agent_store = Phronomy::PersistenceComposition.in_memory.agent } }
+  after { Phronomy.configure { |c| c.agent_store = nil } }
 
   def build_agent(definition_id, instructions, persistence: nil)
     klass = Class.new(Phronomy::Agent::Base) do
@@ -167,8 +167,8 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   end
 
   it "rejects different Persistence domains before invoking either Agent" do
-    source = build_agent("domain-source", "Source", persistence: Phronomy::Persistence.in_memory)
-    target = build_agent("domain-target", "Target", persistence: Phronomy::Persistence.in_memory)
+    source = build_agent("domain-source", "Source", persistence: Phronomy::PersistenceComposition.in_memory.agent)
+    target = build_agent("domain-target", "Target", persistence: Phronomy::PersistenceComposition.in_memory.agent)
     edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
     expect do
       Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])

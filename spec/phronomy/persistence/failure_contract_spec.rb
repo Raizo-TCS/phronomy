@@ -5,16 +5,14 @@ require "open3"
 require "rbconfig"
 
 RSpec.describe "Persistence failure boundary" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
-  let(:backend) { persistence.backend }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:persistence) { stores.agent }
+  let(:backend) { persistence.coordinator.backend }
 
   it "loads contracts alone and preserves their identities through later application loading" do
     project_root = File.expand_path("../../..", __dir__)
     source = <<~CODE
-      require "phronomy/persistence/contract/state_conflict_error"
-      require "phronomy/persistence/contract/not_found_error"
-      require "phronomy/persistence/contract/serialization_error"
-      require "phronomy/persistence/contract/unsupported_backend_error"
+      require "phronomy/persistence/errors"
       names = %i[Error ConflictError StateConflictError NotFoundError SerializationError UnsupportedBackendError]
       identities = names.to_h { |name| [name, Phronomy::Persistence.const_get(name)] }
       abort "contract loaded Storage/Engine/Agent" if %i[Storage Runtime Agent].any? { |n| Phronomy.const_defined?(n, false) }
@@ -24,7 +22,7 @@ RSpec.describe "Persistence failure boundary" do
       identities.each { |name, klass| abort "identity replaced" unless Phronomy::Persistence.const_get(name).equal?(klass) }
       abort "backend inheritance leaked" if Phronomy::Persistence::ConflictError < Phronomy::Storage::ConflictError
       abort "Runtime started by loading" if Phronomy::Runtime.default_if_initialized_for_test
-      Phronomy::Persistence.in_memory.contents.put_text("works")
+      Phronomy::PersistenceComposition.in_memory.agent.contents.put_text("works")
       abort "Runtime started by Persistence" if Phronomy::Runtime.default_if_initialized_for_test
     CODE
     output, status = Open3.capture2e({"COVERAGE" => nil, "RUBYOPT" => nil}, RbConfig.ruby,
@@ -51,6 +49,8 @@ RSpec.describe "Persistence failure boundary" do
         operation = case repository
         when :journals then -> { persistence.journals.head("id") }
         when :contents then -> { persistence.contents.fetch("id") }
+        when :teams, :team_executions then -> { stores.team.public_send(repository).load("id") }
+        when :workflow_states then -> { stores.workflow.load("id") }
         else -> { persistence.public_send(repository).load("id") }
         end
         expect(&operation).to raise_error(Phronomy::Persistence.const_get(category)) do |mapped|

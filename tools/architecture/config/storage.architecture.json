@@ -2,8 +2,8 @@
   "format": "phronomy-responsibility-groups-v2",
   "repository_url": "https://github.com/Raizo-TCS/phronomy",
   "project_title": "PHRONOMY 0.27.0",
-  "annotation_source_commit": "16e6fcb2dd49836735598525114abfc256d0773e",
-  "annotation_source_revision": "r8-unit2-parent-admission",
+  "annotation_source_commit": "a82974a7fd2360a13af71831a0c3ddc75942fae3",
+  "annotation_source_revision": "r8-unit3-persistence-boundaries",
   "modules": [
     {
       "id": "M01",
@@ -191,7 +191,7 @@
     {
       "id": "M37",
       "directory": "lib/phronomy/multi_agent/persistence",
-      "role": "Team records / reservation evidence",
+      "role": "Team record codec / schema / guards",
       "mixed": false,
       "group": "G22"
     },
@@ -203,13 +203,6 @@
       "group": "G32"
     },
     {
-      "id": "M49",
-      "directory": "lib/phronomy/persistence/api",
-      "role": "Public persistence facade",
-      "mixed": false,
-      "group": "G33"
-    },
-    {
       "id": "M20",
       "directory": "lib/phronomy/persistence/migration",
       "role": "Explicit record format migration",
@@ -219,7 +212,7 @@
     {
       "id": "M39",
       "directory": "lib/phronomy/persistence_composition",
-      "role": "Assemble repositories over a view",
+      "role": "Select backends and bind domain stores",
       "mixed": false,
       "group": "G24"
     },
@@ -350,20 +343,6 @@
       "group": "G23"
     },
     {
-      "id": "M62",
-      "directory": "lib/phronomy/multi_agent/storage_contract",
-      "role": "Team resource declarations",
-      "mixed": false,
-      "group": "G22"
-    },
-    {
-      "id": "M63",
-      "directory": "lib/phronomy/workflow/storage_contract",
-      "role": "Workflow resource declarations",
-      "mixed": false,
-      "group": "G23"
-    },
-    {
       "id": "M64",
       "directory": "lib/phronomy/generation/generator_verifier",
       "role": "Workflow / result reception / state",
@@ -422,16 +401,9 @@
     {
       "id": "M74",
       "directory": "lib/phronomy/persistence",
-      "role": "Transaction participation / storage boundary",
+      "role": "Atomic scopes / participation / failures",
       "mixed": false,
       "group": "G55"
-    },
-    {
-      "id": "M75",
-      "directory": "lib/phronomy/persistence/contract",
-      "role": "Domain persistence failure contracts",
-      "mixed": false,
-      "group": "G56"
     },
     {
       "id": "M76",
@@ -519,8 +491,7 @@
       "id": "G22",
       "title": "TEAM PERSISTENCE",
       "members": [
-        "M37",
-        "M62"
+        "M37"
       ],
       "kind": "domain"
     },
@@ -528,14 +499,13 @@
       "id": "G23",
       "title": "WORKFLOW PERSISTENCE",
       "members": [
-        "M38",
-        "M63"
+        "M38"
       ],
       "kind": "domain"
     },
     {
       "id": "G24",
-      "title": "REPOSITORY COMPOSITION",
+      "title": "PERSISTENCE COMPOSITION",
       "members": [
         "M39"
       ],
@@ -588,14 +558,6 @@
       "title": "OUTPUT PARSER",
       "members": [
         "M18"
-      ],
-      "kind": "domain"
-    },
-    {
-      "id": "G33",
-      "title": "PERSISTENCE API",
-      "members": [
-        "M49"
       ],
       "kind": "domain"
     },
@@ -767,19 +729,11 @@
     },
     {
       "id": "G55",
-      "title": "PERSISTENCE / TRANSACTION",
+      "title": "PERSISTENCE FRAMEWORK",
       "members": [
         "M74"
       ],
-      "kind": "domain"
-    },
-    {
-      "id": "G56",
-      "title": "PERSISTENCE CONTRACTS",
-      "members": [
-        "M75"
-      ],
-      "kind": "domain"
+      "kind": "persistence_framework"
     },
     {
       "id": "G57",
@@ -814,10 +768,7 @@
     "M39",
     "M36",
     "M37",
-    "M62",
     "M38",
-    "M63",
-    "M49",
     "M10",
     "M53",
     "M46",
@@ -868,12 +819,12 @@
     "M71",
     "M72",
     "M74",
-    "M75",
     "M76",
     "M77"
   ],
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 2: atomic parent reservation and Agent admission. Legacy Persistence facade, result projection and remaining domain boundaries are unfinished."
+  "scope_note": "r8 unit 3: neutral Persistence and injected domain stores; shared facade removed. Team uses Agent authorization and its own assignment history. Subagent/Handoff/Orchestrator ownership, FSM connections and durable Workflow children remain unfinished.",
+  "persistence_framework_separated": true
 }

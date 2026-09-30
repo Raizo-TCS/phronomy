@@ -22,7 +22,7 @@ RSpec.describe "Domain persistence ownership boundary" do
         tasks: [], workers: [], assignments: [], result_ref: nil, error_ref: nil,
         created_at: timestamp, updated_at: timestamp, metadata: {}
       )
-      schema = Phronomy::TeamStorageSchema
+      schema = Phronomy::MultiAgent::Persistence::StorageSchema
       backend = Phronomy::Storage::Backends::InMemory.new(resources: [schema::ROOTS, schema::EXECUTIONS])
       roots = Phronomy::MultiAgent::Persistence::TeamRepository.new(backend.view)
       runs = Phronomy::MultiAgent::Persistence::TeamExecutionRepository.new(backend.view)
@@ -55,7 +55,7 @@ RSpec.describe "Domain persistence ownership boundary" do
       require "phronomy"
       # Measure this operation separately from the application loader's documented bootstrap.
       loaded_at_entry = $LOADED_FEATURES.dup
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.agent
       root = Phronomy::Agent::AgentRoot.create(agent_id: "isolated-agent",
         agent_definition_id: "boundary", agent_definition_version: 1)
       persistence.transaction { |tx| tx.agents.create(root) }
@@ -78,7 +78,7 @@ RSpec.describe "Domain persistence ownership boundary" do
   end
 
   it "rolls back Agent, Team, and content writes when the Team response fails validation" do
-    backend = Phronomy::Persistence.in_memory.backend
+    backend = Phronomy::PersistenceComposition.in_memory.coordinator.backend
     # F0 after physical writes, within one backend transaction; no X0 effect.
     backend.define_singleton_method(:insert_record) do |context, resource, **arguments|
       entry = super(context, resource, **arguments)
@@ -88,7 +88,8 @@ RSpec.describe "Domain persistence ownership boundary" do
         format_version: record.format_version, payload: record.payload.merge("team_id" => "wrong-team"))
       Phronomy::Storage::Entry::Record.new(**entry.to_h.merge(record: corrupt))
     end
-    persistence = Phronomy::Persistence.new(backend: backend)
+    stores = Phronomy::PersistenceComposition.build(backend: backend)
+    persistence = stores.agent
     agent = Phronomy::Agent::AgentRoot.create(agent_id: "rollback-agent",
       agent_definition_id: "domain-boundary", agent_definition_version: 1)
     timestamp = "2026-09-18T00:00:00Z"
@@ -99,15 +100,15 @@ RSpec.describe "Domain persistence ownership boundary" do
     content_id = nil
 
     expect do
-      persistence.transaction do |tx|
+      persistence.transaction do |tx, scope|
         content_id = tx.contents.put_text("shared transaction")
         tx.agents.create(agent)
-        tx.teams.create(team)
+        stores.team.participate(scope) { |team_records| team_records.teams.create(team) }
       end
     end.to raise_error(Phronomy::Persistence::SerializationError, /backend returned another Team/)
 
     expect { persistence.agents.load(agent.agent_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
-    expect { persistence.teams.load(team.team_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { stores.team.teams.load(team.team_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.contents.exist?(content_id)).to be(false)
   end
 end

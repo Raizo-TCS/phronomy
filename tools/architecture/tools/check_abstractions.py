@@ -44,6 +44,12 @@ def violations(repository):
                     findings.append({'kind': 'agent-interprets-parent-reservation',
                                      'file': relative, 'line': node.start_point.row + 1,
                                      'call': text(node)})
+                if relative == 'lib/phronomy/multi_agent/team_coordinator.rb':
+                    receiver = text(node.child_by_field_name('receiver'))
+                    if ((receiver.endswith('agent_store') and (method in {'agents', 'journals', 'executions', 'handoff_states', 'participate'} or indirect in {'agents', 'journals', 'executions', 'handoff_states', 'participate'}))
+                            or method == 'journal_position' or indirect == 'journal_position'):
+                        findings.append({'kind': 'team-reads-agent-internals', 'file': relative,
+                                         'line': node.start_point.row + 1, 'call': text(node)})
                 if method in PRIVATE_CALLS or indirect in PRIVATE_CALLS:
                     findings.append({'kind': 'private-execution-control-leak',
                                      'file': relative, 'line': node.start_point.row + 1,
@@ -51,9 +57,19 @@ def violations(repository):
                 if relative in CONSUMERS and method in {'deferred', 'complete', 'fail'}:
                     findings.append({'kind': 'consumer-settles-result', 'file': relative,
                                      'line': node.start_point.row + 1, 'call': text(node)})
-            if relative == 'lib/phronomy/persistence/transaction.rb' and node.type == 'constant':
+            if relative in {'lib/phronomy/persistence/transaction.rb', 'lib/phronomy/persistence/persistence.rb'} and node.type == 'constant':
                 if text(node) in {'Agent', 'MultiAgent', 'Workflow', 'Runtime', 'PersistenceComposition'}:
                     findings.append({'kind': 'transaction-knows-domain-or-composition',
+                                     'file': relative, 'line': node.start_point.row + 1,
+                                     'call': text(node)})
+            if relative == 'lib/phronomy/multi_agent/team_coordinator.rb' and node.type == 'constant' and text(node) == 'ExecutionMetadata':
+                findings.append({'kind': 'team-reads-agent-internals', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
+            if relative in {'lib/phronomy/agent/store.rb', 'lib/phronomy/agent/admission.rb',
+                            'lib/phronomy/multi_agent/store.rb', 'lib/phronomy/multi_agent/reserved_child_admission.rb'}:
+                if node.type == 'scope_resolution' and 'Persistence::' in text(node) and any(
+                        part in text(node) for part in ('::Records', '::Admission', '::Reservation', '::Codec', '::StorageSchema', '::ExecutionRepository')):
+                    findings.append({'kind': 'domain-selects-storage-implementation',
                                      'file': relative, 'line': node.start_point.row + 1,
                                      'call': text(node)})
             for child in node.named_children:

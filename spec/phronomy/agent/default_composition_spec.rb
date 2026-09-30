@@ -24,18 +24,18 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
   end
 
   it "uses explicit Persistence before configuration without calling the default factory" do
-    explicit = Phronomy::Persistence.in_memory
-    configured = Phronomy::Persistence.in_memory
-    Phronomy.configuration.persistence = configured
+    explicit = Phronomy::PersistenceComposition.in_memory.agent
+    configured = Phronomy::PersistenceComposition.in_memory.agent
+    Phronomy.configuration.agent_store = configured
     expect(Phronomy::Agent::DefaultPersistence).not_to receive(:build)
 
     expect(agent_class.create(persistence: explicit).persistence).to equal(explicit)
-    expect(Phronomy.configuration.persistence).to equal(configured)
+    expect(Phronomy.configuration.agent_store).to equal(configured)
   end
 
   it "uses configured Persistence without constructing a fallback" do
-    configured = Phronomy::Persistence.in_memory
-    Phronomy.configuration.persistence = configured
+    configured = Phronomy::PersistenceComposition.in_memory.agent
+    Phronomy.configuration.agent_store = configured
     expect(Phronomy::Agent::DefaultPersistence).not_to receive(:build)
 
     expect(agent_class.create.persistence).to equal(configured)
@@ -48,12 +48,12 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
     end
     second = child.create
 
-    expect(first.persistence).to be_a(Phronomy::Persistence)
-    expect(second.persistence).to be_a(Phronomy::Persistence)
-    expect(first.persistence.backend).to be_a(Phronomy::Storage::Backends::InMemory)
+    expect(first.persistence).to be_a(Phronomy::Agent::Store)
+    expect(second.persistence).to be_a(Phronomy::Agent::Store)
+    expect(first.persistence.coordinator.backend).to be_a(Phronomy::Storage::Backends::InMemory)
     expect(first.persistence).not_to equal(second.persistence)
-    expect(first.persistence.backend).not_to equal(second.persistence.backend)
-    expect(Phronomy.configuration.persistence).to be_nil
+    expect(first.persistence.coordinator.backend).not_to equal(second.persistence.coordinator.backend)
+    expect(Phronomy.configuration.agent_store).to be_nil
   end
 
   it "keeps the construction binding across Runtime and configuration resets" do
@@ -61,9 +61,9 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
     Phronomy.reset_runtime!
     after = agent_class.create.persistence
 
-    expect(after).to be_a(Phronomy::Persistence)
+    expect(after).to be_a(Phronomy::Agent::Store)
     expect(after).not_to equal(before)
-    expect(Phronomy.configuration.persistence).to be_nil
+    expect(Phronomy.configuration.agent_store).to be_nil
   end
 
   it "propagates a classified construction failure and permits a later retry for the same Agent identity" do
@@ -137,7 +137,7 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
         abort "Runtime started" if Phronomy::Runtime.default_if_initialized_for_test
         abort "RSpec loaded" if defined?(RSpec)
         Phronomy::Agent::DefaultPersistence.singleton_class.send(:define_method, :build) { raise "unexpected fallback" }
-        persistence = Phronomy::Persistence.in_memory
+        persistence = Phronomy::PersistenceComposition.in_memory.agent
         klass = Class.new(Phronomy::Agent::Base) { agent_definition id: "preloaded-default", version: 1 }
         agent = klass.create(persistence: persistence)
         abort "explicit override lost" unless agent.persistence.equal?(persistence)
@@ -178,8 +178,8 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
     end
 
     it "creates isolated storage every time even with a configured shared Persistence" do
-      configured = Phronomy::Persistence.in_memory
-      Phronomy.configuration.persistence = configured
+      configured = Phronomy::PersistenceComposition.in_memory.agent
+      Phronomy.configuration.agent_store = configured
       # run_once does not consume Base's fallback; it owns explicit composition.
       expect(Phronomy::Agent::DefaultPersistence).not_to receive(:build)
       observed = []
@@ -199,7 +199,7 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
         expect(o[:input]).to equal(marker)
         expect(o[:options]).to eq(custom: marker)
       end
-      expect(Phronomy.configuration.persistence).to equal(configured)
+      expect(Phronomy.configuration.agent_store).to equal(configured)
     end
 
     [:keyword, :block].each do |listener_form|

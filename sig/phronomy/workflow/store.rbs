@@ -1,0 +1,8 @@
+module Phronomy
+  interface _WorkflowStateRepository
+    def load: (String workflow_instance_id) -> Hash[untyped, untyped]?
+    def save: (String workflow_instance_id, expected_revision: Integer?, snapshot: Hash[untyped, untyped]) -> Integer
+    def delete: (String workflow_instance_id, expected_revision: Integer) -> untyped
+  end
+
+end

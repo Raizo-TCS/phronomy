@@ -1,0 +1,13 @@
+module Phronomy
+  class Persistence
+    module Migration
+      module InitialFormatMigration
+        def self.agent_root: (Hash[untyped, untyped] hash) -> Storage::DurableRecord
+        def self.agent_execution: (Hash[untyped, untyped] hash) -> Storage::DurableRecord
+        def self.journal_record: (Hash[untyped, untyped] hash) -> Storage::DurableRecord
+        def self.workflow_state: (workflow_instance_id: String, revision: Integer, snapshot: Hash[untyped, untyped]) -> Storage::DurableRecord
+        def self.llm_input_manifest: (Hash[untyped, untyped] hash) -> Hash[String, untyped]
+      end
+    end
+  end
+end

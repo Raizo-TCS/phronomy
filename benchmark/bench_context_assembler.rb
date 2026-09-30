@@ -50,7 +50,7 @@ module BenchContextAssembler
   end
 
   def assembler_fixture
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "bench-manifest-context-assembler", version: 1
       # Resolve capabilities from RubyLLM's bundled registry; no provider call.

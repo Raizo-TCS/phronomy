@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent Runtime admission" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
 
   it "rejects a competing top-level invoke on EventLoop before Persistence admission" do
     entered = Queue.new
@@ -26,7 +26,7 @@ RSpec.describe "Agent Runtime admission" do
     end
 
     agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
-    allow(persistence.backend).to receive(:insert_record).and_call_original
+    allow(persistence.coordinator.backend).to receive(:insert_record).and_call_original
 
     first = agent.invoke_async("first")
     expect(entered.pop).to be true
@@ -38,13 +38,13 @@ RSpec.describe "Agent Runtime admission" do
 
     # The second request was rejected by process-local EventLoop admission, and
     # the first worker is still blocked before Persistence admission.
-    expect(persistence.backend).not_to have_received(:insert_record)
+    expect(persistence.coordinator.backend).not_to have_received(:insert_record)
 
     release << true
     expect {
       first.wait_result(timeout: 1)
     }.to raise_error(ArgumentError, /stop first request/)
-    expect(persistence.backend).not_to have_received(:insert_record)
+    expect(persistence.coordinator.backend).not_to have_received(:insert_record)
   ensure
     release << true if defined?(release) && release.empty?
   end

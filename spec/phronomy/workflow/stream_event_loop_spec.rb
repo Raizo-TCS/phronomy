@@ -52,8 +52,8 @@ RSpec.describe "Workflow stream EventLoop integration" do
   end
 
   it "loads and saves Persistence workflow_states like invoke and invoke_async" do
-    persistence = Phronomy::Persistence.in_memory
-    persistence.workflow_states.save(
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    persistence.save(
       "stream-state",
       expected_revision: nil,
       snapshot: {
@@ -79,7 +79,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
     ) { |_event| }
 
     expect(result.value).to eq(11)
-    record = persistence.workflow_states.load("stream-state")
+    record = persistence.load("stream-state")
     expect(record[:snapshot]["fields"]["value"]).to eq(11)
     expect(record[:revision]).to eq(2)
   end
@@ -99,7 +99,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
   [false, true].each do |durable|
     %i[wait leaf].each do |boundary|
       it "releases #{durable ? "durable" : "ephemeral"} #{boundary} completion when its observer raises" do
-        persistence = durable ? Phronomy::Persistence.in_memory : nil
+        persistence = durable ? Phronomy::PersistenceComposition.in_memory.workflow : nil
         workflow = Phronomy::Workflow.define(context_class, persistence: persistence) do
           initial :last
           if boundary == :wait
@@ -133,7 +133,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
         expect(registry.workflow_admission_owner(id)).to be_nil
         expect(event_loop.admitted_fsm_session?(fsm_id)).to be(false)
         if durable
-          record = persistence.workflow_states.load(id)
+          record = persistence.load(id)
           expect(record[:revision]).to eq(1)
           expect(record[:snapshot]).to eq(
             "fields" => {"value" => 0},

@@ -68,15 +68,15 @@ module Phronomy
 
       # on_event is bound once to the live Agent Runtime incarnation. The block
       # is an alternative spelling of on_event; supplying both is an error.
-      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
-      def self.load: (String agent_id, persistence: Persistence, ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
+      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Store?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
+      def self.load: (String agent_id, persistence: Store, ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
       def self.get: (String agent_id) -> instance?
       def self.live_for_execution: (String execution_id) -> instance
 
-      def initialize: (?agent_id: String?, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> void
+      def initialize: (?agent_id: String?, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Store?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> void
 
       attr_reader agent_id: String
-      attr_reader persistence: Persistence
+      attr_reader persistence: Store
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       # Public operation methods no longer accept per-invocation event listeners

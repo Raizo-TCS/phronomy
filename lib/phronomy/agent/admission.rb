@@ -25,7 +25,7 @@ module Phronomy
       # Own a standalone admission transaction.
       # @api public
       def accept
-        @persistence.atomic { |scope| accept_in(scope) }
+        @persistence.coordinator.atomic { |scope| accept_in(scope) }
         nil
       end
 
@@ -35,7 +35,7 @@ module Phronomy
         check_thread!
         raise Phronomy::ConfigurationError, "Agent admission is single-use" if @scope
         @scope = scope
-        scope.participate(persistence: @persistence, adapter: Persistence::Admission) do |records|
+        @persistence.participate(scope) do |records|
           raise Phronomy::Error, "agent is closed: #{agent_id}" if @root.lifecycle_status == :closed
           input_ref = records.contents.put_text(@input)
           context_ref = records.contents.put_json(@config.fetch(:durable_context)) if @config.key?(:durable_context)

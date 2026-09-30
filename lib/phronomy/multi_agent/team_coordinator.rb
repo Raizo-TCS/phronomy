@@ -11,12 +11,23 @@ module Phronomy
     # Scheduling and aggregation must be pure, replay-safe result calculations.
     # @api public
     class TeamCoordinator
-      WorkerState = Data.define(:index, :agent_id, :transcript_size, :status) do
+      WorkerState = Data.define(:index, :agent_id, :assignment_count, :status) do
         def available? = status == :available
       end
       private_constant :WorkerState
 
       class << self
+        # Boot composition supplies a fresh store without selecting it here.
+        # @api private
+        def install_persistence_factory(factory)
+          raise ArgumentError, "factory must respond to call" unless factory.respond_to?(:call)
+          raise Phronomy::ConfigurationError, "Team persistence factory already installed" if @persistence_factory
+          @persistence_factory = factory
+        end
+
+        # @api private
+        def build_default_persistence = @persistence_factory.call
+
         # @api public
         def team_definition(id: nil, version: nil)
           if id || version
@@ -95,7 +106,7 @@ module Phronomy
           raise Phronomy::EventLoopReentrancyError, "Team construction cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
           key = id.to_s
           raise ArgumentError, "team_id must not be empty" if key.empty?
-          store = persistence || Phronomy.configuration.persistence || Phronomy::Persistence.in_memory
+          store = persistence || Phronomy.configuration.team_store || TeamCoordinator.build_default_persistence
           runtime = Phronomy::Runtime.instance
           TeamOwnershipRegistry.for(runtime).fetch(key, klass: self, create: create, persistence: store) do
             instance = allocate
@@ -134,12 +145,12 @@ module Phronomy
       # @api public
       def result(team_execution_id)
         execution = read_execution(team_execution_id)
-        persistence.team_execution_result(execution.team_execution_id)
+        persistence.result(execution.team_execution_id)
       end
 
       # @api public
       def executions(after: nil, limit: 100)
-        persistence.list_team_executions(team_id, after: after, limit: limit)
+        persistence.runs(team_id, after: after, limit: limit)
       end
 
       # Requests cancellation of this run only. Existing Agent cancellation and
@@ -221,13 +232,13 @@ module Phronomy
         now = Time.now.utc.iso8601(6)
         intended = nil
         begin
-          persistence.transaction do |tx|
+          persistence.transaction do |tx, scope|
             root = tx.teams.load(team_id)
             raise Phronomy::AgentBusyError, "Team #{team_id} has an active run; use resume" unless tx.team_executions.list_active(team_id).empty?
             intended = TeamExecution.new(team_execution_id: id, team_id: team_id,
               execution_revision: 0, status: "active", phase: "coordinator", input_ref: tx.contents.put_text(input),
               coordinator: {"agent_id" => SecureRandom.uuid, "execution_id" => SecureRandom.uuid, "state" => "reserved"},
-              workers: Array.new(self.class._pool_size) { |i| {"index" => i, "agent_id" => SecureRandom.uuid, "transcript_size" => 0} },
+              workers: Array.new(self.class._pool_size) { |i| {"index" => i, "agent_id" => SecureRandom.uuid} },
               tasks: [], assignments: [], result_ref: nil, error_ref: nil, created_at: now, updated_at: now,
               metadata: {"definition" => definition, "operations" => {}, "cancel_requested" => false,
                          "durable_context_ref" => config.key?(:durable_context) ? tx.contents.put_json(config.fetch(:durable_context)) : nil})
@@ -252,10 +263,10 @@ module Phronomy
         attempts = 0
         begin
           intended = nil
-          persistence.transaction do |tx|
+          persistence.transaction do |tx, scope|
             current = tx.team_executions.load(id)
             raise Phronomy::Persistence::StateConflictError, "Team execution owner mismatch" unless current.team_id == team_id
-            intended = yield(current, tx)
+            intended = yield(current, tx, scope)
             next if intended.equal?(current)
             tx.team_executions.save(id, expected_revision: current.execution_revision, execution: intended)
             if intended.terminal? && current.active?
@@ -329,7 +340,7 @@ module Phronomy
               return terminal_value(finish_error(id, Phronomy::Agent::RecoverySupport.resolution_failure(error)))
             end
             # Aggregate may be replayed only until the canonical outcome commits.
-            completed = update(id) do |fresh, tx|
+            completed = update(id) do |fresh, tx, scope|
               next fresh if fresh.terminal? || fresh.metadata["cancel_requested"]
               fresh.with(status: "completed", phase: "completed", result_ref: tx.contents.put_json(output))
             end
@@ -383,16 +394,11 @@ module Phronomy
         id = slot.fetch("agent_id")
         child = klass.get(id)
         unless child
-          begin
-            persistence.agents.load(id)
-            present = true
-          rescue Phronomy::Persistence::NotFoundError
-            present = false
-          end
+          present = persistence.agent_store.exist?(id)
           token.raise_if_cancelled! unless present
-          child = present ? klass.load(id, persistence: persistence, on_event: @listener) : klass.create(agent_id: id, persistence: persistence, on_event: @listener)
+          child = present ? klass.load(id, persistence: persistence.agent_store, on_event: @listener) : klass.create(agent_id: id, persistence: persistence.agent_store, on_event: @listener)
         end
-        unless child.persistence.equal?(persistence)
+        unless child.persistence.equal?(persistence.agent_store)
           raise Phronomy::ConfigurationError, "Team child #{id} Persistence mismatch"
         end
         child_config = config.merge(cancellation_token: token,
@@ -408,8 +414,11 @@ module Phronomy
       end
 
       def reserve_assignment(current, task)
-        available = current.workers.map { |w| WorkerState.new(index: w.fetch("index"), agent_id: w.fetch("agent_id"), transcript_size: w.fetch("transcript_size"), status: :available) }.freeze
-        worker = self.class._scheduler ? self.class._scheduler.call(available) : available.min_by(&:transcript_size)
+        # Team owns this count. Deriving it from retained assignments also
+        # makes replay idempotent and avoids consulting the child's journal.
+        counts = current.assignments.each_with_object(Hash.new(0)) { |entry, totals| totals[entry.fetch("worker")] += 1 }
+        available = current.workers.map { |w| WorkerState.new(index: w.fetch("index"), agent_id: w.fetch("agent_id"), assignment_count: counts[w.fetch("index")], status: :available) }.freeze
+        worker = self.class._scheduler ? self.class._scheduler.call(available) : available.min_by(&:assignment_count)
         raise Phronomy::ConfigurationError, "Scheduler must select an available worker slot" unless available.include?(worker)
         reserved = {"task_id" => task.fetch("id"), "worker" => worker.index,
                     "execution_id" => SecureRandom.uuid, "state" => "reserved", "result_ref" => nil, "error_ref" => nil}
@@ -420,7 +429,7 @@ module Phronomy
       end
 
       def record_assignment(id, assigned, outcome)
-        update(id) do |fresh, tx|
+        update(id) do |fresh, _tx|
           entries = fresh.assignments.map do |entry|
             next entry unless entry.fetch("task_id") == assigned.fetch("task_id")
             next entry unless entry.fetch("state") == "reserved"
@@ -428,12 +437,7 @@ module Phronomy
             entry.merge("state" => outcome.fetch(:status).to_s,
               "result_ref" => outcome[:result_ref], "error_ref" => outcome[:error_ref])
           end
-          workers = fresh.workers.map do |worker|
-            next worker unless worker.fetch("index") == assigned.fetch("worker")
-            root = tx.agents.load(worker.fetch("agent_id"))
-            worker.merge("transcript_size" => root.journal_position)
-          end
-          fresh.with(assignments: entries, workers: workers)
+          fresh.with(assignments: entries)
         end
       end
 
@@ -447,7 +451,7 @@ module Phronomy
       end
 
       def finish_error(id, error, status: "failed")
-        update(id) do |fresh, tx|
+        update(id) do |fresh, tx, scope|
           next fresh if fresh.terminal?
           fresh.with(status: status, phase: status, error_ref: tx.contents.put_json(error))
         end
@@ -514,7 +518,7 @@ module Phronomy
 
       def apply_operation(run_id, key, operation, arguments)
         argument_values = Phronomy::Agent::RecoverySupport.canonical_copy(arguments)
-        current = update(run_id) do |fresh, tx|
+        current = update(run_id) do |fresh, tx, scope|
           operations = fresh.metadata.fetch("operations")
           if (prior = operations[key])
             unless prior.fetch("operation") == operation.to_s && prior.fetch("arguments") == argument_values
@@ -524,26 +528,19 @@ module Phronomy
           end
           raise Phronomy::CancellationError, "Team run cancelled" if fresh.metadata["cancel_requested"]
           raise Phronomy::Persistence::StateConflictError, "Team task generation is closed" unless fresh.active? && fresh.phase == "coordinator"
-          coordinator = tx.executions.load(fresh.coordinator.fetch("execution_id"))
-          unless coordinator.agent_id == fresh.coordinator.fetch("agent_id")
-            raise Phronomy::Persistence::StateConflictError, "Team coordinator owner mismatch"
-          end
-          batch = Array(coordinator.metadata[Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
-          requested = batch.find { |entry| entry.fetch("tool_invocation_id") == key }
-          unless requested && requested.fetch("status") == "authorized" && requested.fetch("tool_name") == operation.to_s && requested.fetch("arguments").compact == argument_values
-            raise Phronomy::Persistence::StateConflictError, "Team operation #{key} is not the authorized call"
-          end
+          batch = persistence.agent_store.authorized_operations(scope,
+            agent_id: fresh.coordinator.fetch("agent_id"), execution_id: fresh.coordinator.fetch("execution_id"),
+            invocation_id: key, name: operation.to_s, arguments: argument_values, names: %w[enqueue_task finalize])
           # All calls passed the Agent authorization barrier. Commit this finite
           # batch in Provider order, so finalize cannot overtake queued tasks.
           tasks = fresh.tasks.dup
           operations = operations.dup
           metadata = fresh.metadata.dup
           batch.each do |entry|
-            entry_id = entry.fetch("tool_invocation_id")
-            next if operations.key?(entry_id) || entry.fetch("status") != "authorized"
-            name = entry.fetch("tool_name")
-            next unless %w[enqueue_task finalize].include?(name)
-            values = entry.fetch("arguments").compact
+            entry_id = entry.invocation_id
+            next if operations.key?(entry_id)
+            name = entry.name
+            values = entry.arguments
             if name == "enqueue_task"
               raise Phronomy::ConfigurationError, "Cannot enqueue after finalize" if metadata["finalized"]
               task = {"id" => Digest::SHA256.hexdigest(entry_id)[0, 32], "description" => values.fetch("description"), "metadata" => values["metadata"]}

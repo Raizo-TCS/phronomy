@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::HandoffProjection do
-  def build_agent(definition_id, persistence: Phronomy::Persistence.in_memory)
+  def build_agent(definition_id, persistence: Phronomy::PersistenceComposition.in_memory.agent)
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: definition_id, version: 1
       model "stub-model"
@@ -51,8 +51,8 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   it "materializes selected Context across different Persistence adapters without adopting it into Target Journal" do
-    source_persistence = Phronomy::Persistence.in_memory
-    target_persistence = Phronomy::Persistence.in_memory
+    source_persistence = Phronomy::PersistenceComposition.in_memory.agent
+    target_persistence = Phronomy::PersistenceComposition.in_memory.agent
     source = build_agent("projection-source", persistence: source_persistence)
     target = build_agent("projection-target", persistence: target_persistence)
     handoff = Phronomy::Agent::Handoff.new(
@@ -307,7 +307,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   it "groups current-format Context conversation segments without Selection::Unit" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     first_ref = persistence.contents.put_text("first")
     second_ref = persistence.contents.put_text("second")
     group_metadata = {

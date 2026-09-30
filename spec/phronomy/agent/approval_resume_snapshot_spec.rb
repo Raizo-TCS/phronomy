@@ -9,7 +9,7 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
       model "local-model"
     end
   end
-  let(:agent) { agent_class.new(agent_id: "approval-owner", persistence: Phronomy::Persistence.in_memory) }
+  let(:agent) { agent_class.new(agent_id: "approval-owner", persistence: Phronomy::PersistenceComposition.in_memory.agent) }
   let(:coordinator) { agent.send(:execution_coordinator) }
   let(:runtime) { Phronomy::Runtime.instance }
   let(:registry) { Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop) }

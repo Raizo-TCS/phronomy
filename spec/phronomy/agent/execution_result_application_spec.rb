@@ -11,7 +11,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
   end
   let(:events) { [] }
   let(:agent) do
-    agent_class.new(agent_id: "result-owner", persistence: Phronomy::Persistence.in_memory,
+    agent_class.new(agent_id: "result-owner", persistence: Phronomy::PersistenceComposition.in_memory.agent,
       on_event: ->(event) { events << [event.type, event.payload, observation] })
   end
   let(:coordinator) { agent.send(:execution_coordinator) }

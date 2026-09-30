@@ -9,7 +9,7 @@ module Phronomy
       attr_reader agent_id: String
       attr_reader execution_id: String
       attr_reader correlation: Hash[String, untyped]?
-      def initialize: (persistence: ::Phronomy::Persistence, root: untyped, input: String,
+      def initialize: (persistence: Store, root: untyped, input: String,
                        config: Hash[Symbol, untyped], preparation_metadata: Hash[String, untyped]) -> void
       def accept: () -> nil
       def accept_in: (::Phronomy::Persistence::Transaction scope) -> nil

@@ -20,8 +20,8 @@ module Phronomy
         unless admission.correlation == @owner
           raise Phronomy::Persistence::StateConflictError, "Child admission correlation mismatch"
         end
-        @persistence.atomic do |scope|
-          scope.participate(persistence: @persistence, adapter: Persistence::Reservation) do |records|
+        @persistence.coordinator.atomic do |scope|
+          @persistence.participate(scope) do |records|
             case @owner.fetch("kind")
             when "team" then validate_team!(records, admission)
             when "subagent" then validate_subagent!(records, admission)
@@ -36,7 +36,8 @@ module Phronomy
       private
 
       def validate_team!(records, admission)
-        team = records.team(@owner)
+        records.guard_team!(@owner.fetch("team_id"))
+        team = records.team_executions.load(@owner.fetch("team_execution_id"))
         unless team.team_id == @owner.fetch("team_id") && team.active? && !team.metadata["cancel_requested"]
           raise Phronomy::CancellationError, "Team run is no longer dispatchable"
         end
@@ -53,7 +54,8 @@ module Phronomy
       end
 
       def validate_subagent!(records, admission)
-        parent = records.subagent(@owner)
+        records.guard_agent!(@owner.fetch("parent_agent_id"))
+        parent = records.executions.load(@owner.fetch("parent_execution_id"))
         unless parent.agent_id == @owner.fetch("parent_agent_id") && parent.active? && !parent.metadata["coordination_cancel_requested"]
           raise Phronomy::CancellationError, "Parent run is no longer dispatchable"
         end
@@ -65,7 +67,7 @@ module Phronomy
       end
 
       def validate_handoff!(records, admission)
-        routing = records.handoff(@owner)
+        routing = records.handoff_states.load_locked(@owner.fetch("main_agent_id"))
         unless routing && routing.active_agent_id == admission.agent_id
           raise Phronomy::Persistence::StateConflictError, "Handoff responsibility changed before admission"
         end

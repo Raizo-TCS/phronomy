@@ -270,7 +270,8 @@ end
 
 RSpec.describe "Coordination admission ownership" do
   let(:registry) { Phronomy::MultiAgent::AdmissionRegistry.for(Phronomy::Runtime.instance) }
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) { agent_definition id: "shutdown-participant-agent", version: 1 }
   end
@@ -279,7 +280,7 @@ RSpec.describe "Coordination admission ownership" do
   let(:team) do
     Class.new(Phronomy::MultiAgent::TeamCoordinator) do
       team_definition id: "shutdown-participant-team", version: 1
-    end.create(persistence: store)
+    end.create(persistence: stores.team)
   end
 
   it "releases Handoff admission after an exception so a later call can enter" do

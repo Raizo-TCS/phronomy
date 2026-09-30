@@ -1,5 +1,7 @@
 module Phronomy
   class Persistence
+    class TransactionError < Error
+    end
     class Error < Phronomy::Error
     end
     class ConflictError < Error

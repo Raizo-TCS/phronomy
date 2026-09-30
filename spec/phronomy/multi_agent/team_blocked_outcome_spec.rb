@@ -9,7 +9,7 @@ RSpec.describe "Team propagation of blocked Agent outcomes" do
   [:coordinator, :worker].product([:raise, :skip]).each do |role, on_error|
     it "preserves a blocked #{role} with on_error #{on_error} before and after restart" do
       team_class.pool(size: 1, agent: worker, on_error: on_error)
-      team = team_class.create(team_id: "blocked-team", persistence: store)
+      team = team_class.create(team_id: "blocked-team", persistence: store.team)
       blocking_filter = Class.new(Phronomy::Filter::Base) do
         define_method(:call) { |_value, **_context| block!("child output rejected") }
       end
@@ -22,12 +22,12 @@ RSpec.describe "Team propagation of blocked Agent outcomes" do
       end
       snapshots = {}
       store.after_commit = proc do |backend|
-        run = backend.list_team_executions(team.team_id).first
+        run = backend.team.runs(team.team_id).first
         next unless run&.active?
         slot = (role == :worker) ? run.assignments.first : run.coordinator
         next unless slot
         begin
-          child = backend.executions.load(slot.fetch("execution_id"))
+          child = backend.agent.executions.load(slot.fetch("execution_id"))
           if child.status == :blocked
             boundary = (slot.fetch("state") == "blocked") ? :team_recorded : :child_terminal
             snapshots[boundary] ||= backend.snapshot
@@ -44,7 +44,7 @@ RSpec.describe "Team propagation of blocked Agent outcomes" do
       expect(snapshots.keys).to contain_exactly(:child_terminal, :team_recorded)
       snapshots.values.product([false, true]).each do |snapshot, cancel|
         restored = reboot(snapshot)
-        loaded = team_class.load(team.team_id, persistence: restored)
+        loaded = team_class.load(team.team_id, persistence: restored.team)
         run = loaded.executions.first
         llm = LLMStub.activate(responses: ["must not replay"])
         loaded.cancel(run.team_execution_id) if cancel
@@ -54,7 +54,7 @@ RSpec.describe "Team propagation of blocked Agent outcomes" do
         expect(run.status).to eq(final_status)
         slot = (role == :worker) ? run.assignments.first : run.coordinator
         expect(slot.fetch("state")).to eq("blocked")
-        expect(restored.executions.load(slot.fetch("execution_id")).status).to eq(:blocked)
+        expect(restored.agent.executions.load(slot.fetch("execution_id")).status).to eq(:blocked)
         expect(llm.calls).to be_empty
       end
     end

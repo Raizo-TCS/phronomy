@@ -4,7 +4,7 @@ require "spec_helper"
 require_relative "../../integration/support/llm_stub"
 
 RSpec.describe Phronomy::MultiAgent::HandoffRunner do
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:store) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "runner-unit", version: 1

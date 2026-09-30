@@ -5,14 +5,12 @@ require "securerandom"
 require "time"
 
 RSpec.describe "ACS-17 causal durability" do
-  class ResponseLostAfterCommitPersistence < Phronomy::Persistence
+  class ResponseLostAfterCommitPersistence < Phronomy::Agent::Store
     def initialize(delegate)
       @delegate = delegate
       @lose_next_response = false
-      super(backend: delegate.backend)
+      super(coordinator: delegate.coordinator, records: Phronomy::Agent::Persistence::Records)
     end
-
-    def capabilities = @delegate.capabilities
 
     def assert_agent_watermark!(**kwargs)
       @delegate.assert_agent_watermark!(**kwargs)
@@ -248,7 +246,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "durably records Provider outcome and pending Tool continuation before Tool dispatch" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -288,7 +286,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "durably records Tool outcome and next Provider continuation before Provider dispatch" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     coordinator, execution, root, manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -323,7 +321,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "reconciles Tool-dispatch preparation as committed off EventLoop when only the Persistence response is lost" do
-    delegate = Phronomy::Persistence.in_memory
+    delegate = Phronomy::PersistenceComposition.in_memory.agent
     persistence = ResponseLostAfterCommitPersistence.new(delegate)
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
@@ -353,7 +351,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "reconciles Provider-dispatch preparation as committed off EventLoop when only the Persistence response is lost" do
-    delegate = Phronomy::Persistence.in_memory
+    delegate = Phronomy::PersistenceComposition.in_memory.agent
     persistence = ResponseLostAfterCommitPersistence.new(delegate)
     agent = build_agent(persistence)
     coordinator, execution, root, manifest, manifest_ref =
@@ -392,7 +390,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "classifies an unchanged durable Tool pre-state as not committed" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -418,7 +416,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "classifies an unchanged durable Provider pre-state as not committed" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     _, execution, root, manifest, _manifest_ref =
       establish_execution(agent, persistence)
@@ -441,7 +439,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "classifies a third durable state as conflict and does not manufacture a dispatch result" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -476,7 +474,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "does not convert a known durable conflict into F1 uncertainty" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     coordinator, execution, root, _manifest, manifest_ref =
       establish_execution(agent, persistence)
@@ -543,7 +541,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "keeps application hooks and Policy outside both preparation transactions" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     events = []
@@ -589,7 +587,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "does not classify response loss from the encoding transaction as an uncertain execution save" do
-    persistence = ResponseLostAfterCommitPersistence.new(Phronomy::Persistence.in_memory)
+    persistence = ResponseLostAfterCommitPersistence.new(Phronomy::PersistenceComposition.in_memory.agent)
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     persistence.lose_next_transaction_response!
@@ -600,7 +598,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "rechecks the durable Agent watermark after application Policy changes it" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     bind_observed_policy(agent) do
@@ -615,7 +613,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "checks cancellation after application Policy and before committing the Provider preparation" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     token = Phronomy::Concurrency::CancellationToken.new
@@ -628,7 +626,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "returns the committed Provider execution with a post-commit materialization error" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     failure = IOError.new("projection unavailable")
@@ -647,7 +645,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "retains a confirmed Provider result when reconciliation materialization fails" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     committed = dispatch_preparation(agent).prepare_provider(operation)
@@ -666,7 +664,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "propagates a reconciliation read failure without reporting an uncommitted preparation" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     intended = Phronomy::Agent::DispatchPreparation::ProviderResult.new(
@@ -683,7 +681,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   it "rejects different preparation contents even when the intended revision matches" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = build_agent(persistence)
     operation = provider_operation_after_tools(agent, persistence)
     committed = dispatch_preparation(agent).prepare_provider(operation)

@@ -3,8 +3,9 @@
 require "spec_helper"
 
 RSpec.describe "Persistence participation" do
-  let(:store) { Phronomy::Persistence.in_memory }
-  let(:adapter) { Phronomy::Agent::Persistence::Admission }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.coordinator }
+  let(:adapter) { Phronomy::Agent::Persistence::Records }
 
   it "rolls all participants back when a later participant fails" do
     ref = nil
@@ -14,7 +15,7 @@ RSpec.describe "Persistence participation" do
         scope.participate(persistence: store, adapter: adapter) { raise IOError, "write failed" }
       end
     end.to raise_error(IOError, "write failed")
-    expect(store.contents.exist?(ref)).to be(false)
+    expect(stores.agent.contents.exist?(ref)).to be(false)
   end
 
   it "rejects a different Persistence even when it wraps the same backend" do
@@ -51,7 +52,7 @@ RSpec.describe "Persistence participation" do
         end
       end
     end.to raise_error(Phronomy::Persistence::TransactionError)
-    expect(store.contents.exist?(ref)).to be(false)
+    expect(stores.agent.contents.exist?(ref)).to be(false)
   end
 
   it "keeps successful savepoints provisional and rolls them back with their parent" do
@@ -67,7 +68,7 @@ RSpec.describe "Persistence participation" do
       end
     end.to raise_error("outer failed")
     expect(inner.committed?).to be(false)
-    expect(store.contents.exist?(ref)).to be(false)
+    expect(stores.agent.contents.exist?(ref)).to be(false)
   end
 
   it "confirms an inner scope only after the outermost commit response" do
@@ -98,6 +99,6 @@ RSpec.describe "Persistence participation" do
     end.to raise_error(IOError, "commit response lost")
     expect(scope.committed?).to be(false)
     allow(store.backend).to receive(:transaction).and_call_original
-    expect(store.contents.exist?(ref)).to be(true)
+    expect(stores.agent.contents.exist?(ref)).to be(true)
   end
 end

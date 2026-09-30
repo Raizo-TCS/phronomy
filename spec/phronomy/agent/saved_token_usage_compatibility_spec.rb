@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe Phronomy::Agent::SavedContextReader do
   it "reads both historical RubyLLM 1 counters and RubyLLM 2 counters after persistence" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent = double(persistence: persistence)
     [
       {input_tokens: 10, output_tokens: 20, cached_tokens: 3, cache_creation_tokens: 4},

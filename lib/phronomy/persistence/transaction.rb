@@ -2,13 +2,12 @@
 
 module Phronomy
   class Persistence
-    # Invalid participation or transaction lifetime; no commit outcome is implied.
-    # @api public
-    class TransactionError < Error; end
-
     # Execute short domain operations in one synchronous transaction. Participants
     # bind their own storage adapters; this protocol does not select any domain.
     # Explicit nesting remains a savepoint, never an independent commit.
+    # Storage failures whose commit outcome is fundamentally unknown remain
+    # backend/database failures; Phronomy does not claim exactly-once semantics
+    # for such failures. No automatic retry or rollback assumption is added.
     # @api public
     def atomic
       scopes = Thread.current.thread_variable_get(:phronomy_persistence_scopes)

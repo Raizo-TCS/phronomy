@@ -3,7 +3,8 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Persistence do
-  subject(:persistence) { described_class.in_memory }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  subject(:persistence) { stores.agent }
 
   let(:root) do
     Phronomy::Agent::AgentRoot.create(
@@ -31,17 +32,17 @@ RSpec.describe Phronomy::Persistence do
   it "stores structured durable state as DurableRecord rather than domain objects" do
     persistence.agents.create(root)
 
-    stored = persistence.backend.view.records("agent.roots").fetch(root.agent_id).record
+    stored = persistence.coordinator.backend.view.records("agent.roots").fetch(root.agent_id).record
     expect(stored).to be_a(Phronomy::Storage::DurableRecord)
     expect(stored.record_type).to eq("phronomy.agent_root")
     expect(stored.format_version).to eq("0.1")
     expect(stored.payload.fetch("agent_id")).to eq(root.agent_id)
     expect(stored).not_to be_a(Phronomy::Agent::AgentRoot)
-    expect(persistence.backend.view.records("agent.roots").fetch(root.agent_id).revision).to eq(0)
+    expect(persistence.coordinator.backend.view.records("agent.roots").fetch(root.agent_id).revision).to eq(0)
   end
 
   it "keeps raw Backend indexing independent from DurableRecord payload semantics" do
-    raw_agents = persistence.backend.view.records("agent.roots")
+    raw_agents = persistence.coordinator.backend.view.records("agent.roots")
     opaque = Phronomy::Storage::DurableRecord.new(
       record_type: "opaque.backend-test",
       format_version: "0.1",
@@ -85,8 +86,8 @@ RSpec.describe Phronomy::Persistence do
       persistence.transaction { |tx| tx.executions.create_active(second) }
     end.to raise_error(Phronomy::AgentBusyError)
 
-    stored = persistence.backend.view.records("agent.executions").fetch(first.execution_id).record
-    metadata = persistence.backend.view.records("agent.executions").fetch(first.execution_id).attributes
+    stored = persistence.coordinator.backend.view.records("agent.executions").fetch(first.execution_id).record
+    metadata = persistence.coordinator.backend.view.records("agent.executions").fetch(first.execution_id).attributes
     expect(stored).to be_a(Phronomy::Storage::DurableRecord)
     expect(stored.record_type).to eq("phronomy.agent_execution")
     expect(metadata).to include(owner: root.agent_id, active: true)
@@ -94,42 +95,42 @@ RSpec.describe Phronomy::Persistence do
 
   describe "workflow_states" do
     it "creates and advances optimistic revisions" do
-      revision = persistence.workflow_states.save(
+      revision = stores.workflow.save(
         "workflow-1",
         expected_revision: nil,
         snapshot: {fields: {count: 1}, phase: "pause"}
       )
       expect(revision).to eq(1)
 
-      record = persistence.workflow_states.load("workflow-1")
+      record = stores.workflow.load("workflow-1")
       expect(record[:revision]).to eq(1)
       expect(record[:snapshot]).to eq(
         "fields" => {"count" => 1},
         "phase" => "pause"
       )
 
-      revision = persistence.workflow_states.save(
+      revision = stores.workflow.save(
         "workflow-1",
         expected_revision: 1,
         snapshot: {fields: {count: 2}, phase: "__end__"}
       )
       expect(revision).to eq(2)
-      expect(persistence.workflow_states.load("workflow-1")[:revision]).to eq(2)
+      expect(stores.workflow.load("workflow-1")[:revision]).to eq(2)
 
-      stored = persistence.backend.view.records("workflow.states").fetch("workflow-1").record
+      stored = persistence.coordinator.backend.view.records("workflow.states").fetch("workflow-1").record
       expect(stored).to be_a(Phronomy::Storage::DurableRecord)
-      expect(persistence.backend.view.records("workflow.states").fetch("workflow-1").revision).to eq(2)
+      expect(persistence.coordinator.backend.view.records("workflow.states").fetch("workflow-1").revision).to eq(2)
     end
 
     it "rejects stale saves instead of overwriting a newer snapshot" do
-      persistence.workflow_states.save(
+      stores.workflow.save(
         "workflow-1",
         expected_revision: nil,
         snapshot: {fields: {count: 1}, phase: "pause"}
       )
 
       expect do
-        persistence.workflow_states.save(
+        stores.workflow.save(
           "workflow-1",
           expected_revision: nil,
           snapshot: {fields: {count: 99}, phase: "__end__"}
@@ -137,24 +138,24 @@ RSpec.describe Phronomy::Persistence do
       end.to raise_error(Phronomy::Persistence::ConflictError)
 
       expect(
-        persistence.workflow_states.load("workflow-1")[:snapshot]["fields"]["count"]
+        stores.workflow.load("workflow-1")[:snapshot]["fields"]["count"]
       ).to eq(1)
     end
 
     it "returns immutable copies so caller mutation cannot alter stored state" do
-      persistence.workflow_states.save(
+      stores.workflow.save(
         "workflow-1",
         expected_revision: nil,
         snapshot: {fields: {items: ["a"]}, phase: "pause"}
       )
 
-      loaded = persistence.workflow_states.load("workflow-1")
+      loaded = stores.workflow.load("workflow-1")
       expect do
         loaded[:snapshot]["fields"]["items"] << "caller-mutation"
       end.to raise_error(FrozenError)
 
       expect(
-        persistence.workflow_states.load("workflow-1")[:snapshot]["fields"]["items"]
+        stores.workflow.load("workflow-1")[:snapshot]["fields"]["items"]
       ).to eq(["a"])
     end
 
@@ -162,7 +163,7 @@ RSpec.describe Phronomy::Persistence do
       callable = -> { :ok }
 
       expect do
-        persistence.workflow_states.save(
+        stores.workflow.save(
           "workflow-proc",
           expected_revision: nil,
           snapshot: {fields: {callable: callable}, phase: "pause"}
@@ -174,7 +175,7 @@ RSpec.describe Phronomy::Persistence do
       expect do
         persistence.transaction do |tx|
           tx.agents.create(root)
-          tx.workflow_states.save(
+          stores.workflow.save(
             "workflow-1",
             expected_revision: nil,
             snapshot: {fields: {count: 1}, phase: "pause"}
@@ -185,8 +186,8 @@ RSpec.describe Phronomy::Persistence do
 
       expect { persistence.agents.load(root.agent_id) }
         .to raise_error(Phronomy::Persistence::NotFoundError)
-      expect(persistence.workflow_states.load("workflow-1")).to be_nil
-      expect(persistence.backend.view.records("workflow.states").read("workflow-rollback")).to be_nil
+      expect(stores.workflow.load("workflow-1")).to be_nil
+      expect(persistence.coordinator.backend.view.records("workflow.states").read("workflow-rollback")).to be_nil
     end
   end
 
@@ -234,7 +235,7 @@ RSpec.describe Phronomy::Persistence do
       )
       expect(appended.first.sequence).to eq(1)
 
-      stored = persistence.backend.view.streams("agent.journal").read(stream: root.agent_id).first.record
+      stored = persistence.coordinator.backend.view.streams("agent.journal").read(stream: root.agent_id).first.record
       expect(stored).to be_a(Phronomy::Storage::DurableRecord)
       expect(stored.record_type).to eq("phronomy.journal_record")
 

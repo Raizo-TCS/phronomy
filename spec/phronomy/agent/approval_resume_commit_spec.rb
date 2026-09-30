@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::ApprovalResumeCommit do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "approval-commit-contract", version: 1
@@ -139,7 +139,7 @@ RSpec.describe Phronomy::Agent::ApprovalResumeCommit do
     expect { worker.commit(operation) }.to raise_error(IOError, /response lost/)
     expect(persistence).to have_received(:transaction).once
     # Read through a separate facade only as a test observer, never as a worker retry.
-    observer = Phronomy::Persistence.new(backend: persistence.backend)
+    observer = Phronomy::PersistenceComposition.build(backend: persistence.coordinator.backend).agent
     saved = observer.executions.load(execution.execution_id)
     expect(saved.status).to eq(:active)
     expect(saved.execution_revision).to eq(execution.execution_revision + 1)
