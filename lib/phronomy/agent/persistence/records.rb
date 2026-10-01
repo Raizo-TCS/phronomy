@@ -6,7 +6,7 @@ module Phronomy
       # Storage implementation of Agent's own record operations.
       # @api private
       class Records
-        attr_reader :contents, :agents, :journals, :executions, :handoff_states
+        attr_reader :contents, :agents, :journals, :executions, :retentions, :cancellations
 
         def initialize(view)
           @view = view
@@ -14,7 +14,8 @@ module Phronomy
           @agents = AgentRepository.new(view)
           @journals = JournalRepository.new(view)
           @executions = ExecutionRepository.new(view)
-          @handoff_states = HandoffStateRepository.new(view)
+          @retentions = RetentionRepository.new(view)
+          @cancellations = CancellationRepository.new(view)
         end
 
         def assert_agent_watermark!(agent_id:, agent_revision:, journal_position:)

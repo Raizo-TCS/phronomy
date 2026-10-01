@@ -37,9 +37,9 @@ RSpec.describe "public event-driven API" do
       .to include(:resolve, :resolve_async)
   end
 
-  it "does not expose a generic Recovery resume API" do
+  it "exposes exact execution resume without a generic Recovery bypass" do
     expect(Phronomy::Agent::Base.public_instance_methods)
-      .not_to include(:recover, :recover_async, :resume_async)
+      .not_to include(:recover, :recover_async)
   end
 
   it "exposes action: on Workflow transition definitions" do

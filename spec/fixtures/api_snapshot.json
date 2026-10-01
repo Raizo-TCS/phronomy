@@ -3,11 +3,10 @@
     "name": "Phronomy::Agent::Base",
     "type": "class",
     "public_instance_methods": [
-      "__coordination_config",
+      "__execution_wiring",
       "__framework_call?",
       "__framework_tool_replayable?",
       "__invocation_config",
-      "__prepare_coordination_record",
       "__replace_root",
       "add_input_filter",
       "add_knowledge",
@@ -20,17 +19,23 @@
       "batch",
       "before_llm_input",
       "before_llm_input=",
+      "cancel_async",
       "clear_knowledge!",
       "clear_transcript!",
       "close!",
+      "event_listener",
       "invoke",
       "invoke_async",
       "journal_projection",
+      "knowledge_snapshot",
       "persistence",
       "purge!",
       "reset_context!",
       "resolve",
       "resolve_async",
+      "resume",
+      "resume_async",
+      "start_reserved_async",
       "stream",
       "stream_async",
       "tool_approval_policy",
@@ -60,6 +65,128 @@
       "tool_aliases",
       "tool_result_filter",
       "tools"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ReservedExecution",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "correlation",
+      "deconstruct",
+      "deconstruct_keys",
+      "execution_id",
+      "members",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ExecutionObservation",
+    "type": "class",
+    "public_instance_methods": [
+      "absent?",
+      "active?",
+      "agent_id",
+      "cancellation_requested",
+      "continuable?",
+      "deconstruct",
+      "deconstruct_keys",
+      "error",
+      "execution_id",
+      "members",
+      "reservation",
+      "result",
+      "status",
+      "terminal?",
+      "to_h",
+      "to_result",
+      "transfer_receipt",
+      "value!",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "from_result",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::KnowledgeItem",
+    "type": "class",
+    "public_instance_methods": [
+      "content",
+      "deconstruct",
+      "deconstruct_keys",
+      "members",
+      "metadata",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::Retention",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "deconstruct",
+      "deconstruct_keys",
+      "execution_id",
+      "members",
+      "owner_key",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ExecutionExtensionState",
+    "type": "class",
+    "public_instance_methods": [
+      "binding_key",
+      "binding_version",
+      "deconstruct",
+      "deconstruct_keys",
+      "members",
+      "state_ref",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "from_h",
+      "members"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ControlRequest",
+    "type": "class",
+    "public_instance_methods": [
+      "deconstruct",
+      "deconstruct_keys",
+      "llm_call_id",
+      "members",
+      "responsibility",
+      "selection",
+      "target_agent_id",
+      "to_h",
+      "tool_call_id",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
     ]
   },
   {
@@ -359,7 +486,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::Handoff",
+    "name": "Phronomy::MultiAgent::Handoff",
     "type": "class",
     "public_instance_methods": [
       "description",
@@ -370,7 +497,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::HandoffPolicy",
+    "name": "Phronomy::MultiAgent::HandoffPolicy",
     "type": "class",
     "public_instance_methods": [
       "default_include?",
@@ -392,6 +519,7 @@
     "type": "class",
     "public_instance_methods": [
       "cancel",
+      "forget_history!",
       "handoffs",
       "invoke",
       "main_agent",
@@ -403,11 +531,10 @@
     "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [
-      "__coordination_config",
+      "__execution_wiring",
       "__framework_call?",
       "__framework_tool_replayable?",
       "__invocation_config",
-      "__prepare_coordination_record",
       "__replace_root",
       "add_input_filter",
       "add_knowledge",
@@ -420,20 +547,26 @@
       "batch",
       "before_llm_input",
       "before_llm_input=",
+      "cancel_async",
       "clear_knowledge!",
       "clear_transcript!",
       "close!",
+      "coordination_store",
       "dispatch_parallel",
       "dispatch_parallel_async",
+      "event_listener",
       "invoke",
       "invoke_async",
       "journal_projection",
+      "knowledge_snapshot",
       "persistence",
       "purge!",
       "reset_context!",
       "resolve",
       "resolve_async",
       "resume",
+      "resume_async",
+      "start_reserved_async",
       "stream",
       "stream_async",
       "subagent",

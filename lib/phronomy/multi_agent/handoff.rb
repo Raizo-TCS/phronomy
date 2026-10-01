@@ -3,7 +3,7 @@
 require "digest"
 
 module Phronomy
-  module Agent
+  module MultiAgent
     # Application-defined semantic edge for transferring active responsibility
     # from one live Agent instance to another.
     class Handoff
@@ -19,7 +19,7 @@ module Phronomy
           raise ArgumentError, "Handoff source_agent and target_agent must be different instances"
         end
         unless policy.is_a?(HandoffPolicy)
-          raise ArgumentError, "policy must be a Phronomy::Agent::HandoffPolicy"
+          raise ArgumentError, "policy must be a Phronomy::MultiAgent::HandoffPolicy"
         end
 
         @source_agent = source_agent

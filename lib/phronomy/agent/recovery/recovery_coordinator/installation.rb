@@ -146,7 +146,7 @@ module Phronomy
           event_loop = @runtime.event_loop
           plan = command.plan
           execution = plan.execution
-          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
+          main = agent.send(:execution_coordinator_for, agent.__execution_wiring)
           admitted = false
           bound = false
           installed = false
@@ -167,7 +167,7 @@ module Phronomy
           if execution.status == :suspended || execution.phase.to_sym == :resuming
             invocation = InvocationRestorer.build_invocation_for_suspended(
               agent, execution, plan.projection, main, agent.send(:_phronomy_event_listener),
-              assistant_message: plan.material.assistant_message
+              assistant_message: plan.material.assistant_message, cancellation_requested: plan.material.cancellation_requested
             )
           end
 
@@ -312,7 +312,7 @@ module Phronomy
         )
           # simplecov:disable
           event_loop = @runtime.event_loop
-          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
+          main = agent.send(:execution_coordinator_for, agent.__execution_wiring)
 
           if framework_batch?(execution)
             internal = Phronomy::TaskResult.deferred(name: "framework-tool-recovery:#{execution.execution_id}")

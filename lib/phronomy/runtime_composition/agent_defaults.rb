@@ -7,5 +7,5 @@ Phronomy::Agent::DefaultPersistence.install_factory(
 )
 
 Phronomy::MultiAgent::TeamCoordinator.install_persistence_factory(
-  -> { Phronomy::PersistenceComposition.in_memory.team }
+  -> { Phronomy::PersistenceComposition.in_memory.multi_agent }
 )

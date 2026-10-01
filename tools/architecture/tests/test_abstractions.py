@@ -51,6 +51,18 @@ root.journal_position
             self.assertEqual([3, 4, 5, 6], [v['line'] for v in violations(repo)])
             self.assertEqual({'team-reads-agent-internals'}, {v['kind'] for v in violations(repo)})
 
+    def test_handoff_and_subagent_use_the_agent_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/multi_agent/durable_subagent_coordinator.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('Phronomy::Agent::ReservedExecution.new()\nparent.persistence.executions.load(id)\nPhronomy::Agent::ExactExecution.start()\n')
+            self.assertEqual([2, 3], [v['line'] for v in violations(repo)])
+            path = repo / 'lib/phronomy/agent/execution_change.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('Phronomy::MultiAgent::HandoffPolicy.default\n')
+            self.assertIn('agent-knows-coordination-domain', {v['kind'] for v in violations(repo)})
+
     def test_checks_real_calls_including_reflection_but_not_comments_or_owners(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

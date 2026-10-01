@@ -41,7 +41,8 @@ module Phronomy
           assistant = messages.reverse.find { |message| message.role.to_sym == :assistant }
           output, usage = SavedContextReader.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
           RecoveryMaterial.new(projection: projection, messages: messages,
-            assistant_message: assistant, output: output, usage: usage)
+            assistant_message: assistant, output: output, usage: usage,
+            cancellation_requested: agent.persistence.cancellation_requested?(agent_id: agent.agent_id, execution_id: execution.execution_id))
         end
 
         def continue_recovery_on_event_loop(execution, completion, material:)
@@ -58,7 +59,7 @@ module Phronomy
           end
 
           observe_recovery_execution(completion, execution)
-          main = agent.send(:execution_coordinator_for, agent.__coordination_config)
+          main = agent.send(:execution_coordinator_for, agent.__execution_wiring)
           projection = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution.execution_id).runtime_projection
           if action == :failed_terminal
             invocation = build_failed_recovery_invocation(execution, main)
@@ -66,10 +67,10 @@ module Phronomy
             projection = material.projection
             invocation = if action == :framework_tools
               InvocationRestorer.build_invocation_for_suspended(agent, execution, projection, main,
-                agent.send(:_phronomy_event_listener), assistant_message: material.assistant_message)
+                agent.send(:_phronomy_event_listener), assistant_message: material.assistant_message, cancellation_requested: material.cancellation_requested)
             else
               InvocationRestorer.build_chat_for_recovery(agent, execution, projection, main,
-                agent.send(:_phronomy_event_listener), messages: material.messages)
+                agent.send(:_phronomy_event_listener), messages: material.messages, cancellation_requested: material.cancellation_requested)
             end
             if execution.phase.to_sym == :recovery_provider_completed
               invocation.output, invocation.usage = material.output, material.usage

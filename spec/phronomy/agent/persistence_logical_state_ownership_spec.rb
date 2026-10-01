@@ -60,18 +60,12 @@ RSpec.describe "Agent logical-state ownership" do
   it "keeps mutable Agent repository reload out of ExecutionCoordinator" do
     coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
-    reconciliation = worker.split("def reconcile_preparation", 2).fetch(1).split(/^      def /, 2).first
-    without_reconciliation = worker.sub(/^      def reconcile_preparation.*?(?=^      def )/m, "")
-    expect(reconciliation).to include("@persistence.executions.load")
+    change = File.read(File.join(root, "lib/phronomy/agent/execution_change.rb"))
+    expect(change).to include("records.executions.load", "records.agents.load", "records.journals.read", "SaveOutcome.compare")
     preparation = File.read(File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb"))
     expect(preparation).not_to include("validate_subagent_admission!", "validate_team_admission!", "validate_handoff_admission!")
     outcomes = File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb"))
-    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
-      body = outcomes.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
-      expect(body).to include("@persistence.executions.load")
-      outcomes = outcomes.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
-    end
-    [coordinator, outcomes, without_reconciliation, preparation].each do |source|
+    [coordinator, outcomes, worker, preparation].each do |source|
       expect(source).not_to match(/(?:tx|persistence)\.agents\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.executions\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.journals\.read/)
@@ -85,7 +79,7 @@ RSpec.describe "Agent logical-state ownership" do
     commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first
     expect(encoding.index("assert_local_durable_base!")).to be < encoding.index("RuntimeRecordEncoder.encode")
     expect(commit.index("assert_local_durable_base!")).to be < commit.index("Phronomy::Context::Assembly.new.store")
-    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("tx.executions.save")
+    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("change.perform")
   end
 
   it "applies committed AgentRoot and Journal advances only through the EventLoop apply helper" do

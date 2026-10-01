@@ -225,8 +225,8 @@ The authoritative subject list is `.mutant.yml`. It currently includes:
 - `Phronomy::Context::DefaultPolicy`
 - `Phronomy::Context::ContextPolicyInputBuilder`
 - `Phronomy::Context::ContextPlanValidator`
-- `Phronomy::Agent::HandoffPolicy`
-- `Phronomy::Agent::HandoffProjection`
+- `Phronomy::MultiAgent::HandoffPolicy`
+- `Phronomy::Agent::TransferProjection`
 - `Phronomy::VectorStore::InMemory`
 
 The nightly mutation matrix mirrors this authoritative list so each subject can

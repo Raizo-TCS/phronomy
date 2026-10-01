@@ -106,7 +106,7 @@ module Phronomy
           raise Phronomy::EventLoopReentrancyError, "Team construction cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
           key = id.to_s
           raise ArgumentError, "team_id must not be empty" if key.empty?
-          store = persistence || Phronomy.configuration.team_store || TeamCoordinator.build_default_persistence
+          store = persistence || Phronomy.configuration.multi_agent_store || TeamCoordinator.build_default_persistence
           runtime = Phronomy::Runtime.instance
           TeamOwnershipRegistry.for(runtime).fetch(key, klass: self, create: create, persistence: store) do
             instance = allocate
@@ -334,10 +334,10 @@ module Phronomy
             values = assignment_values(current)
             aggregate = self.class._aggregator
             begin
-              output = Phronomy::Agent::RecoverySupport.canonical_copy(aggregate ? aggregate.call(values) : values)
+              output = Phronomy::Values::Serializable.convert(aggregate ? aggregate.call(values) : values, unsupported_message: "Team result is not canonically serializable")
               Phronomy::CanonicalJSON.dump(output)
             rescue => error
-              return terminal_value(finish_error(id, Phronomy::Agent::RecoverySupport.resolution_failure(error)))
+              return terminal_value(finish_error(id, {"class" => error.class.name.to_s, "message" => error.message.to_s}))
             end
             # Aggregate may be replayed only until the canonical outcome commits.
             completed = update(id) do |fresh, tx, scope|
@@ -402,15 +402,15 @@ module Phronomy
           raise Phronomy::ConfigurationError, "Team child #{id} Persistence mismatch"
         end
         child_config = config.merge(cancellation_token: token,
-          phronomy_coordination: {"kind" => "team", "team_id" => team_id,
-                                  "team_execution_id" => current.team_execution_id, "slot" => purpose})
+          phronomy_reservation: {"kind" => "team", "team_id" => team_id,
+                                 "team_execution_id" => current.team_execution_id, "slot" => purpose})
         child_config = child_config.merge(phronomy_admission: ReservedChildAdmission.new(
-          persistence: persistence, owner: child_config.fetch(:phronomy_coordination)
+          persistence: persistence, owner: child_config.fetch(:phronomy_reservation)
         ))
         if (context_ref = current.metadata["durable_context_ref"])
           child_config = child_config.merge(durable_context: persistence.contents.fetch_json(context_ref))
         end
-        Phronomy::Agent::ExactExecution.start(agent: child, execution_id: slot.fetch("execution_id"), input: input, config: child_config).wait_result
+        child.start_reserved_async(reservation: Phronomy::Agent::ReservedExecution.new(agent_id: id, execution_id: slot.fetch("execution_id"), correlation: child_config.fetch(:phronomy_reservation)), input: input, config: child_config).wait_result
       end
 
       def reserve_assignment(current, task)
@@ -459,7 +459,10 @@ module Phronomy
 
       def terminal_value(execution)
         raise Phronomy::CancellationError, "Team run #{execution.team_execution_id} cancelled" if execution.status == "cancelled"
-        raise Phronomy::Agent::RecoverySupport.error_from_failure(persistence.contents.fetch_json(execution.error_ref)) if execution.error_ref
+        if execution.error_ref
+          failure = persistence.contents.fetch_json(execution.error_ref)
+          raise Phronomy::Error, "#{failure.fetch("class")}: #{failure.fetch("message")}"
+        end
         persistence.contents.fetch_json(execution.result_ref)
       end
 
@@ -517,7 +520,7 @@ module Phronomy
       end
 
       def apply_operation(run_id, key, operation, arguments)
-        argument_values = Phronomy::Agent::RecoverySupport.canonical_copy(arguments)
+        argument_values = Phronomy::Values::Serializable.convert(arguments, unsupported_message: "Team arguments are not canonically serializable")
         current = update(run_id) do |fresh, tx, scope|
           operations = fresh.metadata.fetch("operations")
           if (prior = operations[key])

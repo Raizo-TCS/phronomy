@@ -24,20 +24,12 @@ module Phronomy
     def assert_idle!: (String agent_id) -> untyped
   end
 
-  interface _HandoffStateRepository
-    def load: (String main_agent_id) -> untyped
-    def load_locked: (String main_agent_id) -> untyped
-    def save: (String main_agent_id, expected_revision: Integer?, state: untyped) -> untyped
-    def delete: (String main_agent_id, expected_revision: Integer) -> untyped
-  end
-
   module Agent
     interface _Records
       def contents: () -> _ContentRepository
       def agents: () -> _AgentRepository
       def journals: () -> _JournalRepository
       def executions: () -> _ExecutionRepository
-      def handoff_states: () -> _HandoffStateRepository
       def guard_agent!: (String agent_id) -> untyped
       def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
     end
@@ -46,8 +38,8 @@ module Phronomy
       class AuthorizedOperation < Data
         attr_reader invocation_id: String
         attr_reader name: String
-        attr_reader arguments: Hash[String, untyped]
-        def self.new: (invocation_id: String, name: String, arguments: Hash[String, untyped]) -> instance
+        attr_reader arguments: Hash[String, json_value]
+        def self.new: (invocation_id: String, name: String, arguments: Hash[String, json_value]) -> instance
       end
 
       attr_reader coordinator: ::Phronomy::Persistence
@@ -55,7 +47,6 @@ module Phronomy
       attr_reader agents: _AgentRepository
       attr_reader journals: _JournalRepository
       attr_reader executions: _ExecutionRepository
-      attr_reader handoff_states: _HandoffStateRepository
       def initialize: (coordinator: ::Phronomy::Persistence, records: ::Phronomy::Persistence::_Participant[_Records]) -> void
       def transaction: [R] () { (_Records, ::Phronomy::Persistence::Transaction) -> R } -> R
       def participate: [R] (::Phronomy::Persistence::Transaction scope) { (_Records) -> R } -> R
@@ -63,7 +54,19 @@ module Phronomy
       def authorized_operations: (::Phronomy::Persistence::Transaction scope, agent_id: String, execution_id: String, invocation_id: String, name: String, arguments: Hash[String, untyped], names: Array[String]) -> Array[AuthorizedOperation]
       def result: (String execution_id) -> Hash[Symbol, untyped]
       def runs: (String owner_id, ?after: String?, ?limit: Integer) -> Array[untyped]
-      def handoff_result: (String execution_id, ?main_agent_id: String?) -> Hash[Symbol, untyped]
+      def observe_execution: (agent_id: String, execution_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> ExecutionObservation
+      def active_executions: (agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> Array[ExecutionObservation]
+      def definition: (agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> { id: String, version: Integer }
+      def knowledge_snapshot: (agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> Array[KnowledgeItem]
+      def execution_extension: (agent_id: String, execution_id: String, binding_key: String, ?scope: ::Phronomy::Persistence::Transaction?) -> ExecutionExtensionState?
+      def guard_agents: (::Phronomy::Persistence::Transaction scope, agent_ids: Array[String]) -> nil
+      def remove_execution_extension: (agent_id: String, execution_id: String, binding_key: String, scope: ::Phronomy::Persistence::Transaction) -> nil
+      def execution_identity: (String execution_id, ?scope: ::Phronomy::Persistence::Transaction?) -> ReservedExecution
+      def retained_references: (agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> Array[Retention]
+      def retain: (Retention retention, ?scope: ::Phronomy::Persistence::Transaction?) -> Retention
+      def release_retention: (agent_id: String, owner_key: String, scope: ::Phronomy::Persistence::Transaction) -> nil
+      def request_cancellation: (agent_id: String, execution_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> bool
+      def cancellation_requested?: (agent_id: String, execution_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> bool
       def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
     end
   end

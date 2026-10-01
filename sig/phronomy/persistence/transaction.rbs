@@ -7,6 +7,7 @@ module Phronomy
     class Transaction
       def initialize: (Persistence persistence, Storage::View view, ?parent: Transaction?) -> void
       def participate: [T, R] (persistence: Persistence, adapter: _Participant[T]) { (T) -> R } -> R
+      def outermost?: () -> bool
       def committed?: () -> bool
       def validate!: () -> bool
       def close!: () -> bool

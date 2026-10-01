@@ -289,7 +289,7 @@ share one durable backend:
 stores = Phronomy::PersistenceComposition.in_memory
 Phronomy.configure do |config|
   config.agent_store = stores.agent
-  config.team_store = stores.team
+  config.multi_agent_store = stores.multi_agent
   config.workflow_store = stores.workflow
 end
 ```

@@ -93,7 +93,7 @@ RSpec.describe Phronomy::Agent::Persistence::Codec do
 
   it "uses independent pre-1.0 0.x format versions per durable record type" do
     expect(described_class::AGENT_ROOT_FORMAT_VERSION).to eq("0.1")
-    expect(described_class::AGENT_EXECUTION_FORMAT_VERSION).to eq("0.1")
+    expect(described_class::AGENT_EXECUTION_FORMAT_VERSION).to eq("0.2")
     expect(described_class::JOURNAL_FORMAT_VERSION).to eq("0.1")
   end
 

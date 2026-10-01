@@ -18,6 +18,7 @@ require_relative "support/llm_stub"
 #   TC-005, TC-006: No (no LLM) — fan_out; pure Ruby thread dispatch
 
 RSpec.describe "Group 34: Orchestrator", :integration do
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
   # Stub agent whose invoke is handled entirely without LLM (no HTTP call).
   def stub_agent_class(output)
     out = output
@@ -81,17 +82,17 @@ RSpec.describe "Group 34: Orchestrator", :integration do
     end
 
     it "returns a non-nil output synthesized from the subagent result" do
-      result = orch_class.new.invoke("Orchestrate a research task")
+      result = orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent).invoke("Orchestrate a research task")
       expect(result[:output]).not_to be_nil
     end
 
     it "LLM is called exactly 3 times (tool call + subagent + final answer)" do
-      orch_class.new.invoke("Orchestrate a research task")
+      orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent).invoke("Orchestrate a research task")
       expect(@llm.calls.size).to eq(3)
     end
 
     it "the orchestrator final LLM call contains the dispatch tool result" do
-      orch_class.new.invoke("Orchestrate a research task")
+      orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent).invoke("Orchestrate a research task")
       # Call index 2 is the orchestrator's second call (after tool result injected).
       messages = @llm.messages_for(2)
       tool_result_msg = messages.find { |m| m["role"] == "tool" }
@@ -123,7 +124,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       # The subagent class returned by the factory is a real Base subclass that
       # calls WebMock.  Its response will be "Completed with partial results."
       # which is valid JSON for the draft parser — skip just means nil on error.
-      expect { orch_class.new.invoke("Orchestrate with partial failure") }.not_to raise_error
+      expect { orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent).invoke("Orchestrate with partial failure") }.not_to raise_error
     end
 
     it "two subagent tools are registered on the orchestrator class" do
@@ -141,7 +142,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-003: parallel / single / skip" do
     let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 } }
-    subject(:orch) { orch_class.new }
+    subject(:orch) { orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent) }
 
     it "returns the single result in an Array" do
       agent = stub_agent_class("parallel_result")
@@ -180,7 +181,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-004: parallel / multiple / raise" do
     let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 } }
-    subject(:orch) { orch_class.new }
+    subject(:orch) { orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent) }
 
     it "returns results in the same order as the input tasks" do
       agent_a = stub_agent_class("result_a")
@@ -211,7 +212,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-005: fan_out / single / raise" do
     let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 } }
-    subject(:orch) { orch_class.new }
+    subject(:orch) { orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent) }
 
     it "returns a one-element result array" do
       agent = stub_agent_class("fan_out_result")
@@ -228,7 +229,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-006: fan_out / multiple / skip" do
     let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 } }
-    subject(:orch) { orch_class.new }
+    subject(:orch) { orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent) }
 
     it "runs the agent for every input and returns results in input order" do
       received = []
@@ -308,7 +309,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
     end
 
     it "the orchestrator final LLM prompt contains the tool result (coherent synthesis)" do
-      orch_class.new.invoke("Run security check")
+      orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent).invoke("Run security check")
       # Call 2 (index 2) is the orchestrator's second call after receiving the tool result.
       final_messages = @llm.messages_for(2)
       tool_msg = final_messages.find { |m| m["role"] == "tool" }
@@ -316,7 +317,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
     end
 
     it "the orchestrator produces a non-empty final output" do
-      result = orch_class.new.invoke("Run security check")
+      result = orch_class.new(persistence: stores.agent, coordination_store: stores.multi_agent).invoke("Run security check")
       expect(result[:output]).not_to be_nil
       expect(result[:output]).not_to be_empty
     end

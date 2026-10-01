@@ -1,5 +1,5 @@
 module Phronomy
-  module Agent
+  module MultiAgent
     class Handoff
       attr_reader source_agent: ::Phronomy::Agent::Base
       attr_reader target_agent: ::Phronomy::Agent::Base
@@ -10,6 +10,12 @@ module Phronomy
     end
 
     class HandoffPolicy
+      class Rule < Data
+        attr_reader category: Symbol
+        attr_reader mode: Symbol
+        attr_reader default: Symbol?
+      end
+
       CATEGORIES: Array[Symbol]
       MODES: Array[Symbol]
       DEFAULTS: Array[Symbol]
@@ -17,7 +23,7 @@ module Phronomy
       def self.define: () { () -> void } -> HandoffPolicy
       def self.default: () -> HandoffPolicy
 
-      def rule: (Symbol | String) -> untyped
+      def rule: (Symbol | String) -> Rule
       def required?: (Symbol | String) -> bool
       def forbidden?: (Symbol | String) -> bool
       def selectable?: (Symbol | String) -> bool
@@ -32,9 +38,9 @@ module Phronomy
       MAX_HANDOFFS: Integer
 
       attr_reader main_agent: ::Phronomy::Agent::Base
-      attr_reader handoffs: Array[::Phronomy::Agent::Handoff]
+      attr_reader handoffs: Array[::Phronomy::MultiAgent::Handoff]
 
-      def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[::Phronomy::Agent::Handoff]) -> void
+      def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[::Phronomy::MultiAgent::Handoff], persistence: Store) -> void
       def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
       def result: (String execution_id) -> Hash[Symbol, untyped]
       def cancel: (String execution_id) -> Hash[Symbol, untyped]

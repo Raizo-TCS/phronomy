@@ -2,7 +2,7 @@
 
 module Phronomy
   module Agent
-    class HandoffContext
+    class TransferContext
       Provenance = Data.define(
         :origin_agent_id,
         :origin_record_id,
@@ -59,7 +59,7 @@ module Phronomy
         def initialize(**values)
           provenance = values.fetch(:provenance)
           unless provenance.is_a?(Provenance)
-            raise ArgumentError, "HandoffContext::Item provenance must be Provenance"
+            raise ArgumentError, "TransferContext::Item provenance must be Provenance"
           end
           format = (values[:content_format] || :text).to_sym
           unless %i[text json].include?(format)
@@ -96,7 +96,7 @@ module Phronomy
 
       def self.from_h(value)
         source = value.transform_keys(&:to_s)
-        raise ArgumentError, "HandoffContext schema mismatch" unless source.keys.sort == %w[items responsibility]
+        raise ArgumentError, "TransferContext schema mismatch" unless source.keys.sort == %w[items responsibility]
         new(responsibility: source.fetch("responsibility"), items: source.fetch("items").map do |raw|
           values = raw.transform_keys(&:to_sym)
           values[:provenance] = Provenance.new(**values.fetch(:provenance).transform_keys(&:to_sym))
@@ -111,7 +111,7 @@ module Phronomy
         @items = Array(items).freeze
         raise ArgumentError, "Handoff Context responsibility must not be empty" if @responsibility.strip.empty?
         unless @items.all? { |item| item.is_a?(Item) }
-          raise ArgumentError, "Handoff Context items must be HandoffContext::Item values"
+          raise ArgumentError, "Handoff Context items must be TransferContext::Item values"
         end
         freeze
       end

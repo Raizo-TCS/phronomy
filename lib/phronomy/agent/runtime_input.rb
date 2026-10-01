@@ -103,7 +103,7 @@ module Phronomy
         expected_definitions = fetch_json(manifest.tool_definitions_ref)
         additional = @additional_tools
         if additional.empty?
-          additional = Array(@agent.__coordination_config[:phronomy_handoff_bindings]).map(&:tool_class)
+          additional = Array(@agent.__execution_wiring[:phronomy_control_bindings]).map(&:tool_class)
         end
 
         @agent.send(:tool_definition_set, additional_tools: additional)

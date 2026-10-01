@@ -68,15 +68,21 @@ module Phronomy
 
       # on_event is bound once to the live Agent Runtime incarnation. The block
       # is an alternative spelling of on_event; supplying both is an error.
-      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Store?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
-      def self.load: (String agent_id, persistence: Store, ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
+      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[KnowledgeItem], ?retention: Retention?, ?persistence: Store?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
+      def self.load: (String agent_id, persistence: Store, ?execution_wiring: execution_wiring, ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> instance
       def self.get: (String agent_id) -> instance?
       def self.live_for_execution: (String execution_id) -> instance
 
-      def initialize: (?agent_id: String?, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Store?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> void
+      def initialize: (?agent_id: String?, ?context: untyped, ?knowledge: Array[KnowledgeItem], ?retention: Retention?, ?persistence: Store?, ?metadata: Hash[untyped, untyped], ?on_event: ^(untyped) -> void) ?{ (untyped event) -> void } -> void
 
       attr_reader agent_id: String
       attr_reader persistence: Store
+      def knowledge_snapshot: () -> Array[KnowledgeItem]
+      def event_listener: () -> (^(Object) -> void)?
+      def start_reserved_async: (reservation: ReservedExecution, input: String, ?config: Hash[Symbol, Object]) -> TaskResult[execution_result]
+      def resume_async: (String execution_id, ?config: Hash[Symbol, Object]) -> TaskResult[execution_result]
+      def resume: (String execution_id, ?config: Hash[Symbol, Object]) -> execution_result
+      def cancel_async: (String execution_id) -> TaskResult[ExecutionObservation]
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       # Public operation methods no longer accept per-invocation event listeners

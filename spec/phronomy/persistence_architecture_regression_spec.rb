@@ -96,19 +96,13 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   it "does not reload mutable Agent root or execution in ExecutionCoordinator" do
     coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
-    reconciliation = worker.split("def reconcile_preparation", 2).fetch(1).split(/^      def /, 2).first
-    without_reconciliation = worker.sub(/^      def reconcile_preparation.*?(?=^      def )/m, "")
-    expect(reconciliation).to include("@persistence.executions.load")
+    change = File.read(File.join(root, "lib/phronomy/agent/execution_change.rb"))
+    expect(change).to include("records.executions.load", "records.agents.load", "records.journals.read", "SaveOutcome.compare")
     preparation = File.read(File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb"))
     approval = File.read(File.join(root, "lib/phronomy/agent/execution/approval_resume_commit.rb"))
     expect(preparation).not_to include("validate_subagent_admission!", "validate_team_admission!", "validate_handoff_admission!")
     outcomes = File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb"))
-    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
-      body = outcomes.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
-      expect(body).to include("@persistence.executions.load")
-      outcomes = outcomes.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
-    end
-    [coordinator, outcomes, without_reconciliation, preparation, approval].each do |source|
+    [coordinator, outcomes, worker, preparation, approval].each do |source|
       expect(source).not_to match(/(?:tx|persistence)\.agents\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.executions\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.journals\.read/)
@@ -122,7 +116,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first
     expect(encoding.index("assert_local_durable_base!")).to be < encoding.index("RuntimeRecordEncoder.encode")
     expect(commit.index("assert_local_durable_base!")).to be < commit.index("Phronomy::Context::Assembly.new.store")
-    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("tx.executions.save")
+    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("change.perform")
   end
 
   it "starts a follow-up Provider Call only after EventLoop validates and applies preparation" do
@@ -144,7 +138,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
   it "keeps durable worker paths free of direct Phronomy live-state mutation" do
     bodies = [
       File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb")),
-      File.read(File.join(root, "lib/phronomy/agent/handoff/handoff_outcome_committer.rb"))
+      File.read(File.join(root, "lib/phronomy/multi_agent/handoff_participant.rb"))
     ]
     bodies << File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
     bodies << File.read(File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb"))
@@ -162,33 +156,14 @@ RSpec.describe "Unified Persistence architecture regression guards" do
       File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb")
     )
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
-    provider_worker = worker
-      .split("def reconcile_provider", 2)
-      .fetch(1)
-      .split(/^      def /, 2)
-      .first
-    tool_worker = worker
-      .split("def reconcile_tools", 2)
-      .fetch(1)
-      .split(/^      def /, 2)
-      .first
-    provider_apply = coordinator
-      .split("def apply_provider_dispatch_preparation_reconciliation_on_event_loop", 2)
-      .fetch(1)
-      .split(/^      def /, 2)
-      .first
-    tool_apply = coordinator
-      .split("def apply_tool_dispatch_preparation_reconciliation_on_event_loop", 2)
-      .fetch(1)
-      .split(/^      def /, 2)
-      .first
-
-    expect(provider_worker).to include("reconcile_preparation")
-    expect(tool_worker).to include("reconcile_preparation")
-    expect(provider_apply).not_to include("executions.load")
-    expect(tool_apply).not_to include("executions.load")
-    expect(provider_apply).not_to include("materialize_projection")
-    expect(tool_apply).not_to include("materialize_projection")
+    change = File.read(File.join(root, "lib/phronomy/agent/execution_change.rb"))
+    expect(change).to include("SaveOutcome.compare")
+    expect(worker).to include("change.perform")
+    [:provider, :tool].each do |kind|
+      apply = coordinator.split("def apply_#{kind}_dispatch_preparation_on_event_loop", 2).fetch(1).split(/^      def /, 2).first
+      expect(apply).not_to include("executions.load", "materialize_projection", "SaveOutcome.compare")
+      expect(apply).to include("authoritative_state_for_operation")
+    end
   end
 
   it "keeps Workflow admission ownership, FSMSession routing, and terminal persistence distinct" do

@@ -19,7 +19,7 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
 
   %i[agent team].each do |kind|
     context "with #{kind} ownership" do
-      let(:store) { stores.public_send(kind) }
+      let(:store) { stores.public_send((kind == :team) ? :multi_agent : :agent) }
       let(:owner_class) { (kind == :agent) ? agent_class : team_class }
       let(:registry_class) do
         (kind == :agent) ? Phronomy::Agent::OwnershipRegistry : Phronomy::MultiAgent::TeamOwnershipRegistry

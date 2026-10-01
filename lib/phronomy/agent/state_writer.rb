@@ -14,7 +14,7 @@ module Phronomy
         @agent_id = agent_id
       end
 
-      def create_root(definition:, context:, knowledge:, metadata:)
+      def create_root(definition:, context:, knowledge:, metadata:, retention: nil)
         root = Agent::AgentRoot.create(
           agent_id: agent_id,
           agent_definition_id: definition.fetch(:id),
@@ -23,6 +23,7 @@ module Phronomy
         )
         persistence.transaction do |tx|
           tx.agents.create(root)
+          tx.retentions.retain(retention) if retention
           records = initial_context_records(tx: tx, root: root, context: context)
           records.concat(initial_knowledge_records(tx: tx, root: root, knowledge: knowledge))
           unless records.empty?
@@ -137,8 +138,8 @@ module Phronomy
           build_knowledge_record(
             tx: tx,
             root: root,
-            content: content,
-            metadata: {}
+            content: content.is_a?(KnowledgeItem) ? content.content : content,
+            metadata: content.is_a?(KnowledgeItem) ? content.metadata : {}
           )
         end
       end

@@ -9,25 +9,33 @@ module Phronomy
       ParallelChild = Data.define(:index, :agent, :input, :config)
       private_constant :ParallelChild
 
-      # Own one live cancellation token shared with this invocation's static
-      # children, including when Recovery reconstructs the invocation.
-      # @api private
-      def __invocation_config(config)
-        config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)
+      attr_reader :coordination_store
+
+      def self.create(coordination_store: nil, **options, &block)
+        new(coordination_store: coordination_store, **options, &block)
       end
 
-      # Resumes retained static child coordination with current class wiring.
-      # @api public
-      def resume(execution_id, config: {})
-        if Phronomy::WaitPolicy.blocking_forbidden?
-          raise Phronomy::EventLoopReentrancyError, "Orchestrator#resume cannot block EventLoop"
+      def self.load(agent_id, persistence:, coordination_store:, **options, &block)
+        participant = DurableSubagentCoordinator.new(agent_class: self, persistence: coordination_store)
+        super(agent_id, persistence: persistence, execution_wiring: {phronomy_execution_participant: participant}, **options, &block)
+      end
+
+      def initialize(coordination_store: nil, execution_wiring: {}, **options, &block)
+        @coordination_store = coordination_store || execution_wiring[:phronomy_execution_participant]&.persistence || Phronomy.configuration.multi_agent_store
+        super(execution_wiring: execution_wiring, **options, &block)
+        if @coordination_store && !@coordination_store.agent_store.equal?(persistence)
+          raise Phronomy::ConfigurationError, "Orchestrator stores must share the same Agent store"
         end
-        execution = persistence.executions.load(execution_id)
-        raise Phronomy::Persistence::StateConflictError, "Parent execution owner mismatch" unless execution.agent_id == agent_id
-        input = persistence.contents.fetch_text(execution.metadata.fetch("current_input_ref"))
-        result = Phronomy::Agent::ExactExecution.start(agent: self, execution_id: execution_id, input: input, config: config).wait_result
-        raise Phronomy::Agent::RecoverySupport.error_from_failure(result[:error]) if result[:error]
-        result
+        @participant = @coordination_store && DurableSubagentCoordinator.new(agent_class: self.class, persistence: @coordination_store)
+      end
+
+      # Current composition, never serialized in an execution record.
+      def __invocation_config(config)
+        if !self.class.registered_subagents.empty? && !@participant
+          raise Phronomy::ConfigurationError, "Durable subagents require coordination_store:"
+        end
+        config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new,
+          phronomy_execution_participant: @participant).compact
       end
 
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
@@ -86,7 +94,7 @@ module Phronomy
             agent = agent_class.new
             if inherit_knowledge
               Array(ctx[:knowledge]).each do |entry|
-                agent.add_knowledge(entry.fetch(:content), metadata: entry.fetch(:metadata, {}))
+                agent.add_knowledge(entry.content, metadata: entry.metadata)
               end
             end
             Phronomy::AsyncOperation.call(name: "subagent-tool-#{name}",
@@ -203,12 +211,6 @@ module Phronomy
         self.class.registered_subagents.keys.any? { |key| "dispatch_to_#{key}" == name.to_s }
       end
 
-      # Reserve child identity/input/knowledge in the parent's existing Agent transaction.
-      # @api private
-      def __prepare_coordination_record(execution, tx:)
-        DurableSubagentCoordinator.prepare(self, execution, tx: tx)
-      end
-
       private
 
       def prepare_tool_class(tool_class, invocation: nil)
@@ -245,16 +247,7 @@ module Phronomy
         end
       end
 
-      def active_knowledge_snapshot
-        journal_projection.context_records.filter_map do |record|
-          next unless record.kind == :knowledge
-
-          {
-            content: persistence.contents.fetch_text(record.content_ref),
-            metadata: (record.metadata || {}).dup.freeze
-          }.freeze
-        end.freeze
-      end
+      def active_knowledge_snapshot = knowledge_snapshot
 
       def build_subagent(agent_class, inherit_knowledge: true, knowledge_snapshot: nil)
         agent = agent_class.new
@@ -263,8 +256,8 @@ module Phronomy
         snapshot = knowledge_snapshot || active_knowledge_snapshot
         snapshot.each do |entry|
           agent.add_knowledge(
-            entry.fetch(:content),
-            metadata: entry.fetch(:metadata, {})
+            entry.content,
+            metadata: entry.metadata
           )
         end
         agent

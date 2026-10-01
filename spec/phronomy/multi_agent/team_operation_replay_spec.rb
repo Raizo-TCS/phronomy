@@ -7,13 +7,13 @@ RSpec.describe "Team operation result replay" do
   include_context "durable coordination runtime"
 
   it "returns a legacy saved result after restart without enqueueing or rewriting it" do
-    team = team_class.create(team_id: "legacy-operation-result", persistence: store.team)
+    team = team_class.create(team_id: "legacy-operation-result", persistence: store.multi_agent)
     LLMStub.activate(responses: team_responses)
     team.invoke("plan")
     run = team.executions.first
     key, operation = run.metadata.fetch("operations").find { |_id, entry| entry.fetch("operation") == "enqueue_task" }
     legacy_result = "TaskResult #1 enqueued: task-one"
-    store.team.transaction do |tx|
+    store.multi_agent.transaction do |tx|
       current = tx.team_executions.load(run.team_execution_id)
       operations = current.metadata.fetch("operations").merge(key => operation.merge("result" => legacy_result))
       tx.team_executions.save(current.team_execution_id, expected_revision: current.execution_revision,
@@ -21,7 +21,7 @@ RSpec.describe "Team operation result replay" do
     end
 
     restored = reboot(store.snapshot)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     before = loaded.executions.first.to_h
     tool = loaded.send(:build_operation_tool, run.team_execution_id, :enqueue_task).new
     llm = LLMStub.activate(responses: ["must not run"])

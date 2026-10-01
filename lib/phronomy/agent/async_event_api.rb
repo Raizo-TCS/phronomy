@@ -12,6 +12,33 @@ module Phronomy
     # - approval notifications share the Agent listener as :approval_required;
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
+      def start_reserved_async(reservation:, input:, config: {})
+        unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
+          raise ArgumentError, "reservation must belong to this Agent"
+        end
+        config = __invocation_config(_prepare_invocation_config(config, nil))
+        ExactExecution.start(agent: self, execution_id: reservation.execution_id, input: input,
+          config: config.merge(phronomy_reservation: reservation.correlation))
+      end
+
+      def resume_async(execution_id, config: {})
+        config = __invocation_config(_prepare_invocation_config(config, nil))
+        ExactExecution.start(agent: self, execution_id: execution_id, input: nil, config: config, resume_only: true)
+      end
+
+      def resume(execution_id, config: {})
+        _check_event_loop_reentrancy(:resume, :resume_async)
+        resume_async(execution_id, config: config).wait_result
+      end
+
+      def cancel_async(execution_id)
+        Phronomy::Execution.submit(on_full: :raise) do
+          requested = persistence.request_cancellation(agent_id: agent_id, execution_id: execution_id)
+          ExecutionCancellation.signal(execution_id, agent_id) if requested
+          persistence.observe_execution(agent_id: agent_id, execution_id: execution_id)
+        end
+      end
+
       def invoke(
         input,
         config: {},
@@ -168,7 +195,8 @@ module Phronomy
       end
 
       def _start_agent_operation(input, config:, mode:, listener:)
-        config = _snapshot_durable_context(config)
+        config = __invocation_config(_snapshot_durable_context(config))
+        @_phronomy_execution_wiring = config.dup.freeze
         approval = _approval_configuration_snapshot(nil)
         execution_coordinator_for(config).start(
           input,
@@ -220,14 +248,7 @@ module Phronomy
         @execution_coordinator ||= Agent::ExecutionCoordinator.new(self)
       end
 
-      def execution_coordinator_for(config)
-        multi_agent = config.key?(:phronomy_handoff_bindings) ||
-          config.key?(:phronomy_handoff_context)
-        return execution_coordinator unless multi_agent
-
-        @multi_agent_execution_coordinator ||=
-          Phronomy::Agent::HandoffExecutionCoordinator.new(self)
-      end
+      def execution_coordinator_for(_config) = execution_coordinator
     end
   end
 end

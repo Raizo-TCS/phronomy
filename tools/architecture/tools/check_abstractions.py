@@ -57,6 +57,20 @@ def violations(repository):
                 if relative in CONSUMERS and method in {'deferred', 'complete', 'fail'}:
                     findings.append({'kind': 'consumer-settles-result', 'file': relative,
                                      'line': node.start_point.row + 1, 'call': text(node)})
+            if relative.startswith('lib/phronomy/agent/') and node.type == 'constant' and text(node) == 'MultiAgent':
+                findings.append({'kind': 'agent-knows-coordination-domain', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
+            if relative.startswith('lib/phronomy/multi_agent/') and '/persistence/' not in relative and relative != 'lib/phronomy/multi_agent/team_coordinator.rb':
+                if node.type == 'scope_resolution' and text(node).startswith('Phronomy::Agent::') and any(
+                        text(node).endswith('::' + name) for name in ('AgentExecution', 'ExecutionMetadata', 'ExactExecution', 'RecoverySupport', 'JournalRecord', 'ContextImporter')):
+                    findings.append({'kind': 'coordination-reads-agent-internals', 'file': relative,
+                                     'line': node.start_point.row + 1, 'call': text(node)})
+                if node.type == 'call':
+                    method = text(node.child_by_field_name('method'))
+                    receiver = text(node.child_by_field_name('receiver'))
+                    if (receiver.endswith(('agent_store', '.persistence')) and method in {'agents', 'executions', 'journals', 'participate'}) or method == '_phronomy_event_listener':
+                        findings.append({'kind': 'coordination-reads-agent-internals', 'file': relative,
+                                         'line': node.start_point.row + 1, 'call': text(node)})
             if relative in {'lib/phronomy/persistence/transaction.rb', 'lib/phronomy/persistence/persistence.rb'} and node.type == 'constant':
                 if text(node) in {'Agent', 'MultiAgent', 'Workflow', 'Runtime', 'PersistenceComposition'}:
                     findings.append({'kind': 'transaction-knows-domain-or-composition',

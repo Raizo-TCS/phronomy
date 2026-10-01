@@ -8,7 +8,7 @@ module Phronomy
     class Admission
       attr_reader agent_id: String
       attr_reader execution_id: String
-      attr_reader correlation: Hash[String, untyped]?
+      attr_reader correlation: Hash[String, json_value]?
       def initialize: (persistence: Store, root: untyped, input: String,
                        config: Hash[Symbol, untyped], preparation_metadata: Hash[String, untyped]) -> void
       def accept: () -> nil

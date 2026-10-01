@@ -6,6 +6,8 @@ module Phronomy
   module MultiAgent
     module Persistence
       module StorageSchema
+        HANDOFF_STATES = Phronomy::Storage::Resource.new(id: "handoff.states", kind: :records,
+          attributes: {active_agent_id: :string})
         ROOTS = Phronomy::Storage::Resource.new(id: "team.roots", kind: :records,
           guard: {resource: "team.roots", via: :key})
         EXECUTIONS = Phronomy::Storage::Resource.new(id: "team.executions", kind: :records,

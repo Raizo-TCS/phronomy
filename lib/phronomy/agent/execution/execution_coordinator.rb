@@ -39,10 +39,7 @@ module Phronomy
       InitialPreparationCommand = InitialPreparation::Command
       ProviderDispatchPreparationCommand = DispatchPreparation::ProviderCommand
       ToolDispatchPreparationCommand = DispatchPreparation::ToolCommand
-      ProviderDispatchPreparationReconciliationCommand = DispatchPreparation::ProviderReconciliationCommand
-      ToolDispatchPreparationReconciliationCommand = DispatchPreparation::ToolReconciliationCommand
       ResumeCommitCommand = ApprovalResumeCommit::Command
-      HandoffTerminalView = ExecutionOutcomeCommitter::HandoffTerminalView
       TerminalView = ExecutionOutcomeCommitter::TerminalView
       TerminalCommitCommand = ExecutionOutcomeCommitter::Command
       TerminalDelivery = Data.define(
@@ -55,8 +52,6 @@ module Phronomy
       InitialPreparationResult = InitialPreparation::Result
       ProviderDispatchPreparationResult = DispatchPreparation::ProviderResult
       ToolDispatchPreparationResult = DispatchPreparation::ToolResult
-      ProviderDispatchPreparationReconciliationResult = DispatchPreparation::ProviderReconciliationResult
-      ToolDispatchPreparationReconciliationResult = DispatchPreparation::ToolReconciliationResult
       ResumeCommitResult = ApprovalResumeCommit::Result
       TerminalOutcome = ExecutionOutcomeCommitter::Outcome
 
@@ -73,12 +68,6 @@ module Phronomy
       ToolDispatchPreparationReady = Data.define(
         :coordinator, :operation, :result, :error
       )
-      ProviderDispatchPreparationReconciliationReady = Data.define(
-        :coordinator, :command, :result, :error
-      )
-      ToolDispatchPreparationReconciliationReady = Data.define(
-        :coordinator, :command, :result, :error
-      )
       ResumeCommitReady = Data.define(
         :coordinator, :request, :operation, :result, :error
       )
@@ -89,9 +78,6 @@ module Phronomy
         :coordinator, :execution_id, :result_task, :invocation,
         :source_error, :fsm_session_id
       )
-
-      PreparationOutcomeUnknownError = DispatchPreparation::OutcomeUnknownError
-      private_constant :PreparationOutcomeUnknownError
 
       def initialize(agent)
         @agent = agent
@@ -236,64 +222,6 @@ module Phronomy
         end
       end
 
-      def submit_provider_dispatch_preparation_reconciliation(operation, uncertainty)
-        # simplecov:disable
-        runtime = Phronomy::Runtime.instance
-        command = ProviderDispatchPreparationReconciliationCommand.new(
-          operation: operation,
-          intended_result: uncertainty.intended_result,
-          original_error: uncertainty.original_error
-        )
-        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
-          @dispatch_preparation.reconcile_provider(command)
-        end
-        task.on_complete do |result, error|
-          ready = ProviderDispatchPreparationReconciliationReady.new(
-            coordinator: self,
-            command: command,
-            result: result,
-            error: error
-          )
-          unless post_control(runtime, ready)
-            Phronomy.configuration.logger&.warn(
-              "[Phronomy] EventLoop rejected Provider dispatch reconciliation result for #{operation.execution_id}"
-            )
-          end
-        end
-      rescue => error
-        mark_barrier_recovery_required(operation, error)
-        # simplecov:enable
-      end
-
-      def submit_tool_dispatch_preparation_reconciliation(operation, uncertainty)
-        # simplecov:disable
-        runtime = Phronomy::Runtime.instance
-        command = ToolDispatchPreparationReconciliationCommand.new(
-          operation: operation,
-          intended_result: uncertainty.intended_result,
-          original_error: uncertainty.original_error
-        )
-        task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
-          @dispatch_preparation.reconcile_tools(command)
-        end
-        task.on_complete do |result, error|
-          ready = ToolDispatchPreparationReconciliationReady.new(
-            coordinator: self,
-            command: command,
-            result: result,
-            error: error
-          )
-          unless post_control(runtime, ready)
-            Phronomy.configuration.logger&.warn(
-              "[Phronomy] EventLoop rejected Tool dispatch reconciliation result for #{operation.execution_id}"
-            )
-          end
-        end
-      rescue => error
-        mark_barrier_recovery_required(operation, error)
-        # simplecov:enable
-      end
-
       # Every control message is delivered by EventLoop. This method is the only
       # coordinator entry point allowed to advance Phronomy-managed live state.
       # @api private
@@ -319,10 +247,6 @@ module Phronomy
           apply_provider_dispatch_preparation_on_event_loop(command)
         when ToolDispatchPreparationReady
           apply_tool_dispatch_preparation_on_event_loop(command)
-        when ProviderDispatchPreparationReconciliationReady
-          apply_provider_dispatch_preparation_reconciliation_on_event_loop(command)
-        when ToolDispatchPreparationReconciliationReady
-          apply_tool_dispatch_preparation_reconciliation_on_event_loop(command)
         when ResumeCommand
           begin_resume_on_event_loop(command)
         when ResumeCommitReady
@@ -419,9 +343,9 @@ module Phronomy
       def initial_preparation_replayable?(input, config, approval_policy)
         return false unless input.is_a?(String)
         return false unless approval_policy.nil?
-        if config.key?(:phronomy_handoff_bindings) ||
-            config.key?(:phronomy_handoff_context)
-          return false unless config[:phronomy_coordination]&.fetch("kind", nil) == "handoff"
+        if config.key?(:phronomy_control_bindings) ||
+            config.key?(:phronomy_transfer_context)
+          return false unless config[:phronomy_execution_participant]
         end
 
         invocation_context = config[:invocation_context]
@@ -821,7 +745,8 @@ module Phronomy
           root: @agent.agent_root,
           execution: state.execution,
           runtime_snapshot: invocation.runtime_snapshot,
-          tool_batch_snapshot: tool_batch_snapshot
+          tool_batch_snapshot: tool_batch_snapshot,
+          invocation_config: invocation.config.dup.freeze
         )
       end
 
@@ -836,11 +761,8 @@ module Phronomy
         return unless state
 
         if ready.error
-          if ready.error.is_a?(PreparationOutcomeUnknownError)
-            submit_provider_dispatch_preparation_reconciliation(
-              operation,
-              ready.error
-            )
+          if ready.error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+            mark_barrier_recovery_required(operation, ready.error)
           else
             state.invocation.event_sink.post(:llm_setup_failed, ready.error)
           end
@@ -867,11 +789,8 @@ module Phronomy
         return unless state
 
         if ready.error
-          if ready.error.is_a?(PreparationOutcomeUnknownError)
-            submit_tool_dispatch_preparation_reconciliation(
-              operation,
-              ready.error
-            )
+          if ready.error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+            mark_barrier_recovery_required(operation, ready.error)
           else
             state.invocation.event_sink.post(:tool_setup_failed, ready.error)
           end
@@ -938,85 +857,6 @@ module Phronomy
           event_sink: state.invocation.event_sink,
           invocation: state.invocation
         )
-      end
-
-      def apply_provider_dispatch_preparation_reconciliation_on_event_loop(ready)
-        command = ready.command
-        operation = command.operation
-        state = authoritative_state_for_operation(
-          execution_id: operation.execution_id,
-          fsm_session_id: operation.fsm_session_id,
-          expected_execution_revision: operation.expected_execution_revision,
-          expected_fsm_state: :calling_llm
-        )
-        return unless state
-
-        if ready.error
-          mark_barrier_recovery_required(operation, ready.error)
-          return
-        end
-
-        case ready.result.disposition
-        when :committed
-          apply_confirmed_provider_dispatch_preparation_on_event_loop(
-            operation,
-            ready.result.preparation_result,
-            state
-          )
-        when :not_committed
-          state.invocation.event_sink.post(
-            :llm_setup_failed,
-            command.original_error
-          )
-        when :conflict
-          mark_barrier_recovery_required(operation, command.original_error)
-        else
-          raise Phronomy::Error,
-            "unknown Provider dispatch reconciliation disposition: " \
-            "#{ready.result.disposition.inspect}"
-        end
-      rescue => error
-        mark_barrier_recovery_required(operation, error)
-      end
-
-      def apply_tool_dispatch_preparation_reconciliation_on_event_loop(ready)
-        command = ready.command
-        operation = command.operation
-        state = authoritative_state_for_operation(
-          execution_id: operation.execution_id,
-          fsm_session_id: operation.fsm_session_id,
-          expected_execution_revision: operation.expected_execution_revision,
-          expected_fsm_state: :dispatching_tools
-        )
-        return unless state
-
-        if ready.error
-          mark_barrier_recovery_required(operation, ready.error)
-          return
-        end
-
-        case ready.result.disposition
-        when :committed
-          apply_confirmed_tool_dispatch_preparation_on_event_loop(
-            operation,
-            ready.result.preparation_result,
-            state
-          )
-        when :not_committed
-          state.invocation.event_sink.post(
-            :tool_setup_failed,
-            command.original_error
-          )
-        when :conflict
-          mark_barrier_recovery_required(operation, command.original_error)
-        else
-          raise Phronomy::Error,
-            "unknown Tool dispatch reconciliation disposition: " \
-            "#{ready.result.disposition.inspect}"
-        end
-      rescue => error
-        mark_barrier_recovery_required(operation, error)
-        # simplecov:enable
       end
 
       def mark_barrier_recovery_required(operation, error)
@@ -1475,7 +1315,8 @@ module Phronomy
           execution: execution,
           runtime_snapshot: invocation ? invocation.runtime_snapshot : empty_runtime_snapshot,
           terminal_view: terminal_view(invocation, source_error),
-          state_required: state_required
+          state_required: state_required,
+          wiring: (invocation ? invocation.config : @agent.__execution_wiring).dup.freeze
         )
       end
 
@@ -1549,20 +1390,7 @@ module Phronomy
         )
       end
 
-      def handoff_terminal_view(request)
-        return unless request
-
-        HandoffTerminalView.new(
-          target_agent_id: request.handoff.target_agent.agent_id.to_s.freeze,
-          responsibility: request.responsibility.to_s.freeze,
-          selection_intent: request.selection_intent.to_h do |category, included|
-            [category.to_s.freeze, !!included]
-          end.freeze,
-          llm_call_id: request.llm_call_id&.to_s&.freeze,
-          tool_call_id: request.tool_call_id&.to_s&.freeze,
-          policy: Phronomy::Values::Immutable.copy(request.handoff.policy.to_h)
-        )
-      end
+      def handoff_terminal_view(request) = request
 
       def empty_runtime_snapshot
         {llm_results: [].freeze, runtime_events: [].freeze, active_call: nil}.freeze
@@ -1614,7 +1442,7 @@ module Phronomy
       def handle_terminal_commit_error_on_event_loop(ready, state, event_loop)
         operation = ready.operation
         delivery = ready.delivery
-        if operation.execution.metadata["coordination"] || operation.execution.metadata["multi_agent_coordination_ref"]
+        if operation.execution.metadata["reservation"] || operation.execution.metadata["execution_extension"]
           release_terminal_ownership(event_loop, operation.execution_id, state)
           Phronomy::Agent::ExecutionRegistry.for(event_loop).take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each do |task|
             task.fail(ready.error)

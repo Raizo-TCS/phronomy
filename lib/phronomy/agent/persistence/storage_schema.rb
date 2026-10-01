@@ -16,8 +16,13 @@ module Phronomy
 
         JOURNAL = Phronomy::Storage::Resource.new(id: "agent.journal", kind: :streams,
           guard: {resource: ROOTS.id, via: :stream})
-        HANDOFF_STATES = Phronomy::Storage::Resource.new(id: "handoff.states", kind: :records,
-          attributes: {active_agent_id: :string})
+        CANCELLATIONS = Phronomy::Storage::Resource.new(id: "agent.cancellations", kind: :records,
+          attributes: {owner: :string}, immutable_attributes: [:owner], indexes: {owner: [:owner]},
+          guard: {resource: ROOTS.id, via: :owner})
+        RETENTIONS = Phronomy::Storage::Resource.new(id: "agent.retentions", kind: :records,
+          attributes: {owner: :string, holder: :string}, immutable_attributes: [:owner, :holder],
+          indexes: {owner: [:owner], holder: [:holder]},
+          guard: {resource: ROOTS.id, via: :owner})
       end
     end
   end

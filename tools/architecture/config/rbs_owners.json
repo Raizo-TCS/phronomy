@@ -7,7 +7,7 @@
   "Phronomy::_JournalRepository": "lib/phronomy/agent",
   "Phronomy::_ExecutionRepository": "lib/phronomy/agent",
   "Phronomy::_WorkflowStateRepository": "lib/phronomy/workflow",
-  "Phronomy::_HandoffStateRepository": "lib/phronomy/agent",
+  "Phronomy::_HandoffStateRepository": "lib/phronomy/multi_agent",
   "Phronomy::_TeamRepository": "lib/phronomy/multi_agent",
   "Phronomy::_TeamExecutionRepository": "lib/phronomy/multi_agent",
   "Phronomy::Storage::attributes": "lib/phronomy/storage",
@@ -26,5 +26,10 @@
   "Phronomy::Persistence::_Participant": "lib/phronomy/persistence",
   "Phronomy::Agent::_AdmissionOwner": "lib/phronomy/agent",
   "Phronomy::Agent::_Records": "lib/phronomy/agent",
-  "Phronomy::MultiAgent::_Records": "lib/phronomy/multi_agent"
+  "Phronomy::MultiAgent::_Records": "lib/phronomy/multi_agent",
+  "Phronomy::json_value": "lib/phronomy/common",
+  "Phronomy::Agent::_ExecutionParticipant": "lib/phronomy/agent",
+  "Phronomy::Agent::_ControlCapability": "lib/phronomy/agent",
+  "Phronomy::Agent::execution_result": "lib/phronomy/agent",
+  "Phronomy::Agent::execution_wiring": "lib/phronomy/agent"
 }

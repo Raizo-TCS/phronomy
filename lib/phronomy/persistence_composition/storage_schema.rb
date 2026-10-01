@@ -10,7 +10,8 @@ module Phronomy
       end
 
       def self.resources
-        (agent_resources + [Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS,
+        (agent_resources + [Phronomy::MultiAgent::Persistence::StorageSchema::HANDOFF_STATES,
+          Phronomy::MultiAgent::Persistence::StorageSchema::ROOTS,
           Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS,
           Phronomy::Workflow::Persistence::StorageSchema::STATES]).freeze
       end
@@ -19,7 +20,8 @@ module Phronomy
         [Agent::Persistence::StorageSchema::ROOTS,
           Agent::Persistence::StorageSchema::EXECUTIONS,
           Agent::Persistence::StorageSchema::JOURNAL,
-          Agent::Persistence::StorageSchema::HANDOFF_STATES,
+          Agent::Persistence::StorageSchema::RETENTIONS,
+          Agent::Persistence::StorageSchema::CANCELLATIONS,
           ContentStore::StorageSchema::CONTENTS].freeze
       end
     end

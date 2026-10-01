@@ -5,13 +5,13 @@ require "spec_helper"
 RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
   let(:stores) { Phronomy::PersistenceComposition.in_memory }
   let(:store) { stores.agent }
-  let(:team_store) { stores.team }
+  let(:multi_agent_store) { stores.multi_agent }
   let(:root) { Phronomy::Agent::AgentRoot.create(agent_id: "child", agent_definition_id: "child", agent_definition_version: 1) }
   let(:owner) { {"kind" => "team", "team_id" => "parent", "team_execution_id" => "run", "slot" => "coordinator"} }
-  let(:reservation) { described_class.new(persistence: team_store, owner: owner) }
+  let(:reservation) { described_class.new(persistence: multi_agent_store, owner: owner) }
   let(:admission) do
     Phronomy::Agent::Admission.new(persistence: store, root: root, input: "input",
-      config: {phronomy_reserved_execution_id: "child-run", phronomy_coordination: owner}, preparation_metadata: {})
+      config: {phronomy_reserved_execution_id: "child-run", phronomy_reservation: owner}, preparation_metadata: {})
   end
   let(:team) do
     now = Time.now.utc.iso8601(6)
@@ -29,8 +29,8 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
 
   before do
     store.agents.create(root)
-    team_store.teams.create(team)
-    team_store.team_executions.create_active(run)
+    multi_agent_store.teams.create(team)
+    multi_agent_store.team_executions.create_active(run)
   end
 
   it "locks the parent before reading its reservation and committing Agent admission" do
@@ -48,20 +48,20 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
     expect(calls.index([:lock, "team.roots"])).to be < calls.index([:read, "team.executions"])
     expect(execution.execution_id).to eq("child-run")
     expect(updated_root.lifecycle_status).to eq(:active)
-    expect(store.executions.load("child-run").metadata.fetch("coordination")).to eq(owner)
+    expect(store.executions.load("child-run").metadata.fetch("reservation")).to eq(owner)
     expect(store.agents.load("child").agent_revision).to eq(1)
     expect(root.lifecycle_status).to eq(:idle)
   end
 
   it "does not admit a child after a committed parent cancellation" do
-    team_store.team_executions.save("run", expected_revision: 0, execution: run.with(metadata: {"cancel_requested" => true}))
+    multi_agent_store.team_executions.save("run", expected_revision: 0, execution: run.with(metadata: {"cancel_requested" => true}))
     expect { reservation.admit(admission) }.to raise_error(Phronomy::CancellationError)
     expect(store.executions.list("child")).to be_empty
     expect(store.agents.load("child").agent_revision).to eq(0)
   end
 
   it "rejects a changed child identity without persisting input or execution" do
-    team_store.team_executions.save("run", expected_revision: 0,
+    multi_agent_store.team_executions.save("run", expected_revision: 0,
       execution: run.with(coordinator: {"agent_id" => "child", "execution_id" => "other-run"}))
     expect { reservation.admit(admission) }.to raise_error(Phronomy::Persistence::StateConflictError)
     expect(store.executions.list("child")).to be_empty
@@ -95,7 +95,7 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
     fake_agent = Struct.new(:agent_id).new("child")
     prepare = Phronomy::Agent::InitialPreparation.new(agent: fake_agent, persistence: store)
     expect do
-      prepare.send(:admit_execution, "input", root: root, config: {phronomy_coordination: owner})
+      prepare.send(:admit_execution, "input", root: root, config: {phronomy_reservation: owner})
     end.to raise_error(Phronomy::ConfigurationError, /current owner/)
     expect(store.executions.list("child")).to be_empty
   end

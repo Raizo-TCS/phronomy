@@ -1,5 +1,7 @@
 # ADR-051: Execution Outcome Worker Ownership
 
+> Handoff specialization and commit proof are amended by [ADR-064](064-agent-execution-and-multi-agent-responsibility.md).
+
 **Status**: Accepted on the architecture refactoring branch
 **Date**: 2026-09-22
 **Refines**: [024-event-loop-single-writer-agent-runtime](024-event-loop-single-writer-agent-runtime.md),

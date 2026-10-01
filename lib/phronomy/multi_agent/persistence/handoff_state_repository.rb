@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
+  module MultiAgent
     module Persistence
       # Owns Handoff state encoding and the initial revision.
       # @api private

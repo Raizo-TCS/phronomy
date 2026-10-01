@@ -13,7 +13,7 @@ module Phronomy
 
       # Record protocol for Agent-owned framework operations only.
       # @api private
-      attr_reader :contents, :agents, :journals, :executions, :handoff_states
+      attr_reader :contents, :agents, :journals, :executions, :retentions
 
       def initialize(coordinator:, records:)
         @coordinator, @record_adapter = coordinator, records
@@ -22,7 +22,7 @@ module Phronomy
         @agents = @records.agents
         @journals = @records.journals
         @executions = @records.executions
-        @handoff_states = @records.handoff_states
+        @retentions = @records.retentions
       end
 
       # A domain operation owns this short transaction. A coordinating parent
@@ -84,35 +84,133 @@ module Phronomy
         }.then { |value| Phronomy::Values::Immutable.copy(value) }
       end
 
-      def handoff_result(execution_id, main_agent_id: nil)
-        assert_observation_thread!
-        anchor = main_agent_id&.to_s
-        seen = {}
-        current = execution_id.to_s
-        reserved_agent_id = nil
-        loop do
-          raise Phronomy::Persistence::SerializationError, "Cyclic durable Handoff chain" if seen[current]
-          seen[current] = true
+      # Exact, immutable observation. Only authoritative NotFound means absent.
+      def observe_execution(agent_id:, execution_id:, scope: nil)
+        with_scope(scope) do |records|
           begin
-            execution = executions.load(current)
+            execution = records.executions.load(execution_id)
           rescue Phronomy::Persistence::NotFoundError
-            routing = handoff_states.load(anchor)
-            if routing && Array(routing.metadata["cancelled_execution_ids"]).include?(current)
-              return {execution_id: current, agent_id: reserved_agent_id, status: :cancelled, result: nil, error: nil}.freeze
-            end
-            if reserved_agent_id && routing && routing.phase != "stable" && routing.pending_target_execution_id == current
-              return {execution_id: current, agent_id: reserved_agent_id, status: :active,
-                      phase: :target_pending, reserved: true, result: nil, error: nil}.freeze
-            end
-            raise
+            next ExecutionObservation.new(agent_id: agent_id, execution_id: execution_id,
+              status: :absent, result: nil, error: nil, reservation: nil,
+              transfer_receipt: nil, cancellation_requested: false)
           end
-          anchor ||= execution.metadata.dig("coordination", "main_agent_id")
-          unless anchor && execution.metadata.dig("coordination", "main_agent_id") == anchor
-            raise Phronomy::Persistence::StateConflictError, "Execution does not belong to this Handoff anchor"
+          assert_execution_owner!(execution, agent_id)
+          ExecutionObservation.new(agent_id: execution.agent_id, execution_id: execution.execution_id,
+            status: execution.status,
+            result: execution.result_ref && records.contents.fetch_text(execution.result_ref),
+            error: execution.error_ref && Phronomy::Values::Immutable.copy(records.contents.fetch_json(execution.error_ref)),
+            reservation: execution.metadata["reservation"] && ReservedExecution.new(agent_id: agent_id,
+              execution_id: execution_id, correlation: execution.metadata["reservation"]),
+            transfer_receipt: Phronomy::Values::Immutable.copy(execution.metadata["transfer_receipt"]),
+            cancellation_requested: records.cancellations.requested?(agent_id, execution_id) || execution.metadata["cancellation_requested"] == true)
+        end
+      end
+
+      def active_executions(agent_id:, scope: nil)
+        with_scope(scope) do |records|
+          records.executions.list_active(agent_id).map do |execution|
+            observe_execution(agent_id: agent_id, execution_id: execution.execution_id, scope: scope)
+          end.freeze
+        end
+      end
+
+      def definition(agent_id:, scope: nil)
+        with_scope(scope) do |records|
+          root = records.agents.load(agent_id)
+          {id: root.agent_definition_id, version: root.agent_definition_version}.freeze
+        end
+      end
+
+      def knowledge_snapshot(agent_id:, scope: nil)
+        with_scope(scope) do |records|
+          root = records.agents.load(agent_id)
+          journal = records.journals.read(agent_id, limit: root.journal_position)
+          JournalProjection.new(agent_root: root, records: journal).context_records.filter_map do |record|
+            next unless record.kind == :knowledge
+            KnowledgeItem.new(content: records.contents.fetch_text(record.content_ref), metadata: record.metadata)
+          end.freeze
+        end
+      end
+
+      # Participant SPI: opaque extension state, never an AgentExecution getter.
+      def execution_extension(agent_id:, execution_id:, binding_key:, scope: nil)
+        with_scope(scope) do |records|
+          execution = records.executions.load(execution_id)
+          assert_execution_owner!(execution, agent_id)
+          raw = execution.metadata["execution_extension"]
+          next nil unless raw
+          extension = ExecutionExtensionState.from_h(raw)
+          unless extension.binding_key == binding_key
+            raise Phronomy::ConfigurationError, "Execution participant binding mismatch"
           end
-          return result(current) unless execution.status == :handed_off
-          reserved_agent_id = execution.metadata.fetch("handoff_target_agent_id")
-          current = execution.metadata.fetch("handoff_target_execution_id")
+          extension
+        end
+      end
+
+      # Coordination guards are acquired first by the participant. All Agent
+      # roots then use the same lexical order, including admission and purge.
+      def guard_agents(scope, agent_ids:)
+        participate(scope) { |records| agent_ids.map(&:to_s).uniq.sort.each { |id| records.guard_agent!(id) } }
+        nil
+      end
+
+      # History release is terminal-only and preserves execution/result identity.
+      def remove_execution_extension(agent_id:, execution_id:, binding_key:, scope:)
+        participate(scope) do |records|
+          records.guard_agent!(agent_id)
+          execution = records.executions.load(execution_id)
+          assert_execution_owner!(execution, agent_id)
+          raise Phronomy::AgentBusyError, "Active execution history cannot be released" unless execution.terminal?
+          extension = execution.metadata["execution_extension"]
+          unless extension && extension.fetch("binding_key") == binding_key
+            raise Phronomy::Persistence::StateConflictError, "Extension history identity mismatch"
+          end
+          updated = execution.with(metadata: execution.metadata.except("execution_extension"))
+          records.executions.save(execution_id, expected_revision: execution.execution_revision, execution: updated)
+        end
+        nil
+      end
+
+      def execution_identity(execution_id, scope: nil)
+        with_scope(scope) do |records|
+          execution = records.executions.load(execution_id)
+          ReservedExecution.new(agent_id: execution.agent_id, execution_id: execution.execution_id,
+            correlation: execution.metadata["reservation"])
+        end
+      end
+
+      def retained_references(agent_id:, scope: nil)
+        with_scope(scope) { |records| records.retentions.list(agent_id) }
+      end
+
+      def retain(retention, scope: nil)
+        with_scope(scope) do |records|
+          records.guard_agent!(retention.agent_id)
+          records.agents.load(retention.agent_id)
+          records.retentions.retain(retention)
+        end
+      end
+
+      def release_retention(agent_id:, owner_key:, scope:)
+        participate(scope) { |records| records.retentions.release(agent_id: agent_id, owner_key: owner_key) }
+      end
+
+      def cancellation_requested?(agent_id:, execution_id:, scope: nil)
+        with_scope(scope) { |records| records.cancellations.requested?(agent_id, execution_id) }
+      end
+
+      def request_cancellation(agent_id:, execution_id:, scope: nil)
+        with_scope(scope) do |records|
+          records.guard_agent!(agent_id)
+          begin
+            current = records.executions.load(execution_id)
+          rescue Phronomy::Persistence::NotFoundError
+            next false
+          end
+          assert_execution_owner!(current, agent_id)
+          next false if current.terminal?
+          records.cancellations.request(agent_id, execution_id)
+          true
         end
       end
 
@@ -127,6 +225,17 @@ module Phronomy
       end
 
       private
+
+      def with_scope(scope, &block)
+        assert_observation_thread!
+        scope ? participate(scope, &block) : transaction(&block)
+      end
+
+      def assert_execution_owner!(execution, agent_id)
+        unless execution.agent_id == agent_id.to_s
+          raise Phronomy::Persistence::StateConflictError, "Execution owner mismatch"
+        end
+      end
 
       def assert_observation_thread!
         if Phronomy::WaitPolicy.blocking_forbidden?

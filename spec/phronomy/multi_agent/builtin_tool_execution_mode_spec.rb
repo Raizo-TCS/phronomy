@@ -10,11 +10,11 @@ RSpec.describe "framework-owned short Tool execution modes" do
     end
     source = agent_class.new
     target = agent_class.new
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
-    binding = Phronomy::Agent::HandoffCapabilityFactory.build(handoff)
+    binding = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff)
 
     expect(binding.tool_class.execution_mode).to eq(:cooperative)
   end

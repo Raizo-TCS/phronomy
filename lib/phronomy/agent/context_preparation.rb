@@ -38,7 +38,7 @@ module Phronomy
         input_ref = execution.metadata.fetch("current_input_ref")
         current_input_content = @persistence.contents.fetch_text(input_ref)
         excluded = [execution.metadata["current_input_record_id"]].compact
-        handoff_context = config[:phronomy_handoff_context]
+        handoff_context = config[:phronomy_transfer_context]
 
         instructions = initial_instruction_items(
           system_text,
@@ -95,7 +95,7 @@ module Phronomy
         projection = journal_projection(agent_root)
         model_cfg = effective_model_config(config, patch)
         hook_candidates = normalize_candidates(patch.segment_candidates)
-        handoff_context = config[:phronomy_handoff_context]
+        handoff_context = config[:phronomy_transfer_context]
         tool_set = @agent.send(:tool_definition_set, additional_tools: handoff_tool_classes(config))
 
         instructions = retained_instruction_items(base_manifest)
@@ -425,8 +425,8 @@ module Phronomy
       def merge_handoff_candidates(candidates, handoff_context, execution:)
         return Array(candidates).freeze unless handoff_context
 
-        unless handoff_context.is_a?(Phronomy::Agent::HandoffContext)
-          raise ArgumentError, "phronomy_handoff_context must be a HandoffContext"
+        unless handoff_context.is_a?(Phronomy::Agent::TransferContext)
+          raise ArgumentError, "phronomy_transfer_context must be a TransferContext"
         end
 
         next_sequence = Array(candidates).filter_map(&:sequence).max.to_i
@@ -473,7 +473,7 @@ module Phronomy
       end
 
       def handoff_tool_classes(config)
-        Array(config[:phronomy_handoff_bindings]).map(&:tool_class).freeze
+        Array(config[:phronomy_control_bindings]).map(&:tool_class).freeze
       end
 
       def estimate_value(value)

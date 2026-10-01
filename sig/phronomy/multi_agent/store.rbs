@@ -1,4 +1,11 @@
 module Phronomy
+  interface _HandoffStateRepository
+    def load: (String main_agent_id) -> untyped
+    def load_locked: (String main_agent_id) -> untyped
+    def save: (String main_agent_id, expected_revision: Integer?, state: untyped) -> untyped
+    def delete: (String main_agent_id, expected_revision: Integer) -> untyped
+  end
+
   interface _TeamRepository
     def create: (untyped root) -> untyped
     def load: (String team_id) -> untyped
@@ -20,6 +27,7 @@ module Phronomy
   module MultiAgent
     interface _Records
       def contents: () -> _ContentRepository
+      def handoff_states: () -> _HandoffStateRepository
       def teams: () -> _TeamRepository
       def team_executions: () -> _TeamExecutionRepository
       def guard_team!: (String team_id) -> untyped
@@ -28,12 +36,17 @@ module Phronomy
     class Store
       attr_reader coordinator: ::Phronomy::Persistence
       attr_reader contents: _ContentRepository
+      attr_reader handoff_states: _HandoffStateRepository
       attr_reader teams: _TeamRepository
       attr_reader team_executions: _TeamExecutionRepository
       attr_reader agent_store: Agent::Store
       def initialize: (coordinator: ::Phronomy::Persistence, records: ::Phronomy::Persistence::_Participant[_Records], agent_store: Agent::Store) -> void
       def transaction: [R] () { (_Records, ::Phronomy::Persistence::Transaction) -> R } -> R
       def participate: [R] (::Phronomy::Persistence::Transaction scope) { (_Records) -> R } -> R
+      def handoff_leaf: (String execution_id, main_agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> Agent::ExecutionObservation
+      def handoff_result: (String execution_id, main_agent_id: String) -> Agent::execution_result
+      def forget_handoff: (String main_agent_id) -> bool
+      def forget_subagents: (agent_id: String, execution_id: String) -> bool
       def result: (String execution_id) -> Hash[Symbol, untyped]
       def runs: (String owner_id, ?after: String?, ?limit: Integer) -> Array[untyped]
     end

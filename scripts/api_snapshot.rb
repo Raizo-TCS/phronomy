@@ -19,6 +19,12 @@ require_relative "../lib/phronomy"
 PUBLIC_API_ENTRIES = [
   # Stable
   Phronomy::Agent::Base,
+  Phronomy::Agent::ReservedExecution,
+  Phronomy::Agent::ExecutionObservation,
+  Phronomy::Agent::KnowledgeItem,
+  Phronomy::Agent::Retention,
+  Phronomy::Agent::ExecutionExtensionState,
+  Phronomy::Agent::ControlRequest,
   Phronomy::Context::ContextPolicy,
   Phronomy::Context::ContextPolicyInput,
   Phronomy::Context::ContextPolicyInput::Provenance,
@@ -34,8 +40,8 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Runnable,
   Phronomy::Context::PromptTemplate,
   # Beta
-  Phronomy::Agent::Handoff,
-  Phronomy::Agent::HandoffPolicy,
+  Phronomy::MultiAgent::Handoff,
+  Phronomy::MultiAgent::HandoffPolicy,
   Phronomy::MultiAgent::HandoffRunner,
   Phronomy::MultiAgent::Orchestrator,
   Phronomy::MultiAgent::TeamCoordinator,

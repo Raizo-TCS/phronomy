@@ -30,10 +30,10 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "adopts Team admission, operation, assignment and terminal commits after F1 response loss" do
-    team = team_class.create(team_id: "f1-team", persistence: store.team)
+    team = team_class.create(team_id: "f1-team", persistence: store.multi_agent)
     versions = {}
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       if run && !versions[run.execution_revision]
         versions[run.execution_revision] = true
         raise IOError, "committed response lost"
@@ -49,10 +49,10 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "reuses a worker terminal result lost before Team assignment settlement (RC-02/03)" do
-    team = team_class.create(team_id: "worker-crash", persistence: store.team)
+    team = team_class.create(team_id: "worker-crash", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       assignment = run&.assignments&.first
       if !captured && assignment && assignment["state"] == "reserved"
         begin
@@ -68,14 +68,14 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     expect(captured).not_to be_nil
     restored = reboot(captured)
     llm = LLMStub.activate(responses: ["unexpected replay"])
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     id = loaded.executions.first.team_execution_id
     expect(loaded.resume(id)).to eq(expected)
     expect(llm.calls).to be_empty
   end
 
   it "commits an authorized task batch in Provider order even when finalize runs first" do
-    team = team_class.create(team_id: "ordered-batch", persistence: store.team)
+    team = team_class.create(team_id: "ordered-batch", persistence: store.multi_agent)
     original = team.method(:apply_operation)
     allow(team).to receive(:apply_operation) do |id, key, operation, args|
       if operation == :enqueue_task
@@ -100,34 +100,34 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "returns an F1 readback failure without dispatching admitted Team work (RC-02-C)" do
-    team = team_class.create(team_id: "readback-unavailable", persistence: store.team)
+    team = team_class.create(team_id: "readback-unavailable", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
       captured = backend.snapshot
-      allow(backend.team.team_executions).to receive(:load).and_raise(IOError, "readback unavailable")
+      allow(backend.multi_agent.team_executions).to receive(:load).and_raise(IOError, "readback unavailable")
       raise IOError, "admission response lost"
     end
     llm = LLMStub.activate(responses: ["must not start"])
     expect { team.invoke("plan") }.to raise_error(IOError, "readback unavailable")
     expect(llm.calls).to be_empty
     restored = reboot(captured)
-    runs = restored.team.runs(team.team_id)
+    runs = restored.multi_agent.runs(team.team_id)
     expect(runs.size).to eq(1)
     expect(runs.first.status).to eq("active")
   end
 
   it "reconciles a committed finalize operation without asking Application for facts" do
-    team = team_class.create(team_id: "operation-crash", persistence: store.team)
+    team = team_class.create(team_id: "operation-crash", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       captured = backend.snapshot if !captured && run&.metadata&.fetch("finalized", false) && run.phase == "coordinator"
     end
     LLMStub.activate(responses: team_responses)
     team.invoke("plan")
     restored = reboot(captured)
     events = []
-    loaded = team_class.load(team.team_id, persistence: restored.team, on_event: ->(event) { events << event.type })
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent, on_event: ->(event) { events << event.type })
     llm = LLMStub.activate(responses: ["queued after restart", "worker-result"])
     id = loaded.executions.first.team_execution_id
     expect(loaded.resume(id).first.fetch("result")).to eq("worker-result")
@@ -139,10 +139,10 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "keeps Team active when a hidden coordinator requires external Provider resolution" do
-    team = team_class.create(team_id: "external-crash", persistence: store.team)
+    team = team_class.create(team_id: "external-crash", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       next unless run && !captured
       begin
         child = backend.agent.executions.load(run.coordinator.fetch("execution_id"))
@@ -154,7 +154,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     LLMStub.activate(responses: team_responses)
     team.invoke("plan")
     restored = reboot(captured)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     id = loaded.executions.first.team_execution_id
     llm = LLMStub.activate(responses: ["must not replay"])
     expect { loaded.resume(id) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
@@ -162,7 +162,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     loaded.cancel(id)
     expect { loaded.resume(id) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     cancelled_snapshot = reboot(restored.snapshot)
-    loaded = team_class.load(team.team_id, persistence: cancelled_snapshot.team)
+    loaded = team_class.load(team.team_id, persistence: cancelled_snapshot.multi_agent)
     expect { loaded.resume(id) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     expect(loaded.executions.first.status).to eq("active")
     expect(loaded.executions.first.metadata["cancel_requested"]).to be(true)
@@ -171,22 +171,22 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "stops a reserved worker on explicit Team cancellation and retains its ID (RC-04)" do
-    team = team_class.create(team_id: "cancel-crash", persistence: store.team)
+    team = team_class.create(team_id: "cancel-crash", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       captured = backend.snapshot if !captured && run && !run.assignments.empty?
     end
     LLMStub.activate(responses: team_responses)
     team.invoke("plan")
     restored = reboot(captured)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     run = loaded.executions.first
     reserved = run.assignments.first.fetch("execution_id")
     loaded.cancel(run.team_execution_id)
     # The request itself also survives F4 before any child reconciliation.
     restored = reboot(restored.snapshot)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     llm = LLMStub.activate(responses: ["must not start"])
     expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /cancelled/)
     expect(loaded.executions.first.status).to eq("cancelled")
@@ -196,22 +196,22 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "rejects a changed worker definition before continuation (RC-03)" do
-    team = team_class.create(team_id: "version-crash", persistence: store.team)
+    team = team_class.create(team_id: "version-crash", persistence: store.multi_agent)
     run = team.send(:admit, "plan")
     restored = reboot(store.snapshot)
     worker.agent_definition id: "durable-worker", version: 2
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::ConfigurationError, /definition mismatch/)
   end
 
   it "reuses a static child committed before its parent resumed" do
-    parent = parent_class.create(agent_id: "parent-crash", persistence: store.agent)
+    parent = parent_class.create(agent_id: "parent-crash", persistence: store.agent, coordination_store: store.multi_agent)
     parent.add_knowledge("saved knowledge", metadata: {"source" => "fixture"})
     captured = nil
     store.after_commit = proc do |backend|
       run = backend.agent.runs(parent.agent_id).first
-      next unless !captured && run&.active? && run.metadata["multi_agent_coordination_ref"]
-      slots = backend.agent.contents.fetch_json(run.metadata.fetch("multi_agent_coordination_ref")).fetch("children")
+      next unless !captured && run&.active? && run.metadata.dig("execution_extension", "state_ref")
+      slots = backend.agent.contents.fetch_json(run.metadata.fetch("execution_extension").fetch("state_ref")).fetch("children")
       slot = slots.first
       begin
         child = backend.agent.executions.load(slot.fetch("execution_id"))
@@ -225,18 +225,18 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     expect(captured).not_to be_nil
     restored = reboot(captured)
     llm = LLMStub.activate(responses: ["parent-after-restart"])
-    loaded = parent_class.load(parent.agent_id, persistence: restored.agent)
+    loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent)
     id = restored.agent.runs(parent.agent_id).first.execution_id
     expect(loaded.resume(id)[:output]).to eq("parent-after-restart")
     expect(llm.calls.size).to eq(1)
-    slots = restored.agent.contents.fetch_json(restored.agent.executions.load(id).metadata.fetch("multi_agent_coordination_ref")).fetch("children")
-    expect(slots.first.fetch("state")).to eq("completed")
+    slots = restored.agent.contents.fetch_json(restored.agent.executions.load(id).metadata.fetch("execution_extension").fetch("state_ref")).fetch("children")
+    expect(slots.first.fetch("imported")).to be(true)
     knowledge = restored.agent.journals.read(slots.first.fetch("agent_id")).find { |record| record.kind == :knowledge }
     expect(knowledge.metadata).to include("source" => "fixture")
   end
 
   it "keeps standalone fan-out Runtime-only without admitting an Orchestrator execution" do
-    parent = parent_class.create(persistence: store.agent)
+    parent = parent_class.create(persistence: store.agent, coordination_store: store.multi_agent)
     LLMStub.activate(responses: ["worker-result"])
     expect(parent.dispatch_parallel({agent: worker, input: "one"}).size).to eq(1)
     expect(store.agent.runs(parent.agent_id)).to be_empty
@@ -248,7 +248,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       aggregate_calls += 1
       raise "aggregate failed"
     }
-    team = team_class.create(persistence: store.team)
+    team = team_class.create(persistence: store.multi_agent)
     LLMStub.activate(responses: team_responses)
     expect { team.invoke("plan") }.to raise_error(Phronomy::Error, /aggregate failed/)
     run = team.executions.first
@@ -259,12 +259,12 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   end
 
   it "retains parent cancellation while an active child needs external factual resolution" do
-    parent = parent_class.create(agent_id: "cancel-parent", persistence: store.agent)
+    parent = parent_class.create(agent_id: "cancel-parent", persistence: store.agent, coordination_store: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
       run = backend.agent.runs(parent.agent_id).first
-      next unless !captured && run&.metadata&.fetch("multi_agent_coordination_ref", nil)
-      child_id = backend.agent.contents.fetch_json(run.metadata.fetch("multi_agent_coordination_ref")).fetch("children").first.fetch("execution_id")
+      next unless !captured && run&.metadata&.dig("execution_extension", "state_ref")
+      child_id = backend.agent.contents.fetch_json(run.metadata.fetch("execution_extension").fetch("state_ref")).fetch("children").first.fetch("execution_id")
       begin
         captured = backend.snapshot if backend.agent.executions.load(child_id).phase == :calling_llm
       rescue Phronomy::Persistence::NotFoundError
@@ -276,90 +276,92 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     restored = reboot(captured)
     token = Phronomy::Concurrency::CancellationToken.new.cancel!
     llm = LLMStub.activate(responses: ["must not replay"])
-    loaded = parent_class.load(parent.agent_id, persistence: restored.agent)
+    loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent)
     id = restored.agent.runs(parent.agent_id).first.execution_id
     expect { loaded.resume(id, config: {cancellation_token: token}) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     run = restored.agent.executions.load(id)
     expect(run).to be_active
-    expect(run.metadata["coordination_cancel_requested"]).to be(true)
+    expect(run.metadata["cancellation_requested"]).to be(true)
     snapshot = reboot(restored.snapshot)
-    loaded = parent_class.load(parent.agent_id, persistence: snapshot.agent)
+    loaded = parent_class.load(parent.agent_id, persistence: snapshot.agent, coordination_store: snapshot.multi_agent)
     expect { loaded.resume(id) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
-    expect(snapshot.agent.executions.load(id).metadata["coordination_cancel_requested"]).to be(true)
+    expect(snapshot.agent.executions.load(id).metadata["cancellation_requested"]).to be(true)
     expect(llm.calls).to be_empty
   end
 
   it "recovers the saved Handoff Context and exact Target with current compatible graph wiring" do
     source = worker.create(agent_id: "context-source", persistence: store.agent)
     target = worker.create(agent_id: "context-target", persistence: store.agent)
-    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
-    name = Phronomy::Agent::HandoffCapabilityFactory.build(edge).tool_name
+    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+    name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(edge).tool_name
     captured = nil
     store.after_commit = proc do |backend|
-      routing = backend.agent.handoff_states.load(source.agent_id)
+      routing = backend.multi_agent.handoff_states.load(source.agent_id)
       captured = backend.snapshot if !captured && routing&.phase == "target_pending"
     end
     LLMStub.activate(responses: [LLMStub.tool_call_response(name, {responsibility: "saved responsibility"}), "target"])
-    Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge]).invoke("original request")
+    Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent, handoffs: [edge]).invoke("original request")
     restored = reboot(captured)
     source_id = restored.agent.runs(source.agent_id).first.execution_id
-    expect(restored.agent.handoff_result(source_id)).to include(agent_id: target.agent_id, status: :active, reserved: true)
+    expect(restored.multi_agent.handoff_result(source_id, main_agent_id: source.agent_id)).to include(agent_id: target.agent_id, status: :active, reserved: true)
     expect(worker.get(source.agent_id)).to be_nil
     expect(worker.get(target.agent_id)).to be_nil
     source = worker.load(source.agent_id, persistence: restored.agent)
     target = worker.load(target.agent_id, persistence: restored.agent)
     source_id = restored.agent.runs(source.agent_id).first.execution_id
-    no_graph = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source)
+    no_graph = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent)
     reserved = no_graph.result(source_id)
     expect(reserved).to include(agent_id: target.agent_id, status: :active, reserved: true)
-    expect { source.purge! }.to raise_error(Phronomy::AgentBusyError, /unfinished turn/)
+    expect { source.purge! }.to raise_error(Phronomy::AgentBusyError, /retained/)
     expect { no_graph.invoke("must not replace input") }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
-    policy = Phronomy::Agent::HandoffPolicy.define do
+    policy = Phronomy::MultiAgent::HandoffPolicy.define do
       forbidden :current_request
       forbidden :history
       forbidden :knowledge
       forbidden :tool_exchanges
     end
-    changed = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target, policy: policy)
-    allow_any_instance_of(Phronomy::Agent::HandoffProjection).to receive(:build_terminal).and_raise("must not reproject")
+    changed = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target, policy: policy)
+    allow_any_instance_of(Phronomy::Agent::TransferProjection).to receive(:build).and_raise("must not reproject")
     llm = LLMStub.activate(responses: ["after restart"])
-    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [changed])
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent, handoffs: [changed])
     result = runner.invoke("ignored new input")
     expect(result[:execution_id]).to eq(reserved[:execution_id])
     expect(llm.calls.size).to eq(1)
     expect(JSON.generate(llm.last_messages)).to include("original request", "saved responsibility")
+    expect { target.purge! }.to raise_error(Phronomy::AgentBusyError, /retained/)
+    runner.forget_history!
     target.purge!
-    expect { restored.agent.handoff_result(source_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { runner.result(source_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
     source.purge!
-    expect(restored.agent.handoff_states.load(source.agent_id)).to be_nil
+    expect(restored.multi_agent.handoff_states.load(source.agent_id)).to be_nil
   end
 
   it "cancels a transferred absent Target without starting it or rewinding responsibility" do
     source = worker.create(agent_id: "cancel-source", persistence: store.agent)
     target = worker.create(agent_id: "cancel-target", persistence: store.agent)
-    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
-    name = Phronomy::Agent::HandoffCapabilityFactory.build(edge).tool_name
+    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+    name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(edge).tool_name
     captured = nil
     store.after_commit = proc do |backend|
-      captured = backend.snapshot if !captured && backend.agent.handoff_states.load(source.agent_id)&.phase == "target_pending"
+      captured = backend.snapshot if !captured && backend.multi_agent.handoff_states.load(source.agent_id)&.phase == "target_pending"
     end
     LLMStub.activate(responses: [LLMStub.tool_call_response(name, {responsibility: "continue"}), "target"])
-    Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge]).invoke("plan")
+    Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent, handoffs: [edge]).invoke("plan")
     restored = reboot(captured)
     source_id = restored.agent.runs(source.agent_id).first.execution_id
     source = worker.load(source.agent_id, persistence: restored.agent)
-    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source)
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent)
     reserved_id = runner.result(source_id).fetch(:execution_id)
     runner.cancel(source_id)
     restored = reboot(restored.snapshot)
     source = worker.load(source.agent_id, persistence: restored.agent)
     target = worker.load(target.agent_id, persistence: restored.agent)
-    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
-    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])
+    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent, handoffs: [edge])
     expect(runner.result(source_id)).to include(execution_id: reserved_id, status: :cancelled)
     expect(restored.agent.executions.load(source_id).status).to eq(:handed_off)
     expect { restored.agent.executions.load(reserved_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
-    expect(restored.agent.handoff_states.load(source.agent_id).active_agent_id).to eq(target.agent_id)
+    expect(restored.multi_agent.handoff_states.load(source.agent_id).active_agent_id).to eq(target.agent_id)
     llm = LLMStub.activate(responses: ["next turn"])
     expect(runner.invoke("new request")[:output]).to eq("next turn")
     expect(llm.calls.size).to eq(1)
@@ -369,24 +371,24 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
   it "adopts the atomic Source transfer after F1 without replaying Source" do
     source = worker.create(agent_id: "handoff-source", persistence: store.agent)
     target = worker.create(agent_id: "handoff-target", persistence: store.agent)
-    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
-    name = Phronomy::Agent::HandoffCapabilityFactory.build(edge).tool_name
+    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+    name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(edge).tool_name
     fired = false
     store.after_commit = proc do |backend|
-      routing = backend.agent.handoff_states.load(source.agent_id)
+      routing = backend.multi_agent.handoff_states.load(source.agent_id)
       if !fired && routing && routing.phase == "target_pending"
         fired = true
         raise IOError, "Source transfer response lost"
       end
     end
     llm = LLMStub.activate(responses: [LLMStub.tool_call_response(name, {responsibility: "continue"}), "target-result"])
-    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])
+    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, persistence: source.persistence.coordinator.multi_agent, handoffs: [edge])
     expect(runner.invoke("plan")[:output]).to eq("target-result")
     expect(fired).to be(true)
     expect(llm.calls.size).to eq(2)
     source_id = store.agent.runs(source.agent_id).first.execution_id
     expect(runner.result(source_id)[:result]).to eq("target-result")
-    expect(store.agent.handoff_states.load(source.agent_id).phase).to eq("stable")
+    expect(store.multi_agent.handoff_states.load(source.agent_id).phase).to eq("stable")
   end
 
   it "recovers a mixed external/owned Tool batch by resolving only the external fact" do
@@ -400,12 +402,12 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
       }
     end
     parent_class.tools(parent_class.tools.to_h { |tool| [tool, nil] }.merge(external => nil))
-    parent = parent_class.create(agent_id: "mixed-parent", persistence: store.agent)
+    parent = parent_class.create(agent_id: "mixed-parent", persistence: store.agent, coordination_store: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
       run = backend.agent.runs(parent.agent_id).first
-      next unless !captured && run&.phase == :dispatching_tools && run.metadata["multi_agent_coordination_ref"]
-      child = backend.agent.contents.fetch_json(run.metadata.fetch("multi_agent_coordination_ref")).fetch("children").first
+      next unless !captured && run&.phase == :dispatching_tools && run.metadata.dig("execution_extension", "state_ref")
+      child = backend.agent.contents.fetch_json(run.metadata.fetch("execution_extension").fetch("state_ref")).fetch("children").first
       begin
         captured = backend.snapshot if backend.agent.executions.load(child.fetch("execution_id")).terminal?
       rescue Phronomy::Persistence::NotFoundError
@@ -424,7 +426,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     restored = reboot(captured)
     events = Queue.new
     llm = LLMStub.activate(responses: ["parent resumed"])
-    loaded = parent_class.load(parent.agent_id, persistence: restored.agent, on_event: ->(event) { events << event if event.type == :recovery_resolution_required })
+    loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent, on_event: ->(event) { events << event if event.type == :recovery_resolution_required })
     event = Timeout.timeout(2) { events.pop }
     payload = event.payload
     run = restored.agent.executions.load(payload.fetch(:execution_id))

@@ -85,7 +85,7 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no
   [:executions, :team_executions].each do |kind|
     it "rolls back the transaction when #{kind} maps a raw constraint" do
       stores = Phronomy::PersistenceComposition.in_memory
-      persistence = (kind == :executions) ? stores.agent : stores.team
+      persistence = (kind == :executions) ? stores.agent : stores.multi_agent
       if kind == :executions
         execution = agent_execution
         root = Phronomy::Agent::AgentRoot.create(agent_id: execution.agent_id,

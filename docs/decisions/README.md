@@ -211,3 +211,5 @@ Current explanatory architecture starts at
 segregated under `docs/archive/design/` and are non-normative. Explanatory
 architecture documents describe the reconciled current system but do not
 supersede ADRs merely by being newer.
+
+- [`064-agent-execution-and-multi-agent-responsibility`](064-agent-execution-and-multi-agent-responsibility.md)

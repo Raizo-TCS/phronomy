@@ -140,7 +140,10 @@ class ProjectTests(unittest.TestCase):
                          'multi_agent', 'workflow/execution']:
             source = 'lib/phronomy/' + consumer
             self.assertNotIn((source, 'lib/phronomy/storage'), pairs)
-            self.assertIn((source, contract), pairs)
+            if consumer != "agent/handoff":
+                self.assertIn((source, contract), pairs)
+            else:
+                self.assertNotIn((source, contract), pairs)
             changed = deepcopy(self.audit)
             changed['module_pairs'].append({'from': source, 'to': 'lib/phronomy/storage',
                                            'references': [], 'requires': [],

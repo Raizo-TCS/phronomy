@@ -8,7 +8,7 @@ RSpec.describe "Team-owned scheduling facts" do
 
   it "balances by retained assignment count and resumes without consulting Agent journal positions" do
     team_class.pool(size: 2, agent: worker)
-    team = team_class.create(team_id: "balanced", persistence: store.team)
+    team = team_class.create(team_id: "balanced", persistence: store.multi_agent)
     calls = [["enqueue_task", {description: "one"}], ["enqueue_task", {description: "two"}],
       ["enqueue_task", {description: "three"}], ["finalize", {}]].each_with_index.map do |(name, args), i|
       {"id" => "batch-#{i}", "type" => "function", "function" => {"name" => name, "arguments" => JSON.generate(args)}}
@@ -21,7 +21,7 @@ RSpec.describe "Team-owned scheduling facts" do
     expect(run.assignments.map { |entry| entry.fetch("worker") }).to eq([0, 1, 0])
     expect(run.workers).to all(satisfy { |entry| !entry.key?("transcript_size") })
     restored = reboot(store.snapshot)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     llm = LLMStub.activate(responses: ["must not replay"])
     expect(loaded.resume(run.team_execution_id)).to eq(result)
     expect(loaded.executions.first.assignments).to eq(run.assignments)

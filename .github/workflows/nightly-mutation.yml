@@ -36,8 +36,8 @@ jobs:
             label: ContextPolicyInputBuilder
           - subject: Phronomy::Context::ContextPlanValidator
             label: ContextPlanValidator
-          - subject: Phronomy::Agent::HandoffPolicy
-            label: Agent::HandoffPolicy
+          - subject: Phronomy::MultiAgent::HandoffPolicy
+            label: MultiAgent::HandoffPolicy
           - subject: Phronomy::Agent::HandoffProjection
             label: Agent::HandoffProjection
           - subject: Phronomy::VectorStore::InMemory

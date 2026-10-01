@@ -25,7 +25,7 @@ module Phronomy
     attr_accessor :default_embedding_model
     attr_accessor :before_llm_input
     attr_accessor :recursion_limit
-    attr_accessor :agent_store, :team_store, :workflow_store
+    attr_accessor :agent_store, :multi_agent_store, :workflow_store
     attr_accessor :llm_adapter
     attr_reader :stream_callback_error_policy
     attr_accessor :authorization_pool_size
@@ -126,7 +126,7 @@ module Phronomy
       @authorization_pool_size = 4
       @authorization_queue_size = 100
       @authorization_timeout = 5
-      @agent_store = @team_store = @workflow_store = nil
+      @agent_store = @multi_agent_store = @workflow_store = nil
     end
 
     private

@@ -4,7 +4,7 @@ module Phronomy
   module PersistenceComposition
     # The application's construction result, not an execution or query facade.
     # Pass only the corresponding domain store to each domain's API.
-    Stores = Data.define(:coordinator, :agent, :team, :workflow)
+    Stores = Data.define(:coordinator, :agent, :multi_agent, :workflow)
 
     # An ordinary Agent needs only its own records and content. Do not load or
     # instantiate Team/Workflow implementations merely to construct an Agent.
@@ -22,9 +22,9 @@ module Phronomy
       coordinator = Phronomy::Persistence.new(backend: backend)
       Phronomy::Persistence::StorageBoundary.call { StorageSchema.validate!(backend.view) }
       agent = Phronomy::Agent::Store.new(coordinator: coordinator, records: Phronomy::Agent::Persistence::Records)
-      team = Phronomy::MultiAgent::Store.new(coordinator: coordinator, records: Phronomy::MultiAgent::Persistence::Records, agent_store: agent)
+      multi_agent = Phronomy::MultiAgent::Store.new(coordinator: coordinator, records: Phronomy::MultiAgent::Persistence::Records, agent_store: agent)
       workflow = coordinator.bind(Phronomy::Workflow::Persistence::StateRepository)
-      Stores.new(coordinator: coordinator, agent: agent, team: team, workflow: workflow)
+      Stores.new(coordinator: coordinator, agent: agent, multi_agent: multi_agent, workflow: workflow)
     end
 
     def self.in_memory

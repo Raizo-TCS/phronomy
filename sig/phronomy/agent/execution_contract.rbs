@@ -1,0 +1,132 @@
+module Phronomy
+
+  module Agent
+    type execution_wiring = { ?phronomy_execution_participant: _ExecutionParticipant, ?phronomy_control_bindings: Array[_ControlCapability], ?phronomy_transfer_context: TransferContext, ?phronomy_admission: _AdmissionOwner, ?phronomy_reservation: Hash[String, json_value] }
+    type execution_result = { agent_id: String, execution_id: String, status: Symbol, result: String?, output: String?, error: Hash[String, json_value]? }
+
+    class ReservedExecution < Data
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader correlation: Hash[String, json_value]?
+      def self.new: (agent_id: String, execution_id: String, ?correlation: Hash[String, json_value]?) -> instance
+    end
+
+    class ExecutionObservation < Data
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader status: Symbol
+      attr_reader result: String?
+      attr_reader error: Hash[String, json_value]?
+      attr_reader reservation: ReservedExecution?
+      attr_reader transfer_receipt: Hash[String, json_value]?
+      attr_reader cancellation_requested: bool
+      def self.new: (agent_id: String, execution_id: String, status: Symbol, result: String?, error: Hash[String, json_value]?, reservation: ReservedExecution?, transfer_receipt: Hash[String, json_value]?, cancellation_requested: bool) -> instance
+      def self.from_result: (execution_result) -> instance
+      def absent?: () -> bool
+      def terminal?: () -> bool
+      def active?: () -> bool
+      def continuable?: () -> bool
+      def value!: () -> execution_result
+      def to_result: () -> execution_result
+    end
+
+    class ExecutionExtensionState < Data
+      attr_reader binding_key: String
+      attr_reader binding_version: Integer
+      attr_reader state_ref: String?
+      def self.new: (binding_key: String, binding_version: Integer, ?state_ref: String?) -> instance
+      def self.from_h: (Hash[String, json_value]) -> instance
+      def to_h: () -> Hash[String, json_value]
+    end
+
+    class KnowledgeItem < Data
+      attr_reader content: String
+      attr_reader metadata: Hash[String, json_value]
+      def self.new: (content: String, ?metadata: Hash[String, json_value]) -> instance
+    end
+
+    class Retention < Data
+      attr_reader agent_id: String
+      attr_reader execution_id: String?
+      attr_reader owner_key: String
+      def self.new: (agent_id: String, owner_key: String, ?execution_id: String?) -> instance
+      def to_h: () -> Hash[String, json_value]
+    end
+
+    class ControlRequest < Data
+      attr_reader target_agent_id: String
+      attr_reader responsibility: String
+      attr_reader selection: Hash[Symbol, bool]
+      attr_reader llm_call_id: String?
+      attr_reader tool_call_id: String?
+      def self.new: (target_agent_id: String, responsibility: String, selection: Hash[Symbol, bool], ?llm_call_id: String?, ?tool_call_id: String?) -> instance
+    end
+
+    interface _ControlCapability
+      def source_agent_id: () -> String
+      def request: (arguments: Hash[String, json_value], llm_call_id: String?, tool_call_id: String?) -> ControlRequest
+    end
+
+    interface _ExecutionParticipant
+      def binding: () -> ExecutionExtensionState
+      def guard_change: (ExecutionChange change, ::Phronomy::Persistence::Transaction scope) -> void
+      def change_evidence: (ExecutionChange change, ::Phronomy::Persistence::Transaction scope) -> json_value
+      def commit: (ExecutionChange change) -> void
+    end
+
+    class ExecutionChange
+      attr_reader kind: :dispatch | :terminal
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader extension: ExecutionExtensionState?
+      attr_reader operations: Array[Store::AuthorizedOperation]
+      attr_reader control_request: ControlRequest?
+      attr_reader cancel_requested: bool
+      attr_reader recovery_required: bool
+      attr_reader durable_context: Hash[String, json_value]?
+      attr_reader correlation: Hash[String, json_value]?
+      attr_reader coordinator: ::Phronomy::Persistence
+      def finishing?: () -> bool
+      def prepare_in: (::Phronomy::Persistence::Transaction scope) -> nil
+      def commit_in: (::Phronomy::Persistence::Transaction scope, ?state: ExecutionExtensionState?, ?transfer_receipt: Hash[String, json_value]?, ?pending: bool) -> nil
+      def transfer_context: (::Phronomy::Persistence::Transaction scope) -> TransferContext
+    end
+
+    class TransferContext
+      attr_reader responsibility: String
+      attr_reader items: Array[Item]
+      def self.from_h: (Hash[String, json_value]) -> instance
+      def initialize: (responsibility: String, ?items: Array[Item]) -> void
+      def to_h: () -> Hash[String, json_value]
+      class Item < Data
+        attr_reader candidate_category: Symbol
+        attr_reader policy_category: Symbol
+        attr_reader role: Symbol?
+        attr_reader content: json_value
+        attr_reader content_format: Symbol
+        attr_reader tool_call_id: String?
+        attr_reader provenance: Provenance
+        attr_reader metadata: Hash[String, json_value]
+      end
+      class Provenance < Data
+        attr_reader origin_agent_id: String?
+        attr_reader origin_record_id: String?
+        attr_reader origin_execution_id: String?
+        attr_reader origin_llm_call_id: String?
+        attr_reader origin_tool_call_id: String?
+        attr_reader transfer_path: Array[String]
+        def forwarded_to: (String agent_id) -> instance
+        def to_h: () -> Hash[String, json_value]
+      end
+    end
+  end
+
+  class Persistence
+    class SaveOutcome < Data
+      attr_reader disposition: :committed | :not_committed | :unknown
+      attr_reader original_error: Exception?
+      attr_reader read_error: Exception?
+      def self.compare: [V] (before: V, after: V, ?original_error: Exception?) { () -> V } -> instance
+    end
+  end
+end

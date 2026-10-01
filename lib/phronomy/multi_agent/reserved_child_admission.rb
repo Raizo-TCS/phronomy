@@ -24,8 +24,8 @@ module Phronomy
           @persistence.participate(scope) do |records|
             case @owner.fetch("kind")
             when "team" then validate_team!(records, admission)
-            when "subagent" then validate_subagent!(records, admission)
-            when "handoff" then validate_handoff!(records, admission)
+            when "subagent" then validate_subagent!(records, admission, scope)
+            when "handoff" then validate_handoff!(records, admission, scope)
             end
             admission.accept_in(scope)
           end
@@ -53,20 +53,24 @@ module Phronomy
         end
       end
 
-      def validate_subagent!(records, admission)
-        records.guard_agent!(@owner.fetch("parent_agent_id"))
-        parent = records.executions.load(@owner.fetch("parent_execution_id"))
-        unless parent.agent_id == @owner.fetch("parent_agent_id") && parent.active? && !parent.metadata["coordination_cancel_requested"]
+      def validate_subagent!(records, admission, scope)
+        @persistence.agent_store.guard_agents(scope, agent_ids: [@owner.fetch("parent_agent_id"), admission.agent_id])
+        parent = @persistence.agent_store.observe_execution(agent_id: @owner.fetch("parent_agent_id"),
+          execution_id: @owner.fetch("parent_execution_id"), scope: scope)
+        unless parent.continuable?
           raise Phronomy::CancellationError, "Parent run is no longer dispatchable"
         end
-        snapshot = records.contents.fetch_json(parent.metadata.fetch("multi_agent_coordination_ref"))
+        extension = @persistence.agent_store.execution_extension(agent_id: parent.agent_id, execution_id: parent.execution_id,
+          binding_key: DurableSubagentCoordinator::BINDING_KEY, scope: scope)
+        snapshot = records.contents.fetch_json(extension.state_ref)
+        raise Phronomy::CancellationError, "Parent reservation was cancelled" if snapshot["cancel_requested"]
         slot = snapshot.fetch("children").find { |entry| entry.fetch("slot") == @owner.fetch("slot") }
         unless slot && slot.fetch("agent_id") == admission.agent_id && slot.fetch("execution_id") == admission.execution_id
           raise Phronomy::Persistence::StateConflictError, "Parent reserved child identity mismatch"
         end
       end
 
-      def validate_handoff!(records, admission)
+      def validate_handoff!(records, admission, scope)
         routing = records.handoff_states.load_locked(@owner.fetch("main_agent_id"))
         unless routing && routing.active_agent_id == admission.agent_id
           raise Phronomy::Persistence::StateConflictError, "Handoff responsibility changed before admission"
@@ -74,6 +78,7 @@ module Phronomy
         if Array(routing.metadata["cancelled_execution_ids"]).include?(admission.execution_id)
           raise Phronomy::CancellationError, "Handoff reservation was cancelled"
         end
+        @persistence.agent_store.guard_agents(scope, agent_ids: [@owner.fetch("main_agent_id"), admission.agent_id])
         if routing.phase != "stable" && routing.pending_target_execution_id != admission.execution_id
           raise Phronomy::Persistence::StateConflictError, "Handoff reserved Target identity mismatch"
         end

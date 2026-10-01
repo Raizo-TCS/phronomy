@@ -8,7 +8,7 @@ module Phronomy
     module InvocationRestorer
       module_function
 
-      def build_invocation_for_suspended(agent, execution, projection, main_coordinator, listener, assistant_message:)
+      def build_invocation_for_suspended(agent, execution, projection, main_coordinator, listener, assistant_message:, cancellation_requested: false)
         request = execution.approval_request && Phronomy::Agent::ToolApprovalRequest.from_h(
           execution.approval_request
         )
@@ -18,7 +18,7 @@ module Phronomy
             "suspended execution #{execution.execution_id} has no durable assistant Tool Call message"
         end
 
-        invocation, chat, config = prepare_invocation(agent, execution, projection, main_coordinator, listener)
+        invocation, chat, config = prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested: cancellation_requested)
         chat.messages << assistant_message
 
         invocation.chat = chat
@@ -83,8 +83,8 @@ module Phronomy
         invocation
       end
 
-      def build_chat_for_recovery(agent, execution, projection, main_coordinator, listener, messages:)
-        invocation, chat = prepare_invocation(agent, execution, projection, main_coordinator, listener)
+      def build_chat_for_recovery(agent, execution, projection, main_coordinator, listener, messages:, cancellation_requested: false)
+        invocation, chat = prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested: cancellation_requested)
 
         messages.each { |message| chat.messages << message }
 
@@ -93,14 +93,14 @@ module Phronomy
         invocation
       end
 
-      def prepare_invocation(agent, execution, projection, main_coordinator, listener)
+      def prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested:)
         config = {
           execution_id: execution.execution_id,
           phronomy_execution_coordinator: main_coordinator,
           phronomy_runtime_projection: projection
-        }.merge(agent.__coordination_config)
+        }.merge(agent.__execution_wiring)
         config = agent.__invocation_config(config)
-        if execution.metadata["coordination_cancel_requested"]
+        if cancellation_requested || execution.metadata["cancellation_requested"]
           config = config.merge(cancellation_token: Phronomy::Concurrency::CancellationToken.new.cancel!)
         end
         invocation = Phronomy::Agent::AgentInvocation.new(

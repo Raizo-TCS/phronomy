@@ -181,7 +181,7 @@ RSpec.describe "durable :preparing Agent recovery" do
         coordinator.send(
           :initial_preparation_replayable?,
           "hello",
-          {phronomy_handoff_bindings: Object.new},
+          {phronomy_control_bindings: Object.new},
           nil
         )
       ).to be false

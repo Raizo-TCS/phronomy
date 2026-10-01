@@ -39,7 +39,7 @@ module Phronomy
       )
       ResolutionResult = Data.define(:execution)
       ResolutionPreparation = Data.define(:execution, :material, :error)
-      RecoveryMaterial = Data.define(:projection, :messages, :assistant_message, :output, :usage)
+      RecoveryMaterial = Data.define(:projection, :messages, :assistant_message, :output, :usage, :cancellation_requested)
       RecoveryPlan = Data.define(
         :execution, :root, :manifest, :base_manifest,
         :projection, :classification, :material
@@ -68,11 +68,18 @@ module Phronomy
             "active AgentExecution belongs to another Agent: #{execution.agent_id}"
         end
 
-        coordination = execution.metadata["coordination"]
-        if coordination && agent.__coordination_config.empty?
+        coordination = execution.metadata["reservation"] || execution.metadata["execution_extension"]
+        if coordination && agent.__execution_wiring.empty?
           return agent
         end
 
+        if (raw = execution.metadata["execution_extension"])
+          extension = ExecutionExtensionState.from_h(raw)
+          binding = agent.__execution_wiring[:phronomy_execution_participant]&.binding
+          unless binding && binding.binding_key == extension.binding_key && binding.binding_version == extension.binding_version
+            raise Phronomy::ExecutionRehydrationRequiredError, "Execution #{execution.execution_id} needs its current participant binding"
+          end
+        end
         plan = prepare_plan(execution)
         classification = plan.classification
         if classification.disposition ==

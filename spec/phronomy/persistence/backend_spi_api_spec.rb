@@ -13,7 +13,7 @@ RSpec.describe "Persistence and Storage SPI 2 public contract" do
     expect(Phronomy::Persistence).not_to respond_to(:in_memory)
     expect(stores.agent).to respond_to(:result, :runs, :transaction, :participate)
     expect(stores.agent).not_to respond_to(:teams, :team_executions, :workflow_states)
-    expect(stores.team).not_to respond_to(:agents, :executions, :workflow_states)
+    expect(stores.multi_agent).not_to respond_to(:agents, :executions, :workflow_states)
     expect(backend.view).to respond_to(:records, :streams, :blobs, :check!)
     expect(backend).not_to respond_to(:agents, :contents, :assert_agent_watermark!)
     expect(backend.capabilities).to eq(Phronomy::Storage::Backend::REQUIRED_CAPABILITIES)

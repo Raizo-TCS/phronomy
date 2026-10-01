@@ -169,6 +169,7 @@ module Phronomy
           agent_id: SecureRandom.uuid,
           context: nil,
           knowledge: [],
+          retention: nil,
           persistence: nil,
           metadata: {},
           on_event: nil,
@@ -178,6 +179,7 @@ module Phronomy
             agent_id: agent_id,
             context: context,
             knowledge: knowledge,
+            retention: retention,
             persistence: persistence,
             metadata: metadata,
             on_event: on_event,
@@ -187,7 +189,7 @@ module Phronomy
 
         # Resolves one existing logical Agent. A live process-local owner wins
         # without a Persistence reload; otherwise the durable Agent is hydrated.
-        def load(agent_id, persistence:, on_event: nil, &event_block)
+        def load(agent_id, persistence:, on_event: nil, execution_wiring: {}, &event_block)
           raise ArgumentError, "persistence is required" unless persistence
           if on_event && event_block
             raise ArgumentError, "Provide either on_event: or a block, not both"
@@ -207,6 +209,7 @@ module Phronomy
               agent_id: key,
               persistence: persistence,
               load_existing: true,
+              execution_wiring: execution_wiring,
               on_event: on_event,
               &event_block
             )
@@ -266,8 +269,8 @@ module Phronomy
       end
 
       # @api private
-      def __coordination_config
-        @_phronomy_coordination_config || {}.freeze
+      def __execution_wiring
+        @_phronomy_execution_wiring || {}.freeze
       end
 
       # Framework-owned idempotent Tool operations opt into exact replay.
@@ -276,16 +279,17 @@ module Phronomy
 
       # @api private
       def __framework_call?(name)
-        __framework_tool_replayable?(name) || Array(__coordination_config[:phronomy_handoff_bindings]).any? { |binding| binding.tool_name == name }
+        __framework_tool_replayable?(name) || Array(__execution_wiring[:phronomy_control_bindings]).any? { |binding| binding.tool_name == name }
       end
-
-      # Captured Tool wiring is supplied explicitly; this hook only writes semantic values.
-      # @api private
-      def __prepare_coordination_record(execution, tx:) = execution
 
       # Runtime configuration only; no value returned here is serialized.
       # @api private
       def __invocation_config(config) = config
+
+      def knowledge_snapshot = persistence.knowledge_snapshot(agent_id: agent_id)
+
+      # Listener inheritance is an explicit orchestration choice, not a private getter.
+      def event_listener = _phronomy_event_listener
 
       attr_reader :agent_id, :persistence
 
@@ -293,9 +297,11 @@ module Phronomy
         agent_id: nil,
         context: nil,
         knowledge: [],
+        retention: nil,
         persistence: nil,
         metadata: {},
         load_existing: false,
+        execution_wiring: {},
         on_event: nil,
         &event_block
       )
@@ -303,6 +309,11 @@ module Phronomy
           raise ArgumentError, "Provide either on_event: or a block, not both"
         end
         @_phronomy_event_listener = on_event || event_block
+        @_phronomy_execution_wiring = execution_wiring.dup.freeze
+        @initial_retention = retention
+        if retention && retention.agent_id != agent_id.to_s
+          raise ArgumentError, "retention must refer to the new Agent"
+        end
 
         reserved_agent_id = @_phronomy_reserved_agent_id
         effective_agent_id = if agent_id.nil?
@@ -432,12 +443,11 @@ module Phronomy
         begin
           persistence.transaction do |tx|
             tx.executions.assert_idle!(agent_id)
-            if (routing = tx.handoff_states.load(agent_id))
-              unless routing.phase == "stable" && tx.executions.list_active(routing.active_agent_id).empty?
-                raise Phronomy::AgentBusyError, "Handoff anchor #{agent_id} owns an unfinished turn"
-              end
-              tx.handoff_states.delete(agent_id, expected_revision: routing.handoff_revision)
+            tx.guard_agent!(agent_id)
+            unless tx.retentions.list(agent_id).empty?
+              raise Phronomy::AgentBusyError, "Agent #{agent_id} is retained by durable coordination history"
             end
+            tx.cancellations.delete_for_agent(agent_id)
             tx.journals.delete(agent_id)
             tx.executions.delete_for_agent(agent_id)
             tx.agents.delete(agent_id)
@@ -603,7 +613,7 @@ module Phronomy
       def create_agent_root!(context:, knowledge:, metadata:)
         definition = self.class.agent_definition
         state_writer.create_root(
-          definition: definition, context: context, knowledge: knowledge, metadata: metadata
+          definition: definition, context: context, knowledge: knowledge, metadata: metadata, retention: @initial_retention
         )
       end
 

@@ -18,7 +18,7 @@ module Phronomy
         @preparation_metadata = preparation_metadata
         @agent_id = root.agent_id
         @execution_id = (config[:phronomy_reserved_execution_id] || SecureRandom.uuid).to_s.freeze
-        @correlation = Phronomy::Values::Immutable.copy(config[:phronomy_coordination])
+        @correlation = Phronomy::Values::Immutable.copy(config[:phronomy_reservation])
         @thread = Thread.current
       end
 
@@ -44,8 +44,9 @@ module Phronomy
             context_generation: @root.transcript_generation, context_candidate: false)
           execution = AgentExecution.start(agent_root: @root, input_record: input_record,
             execution_id: execution_id, metadata: {
-              "coordination" => correlation, "current_input_ref" => input_ref,
-              "durable_context_ref" => context_ref
+              "reservation" => correlation, "current_input_ref" => input_ref,
+              "durable_context_ref" => context_ref,
+              "execution_extension" => @config[:phronomy_execution_participant]&.binding&.to_h
             }.merge(@preparation_metadata).compact)
           input_record = JournalRecord.from_h(input_record.to_h.merge("execution_id" => execution_id))
           execution = execution.with(execution_revision: 0, working_records: [input_record])

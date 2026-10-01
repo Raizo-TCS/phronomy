@@ -10,23 +10,23 @@ RSpec.describe "Durable continuation decisions" do
     worker.input_filter Class.new(Phronomy::Filter::Base) {
       def call(_value, **_context) = raise("review worker failed")
     }
-    team = team_class.create(team_id: "review-worker-failure", persistence: store.team)
+    team = team_class.create(team_id: "review-worker-failure", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       captured = backend.snapshot if !captured && run&.active? && run.assignments.any? { |a| a["error_ref"] }
     end
     LLMStub.activate(responses: team_responses)
     expect { team.invoke("plan") }.to raise_error(Phronomy::Error, /review worker failed/)
     expect(captured).not_to be_nil
     restored = reboot(captured)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     run = loaded.executions.first
     llm = LLMStub.activate(responses: ["must not execute"])
     expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /review worker failed/)
     expect(loaded.result(run.team_execution_id)[:status]).to eq("failed")
     cancelled_store = reboot(captured)
-    cancelled = team_class.load(team.team_id, persistence: cancelled_store.team)
+    cancelled = team_class.load(team.team_id, persistence: cancelled_store.multi_agent)
     cancelled.cancel(run.team_execution_id)
     expect { cancelled.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /review worker failed/)
     expect(cancelled.executions.first.status).to eq("failed")
@@ -34,7 +34,7 @@ RSpec.describe "Durable continuation decisions" do
   end
 
   it "preserves coordinator failure across F4 after phase workers commit", :aggregate_failures do
-    team = team_class.create(team_id: "review-coordinator-failure", persistence: store.team)
+    team = team_class.create(team_id: "review-coordinator-failure", persistence: store.multi_agent)
     allow(team).to receive(:coordinator_class).and_wrap_original do |original, id|
       klass = original.call(id)
       klass.input_filter Class.new(Phronomy::Filter::Base) {
@@ -44,19 +44,19 @@ RSpec.describe "Durable continuation decisions" do
     end
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       captured = backend.snapshot if !captured && run&.active? && run.phase == "workers" && run.coordinator["error_ref"]
     end
     LLMStub.activate(responses: ["must not execute"])
     expect { team.invoke("plan") }.to raise_error(Phronomy::Error, /review coordinator failed/)
     expect(captured).not_to be_nil
     restored = reboot(captured)
-    loaded = team_class.load(team.team_id, persistence: restored.team)
+    loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     run = loaded.executions.first
     expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /review coordinator failed/)
     expect(loaded.result(run.team_execution_id)[:status]).to eq("failed")
     cancelled_store = reboot(captured)
-    cancelled = team_class.load(team.team_id, persistence: cancelled_store.team)
+    cancelled = team_class.load(team.team_id, persistence: cancelled_store.multi_agent)
     cancelled.cancel(run.team_execution_id)
     expect { cancelled.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /review coordinator failed/)
     expect(cancelled.executions.first.status).to eq("failed")
@@ -73,7 +73,7 @@ RSpec.describe "Durable continuation decisions" do
       }
     end
     parent_class.tools(parent_class.tools.to_h { |tool| [tool, nil] }.merge(external => nil))
-    parent = parent_class.create(agent_id: "review-mixed-provider", persistence: store.agent)
+    parent = parent_class.create(agent_id: "review-mixed-provider", persistence: store.agent, coordination_store: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
       run = backend.agent.runs(parent.agent_id).first
@@ -92,7 +92,7 @@ RSpec.describe "Durable continuation decisions" do
     restored = reboot(captured)
     events = Queue.new
     LLMStub.activate(responses: ["child recovered", "parent recovered"])
-    loaded = parent_class.load(parent.agent_id, persistence: restored.agent,
+    loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent,
       on_event: ->(event) { events << event if event.type == :recovery_resolution_required })
     event = Timeout.timeout(3) { events.pop }.payload
     outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: nil,
@@ -111,7 +111,7 @@ RSpec.describe "Durable continuation decisions" do
   end
 
   it "preserves Team cancellation while an admitted worker is cancelled", :aggregate_failures do
-    team = team_class.create(team_id: "recheck-worker-cancel", persistence: store.team)
+    team = team_class.create(team_id: "recheck-worker-cancel", persistence: store.multi_agent)
     worker.input_filter Class.new(Phronomy::Filter::Base) {
       define_method(:call) do |value, **_context|
         team.cancel(team.executions.first.team_execution_id)
@@ -127,7 +127,7 @@ RSpec.describe "Durable continuation decisions" do
   end
 
   it "preserves Team cancellation while its admitted coordinator is cancelled", :aggregate_failures do
-    team = team_class.create(team_id: "recheck-coordinator-cancel", persistence: store.team)
+    team = team_class.create(team_id: "recheck-coordinator-cancel", persistence: store.multi_agent)
     allow(team).to receive(:coordinator_class).and_wrap_original do |original, id|
       klass = original.call(id)
       klass.input_filter Class.new(Phronomy::Filter::Base) {
@@ -156,7 +156,7 @@ RSpec.describe "Durable continuation decisions" do
       }
     end
     parent_class.tools(parent_class.tools.to_h { |tool| [tool, nil] }.merge(external => nil))
-    parent = parent_class.create(agent_id: "review-mixed-provider", persistence: store.agent)
+    parent = parent_class.create(agent_id: "review-mixed-provider", persistence: store.agent, coordination_store: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
       run = backend.agent.runs(parent.agent_id).first
@@ -175,7 +175,7 @@ RSpec.describe "Durable continuation decisions" do
     restored = reboot(captured)
     events = Queue.new
     LLMStub.activate(responses: ["child recovered", "parent recovered"])
-    loaded = parent_class.load(parent.agent_id, persistence: restored.agent,
+    loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent,
       on_event: ->(event) { events << event if event.type == :recovery_resolution_required })
     event = Timeout.timeout(3) { events.pop }.payload
     outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: nil,
@@ -201,12 +201,12 @@ RSpec.describe "Durable continuation decisions" do
     expect(after_external_resolution).not_to be_nil
     restored_again = reboot(after_external_resolution)
     llm = LLMStub.activate(responses: ["worker after second restart", "parent after second restart"])
-    loaded_again = parent_class.load(parent.agent_id, persistence: restored_again.agent)
+    loaded_again = parent_class.load(parent.agent_id, persistence: restored_again.agent, coordination_store: restored_again.multi_agent)
     final = loaded_again.resume(event.fetch(:execution_id))
     expect(final[:output]).to eq("parent after second restart")
     expect(llm.calls.size).to eq(2)
     run = restored_again.agent.executions.load(event.fetch(:execution_id))
-    coordination_ref = run.metadata["multi_agent_coordination_ref"]
+    coordination_ref = run.metadata.dig("execution_extension", "state_ref")
     expect(coordination_ref).not_to be_nil
     expect(effects).to eq(1)
   end
@@ -235,7 +235,7 @@ RSpec.describe "Durable continuation decisions" do
                                                                 "function" => {"name" => call.fetch("name"), "arguments" => JSON.generate(call.fetch("arguments"))}}
                                                              }},
                                  "finish_reason" => calls.empty? ? "stop" : "tool_calls"}]}
-      parent = parent_class.create(agent_id: "matrix-parent", persistence: store.agent)
+      parent = parent_class.create(agent_id: "matrix-parent", persistence: store.agent, coordination_store: store.multi_agent)
       before_response = nil
       store.after_commit = proc do |backend|
         run = backend.agent.runs(parent.agent_id).first
@@ -259,7 +259,7 @@ RSpec.describe "Durable continuation decisions" do
           lose_response = lose_commit_response && !snapshots.key?(key)
           snapshots[key] ||= backend.snapshot
         end
-        if run.phase == :dispatching_tools && (ref = run.metadata["multi_agent_coordination_ref"])
+        if run.phase == :dispatching_tools && (ref = run.metadata.dig("execution_extension", "state_ref"))
           slot = backend.agent.contents.fetch_json(ref).fetch("children").first
           begin
             child = backend.agent.executions.load(slot.fetch("execution_id"))
@@ -272,7 +272,7 @@ RSpec.describe "Durable continuation decisions" do
       end
       events = Queue.new
       llm = LLMStub.activate(responses: followups)
-      loaded = parent_class.load(parent.agent_id, persistence: restored.agent,
+      loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent,
         on_event: ->(event) { events << event.payload if event.type == :recovery_resolution_required })
       id = restored.agent.runs(parent.agent_id).first.execution_id
       resolve_matrix_facts(loaded, events, outcome)
@@ -292,20 +292,20 @@ RSpec.describe "Durable continuation decisions" do
       snapshots.each do |boundary, snapshot|
         recovered = reboot(snapshot)
         saved = recovered.agent.executions.load(id)
-        saved_slots = if (ref = saved.metadata["multi_agent_coordination_ref"])
+        saved_slots = if (ref = saved.metadata.dig("execution_extension", "state_ref"))
           recovered.agent.contents.fetch_json(ref).fetch("children")
         end
         remaining = (boundary == :child_terminal) ? ["parent result"] : followups
         llm = LLMStub.activate(responses: remaining)
         events = Queue.new
-        loaded = parent_class.load(parent.agent_id, persistence: recovered.agent,
+        loaded = parent_class.load(parent.agent_id, persistence: recovered.agent, coordination_store: recovered.multi_agent,
           on_event: ->(event) { events << event.payload if event.type == :recovery_resolution_required })
         resolve_matrix_facts(loaded, events, outcome)
         expect(loaded.resume(id)[:output]).to eq(calls.empty? ? "resolved output" : "parent result"), boundary.inspect
         expect(llm.calls.size).to eq(calls.empty? ? 0 : remaining.size), boundary.inspect
         expect(effects).to eq(expected_effects), boundary.inspect
         if saved_slots
-          final_slots = recovered.agent.contents.fetch_json(recovered.agent.executions.load(id).metadata.fetch("multi_agent_coordination_ref")).fetch("children")
+          final_slots = recovered.agent.contents.fetch_json(recovered.agent.executions.load(id).metadata.fetch("execution_extension").fetch("state_ref")).fetch("children")
           expect(final_slots.map { |slot| slot.fetch("execution_id") }).to eq(saved_slots.map { |slot| slot.fetch("execution_id") })
           final_slots.each { |slot| expect(recovered.agent.runs(slot.fetch("agent_id")).size).to eq(1) }
         end
@@ -329,7 +329,7 @@ RSpec.describe "Durable continuation decisions" do
 
   [:coordinator, :worker].product([:child_terminal, :team_recorded]).each do |role, boundary|
     it "retains #{role} cancellation after restart at #{boundary}" do
-      team = team_class.create(team_id: "cancel-boundary", persistence: store.team)
+      team = team_class.create(team_id: "cancel-boundary", persistence: store.multi_agent)
       filter = Class.new(Phronomy::Filter::Base) do
         define_method(:call) do |value, **_context|
           team.cancel(team.executions.first.team_execution_id)
@@ -346,7 +346,7 @@ RSpec.describe "Durable continuation decisions" do
       captured = nil
       child_id = nil
       store.after_commit = proc do |backend|
-        run = backend.team.runs(team.team_id).first
+        run = backend.multi_agent.runs(team.team_id).first
         next unless run&.active? && !captured
         slot = (role == :worker) ? run.assignments.first : run.coordinator
         next unless slot
@@ -365,7 +365,7 @@ RSpec.describe "Durable continuation decisions" do
       expect { team.invoke("plan") }.to raise_error(Phronomy::CancellationError)
       expect(captured).not_to be_nil
       restored = reboot(captured)
-      loaded = team_class.load(team.team_id, persistence: restored.team)
+      loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
       run = loaded.executions.first
       llm = LLMStub.activate(responses: ["must not replay"])
       expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::CancellationError)
@@ -378,10 +378,10 @@ RSpec.describe "Durable continuation decisions" do
   it "preserves skipped worker failures when cancellation is committed after their result" do
     team_class.pool(size: 1, agent: worker, on_error: :skip)
     worker.input_filter Class.new(Phronomy::Filter::Base) { define_method(:call) { |_value, **_context| raise "skipped worker failure" } }
-    team = team_class.create(team_id: "skip-boundary", persistence: store.team)
+    team = team_class.create(team_id: "skip-boundary", persistence: store.multi_agent)
     captured = nil
     store.after_commit = proc do |backend|
-      run = backend.team.runs(team.team_id).first
+      run = backend.multi_agent.runs(team.team_id).first
       captured ||= backend.snapshot if run&.active? && run.assignments.any? { |entry| entry["state"] == "failed" }
     end
     LLMStub.activate(responses: team_responses)
@@ -389,7 +389,7 @@ RSpec.describe "Durable continuation decisions" do
     expect(captured).not_to be_nil
     [false, true].each do |cancel|
       restored = reboot(captured)
-      loaded = team_class.load(team.team_id, persistence: restored.team)
+      loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
       id = loaded.executions.first.team_execution_id
       loaded.cancel(id) if cancel
       llm = LLMStub.activate(responses: ["must not replay"])

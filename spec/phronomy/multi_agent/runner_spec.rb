@@ -4,7 +4,8 @@ require "spec_helper"
 require_relative "../../integration/support/llm_stub"
 
 RSpec.describe Phronomy::MultiAgent::HandoffRunner do
-  let(:store) { Phronomy::PersistenceComposition.in_memory.agent }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "runner-unit", version: 1
@@ -23,7 +24,7 @@ RSpec.describe Phronomy::MultiAgent::HandoffRunner do
   it "returns the durable result and active Agent without internal transport fields" do
     main = agent_class.create(persistence: store)
     LLMStub.activate(responses: ["direct answer"])
-    result = described_class.new(main_agent: main).invoke("question")
+    result = described_class.new(main_agent: main, persistence: stores.multi_agent).invoke("question")
     expect(result[:output]).to eq("direct answer")
     expect(result[:agent]).to equal(main)
     expect(result.keys.grep(/phronomy_handoff/)).to be_empty
@@ -34,15 +35,15 @@ RSpec.describe Phronomy::MultiAgent::HandoffRunner do
   it "bounds a cyclic graph without discarding the last committed responsibility" do
     source = agent_class.create(persistence: store)
     target = agent_class.create(persistence: store)
-    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
-    reverse = Phronomy::Agent::Handoff.new(source_agent: target, target_agent: source)
-    names = [edge, reverse].map { |h| Phronomy::Agent::HandoffCapabilityFactory.build(h).tool_name }
+    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
+    reverse = Phronomy::MultiAgent::Handoff.new(source_agent: target, target_agent: source)
+    names = [edge, reverse].map { |h| Phronomy::MultiAgent::HandoffCapabilityFactory.build(h).tool_name }
     stub_const("Phronomy::MultiAgent::HandoffRunner::MAX_HANDOFFS", 1)
     LLMStub.activate(responses: names.map { |name| LLMStub.tool_call_response(name, {responsibility: "continue"}) })
     expect do
-      described_class.new(main_agent: source, handoffs: [edge, reverse]).invoke("ping")
+      described_class.new(main_agent: source, persistence: stores.multi_agent, handoffs: [edge, reverse]).invoke("ping")
     end.to raise_error(Phronomy::HandoffError, /Exceeded maximum Handoffs/)
-    routing = store.handoff_states.load(source.agent_id)
+    routing = stores.multi_agent.handoff_states.load(source.agent_id)
     expect(routing.active_agent_id).to eq(source.agent_id)
     expect(routing.phase).to eq("target_pending")
   end

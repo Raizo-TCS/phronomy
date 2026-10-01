@@ -146,7 +146,7 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
     end
   end
 
-  describe "Phronomy::Agent::Handoff guard clauses" do
+  describe "Phronomy::MultiAgent::Handoff guard clauses" do
     class HandoffTestAgentA < Phronomy::Agent::Base
       agent_definition id: "handoff-test-a", version: 1
       model "test-model"
@@ -165,13 +165,13 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
 
     it "raises when source and target are the same instance" do
       expect {
-        Phronomy::Agent::Handoff.new(source_agent: agent_a, target_agent: agent_a)
+        Phronomy::MultiAgent::Handoff.new(source_agent: agent_a, target_agent: agent_a)
       }.to raise_error(ArgumentError, /must be different instances/)
     end
 
     it "raises when policy is not a HandoffPolicy" do
       expect {
-        Phronomy::Agent::Handoff.new(
+        Phronomy::MultiAgent::Handoff.new(
           source_agent: agent_a,
           target_agent: agent_b,
           policy: "not-a-policy"

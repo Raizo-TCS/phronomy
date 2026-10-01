@@ -1,5 +1,7 @@
 # Durable semantic coordination V2 migration
 
+> r8 unit 4 supersedes the Agent/Handoff ownership and storage portions below. See [the unit 4 migration](../migrations/r8-unit4.md). Earlier statements describe their original change only.
+
 > Runner namespace update (2026-09-18): this document preserves the V2
 > implementation/migration record. The current Runner is
 > `Phronomy::MultiAgent::HandoffRunner` under

@@ -19,6 +19,9 @@ module Phronomy
     end
 
     class Orchestrator < ::Phronomy::Agent::Base
+      attr_reader coordination_store: Store?
+      def self.create: (?coordination_store: Store?, **Object options) ?{ (Object) -> void } -> instance
+      def self.load: (String agent_id, persistence: Agent::Store, coordination_store: Store, **Object options) ?{ (Object) -> void } -> instance
       def self.subagent: (Symbol | String name, singleton(::Phronomy::Agent::Base) agent_class, ?on_error: Symbol, ?inherit_knowledge: bool) -> untyped
       def self.registered_subagents: () -> Hash[Symbol | String, untyped]
       def resume: (String execution_id, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]

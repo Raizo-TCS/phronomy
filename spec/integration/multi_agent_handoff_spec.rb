@@ -6,7 +6,8 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff", :integration do
   after { LLMStub.deactivate }
-  before { Phronomy.configure { |c| c.agent_store = Phronomy::PersistenceComposition.in_memory.agent } }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  before { Phronomy.configure { |c| c.agent_store = stores.agent } }
   after { Phronomy.configure { |c| c.agent_store = nil } }
 
   def build_agent(definition_id, instructions, persistence: nil)
@@ -23,7 +24,7 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     main = build_agent("cg05-main-no-handoff", "Main agent")
     LLMStub.activate(responses: ["Handled by main."])
 
-    runner = Phronomy::MultiAgent::HandoffRunner.new(main_agent: main)
+    runner = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent, main_agent: main)
     result = runner.invoke("Hello")
 
     expect(result[:output]).to eq("Handled by main.")
@@ -33,12 +34,12 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "transfers responsibility without a sentinel Tool result" do
     source = build_agent("cg05-source-once", "Triage agent")
     target = build_agent("cg05-target-once", "Billing agent")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       description: "Transfer billing responsibility"
     )
-    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
 
     LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -48,10 +49,9 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Billing investigation complete."
     ])
 
-    runner = Phronomy::MultiAgent::HandoffRunner.new(
+    runner = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: source,
-      handoffs: [handoff]
-    )
+      handoffs: [handoff])
     result = runner.invoke("My invoice is wrong.")
 
     expect(result[:output]).to eq("Billing investigation complete.")
@@ -64,18 +64,18 @@ RSpec.describe "Multi-Agent Handoff", :integration do
     a = build_agent("cg05-multihop-a", "Entry agent")
     b = build_agent("cg05-multihop-b", "Intermediate agent")
     c = build_agent("cg05-multihop-c", "Final agent")
-    a_to_b = Phronomy::Agent::Handoff.new(
+    a_to_b = Phronomy::MultiAgent::Handoff.new(
       source_agent: a,
       target_agent: b,
       description: "Transfer to B"
     )
-    b_to_c = Phronomy::Agent::Handoff.new(
+    b_to_c = Phronomy::MultiAgent::Handoff.new(
       source_agent: b,
       target_agent: c,
       description: "Transfer to C"
     )
-    a_to_b_name = Phronomy::Agent::HandoffCapabilityFactory.build(a_to_b).tool_name
-    b_to_c_name = Phronomy::Agent::HandoffCapabilityFactory.build(b_to_c).tool_name
+    a_to_b_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(a_to_b).tool_name
+    b_to_c_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(b_to_c).tool_name
 
     recorder = LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -89,10 +89,9 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Completed by C."
     ])
 
-    runner = Phronomy::MultiAgent::HandoffRunner.new(
+    runner = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: a,
-      handoffs: [a_to_b, b_to_c]
-    )
+      handoffs: [a_to_b, b_to_c])
     result = runner.invoke("Original request from the user")
 
     expect(result[:agent]).to equal(c)
@@ -105,11 +104,11 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "keeps the Target active for the next user turn in the same Runtime" do
     source = build_agent("cg05-source-continuity", "Triage agent")
     target = build_agent("cg05-target-continuity", "Billing agent")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
-    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
 
     LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -120,10 +119,9 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Second billing answer."
     ])
 
-    runner = Phronomy::MultiAgent::HandoffRunner.new(
+    runner = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: source,
-      handoffs: [handoff]
-    )
+      handoffs: [handoff])
 
     first = runner.invoke("I have a billing problem.")
     second = runner.invoke("I have another detail.")
@@ -136,11 +134,11 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "preserves the active Agent when only the Runner facade is recreated" do
     source = build_agent("cg05-source-recreate", "Triage agent")
     target = build_agent("cg05-target-recreate", "Billing agent")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
-    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
 
     LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -151,15 +149,13 @@ RSpec.describe "Multi-Agent Handoff", :integration do
       "Continued by billing."
     ])
 
-    Phronomy::MultiAgent::HandoffRunner.new(
+    Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: source,
-      handoffs: [handoff]
-    ).invoke("Start")
+      handoffs: [handoff]).invoke("Start")
 
-    recreated = Phronomy::MultiAgent::HandoffRunner.new(
+    recreated = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: source,
-      handoffs: [handoff]
-    )
+      handoffs: [handoff])
     result = recreated.invoke("Continue")
 
     expect(result[:agent]).to equal(target)
@@ -169,9 +165,9 @@ RSpec.describe "Multi-Agent Handoff", :integration do
   it "rejects different Persistence domains before invoking either Agent" do
     source = build_agent("domain-source", "Source", persistence: Phronomy::PersistenceComposition.in_memory.agent)
     target = build_agent("domain-target", "Target", persistence: Phronomy::PersistenceComposition.in_memory.agent)
-    edge = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target)
+    edge = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target)
     expect do
-      Phronomy::MultiAgent::HandoffRunner.new(main_agent: source, handoffs: [edge])
-    end.to raise_error(Phronomy::ConfigurationError, /Persistence instance/)
+      Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent, main_agent: source, handoffs: [edge])
+    end.to raise_error(Phronomy::ConfigurationError, /same Agent store/)
   end
 end

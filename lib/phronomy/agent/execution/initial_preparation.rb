@@ -231,7 +231,7 @@ module Phronomy
 
       def recovered_config(execution)
         mode = (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym
-        config = {phronomy_recovery_mode: mode}.merge(@agent.__coordination_config)
+        config = {phronomy_recovery_mode: mode}.merge(@agent.__execution_wiring)
         if execution.metadata.key?("durable_context_ref")
           context = @persistence.contents.fetch_json(execution.metadata.fetch("durable_context_ref"))
           unless context.is_a?(Hash)

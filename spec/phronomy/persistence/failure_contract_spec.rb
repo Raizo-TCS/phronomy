@@ -49,7 +49,7 @@ RSpec.describe "Persistence failure boundary" do
         operation = case repository
         when :journals then -> { persistence.journals.head("id") }
         when :contents then -> { persistence.contents.fetch("id") }
-        when :teams, :team_executions then -> { stores.team.public_send(repository).load("id") }
+        when :teams, :team_executions, :handoff_states then -> { stores.multi_agent.public_send(repository).load("id") }
         when :workflow_states then -> { stores.workflow.load("id") }
         else -> { persistence.public_send(repository).load("id") }
         end

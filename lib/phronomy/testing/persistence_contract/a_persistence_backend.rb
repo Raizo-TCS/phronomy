@@ -34,11 +34,11 @@ RSpec.shared_examples "a Persistence backend" do
   it "binds each domain to its own record protocol in one common scope" do
     stores.coordinator.atomic do |scope|
       stores.agent.participate(scope) do |records|
-        expect(records).to respond_to(:contents, :agents, :journals, :executions, :handoff_states, :assert_agent_watermark!)
+        expect(records).to respond_to(:contents, :agents, :journals, :executions, :retentions, :cancellations, :assert_agent_watermark!)
         expect(records).not_to respond_to(:teams, :team_executions, :workflow_states)
       end
-      stores.team.participate(scope) do |records|
-        expect(records).to respond_to(:contents, :teams, :team_executions)
+      stores.multi_agent.participate(scope) do |records|
+        expect(records).to respond_to(:contents, :teams, :team_executions, :handoff_states)
         expect(records).not_to respond_to(:agents, :executions, :workflow_states)
       end
     end

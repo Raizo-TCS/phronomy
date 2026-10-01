@@ -3,9 +3,13 @@ module Phronomy
     class Stores < Data
       attr_reader coordinator: ::Phronomy::Persistence
       attr_reader agent: Agent::Store
-      attr_reader team: MultiAgent::Store
+      attr_reader multi_agent: MultiAgent::Store
       attr_reader workflow: _WorkflowStateRepository
-      def self.new: (coordinator: ::Phronomy::Persistence, agent: Agent::Store, team: MultiAgent::Store, workflow: _WorkflowStateRepository) -> instance
+      def self.new: (coordinator: ::Phronomy::Persistence, agent: Agent::Store, multi_agent: MultiAgent::Store, workflow: _WorkflowStateRepository) -> instance
+    end
+
+    class Unit4Migration
+      def self.convert: (Hash[String, json_value] snapshot, quiescent: bool) -> Hash[String, json_value]
     end
 
     def self.agent: (?backend: _StorageBackend?) -> Agent::Store

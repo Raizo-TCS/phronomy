@@ -10,12 +10,13 @@ module Phronomy
       Wait = Data.define(:coordinator, :agent, :execution_id)
       private_constant :Wait
 
-      def self.start(agent:, execution_id:, input:, config: {})
-        new(agent, execution_id, input, config).start
+      def self.start(agent:, execution_id:, input:, config: {}, resume_only: false)
+        new(agent, execution_id, input, config, resume_only).start
       end
 
-      def initialize(agent, execution_id, input, config)
+      def initialize(agent, execution_id, input, config, resume_only)
         @agent, @id, @input, @config = agent, execution_id.to_s.freeze, input, config.freeze
+        @resume_only = resume_only
         @runtime = Phronomy::Runtime.instance
         @completion = Phronomy::TaskResult.deferred(name: "exact-execution:#{@id}")
       end
@@ -27,7 +28,7 @@ module Phronomy
             [:terminal, materialize(execution)]
           elsif execution
             unless Phronomy::Agent::ExecutionRegistry.existing_for(@runtime)&.agent_execution_owner(@id)
-              @agent.instance_variable_set(:@_phronomy_coordination_config, @config)
+              @agent.instance_variable_set(:@_phronomy_execution_wiring, @config)
               begin
                 RecoveryCoordinator.new(@agent).recover_on_load!
               rescue Phronomy::ConfigurationError => error
@@ -37,6 +38,7 @@ module Phronomy
             end
             [:active, nil]
           else
+            raise Phronomy::Persistence::NotFoundError, "Execution #{@id} is absent" if @resume_only
             @config[:cancellation_token]&.raise_if_cancelled!
             [:absent, nil]
           end
@@ -109,18 +111,27 @@ module Phronomy
         unless execution.agent_id == @agent.agent_id
           raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} belongs to another Agent"
         end
-        expected = @config[:phronomy_coordination]
-        stored = execution.metadata["coordination"]
+        expected = @config[:phronomy_reservation]
+        stored = execution.metadata["reservation"]
         if expected && stored != expected
-          actual_identity = stored&.except("handoff_revision")
-          expected_identity = expected.except("handoff_revision")
-          unless actual_identity == expected_identity
-            raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} coordination mismatch"
-          end
+          raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} correlation mismatch"
         end
         ref = execution.metadata["current_input_ref"]
+        @input = @agent.persistence.contents.fetch_text(ref) if @resume_only && ref
         if ref && @agent.persistence.contents.fetch_text(ref) != @input
           raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} input mismatch"
+        end
+        unless execution.terminal?
+          extension = execution.metadata["execution_extension"]
+          participant = @config[:phronomy_execution_participant]
+          if extension && (!participant || participant.binding.to_h.except("state_ref") != extension.except("state_ref"))
+            raise Phronomy::ExecutionRehydrationRequiredError, "Execution #{@id} needs its current participant binding"
+          end
+          if @agent.persistence.cancellation_requested?(agent_id: @agent.agent_id, execution_id: @id)
+            token = @config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new
+            token.cancel!
+            @config = @config.merge(cancellation_token: token).freeze
+          end
         end
         execution
       end

@@ -1,3 +1,12 @@
+## r8 unit 4 update
+
+Agent control/transfer and execution-change contracts no longer select MultiAgent
+policy or routing. MultiAgent uses typed Agent public operations and its own
+Handoff/subagent state; the AST guard rejects private Agent reads in those paths.
+The common JSON value alias belongs to Common, and Handoff repository types belong
+to MultiAgent. Actual source diagrams still display outstanding Runtime/Engine
+coordination dependencies. See `docs/architecture/r8-unit4.md`.
+
 ## r8 unit 3 update
 
 The source diagram removes `persistence/api`, `persistence/contract`,

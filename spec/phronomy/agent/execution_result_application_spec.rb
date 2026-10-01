@@ -102,7 +102,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
         execution_id: execution.execution_id, fsm_session_id: "session-1",
         expected_execution_revision: execution.execution_revision, root: root,
         journal_records: [], execution: execution, runtime_snapshot: invocation.runtime_snapshot,
-        terminal_view: nil, state_required: true
+        terminal_view: nil, state_required: true, wiring: {}
       )
     end
     let(:handoff_request) { Object.new }
@@ -231,7 +231,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
       expect(on_loop { registry.take_agent_completion_waiters(execution.execution_id) }).to eq([result_task, other_task])
     end
 
-    ["coordination", "multi_agent_coordination_ref"].each do |key|
+    ["reservation", "execution_extension"].each do |key|
       it "releases a worker error carrying #{key} and fails all observers (F1)" do
         install
         error = IOError.new("coordination response lost")

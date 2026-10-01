@@ -65,6 +65,8 @@ module Phronomy
 
       # A savepoint result is provisional until every enclosing scope commits.
       # @api public
+      def outermost? = @parent.nil?
+
       def committed? = @committed && (!@parent || @parent.committed?)
 
       # @api private

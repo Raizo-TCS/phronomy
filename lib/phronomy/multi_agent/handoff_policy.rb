@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
+  module MultiAgent
     class HandoffPolicy
       CATEGORIES = %i[current_request history knowledge tool_exchanges].freeze
       MODES = %i[required forbidden selectable].freeze

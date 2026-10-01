@@ -3,7 +3,7 @@
 require "time"
 
 module Phronomy
-  module Agent
+  module MultiAgent
     # Immutable current-format semantic record; contains no Runtime handles.
     # @api private
     class HandoffState

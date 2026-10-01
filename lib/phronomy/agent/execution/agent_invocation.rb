@@ -430,7 +430,7 @@ module Phronomy
       private
 
       def handoff_matches_for(calls)
-        bindings = Array(@config[:phronomy_handoff_bindings])
+        bindings = Array(@config[:phronomy_control_bindings])
         return [] if bindings.empty?
 
         by_name = bindings.to_h { |binding| [binding.tool_name.to_s, binding] }
@@ -441,25 +441,15 @@ module Phronomy
       end
 
       def build_handoff_request(tool_call, binding, llm_call_id:)
-        handoff = binding.handoff
-        unless handoff.source_agent.equal?(@agent)
-          raise Phronomy::HandoffError,
-            "Handoff capability is not bound to the active Source Agent"
+        unless binding.source_agent_id == @agent.agent_id
+          raise Phronomy::HandoffError, "Control capability is not bound to the active Source Agent"
         end
-
-        args = tool_call.respond_to?(:arguments) ? tool_call.arguments : {}
-        args = (args || {}).to_h.transform_keys(&:to_sym)
-        selection = handoff.policy.selectable_categories.each_with_object({}) do |category, result|
-          key = :"include_#{category}"
-          result[category] = args[key] if args.key?(key)
+        request = binding.request(arguments: tool_call.arguments || {}, llm_call_id: llm_call_id,
+          tool_call_id: tool_call.respond_to?(:id) ? tool_call.id : nil)
+        unless request.is_a?(ControlRequest)
+          raise ArgumentError, "Control capability must return Agent::ControlRequest"
         end
-        Phronomy::Agent::HandoffRequest.new(
-          handoff: handoff,
-          responsibility: args.fetch(:responsibility),
-          selection_intent: selection,
-          llm_call_id: llm_call_id,
-          tool_call_id: tool_call.respond_to?(:id) ? tool_call.id : nil
-        )
+        request
       end
 
       def apply_llm_event(event)

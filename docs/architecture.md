@@ -175,14 +175,13 @@ confirmed resume. Internal Coordinator type aliases remain, with changed
 canonical names and an added Command snapshot field. See
 [ADR-050](decisions/050-approval-resume-snapshot-and-commit-ownership.md).
 
-`Agent::ExecutionOutcomeCommitter` owns ordinary completion, failure, suspension
-and child waiting; `Agent::HandoffOutcomeCommitter` adds atomic Source transfer.
-The Handoff Coordinator now only selects its worker. Transaction boundaries,
-operation-specific readback and Handoff selection precedence remain unchanged.
-Coordinator retains quiescence, submission, stale-result validation, live-state
-application, admission and Task/listener delivery. Command/view/outcome types are
-worker-owned with internal Coordinator aliases and changed canonical Ruby names.
-See [ADR-051](decisions/051-execution-outcome-worker-ownership.md).
+`Agent::ExecutionOutcomeCommitter` and `Agent::ExecutionChange` own Agent
+completion, failure, suspension, dispatch preparation and commit proof. A limited
+participant joins its own domain changes to the same scope. MultiAgent owns
+subagent reservations and Handoff routing; it passes extension state and transfer
+receipts, never Agent records or arbitrary update blocks. The EventLoop owner
+continues to apply confirmed results and deliver callbacks. See
+[r8 unit 4](architecture/r8-unit4.md).
 
 The remaining execution owner expresses result handling as validation, committed
 state installation, and continuation or delivery. Private methods keep these

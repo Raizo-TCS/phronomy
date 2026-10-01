@@ -47,12 +47,12 @@ RSpec.describe Phronomy::Agent::ContextPreparation do
     ])
   end
   let(:handoff) do
-    Phronomy::Agent::HandoffContext.new(
+    Phronomy::Agent::TransferContext.new(
       responsibility: "Continue the task",
-      items: [Phronomy::Agent::HandoffContext::Item.new(
+      items: [Phronomy::Agent::TransferContext::Item.new(
         candidate_category: :knowledge, policy_category: :knowledge,
         content: "Transferred knowledge", role: :user,
-        provenance: Phronomy::Agent::HandoffContext::Provenance.new(
+        provenance: Phronomy::Agent::TransferContext::Provenance.new(
           origin_agent_id: "source-agent", origin_record_id: "source-record"
         )
       )]
@@ -84,7 +84,7 @@ RSpec.describe Phronomy::Agent::ContextPreparation do
   def prepare_initial(**overrides)
     assembler.prepare_initial(
       input: "Input supplied to the instruction callback", agent_root: root,
-      execution: execution, patch: patch, config: {phronomy_handoff_context: handoff},
+      execution: execution, patch: patch, config: {phronomy_transfer_context: handoff},
       **overrides
     )
   end
@@ -174,7 +174,7 @@ RSpec.describe Phronomy::Agent::ContextPreparation do
     events.clear
     prepared = assembler.prepare_followup(
       base_manifest: manifest, agent_root: root, execution: next_execution,
-      patch: next_patch, config: {phronomy_handoff_context: handoff}
+      patch: next_patch, config: {phronomy_transfer_context: handoff}
     )
     expect([prepared.call_sequence, prepared.call_mode]).to eq([2, :complete])
     expect(prepared.input.previous_manifest).to equal(manifest)
@@ -243,8 +243,8 @@ RSpec.describe Phronomy::Agent::ContextPreparation do
 
   it "keeps Hook writes before the existing Handoff type error and does not invoke Policy" do
     invalid = Struct.new(:responsibility).new("Responsibility before type validation")
-    expect { prepare_initial(config: {phronomy_handoff_context: invalid}) }
-      .to raise_error(ArgumentError, "phronomy_handoff_context must be a HandoffContext")
+    expect { prepare_initial(config: {phronomy_transfer_context: invalid}) }
+      .to raise_error(ArgumentError, "phronomy_transfer_context must be a TransferContext")
     expect(events).to eq([
       [:records, %w[current working], ["current"]],
       [:put_json, {"fact" => "Hook knowledge"}], [:put_text, "Current hook instruction"]

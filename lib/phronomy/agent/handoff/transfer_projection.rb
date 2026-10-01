@@ -2,29 +2,16 @@
 
 module Phronomy
   module Agent
-    class HandoffProjection
+    class TransferProjection
       CONTROL_CATEGORIES = %i[instruction handoff_responsibility].freeze
       JSON_CATEGORIES = %i[assistant_message tool_message].freeze
 
       Identity = Data.define(:agent_id)
-      Edge = Data.define(:policy, :target_agent)
-      Snapshot = Data.define(:handoff, :responsibility, :selection_intent)
-      private_constant :Identity, :Edge, :Snapshot
-
-      # A terminal command contains values only, captured on EventLoop.
-      def build_terminal(view:, manifest:, persistence:, source_agent_id:)
-        request = Snapshot.new(
-          handoff: Edge.new(policy: HandoffPolicy.from_h(view.policy), target_agent: Identity.new(agent_id: view.target_agent_id)),
-          responsibility: view.responsibility,
-          selection_intent: view.selection_intent.transform_keys(&:to_sym)
-        )
-        build(request: request, manifest: manifest, persistence: persistence,
-          source_agent: Identity.new(agent_id: source_agent_id))
-      end
+      private_constant :Identity
 
       def build(request:, manifest:, persistence:, source_agent:)
-        unless request.is_a?(HandoffRequest) || request.is_a?(Snapshot)
-          raise ArgumentError, "request must be a HandoffRequest"
+        unless request.is_a?(ControlRequest)
+          raise ArgumentError, "request must be an Agent::ControlRequest"
         end
         unless manifest.is_a?(Phronomy::Context::LLMInputManifest)
           raise ArgumentError, "manifest must be an Phronomy::Context::LLMInputManifest"
@@ -42,12 +29,12 @@ module Phronomy
               policy_category: group.fetch(:policy_category),
               persistence: persistence,
               source_agent: source_agent,
-              target_agent: request.handoff.target_agent
+              target_agent: Identity.new(agent_id: request.target_agent_id)
             )
           end
         end
 
-        HandoffContext.new(
+        TransferContext.new(
           responsibility: request.responsibility,
           items: items
         )
@@ -125,13 +112,7 @@ module Phronomy
       end
 
       def include_group?(request, category)
-        policy = request.handoff.policy
-        return true if policy.required?(category)
-        return false if policy.forbidden?(category)
-
-        request.selection_intent.fetch(category) do
-          policy.default_include?(category)
-        end
+        request.selection.fetch(category, false)
       end
 
       def materialize_item(segment, policy_category:, persistence:, source_agent:, target_agent:)
@@ -147,7 +128,7 @@ module Phronomy
           target_agent: target_agent
         )
 
-        HandoffContext::Item.new(
+        TransferContext::Item.new(
           candidate_category: category,
           policy_category: policy_category,
           role: segment.role,
@@ -182,7 +163,7 @@ module Phronomy
       def provenance_for(metadata, segment:, source_agent:, target_agent:)
         inherited = metadata["handoff_provenance"]
         if inherited
-          base = HandoffContext::Provenance.new(
+          base = TransferContext::Provenance.new(
             origin_agent_id: inherited["origin_agent_id"] || inherited[:origin_agent_id],
             origin_record_id: inherited["origin_record_id"] || inherited[:origin_record_id],
             origin_execution_id: inherited["origin_execution_id"] || inherited[:origin_execution_id],
@@ -193,7 +174,7 @@ module Phronomy
           return base.forwarded_to(target_agent.agent_id)
         end
 
-        HandoffContext::Provenance.new(
+        TransferContext::Provenance.new(
           origin_agent_id: metadata["source_agent_id"] || source_agent.agent_id,
           origin_record_id: metadata["journal_record_id"],
           origin_execution_id: metadata["source_execution_id"],

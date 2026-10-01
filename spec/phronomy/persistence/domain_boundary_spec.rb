@@ -103,12 +103,12 @@ RSpec.describe "Domain persistence ownership boundary" do
       persistence.transaction do |tx, scope|
         content_id = tx.contents.put_text("shared transaction")
         tx.agents.create(agent)
-        stores.team.participate(scope) { |team_records| team_records.teams.create(team) }
+        stores.multi_agent.participate(scope) { |team_records| team_records.teams.create(team) }
       end
     end.to raise_error(Phronomy::Persistence::SerializationError, /backend returned another Team/)
 
     expect { persistence.agents.load(agent.agent_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
-    expect { stores.team.teams.load(team.team_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
+    expect { stores.multi_agent.teams.load(team.team_id) }.to raise_error(Phronomy::Persistence::NotFoundError)
     expect(persistence.contents.exist?(content_id)).to be(false)
   end
 end
