@@ -17,5 +17,5 @@ matcher:
     - Phronomy::Context::ContextPolicyInputBuilder
     - Phronomy::Context::ContextPlanValidator
     - Phronomy::MultiAgent::HandoffPolicy
-    - Phronomy::Agent::HandoffProjection
+    - Phronomy::Agent::TransferProjection
     - Phronomy::VectorStore::InMemory
