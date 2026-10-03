@@ -8,7 +8,7 @@ module Phronomy
     #
     # Requires:
     #   - The +redis+ gem (add to your Gemfile)
-    #   - A Redis server with the RediSearch (RedisSearch) module enabled
+    #   - A RESP2 Redis client and a server with the RediSearch module enabled
     #     (or Redis Stack which bundles RediSearch)
     #
     # Vectors are stored as FLOAT32 binary blobs in Redis Hash fields and
@@ -46,17 +46,17 @@ module Phronomy
         @mutex = Mutex.new
       end
 
+      protected
+
       # @param id                 [String]
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @api public
-      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
-        cancellation_token&.raise_if_cancelled!
+      def perform_add(id:, embedding:, metadata: {}, cancellation_token: nil)
         # Establish expected dimension on first add (not race-free for concurrent
-        # first adds), then validate, then create/reuse the index.
+        # first adds), then create/reuse the index. Base has validated the input.
         @dimension ||= embedding.size
-        validate_embedding_dimension!(embedding, @dimension)
         ensure_index!(@dimension)
         @redis.call(
           "HSET", "#{DOC_PREFIX}#{id}",
@@ -71,20 +71,17 @@ module Phronomy
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
       # @api public
-      def search(query_embedding:, k: 5, cancellation_token: nil)
-        cancellation_token&.raise_if_cancelled!
+      def perform_search(query_embedding:, k: 5, cancellation_token: nil)
         # search never establishes dimension.  If dimension is unknown and the
         # index has not been created yet, there are no documents to return.
         return [] if @dimension.nil? && !@index_created
 
-        validate_embedding_dimension!(query_embedding, @dimension)
         ensure_index!(@dimension)
-        k_safe = validate_k!(k)
         blob = pack_vector(query_embedding)
 
         raw = @redis.call(
           "FT.SEARCH", @index_name,
-          "*=>[KNN #{k_safe} @embedding $BLOB AS score]",
+          "*=>[KNN #{k} @embedding $BLOB AS score]",
           "PARAMS", 2, "BLOB", blob,
           "SORTBY", "score",
           "RETURN", 2, "score", "metadata",
@@ -94,26 +91,26 @@ module Phronomy
         parse_results(raw)
       end
 
-      def remove(id:)
+      def perform_remove(id:)
         @redis.call("DEL", "#{DOC_PREFIX}#{id}")
         self
       end
 
       # Returns the number of documents indexed.
       # Queries FT.INFO when the index has been created; returns 0 otherwise.
-      def size
+      def perform_size
         return 0 unless @index_created
 
-        raw = @redis.call("FT.INFO", @index_name)
-        return 0 unless raw.is_a?(Array)
-
-        idx = raw.index("num_docs")
-        idx ? raw[idx + 1].to_i : 0
-      rescue
-        0
+        fields = parse_fields(@redis.call("FT.INFO", @index_name), "FT.INFO")
+        count = fields["num_docs"]
+        count = Integer(count, 10) if count.is_a?(String) && count.match?(/\A\d+\z/)
+        unless count.is_a?(Integer) && count >= 0
+          raise InvalidResultError, "Redis FT.INFO requires a non-negative integer num_docs"
+        end
+        count
       end
 
-      def clear
+      def perform_clear
         @mutex.synchronize do
           begin
             @redis.call("FT.DROPINDEX", @index_name, "DD")
@@ -123,6 +120,11 @@ module Phronomy
           @index_created = false
         end
         self
+      end
+
+      # @api public
+      def embedding_dimension
+        @dimension
       end
 
       private
@@ -160,32 +162,67 @@ module Phronomy
       #
       # Redis FT.SEARCH returns: [count, key1, [field, value, ...], key2, ...]
       def parse_results(raw)
-        return [] if raw.nil? || !raw.is_a?(Array) || raw.size < 2
+        unless raw.is_a?(Array) && raw.size.odd? && raw.first.is_a?(Integer) &&
+            raw.first >= (raw.size - 1) / 2 && raw.first.zero? == (raw.size == 1)
+          raise InvalidResultError, "Redis FT.SEARCH requires a count and document/field pairs"
+        end
 
         results = []
-        i = 1
-        while i < raw.size
-          key = raw[i]
-          fields = raw[i + 1]
-          i += 2
+        raw.drop(1).each_slice(2) do |key, fields|
+          unless key.is_a?(String) && key.start_with?(DOC_PREFIX)
+            raise InvalidResultError, "Redis FT.SEARCH returned an invalid document key"
+          end
+          # Redis documents this null content when a key expires/is updated
+          # during the search. The key remains in the total count.
+          next if fields.nil?
 
-          next unless fields.is_a?(Array)
-
-          field_hash = fields.each_slice(2).to_h
-          score_str = field_hash["score"]
-          metadata_str = field_hash["metadata"]
-
-          next if score_str.nil?
-
-          id = key.to_s.delete_prefix(DOC_PREFIX)
+          field_hash = parse_fields(fields, "FT.SEARCH")
+          id = key.delete_prefix(DOC_PREFIX)
           # RediSearch returns cosine distance (0=identical, 2=opposite);
           # convert to cosine similarity for consistency with other backends.
-          score = 1.0 - score_str.to_f
-          metadata = metadata_str ? JSON.parse(metadata_str, symbolize_names: true) : {}
+          score = 1.0 - parse_distance(field_hash["score"])
+          metadata = parse_metadata(field_hash["metadata"])
 
           results << {id: id, score: score, metadata: metadata}
         end
         results
+      end
+
+      # RESP2 field/value decoding belongs to this backend, not the Contract.
+      def parse_fields(raw, command)
+        unless raw.is_a?(Array) && raw.size.even?
+          raise InvalidResultError, "Redis #{command} requires field/value pairs"
+        end
+        raw.each_slice(2).each_with_object({}) do |(key, value), fields|
+          unless key.is_a?(String) && !fields.key?(key)
+            raise InvalidResultError, "Redis #{command} returned an invalid or duplicate field"
+          end
+          fields[key] = value
+        end
+      end
+
+      def parse_distance(raw)
+        valid = (raw.is_a?(String) && raw.match?(/\A[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\z/)) ||
+          (raw.is_a?(Numeric) && raw.real?)
+        value = Float(raw, exception: false) if valid
+        unless value&.finite?
+          raise InvalidResultError, "Redis FT.SEARCH requires a finite numeric score"
+        end
+        value
+      end
+
+      def parse_metadata(raw)
+        return {} if raw.nil?
+        unless raw.is_a?(String)
+          raise InvalidResultError, "Redis metadata must contain a JSON object"
+        end
+        parsed = JSON.parse(raw, symbolize_names: true)
+        unless parsed.is_a?(Hash)
+          raise InvalidResultError, "Redis metadata must contain a JSON object"
+        end
+        parsed
+      rescue JSON::ParserError
+        raise InvalidResultError, "Redis metadata contains invalid JSON"
       end
     end
   end

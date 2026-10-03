@@ -1,0 +1,17 @@
+module Phronomy
+  module Embeddings
+    class InvalidResultError < Phronomy::Error
+    end
+
+    class TransportError < Phronomy::Error
+    end
+
+    class Base
+      def embed: (String text, ?_CancellationSignal? cancellation_token) -> Array[Float]
+
+      # Protected extension SPI at runtime; RBS has no protected visibility.
+      private
+      def perform_embed: (String text, ?_CancellationSignal? cancellation_token) -> Array[Numeric]
+    end
+  end
+end

@@ -314,6 +314,36 @@
       "directory": "lib/phronomy/execution_services",
       "group": "G59",
       "phase": "storage"
+    },
+    {
+      "id": "M83",
+      "directory": "lib/phronomy/embeddings",
+      "group": "G47",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M84",
+      "directory": "lib/phronomy/documents/loader",
+      "group": "G49",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M85",
+      "directory": "lib/phronomy/documents/splitter",
+      "group": "G49",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M86",
+      "directory": "lib/phronomy/embeddings/async",
+      "group": "G46",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M87",
+      "directory": "lib/phronomy/embeddings/backends",
+      "group": "G48",
+      "phase": "r8-unit5"
     }
   ],
   "retired_ids": {
@@ -331,11 +361,16 @@
       "M06",
       "M07",
       "M09",
+      "M29",
+      "M30",
+      "M31",
       "M43",
       "M45",
       "M48",
       "M52",
       "M58",
+      "M68",
+      "M72",
       "M78",
       "M79",
       "M80",

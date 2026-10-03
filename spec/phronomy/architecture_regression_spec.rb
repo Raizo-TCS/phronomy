@@ -98,7 +98,7 @@ RSpec.describe "EventLoop-first architecture regression guards" do
   end
 
   it "keeps VectorStore and Embeddings contracts and implementations independent of execution" do
-    %w[vector_store vector_store/embeddings].each do |feature|
+    %w[vector_store embeddings].each do |feature|
       paths = Dir[File.expand_path("../../lib/phronomy/#{feature}/*.rb", __dir__)] +
         Dir[File.expand_path("../../lib/phronomy/#{feature}/backends/*.rb", __dir__)]
       paths.each do |path|

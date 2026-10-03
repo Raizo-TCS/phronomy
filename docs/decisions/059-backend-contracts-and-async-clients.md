@@ -45,6 +45,9 @@ Numbered diagram bands also implied an ordering between independent concerns.
    Maintain the individual module boxes, IDs, full dependency matrix and source
    evidence. A phase cannot declare completion while legacy dependencies remain.
 
+The vector/embedding SPI and namespace clauses are amended by
+[ADR-065](065-vector-and-embeddings-common-operations.md).
+
 ## Consequences
 
 This supersedes the remaining LLM Base-to-Runtime coupling described in ADR-040.

@@ -51,11 +51,11 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
       expect(results.first[:metadata]).to eq({label: "A"})
     end
 
-    it "returns empty array when FT.SEARCH returns nil" do
+    it "rejects a missing FT.SEARCH response instead of reporting no matches" do
       stub_index_create
       allow(redis).to receive(:call).with("FT.SEARCH", any_args).and_return(nil)
-      results = store.search(query_embedding: [1.0, 0.0], k: 1)
-      expect(results).to eq([])
+      expect { store.search(query_embedding: [1.0, 0.0], k: 1) }
+        .to raise_error(Phronomy::VectorStore::InvalidResultError)
     end
   end
 

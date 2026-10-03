@@ -67,7 +67,7 @@ def build():
     for mid,y,directory,role in [
         ('M66',640,'llm_adapter/async','LLMAdapter::AsyncClient'),
         ('M67',1080,'vector_store/async','VectorStore::AsyncClient'),
-        ('M68',1300,'vector_store/embeddings/async','VectorStore::Embeddings::AsyncClient'),
+        ('M68',1300,'embeddings/async','VectorStore::Embeddings::AsyncClient'),
         ('M69',1520,'storage/async','Storage::AsyncClient')]:
         module(mid,'G46',1030,y,directory,role,'Planned directory / existing feature namespace')
     text(840,815,'Synchronous backend + Engine',17,'#627988')
@@ -76,14 +76,14 @@ def build():
         ('M15',930,'llm_adapter','Synchronous LLM adapter SPI'),
         ('M47',1150,'llm_contract','LLM errors / token usage'),
         ('M28',1370,'vector_store','Synchronous vector store SPI'),
-        ('M29',1590,'vector_store/embeddings','Synchronous embedding SPI'),
+        ('M29',1590,'embeddings','Synchronous embedding SPI'),
         ('M34',1810,'storage','Records / Streams / Blobs / transaction')]:
         module(mid,'G47',1740,y,directory,role,'No Engine / AsyncClient / concrete backend dependency')
     module('M10','G57',1740,610,'content_store','Content service over a Storage view','Base / StoredContents / owned StorageSchema')
     for mid,y,directory,role,footer in [
         ('M70',640,'llm_adapter/backends','LLMAdapter::RubyLLM','Planned directory / public constant preserved'),
         ('M71',1080,'vector_store/backends','InMemory / Pgvector / RedisSearch','Planned directory / public constants preserved'),
-        ('M72',1300,'vector_store/embeddings/backends','Embeddings::RubyLLMEmbeddings','Planned directory / public constant preserved'),
+        ('M72',1300,'embeddings/backends','Embeddings::RubyLLMEmbeddings','Planned directory / public constant preserved'),
         ('M35',1520,'storage/backends','Storage::Backends::InMemory','Existing directory / namespace preserved')]:
         module(mid,'G48',2470,y,directory,role,footer)
     module('EX01','G48',2920,920,'shared/storage','PhronomyExamples::Storage::Backend','Shared backend implementation / examples',True)

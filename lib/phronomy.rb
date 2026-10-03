@@ -27,7 +27,7 @@ end
 %w[
   llm_adapter/async llm_adapter/backends
   vector_store/async vector_store/backends
-  vector_store/embeddings/async vector_store/embeddings/backends
+  embeddings/async embeddings/backends
   storage/async
 ].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")

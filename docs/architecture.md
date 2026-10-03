@@ -298,3 +298,6 @@ Durable multi-agent coordination is described by [ADR-029](decisions/029-semanti
 TeamExecution is a purpose-specific CAS authority delegating coordinator/workers
 to ordinary Agents, with no Team FSMSession or second Workflow engine.
 Static subagent reservation lives in the existing parent AgentExecution metadata.
+
+Current C10/C11 common operation ownership and independent Embeddings/Documents
+placement are specified in [r8 unit 5](architecture/r8-unit5.md).

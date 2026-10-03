@@ -1,3 +1,13 @@
+## r8 unit 5 update
+
+VectorStore and Embeddings own their common synchronous operations. Embeddings
+is independent of VectorStore; document loaders and splitters belong to
+Documents. The Ruby/RBS boundary gate rejects cross-contract and Engine paths
+from these two common bases, and rejects document helpers depending on vector
+storage or embeddings. Runtime submission remains in each AsyncClient.
+The source diagram keeps unresolved dependencies in other domains visible.
+See `docs/architecture/r8-unit5.md` for the implemented scope and remaining gates.
+
 ## r8 unit 4 update
 
 Agent control/transfer and execution-change contracts no longer select MultiAgent

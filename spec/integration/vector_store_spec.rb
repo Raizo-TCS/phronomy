@@ -120,7 +120,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
 
     docs = loader.load(file.path)
     chunks = splitter.split_all(docs)
-    items = chunks.map.with_index(1) { |c, i| {id: i, embedding: stub_embeddings.embed(c[:text]), metadata: c[:metadata].merge(text: c[:text])} }
+    items = chunks.map.with_index(1) { |c, i| {id: i.to_s, embedding: stub_embeddings.embed(c[:text]), metadata: c[:metadata].merge(text: c[:text])} }
     items.each { |item| vector_store.add(**item) }
 
     expect(vector_store.size).to eq(items.size)
@@ -182,7 +182,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
     vector_store = IntegrationFactors.vector_store("in_memory")
 
     docs = loader.load(file.path)
-    items = docs.map.with_index(1) { |d, i| {id: i, embedding: stub_embeddings.embed(d[:text]), metadata: d[:metadata].merge(text: d[:text])} }
+    items = docs.map.with_index(1) { |d, i| {id: i.to_s, embedding: stub_embeddings.embed(d[:text]), metadata: d[:metadata].merge(text: d[:text])} }
     items.each { |item| vector_store.add(**item) }
 
     expect(vector_store.size).to eq(docs.size)
@@ -219,7 +219,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
 
     docs = loader.load(file.path)
     chunks = splitter.split_all(docs)
-    items = chunks.map.with_index(1) { |c, i| {id: i, embedding: stub_embeddings.embed(c[:text]), metadata: c[:metadata].merge(text: c[:text])} }
+    items = chunks.map.with_index(1) { |c, i| {id: i.to_s, embedding: stub_embeddings.embed(c[:text]), metadata: c[:metadata].merge(text: c[:text])} }
     items.each { |item| vector_store.add(**item) }
 
     expect(vector_store.size).to eq(items.size)
@@ -298,7 +298,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
 
     docs = loader.load(file.path)
     chunks = splitter.split_all(docs)
-    items = chunks.map.with_index(1) { |c, i| {id: i, embedding: stub_embeddings.embed(c[:text]), metadata: c[:metadata].merge(text: c[:text])} }
+    items = chunks.map.with_index(1) { |c, i| {id: i.to_s, embedding: stub_embeddings.embed(c[:text]), metadata: c[:metadata].merge(text: c[:text])} }
     items.each { |item| vector_store.add(**item) }
 
     expect(vector_store.size).to eq(items.size)

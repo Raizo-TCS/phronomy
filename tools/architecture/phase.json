@@ -59,5 +59,20 @@
       "Workflow durable children and cross-record outcome evidence",
       "Full semantic dependency review"
     ]
+  },
+  "r8_unit5": {
+    "status": "contract_scope_implemented",
+    "completed_scope": [
+      "C10/C11 common operation templates and validation",
+      "Independent Embeddings namespace and Documents helpers",
+      "Runtime, RBS, public API and examples migration without aliases"
+    ],
+    "pending_scope": [
+      "Actual Pgvector / RedisSearch / embedding provider services",
+      "LLM/Tool SDK-neutral operation boundary",
+      "Domain FSM and Runtime connections",
+      "Workflow durable child protocol",
+      "Overall semantic dependency review"
+    ]
   }
 }

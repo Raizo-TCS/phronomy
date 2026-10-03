@@ -698,7 +698,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::VectorStore::Embeddings::Base",
+    "name": "Phronomy::Embeddings::Base",
     "type": "class",
     "public_instance_methods": [
       "embed"
@@ -706,7 +706,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::VectorStore::Embeddings::AsyncClient",
+    "name": "Phronomy::Embeddings::AsyncClient",
     "type": "class",
     "public_instance_methods": [
       "embed_async"

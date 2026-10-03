@@ -24,9 +24,10 @@ from find_dependency_triangles import analyze as triangles, write_report as writ
 ENGINE = "lib/phronomy/engine"
 BASELINE_COMMIT = "84668606523e8b013ccb1cf1144694ecd28f24f8"
 FEATURES = ["llm_adapter", "vector_store", "vector_store/embeddings", "storage"]
-CLIENTS = {"lib/phronomy/" + f + "/async" for f in FEATURES}
-BASE_MODULES = {"lib/phronomy/" + f for f in [*FEATURES, "llm_contract", "llm_context_window", "vector_store/loader", "vector_store/splitter", "storage/backends"]}
+CLIENTS = {"lib/phronomy/" + f + "/async" for f in [*FEATURES, "embeddings"]}
+BASE_MODULES = {"lib/phronomy/" + f for f in [*FEATURES, "embeddings", "documents/loader", "documents/splitter", "llm_contract", "llm_context_window", "vector_store/loader", "vector_store/splitter", "storage/backends"]}
 IMPLEMENTATIONS = {
+    "lib/phronomy/embeddings/backends": "lib/phronomy/embeddings",
     "lib/phronomy/llm_adapter/backends": "lib/phronomy/llm_adapter",
     "lib/phronomy/vector_store/backends": "lib/phronomy/vector_store",
     "lib/phronomy/vector_store/embeddings/backends": "lib/phronomy/vector_store/embeddings",
@@ -115,6 +116,15 @@ def check_boundaries(audit, phase, repo, architecture=None):
             route = path_to(graph, source, lambda t: t in CLIENTS)
             if route:
                 violations.append({"kind":"legacy-backend-reaches-client", "path":route})
+    if architecture.get("r8_unit5_contracts"):
+        for source in ["lib/phronomy/vector_store", "lib/phronomy/embeddings"]:
+            route = path_to(graph, source, lambda t: t != source and roles.get(t) != "common")
+            if route:
+                violations.append({"kind": "independent-vector-contract-reaches-other-owner", "path": route})
+        for source in ["lib/phronomy/documents/loader", "lib/phronomy/documents/splitter"]:
+            route = path_to(graph, source, lambda t: roles.get(t) not in {"document_processing", "common"})
+            if route:
+                violations.append({"kind": "document-helper-reaches-domain-or-mechanism", "path": route})
     for impl, contract in IMPLEMENTATIONS.items():
         if impl in modules and not path_to(graph, impl, lambda t: t == contract):
             violations.append({"kind":"implementation-missing-contract-dependency", "implementation":impl,"contract":contract})
@@ -178,16 +188,18 @@ def check_boundaries(audit, phase, repo, architecture=None):
         route = path_to(graph, source, lambda t: any(beneath(t, root) for root in prohibited))
         if route:
             violations.append({"kind": "r8-domain-backward-dependency", "path": route})
+    features = [f.replace("vector_store/embeddings", "embeddings") if architecture.get("r8_unit5_contracts") else f for f in policy["features"]]
     required=[]
-    for feature in policy["features"]:
+    for feature in features:
         required.append("lib/phronomy/"+feature+"/async/async_client.rb")
     files = {
         "llm_adapter": ["llm_adapter/backends/ruby_llm.rb"],
         "vector_store": ["vector_store/backends/in_memory.rb", "vector_store/backends/pgvector.rb", "vector_store/backends/redis_search.rb"],
         "vector_store/embeddings": ["vector_store/embeddings/backends/ruby_llm_embeddings.rb"],
         "storage": ["content_store/stored_contents.rb"],
+        "embeddings": ["embeddings/backends/ruby_llm_embeddings.rb"],
     }
-    required += ["lib/phronomy/"+f for feature in policy["features"] for f in files[feature]]
+    required += ["lib/phronomy/"+f for feature in features for f in files[feature]]
     for relative in required:
         if not (repo/relative).is_file():
             violations.append({"kind":"missing-phase-source","file":relative})

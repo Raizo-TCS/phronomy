@@ -34,8 +34,10 @@ Run it against a checkout containing P3, not the previously released 0.27.0 gem.
 require "phronomy"
 require "json"
 
-class KeywordEmbeddings < Phronomy::VectorStore::Embeddings::Base
-  def embed(text, cancellation_token = nil)
+class KeywordEmbeddings < Phronomy::Embeddings::Base
+  protected
+
+  def perform_embed(text, cancellation_token = nil)
     cancellation_token&.raise_if_cancelled!
     words = text.downcase
     [words.include?("ruby") ? 1.0 : 0.0,
@@ -47,7 +49,7 @@ begin
   store = Phronomy::VectorStore::InMemory.new(dimension: 2)
   embeddings = KeywordEmbeddings.new
   async_store = Phronomy::VectorStore::AsyncClient.new(backend: store)
-  async_embeddings = Phronomy::VectorStore::Embeddings::AsyncClient.new(adapter: embeddings)
+  async_embeddings = Phronomy::Embeddings::AsyncClient.new(adapter: embeddings)
 
   {"ruby" => "Ruby guide", "python" => "Python guide"}.each do |id, title|
     async_embeddings.embed_async(title).flat_map do |vector|
@@ -87,7 +89,7 @@ Synchronous RBS signatures accept the structural `_CancellationSignal`
 interface, which requires only `raise_if_cancelled!`. Existing
 `Concurrency::CancellationToken` objects still satisfy it. Async RBS signatures
 live in `sig/phronomy/vector_store/async/async_client.rbs` and
-`sig/phronomy/vector_store/embeddings/async/async_client.rbs` and retain the full CancellationToken
+`sig/phronomy/embeddings/async/async_client.rbs` and retain the full CancellationToken
 and TaskResult contract needed by the execution pool. Do not substitute a
 minimal synchronous signal for an async operation's full token.
 
@@ -100,7 +102,7 @@ The public class names below are unchanged. Their implementation files move:
 | `VectorStore::InMemory` | `vector_store/backends/in_memory.rb` |
 | `VectorStore::Pgvector` | `vector_store/backends/pgvector.rb` |
 | `VectorStore::RedisSearch` | `vector_store/backends/redis_search.rb` |
-| `VectorStore::Embeddings::RubyLLMEmbeddings` | `vector_store/embeddings/backends/ruby_llm_embeddings.rb` |
+| `VectorStore::Embeddings::RubyLLMEmbeddings` | `embeddings/backends/ruby_llm_embeddings.rb` |
 
 Use `require "phronomy"` and the public constants. Direct partial-load paths are
 not the public loading contract; no require shim is kept in the contract

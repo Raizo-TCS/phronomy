@@ -22,16 +22,16 @@ module Phronomy
         @expected_dimension = dimension
       end
 
+      protected
+
       # @param id                 [String]
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @api public
-      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
-        cancellation_token&.raise_if_cancelled!
+      def perform_add(id:, embedding:, metadata: {}, cancellation_token: nil)
         # Establish expected dimension on first add, then validate.
         @expected_dimension ||= embedding.size
-        validate_embedding_dimension!(embedding, @expected_dimension)
         @documents[id] = {embedding: embedding, metadata: metadata}
         self
       end
@@ -46,11 +46,8 @@ module Phronomy
       #   (key always present); -r.fetch(:score) vs -r[:score] (key always present); snapshot = @documents
       #   vs .dup is equivalent in single-threaded tests (GVL makes Hash#dup atomic, no behaviour
       #   difference under test isolation)
-      def search(query_embedding:, k: 5, cancellation_token: nil)
-        cancellation_token&.raise_if_cancelled!
-        k = validate_k!(k)
+      def perform_search(query_embedding:, k: 5, cancellation_token: nil)
         # search never establishes dimension; validate only when dimension is known.
-        validate_embedding_dimension!(query_embedding, @expected_dimension)
         # Take an atomic snapshot before iterating.  Hash#dup is a C-level
         # call that completes without releasing the GVL, so it is atomic with
         # respect to any other Ruby thread.  Iterating the copy instead of
@@ -64,20 +61,25 @@ module Phronomy
         results.sort_by { |r| -r[:score] }.first(k)
       end
 
-      def remove(id:)
+      def perform_remove(id:)
         @documents.delete(id)
         self
       end
 
-      def clear
+      def perform_clear
         @documents.clear
         self
       end
 
       # @return [Integer] number of documents stored
       # @api public
-      def size
+      def perform_size
         @documents.size
+      end
+
+      # @api public
+      def embedding_dimension
+        @expected_dimension
       end
 
       private

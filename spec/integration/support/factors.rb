@@ -207,8 +207,10 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Fixture: StubEmbeddings
   # ---------------------------------------------------------------------------
-  class StubEmbeddings < Phronomy::VectorStore::Embeddings::Base
-    def embed(text, _cancellation_token = nil)
+  class StubEmbeddings < Phronomy::Embeddings::Base
+    protected
+
+    def perform_embed(text, _cancellation_token = nil)
       h = text.chars.sum(&:ord).to_f
       norm = Math.sqrt(3) * (h + 1)
       [h / norm, 1.0 / norm, 1.0 / norm]
@@ -220,9 +222,9 @@ module IntegrationFactors
   def self.embeddings_adapter(label)
     case label
     when "ruby_llm_default"
-      Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings.new
+      Phronomy::Embeddings::RubyLLMEmbeddings.new
     when "ruby_llm_explicit_model"
-      Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings.new(
+      Phronomy::Embeddings::RubyLLMEmbeddings.new(
         model: LM_STUDIO_EMBEDDING_MODEL,
         provider: :openai,
         assume_model_exists: true
@@ -249,10 +251,10 @@ module IntegrationFactors
 
   def self.loader(label)
     case label
-    when "plain_text" then Phronomy::VectorStore::Loader::PlainTextLoader.new
-    when "markdown_with_headings" then Phronomy::VectorStore::Loader::MarkdownLoader.new(split_on_headings: true)
-    when "markdown_no_split" then Phronomy::VectorStore::Loader::MarkdownLoader.new(split_on_headings: false)
-    when "csv_with_headers" then Phronomy::VectorStore::Loader::CsvLoader.new(headers: true)
+    when "plain_text" then Phronomy::Documents::Loader::PlainTextLoader.new
+    when "markdown_with_headings" then Phronomy::Documents::Loader::MarkdownLoader.new(split_on_headings: true)
+    when "markdown_no_split" then Phronomy::Documents::Loader::MarkdownLoader.new(split_on_headings: false)
+    when "csv_with_headers" then Phronomy::Documents::Loader::CsvLoader.new(headers: true)
     else raise ArgumentError, "Unknown loader_type label: #{label}"
     end
   end
@@ -260,8 +262,8 @@ module IntegrationFactors
   def self.splitter(label)
     case label
     when "none" then nil
-    when "fixed_size" then Phronomy::VectorStore::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
-    when "recursive" then Phronomy::VectorStore::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "fixed_size" then Phronomy::Documents::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "recursive" then Phronomy::Documents::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
     else raise ArgumentError, "Unknown splitter_type label: #{label}"
     end
   end

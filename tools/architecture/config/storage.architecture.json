@@ -301,22 +301,22 @@
       "group": "G47"
     },
     {
-      "id": "M29",
-      "directory": "lib/phronomy/vector_store/embeddings",
+      "id": "M83",
+      "directory": "lib/phronomy/embeddings",
       "role": "Synchronous embeddings SPI",
       "mixed": false,
       "group": "G47"
     },
     {
-      "id": "M30",
-      "directory": "lib/phronomy/vector_store/loader",
+      "id": "M84",
+      "directory": "lib/phronomy/documents/loader",
       "role": "Document loading implementations",
       "mixed": false,
       "group": "G49"
     },
     {
-      "id": "M31",
-      "directory": "lib/phronomy/vector_store/splitter",
+      "id": "M85",
+      "directory": "lib/phronomy/documents/splitter",
       "role": "Text splitting implementations",
       "mixed": false,
       "group": "G49"
@@ -364,8 +364,8 @@
       "mixed": false
     },
     {
-      "id": "M68",
-      "directory": "lib/phronomy/vector_store/embeddings/async",
+      "id": "M86",
+      "directory": "lib/phronomy/embeddings/async",
       "group": "G46",
       "role": "Public embeddings async client",
       "mixed": false
@@ -392,8 +392,8 @@
       "mixed": false
     },
     {
-      "id": "M72",
-      "directory": "lib/phronomy/vector_store/embeddings/backends",
+      "id": "M87",
+      "directory": "lib/phronomy/embeddings/backends",
       "group": "G48",
       "role": "RubyLLMEmbeddings implementation",
       "mixed": false
@@ -648,7 +648,7 @@
       "members": [
         "M66",
         "M67",
-        "M68",
+        "M86",
         "M69"
       ]
     },
@@ -661,7 +661,7 @@
         "M47",
         "M34",
         "M28",
-        "M29"
+        "M83"
       ]
     },
     {
@@ -672,7 +672,7 @@
         "M35",
         "M70",
         "M71",
-        "M72"
+        "M87"
       ]
     },
     {
@@ -680,8 +680,8 @@
       "title": "DOCUMENT PROCESSING",
       "kind": "document_processing",
       "members": [
-        "M30",
-        "M31"
+        "M84",
+        "M85"
       ]
     },
     {
@@ -793,9 +793,9 @@
     "M47",
     "M16",
     "M28",
-    "M29",
-    "M30",
-    "M31",
+    "M83",
+    "M84",
+    "M85",
     "M34",
     "M35",
     "M11",
@@ -813,11 +813,11 @@
     "M01",
     "M66",
     "M67",
-    "M68",
+    "M86",
     "M69",
     "M70",
     "M71",
-    "M72",
+    "M87",
     "M74",
     "M76",
     "M77"
@@ -826,5 +826,6 @@
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
   "scope_note": "r8 unit 3: neutral Persistence and injected domain stores; shared facade removed. Team uses Agent authorization and its own assignment history. Subagent/Handoff/Orchestrator ownership, FSM connections and durable Workflow children remain unfinished.",
-  "persistence_framework_separated": true
+  "persistence_framework_separated": true,
+  "r8_unit5_contracts": true
 }

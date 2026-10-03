@@ -85,7 +85,7 @@ class ProjectTests(unittest.TestCase):
 
     def test_all_four_clients_reference_contracts_and_services_without_contract_reverse_edges(self):
         pairs = {(p['from'], p['to']): p for p in self.audit['module_pairs']}
-        for feature in ['llm_adapter', 'vector_store', 'vector_store/embeddings', 'storage']:
+        for feature in ['llm_adapter', 'vector_store', 'embeddings', 'storage']:
             base = 'lib/phronomy/' + feature
             with self.subTest(feature=feature):
                 pair = pairs[base + '/async', base]
@@ -197,6 +197,19 @@ class ProjectTests(unittest.TestCase):
         self.assertTrue(any(v['kind'] == 'content-service-reaches-unrelated-responsibility'
                             for v in result['violations']))
 
+    def test_vector_contracts_and_document_helpers_have_no_hidden_domain_path(self):
+        self.assertTrue(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
+        for source, target in [('vector_store', 'embeddings'), ('embeddings', 'vector_store'),
+                               ('vector_store', 'storage'), ('embeddings', 'llm_adapter'),
+                               ('documents/loader', 'vector_store'), ('documents/splitter', 'agent')]:
+            with self.subTest(source=source, target=target):
+                changed = deepcopy(self.audit)
+                changed['module_pairs'].append({'from': 'lib/phronomy/' + source,
+                                               'to': 'lib/phronomy/' + target,
+                                               'references': [], 'requires': [],
+                                               'rbs_references': [{'origin': 'rbs'}]})
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
+
     def test_source_fingerprint_covers_private_and_public_signatures(self):
         hashes = fingerprint(REPO)
         self.assertEqual({str(p.relative_to(REPO)) for p in REPO.glob('sig/**/*.rbs')}, {p for p in hashes if p.startswith('sig/')})
@@ -209,7 +222,7 @@ class ProjectTests(unittest.TestCase):
             self.assertIn((source, contract), pairs)
             self.assertNotIn((source, 'lib/phronomy/engine'), pairs)
         for source in ['lib/phronomy/tool', 'lib/phronomy/storage/async',
-                       'lib/phronomy/vector_store/async', 'lib/phronomy/vector_store/embeddings/async']:
+                       'lib/phronomy/vector_store/async', 'lib/phronomy/embeddings/async']:
             self.assertIn((source, token), pairs)
             self.assertIn((source, 'lib/phronomy/execution'), pairs)
             self.assertNotIn((source, 'lib/phronomy/engine/concurrency'), pairs)

@@ -213,3 +213,5 @@ architecture documents describe the reconciled current system but do not
 supersede ADRs merely by being newer.
 
 - [`064-agent-execution-and-multi-agent-responsibility`](064-agent-execution-and-multi-agent-responsibility.md)
+
+- [`065-vector-and-embeddings-common-operations`](065-vector-and-embeddings-common-operations.md) — accepted for r8 unit 5; amends the vector/embedding SPI and namespace provisions of ADR-059.

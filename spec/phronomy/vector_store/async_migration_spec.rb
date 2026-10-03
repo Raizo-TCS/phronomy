@@ -25,7 +25,7 @@ RSpec.describe "Vector asynchronous API migration" do
   it "preserves async argument ordering and defaults on the new receivers" do
     expect(Phronomy::VectorStore::AsyncClient.instance_method(:search_async).parameters)
       .to eq([[:keyreq, :query_embedding], [:key, :k], [:key, :cancellation_token], [:key, :timeout]])
-    expect(Phronomy::VectorStore::Embeddings::AsyncClient.instance_method(:embed_async).parameters)
+    expect(Phronomy::Embeddings::AsyncClient.instance_method(:embed_async).parameters)
       .to eq([[:req, :text], [:opt, :cancellation_token], [:key, :timeout]])
   end
 end

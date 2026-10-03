@@ -175,8 +175,10 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # -------------------------------------------------------------------------
   describe "TC-004: embeddings — Embeddings::AsyncClient#embed_async routes through pool" do
     let(:embedder) do
-      Class.new(Phronomy::VectorStore::Embeddings::Base) do
-        def embed(text, _cancellation_token = nil)
+      Class.new(Phronomy::Embeddings::Base) do
+        protected
+
+        def perform_embed(text, _cancellation_token = nil)
           [text.length.to_f, 1.0]
         end
       end.new
@@ -184,7 +186,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
 
     it "routes embed_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = Phronomy::VectorStore::Embeddings::AsyncClient.new(adapter: embedder).embed_async("anything").wait_result
+        result = Phronomy::Embeddings::AsyncClient.new(adapter: embedder).embed_async("anything").wait_result
         expect(result).to eq([8.0, 1.0])
         expect(counts.size).to eq(1)
       end
