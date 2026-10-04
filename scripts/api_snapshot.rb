@@ -42,6 +42,7 @@ PUBLIC_API_ENTRIES = [
   # Beta
   Phronomy::Tool::Schema,
   Phronomy::Tool::CallRequest,
+  Phronomy::Tool::Operation,
   Phronomy::LLMAdapter::Base,
   Phronomy::LLMAdapter::Request,
   Phronomy::LLMAdapter::Message,
@@ -84,7 +85,8 @@ def snapshot_entry(klass)
     {
       "name" => klass.name,
       "type" => "module",
-      "public_instance_methods" => own_methods
+      "public_instance_methods" => own_methods,
+      "public_class_methods" => (klass.public_methods(false) - BASELINE_CLASS_METHODS).sort
     }
   else
     internal_context_methods = (klass == Phronomy::InvocationContext) ?

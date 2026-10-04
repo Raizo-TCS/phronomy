@@ -455,6 +455,9 @@
       "set_graph_metadata",
       "to_h",
       "workflow_instance_id"
+    ],
+    "public_class_methods": [
+      "included"
     ]
   },
   {
@@ -464,7 +467,8 @@
       "batch",
       "invoke",
       "stream"
-    ]
+    ],
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Context::PromptTemplate",
@@ -504,6 +508,15 @@
     ],
     "public_class_methods": [
       "from_h"
+    ]
+  },
+  {
+    "name": "Phronomy::Tool::Operation",
+    "type": "module",
+    "public_instance_methods": [],
+    "public_class_methods": [
+      "call_async",
+      "with_result_transform"
     ]
   },
   {

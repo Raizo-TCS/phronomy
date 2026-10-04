@@ -5,15 +5,18 @@ require "state_machines"
 module Phronomy
   module Agent
     class PhaseMachineBuilder
-      def initialize(entry_actions: {})
+      def initialize(entry_actions: {}, transitions: InvocationTransitions, operation_name: "Agent")
         @entry_actions = entry_actions
+        @transitions = transitions
+        @operation_name = operation_name
       end
 
       def build
         entry_actions = @entry_actions
         callback_builder = method(:build_entry_callback)
-        declared_states = InvocationTransitions::DECLARED_STATES
-        entry_point = InvocationTransitions::ENTRY_POINT
+        transitions = @transitions
+        declared_states = transitions::DECLARED_STATES
+        entry_point = transitions::ENTRY_POINT
 
         Class.new do
           attr_accessor :context, :current_event
@@ -21,12 +24,12 @@ module Phronomy
           state_machine :phase, initial: entry_point do
             declared_states.each { |state_name| state state_name }
 
-            InvocationTransitions::EVENTS.each do |event_name, transitions|
+            transitions::EVENTS.each do |event_name, definitions|
               event event_name do
-                transitions.each do |definition|
+                definitions.each do |definition|
                   transition definition[:from] => definition[:to],
                     :if => ->(machine) {
-                      InvocationTransitions.allowed?(definition, machine.context)
+                      transitions.allowed?(definition, machine.context)
                     }
                 end
               end
@@ -51,7 +54,7 @@ module Phronomy
           result = callable.call(machine.context)
           if result.is_a?(Phronomy::TaskResult)
             raise Phronomy::InvalidAsyncEntryActionError,
-              "Agent entry action for #{state_name.inspect} returned Phronomy::TaskResult"
+              "#{@operation_name} entry action for #{state_name.inspect} returned Phronomy::TaskResult"
           end
           machine.context = result if result.respond_to?(:set_graph_metadata)
         }

@@ -117,6 +117,7 @@ resolved explicitly.
 | [`062-content-store-service`](062-content-store-service.md) | Accepted | Yes | Content management over neutral Storage; removes the unnecessary backend subdivision and preserves content/Persistence behavior. |
 
 | [`063-execution-contracts-and-services`](063-execution-contracts-and-services.md) | Accepted | Yes | Shared execution contracts and result/call services separated from Engine internals; preserves public APIs and fixes filtered physical completion. |
+| [`068-agent-tool-child-progress-and-tool-operation`](068-agent-tool-child-progress-and-tool-operation.md) | Accepted | Yes | C04 Tool child progress and original environment; C06 operation dispatch/result adaptation; child FSM in runtime_binding. |
 
 ## Legacy duplicate `011`
 

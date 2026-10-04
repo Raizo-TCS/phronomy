@@ -1,5 +1,9 @@
 module Phronomy
   module Tool
+    module Operation
+      def self.call_async: (tool: Base, args: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped], ?submitter: _ExecutionSubmitter, ?on_full: Symbol) -> _CompletionHandle[untyped]
+      def self.with_result_transform: (singleton(Base) tool_class) { (untyped, String, Hash[untyped, untyped]) -> untyped } -> singleton(Base)
+    end
     class Schema
       def initialize: (?untyped schema) ?{ () -> untyped } -> void
       def json_schema: () -> Hash[String, untyped]

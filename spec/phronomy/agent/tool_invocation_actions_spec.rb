@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::ToolInvocationSessionBuilder do
-  let(:runtime) { Phronomy::Runtime.instance }
+RSpec.describe Phronomy::Agent::ToolInvocationActions do
+  let(:environment) { instance_double(Phronomy::Agent::ExecutionEnvironment) }
 
   after do
     Phronomy.reset_runtime!
@@ -17,7 +17,7 @@ RSpec.describe Phronomy::Agent::ToolInvocationSessionBuilder do
       invocation = double("invocation", tool_invocations: [])
       call_order = []
 
-      allow(invocation).to receive(:start_execution).with(runtime: runtime) do |&blk|
+      allow(invocation).to receive(:start_execution).with(environment: environment) do |&blk|
         call_order << :start_execution
         blk&.call({status: :completed, result: "ok"})
       end
@@ -28,7 +28,7 @@ RSpec.describe Phronomy::Agent::ToolInvocationSessionBuilder do
       event_sink = double("event-sink")
       allow(event_sink).to receive(:post).and_return(true)
 
-      described_class.send(:running_action, runtime, event_sink, invocation)
+      described_class.send(:running_action, environment, event_sink, invocation)
 
       expect(call_order).to eq([:start_execution, :mark_running])
     end

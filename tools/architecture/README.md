@@ -1,3 +1,12 @@
+## r8 unit 8 update
+
+C04 Tool child progress now owns a single ordered transition definition and
+entry operations. M88 also constructs Tool child sessions. M57 no longer
+selects concrete Engine/FSM classes or the private Tool executor. C06 Operation
+owns Tool dispatch/result adaptation and consumes C13's submitter protocol.
+The gate covers Tool child source as well as parent progress. Other domains and
+overall cycles remain; earlier checkpoints below are historical.
+
 ## r8 unit 6 update
 
 C09 consolidates values, usage, failures and synchronous operation rules in

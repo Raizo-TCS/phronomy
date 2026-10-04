@@ -1,4 +1,8 @@
 module Phronomy
+  interface _ExecutionSubmitter
+    def submit: [V] (?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+  end
+
   interface _ExecutionPool
     def submit: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
   end

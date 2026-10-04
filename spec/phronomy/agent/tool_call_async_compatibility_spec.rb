@@ -57,6 +57,7 @@ RSpec.describe "Tool#call_async compatibility" do
     tool = tool_class.new
     invocation = build_ready_invocation(tool: tool, arguments: {"value" => "ok"})
     runtime = instance_double(Phronomy::Runtime)
+    environment = Phronomy::Agent::EngineEnvironment.new(runtime: runtime)
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
     registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
@@ -69,12 +70,12 @@ RSpec.describe "Tool#call_async compatibility" do
       args: {value: "ok"},
       cancellation_token: nil,
       config: {},
-      runtime: runtime,
+      submitter: environment,
       on_full: :raise
     ).and_return(operation)
 
     outcome = nil
-    invocation.start_execution(runtime: runtime) { |value| outcome = value }
+    invocation.start_execution(environment: environment) { |value| outcome = value }
 
     expect(outcome.result).to eq("ok")
     expect(outcome.error).to be_nil
@@ -104,6 +105,7 @@ RSpec.describe "Tool#call_async compatibility" do
       config: {suffix: "custom"}
     )
     runtime = instance_double(Phronomy::Runtime)
+    environment = Phronomy::Agent::EngineEnvironment.new(runtime: runtime)
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
     registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
@@ -112,7 +114,7 @@ RSpec.describe "Tool#call_async compatibility" do
     expect(Phronomy::Tool::ToolExecutor).not_to receive(:call_async)
 
     outcome = nil
-    invocation.start_execution(runtime: runtime) { |value| outcome = value }
+    invocation.start_execution(environment: environment) { |value| outcome = value }
 
     expect(outcome.result).to eq("ok:custom")
     expect(outcome.error).to be_nil
@@ -136,9 +138,10 @@ RSpec.describe "Tool#call_async compatibility" do
     )
     invocation.validate!
     runtime = instance_double(Phronomy::Runtime)
+    environment = Phronomy::Agent::EngineEnvironment.new(runtime: runtime)
 
     outcome = nil
-    invocation.start_execution(runtime: runtime) { |value| outcome = value }
+    invocation.start_execution(environment: environment) { |value| outcome = value }
 
     expect(outcome.error).to be_a(Phronomy::ToolError)
   end
@@ -152,11 +155,12 @@ RSpec.describe "Tool#call_async compatibility" do
     end
     invocation = build_ready_invocation(tool: tool_class.new, arguments: {"value" => "x"})
     runtime = instance_double(Phronomy::Runtime)
+    environment = Phronomy::Agent::EngineEnvironment.new(runtime: runtime)
     event_loop_dbl = instance_double(Phronomy::EventLoop)
     allow(runtime).to receive(:event_loop).and_return(event_loop_dbl)
     registry = instance_double(Phronomy::Agent::ExecutionRegistry, supervise_agent_operation: nil)
     allow(Phronomy::Agent::ExecutionRegistry).to receive(:for).with(event_loop_dbl).and_return(registry)
     # start_execution without a block — the internal callback guard fires.
-    expect { invocation.start_execution(runtime: runtime) }.to raise_error(StandardError)
+    expect { invocation.start_execution(environment: environment) }.to raise_error(StandardError)
   end
 end

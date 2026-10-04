@@ -24,7 +24,7 @@ module Phronomy
         args:,
         cancellation_token: nil,
         config: {},
-        runtime: nil,
+        submitter: Phronomy::Execution,
         on_full: :raise
       )
         mode = tool.class.execution_mode
@@ -41,9 +41,10 @@ module Phronomy
           end
           task
         when :offloaded
-          Phronomy::Execution.submit(runtime: runtime,
+          submitter.submit(
             cancellation_token: cancellation_token,
-            on_full: on_full) do
+            on_full: on_full
+          ) do
             tool.call(args, cancellation_token: cancellation_token)
           end
         else

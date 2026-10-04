@@ -33,14 +33,9 @@ module Phronomy
       end
 
       def build_tool_session(invocation:, parent_sink:, resume_event: nil, resume_phase: nil)
-        if resume_event
-          ToolInvocationSessionBuilder.build_for_resume(tool_invocation: invocation,
-            parent_event_sink: parent_sink, runtime: @runtime,
-            resume_event: resume_event, resume_phase: resume_phase)
-        else
-          ToolInvocationSessionBuilder.build(tool_invocation: invocation,
-            parent_event_sink: parent_sink, runtime: @runtime)
-        end
+        ToolSessionBuilder.build(invocation: invocation, environment: self,
+          event_loop: @runtime.event_loop, parent_event_sink: parent_sink,
+          resume_event: resume_event, resume_phase: resume_phase)
       end
 
       def register_session(session, completion:)

@@ -220,7 +220,7 @@ module Phronomy
         self
       end
 
-      def start_authorization(runtime: Phronomy::Runtime.instance, &callback)
+      def start_authorization(environment:, &callback)
         raise ArgumentError, "start_authorization requires a callback" unless callback
 
         command = authorization_command
@@ -230,15 +230,15 @@ module Phronomy
           :authorization_timeout,
           Phronomy.configuration.authorization_timeout
         )
-        operation = Phronomy::Execution.submit(
-          runtime: runtime, pool_name: :authorization,
+        operation = environment.submit(
+          pool_name: :authorization,
           size: Phronomy.configuration.authorization_pool_size,
           queue_size: Phronomy.configuration.authorization_queue_size,
           timeout: timeout,
           cancellation_token: @config[:cancellation_token],
           on_full: :raise
         ) { evaluator.send(:evaluate_authorization_command, command) }
-        Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop).supervise_agent_operation(@execution_id, operation)
+        environment.registry.supervise_agent_operation(@execution_id, operation)
         operation.on_complete do |outcome, error|
           callback.call(
             error ? evaluator.send(:authorization_failure_result, tool_invocation_id, error) : outcome
@@ -252,7 +252,7 @@ module Phronomy
         self
       end
 
-      def start_execution(runtime: Phronomy::Runtime.instance, &callback)
+      def start_execution(environment:, &callback)
         raise ArgumentError, "start_execution requires a callback" unless callback
         unless dispatchable?
           callback.call(ExecutionOutcome.new(
@@ -264,45 +264,24 @@ module Phronomy
           return self
         end
 
-        trace_handle = nil
-        case @tool.class.execution_mode
-        when :cooperative, :offloaded
-          trace_handle = Phronomy::Tracing::Automatic.start(
-            "tool.execute",
-            input: @arguments || @raw_arguments,
-            agent_id: @agent.agent_id,
-            execution_id: @execution_id,
-            tool_invocation_id: @id,
-            tool_call_id: @tool_call_id,
-            tool_name: @tool_name,
-            **@agent.send(:_build_caller_meta, @config)
-          )
-          operation = start_async_tool_operation(runtime)
-          unless operation.respond_to?(:on_complete)
-            raise Phronomy::ToolError,
-              "Tool #{@tool.class.name}#call_async must return a completion handle"
-          end
-          Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop).supervise_agent_operation(@execution_id, operation)
+        trace_handle = Phronomy::Tracing::Automatic.start(
+          "tool.execute",
+          input: @arguments || @raw_arguments,
+          agent_id: @agent.agent_id,
+          execution_id: @execution_id,
+          tool_invocation_id: @id,
+          tool_call_id: @tool_call_id,
+          tool_name: @tool_name,
+          **@agent.send(:_build_caller_meta, @config)
+        )
+        operation = start_async_tool_operation(environment)
+        environment.registry.supervise_agent_operation(@execution_id, operation)
 
-          evaluator = self.class
-          tool_invocation_id = @id.to_s.freeze
-          operation.on_complete do |result, error|
-            Phronomy::Tracing::Automatic.finish(
-              trace_handle,
-              output: result,
-              error: error
-            )
-            callback.call(
-              evaluator.send(:build_execution_outcome, tool_invocation_id, result, error)
-            )
-          end
-        else
-          callback.call(ExecutionOutcome.new(
-            tool_invocation_id: @id,
-            error: Phronomy::ConfigurationError.new(
-              "unknown Tool execution_mode: #{@tool.class.execution_mode.inspect}"
-            )
-          ))
+        evaluator = self.class
+        tool_invocation_id = @id.to_s.freeze
+        operation.on_complete do |result, error|
+          Phronomy::Tracing::Automatic.finish(trace_handle, output: result, error: error)
+          callback.call(evaluator.send(:build_execution_outcome, tool_invocation_id, result, error))
         end
         self
       rescue => error
@@ -474,30 +453,17 @@ module Phronomy
       end
       private_class_method :build_authorization_request
 
-      def start_async_tool_operation(runtime)
-        if uses_default_call_async?
-          Phronomy::Tool::ToolExecutor.call_async(
-            tool: @tool,
-            args: @arguments,
-            cancellation_token: @config[:cancellation_token],
-            config: @config,
-            runtime: runtime,
-            on_full: :raise
-          )
-        else
-          tool_config = @tool.class.respond_to?(:__framework_owned_operation?) ?
-            @config.merge(phronomy_tool_invocation_id: @id, execution_id: @execution_id).freeze : @config
-          @tool.call_async(
-            @arguments,
-            cancellation_token: @config[:cancellation_token],
-            config: tool_config
-          )
-        end
-      end
-
-      def uses_default_call_async?
-        @tool.method(:call_async).owner ==
-          Phronomy::Tool::Base
+      def start_async_tool_operation(environment)
+        tool_config = @tool.class.respond_to?(:__framework_owned_operation?) ?
+          @config.merge(phronomy_tool_invocation_id: @id, execution_id: @execution_id).freeze : @config
+        Phronomy::Tool::Operation.call_async(
+          tool: @tool,
+          args: @arguments,
+          cancellation_token: @config[:cancellation_token],
+          config: tool_config,
+          submitter: environment,
+          on_full: :raise
+        )
       end
 
       def self.build_execution_outcome(tool_invocation_id, result, error)

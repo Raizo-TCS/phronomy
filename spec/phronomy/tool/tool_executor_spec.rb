@@ -28,17 +28,13 @@ RSpec.describe Phronomy::Tool::ToolExecutor do
     pool
   end
 
-  let(:runtime_with_pool) do
-    instance_double(Phronomy::Runtime, offload: pool_double)
-  end
-
   describe "cooperative routing" do
     it "executes inline and returns an already-settled TaskResult without using OffloadPool" do
       tool = make_tool(:cooperative)
       task = described_class.call_async(
         tool: tool,
         args: {"x" => "hi"},
-        runtime: runtime_with_pool
+        submitter: pool_double
       )
 
       expect(task).to be_a(Phronomy::TaskResult)
@@ -54,7 +50,7 @@ RSpec.describe Phronomy::Tool::ToolExecutor do
       awaitable = described_class.call_async(
         tool: tool,
         args: {"x" => "work"},
-        runtime: runtime_with_pool
+        submitter: pool_double
       )
 
       expect(awaitable.wait_result).to eq("offloaded:work")
@@ -76,7 +72,7 @@ RSpec.describe Phronomy::Tool::ToolExecutor do
       awaitable = described_class.call_async(
         tool: tool_class.new,
         args: {"n" => 10_000},
-        runtime: runtime_with_pool
+        submitter: pool_double
       )
       expect(awaitable.wait_result).to eq(50_005_000)
     end
@@ -92,7 +88,7 @@ RSpec.describe Phronomy::Tool::ToolExecutor do
         tool: tool,
         args: {"x" => "x"},
         cancellation_token: token,
-        runtime: runtime_with_pool
+        submitter: pool_double
       ).wait_result
 
       expect(pool_double).to have_received(:submit)

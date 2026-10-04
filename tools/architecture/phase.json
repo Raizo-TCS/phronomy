@@ -104,5 +104,20 @@
       "Workflow durable child protocol and outcome evidence",
       "Full semantic dependency review"
     ]
+  },
+  "r8_unit8": {
+    "status": "scoped_tool_child_boundary_implemented",
+    "completed_scope": [
+      "C04 Tool child transition policy and entry operations",
+      "Agent parent and Tool child FSM construction in runtime_binding",
+      "Authorization and default Tool work use the original execution environment",
+      "C06 operation dispatch, custom async protocol and result adaptation"
+    ],
+    "pending_scope": [
+      "MultiAgent/Workflow FSM and Runtime connections",
+      "Workflow durable child protocol and outcome evidence",
+      "Full semantic dependency review",
+      "Live provider verification and additional persistence acceptance gates"
+    ]
   }
 }

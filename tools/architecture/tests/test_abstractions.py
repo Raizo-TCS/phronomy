@@ -25,6 +25,18 @@ class AbstractionTests(unittest.TestCase):
             binding.write_text("Phronomy::Runtime.instance\nPhronomy::FSMSession.new\n")
             self.assertEqual([], violations(repo))
 
+    def test_tool_child_progress_cannot_select_fsm_or_tool_implementation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/agent/tool_execution/policy.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text("Phronomy::Runtime.instance\nPhronomy::FSMSession.new\nToolSessionBuilder.build\nPhronomy::Tool::ToolExecutor.call_async\nrequire 'state_machines'\n")
+            found = violations(repo)
+            self.assertEqual([1, 2, 3, 4, 5], [v['line'] for v in found])
+            self.assertEqual({'agent-progress-knows-engine', 'agent-selects-tool-implementation'}, {v['kind'] for v in found})
+            path.write_text("environment.submit {}\nPhronomy::Tool::Operation.call_async\n")
+            self.assertEqual([], violations(repo))
+
     def test_llm_tool_contracts_reject_sdk_and_orchestration_references(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

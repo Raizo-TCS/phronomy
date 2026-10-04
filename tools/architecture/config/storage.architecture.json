@@ -92,7 +92,7 @@
     {
       "id": "M57",
       "directory": "lib/phronomy/agent/tool_execution",
-      "role": "Tool invocation / result binding",
+      "role": "Agent Tool child progress / approval / result binding",
       "mixed": false,
       "group": "G42"
     },
@@ -415,7 +415,7 @@
     {
       "id": "M88",
       "directory": "lib/phronomy/agent/runtime_binding",
-      "role": "Agent session construction / Engine connection",
+      "role": "Agent parent and Tool child FSM / Engine connection",
       "mixed": false,
       "group": "G62"
     }
@@ -832,9 +832,10 @@
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 7: C04 Agent progress, lifecycle and recovery use a composition-owned execution environment. Agent Tool FSM, MultiAgent/Workflow connections, durable children and full dependency review remain.",
+  "scope_note": "r8 unit 8: C04 Agent parent and Tool child progress use their owning environment; C06 owns Tool operation dispatch and result adaptation. MultiAgent/Workflow connections, durable children and full dependency review remain.",
   "persistence_framework_separated": true,
   "r8_unit5_contracts": true,
   "r8_unit6_contracts": true,
-  "r8_unit7_contracts": true
+  "r8_unit7_contracts": true,
+  "r8_unit8_contracts": true
 }

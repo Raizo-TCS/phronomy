@@ -19,39 +19,11 @@ module Phronomy
       def prepare(result_filters:)
         return @tool_class if result_filters.empty?
 
-        effective_name = @tool_class.new.name
-        custom_async_call =
-          @tool_class.instance_method(:call_async).owner !=
-          Phronomy::Tool::Base
-        filter_async_result = method(:filter_async_result)
-
-        Class.new(@tool_class) do
-          tool_name effective_name
-          define_method(:call) do |args, **kwargs|
-            result = super(args, **kwargs)
-            result_filters.inject(result) { |val, filter|
-              filter.call(val, tool_name: name, args: args)
-            }
-          end
-
-          if custom_async_call
-            define_method(:call_async) do |args, **kwargs|
-              source = super(args, **kwargs)
-              filter_async_result.call(source, name) do |value|
-                result_filters.inject(value) { |val, filter|
-                  filter.call(val, tool_name: name, args: args)
-                }
-              end
-            end
-          end
+        Phronomy::Tool::Operation.with_result_transform(@tool_class) do |result, name, args|
+          result_filters.inject(result) { |value, filter|
+            filter.call(value, tool_name: name, args: args)
+          }
         end
-      end
-
-      private
-
-      def filter_async_result(source, tool_name, &filter_result)
-        Phronomy::AsyncOperation.map(source,
-          name: "tool-filter-#{tool_name}", &filter_result)
       end
     end
   end

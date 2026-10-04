@@ -23,6 +23,13 @@ reviewed explicitly rather than resolved by recency.
 
 ## Design principles
 
+The current r8 refinement of Agent parent/Tool child progress and concrete
+execution connections is described in [unit 8](architecture/r8-unit8.md), building
+on [unit 7](architecture/r8-unit7.md). C04 owns Agent progress and approval/recovery;
+C06 owns Tool operations; C13 supplies execution submission/completion. Concrete
+FSM construction stays in Agent runtime_binding. These scoped changes do not
+declare the full contract target or remaining dependency cycles complete.
+
 These are design heuristics for new and revised architecture. They do not
 override an Accepted ADR, an established public/extension contract, or an
 explicit compatibility decision.
