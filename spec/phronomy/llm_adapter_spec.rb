@@ -2,162 +2,89 @@
 
 require "spec_helper"
 
-RSpec.describe "LLMAdapter abstraction" do
-  describe Phronomy::LLMAdapter::Base do
-    subject(:adapter) { described_class.new }
+RSpec.describe "LLM operation contract" do
+  let(:request) { Phronomy::LLMAdapter::Request.new(message: "hello") }
 
-    describe "#complete" do
-      it "raises NotImplementedError" do
-        expect { adapter.complete(double, "hello") }.to raise_error(NotImplementedError)
+  it "requires protected synchronous hooks and rejects SDK-shaped values" do
+    base = Phronomy::LLMAdapter::Base.new
+    expect(base.public_methods(false)).to contain_exactly(:complete, :stream, :identity, :input_budget)
+    expect { base.complete(request) }.to raise_error(NotImplementedError)
+    expect { base.stream(request) { |_| } }.to raise_error(NotImplementedError)
+    expect { base.complete(Object.new) }.to raise_error(ArgumentError, /Request/)
+    broken = Class.new(Phronomy::LLMAdapter::Base) do
+      protected
+
+      def perform_complete(request, cancellation_token:) = Object.new
+
+      def perform_stream(request, cancellation_token:)
+        yield "untyped"
       end
-    end
-
-    describe "#stream" do
-      it "raises NotImplementedError" do
-        expect { adapter.stream(double, "hello") }.to raise_error(NotImplementedError)
-      end
-    end
-
-    it "exposes only the synchronous implementer contract" do
-      expect(described_class.public_instance_methods(false)).to contain_exactly(:complete, :stream, :identity, :input_budget, :build_chat, :configure_chat, :message, :tool_call)
-      expect(adapter).not_to respond_to(:complete_async, :stream_async)
-    end
+    end.new
+    expect { broken.complete(request) }.to raise_error(Phronomy::LLMAdapter::InvalidResultError, /Response/)
+    expect { broken.stream(request) { |_| } }.to raise_error(Phronomy::LLMAdapter::InvalidResultError, /StreamChunk/)
   end
 
-  describe Phronomy::LLMAdapter::RubyLLM do
-    subject(:adapter) { described_class.new }
+  it "checks pre-cancellation before invoking the backend" do
+    token = Phronomy::Concurrency::CancellationToken.new
+    token.cancel!
+    base = Phronomy::LLMAdapter::Base.new
+    expect(base).not_to receive(:perform_complete)
+    expect { base.complete(request, cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
+  end
 
-    let(:chat) { double("chat") }
-    let(:response) { double("response", content: "hello", tokens: nil) }
+  %i[invoke_async stream_async].each do |entry|
+    it "runs a minimal independent backend, Tool continuation and #{entry} through Agent" do
+      requests, workers, events, approved_arguments = [], [], [], []
+      adapter = Class.new(Phronomy::LLMAdapter::Base) do
+        define_method(:initialize) { |requests, workers| @requests, @workers = requests, workers }
+        protected
 
-    describe "#complete" do
-      it "delegates to chat.ask(message)" do
-        expect(chat).to receive(:ask).with("ping").and_return(response)
-        expect(adapter.complete(chat, "ping")).to eq(response)
-      end
-
-      it "delegates a nil continuation message to chat.complete" do
-        expect(chat).to receive(:complete).and_return(response)
-        expect(adapter.complete(chat, nil)).to eq(response)
-      end
-    end
-
-    describe "#stream" do
-      it "delegates to chat.ask(message) with a block" do
-        chunks = []
-        expect(chat).to receive(:ask).with("ping") do |_msg, &block|
-          block&.call("token1")
-          response
+        define_method(:perform_complete) do |request, cancellation_token:|
+          @requests << request
+          @workers << Thread.current
+          if request.messages.any? { |message| message.role == :tool }
+            Phronomy::LLMAdapter::Response.new(content: "done")
+          else
+            Phronomy::LLMAdapter::Response.new(tool_calls: [
+              Phronomy::Tool::CallRequest.new(id: "call-1", name: "double_value", arguments: {"n" => "2"})
+            ])
+          end
         end
-        result = adapter.stream(chat, "ping") { |chunk| chunks << chunk }
-        expect(result).to eq(response)
-        expect(chunks).to eq(["token1"])
-      end
-
-      it "delegates a nil continuation message to chat.complete with the block" do
-        chunks = []
-        expect(chat).to receive(:complete) do |&block|
-          block&.call("token1")
-          response
+        define_method(:perform_stream) do |request, cancellation_token:, &sink|
+          sink.call(Phronomy::LLMAdapter::StreamChunk.new(content: "part"))
+          perform_complete(request, cancellation_token: cancellation_token)
         end
-        result = adapter.stream(chat, nil) { |chunk| chunks << chunk }
-        expect(result).to eq(response)
-        expect(chunks).to eq(["token1"])
+      end.new(requests, workers)
+      tool = Class.new(Phronomy::Tool::Base) do
+        tool_name "double_value"
+        description "Double an integer"
+        on_schema_error :coerce
+        parameters({"type" => "object", "properties" => {"n" => {"type" => "integer"}}, "required" => ["n"]})
+        approval_facts { |arguments, _|
+          approved_arguments << arguments
+          {}
+        }
+        def execute(n:) = (n * 2).to_s
       end
-    end
-  end
-
-  describe "Configuration#llm_adapter" do
-    it "defaults to an instance of Phronomy::LLMAdapter::RubyLLM" do
-      config = Phronomy::Configuration.new
-      expect(config.llm_adapter).to be_a(Phronomy::LLMAdapter::RubyLLM)
-    end
-
-    it "can be replaced with a custom Base implementation" do
-      custom = Class.new(Phronomy::LLMAdapter::Base) do
-        def complete(_chat, _message, config: {}) = :ok
-        def stream(_chat, _message, config: {}) = :ok
-      end.new
-
-      Phronomy.configure { |config| config.llm_adapter = custom }
-      expect(Phronomy.configuration.llm_adapter).to equal(custom)
-    ensure
-      Phronomy.configure { |config| config.llm_adapter = Phronomy::LLMAdapter::RubyLLM.new }
-    end
-  end
-
-  describe "Agent::Base routes LLM calls through LLMAdapter" do
-    let(:agent_class) do
-      Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-116", version: 1
-        model "test-model"
-        instructions "You are a test agent."
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "independent-#{entry}", version: 1
+        model "independent"
+        tools tool => nil
       end
-    end
-
-    let(:fake_response) do
-      tokens = double(
-        "tokens",
-        input: 10,
-        output: 20,
-        cache_read: 0,
-        cache_write: 0,
-        to_h: {"input" => 10, "output" => 20, "cached" => 0, "cache_creation" => 0}
-      )
-      double("response", content: "adapter response", tokens: tokens)
-    end
-
-    let(:fake_adapter) do
-      instance_double(Phronomy::LLMAdapter::RubyLLM, complete: fake_response, input_budget: nil, identity: {})
-    end
-
-    before do
-      Phronomy.configure { |config| config.llm_adapter = fake_adapter }
-      chat = double("chat", messages: [], on_tool_call: nil, on_tool_result: nil)
-      allow_any_instance_of(agent_class).to receive(:build_chat).and_return(chat)
-      allow(fake_adapter).to receive(:configure_chat).and_return(chat)
-      allow(fake_adapter).to receive(:message) { |**attrs| RubyLLM::Message.new(**attrs) }
-      allow_any_instance_of(agent_class)
-        .to receive(:run_before_llm_input_hooks)
-        .and_return(Phronomy::Context::LLMInputPatch.empty)
-      allow_any_instance_of(agent_class).to receive(:check_cancellation!)
-      allow(chat).to receive(:after_message)
-      allow(chat).to receive(:respond_to?) do |method_name, *|
-        method_name.to_sym == :after_message
-      end
-    end
-
-    it "executes a synchronous-only adapter through the framework client" do
-      result = agent_class.new.invoke("hello")
-      expect(result[:output]).to eq("adapter response")
-      expect(fake_adapter).to have_received(:complete)
-    end
-
-    it "keeps adapter streaming on a worker and application callbacks on EventLoop" do
-      worker_threads = []
-      callback_threads = []
-      callback_on_loop = []
-      events = []
-      allow(fake_adapter).to receive(:stream) do |_chat, _message, **_config, &sink|
-        worker_threads << Thread.current
-        sink.call(double("chunk", content: "part"))
-        fake_response
-      end
+      Phronomy.configure { |config| config.llm_adapter = adapter }
+      expect(RubyLLM).not_to receive(:chat)
       runtime = Phronomy::Runtime.instance
-      agent = agent_class.new(on_event: ->(event) {
-        callback_threads << Thread.current
-        callback_on_loop << runtime.event_loop_current?
-        events << event
-      })
-
-      result = agent.stream_async("hello").wait_result(timeout: 5)
-      expect(result[:output]).to eq("adapter response")
-      expect(fake_adapter).to have_received(:stream)
-      expect(worker_threads).not_to be_empty
-      expect(callback_threads).not_to be_empty
-      expect(worker_threads & callback_threads).to be_empty
-      expect(callback_on_loop).to all(be true)
-      expect(events.any? { |event| event.type == :token }).to be true
+      agent = agent_class.new(on_event: ->(event) { events << [event, Thread.current, runtime.event_loop_current?] })
+      expect(agent.public_send(entry, "hello").wait_result(timeout: 5)[:output]).to eq("done")
+      expect(approved_arguments).to eq([{n: 2}])
+      expect(approved_arguments.first).to be_frozen
+      expect(requests.size).to eq(2)
+      expect(requests).to all(be_frozen)
+      expect(requests.last.messages.find { |message| message.role == :tool }.content).to eq("4")
+      expect(requests.first.tools.first.fetch("name")).to eq("double_value")
+      expect(workers & events.map { |_, thread, _| thread }).to be_empty
+      expect(events.map(&:last)).to all(be true)
+      expect(events.any? { |event, _, _| event.type == :token }).to eq(entry == :stream_async)
     end
   end
 end

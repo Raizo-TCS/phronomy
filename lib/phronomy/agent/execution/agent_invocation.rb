@@ -33,7 +33,8 @@ module Phronomy
       end
 
       attr_accessor :input,
-        :chat,
+        :messages,
+        :tools,
         :output,
         :usage,
         :input_blocked,
@@ -85,7 +86,8 @@ module Phronomy
         @event_sink = nil
         @mode = (mode || :invoke).to_sym
 
-        @chat = nil
+        @messages = []
+        @tools = {}.freeze
         @output = nil
         @usage = nil
         @input_blocked = false
@@ -279,7 +281,7 @@ module Phronomy
 
         @user_message_sent = true
         @output = response.content
-        @usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+        @usage = response.usage
         @pending_tool_calls = []
         self
       end
@@ -321,7 +323,7 @@ module Phronomy
       def record_tool_results!
         @tool_invocations.each do |invocation|
           tool_content = invocation.result.to_s
-          @chat.add_message(
+          @messages << Phronomy::LLMAdapter::Message.new(
             role: :tool,
             content: tool_content,
             tool_call_id: invocation.tool_call_id
@@ -466,7 +468,7 @@ module Phronomy
         call = @current_llm_call
         @llm_results << {
           llm_call_id: call.fetch(:llm_call_id),
-          response: canonical_response_for_llm_result(result),
+          response: result.response,
           error: result.error,
           streaming: result.streaming,
           manifest_ref: call.fetch(:manifest_ref),
@@ -480,16 +482,17 @@ module Phronomy
         end
 
         if result.error
-          if result.error.is_a?(ToolCallIntercepted)
-            accept_tool_calls!(
-              result.error.tool_calls,
-              llm_call_id: result.llm_call_id
-            )
+          @error = result.error
+        elsif result.response.is_a?(Phronomy::LLMAdapter::Response)
+          @messages << result.response
+          if result.response.tool_call?
+            @usage = result.response.usage
+            accept_tool_calls!(result.response.tool_calls, llm_call_id: result.llm_call_id)
           else
-            @error = result.error
+            apply_llm_response!(result.response)
           end
         else
-          apply_llm_response!(result.response)
+          @error = Phronomy::LLMAdapter::InvalidResultError.new("LLM operation completed without a Response")
         end
         true
       end
@@ -507,14 +510,6 @@ module Phronomy
         )
       rescue
         nil
-      end
-
-      def canonical_response_for_llm_result(result)
-        if result.error.is_a?(ToolCallIntercepted)
-          result.error.assistant_outcome || ProviderCallOutcome.capture(result.response)
-        else
-          ProviderCallOutcome.capture(result.response)
-        end
       end
 
       # Canonical runtime recording is independent of Application callback health.

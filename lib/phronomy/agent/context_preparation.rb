@@ -348,7 +348,7 @@ module Phronomy
         values = patch.to_h.transform_keys(&:to_s)
         if values.key?("context_window")
           raise Phronomy::ConfigurationError,
-            "context_window is model metadata; configure the RubyLLM model registry"
+            "context_window is model metadata; configure the LLM backend model metadata"
         end
         if values.key?("max_output_tokens") && !values["max_output_tokens"].nil?
           cap = Integer(values["max_output_tokens"])

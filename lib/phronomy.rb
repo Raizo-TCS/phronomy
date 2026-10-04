@@ -19,7 +19,7 @@ loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 # These responsibility directories do not add a public Ruby namespace.
-%w[common configuration engine execution generation llm_contract recovery runtime_composition].each do |directory|
+%w[common configuration engine execution generation recovery runtime_composition].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
 # Backend contracts, execution clients and implementations have separate source
@@ -92,7 +92,7 @@ require_relative "phronomy/agent/handoff_error"
 require_relative "phronomy/agent/agent_already_exists_error"
 
 require_relative "phronomy/runtime_composition/configuration_defaults"
-require_relative "phronomy/llm_contract/token_usage"
+require_relative "phronomy/llm_adapter/token_usage"
 require_relative "phronomy/runtime_composition/global_configuration"
 require_relative "phronomy/runtime_composition/global_runtime"
 require_relative "phronomy/runtime_composition/execution_defaults"

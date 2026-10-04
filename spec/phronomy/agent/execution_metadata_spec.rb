@@ -9,11 +9,20 @@ RSpec.describe Phronomy::Agent::ExecutionMetadata do
         id: id,
         tool_call_id: tool_call_id,
         tool_name: "tool_#{id}",
-        raw_arguments: {"x" => 1},
+        raw_arguments: {"x" => 1}, arguments: nil,
         status: completed ? :completed : :pending,
         execution_completed?: completed)
       allow(inv).to receive(:result).and_return(result) if completed
       inv
+    end
+
+    it "records validated/coerced arguments separately from the unchanged raw request" do
+      child = make_tool_inv(id: "inv", tool_call_id: "call", completed: false)
+      allow(child).to receive(:raw_arguments).and_return({"n" => "2", "optional" => nil})
+      allow(child).to receive(:arguments).and_return({n: 2})
+      value = described_class.build_tool_batch_snapshot(double(tool_invocations: [child], tool_batch_llm_call_id: "llm")).first
+      expect(value.fetch("arguments")).to eq("n" => "2", "optional" => nil)
+      expect(value.fetch("validated_arguments")).to eq("n" => 2)
     end
 
     it "excludes result key when execution is not completed" do

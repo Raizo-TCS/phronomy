@@ -9,12 +9,12 @@ RSpec.describe Phronomy::Testing::Eval::Scorer::LlmJudge do
 
   it "executes the provider on a worker and parses the result" do
     caller_thread = Thread.current
-    chat = double("chat")
-    allow(RubyLLM).to receive(:chat).with(model: "test", provider: nil, assume_model_exists: false).and_return(chat)
+    chat = double("chat", after_message: nil)
+    allow(RubyLLM).to receive(:chat).with(model: "test", assume_model_exists: false).and_return(chat)
     allow(chat).to receive(:ask) do |prompt|
       expect(Thread.current).not_to equal(caller_thread)
       expect(prompt).to include("question", "expected", "actual")
-      Struct.new(:content).new("0.75")
+      Phronomy::LLMAdapter::Response.new(content: "0.75")
     end
     expect(score(described_class.new(model: "test"))).to eq(0.75)
   end

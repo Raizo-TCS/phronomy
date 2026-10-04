@@ -49,7 +49,7 @@ RSpec.describe "Output filtering across ordinary execution and Recovery" do
           after_resolution ||= current.snapshot if run.phase == :recovery_provider_completed
         end
         llm = LLMStub.activate(responses: ["must not replay"])
-        outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: "target output", tool_calls: [])
+        outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: "target output", tool_calls: [])
         invoke_filtered_output(behavior) do
           agent.resolve_async(id, expected_execution_revision: event.fetch(:execution_revision),
             subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h).wait_result(timeout: 3)

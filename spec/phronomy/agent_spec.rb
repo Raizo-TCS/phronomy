@@ -26,7 +26,7 @@ end
 
 RSpec.describe Phronomy::Agent::Base do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cache_read: 0, cache_write: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
-  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+  let(:fake_message) { double("Message", role: :assistant, content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")
@@ -182,9 +182,9 @@ RSpec.describe Phronomy::Agent::Base do
       expect(result[:output]).to eq("LLM response")
     end
 
-    it "returns a TokenUsage as :usage" do
+    it "returns a LLMAdapter::TokenUsage as :usage" do
       result = agent.invoke("Hello")
-      expect(result[:usage]).to be_a(Phronomy::TokenUsage)
+      expect(result[:usage]).to be_a(Phronomy::LLMAdapter::TokenUsage)
       expect(result[:usage].input).to eq(10)
       expect(result[:usage].output).to eq(5)
     end
@@ -249,7 +249,7 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
     allow(dbl).to receive(:on_tool_call)
     allow(dbl).to receive(:after_message)
     allow(dbl).to receive(:on_tool_result)
-    allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil, tokens: alias_tokens, tool_call?: false))
+    allow(dbl).to receive(:ask).and_return(double("Msg", role: :assistant, content: "ok", tool_calls: nil, tokens: alias_tokens, tool_call?: false))
     allow(dbl).to receive(:messages).and_return([])
     dbl
   end
@@ -324,7 +324,7 @@ end
 # code is actually correct. These specs document and lock in the correct behavior.
 RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID-12)" do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cache_read: 0, cache_write: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
-  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+  let(:fake_message) { double("Message", role: :assistant, content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")

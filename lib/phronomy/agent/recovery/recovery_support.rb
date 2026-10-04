@@ -15,17 +15,14 @@ module Phronomy
       end
 
       def normalize_provider_outcome(value)
-        return value if value.is_a?(Phronomy::Agent::ProviderCallOutcome)
+        return value if value.is_a?(Phronomy::LLMAdapter::Response)
 
         if value.is_a?(Hash)
-          return Phronomy::Agent::ProviderCallOutcome.from_h(value)
+          return Phronomy::LLMAdapter::Response.from_h(value)
         end
 
-        captured = Phronomy::Agent::ProviderCallOutcome.capture(value)
-        return captured if captured
-
         raise ArgumentError,
-          "LLM Recovery :succeeded requires a Provider result or ProviderCallOutcome-compatible Hash"
+          "LLM Recovery :succeeded requires an LLMAdapter::Response or its canonical Hash"
       end
 
       def resolution_failure(error)

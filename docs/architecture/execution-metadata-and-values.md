@@ -1,5 +1,11 @@
 # Shared execution metadata and value conversion
 
+> Current boundary: r8 unit 6 supersedes the historical Chat/SDK ownership and
+> adapter extension SPI below. Agent uses LLMAdapter values; the backend owns SDK
+> construction/interception; Tool owns canonical schema validation. See
+> `docs/architecture/r8-unit6.md` and `docs/migrations/r8-unit6.md`.
+
+
 Refactor 38 addresses the remaining R03 and R11 responsibilities against core
 `e7e6618493df03c2eb386d78a9303796e1e13cdc`. The candidate must be applied and
 verified before those items are closed. Tool restoration itself was completed

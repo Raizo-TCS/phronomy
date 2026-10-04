@@ -125,36 +125,17 @@ RSpec.describe "Context Policy branch coverage" do
     end
   end
 
-  describe "ProviderCallOutcome.capture" do
-    let(:outcome_class) { Phronomy::Agent::ProviderCallOutcome }
-    let(:msg_struct) { Struct.new(:role, :content, :tool_calls, :tokens, :model) }
-    let(:call_struct) { Struct.new(:id, :name, :arguments) }
-
-    it "returns nil for nil message" do
-      expect(outcome_class.capture(nil)).to be_nil
+  describe "LLM response values" do
+    it "rejects opaque content instead of stringifying it" do
+      expect { Phronomy::LLMAdapter::Response.new(content: Object.new) }.to raise_error(ArgumentError)
     end
 
-    it "handles tool_calls as Array" do
-      call = call_struct.new("c1", "tool", {})
-      outcome = outcome_class.capture(msg_struct.new(:assistant, "hi", [call], nil, nil))
-      expect(outcome.tool_calls.first["id"]).to eq("c1")
-    end
-
-    it "normalizes Symbol and nested Array values" do
-      outcome = outcome_class.capture(msg_struct.new(:assistant, [:a, :b], nil, nil, nil))
-      expect(outcome.content).to eq(["a", "b"])
-    end
-
-    it "uses to_h fallback for unknown content objects" do
-      obj = Object.new
-      def obj.to_h = {"x" => 1}
-      outcome = outcome_class.capture(msg_struct.new(:assistant, obj, nil, nil, nil))
-      expect(outcome.content).to eq("x" => 1)
-    end
-
-    it "captures model_id when present" do
-      outcome = outcome_class.capture(msg_struct.new(:assistant, nil, nil, nil, "gpt-4"))
-      expect(outcome.metadata["model_id"]).to eq("gpt-4")
+    it "round-trips canonical calls and metadata without SDK construction" do
+      outcome = Phronomy::LLMAdapter::Response.from_h(content: "hi",
+        tool_calls: [{"id" => "c1", "name" => "tool", "arguments" => {}}],
+        metadata: {"model_id" => "model"})
+      expect(outcome.tool_calls.first.id).to eq("c1")
+      expect(Phronomy::LLMAdapter::Response.from_h(outcome.to_h).to_h).to eq(outcome.to_h)
     end
   end
 

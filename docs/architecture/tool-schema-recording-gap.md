@@ -1,5 +1,11 @@
 # Historical finding: Tool parameter schema is absent from saved definitions
 
+> Current boundary: r8 unit 6 supersedes the historical Chat/SDK ownership and
+> adapter extension SPI below. Agent uses LLMAdapter values; the backend owns SDK
+> construction/interception; Tool owns canonical schema validation. See
+> `docs/architecture/r8-unit6.md` and `docs/migrations/r8-unit6.md`.
+
+
 ## Observed mismatch
 
 During Refactor 44 verification, Ruby 3.3.6 with RubyLLM 1.16.0 reproduced the

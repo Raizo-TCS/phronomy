@@ -462,8 +462,8 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     describe ".normalize_provider_outcome" do
-      it "returns a ProviderCallOutcome unchanged" do
-        outcome = Phronomy::Agent::ProviderCallOutcome.new(
+      it "returns an LLMAdapter::Response unchanged" do
+        outcome = Phronomy::LLMAdapter::Response.from_h(
           role: :assistant,
           content: "hello",
           tool_calls: [],
@@ -480,13 +480,13 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
           "tokens" => {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0}
         }
         result = described_class.normalize_provider_outcome(hash)
-        expect(result).to be_a(Phronomy::Agent::ProviderCallOutcome)
+        expect(result).to be_a(Phronomy::LLMAdapter::Response)
       end
 
       it "raises when value is nil (capture returns nil)" do
         expect {
           described_class.normalize_provider_outcome(nil)
-        }.to raise_error(ArgumentError, /ProviderCallOutcome-compatible Hash/)
+        }.to raise_error(ArgumentError, /LLMAdapter::Response or its canonical Hash/)
       end
     end
 

@@ -3,5 +3,7 @@
 require_relative "../common/error"
 
 module Phronomy
-  class ContextLengthError < Error; end
+  module LLMAdapter
+    class TransportError < Phronomy::Error; end
+  end
 end

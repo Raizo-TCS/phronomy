@@ -1,6 +1,21 @@
 module Phronomy
   module Tool
+    class Schema
+      def initialize: (?untyped schema) ?{ () -> untyped } -> void
+      def json_schema: () -> Hash[String, untyped]
+      def validate: (Hash[String | Symbol, untyped] arguments, ?coerce: bool) -> [Hash[Symbol, untyped]?, String?]
+    end
+    class CallRequest
+      attr_reader id: String
+      attr_reader name: String
+      attr_reader arguments: Hash[String, json_value]
+      attr_reader metadata: Hash[String, json_value]
+      def initialize: (id: String, name: String, arguments: Hash[String | Symbol, untyped], ?metadata: Hash[String | Symbol, untyped]) -> void
+      def self.from_h: (Hash[String | Symbol, untyped] value) -> CallRequest
+      def to_h: () -> Hash[String, untyped]
+    end
     class Base
+      def self.parameter: (String | Symbol name, ?type: String | Symbol, ?description: String?, ?required: bool) -> untyped
       def self.tool_name: (?untyped value) -> String?
       def self.description: (?String text) -> String?
       def self.desc: (?String text) -> String?
@@ -23,12 +38,14 @@ module Phronomy
       def self.redact_params: (*untyped names) -> Array[Symbol]
       def self.max_result_size: (?untyped value) -> untyped
 
+      def description: () -> String?
       def name: () -> String
       def parameters_schema: () -> untyped
       def parameters: () -> Hash[untyped, untyped]
       def provider_options: () -> Hash[untyped, untyped]
       def provider_params: () -> Hash[untyped, untyped]
       def params_schema: () -> untyped
+      def validate_arguments: (Hash[String | Symbol, untyped]? args) -> [Hash[Symbol, untyped]?, String?]
       def call: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?) -> untyped
       def call_async: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped]) -> TaskResult[untyped]
       def requires_approval?: () -> untyped

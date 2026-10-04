@@ -1,3 +1,13 @@
+## r8 unit 6 update
+
+C09 consolidates values, usage, failures and synchronous operation rules in
+LLMAdapter. M47 is retired into M15 without reusing its ID. C06 is independent of
+RubyLLM and owns Schema/CallRequest. AST rules reject SDK/Agent/Engine dependencies
+inside these contracts and SDK types inside Agent. The measured Ruby/RBS graph
+retains C09 -> C06 and the directory-level Tool -> Execution route; see
+`docs/architecture/r8-unit6.md` for the exact overapproximation and supporting
+standalone/value-only checks. FSM/Runtime connections remain unfinished.
+
 ## r8 unit 5 update
 
 VectorStore and Embeddings own their common synchronous operations. Embeddings

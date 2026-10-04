@@ -1,7 +1,7 @@
 module Phronomy
   module Tracing
     module Observation
-      def self.trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, TokenUsage?] } -> A
+      def self.trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, LLMAdapter::TokenUsage?] } -> A
     end
   end
 end

@@ -30,7 +30,7 @@ RSpec.describe Phronomy::Tracing::Base do
     end
 
     it "passes usage to finish_span" do
-      usage = Phronomy::TokenUsage.new(input: 10, output: 5, cached: 2, cache_creation: 0)
+      usage = Phronomy::LLMAdapter::TokenUsage.new(input: 10, output: 5, cached: 2, cache_creation: 0)
       tracer.trace("op", input: "x") { ["result", usage] }
       expect(tracer.finished[:usage]).to eq(usage)
     end

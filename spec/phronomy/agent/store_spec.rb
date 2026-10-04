@@ -59,6 +59,26 @@ RSpec.describe Phronomy::Agent::Store do
     end
   end
 
+  context "unit 6 validated argument evidence" do
+    let(:batch) do
+      [{"tool_invocation_id" => "first", "tool_name" => "enqueue_task", "status" => "authorized",
+        "arguments" => {"n" => "2", "nullable" => nil}, "validated_arguments" => {"n" => 2, "nullable" => nil}}]
+    end
+
+    it "compares and projects the exact approved values, preserving intentional null" do
+      stores.coordinator.atomic do |scope|
+        values = {"n" => 2, "nullable" => nil}
+        result = project(scope, invocation_id: "first", name: "enqueue_task", arguments: values)
+        expect(result.first.arguments).to eq(values)
+      end
+      expect do
+        stores.coordinator.atomic do |scope|
+          project(scope, invocation_id: "first", name: "enqueue_task", arguments: {"n" => "2", "nullable" => nil})
+        end
+      end.to raise_error(Phronomy::Persistence::StateConflictError)
+    end
+  end
+
   it "rejects another coordinator and an expired scope" do
     other = Phronomy::PersistenceComposition.in_memory.coordinator
     expect { other.atomic { |scope| project(scope) } }.to raise_error(Phronomy::Persistence::TransactionError)

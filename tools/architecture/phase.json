@@ -74,5 +74,20 @@
       "Workflow durable child protocol",
       "Overall semantic dependency review"
     ]
+  },
+  "r8_unit6": {
+    "status": "contract_scope_implemented",
+    "completed_scope": [
+      "C09 typed one-turn operations, usage and failures",
+      "Backend-local SDK initialization and Tool interception",
+      "C06 SDK-independent declarations and canonical schema validation",
+      "Agent/recovery use Phronomy values; RBS and examples migrated"
+    ],
+    "pending_scope": [
+      "Domain FSM and Runtime connections",
+      "Workflow durable child protocol",
+      "Live provider service verification",
+      "Overall semantic dependency review"
+    ]
   }
 }

@@ -128,7 +128,7 @@ RSpec.describe "Responsibility-based source layout" do
   it "loads the LLM SPI without its implementations or Engine" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/llm_adapter/base"
-      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[build_chat complete configure_chat identity input_budget message stream tool_call]
+      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[complete identity input_budget stream]
       abort "Engine initialized by SPI" if Phronomy.const_defined?(:Runtime, false)
       abort "implementation initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:RubyLLM, false)
       abort "client initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:AsyncClient, false)
@@ -268,7 +268,7 @@ RSpec.describe "Responsibility-based source layout" do
         require "phronomy"
         #{first_constant}
 
-        names = %w[Workflow WorkflowContext WorkflowRunner Agent Persistence Execution Event TokenUsage]
+        names = %w[Workflow WorkflowContext WorkflowRunner Agent Persistence Execution Event LLMAdapter::TokenUsage]
         originals = names.to_h { |name| [name, Phronomy.const_get(name)] }
         abort "Workflow ceased to be a class" unless Phronomy::Workflow.is_a?(Class)
         abort "Agent ceased to be a module" unless Phronomy::Agent.instance_of?(Module)

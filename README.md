@@ -8,7 +8,11 @@
 
 **Phronomy** is a Ruby AI agent framework for stateful Agents, Workflows, Tools,
 context management, filtering, tracing, and multi-agent coordination. Large Language
-Model (LLM) access is provided through [RubyLLM](https://github.com/crmne/ruby_llm).
+Model (LLM) operations use `Phronomy::LLMAdapter`; the default backend uses
+[RubyLLM](https://github.com/crmne/ruby_llm). Custom backends implement the
+[SDK-independent LLM contract](docs/migrations/r8-unit6.md).
+Tool declarations and argument validation belong to `Phronomy::Tool`, independently
+of the selected LLM backend.
 
 Phronomy is pre-1.0. Pin to a released gem version for production use rather than
 tracking `main` directly.

@@ -69,7 +69,7 @@ module Phronomy
               InvocationRestorer.build_invocation_for_suspended(agent, execution, projection, main,
                 agent.send(:_phronomy_event_listener), assistant_message: material.assistant_message, cancellation_requested: material.cancellation_requested)
             else
-              InvocationRestorer.build_chat_for_recovery(agent, execution, projection, main,
+              InvocationRestorer.build_input_for_recovery(agent, execution, projection, main,
                 agent.send(:_phronomy_event_listener), messages: material.messages, cancellation_requested: material.cancellation_requested)
             end
             if execution.phase.to_sym == :recovery_provider_completed

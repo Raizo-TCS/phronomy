@@ -109,6 +109,14 @@ def check_boundaries(audit, phase, repo, architecture=None):
         forbidden_roles[role].add("engine_concurrency")
     for source in sorted(modules):
         denied = forbidden_roles.get(roles.get(source), set())
+        if architecture.get("r8_unit6_contracts") and source in {"lib/phronomy/llm_adapter", "lib/phronomy/llm_adapter/backends"}:
+            # C09 references C06 Schema/CallRequest only. Directory aggregation
+            # also exposes Tool::Base -> Execution; the AST gate below separately
+            # rejects C09 references to execution mechanisms or Tool::Base.
+            denied = denied - {"execution_contracts"}
+            for origin, target in pairs:
+                if origin == source and roles.get(target) == "execution_contracts":
+                    violations.append({"kind": "llm-direct-execution-dependency", "pair": (origin, target)})
         route = path_to(graph, source, lambda t: roles.get(t) in denied)
         if route:
             violations.append({"kind": "forbidden-responsibility-path", "source_role": roles.get(source), "path":route})
@@ -179,7 +187,7 @@ def check_boundaries(audit, phase, repo, architecture=None):
                 violations.append({"kind": "domain-consumer-reaches-raw-storage", "pair": pair})
     for source, prohibited in {
         "lib/phronomy/context": ("lib/phronomy/agent", "lib/phronomy/engine"),
-        "lib/phronomy/tool": ("lib/phronomy/agent", "lib/phronomy/engine"),
+        "lib/phronomy/tool": ("lib/phronomy/agent", "lib/phronomy/engine", "lib/phronomy/llm_adapter", "lib/phronomy/multi_agent"),
         "lib/phronomy/execution": ("lib/phronomy/engine", "lib/phronomy/tracing"),
         "lib/phronomy/execution/concurrency": ("lib/phronomy/engine", "lib/phronomy/tracing"),
     }.items():

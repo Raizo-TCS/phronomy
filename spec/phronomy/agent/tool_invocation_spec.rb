@@ -219,7 +219,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         Phronomy::Agent::ToolInvocation::AuthorizationOutcome.new(
           error: RuntimeError.new("x"), cancelled: false
         ))
-      expect(invocation).not_to receive(:validate_and_coerce)
+      expect(invocation).not_to receive(:validate_arguments)
       invocation.validate!
     end
   end

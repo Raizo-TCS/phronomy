@@ -90,7 +90,7 @@ module Phronomy
 
         {
           filtering_input: [method(:apply_prepared_input_action).curry.call(agent)],
-          building_context: [method(:build_runtime_chat_action).curry.call(agent)],
+          building_context: [method(:prepare_runtime_input_action).curry.call(agent)],
           calling_llm: [calling_action],
           starting_tools: [method(:starting_tools_action).curry.call(runtime, event_sink)],
           dispatching_tools: [method(:dispatching_tools_action).curry.call(runtime, event_sink)],
@@ -108,52 +108,11 @@ module Phronomy
       end
       private_class_method :apply_prepared_input_action
 
-      def self.build_runtime_chat_action(agent, invocation)
+      def self.prepare_runtime_input_action(agent, invocation)
         projection = invocation.config.fetch(:phronomy_runtime_projection)
-        invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
-        agent.send(
-          :_apply_runtime_projection_to_chat,
-          invocation.chat,
-          projection,
-          invocation: invocation
-        )
-        invocation
+        agent.send(:prepare_runtime_input, projection, invocation: invocation)
       end
-      private_class_method :build_runtime_chat_action
-
-      def self.install_tool_interceptors(chat, llm_call_id:)
-        # RubyLLM 2 records the complete assistant message before this callback,
-        # and checks its own approval gate afterwards. Capture here so Phronomy
-        # owns authorization and dispatch for the entire Tool batch.
-        chat.after_message do |message|
-          next unless message.tool_call?
-
-          raise build_tool_interception(chat, [], llm_call_id)
-        end
-      end
-      private_class_method :install_tool_interceptors
-
-      def self.build_tool_interception(chat, fallback_tool_calls, llm_call_id)
-        assistant_message = chat.messages.last
-        unless assistant_message&.respond_to?(:role) &&
-            assistant_message.role.to_sym == :assistant &&
-            assistant_message.respond_to?(:tool_calls)
-          raise Phronomy::Error,
-            "RubyLLM Tool callback fired before the complete assistant message was observable"
-        end
-
-        message_tool_calls = assistant_message.tool_calls
-        tool_calls = message_tool_calls.respond_to?(:values) ? message_tool_calls.values : Array(message_tool_calls)
-        tool_calls = Array(fallback_tool_calls) if tool_calls.empty?
-
-        ToolCallIntercepted.new(
-          tool_calls,
-          assistant_message: assistant_message,
-          assistant_outcome: ProviderCallOutcome.capture(assistant_message),
-          llm_call_id: llm_call_id
-        )
-      end
-      private_class_method :build_tool_interception
+      private_class_method :prepare_runtime_input_action
 
       def self.calling_llm_action(agent, runtime, event_sink, invocation)
         prepare_and_start_llm_call(agent, runtime, event_sink, invocation, streaming: false)
@@ -226,23 +185,13 @@ module Phronomy
         config = invocation.config
         agent.send(:check_cancellation!, config, "invocation cancelled before LLM call")
         if replace_messages
-          invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
-          agent.send(
-            :_apply_runtime_projection_to_chat,
-            invocation.chat,
-            projection,
-            invocation: invocation
-          )
+          agent.send(:prepare_runtime_input, projection, invocation: invocation)
           invocation.config[:phronomy_runtime_projection] = projection
         end
 
+        request = agent.send(:build_llm_request, projection, invocation: invocation)
         call_context = invocation.begin_llm_call!(projection)
-        install_tool_interceptors(
-          invocation.chat,
-          llm_call_id: call_context.fetch(:llm_call_id)
-        )
-        message = projection.ask_message
-        chat = invocation.chat
+        message = request.message
         trace_handle = Phronomy::Tracing::Automatic.start(
           "llm.call",
           input: message,
@@ -255,21 +204,22 @@ module Phronomy
         )
 
         client = Phronomy::LLMAdapter::AsyncClient.new(adapter: Phronomy.configuration.llm_adapter)
+        token = config[:cancellation_token]
+        llm_call_id = call_context.fetch(:llm_call_id)
         operation = if streaming
           client.stream_async(
-            chat, message, config: config
+            request, cancellation_token: config[:cancellation_token]
           ) do |chunk|
-            token = config[:cancellation_token]
             token&.raise_if_cancelled!("invocation cancelled during streaming")
             post_stream_chunk(
               event_sink,
-              call_context.fetch(:llm_call_id),
+              llm_call_id,
               chunk.content
             )
           end
         else
           client.complete_async(
-            chat, message, config: config
+            request, cancellation_token: config[:cancellation_token]
           )
         end
         Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop).supervise_agent_operation(
@@ -320,20 +270,8 @@ module Phronomy
       private_class_method :observe_manifest_call
 
       def self.finish_provider_trace(trace_handle, response, error)
-        control_transfer = error.is_a?(ToolCallIntercepted)
-        trace_output = control_transfer ?
-          (error.assistant_outcome || error.assistant_message) : response
-        trace_error = control_transfer ? nil : error
-        usage_source = control_transfer ? error.assistant_message : response
-        usage = if usage_source&.respond_to?(:tokens)
-          Phronomy::TokenUsage.from_tokens(usage_source.tokens)
-        end
-        Phronomy::Tracing::Automatic.finish(
-          trace_handle,
-          output: trace_output,
-          usage: usage,
-          error: trace_error
-        )
+        Phronomy::Tracing::Automatic.finish(trace_handle,
+          output: response, usage: response&.usage, error: error)
       end
       private_class_method :finish_provider_trace
 
@@ -344,7 +282,7 @@ module Phronomy
           error: error,
           streaming: streaming
         )
-        event_type = if error && !error.is_a?(ToolCallIntercepted)
+        event_type = if error
           :llm_failed
         else
           :llm_completed
@@ -379,7 +317,7 @@ module Phronomy
 
       def self.starting_tools_action(runtime, parent_event_sink, invocation)
         children = invocation.pending_tool_calls.map do |tool_call|
-          tool = invocation.chat.tools[tool_call.name.to_sym]
+          tool = invocation.tools[tool_call.name.to_sym]
           tool_invocation_id =
             ToolInvocation.semantic_id(
               execution_id: invocation.execution_id,

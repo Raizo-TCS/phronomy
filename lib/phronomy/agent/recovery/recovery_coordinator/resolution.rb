@@ -163,7 +163,7 @@ module Phronomy
           when :succeeded
             # simplecov:disable
             outcome =
-              Phronomy::Agent::ProviderCallOutcome.from_h(
+              Phronomy::LLMAdapter::Response.from_h(
                 operation.result
               )
             updated = nil

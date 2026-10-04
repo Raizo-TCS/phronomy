@@ -25,8 +25,8 @@ RSpec.describe "Group 16: OpenTelemetry and Langfuse tracer adapters", :integrat
   # Langfuse host used throughout Langfuse test cases.
   let(:langfuse_host) { "https://cloud.langfuse.com" }
 
-  # Sample TokenUsage for "with_usage" cases.
-  let(:usage) { Phronomy::TokenUsage.new(input: 10, output: 5, cached: 0, cache_creation: 0) }
+  # Sample LLMAdapter::TokenUsage for "with_usage" cases.
+  let(:usage) { Phronomy::LLMAdapter::TokenUsage.new(input: 10, output: 5, cached: 0, cache_creation: 0) }
 
   after do
     # Reset OTel provider between examples so spans don't leak across tests.

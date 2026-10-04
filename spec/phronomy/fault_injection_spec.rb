@@ -44,53 +44,51 @@ RSpec.describe "Fault injection (Issue #213)" do
   # -------------------------------------------------------------------------
   describe "Error translation at retry boundary" do
     let(:translator) do
-      adapter = Phronomy::LLMAdapter::RubyLLM.new
-      Object.new.tap do |probe|
-        probe.define_singleton_method(:test_translate) do |error|
-          chat = Object.new
-          chat.define_singleton_method(:ask) { |_message| raise error }
-          adapter.complete(chat, "fault injection")
-        end
+      lambda do |error|
+        chat = double("chat", after_message: nil)
+        allow(chat).to receive(:ask).and_raise(error)
+        allow(RubyLLM).to receive(:chat).and_return(chat)
+        Phronomy::LLMAdapter::RubyLLM.new.complete(Phronomy::LLMAdapter::Request.new(message: "fault injection"))
       end
     end
 
-    it "translates RubyLLM::RateLimitError to Phronomy::RateLimitError" do
+    it "translates RubyLLM::RateLimitError to Phronomy::LLMAdapter::RateLimitError" do
       expect {
-        translator.test_translate(RubyLLM::RateLimitError.new("too many requests"))
-      }.to raise_error(Phronomy::RateLimitError, "too many requests")
+        translator.call(RubyLLM::RateLimitError.new("too many requests"))
+      }.to raise_error(Phronomy::LLMAdapter::RateLimitError, "too many requests")
     end
 
     it "translated RateLimitError has the original as #cause" do
       original = RubyLLM::RateLimitError.new("limit hit")
       begin
-        translator.test_translate(original)
-      rescue Phronomy::RateLimitError => e
+        translator.call(original)
+      rescue Phronomy::LLMAdapter::RateLimitError => e
         expect(e.cause).to be(original)
       end
     end
 
-    it "translates RubyLLM::UnauthorizedError to Phronomy::AuthenticationError" do
+    it "translates RubyLLM::UnauthorizedError to Phronomy::LLMAdapter::AuthenticationError" do
       expect {
-        translator.test_translate(RubyLLM::UnauthorizedError.new("bad key"))
-      }.to raise_error(Phronomy::AuthenticationError, "bad key")
+        translator.call(RubyLLM::UnauthorizedError.new("bad key"))
+      }.to raise_error(Phronomy::LLMAdapter::AuthenticationError, "bad key")
     end
 
-    it "translates RubyLLM::ContextLengthExceededError to Phronomy::ContextLengthError" do
+    it "translates RubyLLM::ContextLengthExceededError to Phronomy::LLMAdapter::ContextLengthError" do
       expect {
-        translator.test_translate(RubyLLM::ContextLengthExceededError.new("too long"))
-      }.to raise_error(Phronomy::ContextLengthError, "too long")
+        translator.call(RubyLLM::ContextLengthExceededError.new("too long"))
+      }.to raise_error(Phronomy::LLMAdapter::ContextLengthError, "too long")
     end
 
-    it "translates other RubyLLM::Error subclasses to Phronomy::TransportError" do
+    it "translates other RubyLLM::Error subclasses to Phronomy::LLMAdapter::TransportError" do
       expect {
-        translator.test_translate(RubyLLM::Error.new("generic error"))
-      }.to raise_error(Phronomy::TransportError, "generic error")
+        translator.call(RubyLLM::Error.new("generic error"))
+      }.to raise_error(Phronomy::LLMAdapter::TransportError, "generic error")
     end
 
     it "re-raises non-RubyLLM errors unchanged" do
       original = ArgumentError.new("bad argument")
       expect {
-        translator.test_translate(original)
+        translator.call(original)
       }.to raise_error(original)
     end
   end

@@ -35,8 +35,10 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # RubyLLM 2.0 owns provider-neutral output caps and Tool schema rendering.
+  # Provider SDK and independent Tool schema construction/validation libraries.
   spec.add_dependency "ruby_llm", "~> 2.0.0"
+  spec.add_dependency "schematist", "~> 1.1"
+  spec.add_dependency "json_schemer", "~> 2.5"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"

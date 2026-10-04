@@ -109,7 +109,7 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     end
 
     task = Phronomy::TaskResult.deferred(name: "automatic-tracing-test")
-    usage = Phronomy::TokenUsage.new(input: 3, output: 4)
+    usage = Phronomy::LLMAdapter::TokenUsage.new(input: 3, output: 4)
     Phronomy::Tracing::Automatic.observe_task(
       task,
       "agent.execution",

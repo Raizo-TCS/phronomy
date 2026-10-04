@@ -820,23 +820,22 @@ module Phronomy
         meta
       end
 
-      def _apply_runtime_projection_to_chat(chat, projection, invocation: nil)
-        tools = projection.tool_classes.map { |tool| prepare_tool_class(tool, invocation: invocation) }
-        Phronomy.configuration.llm_adapter.configure_chat(
-          chat, system: projection.system,
-          cache: projection.model_config["cache_instructions"],
-          tools: tools, messages: projection.messages
-        )
+      def prepare_runtime_input(projection, invocation:)
+        tools = projection.tool_classes.map do |tool|
+          prepared = prepare_tool_class(tool, invocation: invocation)
+          prepared.is_a?(Class) ? prepared.new : prepared
+        end
+        invocation.tools = tools.to_h { |tool| [tool.name.to_sym, tool] }.freeze
+        invocation.messages = projection.messages.dup
+        invocation
       end
 
-      def build_chat(model_config: nil)
-        config = model_config || {
-          "model" => self.class.model,
-          "provider" => self.class.provider,
-          "temperature" => self.class.temperature,
-          "max_output_tokens" => self.class.max_output_tokens
-        }
-        Phronomy.configuration.llm_adapter.build_chat(config)
+      def build_llm_request(projection, invocation:)
+        definitions = Phronomy::Tool::DefinitionSet.build(tools: invocation.tools.values).definitions
+        Phronomy::LLMAdapter::Request.new(
+          model_config: projection.model_config, system: projection.system,
+          messages: invocation.messages, tools: definitions, message: projection.ask_message
+        )
       end
 
       def build_instructions(input)

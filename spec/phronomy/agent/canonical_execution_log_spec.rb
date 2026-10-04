@@ -29,21 +29,14 @@ RSpec.describe "Canonical Complete Execution Log capture" do
     end
     chat = fake_chat_class.new(assistant)
 
-    Phronomy::Agent::AgentInvocationSessionBuilder.send(
-      :install_tool_interceptors,
-      chat,
-      llm_call_id: "llm-1"
-    )
-
-    expect { chat.trigger(assistant) }
-      .to raise_error(Phronomy::Agent::ToolCallIntercepted) do |error|
-        expect(error.assistant_message).to equal(assistant)
-        expect(error.assistant_outcome.content.to_s).to eq("I will use two tools")
-        expect(error.assistant_outcome.tool_calls.map { |call| call.fetch("id") })
-          .to contain_exactly("a", "b")
-        expect(error.tool_calls.map(&:id)).to contain_exactly("a", "b")
-        expect(error.llm_call_id).to eq("llm-1")
-      end
+    def chat.complete
+      @after_message.call(messages.last)
+    end
+    allow(RubyLLM).to receive(:chat).and_return(chat)
+    result = Phronomy::LLMAdapter::RubyLLM.new.complete(Phronomy::LLMAdapter::Request.new)
+    expect(result).to be_a(Phronomy::LLMAdapter::Response)
+    expect(result.content).to eq("I will use two tools")
+    expect(result.tool_calls.map(&:id)).to eq(%w[a b])
   end
 
   it "continues canonical event recording after the Application listener fails" do
@@ -83,7 +76,7 @@ RSpec.describe "Canonical Complete Execution Log capture" do
       execution_id: "exec-1",
       event_listener: ->(event) { events << event }
     )
-    chat = Class.new do
+    Class.new do
       attr_reader :messages
 
       def initialize
@@ -96,7 +89,7 @@ RSpec.describe "Canonical Complete Execution Log capture" do
         message
       end
     end.new
-    invocation.chat = chat
+    invocation.messages = []
     invocation.tool_invocations = [
       Struct.new(:result, :tool_call_id, :tool_name).new(
         {price: 100}, "price-call", "price"
@@ -114,6 +107,6 @@ RSpec.describe "Canonical Complete Execution Log capture" do
       "content" => {price: 100}.inspect,
       "tool_call_id" => "price-call"
     )
-    expect(chat.messages.fetch(0).content).to eq({price: 100}.inspect)
+    expect(invocation.messages.fetch(0).content).to eq({price: 100}.inspect)
   end
 end

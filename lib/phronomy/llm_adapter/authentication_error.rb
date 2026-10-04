@@ -3,5 +3,7 @@
 require_relative "transport_error"
 
 module Phronomy
-  class AuthenticationError < TransportError; end
+  module LLMAdapter
+    class AuthenticationError < TransportError; end
+  end
 end

@@ -42,7 +42,7 @@ module Phronomy
         else
           {}
         end
-        usage = Phronomy::TokenUsage.new(
+        usage = Phronomy::LLMAdapter::TokenUsage.new(
           input: usage_hash["input"] || usage_hash[:input] || usage_hash["input_tokens"] || usage_hash[:input_tokens],
           output: usage_hash["output"] || usage_hash[:output] || usage_hash["output_tokens"] || usage_hash[:output_tokens],
           cached: usage_hash["cached"] || usage_hash[:cached] || usage_hash["cache_read_tokens"] || usage_hash[:cache_read_tokens] || usage_hash["cached_tokens"] || usage_hash[:cached_tokens],

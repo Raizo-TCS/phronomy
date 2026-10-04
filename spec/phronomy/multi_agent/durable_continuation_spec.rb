@@ -95,7 +95,7 @@ RSpec.describe "Durable continuation decisions" do
     loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent,
       on_event: ->(event) { events << event if event.type == :recovery_resolution_required })
     event = Timeout.timeout(3) { events.pop }.payload
-    outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: nil,
+    outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: nil,
       tool_calls: names.each_with_index.map { |(name, args), i| {"id" => "review-mixed-#{i}", "name" => name, "arguments" => args} })
     loaded.resolve_async(event.fetch(:execution_id), expected_execution_revision: event.fetch(:execution_revision),
       subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h).wait_result(timeout: 3)
@@ -178,7 +178,7 @@ RSpec.describe "Durable continuation decisions" do
     loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent,
       on_event: ->(event) { events << event if event.type == :recovery_resolution_required })
     event = Timeout.timeout(3) { events.pop }.payload
-    outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: nil,
+    outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: nil,
       tool_calls: names.each_with_index.map { |(name, args), i| {"id" => "review-mixed-#{i}", "name" => name, "arguments" => args} })
     loaded.resolve_async(event.fetch(:execution_id), expected_execution_revision: event.fetch(:execution_revision),
       subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h).wait_result(timeout: 3)
@@ -226,7 +226,7 @@ RSpec.describe "Durable continuation decisions" do
       parent_class.tools(parent_class.tools.to_h { |tool| [tool, nil] }.merge(external => nil))
       names = composition.map { |kind| (kind == :worker) ? ["dispatch_to_worker", {"input" => "job"}] : ["matrix_external", {}] }
       calls = names.each_with_index.map { |(name, args), i| {"id" => "matrix-#{i}", "name" => name, "arguments" => args} }
-      outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant,
+      outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant,
         content: calls.empty? ? "resolved output" : nil, tool_calls: calls)
       response = {"id" => "matrix", "object" => "chat.completion", "model" => "stub-model",
                   "choices" => [{"index" => 0, "message" => {"role" => "assistant", "content" => outcome.content,
@@ -432,7 +432,7 @@ RSpec.describe "Durable continuation decisions" do
         on_event: ->(event) { events << event.payload if event.type == :recovery_resolution_required })
       event = Timeout.timeout(3) { events.pop }
       if subject_type == :tool_invocation
-        outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: nil,
+        outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: nil,
           tool_calls: [{"id" => "failed-tool", "name" => "failure_external", "arguments" => {}}])
         loaded.resolve_async(event.fetch(:execution_id), expected_execution_revision: event.fetch(:execution_revision),
           subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h).wait_result(timeout: 3)

@@ -10,6 +10,7 @@ matcher:
     - Phronomy::WorkflowContext
     - Phronomy::WorkflowRunner
     - Phronomy::Tool::Base
+    - Phronomy::Tool::Schema
     - Phronomy::LlmContextWindow::TokenBudget
     - Phronomy::Context::Assembly
     - Phronomy::Agent::ContextPreparation

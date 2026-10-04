@@ -90,7 +90,7 @@ module Phronomy
         config: {}
       )
         cancellation_token&.raise_if_cancelled!
-        validated_args, schema_error = send(:validate_and_coerce, args)
+        validated_args, schema_error = validate_arguments(args)
         if schema_error
           return Phronomy::AsyncOperation.capture(name: "agent-tool-#{name}-schema") do
             if self.class.on_schema_error == :raise

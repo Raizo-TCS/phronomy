@@ -363,7 +363,7 @@ RSpec.describe Phronomy::Tools::Mcp do
 
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "toggle")
       expect(tool.params_schema.dig("properties", "enabled", "enum"))
-        .to eq([true, false])
+        .to eq([true, false, nil])
     end
 
     it "rejects unknown root schema keywords" do

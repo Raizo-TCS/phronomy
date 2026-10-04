@@ -10,6 +10,21 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_llm_tool_contracts_reject_sdk_and_orchestration_references(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            for file, source in [
+                ('tool/base.rb', 'class Base < RubyLLM::Tool; end\nPhronomy::Agent::Base\n'),
+                ('llm_adapter/base.rb', 'Phronomy::Runtime.instance\nPhronomy::Tool::Base.new\n'),
+                ('agent/base.rb', 'RubyLLM::Message.new\n'),
+            ]:
+                path = repo / 'lib/phronomy' / file
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(source)
+            found = violations(repo)
+            self.assertEqual(5, len(found))
+            self.assertEqual({'llm-tool-contract-owner-leak'}, {v['kind'] for v in found})
+
     def test_agent_admission_does_not_interpret_parent_records(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

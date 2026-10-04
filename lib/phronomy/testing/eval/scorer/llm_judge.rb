@@ -32,9 +32,14 @@ module Phronomy
               expected: expected.to_s,
               actual: actual.to_s
             )
-            response = Phronomy::Blocking.call_async do
-              RubyLLM.chat(model: @model, provider: @provider, assume_model_exists: @assume_model_exists).ask(prompt)
-            end.wait_result
+            request = Phronomy::LLMAdapter::Request.new(
+              model_config: {"model" => @model, "provider" => @provider&.to_s,
+                             "assume_model_exists" => @assume_model_exists}.compact,
+              message: prompt
+            )
+            response = Phronomy::LLMAdapter::AsyncClient.new(
+              adapter: Phronomy.configuration.llm_adapter
+            ).complete_async(request).wait_result
             response.content.to_s.strip.scan(/-?\d+\.?\d*/).first.to_f.clamp(0.0, 1.0)
           rescue => error
             raise if @raise_on_error

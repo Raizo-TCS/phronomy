@@ -3,5 +3,7 @@
 require_relative "transport_error"
 
 module Phronomy
-  class RateLimitError < TransportError; end
+  module LLMAdapter
+    class RateLimitError < TransportError; end
+  end
 end

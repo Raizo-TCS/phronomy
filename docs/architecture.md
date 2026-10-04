@@ -105,7 +105,8 @@ synchronous FSM callback exceptions. Recovery owns shared rehydration
 requirements. Workflow implementation lives under `workflow/execution/`;
 Agent namespace/event loading lives under `agent/api/`, separately from the shared
 Agent lifecycle exceptions in `agent/lifecycle_contract/`. LLM values and
-call-boundary exceptions live under `llm_contract/`.
+call-boundary exceptions live under `llm_adapter/`, together with the SDK-neutral
+operation contract. See [r8 unit 6](architecture/r8-unit6.md).
 
 Agent consumes its private fresh-Persistence factory only when neither an
 explicit instance nor a configured instance is available. Concrete selection

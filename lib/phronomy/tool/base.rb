@@ -1,22 +1,38 @@
 # frozen_string_literal: true
 
 require_relative "../execution/concurrency/worker_input_restricted"
+require_relative "../execution/cancellation_error"
+require_relative "../configuration/runtime_settings"
+require_relative "tool_error"
+require_relative "schema"
 
 module Phronomy
   module Tool
-    # Base class extending RubyLLM::Tool with Phronomy-specific DSL.
-    class Base < RubyLLM::Tool
+    # Owns Tool declarations, argument validation and the execution template.
+    class Base
       include Phronomy::Concurrency::WorkerInputRestricted
+
+      Parameter = Data.define(:name, :type, :description, :required)
 
       class << self
         # @api public
+        def parameter(name, type: :string, description: nil, required: true)
+          declared_parameters[name.to_sym] = Parameter.new(name: name.to_sym,
+            type: type, description: description, required: required)
+        end
+
+        # @api public
         def tool_name(value = nil)
-          return @tool_name || super() if value.nil?
+          if value.nil?
+            return @tool_name if instance_variable_defined?(:@tool_name)
+            ascii = name.to_s.unicode_normalize(:nfkd).encode("ASCII", replace: "").gsub(/[^a-zA-Z0-9_-]/, "-")
+            return ascii.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase.delete_suffix("_tool")
+          end
 
           @tool_name = value.to_s
         end
 
-        # RubyLLM stores Tool descriptions in a class-instance variable.
+        # Tool descriptions inherit through application and decorator classes.
         # Preserve normal class inheritance semantics so Phronomy's anonymous
         # decorator subclasses do not lose their parent's description.
         # @api public
@@ -33,27 +49,28 @@ module Phronomy
         alias_method :desc, :description
 
         # Phronomy declarations inherit through anonymous Tool decorators.
-        # RubyLLM owns schema construction and provider request rendering.
+        # The Tool contract owns schema construction and validation.
         # @api public
         def declared_parameters
           return @declared_parameters if instance_variable_defined?(:@declared_parameters)
 
-          @declared_parameters = superclass.declared_parameters.dup
+          @declared_parameters = superclass.respond_to?(:declared_parameters) ? superclass.declared_parameters.dup : {}
         end
 
-        # Keep Phronomy's parameter reader and support RubyLLM's schema DSL.
+        # Preserve the parameter reader and accept an explicit schema or schema DSL.
         # @api public
         def parameters(schema = :__phronomy_read__, &block)
           return declared_parameters if schema == :__phronomy_read__ && !block
 
-          super((schema == :__phronomy_read__) ? nil : schema, &block)
+          @parameters_schema_definition = Schema.new((schema == :__phronomy_read__) ? nil : schema, &block)
+          self
         end
 
         # @api public
         def parameters_schema_definition
           return @parameters_schema_definition if instance_variable_defined?(:@parameters_schema_definition)
 
-          superclass.parameters_schema_definition
+          superclass.parameters_schema_definition if superclass.respond_to?(:parameters_schema_definition)
         end
 
         # @api public
@@ -68,10 +85,14 @@ module Phronomy
 
         # @api public
         def provider_options(options = :__phronomy_read__)
-          return super unless options == :__phronomy_read__
+          unless options == :__phronomy_read__
+            raise ArgumentError, "provider_options must be a Hash" unless options.is_a?(Hash)
+            @provider_options = duplicate_configuration(options)
+            return self
+          end
           return @provider_options if instance_variable_defined?(:@provider_options)
 
-          @provider_options = duplicate_configuration(superclass.provider_options)
+          @provider_options = superclass.respond_to?(:provider_options) ? duplicate_configuration(superclass.provider_options) : {}
         end
 
         # @api public
@@ -199,7 +220,7 @@ module Phronomy
             @requires_approval = block
           elsif value == :__unset__
             return @requires_approval unless @requires_approval.nil?
-            return superclass.requires_approval if superclass < RubyLLM::Tool
+            return superclass.requires_approval if superclass.respond_to?(:requires_approval)
 
             false
           else
@@ -245,12 +266,43 @@ module Phronomy
       end
 
       def name
-        self.class.tool_name || super
+        self.class.tool_name
+      end
+
+      def description
+        self.class.description
+      end
+
+      def provider_options
+        self.class.provider_options
       end
 
       def parameters_schema
-        schema = super
-        return schema if schema.nil?
+        definition = self.class.parameters_schema_definition
+        return definition.json_schema if definition
+
+        declarations = self.class.declared_parameters
+        if declarations.empty?
+          declarations = method(:execute).parameters.filter_map do |kind, name|
+            next unless %i[key keyreq].include?(kind)
+            next if %i[cancellation_token tool_call].include?(name)
+            [name, Parameter.new(name: name, type: :string, description: nil, required: kind == :keyreq)]
+          end.to_h
+        end
+        properties = declarations.to_h do |name, parameter|
+          type = parameter.type.to_s
+          type = "number" if %w[float double].include?(type)
+          type = "integer" if type == "int"
+          value = {"type" => type, "description" => parameter.description}.compact
+          # An unqualified array declaration permits any JSON item. Explicit
+          # item constraints belong to an explicit schema.
+          value["items"] = {} if type == "array"
+          value["type"] = [type, "null"] unless parameter.required
+          [name.to_s, value]
+        end
+        schema = {"type" => "object", "properties" => properties,
+                  "required" => declarations.select { |_, parameter| parameter.required }.keys.map(&:to_s),
+                  "additionalProperties" => false}
 
         properties = schema.dig("properties") || schema.dig(:properties)
         return schema unless properties
@@ -259,7 +311,7 @@ module Phronomy
           key = properties.key?(param_name.to_s) ? param_name.to_s : param_name.to_sym
           next unless properties[key]
 
-          param_type = properties[key]["type"]
+          param_type = Array(properties[key]["type"]).find { |type| type != "null" }
           properties[key]["enum"] = values.map do |value|
             case param_type
             when "integer"
@@ -276,12 +328,15 @@ module Phronomy
               value.to_s
             end
           end
+          properties[key]["enum"] << nil unless declarations.fetch(param_name.to_sym).required
         end
 
         self.class.param_schemas.each do |param_name, nested|
           key = properties.key?(param_name.to_s) ? param_name.to_s : param_name.to_sym
           next unless properties[key]
           properties[key]["properties"] = nested_schema_to_json_schema(nested)
+          properties[key]["required"] = nested.select { |_, spec| spec[:required] }.keys.map(&:to_s)
+          properties[key]["additionalProperties"] = false
         end
 
         schema
@@ -303,10 +358,27 @@ module Phronomy
         self.class.declared_parameters
       end
 
+      # Validate/coerce without executing, so approval and execution share inputs.
+      # @api public
+      def validate_arguments(args)
+        schema = parameters_schema
+        if !@validation_schema || @validation_schema.json_schema != schema
+          @validation_schema = Schema.new(schema)
+        end
+        values, error = @validation_schema.validate(args || {}, coerce: self.class.on_schema_error == :coerce)
+        if values && !self.class.parameters_schema_definition
+          # Legacy optional param nil means omission, preserving Ruby defaults.
+          self.class.declared_parameters.each do |name, parameter|
+            values.delete(name) if !parameter.required && values[name].nil?
+          end
+        end
+        [values, error]
+      end
+
       # @api public
       def call(args, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
-        validated_args, schema_error = validate_and_coerce(args)
+        validated_args, schema_error = validate_arguments(args)
         if schema_error
           case self.class.on_schema_error
           when :raise
@@ -320,7 +392,7 @@ module Phronomy
         if cancellation_token && execute_accepts_cancellation_token?
           validated_args = validated_args.merge(cancellation_token: cancellation_token)
         end
-        result = super(**(validated_args || {}).transform_keys(&:to_sym))
+        result = execute(**(validated_args || {}).transform_keys(&:to_sym))
         truncate_result_if_needed(result)
       rescue Phronomy::ToolError, Phronomy::CancellationError
         raise
@@ -408,136 +480,21 @@ module Phronomy
         end
       end
 
-      def validate_and_coerce(args)
-        return [args, nil] if self.class.parameters.empty?
-
-        normalized = (args || {}).transform_keys(&:to_sym)
-        coerce_mode = self.class.on_schema_error == :coerce
-        result = {}
-
-        self.class.parameters.each do |name, param|
-          value = normalized[name]
-          if value.nil?
-            return [nil, "required parameter '#{name}' is missing"] if param.required
-            next
-          end
-
-          if coerce_mode
-            coerced, error = coerce_value(value, param.type)
-            return [nil, error] if error
-            value = coerced
-          else
-            error = type_error(value, param.type)
-            return [nil, error] if error
-          end
-
-          if param.type.to_sym == :object
-            nested_schema = self.class.param_schemas[name]
-            if nested_schema
-              error = validate_nested_object(value, nested_schema, name.to_s)
-              return [nil, error] if error
-            end
-          end
-
-          enum_vals = self.class.param_enums[name]
-          if enum_vals && !enum_vals.map(&:to_s).include?(value.to_s)
-            return [nil,
-              "parameter '#{name}' must be one of: #{enum_vals.join(", ")} " \
-              "(got: #{value.inspect})"]
-          end
-
-          result[name] = value
-        end
-
-        extra = normalized.keys - self.class.parameters.keys
-        unless extra.empty?
-          return [nil, "unknown parameter(s): #{extra.inspect}"]
-        end
-
-        [result, nil]
-      end
-
       def nested_schema_to_json_schema(nested)
         nested.each_with_object({}) do |(prop_name, spec), result|
-          entry = {"type" => spec[:type].to_s}
+          type = spec[:type].to_s
+          type = "number" if %w[float double].include?(type)
+          type = "integer" if type == "int"
+          entry = {"type" => spec[:required] ? type : [type, "null"]}
           entry["description"] = spec[:desc] if spec[:desc]
-          entry["enum"] = spec[:enum] if spec[:enum]
+          entry["enum"] = spec[:required] ? spec[:enum] : (spec[:enum] + [nil]).uniq if spec[:enum]
           if spec[:properties]
             entry["properties"] = nested_schema_to_json_schema(spec[:properties])
+            entry["required"] = spec[:properties].select { |_, child| child[:required] }.keys.map(&:to_s)
+            entry["additionalProperties"] = false
           end
           result[prop_name.to_s] = entry
         end
-      end
-
-      def validate_nested_object(value, properties, path)
-        return "field '#{path}' must be an object (Hash)" unless value.is_a?(Hash)
-
-        normalized = value.transform_keys(&:to_sym)
-        extra = normalized.keys - properties.keys
-        unless extra.empty?
-          return "nested field '#{path}' contains undeclared key(s): #{extra.inspect}"
-        end
-
-        properties.each do |name, spec|
-          field_path = "#{path}.#{name}"
-          field_value = normalized[name]
-
-          if field_value.nil?
-            return "nested required field '#{field_path}' is missing" if spec[:required]
-            next
-          end
-
-          error = type_error(field_value, spec[:type])
-          return "nested field '#{field_path}': #{error}" if error
-
-          next unless spec[:type].to_sym == :object && spec[:properties]
-
-          error = validate_nested_object(field_value, spec[:properties], field_path)
-          return error if error
-        end
-        nil
-      end
-
-      def type_error(value, declared_type)
-        return nil if value.nil?
-
-        ok = case declared_type.to_sym
-        when :string then value.is_a?(String)
-        when :integer then value.is_a?(Integer)
-        when :number, :float then value.is_a?(Numeric)
-        when :boolean then [true, false].include?(value)
-        when :array then value.is_a?(Array)
-        when :object then value.is_a?(Hash)
-        else true
-        end
-
-        return nil if ok
-
-        shown = value.respond_to?(:keys) ? "(object)" : value.inspect
-        "parameter '#{shown}' expected type #{declared_type}"
-      end
-
-      def coerce_value(value, declared_type)
-        return [value, nil] if value.nil?
-
-        case declared_type.to_sym
-        when :string
-          [value.to_s, nil]
-        when :integer
-          [Integer(value), nil]
-        when :number, :float
-          [Float(value), nil]
-        when :boolean
-          case value.to_s.downcase
-          when "true" then [true, nil]
-          when "false" then [false, nil]
-          else [nil, "parameter cannot be coerced to boolean: #{value.inspect}"]
-          end
-        else
-          [value, nil]
-        end
-      rescue ArgumentError, TypeError
-        [nil, "parameter cannot be coerced to #{declared_type}: #{value.inspect}"]
       end
     end
   end

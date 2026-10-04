@@ -162,7 +162,7 @@
     {
       "id": "M15",
       "directory": "lib/phronomy/llm_adapter",
-      "role": "Synchronous LLM adapter SPI",
+      "role": "LLM values / operations / failures",
       "mixed": false,
       "group": "G47"
     },
@@ -172,13 +172,6 @@
       "role": "Token budget and estimation",
       "mixed": false,
       "group": "G50"
-    },
-    {
-      "id": "M47",
-      "directory": "lib/phronomy/llm_contract",
-      "role": "LLM failures / token usage",
-      "mixed": false,
-      "group": "G47"
     },
     {
       "id": "M17",
@@ -275,7 +268,7 @@
     {
       "id": "M25",
       "directory": "lib/phronomy/tool",
-      "role": "Definitions / authorization / dispatch",
+      "role": "Tool schema / authorization / execution rules",
       "mixed": false,
       "group": "G06"
     },
@@ -468,7 +461,7 @@
       "members": [
         "M25"
       ],
-      "kind": "domain"
+      "kind": "tool_contracts"
     },
     {
       "id": "G14",
@@ -658,7 +651,6 @@
       "kind": "backend_contracts",
       "members": [
         "M15",
-        "M47",
         "M34",
         "M28",
         "M83"
@@ -790,7 +782,6 @@
     "M14",
     "M18",
     "M15",
-    "M47",
     "M16",
     "M28",
     "M83",
@@ -825,7 +816,8 @@
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 3: neutral Persistence and injected domain stores; shared facade removed. Team uses Agent authorization and its own assignment history. Subagent/Handoff/Orchestrator ownership, FSM connections and durable Workflow children remain unfinished.",
+  "scope_note": "r8 unit 6: SDK-neutral C09 LLM operations and C06 Tool schema. FSM/Runtime connections, Workflow durable children and broader semantic dependency review remain.",
   "persistence_framework_separated": true,
-  "r8_unit5_contracts": true
+  "r8_unit5_contracts": true,
+  "r8_unit6_contracts": true
 }

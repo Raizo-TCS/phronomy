@@ -21,11 +21,10 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
     end
   end
 
-  describe Phronomy::Agent::ToolCallIntercepted do
-    it "accepts nil llm_call_id (safe-navigation nil path)" do
-      tc = double("tc", id: "tc-1", name: "tool", arguments: {}, thought_signature: nil)
-      err = described_class.new([tc], llm_call_id: nil)
-      expect(err.instance_variable_get(:@llm_call_id)).to be_nil
+  describe Phronomy::Tool::CallRequest do
+    it "rejects an absent request identity" do
+      expect { described_class.new(id: nil, name: "tool", arguments: {}) }
+        .to raise_error(ArgumentError, /id and name/)
     end
   end
 

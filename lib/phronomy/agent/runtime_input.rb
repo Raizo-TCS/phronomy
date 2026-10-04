@@ -127,7 +127,7 @@ module Phronomy
         when :tool_result
           raise ArgumentError, "raw Tool result is not an LLM message"
         else
-          Phronomy.configuration.llm_adapter.message(
+          Phronomy::LLMAdapter::Message.new(
             role: segment.role,
             content: @persistence.contents.fetch_text(segment.content_ref),
             tool_call_id: segment.tool_call_id
@@ -148,38 +148,24 @@ module Phronomy
         end
 
         tool_calls = materialize_tool_calls(payload["tool_calls"])
-        Phronomy.configuration.llm_adapter.message(
+        Phronomy::LLMAdapter::Message.new(
           role: role,
-          content: initial_content_for(role, payload.fetch("content", nil), tool_calls),
-          tool_calls: tool_calls.empty? ? nil : tool_calls,
+          content: payload.fetch("content", nil),
+          tool_calls: tool_calls,
           tool_call_id: payload["tool_call_id"],
-          model: payload["model_id"]
+          metadata: {"model_id" => payload["model_id"]}.compact
         )
-      end
-
-      def initial_content_for(role, content, tool_calls)
-        return "" if role == :assistant && content.nil? && !tool_calls.empty?
-
-        (content.is_a?(Hash) || content.is_a?(Array)) ? JSON.generate(content) : content
       end
 
       def materialize_tool_calls(payloads)
-        Array(payloads).each_with_object({}) do |payload, result|
-          tool_call_id = payload.fetch("id").to_s
-          if result.key?(tool_call_id)
-            raise ArgumentError, "duplicate Tool Call in assistant message: #{tool_call_id}"
-          end
-          result[tool_call_id] = materialize_tool_call(payload)
+        Array(payloads).map do |payload|
+          # Read the pre-unit6 durable format explicitly; SDK objects are never
+          # reconstituted during recovery. New records use opaque metadata.
+          metadata = payload.fetch("metadata", {}).dup
+          metadata["thought_signature"] = payload["thought_signature"] if payload["thought_signature"]
+          Phronomy::Tool::CallRequest.new(id: payload.fetch("id"), name: payload.fetch("name"),
+            arguments: payload.fetch("arguments", {}), metadata: metadata)
         end
-      end
-
-      def materialize_tool_call(payload)
-        Phronomy.configuration.llm_adapter.tool_call(
-          id: payload.fetch("id").to_s,
-          name: payload.fetch("name"),
-          arguments: payload.fetch("arguments", {}),
-          thought_signature: payload["thought_signature"]
-        )
       end
     end
   end

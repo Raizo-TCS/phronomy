@@ -18,10 +18,9 @@ module Phronomy
             "suspended execution #{execution.execution_id} has no durable assistant Tool Call message"
         end
 
-        invocation, chat, config = prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested: cancellation_requested)
-        chat.messages << assistant_message
+        invocation, config = prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested: cancellation_requested)
+        invocation.messages << assistant_message
 
-        invocation.chat = chat
         invocation.user_message_sent = true
         invocation.approval_request = request
         invocation.instance_variable_set(
@@ -54,7 +53,7 @@ module Phronomy
             raise Phronomy::ExecutionRehydrationRequiredError,
               "Tool Call #{entry.fetch("tool_call_id")} is missing from the durable assistant message"
           end
-          tool = chat.tools[entry.fetch("tool_name").to_sym]
+          tool = invocation.tools[entry.fetch("tool_name").to_sym]
           child = if tool
             Phronomy::Agent::ToolInvocation.new(
               execution_id: execution.execution_id,
@@ -83,12 +82,11 @@ module Phronomy
         invocation
       end
 
-      def build_chat_for_recovery(agent, execution, projection, main_coordinator, listener, messages:, cancellation_requested: false)
-        invocation, chat = prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested: cancellation_requested)
+      def build_input_for_recovery(agent, execution, projection, main_coordinator, listener, messages:, cancellation_requested: false)
+        invocation, = prepare_invocation(agent, execution, projection, main_coordinator, listener, cancellation_requested: cancellation_requested)
 
-        messages.each { |message| chat.messages << message }
+        messages.each { |message| invocation.messages << message }
 
-        invocation.chat = chat
         invocation.user_message_sent = true
         invocation
       end
@@ -111,20 +109,14 @@ module Phronomy
           mode: (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym,
           execution_id: execution.execution_id
         )
-        chat = agent.send(:build_chat, model_config: projection.model_config)
-        agent.send(
-          :_apply_runtime_projection_to_chat,
-          chat,
-          projection,
-          invocation: invocation
-        )
+        agent.send(:prepare_runtime_input, projection, invocation: invocation)
         if projection.ask_message
-          chat.messages << RubyLLM::Message.new(
+          invocation.messages << Phronomy::LLMAdapter::Message.new(
             role: :user,
             content: projection.ask_message
           )
         end
-        [invocation, chat, config]
+        [invocation, config]
       end
       private_class_method :prepare_invocation
     end

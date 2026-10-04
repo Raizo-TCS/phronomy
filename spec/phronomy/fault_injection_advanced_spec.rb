@@ -31,7 +31,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     )
   end
   let(:fake_message) do
-    double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens)
+    double("Message", role: :assistant, content: "LLM response", tool_calls: nil, tokens: fake_tokens)
   end
 
   describe "VectorStore#add fault injection" do
@@ -238,7 +238,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     before do
-      allow(streaming_agent).to receive(:build_chat).and_return(streaming_chat)
+      allow(RubyLLM).to receive(:chat).and_return(streaming_chat)
     end
 
     it "propagates the callback exception to the stream caller" do
@@ -292,7 +292,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       allow(calm_chat).to receive(:on_tool_result)
       allow(calm_chat).to receive(:ask).and_return(calm_message)
       allow(calm_chat).to receive(:messages).and_return([])
-      allow(streaming_agent).to receive(:build_chat).and_return(calm_chat)
+      allow(RubyLLM).to receive(:chat).and_return(calm_chat)
 
       result = streaming_agent.invoke("hello again")
       expect(result[:output]).to eq("ok")

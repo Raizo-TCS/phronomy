@@ -235,8 +235,7 @@ RSpec.describe "Security specs (Issue #214)" do
       agent.add_output_filter(secret_output_filter)
 
       chat_double = double("Chat")
-      response = double("response",
-        content: raw_llm_output,
+      response = double("response", role: :assistant, content: raw_llm_output,
         tool_call?: false,
         tokens: double(input: 5, output: 20, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 20, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)

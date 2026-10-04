@@ -109,7 +109,7 @@ RSpec.describe "ACS-17 causal durability" do
   end
 
   def provider_outcome
-    Phronomy::Agent::ProviderCallOutcome.new(
+    Phronomy::LLMAdapter::Response.from_h(
       role: :assistant,
       content: nil,
       tool_calls: [

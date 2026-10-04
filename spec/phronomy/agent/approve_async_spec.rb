@@ -41,7 +41,7 @@ def build_approve_async_chat(tool_instance:, final_response: "resumed")
     tokens: FAKE_APPROVE_ASYNC_TOKENS,
     tool_call?: true
   )
-  final_resp = double("FinalResp", content: final_response, tokens: FAKE_APPROVE_ASYNC_TOKENS)
+  final_resp = double("FinalResp", role: :assistant, content: final_response, tokens: FAKE_APPROVE_ASYNC_TOKENS)
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
   allow(dbl).to receive(:with_tools).and_return(dbl)

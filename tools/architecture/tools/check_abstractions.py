@@ -34,6 +34,21 @@ def violations(repository):
         def text(node):
             return source[node.start_byte:node.end_byte].decode() if node else ''
         def walk(node):
+            tool_contract = relative.startswith('lib/phronomy/tool/')
+            llm_contract = relative.startswith('lib/phronomy/llm_adapter/') and '/backends/' not in relative and '/async/' not in relative
+            agent = relative.startswith('lib/phronomy/agent/')
+            if node.type == 'constant':
+                denied = ({'RubyLLM', 'Agent', 'MultiAgent', 'LLMAdapter', 'Runtime', 'Engine'} if tool_contract else set())
+                if llm_contract:
+                    denied |= {'RubyLLM', 'Agent', 'MultiAgent', 'Runtime', 'Engine', 'Execution', 'AsyncOperation'}
+                if agent:
+                    denied |= {'RubyLLM'}
+                if text(node) in denied:
+                    findings.append({'kind': 'llm-tool-contract-owner-leak', 'file': relative,
+                                     'line': node.start_point.row + 1, 'call': text(node)})
+            if llm_contract and node.type == 'scope_resolution' and text(node).endswith('Tool::Base'):
+                findings.append({'kind': 'llm-tool-contract-owner-leak', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             if node.type == 'call':
                 method = text(node.child_by_field_name('method'))
                 args = node.child_by_field_name('arguments')

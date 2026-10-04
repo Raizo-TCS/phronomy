@@ -157,7 +157,7 @@ RSpec.describe "Agent async event contract" do
         event_listener: ->(event) { event_types << event.type },
         mode: mode
       )
-      invocation.chat = double("Chat", messages: [])
+      invocation.messages = []
       tool_call = double("ToolCall")
 
       invocation.accept_tool_calls!([tool_call])
@@ -177,7 +177,7 @@ RSpec.describe "Agent async event contract" do
         event_listener: ->(event) { event_types << event.type },
         mode: mode
       )
-      invocation.chat = chat
+      invocation.messages = []
       invocation.tool_invocations = [
         double(
           "ToolInvocation",

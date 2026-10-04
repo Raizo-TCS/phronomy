@@ -1,5 +1,11 @@
 # r8第1適用版：Context／ToolとExecutionの共通基盤
 
+> Current boundary: r8 unit 6 supersedes the historical Chat/SDK ownership and
+> adapter extension SPI below. Agent uses LLMAdapter values; the backend owns SDK
+> construction/interception; Tool owns canonical schema validation. See
+> `docs/architecture/r8-unit6.md` and `docs/migrations/r8-unit6.md`.
+
+
 対象は2026-09-30に確認したmain `653e255a34fe4062d4beca47530e084fdd3a6ba9`。設計基準は同日更新のr8修正仕様・directory配置資料である。本変更はその第1適用単位であり、r8全体、S1全項目、S2/S3全受入条件の完了を意味しない。互換alias・転送だけの旧APIは残さない。
 
 ## 実装した責務と操作

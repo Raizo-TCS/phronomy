@@ -389,7 +389,7 @@ module IntegrationFactors
 
   def self.fake_llm_response(content: "ok")
     tokens_stub = Struct.new(:input, :output, :cache_read, :cache_write).new(1, 1, 0, 0)
-    Struct.new(:content, :tokens, :messages).new(content, tokens_stub, [])
+    Struct.new(:role, :content, :tokens, :messages).new(:assistant, content, tokens_stub, [])
   end
 
   # ---------------------------------------------------------------------------

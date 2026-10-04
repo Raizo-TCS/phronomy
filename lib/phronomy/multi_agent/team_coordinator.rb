@@ -499,7 +499,7 @@ module Phronomy
             param :summary, type: :string, desc: "Task generation summary", required: false
           end
           define_method(:call_async) do |args, cancellation_token: nil, config: {}|
-            validated, schema_error = send(:validate_and_coerce, args)
+            validated, schema_error = validate_arguments(args)
             raise Phronomy::ToolError, schema_error if schema_error
             execute_async(**validated, cancellation_token: cancellation_token, config: config)
           rescue => error

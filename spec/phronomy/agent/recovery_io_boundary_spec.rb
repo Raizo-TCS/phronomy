@@ -26,7 +26,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
   end
 
   def resolve_output(agent, event)
-    outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: "saved output", tool_calls: [])
+    outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: "saved output", tool_calls: [])
     agent.resolve_async(event.fetch(:execution_id), expected_execution_revision: event.fetch(:execution_revision),
       subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h)
   end
@@ -65,7 +65,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored, loaded, event = pending_provider
     threads = Queue.new
     restored.before_io = ->(operation) { threads << Thread.current.name if operation == :fetch }
-    allow(Phronomy::Agent::InvocationRestorer).to receive(:build_chat_for_recovery).and_wrap_original do |method, *args, **kwargs|
+    allow(Phronomy::Agent::InvocationRestorer).to receive(:build_input_for_recovery).and_wrap_original do |method, *args, **kwargs|
       expect(Phronomy::Runtime.instance.event_loop.current?).to be(true)
       method.call(*args, **kwargs)
     end

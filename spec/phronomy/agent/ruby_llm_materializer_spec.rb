@@ -38,7 +38,7 @@ RSpec.describe Phronomy::Agent::RuntimeInput do
     message = materializer.materialize_journal_record(record)
     expect(message.role).to eq(:assistant)
     expect(message.content).to eq("I will check both")
-    expect(message.tool_calls.keys).to contain_exactly("a", "b")
+    expect(message.tool_calls.map(&:id)).to contain_exactly("a", "b")
   end
 
   it "materializes canonical Tool messages exactly as recorded" do
@@ -103,8 +103,8 @@ RSpec.describe Phronomy::Agent::RuntimeInput do
     messages = materializer.materialize_journal_records(records)
     expect(messages.length).to eq(3)
     expect(messages.fetch(0).content).to eq("first")
-    expect(messages.fetch(0).tool_calls).to be_nil
-    expect(messages.fetch(1).tool_calls.keys).to eq(["a"])
+    expect(messages.fetch(0).tool_calls).to eq([])
+    expect(messages.fetch(1).tool_calls.map(&:id)).to eq(["a"])
     expect(messages.fetch(2).tool_call_id).to eq("a")
   end
 
@@ -123,6 +123,6 @@ RSpec.describe Phronomy::Agent::RuntimeInput do
     )
 
     message = materializer.materialize_journal_record(record)
-    expect(JSON.parse(message.content)).to eq("answer" => 42)
+    expect(message.content).to eq("answer" => 42)
   end
 end

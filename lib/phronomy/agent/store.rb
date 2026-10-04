@@ -58,7 +58,7 @@ module Phronomy
           batch = Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
           requested = batch.find { |entry| entry.fetch("tool_invocation_id") == invocation_id }
           unless names.include?(name) && requested && requested.fetch("status") == "authorized" &&
-              requested.fetch("tool_name") == name && requested.fetch("arguments").compact == arguments
+              requested.fetch("tool_name") == name && authorized_argument_values(requested) == arguments
             raise Phronomy::Persistence::StateConflictError, "Operation #{invocation_id} is not the authorized call"
           end
           batch.filter_map do |entry|
@@ -66,7 +66,7 @@ module Phronomy
             AuthorizedOperation.new(
               invocation_id: Phronomy::Values::Immutable.copy(entry.fetch("tool_invocation_id")),
               name: Phronomy::Values::Immutable.copy(entry.fetch("tool_name")),
-              arguments: Phronomy::Values::Immutable.copy(entry.fetch("arguments").compact)
+              arguments: Phronomy::Values::Immutable.copy(authorized_argument_values(entry))
             )
           end.freeze
         end
@@ -225,6 +225,12 @@ module Phronomy
       end
 
       private
+
+      def authorized_argument_values(entry)
+        # Unit 6 persists the exact validated snapshot. Older records encoded
+        # legacy raw params, whose explicit optional nil meant omission.
+        entry.key?("validated_arguments") ? entry.fetch("validated_arguments") : entry.fetch("arguments").compact
+      end
 
       def with_scope(scope, &block)
         assert_observation_thread!

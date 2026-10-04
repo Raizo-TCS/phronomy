@@ -388,10 +388,8 @@
     "type": "class",
     "public_instance_methods": [
       "approval_metadata",
-      "approval_resolver",
       "call",
       "call_async",
-      "declared_parameters",
       "description",
       "execute",
       "name",
@@ -402,16 +400,15 @@
       "provider_params",
       "requires_approval",
       "requires_approval?",
-      "tool_origin"
+      "tool_origin",
+      "validate_arguments"
     ],
     "public_class_methods": [
       "approval_facts",
-      "approval_resolver",
       "declared_parameters",
       "desc",
       "description",
       "execution_mode",
-      "inherited",
       "max_result_size",
       "on_error",
       "on_schema_error",
@@ -427,8 +424,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "requires_approval?",
-      "split_result",
       "tool_name",
       "with_params"
     ]
@@ -484,6 +479,110 @@
       "variables"
     ],
     "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Tool::Schema",
+    "type": "class",
+    "public_instance_methods": [
+      "json_schema",
+      "validate"
+    ],
+    "public_class_methods": [
+      "json_value"
+    ]
+  },
+  {
+    "name": "Phronomy::Tool::CallRequest",
+    "type": "class",
+    "public_instance_methods": [
+      "arguments",
+      "id",
+      "metadata",
+      "name",
+      "to_h"
+    ],
+    "public_class_methods": [
+      "from_h"
+    ]
+  },
+  {
+    "name": "Phronomy::LLMAdapter::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "complete",
+      "identity",
+      "input_budget",
+      "stream"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::LLMAdapter::Request",
+    "type": "class",
+    "public_instance_methods": [
+      "message",
+      "messages",
+      "model_config",
+      "system",
+      "tools"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::LLMAdapter::Message",
+    "type": "class",
+    "public_instance_methods": [
+      "content",
+      "content_present?",
+      "metadata",
+      "role",
+      "to_h",
+      "tool_call?",
+      "tool_call_id",
+      "tool_calls"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::LLMAdapter::Response",
+    "type": "class",
+    "public_instance_methods": [
+      "content",
+      "content_present?",
+      "metadata",
+      "role",
+      "to_h",
+      "tool_call?",
+      "tool_call_id",
+      "tool_calls",
+      "usage"
+    ],
+    "public_class_methods": [
+      "from_h"
+    ]
+  },
+  {
+    "name": "Phronomy::LLMAdapter::StreamChunk",
+    "type": "class",
+    "public_instance_methods": [
+      "content"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::LLMAdapter::TokenUsage",
+    "type": "class",
+    "public_instance_methods": [
+      "+",
+      "cache_creation",
+      "cached",
+      "input",
+      "output",
+      "to_h"
+    ],
+    "public_class_methods": [
+      "zero"
+    ]
   },
   {
     "name": "Phronomy::MultiAgent::Handoff",
@@ -738,11 +837,9 @@
     "type": "class",
     "public_instance_methods": [
       "approval_metadata",
-      "approval_resolver",
       "call",
       "call_async",
       "close",
-      "declared_parameters",
       "description",
       "execute",
       "name",
@@ -753,17 +850,16 @@
       "provider_params",
       "requires_approval",
       "requires_approval?",
-      "tool_origin"
+      "tool_origin",
+      "validate_arguments"
     ],
     "public_class_methods": [
       "approval_facts",
-      "approval_resolver",
       "declared_parameters",
       "desc",
       "description",
       "execution_mode",
       "from_server",
-      "inherited",
       "max_result_size",
       "on_error",
       "on_schema_error",
@@ -779,8 +875,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "requires_approval?",
-      "split_result",
       "tool_name",
       "with_params"
     ]
@@ -790,10 +884,8 @@
     "type": "class",
     "public_instance_methods": [
       "approval_metadata",
-      "approval_resolver",
       "call",
       "call_async",
-      "declared_parameters",
       "description",
       "execute",
       "name",
@@ -804,17 +896,16 @@
       "provider_params",
       "requires_approval",
       "requires_approval?",
-      "tool_origin"
+      "tool_origin",
+      "validate_arguments"
     ],
     "public_class_methods": [
       "approval_facts",
-      "approval_resolver",
       "declared_parameters",
       "desc",
       "description",
       "execution_mode",
       "from_agent",
-      "inherited",
       "max_result_size",
       "on_error",
       "on_schema_error",
@@ -830,8 +921,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "requires_approval?",
-      "split_result",
       "tool_name",
       "with_params"
     ]
@@ -841,10 +930,8 @@
     "type": "class",
     "public_instance_methods": [
       "approval_metadata",
-      "approval_resolver",
       "call",
       "call_async",
-      "declared_parameters",
       "description",
       "execute",
       "name",
@@ -855,17 +942,16 @@
       "provider_params",
       "requires_approval",
       "requires_approval?",
-      "tool_origin"
+      "tool_origin",
+      "validate_arguments"
     ],
     "public_class_methods": [
       "approval_facts",
-      "approval_resolver",
       "declared_parameters",
       "desc",
       "description",
       "execution_mode",
       "from_store",
-      "inherited",
       "max_result_size",
       "on_error",
       "on_schema_error",
@@ -881,8 +967,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "requires_approval?",
-      "split_result",
       "tool_name",
       "with_params"
     ]

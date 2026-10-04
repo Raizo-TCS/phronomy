@@ -2,56 +2,35 @@
 
 module Phronomy
   module LLMAdapter
-    # Framework-owned asynchronous execution of a synchronous LLM adapter.
-    #
-    # The adapter owns provider transport timeout, retry and rate-limit policy.
-    # This client preserves non-waiting pool admission and returns the original
-    # TaskResult. Constructing a client never starts the default Runtime.
-    #
+    # Offloads the entire operation, including SDK initialization and decoding.
+    # Construction does not start a Runtime.
     # @api private
     class AsyncClient
-      # @param adapter [LLMAdapter::Base] synchronous call adapter
-      # @param pool [Concurrency::OffloadPool, nil] optional caller-owned pool
       # @api private
       def initialize(adapter:, pool: nil)
         @adapter = adapter
         @pool = pool
       end
 
-      # Submits a non-streaming call without adding an operation timeout.
-      #
-      # @return [Phronomy::TaskResult] the pool's original completion handle
       # @api private
-      def complete_async(chat, message, config: {}, pool: default_pool)
-        token = config[:cancellation_token]
-        Phronomy::Execution.submit(pool: pool, cancellation_token: token, on_full: :raise) do
-          @adapter.complete(chat, message, config: config)
+      def complete_async(request, cancellation_token: nil, pool: @pool)
+        Phronomy::Execution.submit(pool: pool, cancellation_token: cancellation_token,
+          on_full: :raise) do
+          @adapter.complete(request, cancellation_token: cancellation_token)
         end
       end
 
-      # Submits a streaming call. The supplied block runs on a pool worker.
-      # Agent code supplies only an internal sink that posts to EventLoop;
-      # application callbacks must not be passed directly to this method.
-      #
-      # @yield [chunk] streaming chunk on the worker thread
-      # @return [Phronomy::TaskResult] the pool's original completion handle
+      # The block is an internal event sink, never an Application callback.
       # @api private
-      def stream_async(chat, message, config: {}, pool: default_pool, &block)
+      def stream_async(request, cancellation_token: nil, pool: @pool, &block)
         raise ArgumentError, "stream_async requires a block" unless block
-
-        token = config[:cancellation_token]
-        Phronomy::Execution.submit(pool: pool, cancellation_token: token, on_full: :raise) do
-          @adapter.stream(chat, message, config: config) do |chunk|
-            token&.raise_if_cancelled!("invocation cancelled during streaming")
+        Phronomy::Execution.submit(pool: pool, cancellation_token: cancellation_token,
+          on_full: :raise) do
+          @adapter.stream(request, cancellation_token: cancellation_token) do |chunk|
+            cancellation_token&.raise_if_cancelled!
             block.call(chunk)
           end
         end
-      end
-
-      private
-
-      def default_pool
-        @pool
       end
     end
   end

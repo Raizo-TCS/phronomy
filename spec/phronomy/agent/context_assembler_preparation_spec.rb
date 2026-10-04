@@ -264,7 +264,7 @@ RSpec.describe Phronomy::Agent::ContextPreparation do
   it "rejects a hook override of registry-owned context_window before policy selection" do
     patch = Phronomy::Context::LLMInputPatch.new(model_config_patch: {context_window: 1000})
     expect { prepare_initial(patch: patch) }
-      .to raise_error(Phronomy::ConfigurationError, /RubyLLM model registry/)
+      .to raise_error(Phronomy::ConfigurationError, /LLM backend model metadata/)
     expect(policy_inputs).to be_empty
   end
 

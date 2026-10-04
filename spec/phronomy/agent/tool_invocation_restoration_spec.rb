@@ -80,7 +80,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation, "saved state restoration" do
 
   [:completed, :rejected, :failed, :cancelled].each do |status|
     it "restores terminal #{status} without validating or executing the Tool" do
-      expect(tool).not_to receive(:validate_and_coerce)
+      expect(tool).not_to receive(:validate_arguments)
       expect(tool).not_to receive(:execute)
       restore(invocation, status: status, result: "saved output")
       expect(invocation.status).to eq(status)

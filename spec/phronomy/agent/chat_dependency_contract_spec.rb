@@ -12,7 +12,7 @@ RSpec.describe "Agent chat dependency contract" do
     RubyLLM.configure { |config| config.openai_api_key = old_api_key }
   end
 
-  it "constructs ordinary chat without MultiAgent or the removed chat configuration API" do
+  it "constructs a neutral request without MultiAgent or the removed chat configuration API" do
     source = <<~RUBY
       require "phronomy"
       Zeitwerk::Loader.eager_load_all
@@ -23,12 +23,12 @@ RSpec.describe "Agent chat dependency contract" do
       abort "obsolete reader remains" if configuration.respond_to?(:parallel_tool_execution)
       abort "obsolete writer remains" if configuration.respond_to?(:parallel_tool_execution=)
       Phronomy.send(:remove_const, :MultiAgent)
-      RubyLLM.configure { |c| c.openai_api_key = "test-api-key" }
       klass = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "chat-dependency-contract", version: 1
       end
-      chat = klass.new.send(:build_chat, model_config: {"model" => "test-model", "provider" => "openai"})
-      abort "unexpected chat class" unless chat.instance_of?(RubyLLM::Chat)
+      request = Phronomy::LLMAdapter::Request.new(model_config: {"model" => "test-model"})
+      abort "unexpected request class" unless request.instance_of?(Phronomy::LLMAdapter::Request)
+      abort "Agent still owns SDK construction" if klass.private_method_defined?(:build_chat)
       Phronomy.reset_runtime!
     RUBY
     stdout, stderr, status = Open3.capture3(
@@ -54,10 +54,9 @@ RSpec.describe "Agent chat dependency contract" do
       reloaded = Phronomy::Context::LLMInputManifest.from_h(persistence.contents.fetch_json(manifest_ref))
       projection = Phronomy::Agent::RuntimeInput.new(agent: agent, persistence: persistence)
         .materialize(manifest: reloaded, manifest_ref: manifest_ref)
-      chat = agent.send(:build_chat, model_config: projection.model_config)
+      request = Phronomy::LLMAdapter::Request.new(model_config: projection.model_config)
 
-      expect(chat).to be_an_instance_of(RubyLLM::Chat)
-      expect(chat.model.id).to eq("test-model")
+      expect(request.model_config.fetch("model")).to eq("test-model")
       expect(persistence.contents.fetch_json(config_ref)).to eq(stored_config)
       expect(persistence.contents.put_json(reloaded.to_h)).to eq(manifest_ref)
     end

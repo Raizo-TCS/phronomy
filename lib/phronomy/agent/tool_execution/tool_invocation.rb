@@ -196,11 +196,7 @@ module Phronomy
       def validate!
         return self if terminal?
 
-        validated, schema_error = if @tool.respond_to?(:validate_and_coerce, true)
-          @tool.send(:validate_and_coerce, @raw_arguments)
-        else
-          [@raw_arguments, nil]
-        end
+        validated, schema_error = @tool.validate_arguments(@raw_arguments)
 
         if schema_error
           if @tool.class.respond_to?(:on_schema_error) && @tool.class.on_schema_error == :raise
@@ -519,7 +515,7 @@ module Phronomy
 
       def self.authorization_failure_result(tool_invocation_id, error)
         if error.is_a?(Phronomy::TimeoutError) ||
-            error.is_a?(Phronomy::TransportError) ||
+            error.is_a?(Phronomy::LLMAdapter::TransportError) ||
             error.is_a?(Phronomy::BackpressureError)
           AuthorizationOutcome.new(
             tool_invocation_id: tool_invocation_id,

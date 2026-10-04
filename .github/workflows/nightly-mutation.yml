@@ -24,6 +24,8 @@ jobs:
             timeout_minutes: 60
           - subject: Phronomy::Tool::Base
             label: Tool::Base
+          - subject: Phronomy::Tool::Schema
+            label: Tool::Schema
           - subject: Phronomy::LlmContextWindow::TokenBudget
             label: LlmContextWindow::TokenBudget
           - subject: Phronomy::Context::Assembly

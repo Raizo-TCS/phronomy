@@ -141,10 +141,10 @@ RSpec.describe "README API smoke tests (Issue #141)" do
     it "exposes all documented error classes" do
       expect(Phronomy::Error).to be < StandardError
       expect(Phronomy::ToolError).to be < Phronomy::Error
-      expect(Phronomy::TransportError).to be < Phronomy::Error
-      expect(Phronomy::RateLimitError).to be < Phronomy::TransportError
-      expect(Phronomy::AuthenticationError).to be < Phronomy::TransportError
-      expect(Phronomy::ContextLengthError).to be < Phronomy::Error
+      expect(Phronomy::LLMAdapter::TransportError).to be < Phronomy::Error
+      expect(Phronomy::LLMAdapter::RateLimitError).to be < Phronomy::LLMAdapter::TransportError
+      expect(Phronomy::LLMAdapter::AuthenticationError).to be < Phronomy::LLMAdapter::TransportError
+      expect(Phronomy::LLMAdapter::ContextLengthError).to be < Phronomy::Error
       expect(Phronomy::CancellationError).to be < Phronomy::Error
       expect(Phronomy::TimeoutError).to be < Phronomy::Error
     end

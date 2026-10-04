@@ -61,7 +61,7 @@ module Phronomy
           # cancelled: an already admitted child must be settled, not forgotten.
           define_method(:call_async) do |args, cancellation_token: nil, config: {}|
             if @_orchestrator_context&.fetch(:parent, nil) && config[:phronomy_tool_invocation_id]
-              validated, schema_error = send(:validate_and_coerce, args)
+              validated, schema_error = validate_arguments(args)
               raise Phronomy::ToolError, schema_error if schema_error
               execute_async(**validated, cancellation_token: cancellation_token, config: config)
             else
