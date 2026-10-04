@@ -2,7 +2,13 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
+RSpec.describe Phronomy::Agent::EngineEnvironment do
+  let(:environment) { described_class.new }
+
+  def build(agent:, input:, config:, mode: :invoke, on_event: nil, approval_policy: nil, approval_listener: nil)
+    invocation = Phronomy::Agent::AgentInvocation.new(agent: agent, input: input, config: config, mode: mode, event_listener: on_event, approval_policy: approval_policy, approval_listener: approval_listener)
+    environment.build_agent_session(invocation: invocation)
+  end
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-32", version: 1
@@ -13,7 +19,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
 
   describe ".build" do
     it "returns a Phronomy::FSMSession" do
-      session = described_class.build(
+      session = build(
         agent: agent,
         input: "hello",
         config: {execution_id: "execution-1"}
@@ -23,11 +29,11 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     end
 
     it "lets each FSMSession own a fresh UUID identity" do
-      first = described_class.build(
+      first = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
-      second = described_class.build_for_resume(
-        agent_invocation: first.context,
+      second = environment.build_agent_session(
+        invocation: first.context,
         resume_event: :resume,
         resume_phase: :suspended
       )
@@ -38,14 +44,14 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     end
 
     it "does not require application generic identity to build a session" do
-      session = described_class.build(
+      session = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1", user_id: "u1"}
       )
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
     it "sets :suspended as the wait_state (Human approval suspends AgentInvocation)" do
-      session = described_class.build(
+      session = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       wait_states = session.instance_variable_get(:@wait_state_names)
@@ -53,7 +59,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     end
 
     it "registers ToolInvocation events and :resume as external events" do
-      session = described_class.build(
+      session = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       ext = session.instance_variable_get(:@external_events)
@@ -63,7 +69,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
 
     it "accepts mode: :stream and on_event" do
       on_event = ->(_event, _event_sink) {}
-      session = described_class.build(
+      session = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"},
         mode: :stream, on_event: on_event
       )
@@ -73,7 +79,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     it "accepts approval_policy and approval_listener" do
       policy = ->(_req) { :allow }
       listener = ->(_req) {}
-      session = described_class.build(
+      session = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"},
         approval_policy: policy, approval_listener: listener
       )
@@ -81,7 +87,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
     end
 
     it "includes all expected entry action states" do
-      session = described_class.build(
+      session = build(
         agent: agent, input: "hi", config: {execution_id: "execution-1"}
       )
       declared = session.instance_variable_get(:@declared_states)
@@ -98,7 +104,7 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
 
       allow(coordinator).to receive(:prepare_tool_dispatch)
 
-      result = described_class.send(
+      result = Phronomy::Agent::InvocationActions.send(
         :dispatching_tools_action, nil, parent_event_sink, invocation
       )
 

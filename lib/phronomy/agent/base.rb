@@ -268,6 +268,12 @@ module Phronomy
         end
       end
 
+      # Bound at Agent construction; no execution may silently switch Runtime.
+      # @api private
+      def __execution_environment
+        @_phronomy_runtime_owner || ExecutionEnvironment.current
+      end
+
       # @api private
       def __execution_wiring
         @_phronomy_execution_wiring || {}.freeze
@@ -434,7 +440,7 @@ module Phronomy
         runtime = @_phronomy_runtime_owner
         registry = OwnershipRegistry.for(runtime)
         token = registry.begin_purge(self)
-        if Phronomy::Agent::ExecutionRegistry.existing_for(runtime)&.agent_execution_admitted?(agent_id)
+        if runtime.existing_registry&.agent_execution_admitted?(agent_id)
           registry.abort_purge(self, token)
           raise Phronomy::AgentBusyError,
             "Agent #{agent_id.inspect} has a nonterminal top-level execution"

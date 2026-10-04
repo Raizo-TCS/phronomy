@@ -46,10 +46,10 @@ module Phronomy
         end
 
         def continue_recovery_on_event_loop(execution, completion, material:)
-          event_loop = @runtime.event_loop
+          environment = @environment
           action = recovery_action(execution)
           if action == :resolution_required
-            Phronomy::Agent::ExecutionRegistry.for(event_loop).mark_agent_execution_admission(agent.agent_id,
+            environment.registry.mark_agent_execution_admission(agent.agent_id,
               execution_id: execution.execution_id, state: :recovery_required)
             deliver_resolution_required(execution, coordination_recovery_descriptor(execution))
             completion.complete({execution_id: execution.execution_id,
@@ -60,7 +60,7 @@ module Phronomy
 
           observe_recovery_execution(completion, execution)
           main = agent.send(:execution_coordinator_for, agent.__execution_wiring)
-          projection = Phronomy::Agent::ExecutionRegistry.for(event_loop).agent_execution_state(execution.execution_id).runtime_projection
+          projection = environment.registry.agent_execution_state(execution.execution_id).runtime_projection
           if action == :failed_terminal
             invocation = build_failed_recovery_invocation(execution, main)
           else

@@ -6,11 +6,12 @@ RSpec.describe "Engine execution receiver lifecycle (ADR-042; F0/F3/F4, no X0)" 
   let(:runtime) { Phronomy::Runtime.new }
   let(:event_loop) { runtime.event_loop }
   let(:receiver_class) do
+    observed_runtime = runtime
     Class.new(Phronomy::ExecutionReceiver) do
       attr_reader :entered, :release, :stopped
       attr_accessor :fail_shutdown
 
-      def initialize(event_loop:)
+      def initialize(channel:)
         super
         @entered, @release, @stopped = Queue.new, Queue.new, Queue.new
         @held = false
@@ -40,8 +41,8 @@ RSpec.describe "Engine execution receiver lifecycle (ADR-042; F0/F3/F4, no X0)" 
         !@held
       end
 
-      def shutdown(error:)
-        @stopped << [error, @event_loop.current?, @event_loop.thread_alive?]
+      define_method(:shutdown) do |error:|
+        @stopped << [error, observed_runtime.__event_loop_if_initialized.current?, observed_runtime.__event_loop_if_initialized.thread_alive?]
         raise IOError, "receiver cleanup failed" if fail_shutdown
         synchronize { @held = false }
       end
@@ -75,7 +76,7 @@ RSpec.describe "Engine execution receiver lifecycle (ADR-042; F0/F3/F4, no X0)" 
   end
 
   it "rejects unregistered and foreign-loop receivers" do
-    detached = receiver_class.new(event_loop: event_loop)
+    detached = receiver_class.new(channel: Phronomy::ExecutionReceiverBinding.new(event_loop))
     expect(detached.post(:admit, admission: true)).to be(false)
     foreign_runtime = Phronomy::Runtime.new
     foreign = receiver_class.for(foreign_runtime.event_loop)

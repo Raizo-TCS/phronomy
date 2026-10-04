@@ -32,9 +32,11 @@ module Phronomy
       end
 
       def cancel_async(execution_id)
-        Phronomy::Execution.submit(on_full: :raise) do
+        __assert_live_agent!
+        environment = __execution_environment
+        environment.submit(on_full: :raise) do
           requested = persistence.request_cancellation(agent_id: agent_id, execution_id: execution_id)
-          ExecutionCancellation.signal(execution_id, agent_id) if requested
+          ExecutionCancellation.signal(execution_id, agent_id, environment: environment) if requested
           persistence.observe_execution(agent_id: agent_id, execution_id: execution_id)
         end
       end

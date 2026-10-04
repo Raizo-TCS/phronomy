@@ -411,6 +411,13 @@
       "role": "Cancellation / deadline / composition / subscriptions",
       "mixed": false,
       "group": "G58"
+    },
+    {
+      "id": "M88",
+      "directory": "lib/phronomy/agent/runtime_binding",
+      "role": "Agent session construction / Engine connection",
+      "mixed": false,
+      "group": "G62"
     }
   ],
   "groups": [
@@ -751,6 +758,14 @@
       "members": [
         "M12"
       ]
+    },
+    {
+      "id": "G62",
+      "title": "AGENT ENGINE BINDING",
+      "kind": "domain_binding",
+      "members": [
+        "M88"
+      ]
     }
   ],
   "matrix_order": [
@@ -771,6 +786,7 @@
     "M42",
     "M55",
     "M56",
+    "M88",
     "M57",
     "M60",
     "M59",
@@ -816,8 +832,9 @@
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 6: SDK-neutral C09 LLM operations and C06 Tool schema. FSM/Runtime connections, Workflow durable children and broader semantic dependency review remain.",
+  "scope_note": "r8 unit 7: C04 Agent progress, lifecycle and recovery use a composition-owned execution environment. Agent Tool FSM, MultiAgent/Workflow connections, durable children and full dependency review remain.",
   "persistence_framework_separated": true,
   "r8_unit5_contracts": true,
-  "r8_unit6_contracts": true
+  "r8_unit6_contracts": true,
+  "r8_unit7_contracts": true
 }

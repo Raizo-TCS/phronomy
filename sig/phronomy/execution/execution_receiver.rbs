@@ -1,0 +1,40 @@
+module Phronomy
+  interface _ExecutionReceiver
+    def idle?: () -> bool
+    def deliver: (untyped message) -> untyped
+    def shutdown: (error: Exception?) -> untyped
+    def session_retired: (String session_id, reason: Symbol) -> untyped
+  end
+
+  interface _ExecutionChannel
+    def bound_to?: (untyped owner) -> bool
+    def current?: () -> bool
+    def synchronize: [V] () { () -> V } -> V
+    def admit: [V] (ExecutionReceiver receiver) { () -> V } -> V
+    def post: (ExecutionReceiver receiver, untyped message, admission: bool, completion: TaskResult[untyped]?) -> bool
+    def route: (ExecutionReceiver receiver) { () -> untyped } -> bool
+  end
+
+  # Internal serial-owner contract; composition supplies the transport.
+  class ExecutionReceiver
+    def self.install_binding: (^() -> untyped provider) -> untyped
+    def self.binding: () -> untyped
+    def self.for: (untyped owner) -> instance
+    def self.existing_for: (untyped owner) -> instance?
+    def initialize: (channel: _ExecutionChannel) -> void
+    def __bound_to?: (untyped owner) -> bool
+    def idle?: () -> bool
+    def deliver: (untyped message) -> untyped
+    def shutdown: (error: Exception?) -> untyped
+    def session_retired: (String fsm_session_id, reason: Symbol) -> untyped
+
+    private
+
+    def synchronize: [V] () { () -> V } -> V
+    def admit: [V] () { () -> V } -> V
+    def post_message: (untyped message, ?admission: bool, ?completion: TaskResult[untyped]?) -> bool
+    def route_event: () { () -> untyped } -> bool
+    def assert_event_loop_thread!: () -> void
+  end
+
+end

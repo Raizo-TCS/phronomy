@@ -89,5 +89,20 @@
       "Live provider service verification",
       "Overall semantic dependency review"
     ]
+  },
+  "r8_unit7": {
+    "status": "scoped_agent_boundary_implemented",
+    "completed_scope": [
+      "Agent automatic/external transition policy and entry operations",
+      "Composition-owned Agent execution environment; Engine session binding",
+      "Agent recovery/cancellation retain their originating environment",
+      "Serial receiver lifecycle contract with Engine channel binding"
+    ],
+    "pending_scope": [
+      "Agent Tool child FSM and its Runtime connection",
+      "MultiAgent/Workflow FSM and Runtime connections",
+      "Workflow durable child protocol and outcome evidence",
+      "Full semantic dependency review"
+    ]
   }
 }

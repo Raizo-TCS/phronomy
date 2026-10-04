@@ -327,7 +327,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
       install(fsm_session_id: nil)
       ready = recovery_ready(:active, error: nil)
       session = double("recovered session", id: "recovered-session", context: invocation)
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder).to receive(:build).and_return(session)
+      allow(agent.__execution_environment).to receive(:build_agent_session).and_return(session)
       runner = instance_double(Phronomy::Agent::ExecutionSessionRunner)
       registered = []
       allow(Phronomy::Agent::ExecutionSessionRunner).to receive(:new).and_return(runner)
@@ -346,7 +346,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
     it "terminalizes registration failure while completing the load observer" do
       install(fsm_session_id: nil)
       submitted = hold_terminal_worker
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder).to receive(:build).and_raise(IOError, "registration failed")
+      allow(agent.__execution_environment).to receive(:build_agent_session).and_raise(IOError, "registration failed")
       ready = recovery_ready(:active, error: nil)
       apply(ready)
       expect(load_task.wait_result).to equal(agent)

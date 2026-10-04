@@ -264,7 +264,7 @@ RSpec.describe "Agent same-process live ownership" do
     agent = agent_class.create(agent_id: "agent-ownership-check", persistence: persistence)
     runtime = Phronomy::Runtime.instance
 
-    registry = Phronomy::Agent::OwnershipRegistry.for(runtime)
+    registry = Phronomy::Agent::EngineEnvironment.new(runtime: runtime).ownership
     expect(registry.owned?(nil)).to be false
     expect(registry.owned?(agent)).to be true
 
@@ -276,7 +276,7 @@ RSpec.describe "Agent same-process live ownership" do
     agent = agent_class.create(agent_id: "agent-not-live", persistence: persistence)
     agent.purge!
 
-    registry = Phronomy::Agent::OwnershipRegistry.for(Phronomy::Runtime.instance)
+    registry = Phronomy::Agent::ExecutionEnvironment.current.ownership
     expect {
       registry.begin_purge(agent)
     }.to raise_error(Phronomy::RuntimeShutdownError)

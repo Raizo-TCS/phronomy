@@ -49,7 +49,7 @@ module Phronomy
 
       def initialize(agent)
         @agent = agent
-        @runtime = Phronomy::Runtime.instance
+        @environment = agent.__execution_environment
       end
 
       def recover_on_load!
@@ -196,7 +196,7 @@ module Phronomy
       def post_control(command)
         admission = command.is_a?(InstallCommand) || command.is_a?(ResolveCommand)
         completion = admission ? command.completion : command.request.completion
-        ExecutionRegistry.for(@runtime.event_loop).post(command,
+        @environment.registry.post(command,
           admission: admission, completion: completion)
       rescue Phronomy::RuntimeShutdownError
         false

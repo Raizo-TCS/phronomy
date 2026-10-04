@@ -2,105 +2,29 @@
 
 module Phronomy
   module Agent
-    class AgentInvocationSessionBuilder
-      def self.build(
-        agent:,
-        input:,
-        config:,
-        approval_policy: nil,
-        approval_listener: nil,
-        mode: :invoke,
-        on_event: nil,
-        runtime: Phronomy::Runtime.instance
-      )
-        invocation = AgentInvocation.new(
-          agent: agent,
-          input: input,
-          config: config,
-          approval_policy: approval_policy,
-          approval_listener: approval_listener,
-          event_listener: on_event,
-          mode: mode,
-          execution_id: config.fetch(:execution_id)
-        )
-        build_session(
-          agent_invocation: invocation,
-          runtime: runtime,
-          mode: mode
-        )
-      end
-
-      def self.build_for_resume(
-        agent_invocation:,
-        resume_event:,
-        resume_phase:,
-        runtime: Phronomy::Runtime.instance
-      )
-        build_session(
-          agent_invocation: agent_invocation,
-          runtime: runtime,
-          mode: agent_invocation.mode,
-          resume_event: resume_event,
-          resume_phase: resume_phase
-        )
-      end
-
-      def self.build_session(
-        agent_invocation:,
-        runtime:,
-        mode:,
-        resume_event: nil,
-        resume_phase: nil
-      )
-        agent = agent_invocation.agent
-        event_sink = Phronomy::FSMSession::EventSink.new(
-          event_loop: runtime.event_loop
-        )
-        agent_invocation.bind_event_sink!(event_sink)
-        actions = build_entry_actions(
-          agent, runtime, mode: mode, event_sink: event_sink
-        )
-        phase_machine = Agent::PhaseMachineBuilder.new(entry_actions: actions).build
-        iterations = agent.class.max_iterations || 10
-
-        Phronomy::FSMSession.new(
-          context: agent_invocation,
-          event_sink: event_sink,
-          entry_point: InvocationTransitions::ENTRY_POINT,
-          phase_machine_class: phase_machine,
-          entry_actions: {},
-          auto_state_set: InvocationTransitions::AUTO_STATE_SET,
-          declared_states: InvocationTransitions::DECLARED_STATES,
-          wait_state_names: InvocationTransitions::WAIT_STATES,
-          external_events: InvocationTransitions::EXTERNAL_EVENTS,
-          recursion_limit: 12 + (iterations * 8),
-          event_loop: runtime.event_loop,
-          resume_event: resume_event,
-          resume_phase: resume_phase
-        )
-      end
-      private_class_method :build_session
-
-      def self.build_entry_actions(agent, runtime, mode:, event_sink:)
+    # Agent-owned entry operations and external-result delivery.
+    # Session construction and resource selection are supplied by the environment.
+    # @api private
+    class InvocationActions
+      def self.build_entry_actions(agent, environment, mode:, event_sink:)
         calling_action = if mode.to_sym == :stream
-          method(:calling_llm_stream_action).curry.call(agent, runtime, event_sink)
+          method(:calling_llm_stream_action).curry.call(agent, environment, event_sink)
         else
-          method(:calling_llm_action).curry.call(agent, runtime, event_sink)
+          method(:calling_llm_action).curry.call(agent, environment, event_sink)
         end
 
         {
           filtering_input: [method(:apply_prepared_input_action).curry.call(agent)],
           building_context: [method(:prepare_runtime_input_action).curry.call(agent)],
           calling_llm: [calling_action],
-          starting_tools: [method(:starting_tools_action).curry.call(runtime, event_sink)],
-          dispatching_tools: [method(:dispatching_tools_action).curry.call(runtime, event_sink)],
+          starting_tools: [method(:starting_tools_action).curry.call(environment, event_sink)],
+          dispatching_tools: [method(:dispatching_tools_action).curry.call(environment, event_sink)],
           recording_tool_results: [method(:recording_tool_results_action)],
           suspended: [method(:suspended_action)],
           output_filtering: [method(:output_filtering_action).curry.call(agent)],
           failed: [method(:failed_action)]
         }
       end
-      private_class_method :build_entry_actions
 
       def self.apply_prepared_input_action(_agent, invocation)
         invocation.input = invocation.config.fetch(:phronomy_filtered_input)
@@ -114,19 +38,19 @@ module Phronomy
       end
       private_class_method :prepare_runtime_input_action
 
-      def self.calling_llm_action(agent, runtime, event_sink, invocation)
-        prepare_and_start_llm_call(agent, runtime, event_sink, invocation, streaming: false)
+      def self.calling_llm_action(agent, environment, event_sink, invocation)
+        prepare_and_start_llm_call(agent, environment, event_sink, invocation, streaming: false)
         invocation
       end
       private_class_method :calling_llm_action
 
-      def self.calling_llm_stream_action(agent, runtime, event_sink, invocation)
-        prepare_and_start_llm_call(agent, runtime, event_sink, invocation, streaming: true)
+      def self.calling_llm_stream_action(agent, environment, event_sink, invocation)
+        prepare_and_start_llm_call(agent, environment, event_sink, invocation, streaming: true)
         invocation
       end
       private_class_method :calling_llm_stream_action
 
-      def self.prepare_and_start_llm_call(agent, runtime, event_sink, invocation, streaming:)
+      def self.prepare_and_start_llm_call(agent, environment, event_sink, invocation, streaming:)
         # Callback failure is recorded synchronously on EventLoop before its
         # explicit failure event is queued. Do not start a competing durable
         # follow-up operation from the same execution revision while that failure
@@ -142,7 +66,7 @@ module Phronomy
         else
           start_provider_call(
             agent,
-            runtime,
+            environment,
             event_sink,
             invocation,
             invocation.config.fetch(:phronomy_runtime_projection),
@@ -160,7 +84,7 @@ module Phronomy
       # @api private
       def self.start_prepared_provider_call(
         agent:,
-        runtime:,
+        environment:,
         event_sink:,
         invocation:,
         projection:,
@@ -168,7 +92,7 @@ module Phronomy
       )
         start_provider_call(
           agent,
-          runtime,
+          environment,
           event_sink,
           invocation,
           projection,
@@ -178,7 +102,7 @@ module Phronomy
       end
 
       def self.start_provider_call(
-        agent, runtime, event_sink, invocation, projection,
+        agent, environment, event_sink, invocation, projection,
         streaming:, replace_messages:
       )
         call_context = trace_handle = nil
@@ -190,7 +114,9 @@ module Phronomy
         end
 
         request = agent.send(:build_llm_request, projection, invocation: invocation)
-        call_context = invocation.begin_llm_call!(projection)
+        state = environment.registry.agent_execution_state(invocation.execution_id)
+        call_context = invocation.begin_llm_call!(projection,
+          llm_call_id: state&.execution&.metadata&.fetch(ExecutionMetadata::PENDING_LLM_ID_KEY, nil))
         message = request.message
         trace_handle = Phronomy::Tracing::Automatic.start(
           "llm.call",
@@ -222,7 +148,7 @@ module Phronomy
             request, cancellation_token: config[:cancellation_token]
           )
         end
-        Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop).supervise_agent_operation(
+        environment.registry.supervise_agent_operation(
           invocation.execution_id,
           operation
         )
@@ -315,7 +241,7 @@ module Phronomy
       end
       private_class_method :post_session_event!
 
-      def self.starting_tools_action(runtime, parent_event_sink, invocation)
+      def self.starting_tools_action(environment, parent_event_sink, invocation)
         children = invocation.pending_tool_calls.map do |tool_call|
           tool = invocation.tools[tool_call.name.to_sym]
           tool_invocation_id =
@@ -352,13 +278,9 @@ module Phronomy
         invocation.tool_invocations = children
 
         children.reject(&:terminal?).each do |child|
-          session = ToolInvocationSessionBuilder.build(
-            tool_invocation: child,
-            parent_event_sink: parent_event_sink,
-            runtime: runtime
-          )
+          session = environment.build_tool_session(invocation: child, parent_sink: parent_event_sink)
           register_child_session(
-            runtime,
+            environment,
             child,
             session,
             parent_event_sink
@@ -368,7 +290,7 @@ module Phronomy
       end
       private_class_method :starting_tools_action
 
-      def self.dispatching_tools_action(_runtime, parent_event_sink, invocation)
+      def self.dispatching_tools_action(_environment, parent_event_sink, invocation)
         invocation.config.fetch(:phronomy_execution_coordinator).prepare_tool_dispatch(
           invocation,
           event_sink: parent_event_sink
@@ -381,20 +303,19 @@ module Phronomy
       # preparation has been confirmed and applied by ExecutionCoordinator.
       # @api private
       def self.start_prepared_tool_dispatch(
-        runtime:,
+        environment:,
         event_sink:,
         invocation:
       )
         invocation.tool_invocations.select(&:authorized?).each do |child|
-          session = ToolInvocationSessionBuilder.build_for_resume(
-            tool_invocation: child,
-            parent_event_sink: event_sink,
+          session = environment.build_tool_session(
+            invocation: child,
+            parent_sink: event_sink,
             resume_event: :dispatch,
-            resume_phase: :authorized,
-            runtime: runtime
+            resume_phase: :authorized
           )
           begin
-            register_child_session(runtime, child, session, event_sink)
+            register_child_session(environment, child, session, event_sink)
           rescue => error
             child.mark_framework_failed!(error)
             event_sink.post(:tool_failed, {tool_invocation_id: child.id})
@@ -404,7 +325,7 @@ module Phronomy
         invocation
       end
 
-      def self.register_child_session(runtime, child, session, parent_event_sink)
+      def self.register_child_session(environment, child, session, parent_event_sink)
         completion = Phronomy::TaskResult.deferred(name: "tool-session:#{child.id}")
         completion.on_complete do |_result, error|
           next unless error
@@ -414,7 +335,7 @@ module Phronomy
           child.mark_framework_failed!(error)
           parent_event_sink.post(:tool_failed, {tool_invocation_id: child.id})
         end
-        runtime.event_loop.register(session, completion: completion)
+        environment.register_session(session, completion: completion)
       end
       private_class_method :register_child_session
 

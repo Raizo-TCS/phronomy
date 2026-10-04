@@ -85,7 +85,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "does not start a follow-up durable operation after an application callback has already failed" do
-    builder = source("lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
+    builder = source("lib/phronomy/agent/execution/invocation_actions.rb")
     method_source = builder
       .split("def self.prepare_and_start_llm_call", 2).fetch(1)
       .split("private_class_method :prepare_and_start_llm_call", 2).first

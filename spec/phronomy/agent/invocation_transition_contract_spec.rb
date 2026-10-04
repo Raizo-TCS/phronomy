@@ -31,16 +31,21 @@ RSpec.describe "Agent invocation transition contract" do
     end
   end
   let(:runtime) { double("runtime", event_loop: event_loop) }
-  let(:session_builder) { Phronomy::Agent::AgentInvocationSessionBuilder }
+  let(:environment) { Phronomy::Agent::EngineEnvironment.new(runtime: runtime) }
+
+  def build_session(agent:, input:, config:, runtime:)
+    invocation = Phronomy::Agent::AgentInvocation.new(agent: agent, input: input, config: config)
+    environment.build_agent_session(invocation: invocation)
+  end
   let(:session) do
-    session_builder.build(
+    build_session(
       agent: agent_class.new, input: "hello",
       config: {execution_id: "transition-contract"}, runtime: runtime
     )
   end
 
   before do
-    allow(session_builder).to receive(:build_entry_actions).and_return({})
+    allow(Phronomy::Agent::InvocationActions).to receive(:build_entry_actions).and_return({})
   end
 
   def handle(session, type)
@@ -126,7 +131,7 @@ RSpec.describe "Agent invocation transition contract" do
     automatic = %i[idle filtering_input building_context starting_tools evaluating_tools recording_tool_results output_filtering]
     waiting = %i[calling_llm waiting_for_tools dispatching_tools]
     states.each do |state|
-      current = session_builder.build(
+      current = build_session(
         agent: agent_class.new, input: "hello",
         config: {execution_id: "boundary-#{state}"}, runtime: runtime
       )
@@ -162,9 +167,9 @@ RSpec.describe "Agent invocation transition contract" do
     expect(events.map(&:type)).to eq([:halted])
 
     events.clear
-    resumed = session_builder.build_for_resume(
-      agent_invocation: invocation, resume_event: :resume,
-      resume_phase: :suspended, runtime: runtime
+    resumed = environment.build_agent_session(
+      invocation: invocation, resume_event: :resume,
+      resume_phase: :suspended
     )
     expect(resumed.id).not_to eq(session.id)
     resumed.start

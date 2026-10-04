@@ -280,7 +280,8 @@ class ProjectTests(unittest.TestCase):
         owners = {
             '_ExecutionScope': 'execution',
             '_TimerQueue': 'engine/concurrency',
-            '_ExecutionReceiver': 'engine',
+            '_ExecutionReceiver': 'execution',
+            '_ExecutionChannel': 'execution',
             '_FSMEventSink': 'engine',
             '_TerminalPolicy': 'engine',
         }

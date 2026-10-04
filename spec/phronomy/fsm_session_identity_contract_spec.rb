@@ -102,7 +102,7 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "does not inject Agent or Tool domain IDs into FSMSession constructors" do
     %w[
-      lib/phronomy/agent/execution/agent_invocation_session_builder.rb
+      lib/phronomy/agent/runtime_binding/engine_session_builder.rb
       lib/phronomy/agent/tool_execution/tool_invocation_session_builder.rb
     ].each do |relative|
       source = File.read(File.join(root, relative))
@@ -155,7 +155,7 @@ RSpec.describe "CG-03b FSMSession incarnation identity and routing foundation" d
 
   it "routes Provider completion before EventLoop applies semantic result state" do
     builder = File.read(
-      File.join(root, "lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
+      File.join(root, "lib/phronomy/agent/execution/invocation_actions.rb")
     )
     invocation = File.read(
       File.join(root, "lib/phronomy/agent/execution/agent_invocation.rb")

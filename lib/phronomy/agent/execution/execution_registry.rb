@@ -7,7 +7,7 @@ module Phronomy
     # @api private
     class ExecutionRegistry < Phronomy::ExecutionReceiver
       def self.existing_current
-        existing_for(Phronomy::Runtime.instance)
+        ExecutionEnvironment.current.existing_registry
       end
 
       # Immutable Agent-owned value. The map containing these records is the
@@ -40,7 +40,7 @@ module Phronomy
       PhysicalCompletion = Data.define(:execution_id, :token)
       private_constant :UNSET, :PhysicalCompletion
 
-      def initialize(event_loop:)
+      def initialize(channel:)
         super
         @agent_admissions = {}
         @agent_executions = {}

@@ -15,7 +15,7 @@
   "Phronomy::Storage::condition": "lib/phronomy/storage",
   "Phronomy::_ExecutionScope": "lib/phronomy/execution",
   "Phronomy::_TimerQueue": "lib/phronomy/engine/concurrency",
-  "Phronomy::_ExecutionReceiver": "lib/phronomy/engine",
+  "Phronomy::_ExecutionReceiver": "lib/phronomy/execution",
   "Phronomy::_FSMEventSink": "lib/phronomy/engine",
   "Phronomy::_TerminalPolicy": "lib/phronomy/engine",
   "Phronomy::_CompletionHandle": "lib/phronomy/execution",
@@ -31,5 +31,6 @@
   "Phronomy::Agent::_ExecutionParticipant": "lib/phronomy/agent",
   "Phronomy::Agent::_ControlCapability": "lib/phronomy/agent",
   "Phronomy::Agent::execution_result": "lib/phronomy/agent",
-  "Phronomy::Agent::execution_wiring": "lib/phronomy/agent"
+  "Phronomy::Agent::execution_wiring": "lib/phronomy/agent",
+  "Phronomy::_ExecutionChannel": "lib/phronomy/execution"
 }

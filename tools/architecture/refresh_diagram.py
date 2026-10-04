@@ -107,6 +107,17 @@ def check_boundaries(audit, phase, repo, architecture=None):
     forbidden_roles["engine_concurrency"] = forbidden_roles["engine"] | {"engine"}
     for role in ["backend_contracts", "backend_implementations", "document_processing", "token_budget"]:
         forbidden_roles[role].add("engine_concurrency")
+    # A domain binding joins its own framework to Engine; it is not the
+    # neutral Engine. Existing lower-level roles must not reach this binding.
+    for denied_roles in forbidden_roles.values():
+        if "domain" in denied_roles or "engine" in denied_roles:
+            denied_roles.add("domain_binding")
+    if architecture.get("r8_unit7_contracts"):
+        progress = {"lib/phronomy/agent/" + name for name in
+                    ("execution", "recovery", "recovery/recovery_coordinator", "lifecycle")}
+        for source, target in sorted(pairs):
+            if source in progress and (beneath(target, ENGINE) or roles.get(target) == "domain_binding"):
+                violations.append({"kind": "agent-progress-selects-engine", "pair": (source, target)})
     for source in sorted(modules):
         denied = forbidden_roles.get(roles.get(source), set())
         if architecture.get("r8_unit6_contracts") and source in {"lib/phronomy/llm_adapter", "lib/phronomy/llm_adapter/backends"}:

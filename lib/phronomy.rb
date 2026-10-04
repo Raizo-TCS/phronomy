@@ -34,7 +34,7 @@ end
 end
 # Agent responsibility directories retain the existing Agent constant names.
 %w[
-  lifecycle execution tool_execution
+  lifecycle execution tool_execution runtime_binding
   journal handoff recovery
 ].each do |directory|
   loader.collapse("#{__dir__}/phronomy/agent/#{directory}")

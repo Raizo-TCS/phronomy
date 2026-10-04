@@ -245,6 +245,11 @@
       "id": "G61",
       "title": "ENGINE CONCURRENCY",
       "kind": "engine_concurrency"
+    },
+    {
+      "id": "G62",
+      "title": "AGENT ENGINE BINDING",
+      "kind": "domain_binding"
     }
   ],
   "retired_groups": {
@@ -344,6 +349,12 @@
       "directory": "lib/phronomy/embeddings/backends",
       "group": "G48",
       "phase": "r8-unit5"
+    },
+    {
+      "id": "M88",
+      "directory": "lib/phronomy/agent/runtime_binding",
+      "group": "G62",
+      "phase": "r8-unit7"
     }
   ],
   "retired_ids": {

@@ -381,3 +381,10 @@ unapplied [execution abstraction candidate](execution-abstraction-review.md)
 places child control lifetime behind Execution.start_child and invocation checks
 behind InvocationControls, removing direct OperationBinding ownership from
 Orchestrator. Do not mark this candidate applied until main is verified.
+
+## r8 unit 7 scoped update
+
+Agent progress/entry operations and top-level execution/recovery connection are
+separated as described in [r8-unit7.md](r8-unit7.md). This supersedes earlier
+AgentInvocationSessionBuilder construction references. Tool child, MultiAgent
+and Workflow connections remain. Overall contract completion is not claimed.

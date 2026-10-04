@@ -17,17 +17,17 @@ module Phronomy
       def initialize(agent, execution_id, input, config, resume_only)
         @agent, @id, @input, @config = agent, execution_id.to_s.freeze, input, config.freeze
         @resume_only = resume_only
-        @runtime = Phronomy::Runtime.instance
+        @environment = @agent.__execution_environment
         @completion = Phronomy::TaskResult.deferred(name: "exact-execution:#{@id}")
       end
 
       def start
-        preparation = Phronomy::Execution.submit(runtime: @runtime, on_full: :raise) do
+        preparation = @environment.submit(on_full: :raise) do
           execution = read_execution
           if execution&.terminal?
             [:terminal, materialize(execution)]
           elsif execution
-            unless Phronomy::Agent::ExecutionRegistry.existing_for(@runtime)&.agent_execution_owner(@id)
+            unless @environment.existing_registry&.agent_execution_owner(@id)
               @agent.instance_variable_set(:@_phronomy_execution_wiring, @config)
               begin
                 RecoveryCoordinator.new(@agent).recover_on_load!
@@ -57,7 +57,7 @@ module Phronomy
               source.on_complete { |_value, failure| reconcile(failure) }
             when :active
               command = Wait.new(coordinator: self, agent: @agent, execution_id: @id)
-              posted = ExecutionRegistry.for(@runtime.event_loop).post(command, completion: @completion)
+              posted = @environment.registry.post(command, completion: @completion)
               @completion.fail(Phronomy::RuntimeShutdownError.new("Exact execution observer rejected")) unless posted
             end
           end
@@ -71,7 +71,7 @@ module Phronomy
       end
 
       def deliver_on_event_loop(command)
-        state = Phronomy::Agent::ExecutionRegistry.for(@runtime.event_loop).agent_execution_state(command.execution_id)
+        state = @environment.registry.agent_execution_state(command.execution_id)
         unless state
           # Ownership can be released between the durable read and this command.
           # Reinstall once with the caller's current wiring/cancellation request.
@@ -95,7 +95,7 @@ module Phronomy
         state.invocation.merge_config!(phronomy_exact_observers: (observers + [@completion]).uniq.freeze)
         waiter = Phronomy::TaskResult.deferred(name: "exact-wait:#{@id}")
         waiter.on_complete { |_result, failure| reconcile(failure) }
-        Phronomy::Agent::ExecutionRegistry.for(@runtime.event_loop).register_agent_completion_waiter(@id, waiter)
+        @environment.registry.register_agent_completion_waiter(@id, waiter)
       rescue => failure
         @completion.fail(failure)
       end
@@ -137,7 +137,7 @@ module Phronomy
       end
 
       def reconcile(failure)
-        task = Phronomy::Execution.submit(runtime: @runtime, on_full: :raise) do
+        task = @environment.submit(on_full: :raise) do
           execution = read_execution
           if execution&.terminal?
             materialize(execution)

@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "r8-unit3-persistence-boundaries",
+  "diagram_revision": "r8-unit7-agent-progress-boundary",
   "width": 3260,
   "column_centers": [
     330,
@@ -113,7 +113,9 @@
       "id": "B4",
       "title": "ASYNC CLIENTS / BACKEND IMPLEMENTATIONS",
       "columns": [
-        [],
+        [
+          "M88"
+        ],
         [],
         [
           "M66",

@@ -38,6 +38,23 @@ class BoundaryTests(unittest.TestCase):
     def check_graph(self, audit=None, config=None):
         return refresh.check_boundaries(audit or self.audit, 'llm', REPO, config or self.config)
 
+    def test_agent_binding_is_explicit_and_does_not_weaken_lower_layer_rules(self):
+        config = refresh.read_architecture('storage')
+        binding = 'lib/phronomy/agent/runtime_binding'
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': binding, 'to': 'lib/phronomy/agent'},
+            {'from': binding, 'to': 'lib/phronomy/engine'}]}
+        modules = {module['directory'] for module in config['modules']}
+        audit['module_pairs'] += [{'from': source, 'to': target} for source, target in
+                                  refresh.IMPLEMENTATIONS.items() if source in modules]
+        result = refresh.check_boundaries(audit, 'storage', REPO, config)
+        self.assertTrue(result['passed'], result)
+        for source in ['agent/execution', 'agent/recovery', 'agent/lifecycle',
+                       'engine', 'llm_adapter', 'execution', 'vector_store']:
+            changed = deepcopy(audit)
+            changed['module_pairs'].append({'from': 'lib/phronomy/' + source, 'to': binding})
+            self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO, config)['passed'], source)
+
     def test_accepts_implemented_llm_boundary_with_declared_vector_work_remaining(self):
         self.assertTrue(self.check_graph()['passed'])
 

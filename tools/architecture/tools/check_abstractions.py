@@ -37,6 +37,20 @@ def violations(repository):
             tool_contract = relative.startswith('lib/phronomy/tool/')
             llm_contract = relative.startswith('lib/phronomy/llm_adapter/') and '/backends/' not in relative and '/async/' not in relative
             agent = relative.startswith('lib/phronomy/agent/')
+            agent_progress = relative.startswith((
+                'lib/phronomy/agent/execution/', 'lib/phronomy/agent/recovery/',
+                'lib/phronomy/agent/lifecycle/')) or relative == 'lib/phronomy/agent/execution_environment.rb'
+            if node.type == 'constant' and agent_progress and text(node) in {
+                    'Runtime', 'EventLoop', 'FSMSession', 'PhaseMachineBuilder',
+                    'EngineSessionBuilder', 'EngineEnvironment', 'ToolInvocationSessionBuilder'}:
+                findings.append({'kind': 'agent-progress-knows-engine', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
+            if node.type == 'call' and agent_progress:
+                method = text(node.child_by_field_name('method'))
+                args = node.child_by_field_name('arguments')
+                if method in {'require', 'require_relative'} and args and 'state_machines' in text(args):
+                    findings.append({'kind': 'agent-progress-knows-engine', 'file': relative,
+                                     'line': node.start_point.row + 1, 'call': text(node)})
             if node.type == 'constant':
                 denied = ({'RubyLLM', 'Agent', 'MultiAgent', 'LLMAdapter', 'Runtime', 'Engine'} if tool_contract else set())
                 if llm_contract:

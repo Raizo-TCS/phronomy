@@ -3,6 +3,7 @@
     "name": "Phronomy::Agent::Base",
     "type": "class",
     "public_instance_methods": [
+      "__execution_environment",
       "__execution_wiring",
       "__framework_call?",
       "__framework_tool_replayable?",
@@ -630,6 +631,7 @@
     "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [
+      "__execution_environment",
       "__execution_wiring",
       "__framework_call?",
       "__framework_tool_replayable?",

@@ -1,11 +1,4 @@
 module Phronomy
-  interface _ExecutionReceiver
-    def idle?: () -> bool
-    def deliver: (untyped message) -> untyped
-    def shutdown: (error: Exception?) -> untyped
-    def session_retired: (String session_id, reason: Symbol) -> untyped
-  end
-
   interface _FSMEventSink
     def post: (Symbol type, ?untyped payload) -> untyped
   end

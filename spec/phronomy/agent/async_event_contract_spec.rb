@@ -288,10 +288,10 @@ RSpec.describe "Agent async event contract" do
   it "passes tracing InvocationContext without generic identity" do
     ic = Phronomy::InvocationContext.new(task_id: "ctx-task")
     captured_config = nil
-    allow(Phronomy::Agent::AgentInvocationSessionBuilder)
+    allow(Phronomy::Agent::EngineSessionBuilder)
       .to receive(:build)
       .and_wrap_original do |original, **kwargs|
-        captured_config = kwargs[:config]
+        captured_config = kwargs[:invocation].config
         original.call(**kwargs)
       end
     events = []

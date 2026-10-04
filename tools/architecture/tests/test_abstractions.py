@@ -10,6 +10,21 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_agent_progress_cannot_select_engine_implementation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/agent/execution/policy.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text("# Runtime is an implementation detail\nPhronomy::Runtime.instance\nrequire 'state_machines'\nEngineSessionBuilder.build\n")
+            found = violations(repo)
+            self.assertEqual([2, 3, 4], [v['line'] for v in found])
+            self.assertEqual({'agent-progress-knows-engine'}, {v['kind'] for v in found})
+            path.unlink()
+            binding = repo / 'lib/phronomy/agent/runtime_binding/connection.rb'
+            binding.parent.mkdir()
+            binding.write_text("Phronomy::Runtime.instance\nPhronomy::FSMSession.new\n")
+            self.assertEqual([], violations(repo))
+
     def test_llm_tool_contracts_reject_sdk_and_orchestration_references(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

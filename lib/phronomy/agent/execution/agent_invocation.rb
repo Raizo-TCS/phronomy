@@ -141,17 +141,6 @@ module Phronomy
         end
 
         durable_id = llm_call_id
-        if durable_id.nil? &&
-            Phronomy::WaitPolicy.blocking_forbidden?
-          state =
-            Phronomy::Agent::ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_execution_state(
-              execution_id
-            )
-          durable_id = state&.execution&.metadata&.fetch(
-            ExecutionMetadata::PENDING_LLM_ID_KEY,
-            nil
-          )
-        end
         unless durable_id
           raise Phronomy::ExecutionRehydrationRequiredError,
             "Provider Call semantic identity was not durably established before dispatch"

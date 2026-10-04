@@ -68,7 +68,7 @@ hook retains application/test overrides of apply_instructions and Orchestrator's
 prepare_tool_class(invocation:) cooperation. Moving it into a builder receiving
 the entire Agent would merely introduce callbacks back into Base.
 
-AgentInvocationSessionBuilder and InvocationRestorer keep using the same hooks.
+InvocationActions and EngineSessionBuilder and InvocationRestorer keep using the same hooks.
 Saved config is authoritative during recovery; current class declarations do
 not overwrite it. A failure stops installation at that operation, propagates
 the same error and does not install later Tools/messages. No new Chat cache,

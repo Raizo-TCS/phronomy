@@ -10,7 +10,7 @@ Implementation baseline: core `01cd2f57549f6d1e60825254f4520d0f123e651c`
 
 FSMSession drives one live state machine on EventLoop. WorkflowRunner assembles
 Workflow transitions, stream observation and any durable terminal save.
-AgentInvocationSessionBuilder uses the same engine for input, LLM and Tool
+InvocationActions and EngineSessionBuilder uses the same engine for input, LLM and Tool
 progression; ToolInvocationSessionBuilder uses it for authorization, approval
 and Tool execution. Therefore the session stays in Engine.
 
