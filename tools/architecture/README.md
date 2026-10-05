@@ -1,3 +1,11 @@
+## r8 unit 9 update
+
+C06's result decorators preserve application-defined stage ordering and repeated
+registrations. Base's internal async-to-sync bridge passes an explicit bound
+callable to ToolExecutor, avoiding duplicate transformation under custom async
+super delegation. Explicit application calls keep their own transformations.
+No new cross-domain dependency is introduced. See `docs/architecture/r8-unit9.md`.
+
 ## r8 unit 8 update
 
 C04 Tool child progress now owns a single ordered transition definition and

@@ -33,14 +33,17 @@ module Phronomy
 
       # Decorates synchronous Tool results and custom async completions. A custom
       # async operation is mapped through Execution's physical-completion-aware
-      # operation contract. The caller owns the meaning of the transformation.
+      # operation contract. The caller owns transformation meaning, ordering and
+      # multiplicity: repeated decorations remain distinct stages. Base's internal
+      # async-to-sync delegation skips only the synchronous counterpart of these
+      # async stages. Explicit application calls retain their own transformations.
       # @return [Class<Phronomy::Tool::Base>] a derived Tool class
       # @api public
       def self.with_result_transform(tool_class, &transform)
         raise ArgumentError, "a result transformation is required" unless transform
         effective_name = tool_class.new.name
         custom_async_call = custom_async?(tool_class.instance_method(:call_async))
-        Class.new(tool_class) do
+        decorated = Class.new(tool_class) do
           tool_name effective_name
           define_method(:call) do |args, **kwargs|
             result = super(args, **kwargs)
@@ -55,6 +58,25 @@ module Phronomy
             end
           end
         end
+        if custom_async_call
+          decorated.instance_variable_set(:@phronomy_async_transform_call,
+            decorated.instance_method(:call))
+        end
+        decorated
+      end
+
+      # Base's async bridge uses this bound callable on the original receiver,
+      # including after offload. Skip only framework-generated call wrappers whose
+      # async counterpart applies the same stage on completion. Stop at application
+      # methods and sync-only stages; do not infer application intent or use ambient
+      # flags, mutable receiver state, result identity, or filter deduplication.
+      # @api private
+      def self.synchronous_delegate(tool)
+        callable = tool.method(:call)
+        while callable.owner.instance_variable_get(:@phronomy_async_transform_call) == callable.unbind
+          callable = callable.super_method
+        end
+        callable
       end
 
       def self.custom_async?(method)

@@ -25,7 +25,8 @@ module Phronomy
         cancellation_token: nil,
         config: {},
         submitter: Phronomy::Execution,
-        on_full: :raise
+        on_full: :raise,
+        synchronous_call: tool.method(:call)
       )
         mode = tool.class.execution_mode
 
@@ -34,7 +35,7 @@ module Phronomy
           task = Phronomy::TaskResult.deferred(name: "tool-#{tool.name}")
           begin
             task.complete(
-              tool.call(args, cancellation_token: cancellation_token)
+              synchronous_call.call(args, cancellation_token: cancellation_token)
             )
           rescue => error
             task.fail(error)
@@ -45,7 +46,7 @@ module Phronomy
             cancellation_token: cancellation_token,
             on_full: on_full
           ) do
-            tool.call(args, cancellation_token: cancellation_token)
+            synchronous_call.call(args, cancellation_token: cancellation_token)
           end
         else
           raise Phronomy::ConfigurationError,

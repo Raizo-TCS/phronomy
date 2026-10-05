@@ -1200,7 +1200,8 @@ RSpec.describe Phronomy::Tool::Base do
         tool: hello_tool,
         args: {},
         cancellation_token: ct,
-        config: {}
+        config: {},
+        synchronous_call: hello_tool.method(:call)
       )
       hello_tool.call_async({}, cancellation_token: ct)
     end
@@ -1210,7 +1211,8 @@ RSpec.describe Phronomy::Tool::Base do
         tool: hello_tool,
         args: {},
         cancellation_token: nil,
-        config: {}
+        config: {},
+        synchronous_call: hello_tool.method(:call)
       )
       hello_tool.call_async({})
     end

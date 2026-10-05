@@ -422,7 +422,8 @@ module Phronomy
           tool: self,
           args: args,
           cancellation_token: cancellation_token,
-          config: config
+          config: config,
+          synchronous_call: Operation.synchronous_delegate(self)
         )
       end
 
