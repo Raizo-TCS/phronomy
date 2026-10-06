@@ -83,41 +83,21 @@ module Phronomy
 
       # Agent-backed Tools have an asynchronous implementation that does not use
       # ToolExecutor/OffloadPool. Validation and Tool error policy still match
-      # Capability::Base#call.
+      # Tool::Base#call.
       def call_async(
         args,
         cancellation_token: nil,
         config: {}
       )
-        cancellation_token&.raise_if_cancelled!
-        validated_args, schema_error = validate_arguments(args)
-        if schema_error
-          return Phronomy::AsyncOperation.capture(name: "agent-tool-#{name}-schema") do
-            if self.class.on_schema_error == :raise
-              raise Phronomy::ToolError, "#{self.class.name} schema error: #{schema_error}"
-            end
-            "Schema validation failed: #{schema_error}"
-          end
+        call_async_operation(args, cancellation_token: cancellation_token,
+          operation_name: "agent-tool-#{name}") do |validated_args|
+          execute_async(**validated_args, cancellation_token: cancellation_token, config: config || {})
         end
-        Phronomy::AsyncOperation.call(name: "agent-tool-#{name}",
-          on_error: method(:async_error_value),
-          transform: method(:truncate_result_if_needed)) do
-          source = execute_async(**(validated_args || {}),
-            cancellation_token: cancellation_token, config: config || {})
-          unless source.respond_to?(:on_complete)
-            raise Phronomy::ToolError,
-              "#{self.class.name} asynchronous execution must return a completion handle"
-          end
-          source
-        end
-      rescue => error
-        Phronomy::AsyncOperation.capture(name: "agent-tool-#{name}",
-          on_error: method(:async_error_value)) { raise error }
       end
 
       private
 
-      # Subclasses created by .from_agent and Orchestrator override this method.
+      # Subclasses created by .from_agent override this method.
       # It deliberately remains private so it is not part of the public Tool API.
       def execute_async(input:, cancellation_token: nil, config: {})
         Phronomy::AsyncOperation.capture(name: "agent-tool-#{name}-fallback") do
@@ -125,27 +105,11 @@ module Phronomy
         end
       end
 
+      # Agent recovery is an Agent operation outcome, not a generic Tool error.
       def async_error_value(error)
-        if error.is_a?(Phronomy::ToolError) || error.is_a?(Phronomy::CancellationError) || error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
-          raise error
-        end
+        raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
 
-        if self.class.on_error == :suppress
-          message = "[Phronomy] Tool #{self.class.name} suppressed error: " \
-            "#{error.class}: #{error.message}"
-          if Phronomy.configuration.logger
-            Phronomy.configuration.logger.warn(message)
-          else
-            warn message
-          end
-          "Tool error suppressed: #{error.message}"
-        else
-          wrapped = Phronomy::ToolError.new(
-            "#{self.class.name} execution failed: #{error.message}"
-          )
-          wrapped.set_backtrace(error.backtrace)
-          raise wrapped
-        end
+        super
       end
     end
   end

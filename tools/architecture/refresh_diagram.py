@@ -123,6 +123,11 @@ def check_boundaries(audit, phase, repo, architecture=None):
             if (beneath(source, "lib/phronomy/multi_agent") and roles.get(source) != "domain_binding"
                     and (beneath(target, ENGINE) or roles.get(target) == "domain_binding")):
                 violations.append({"kind": "coordination-selects-engine", "pair": (source, target)})
+    if architecture.get("r8_unit12_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(source, "lib/phronomy/multi_agent") and roles.get(source) != "domain_binding"
+                    and beneath(target, "lib/phronomy/tools")):
+                violations.append({"kind": "coordination-selects-concrete-tool", "pair": (source, target)})
     if architecture.get("r8_unit11_contracts"):
         for source, target in sorted(pairs):
             if (beneath(source, "lib/phronomy/agent")

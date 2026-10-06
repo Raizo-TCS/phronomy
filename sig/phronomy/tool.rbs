@@ -56,6 +56,11 @@ module Phronomy
       def tool_origin: () -> Symbol
       def approval_metadata: () -> Hash[untyped, untyped]
       def execute: (**untyped args) -> untyped
+
+      private
+
+      def call_async_operation: (Hash[untyped, untyped]? args, cancellation_token: Concurrency::CancellationToken?, operation_name: String) { (Hash[Symbol, untyped]) -> _CompletionHandle[untyped] } -> _CompletionHandle[untyped]
+      def async_error_value: (Exception error) -> untyped
     end
   end
 

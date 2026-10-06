@@ -30,6 +30,26 @@ runtime.send(:__shutdown_participant, key: self)
             binding.write_text('Phronomy::Runtime.instance\nruntime.__register_shutdown_participant(key: self, participant: new)\n')
             self.assertEqual([], violations(repo))
 
+    def test_coordination_uses_tool_contract_without_concrete_tools(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/multi_agent/orchestrator.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('# Phronomy::Tools::Agent is a comment\nClass.new(Phronomy::Tools::Agent)\n')
+            found = violations(repo)
+            self.assertEqual([2], [v['line'] for v in found])
+            self.assertEqual({'coordination-selects-concrete-tool'}, {v['kind'] for v in found})
+            path.write_text('Class.new(Phronomy::Tool::Base)\nPhronomy::Agent::Base\nPhronomy::ExecutionRehydrationRequiredError\n')
+            self.assertEqual([], violations(repo))
+
+    def test_tool_contract_does_not_interpret_agent_recovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/tool/base.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('Phronomy::ExecutionRehydrationRequiredError\n')
+            self.assertEqual({'llm-tool-contract-owner-leak'}, {v['kind'] for v in violations(repo)})
+
     def test_agent_domain_cannot_select_concrete_policy_or_async_client(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

@@ -42,6 +42,9 @@ def violations(repository):
                 findings.append({'kind': 'agent-selects-concrete-policy-or-client', 'file': relative,
                                  'line': node.start_point.row + 1, 'call': text(node)})
             coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
+            if coordination and node.type == 'constant' and text(node) == 'Tools':
+                findings.append({'kind': 'coordination-selects-concrete-tool', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             if coordination and node.type == 'constant' and text(node) in {
                     'Runtime', 'EventLoop', 'FSMSession', 'EngineEnvironment'}:
                 findings.append({'kind': 'coordination-selects-engine', 'file': relative,
@@ -64,7 +67,7 @@ def violations(repository):
                 findings.append({'kind': 'agent-selects-tool-implementation', 'file': relative,
                                  'line': node.start_point.row + 1, 'call': text(node)})
             if node.type == 'constant':
-                denied = ({'RubyLLM', 'Agent', 'MultiAgent', 'LLMAdapter', 'Runtime', 'Engine'} if tool_contract else set())
+                denied = ({'RubyLLM', 'Agent', 'MultiAgent', 'LLMAdapter', 'Runtime', 'Engine', 'ExecutionRehydrationRequiredError'} if tool_contract else set())
                 if llm_contract:
                     denied |= {'RubyLLM', 'Agent', 'MultiAgent', 'Runtime', 'Engine', 'Execution', 'AsyncOperation'}
                 if agent:

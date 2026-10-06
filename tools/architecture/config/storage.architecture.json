@@ -848,12 +848,13 @@
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 11: C04 consumes ContextPolicy and its owning execution environment; boot composition selects DefaultPolicy and the Agent binding selects the concrete LLM async client. C01 Orchestrator inheritance, C02 Workflow connections and durable children, and broader semantic review remain.",
+  "scope_note": "r8 unit 12: C01 subagent operations implement C06 Tool::Base directly; Tool owns asynchronous validation, errors and result limits, while C01 owns child execution and reconciliation. C02 Workflow connections and durable children, and broader Recovery semantic review remain.",
   "persistence_framework_separated": true,
   "r8_unit5_contracts": true,
   "r8_unit6_contracts": true,
   "r8_unit7_contracts": true,
   "r8_unit8_contracts": true,
   "r8_unit10_contracts": true,
-  "r8_unit11_contracts": true
+  "r8_unit11_contracts": true,
+  "r8_unit12_contracts": true
 }

@@ -452,6 +452,58 @@ module Phronomy
 
       private
 
+      # Apply the Tool contract to an implementation that starts asynchronous
+      # work. The owner supplies a completion handle; this helper never waits or
+      # chooses the implementation, and preserves physical completion via C13.
+      def call_async_operation(args, cancellation_token:, operation_name:)
+        cancellation_token&.raise_if_cancelled!
+        validated_args, schema_error = validate_arguments(args)
+        if schema_error
+          return Phronomy::AsyncOperation.capture(name: "#{operation_name}-schema") do
+            if self.class.on_schema_error == :raise
+              raise Phronomy::ToolError, "#{self.class.name} schema error: #{schema_error}"
+            end
+            "Schema validation failed: #{schema_error}"
+          end
+        end
+        Phronomy::AsyncOperation.call(name: operation_name,
+          on_error: method(:async_error_value),
+          transform: method(:truncate_result_if_needed)) do
+          source = yield(validated_args || {})
+          unless source.respond_to?(:on_complete)
+            raise Phronomy::ToolError,
+              "#{self.class.name} asynchronous execution must return a completion handle"
+          end
+          source
+        end
+      rescue => error
+        Phronomy::AsyncOperation.capture(name: operation_name,
+          on_error: method(:async_error_value)) { raise error }
+      end
+
+      def async_error_value(error)
+        if error.is_a?(Phronomy::ToolError) || error.is_a?(Phronomy::CancellationError)
+          raise error
+        end
+
+        if self.class.on_error == :suppress
+          message = "[Phronomy] Tool #{self.class.name} suppressed error: " \
+            "#{error.class}: #{error.message}"
+          if Phronomy::RuntimeSettings.current.logger
+            Phronomy::RuntimeSettings.current.logger.warn(message)
+          else
+            warn message
+          end
+          "Tool error suppressed: #{error.message}"
+        else
+          wrapped = Phronomy::ToolError.new(
+            "#{self.class.name} execution failed: #{error.message}"
+          )
+          wrapped.set_backtrace(error.backtrace)
+          raise wrapped
+        end
+      end
+
       def execute_accepts_cancellation_token?
         method(:execute).parameters.any? do |type, name|
           name == :cancellation_token && %i[key keyreq].include?(type)

@@ -73,6 +73,20 @@ class BoundaryTests(unittest.TestCase):
             result = refresh.check_boundaries(changed, 'storage', REPO, config)
             self.assertIn('agent-selects-concrete-llm-client', [v['kind'] for v in result['violations']])
 
+    def test_coordination_depends_on_tool_contract_not_concrete_tools(self):
+        config = refresh.read_architecture('storage')
+        modules = {module['directory'] for module in config['modules']}
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': source, 'to': target} for source, target in
+            refresh.IMPLEMENTATIONS.items() if source in modules]}
+        audit['module_pairs'] += [
+            {'from': 'lib/phronomy/multi_agent', 'to': 'lib/phronomy/tool'},
+            {'from': 'lib/phronomy/multi_agent', 'to': 'lib/phronomy/agent'}]
+        self.assertTrue(refresh.check_boundaries(audit, 'storage', REPO, config)['passed'])
+        audit['module_pairs'].append({'from': 'lib/phronomy/multi_agent', 'to': 'lib/phronomy/tools'})
+        result = refresh.check_boundaries(audit, 'storage', REPO, config)
+        self.assertIn('coordination-selects-concrete-tool', [v['kind'] for v in result['violations']])
+
     def test_multi_agent_binding_does_not_allow_domain_or_engine_reverse_dependencies(self):
         config = refresh.read_architecture('storage')
         binding = 'lib/phronomy/multi_agent/runtime_binding'

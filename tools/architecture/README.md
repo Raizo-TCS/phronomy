@@ -1,3 +1,13 @@
+## r8 unit 12 update
+
+C01's generated subagent Tool derives directly from C06 Tool::Base, without
+depending on the concrete Tools::Agent implementation. C06 owns asynchronous
+Tool validation, errors and result limits; C01 retains child execution and
+durable reconciliation. Orchestrator remains an Agent::Base subclass. AST and
+Ruby/RBS graph gates prevent the concrete Tool dependency from returning.
+C02 Workflow connections/durable children and broader Recovery review remain.
+See `docs/architecture/r8-unit12.md`; earlier checkpoints below are historical.
+
 ## r8 unit 11 update
 
 C04 no longer selects DefaultPolicy or constructs the concrete LLM AsyncClient.

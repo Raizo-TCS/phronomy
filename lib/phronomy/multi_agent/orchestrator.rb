@@ -42,7 +42,9 @@ module Phronomy
         # A subagent Tool is logically asynchronous: ToolInvocation starts the
         # child Agent and resumes when its completion TaskResult settles. It must not
         # occupy an OffloadPool worker while waiting for the child.
-        tool_class = Class.new(Phronomy::Tools::Agent) do
+        tool_class = Class.new(Phronomy::Tool::Base) do
+          execution_mode :cooperative
+          param :input, type: :string, desc: "The input to forward to the wrapped Agent"
           def self.__framework_owned_operation? = true
           tool_name "dispatch_to_#{name}"
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"
@@ -65,7 +67,10 @@ module Phronomy
               raise Phronomy::ToolError, schema_error if schema_error
               execute_async(**validated, cancellation_token: cancellation_token, config: config)
             else
-              super(args, cancellation_token: cancellation_token, config: config)
+              call_async_operation(args, cancellation_token: cancellation_token,
+                operation_name: "agent-tool-#{self.name}") do |validated_args|
+                execute_async(**validated_args, cancellation_token: cancellation_token, config: config || {})
+              end
             end
           rescue => error
             Phronomy::TaskResult.failed(error, name: "subagent-dispatch-failed")
@@ -106,7 +111,13 @@ module Phronomy
             Phronomy::AsyncOperation.capture(name: "subagent-tool-#{name}",
               on_error: ->(failure) { raise failure if on_error == :raise }) { raise error }
           end
-          private :execute_async
+          # Recovery requirements retain their Agent meaning across delegation.
+          def async_error_value(error)
+            raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+
+            super
+          end
+          private :execute_async, :async_error_value
         end
 
         @_subagent_tool_classes = (@_subagent_tool_classes || []) + [tool_class]
