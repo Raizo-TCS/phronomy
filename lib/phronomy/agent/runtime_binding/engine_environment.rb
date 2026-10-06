@@ -27,6 +27,10 @@ module Phronomy
         Phronomy::Execution.submit(runtime: @runtime, **options, &operation)
       end
 
+      def build_llm_client(adapter:)
+        Phronomy::LLMAdapter::AsyncClient.new(adapter: adapter, submitter: self)
+      end
+
       def build_agent_session(invocation:, resume_event: nil, resume_phase: nil)
         EngineSessionBuilder.build(invocation: invocation, environment: self,
           event_loop: @runtime.event_loop, resume_event: resume_event, resume_phase: resume_phase)

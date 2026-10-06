@@ -1,3 +1,13 @@
+## r8 unit 11 update
+
+C04 no longer selects DefaultPolicy or constructs the concrete LLM AsyncClient.
+Boot composition installs the Policy through the existing DSL. M88 selects the
+LLM client and binds submission to the Agent's captured Runtime. No module or
+public API is added. AST and Ruby/RBS graph gates guard these connections while
+retaining lower-level restrictions. C01 Orchestrator inheritance, C02 Workflow
+connections/durable children and broader semantic review remain. See
+`docs/architecture/r8-unit11.md` for scope and acceptance evidence.
+
 ## r8 unit 10 update
 
 C01 retains coordination admission and Team identity rules. Concrete Runtime

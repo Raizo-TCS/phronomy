@@ -123,6 +123,12 @@ def check_boundaries(audit, phase, repo, architecture=None):
             if (beneath(source, "lib/phronomy/multi_agent") and roles.get(source) != "domain_binding"
                     and (beneath(target, ENGINE) or roles.get(target) == "domain_binding")):
                 violations.append({"kind": "coordination-selects-engine", "pair": (source, target)})
+    if architecture.get("r8_unit11_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(source, "lib/phronomy/agent")
+                    and source not in {"lib/phronomy/agent/runtime_binding", "lib/phronomy/agent/composition"}
+                    and target == "lib/phronomy/llm_adapter/async"):
+                violations.append({"kind": "agent-selects-concrete-llm-client", "pair": (source, target)})
     for source in sorted(modules):
         denied = forbidden_roles.get(roles.get(source), set())
         if architecture.get("r8_unit6_contracts") and source in {"lib/phronomy/llm_adapter", "lib/phronomy/llm_adapter/backends"}:

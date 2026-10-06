@@ -129,7 +129,7 @@ module Phronomy
           **agent.send(:_build_caller_meta, config)
         )
 
-        client = Phronomy::LLMAdapter::AsyncClient.new(adapter: Phronomy.configuration.llm_adapter)
+        client = environment.build_llm_client(adapter: Phronomy.configuration.llm_adapter)
         token = config[:cancellation_token]
         llm_call_id = call_context.fetch(:llm_call_id)
         operation = if streaming

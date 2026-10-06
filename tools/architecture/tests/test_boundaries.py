@@ -58,6 +58,21 @@ class BoundaryTests(unittest.TestCase):
     def test_accepts_implemented_llm_boundary_with_declared_vector_work_remaining(self):
         self.assertTrue(self.check_graph()['passed'])
 
+    def test_agent_llm_client_selection_belongs_to_binding_or_composition(self):
+        config = refresh.read_architecture('storage')
+        client = 'lib/phronomy/llm_adapter/async'
+        modules = {module['directory'] for module in config['modules']}
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': source, 'to': target} for source, target in
+            refresh.IMPLEMENTATIONS.items() if source in modules]}
+        audit['module_pairs'].append({'from': 'lib/phronomy/agent/runtime_binding', 'to': client})
+        self.assertTrue(refresh.check_boundaries(audit, 'storage', REPO, config)['passed'])
+        for source in ['agent', 'agent/execution', 'agent/recovery', 'agent/lifecycle']:
+            changed = deepcopy(audit)
+            changed['module_pairs'].append({'from': 'lib/phronomy/' + source, 'to': client})
+            result = refresh.check_boundaries(changed, 'storage', REPO, config)
+            self.assertIn('agent-selects-concrete-llm-client', [v['kind'] for v in result['violations']])
+
     def test_multi_agent_binding_does_not_allow_domain_or_engine_reverse_dependencies(self):
         config = refresh.read_architecture('storage')
         binding = 'lib/phronomy/multi_agent/runtime_binding'

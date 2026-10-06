@@ -17,6 +17,33 @@ RSpec.describe Phronomy::Agent::EngineEnvironment do
   end
   let(:agent) { agent_class.new }
 
+  describe "LLM connection" do
+    it "constructs the client without starting resources or selecting a default Runtime" do
+      runtime = Phronomy::Runtime.new
+      adapter = instance_double(Phronomy::LLMAdapter::Base)
+      expect(runtime).not_to receive(:offload)
+      expect(Phronomy::Runtime).not_to receive(:instance)
+      client = described_class.new(runtime: runtime).build_llm_client(adapter: adapter)
+      expect(client).to be_a(Phronomy::LLMAdapter::AsyncClient)
+      expect(runtime.__event_loop_if_initialized).to be_nil
+    ensure
+      runtime&.shutdown
+    end
+
+    it "rejects work after its owner stops instead of falling back to a fresh default" do
+      runtime = Phronomy::Runtime.new
+      adapter = instance_double(Phronomy::LLMAdapter::Base)
+      client = described_class.new(runtime: runtime).build_llm_client(adapter: adapter)
+      runtime.shutdown
+      expect(Phronomy::Runtime).not_to receive(:instance)
+      expect(adapter).not_to receive(:complete)
+      expect { client.complete_async(Phronomy::LLMAdapter::Request.new(message: "hello")) }
+        .to raise_error(Phronomy::RuntimeShutdownError)
+    ensure
+      runtime&.shutdown
+    end
+  end
+
   describe ".build" do
     it "returns a Phronomy::FSMSession" do
       session = build(

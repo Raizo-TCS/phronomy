@@ -133,4 +133,53 @@ RSpec.describe Phronomy::LLMAdapter::AsyncClient do
     expect(pool).not_to receive(:submit)
     expect { client.stream_async(request) }.to raise_error(ArgumentError, "stream_async requires a block")
   end
+
+  %i[complete_async stream_async].each do |entry|
+    it "uses a narrow injected submitter for #{entry} without selecting default Runtime" do
+      # OffloadPool conforms to the existing C13 submitter protocol. It does not
+      # accept a pool: or runtime: keyword; no Engine type is needed by the client.
+      instance = described_class.new(adapter: adapter, submitter: pool)
+      allow(adapter).to receive(:complete).and_return(:response)
+      allow(adapter).to receive(:stream) { |*, &sink|
+        sink.call(:chunk)
+        :response
+      }
+      received = []
+      expect(Phronomy::Runtime).not_to receive(:instance)
+      result = instance.public_send(entry, request) { |chunk| received << chunk }
+      expect(result.wait_result(timeout: 2)).to eq(:response)
+      expect(received).to eq((entry == :stream_async) ? [:chunk] : [])
+    end
+  end
+
+  it "lets an explicit pool override the injected submitter through the existing Execution protocol" do
+    submitter = double("unused connection")
+    expect(submitter).not_to receive(:submit)
+    instance = described_class.new(adapter: adapter, submitter: submitter)
+    allow(adapter).to receive(:complete).and_return(:response)
+    expect(instance.complete_async(request, pool: pool).wait_result(timeout: 2)).to eq(:response)
+    expect(Phronomy::Runtime.default_if_initialized_for_test).to be_nil
+  end
+
+  it "keeps the original handle's physical completion when an injected operation is cancelled" do
+    started = Queue.new
+    release = Queue.new
+    token = Phronomy::Concurrency::CancellationToken.new
+    instance = described_class.new(adapter: adapter, submitter: pool)
+    allow(adapter).to receive(:complete) do
+      started << true
+      release.pop
+      :response
+    end
+    result = instance.complete_async(request, cancellation_token: token)
+    started.pop(timeout: 2)
+    token.cancel!
+    expect { result.wait_result(timeout: 2) }.to raise_error(Phronomy::CancellationError)
+    expect(result.physical_complete?).to be(false)
+    release << true
+    pool.shutdown(drain_timeout: 2)
+    expect(result.physical_complete?).to be(true)
+  ensure
+    release&.push(true)
+  end
 end

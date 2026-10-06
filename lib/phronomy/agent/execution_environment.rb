@@ -26,6 +26,7 @@ module Phronomy
       def executing? = raise(NotImplementedError)
       def session_phase(id) = raise(NotImplementedError)
       def submit(**options, &operation) = raise(NotImplementedError)
+      def build_llm_client(adapter:) = raise(NotImplementedError)
       def build_agent_session(invocation:, resume_event: nil, resume_phase: nil) = raise(NotImplementedError)
       def build_tool_session(invocation:, parent_sink:, resume_event: nil, resume_phase: nil) = raise(NotImplementedError)
       def register_session(session, completion:) = raise(NotImplementedError)

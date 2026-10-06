@@ -30,6 +30,24 @@ runtime.send(:__shutdown_participant, key: self)
             binding.write_text('Phronomy::Runtime.instance\nruntime.__register_shutdown_participant(key: self, participant: new)\n')
             self.assertEqual([], violations(repo))
 
+    def test_agent_domain_cannot_select_concrete_policy_or_async_client(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/agent/base.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('# DefaultPolicy is a comment\nPhronomy::Context::DefaultPolicy.instance\nPhronomy::LLMAdapter::AsyncClient.new\n')
+            found = violations(repo)
+            self.assertEqual([2, 3], [v['line'] for v in found])
+            self.assertEqual({'agent-selects-concrete-policy-or-client'}, {v['kind'] for v in found})
+            path.write_text('Phronomy::Context::ContextPolicy\nenvironment.build_llm_client(adapter: adapter)\n')
+            binding = path.parent / 'runtime_binding/engine_environment.rb'
+            binding.parent.mkdir()
+            binding.write_text('Phronomy::LLMAdapter::AsyncClient.new\n')
+            composition = repo / 'lib/phronomy/runtime_composition/agent_defaults.rb'
+            composition.parent.mkdir()
+            composition.write_text('Phronomy::Agent::Base.context_policy(Phronomy::Context::DefaultPolicy.instance)\n')
+            self.assertEqual([], violations(repo))
+
     def test_agent_progress_cannot_select_engine_implementation(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

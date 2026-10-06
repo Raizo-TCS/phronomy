@@ -2,7 +2,7 @@
 module Phronomy
   module LLMAdapter
     class AsyncClient
-      def initialize: (adapter: Base, ?pool: untyped) -> void
+      def initialize: (adapter: Base, ?pool: untyped, ?submitter: _ExecutionSubmitter) -> void
       def complete_async: (Request request, ?cancellation_token: Concurrency::CancellationToken?, ?pool: untyped) -> TaskResult[Response]
       def stream_async: (Request request, ?cancellation_token: Concurrency::CancellationToken?, ?pool: untyped) { (StreamChunk chunk) -> void } -> TaskResult[Response]
     end

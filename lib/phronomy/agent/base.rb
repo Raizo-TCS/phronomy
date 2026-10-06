@@ -134,7 +134,7 @@ module Phronomy
           if args.empty?
             return @context_policy if instance_variable_defined?(:@context_policy)
             return superclass.context_policy if superclass.respond_to?(:context_policy)
-            return Phronomy::Context::DefaultPolicy.instance
+            raise Phronomy::ConfigurationError, "Agent ContextPolicy has not been configured"
           end
           unless args.length == 1 && args.first.is_a?(Phronomy::Context::ContextPolicy)
             raise ArgumentError,

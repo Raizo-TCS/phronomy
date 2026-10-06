@@ -37,6 +37,10 @@ def violations(repository):
             tool_contract = relative.startswith('lib/phronomy/tool/')
             llm_contract = relative.startswith('lib/phronomy/llm_adapter/') and '/backends/' not in relative and '/async/' not in relative
             agent = relative.startswith('lib/phronomy/agent/')
+            agent_domain = agent and '/runtime_binding/' not in relative and '/composition/' not in relative
+            if agent_domain and node.type == 'constant' and text(node) in {'DefaultPolicy', 'AsyncClient'}:
+                findings.append({'kind': 'agent-selects-concrete-policy-or-client', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
             if coordination and node.type == 'constant' and text(node) in {
                     'Runtime', 'EventLoop', 'FSMSession', 'EngineEnvironment'}:
