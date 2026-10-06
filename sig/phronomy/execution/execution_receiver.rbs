@@ -12,7 +12,7 @@ module Phronomy
     def synchronize: [V] () { () -> V } -> V
     def admit: [V] (ExecutionReceiver receiver) { () -> V } -> V
     def post: (ExecutionReceiver receiver, untyped message, admission: bool, completion: TaskResult[untyped]?) -> bool
-    def route: (ExecutionReceiver receiver) { () -> untyped } -> bool
+    def route: (ExecutionReceiver receiver, type: Symbol, payload: untyped) { () -> String? } -> bool
   end
 
   # Internal serial-owner contract; composition supplies the transport.
@@ -33,7 +33,7 @@ module Phronomy
     def synchronize: [V] () { () -> V } -> V
     def admit: [V] () { () -> V } -> V
     def post_message: (untyped message, ?admission: bool, ?completion: TaskResult[untyped]?) -> bool
-    def route_event: () { () -> untyped } -> bool
+    def route_event: (type: Symbol, ?payload: untyped) { () -> String? } -> bool
     def assert_event_loop_thread!: () -> void
   end
 

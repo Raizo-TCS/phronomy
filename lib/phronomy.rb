@@ -47,6 +47,7 @@ end
 %w[
   agent/api
   workflow/execution
+  workflow/runtime_binding
 ].each do |directory|
   loader.push_dir("#{__dir__}/phronomy/#{directory}", namespace: Phronomy)
 end
@@ -59,6 +60,7 @@ loader.ignore(
   "#{__dir__}/phronomy/runtime_composition/global_configuration.rb",
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
+  "#{__dir__}/phronomy/runtime_composition/workflow_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/multi_agent_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/configuration_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/global_runtime.rb",
@@ -105,6 +107,7 @@ require_relative "phronomy/runtime_composition/execution_defaults"
 require_relative "phronomy/agent/api/agent"
 require_relative "phronomy/runtime_composition/agent_defaults"
 require_relative "phronomy/runtime_composition/multi_agent_defaults"
+require_relative "phronomy/runtime_composition/workflow_defaults"
 require_relative "phronomy/agent/composition/run_once"
 
 # Load the common recovery vocabulary during ordinary application loading.

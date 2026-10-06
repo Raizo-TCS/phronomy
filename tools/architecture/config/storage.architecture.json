@@ -425,6 +425,13 @@
       "role": "MultiAgent registry lifecycle / owning Runtime connection",
       "mixed": false,
       "group": "G63"
+    },
+    {
+      "id": "M90",
+      "directory": "lib/phronomy/workflow/runtime_binding",
+      "role": "Workflow phase compilation / terminal gate / owning Runtime connection",
+      "mixed": false,
+      "group": "G64"
     }
   ],
   "groups": [
@@ -781,6 +788,14 @@
       "members": [
         "M89"
       ]
+    },
+    {
+      "id": "G64",
+      "title": "WORKFLOW ENGINE BINDING",
+      "kind": "domain_binding",
+      "members": [
+        "M90"
+      ]
     }
   ],
   "matrix_order": [
@@ -794,6 +809,7 @@
     "M38",
     "M10",
     "M53",
+    "M90",
     "M46",
     "M64",
     "M51",
@@ -848,7 +864,7 @@
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 12: C01 subagent operations implement C06 Tool::Base directly; Tool owns asynchronous validation, errors and result limits, while C01 owns child execution and reconciliation. C02 Workflow connections and durable children, and broader Recovery semantic review remain.",
+  "scope_note": "r8 unit 13: C02 Workflow owns callback, admission and durable outcome rules; its binding owns Runtime selection, FSM compilation and terminal gate translation. Durable Workflow children and broader Recovery semantic review remain.",
   "persistence_framework_separated": true,
   "r8_unit5_contracts": true,
   "r8_unit6_contracts": true,
@@ -856,5 +872,6 @@
   "r8_unit8_contracts": true,
   "r8_unit10_contracts": true,
   "r8_unit11_contracts": true,
-  "r8_unit12_contracts": true
+  "r8_unit12_contracts": true,
+  "r8_unit13_contracts": true
 }

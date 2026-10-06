@@ -33,8 +33,11 @@ module Phronomy
       @event_loop.__post_execution(receiver, message, admission: admission, completion: completion)
     end
 
-    def route(receiver, &block)
-      @event_loop.__route_execution_event(receiver, &block)
+    def route(receiver, type:, payload:)
+      @event_loop.__route_execution_event(receiver) do
+        target = yield
+        target && Phronomy::Event.new(type: type, target_id: target, payload: payload)
+      end
     end
   end
 end

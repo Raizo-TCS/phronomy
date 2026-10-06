@@ -62,8 +62,10 @@ module Phronomy
       @channel.post(self, message, admission: admission, completion: completion)
     end
 
-    def route_event(&block)
-      @channel.route(self, &block)
+    # Resolve a live routing target atomically with delivery. The channel owns
+    # the transport envelope; domain receivers return only a target identity.
+    def route_event(type:, payload: nil, &block)
+      @channel.route(self, type: type, payload: payload, &block)
     end
 
     def assert_event_loop_thread!

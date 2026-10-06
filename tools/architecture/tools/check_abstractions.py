@@ -41,6 +41,18 @@ def violations(repository):
             if agent_domain and node.type == 'constant' and text(node) in {'DefaultPolicy', 'AsyncClient'}:
                 findings.append({'kind': 'agent-selects-concrete-policy-or-client', 'file': relative,
                                  'line': node.start_point.row + 1, 'call': text(node)})
+            workflow_domain = relative.startswith('lib/phronomy/workflow/') and '/runtime_binding/' not in relative
+            if workflow_domain and node.type == 'constant' and text(node) in {
+                    'Runtime', 'EventLoop', 'Event', 'FSMSession', 'FSMProtocol', 'TerminalDecision',
+                    'WorkflowPhaseMachineBuilder', 'WorkflowTerminalPolicy', 'WorkflowEngineEnvironment'}:
+                findings.append({'kind': 'workflow-selects-engine', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
+            if workflow_domain and node.type == 'call':
+                method = text(node.child_by_field_name('method'))
+                args = node.child_by_field_name('arguments')
+                if method in {'require', 'require_relative'} and args and 'state_machines' in text(args):
+                    findings.append({'kind': 'workflow-selects-engine', 'file': relative,
+                                     'line': node.start_point.row + 1, 'call': text(node)})
             coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
             if coordination and node.type == 'constant' and text(node) == 'Tools':
                 findings.append({'kind': 'coordination-selects-concrete-tool', 'file': relative,

@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "r8-unit10-multi-agent-contracts",
+  "diagram_revision": "r8-unit13-workflow-contracts",
   "width": 3260,
   "column_centers": [
     330,
@@ -115,7 +115,8 @@
       "columns": [
         [
           "M88",
-          "M89"
+          "M89",
+          "M90"
         ],
         [],
         [

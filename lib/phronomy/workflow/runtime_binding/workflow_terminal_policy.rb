@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Interprets durable Workflow results for the shared FSM terminal gate.
+  # Translates classified Workflow outcomes into shared FSM terminal decisions.
   # The session owns pending state; Runner owns persistence and reconciliation.
   # @api private
   class WorkflowTerminalPolicy

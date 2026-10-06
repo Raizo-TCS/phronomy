@@ -10,6 +10,21 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_workflow_rules_do_not_select_engine_or_construct_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/workflow/execution/workflow_runner.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text("# Runtime in a comment is harmless\nPhronomy::Runtime.instance\nPhronomy::Event.new\nWorkflowPhaseMachineBuilder.new\nrequire 'state_machines'\n")
+            found = violations(repo)
+            self.assertEqual([2, 3, 4, 5], [v['line'] for v in found])
+            self.assertEqual({'workflow-selects-engine'}, {v['kind'] for v in found})
+            path.write_text('WorkflowExecutionEnvironment.current\nTaskResult.deferred\nRuntimeShutdownError.new\n')
+            binding = repo / 'lib/phronomy/workflow/runtime_binding/connection.rb'
+            binding.parent.mkdir()
+            binding.write_text('Phronomy::Runtime.instance\nPhronomy::FSMSession.new\n')
+            self.assertEqual([], violations(repo))
+
     def test_coordination_cannot_select_runtime_or_register_shutdown_participants(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

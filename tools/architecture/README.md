@@ -1,3 +1,12 @@
+## r8 unit 13 update
+
+C02 Workflow rules no longer select Runtime, FSMSession or Engine event
+envelopes. Its explicit runtime binding owns compilation and connections;
+admission, callback constraints and durable result classification remain C02.
+Ruby AST and Ruby/RBS graph gates reject concrete connection dependencies in
+Workflow domain files. Durable children and broader Recovery review remain.
+See `docs/architecture/r8-unit13.md`; earlier checkpoints below are historical.
+
 ## r8 unit 12 update
 
 C01's generated subagent Tool derives directly from C06 Tool::Base, without

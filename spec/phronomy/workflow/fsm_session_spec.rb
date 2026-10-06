@@ -32,7 +32,7 @@ RSpec.describe Phronomy::FSMSession do
   end
 
   # Yields a FakeLoop and a fake_runtime duck-type object.
-  # Pass fake_runtime as runtime: to build_session_for.
+  # Bind fake_runtime through the private Workflow environment.
   def with_fake_loop
     fake = FakeLoop.new
     fake_runtime = double("fake_runtime", event_loop: fake, timer_queue: nil)
@@ -70,21 +70,23 @@ RSpec.describe Phronomy::FSMSession do
 
   def build_linear_session(ctx, runner:, recursion_limit: 25, fake_runtime: nil)
     execution = build_test_execution(ctx, recursion_limit: recursion_limit)
-    runner.send(:build_session_for, execution: execution, runtime: fake_runtime || Phronomy::Runtime.instance)
+    runner.instance_variable_set(:@environment, Phronomy::WorkflowEngineEnvironment.new(runtime: fake_runtime || Phronomy::Runtime.instance))
+    runner.send(:build_session_for, execution: execution)
   end
 
   def build_wait_session(ctx, runner:, recursion_limit: 25, fake_runtime: nil)
     execution = build_test_execution(ctx, recursion_limit: recursion_limit)
-    runner.send(:build_session_for, execution: execution, runtime: fake_runtime || Phronomy::Runtime.instance)
+    runner.instance_variable_set(:@environment, Phronomy::WorkflowEngineEnvironment.new(runtime: fake_runtime || Phronomy::Runtime.instance))
+    runner.send(:build_session_for, execution: execution)
   end
 
   def build_resume_session(ctx, runner:, resume_event:, resume_phase:, recursion_limit: 25, fake_runtime: nil)
     execution = build_test_execution(ctx, recursion_limit: recursion_limit)
+    runner.instance_variable_set(:@environment, Phronomy::WorkflowEngineEnvironment.new(runtime: fake_runtime || Phronomy::Runtime.instance))
     runner.send(:build_session_for,
       execution: execution,
       resume_event: resume_event,
-      resume_phase: resume_phase,
-      runtime: fake_runtime || Phronomy::Runtime.instance)
+      resume_phase: resume_phase)
   end
 
   it "uses a fresh FSMSession identity reservation for each Workflow incarnation" do
@@ -290,6 +292,24 @@ RSpec.describe Phronomy::FSMSession do
   # in EventLoop mode.
   # ---------------------------------------------------------------------------
   describe "entry action return value is adopted as new context (Issue #107)" do
+    it "does not re-adopt the context when initial actions return nil or a scalar" do
+      app = Phronomy::Workflow.define(ctx_class) do
+        initial :waiting
+        state :waiting
+        entry :waiting, ->(_context) {}
+        entry :waiting, ->(_context) { 42 }
+        transition from: :waiting, on: :finish, to: :__finish__
+      end
+      ctx = ctx_class.new(value: 0)
+      with_fake_loop do |fake, fake_runtime|
+        session = build_wait_session(ctx, runner: runner_from(app), fake_runtime: fake_runtime)
+        expect(ctx).not_to receive(:set_graph_metadata)
+        session.start
+        expect(session.context).to be(ctx)
+        expect(fake.events.map(&:type)).not_to include(:error)
+      end
+    end
+
     let(:ctx_class_merge) do
       Class.new do
         include Phronomy::WorkflowContext
@@ -377,7 +397,8 @@ RSpec.describe Phronomy::FSMSession do
         repository: double("Workflow repository"), persist: true
       )
       allow(runner).to receive(:begin_terminal_persistence_on_event_loop)
-      runner.send(:build_session_for, execution: execution, runtime: fake_runtime)
+      runner.instance_variable_set(:@environment, Phronomy::WorkflowEngineEnvironment.new(runtime: fake_runtime))
+      runner.send(:build_session_for, execution: execution)
     end
 
     it "ignores an early persistence result before its terminal request" do

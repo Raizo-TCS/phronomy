@@ -170,7 +170,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     runner = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
     registry = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_execution_registry.rb"))
     fsm = File.read(File.join(root, "lib/phronomy/engine/fsm_session.rb"))
-    policy = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_terminal_policy.rb"))
+    policy = File.read(File.join(root, "lib/phronomy/workflow/runtime_binding/workflow_terminal_policy.rb"))
 
     expect(runner).to include("workflow_instance_id")
     expect(runner).to include("owner_token: Object.new.freeze")

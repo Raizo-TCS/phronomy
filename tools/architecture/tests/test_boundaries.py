@@ -87,6 +87,26 @@ class BoundaryTests(unittest.TestCase):
         result = refresh.check_boundaries(audit, 'storage', REPO, config)
         self.assertIn('coordination-selects-concrete-tool', [v['kind'] for v in result['violations']])
 
+    def test_workflow_binding_keeps_domain_rules_and_lower_layer_boundaries(self):
+        config = refresh.read_architecture('storage')
+        binding = 'lib/phronomy/workflow/runtime_binding'
+        modules = {module['directory'] for module in config['modules']}
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': source, 'to': target} for source, target in
+            refresh.IMPLEMENTATIONS.items() if source in modules]}
+        audit['module_pairs'] += [
+            {'from': binding, 'to': 'lib/phronomy/workflow/execution'},
+            {'from': binding, 'to': 'lib/phronomy/engine'},
+            {'from': 'lib/phronomy/workflow/execution', 'to': 'lib/phronomy/execution'}]
+        self.assertTrue(refresh.check_boundaries(audit, 'storage', REPO, config)['passed'])
+        for source, target in [('workflow', 'engine'), ('workflow/execution', 'engine'),
+                               ('workflow/execution', 'workflow/runtime_binding'),
+                               ('engine', 'workflow/runtime_binding'), ('execution', 'workflow/runtime_binding'),
+                               ('llm_adapter', 'workflow/runtime_binding')]:
+            changed = deepcopy(audit)
+            changed['module_pairs'].append({'from': 'lib/phronomy/' + source, 'to': 'lib/phronomy/' + target})
+            self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO, config)['passed'], (source, target))
+
     def test_multi_agent_binding_does_not_allow_domain_or_engine_reverse_dependencies(self):
         config = refresh.read_architecture('storage')
         binding = 'lib/phronomy/multi_agent/runtime_binding'

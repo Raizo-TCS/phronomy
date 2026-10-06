@@ -14,7 +14,7 @@ module Phronomy
   # - Runtime admission uses a separate opaque owner token.
   #
   # Workflow persistence is synchronous at the repository contract but is always
-  # invoked through Runtime's OffloadPool. Durable terminal save results return
+  # invoked through its owning execution environment. Durable terminal save results return
   # to the same FSMSession before that session becomes halted/completed.
   # @api private
   class WorkflowRunner
@@ -91,7 +91,8 @@ module Phronomy
       @entry_point = entry_point
       @wait_state_names = wait_state_names
       @persistence = persistence
-      @phase_machine_class = WorkflowPhaseMachineBuilder.new(
+      @environment = WorkflowExecutionEnvironment.current
+      @phase_machine_class = @environment.compile_transitions(
         entry_point: @entry_point,
         declared_states: @declared_states,
         wait_state_names: @wait_state_names,
@@ -99,7 +100,7 @@ module Phronomy
         entry_actions: @entry_actions,
         auto_transitions: auto_transitions,
         exit_actions: exit_actions
-      ).build
+      )
     end
 
     def invoke(input, config: {})
@@ -153,7 +154,7 @@ module Phronomy
           "Valid events: #{@external_events.keys.inspect}"
       end
 
-      registry = Phronomy::WorkflowExecutionRegistry.existing_for(Phronomy::Runtime.instance)
+      registry = @environment.existing_registry
       return false unless registry
 
       registry.post_to_workflow(
@@ -168,8 +169,7 @@ module Phronomy
     # progression therefore remain EventLoop-owned.
     # @api private
     def deliver_on_event_loop(command)
-      event_loop = Phronomy::Runtime.instance.event_loop
-      assert_event_loop!(event_loop)
+      assert_execution_owner!
 
       case command
       when StartCommand
@@ -220,7 +220,6 @@ module Phronomy
 
     def start_new_execution(input, config, stable_observer: nil)
       reject_legacy_workflow_identity_key!(config)
-      runtime = Phronomy::Runtime.instance
       result_task = Phronomy::TaskResult.deferred(name: "workflow:preparing")
       explicit_workflow_instance_id = !config[:workflow_instance_id].nil?
       workflow_instance_id = (config[:workflow_instance_id] || SecureRandom.uuid).to_s.freeze
@@ -242,7 +241,7 @@ module Phronomy
         owner_token: Object.new.freeze,
         explicit_workflow_instance_id: explicit_workflow_instance_id
       )
-      fail_task(result_task, runtime_rejected_error(:start)) unless post_control(runtime, command)
+      fail_task(result_task, runtime_rejected_error(:start)) unless post_control(command)
       result_task
     rescue => error
       fail_task(result_task, error) if defined?(result_task) && result_task
@@ -250,7 +249,6 @@ module Phronomy
     end
 
     def start_resume_execution(state, input:, event_name:, current_phase:)
-      runtime = Phronomy::Runtime.instance
       workflow_instance_id = state.workflow_instance_id.to_s.freeze
       result_task = Phronomy::TaskResult.deferred(name: "workflow-resume:#{workflow_instance_id}")
       Phronomy::Tracing::Automatic.observe_task(
@@ -271,7 +269,7 @@ module Phronomy
         workflow_instance_id: workflow_instance_id,
         owner_token: Object.new.freeze
       )
-      fail_task(result_task, runtime_rejected_error(:resume)) unless post_control(runtime, command)
+      fail_task(result_task, runtime_rejected_error(:resume)) unless post_control(command)
       result_task
     rescue => error
       fail_task(result_task, error) if defined?(result_task) && result_task
@@ -279,10 +277,8 @@ module Phronomy
     end
 
     def begin_start_on_event_loop(request)
-      runtime = Phronomy::Runtime.instance
-      event_loop = runtime.event_loop
       admitted = false
-      Phronomy::WorkflowExecutionRegistry.for(event_loop).admit_workflow(
+      @environment.registry.admit_workflow(
         request.workflow_instance_id,
         owner_token: request.owner_token
       )
@@ -315,7 +311,6 @@ module Phronomy
       end
 
       submit_workflow_load(
-        runtime,
         repository,
         request.workflow_instance_id,
         StartLoadReady,
@@ -323,7 +318,7 @@ module Phronomy
       )
     rescue => error
       if admitted
-        Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
+        @environment.registry.release_workflow(
           request.workflow_instance_id,
           owner_token: request.owner_token
         )
@@ -332,10 +327,8 @@ module Phronomy
     end
 
     def begin_resume_on_event_loop(request)
-      runtime = Phronomy::Runtime.instance
-      event_loop = runtime.event_loop
       admitted = false
-      Phronomy::WorkflowExecutionRegistry.for(event_loop).admit_workflow(
+      @environment.registry.admit_workflow(
         request.workflow_instance_id,
         owner_token: request.owner_token
       )
@@ -363,7 +356,6 @@ module Phronomy
       end
 
       submit_workflow_load(
-        runtime,
         repository,
         request.workflow_instance_id,
         ResumeLoadReady,
@@ -371,7 +363,7 @@ module Phronomy
       )
     rescue => error
       if admitted
-        Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
+        @environment.registry.release_workflow(
           request.workflow_instance_id,
           owner_token: request.owner_token
         )
@@ -379,12 +371,12 @@ module Phronomy
       fail_task(request.result_task, error)
     end
 
-    def submit_workflow_load(runtime, repository, workflow_instance_id, ready_class, request)
+    def submit_workflow_load(repository, workflow_instance_id, ready_class, request)
       operation = WorkflowLoadCommand.new(
         repository: repository,
         workflow_instance_id: workflow_instance_id.to_s.freeze
       )
-      task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
+      task = @environment.submit(on_full: :raise) do
         record = operation.repository.load(operation.workflow_instance_id)
         WorkflowLoadResult.new(
           repository: operation.repository,
@@ -400,7 +392,7 @@ module Phronomy
           error: error
         )
         fail_task(request.result_task, runtime_rejected_error(:load_result)) unless
-          post_control(runtime, ready)
+          post_control(ready)
       end
       nil
     end
@@ -570,17 +562,14 @@ module Phronomy
       resume_phase: nil,
       stable_observer: nil
     )
-      runtime = Phronomy::Runtime.instance
-      event_loop = runtime.event_loop
-      assert_event_loop!(event_loop)
+      assert_execution_owner!
       session = build_session_for(
         execution: execution,
-        runtime: runtime,
         resume_event: resume_event,
         resume_phase: resume_phase,
         stable_observer: stable_observer
       )
-      Phronomy::WorkflowExecutionRegistry.for(event_loop).bind_workflow_session(
+      @environment.registry.bind_workflow_session(
         execution.workflow_instance_id,
         owner_token: execution.owner_token,
         fsm_session_id: session.id
@@ -595,12 +584,11 @@ module Phronomy
           error: error
         )
       end
-      event_loop.register(session, completion: source_task,
-        receiver: Phronomy::WorkflowExecutionRegistry.for(event_loop))
+      @environment.register_session(session, completion: source_task)
       result_task
     rescue => error
-      if event_loop&.current?
-        Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
+      if @environment.executing?
+        @environment.registry.release_workflow(
           execution.workflow_instance_id,
           owner_token: execution.owner_token
         )
@@ -611,9 +599,8 @@ module Phronomy
     # Called from source_task completion on EventLoop, after the FSMSession has
     # accepted the durable terminal result (when a durable barrier is required).
     def finalize_execution(execution:, result_task:, result:, error:)
-      event_loop = Phronomy::Runtime.instance.event_loop
-      assert_event_loop!(event_loop)
-      Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
+      assert_execution_owner!
+      @environment.registry.release_workflow(
         execution.workflow_instance_id,
         owner_token: execution.owner_token
       )
@@ -626,10 +613,8 @@ module Phronomy
       context:,
       event_sink:
     )
-      runtime = Phronomy::Runtime.instance
-      event_loop = runtime.event_loop
-      assert_event_loop!(event_loop)
-      Phronomy::WorkflowExecutionRegistry.for(event_loop).mark_workflow_admission(
+      assert_execution_owner!
+      @environment.registry.mark_workflow_admission(
         execution.workflow_instance_id,
         owner_token: execution.owner_token,
         state: :persisting_terminal
@@ -642,7 +627,7 @@ module Phronomy
         snapshot: deep_immutable_copy(snapshot_for(context))
       )
 
-      task = Phronomy::Execution.submit(runtime: runtime, on_full: :raise) do
+      task = @environment.submit(on_full: :raise) do
         persist_terminal_snapshot(operation)
       end
       task.on_complete do |result, operation_error|
@@ -737,9 +722,8 @@ module Phronomy
     end
 
     def release_and_fail(request, error)
-      event_loop = Phronomy::Runtime.instance.event_loop
-      assert_event_loop!(event_loop)
-      Phronomy::WorkflowExecutionRegistry.for(event_loop).release_workflow(
+      assert_execution_owner!
+      @environment.registry.release_workflow(
         request.workflow_instance_id,
         owner_token: request.owner_token
       )
@@ -755,12 +739,11 @@ module Phronomy
 
     def build_session_for(
       execution:,
-      runtime:,
       resume_event: nil,
       resume_phase: nil,
       stable_observer: nil
     )
-      Phronomy::FSMSession.new(
+      @environment.build_session(
         context: execution.context,
         context_metadata: {
           workflow_instance_id: execution.workflow_instance_id
@@ -773,27 +756,24 @@ module Phronomy
         external_events: @external_events,
         phase_machine_class: @phase_machine_class,
         recursion_limit: execution.recursion_limit,
-        event_loop: runtime.event_loop,
         resume_event: resume_event,
         resume_phase: resume_phase,
         stable_observer: stable_observer,
-        terminal_policy: build_terminal_policy(execution)
+        persist: terminal_persistence_callback(execution)
       )
     end
 
-    def build_terminal_policy(execution)
+    def terminal_persistence_callback(execution)
       return unless execution.repository && execution.persist
 
-      Phronomy::WorkflowTerminalPolicy.new(
-        persist: ->(terminal_type:, context:, event_sink:) {
-          begin_terminal_persistence_on_event_loop(
-            execution,
-            terminal_type: terminal_type,
-            context: context,
-            event_sink: event_sink
-          )
-        }
-      )
+      ->(terminal_type:, context:, event_sink:) {
+        begin_terminal_persistence_on_event_loop(
+          execution,
+          terminal_type: terminal_type,
+          context: context,
+          event_sink: event_sink
+        )
+      }
     end
 
     def resolve_resume_event(current_phase, event)
@@ -818,10 +798,10 @@ module Phronomy
         "No external event registered for state #{current_phase.inspect}"
     end
 
-    def post_control(runtime, command)
+    def post_control(command)
       admission = command.is_a?(StartCommand) || command.is_a?(ResumeCommand)
       completion = admission ? command.result_task : command.request.result_task
-      Phronomy::WorkflowExecutionRegistry.for(runtime.event_loop).post(command,
+      @environment.registry.post(command,
         admission: admission, completion: completion)
     end
 
@@ -831,8 +811,8 @@ module Phronomy
       )
     end
 
-    def assert_event_loop!(event_loop)
-      return if event_loop.current?
+    def assert_execution_owner!
+      return if @environment.executing?
 
       raise Phronomy::Error,
         "Workflow live-state progression must run on EventLoop"

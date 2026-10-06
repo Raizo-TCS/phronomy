@@ -10,7 +10,7 @@ RSpec.describe "FSM dependency contract" do
       require "phronomy/engine/fsm_protocol"
       require "phronomy/engine/fsm_session"
       require "phronomy/workflow/completion"
-      require "phronomy/workflow/execution/workflow_phase_machine_builder"
+      require "phronomy/workflow/runtime_binding/workflow_phase_machine_builder"
 
       builder = Phronomy::WorkflowPhaseMachineBuilder.new(
         entry_point: :start,

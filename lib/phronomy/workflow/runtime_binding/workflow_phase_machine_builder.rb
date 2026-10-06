@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "state_machines"
+require_relative "../execution/workflow_action_rules"
 
 module Phronomy
   # Builds the anonymous state-machine Class used by WorkflowRunner.
@@ -118,14 +119,7 @@ module Phronomy
       }.freeze
 
       ->(machine) {
-        matched =
-          guard.nil? ||
-          call_with_optional_event(
-            guard,
-            machine.context,
-            machine.current_event
-          )
-
+        matched = WorkflowActionRules.allowed?(guard, machine.context, machine.current_event)
         if matched
           machine.selected_transition_action = action
           machine.selected_transition_metadata = metadata
@@ -136,74 +130,27 @@ module Phronomy
 
     def build_transition_action_callback
       ->(machine) {
-        callable = machine.selected_transition_action
-        unless callable.nil?
-          metadata = machine.selected_transition_metadata || {}
-          result = call_with_optional_event(
-            callable,
-            machine.context,
-            machine.current_event
-          )
-          if result.is_a?(Phronomy::TaskResult)
-            raise Phronomy::InvalidAsyncTransitionActionError,
-              transition_task_error_message(metadata)
-          end
-          machine.context = result if workflow_context_result?(result)
-        end
+        machine.context = WorkflowActionRules.transition(
+          machine.selected_transition_action, machine.context, machine.current_event,
+          metadata: machine.selected_transition_metadata || {}
+        )
       }
     end
 
     def build_entry_callback(callable, state_name)
       ->(machine) {
-        result = callable.call(machine.context)
-        if result.is_a?(Phronomy::TaskResult)
-          raise Phronomy::InvalidAsyncEntryActionError,
-            "Entry action for state #{state_name.inspect} returned Phronomy::TaskResult. " \
-            "Start the asynchronous operation, register its callback/listener, " \
-            "and return the WorkflowContext or nil."
-        end
-        machine.context = result if workflow_context_result?(result)
+        machine.context = WorkflowActionRules.apply_entry(callable, machine.context, state_name)
       }
     end
 
     def build_exit_callback(callable, state_name)
-      ->(machine) {
-        result = callable.call(machine.context)
-        if result.is_a?(Phronomy::TaskResult)
-          raise Phronomy::InvalidAsyncEntryActionError,
-            "Exit action for state #{state_name.inspect} returned Phronomy::TaskResult. " \
-            "Exit actions are synchronous Run-to-Completion callbacks."
-        end
-      }
-    end
-
-    def call_with_optional_event(callable, context, event)
-      parameters =
-        if callable.respond_to?(:parameters)
-          callable.parameters
-        else
-          callable.method(:call).parameters
-        end
-      accepts_event = parameters.length >= 2
-      accepts_event ? callable.call(context, event) : callable.call(context)
-    end
-
-    def workflow_context_result?(result)
-      result.respond_to?(:set_graph_metadata)
+      ->(machine) { WorkflowActionRules.exit(callable, machine.context, state_name) }
     end
 
     def public_destination(destination)
       return Workflow::Completion::FINISH if destination == FSMProtocol::FINISH
 
       destination
-    end
-
-    def transition_task_error_message(metadata)
-      "Transition action " \
-        "#{metadata[:from].inspect} --#{metadata[:event].inspect}--> " \
-        "#{metadata[:to].inspect} returned Phronomy::TaskResult. " \
-        "Start the asynchronous operation, register its callback/listener, " \
-        "and return the WorkflowContext or nil."
     end
   end
 end
