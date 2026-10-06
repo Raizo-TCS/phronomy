@@ -2,19 +2,9 @@
 
 module Phronomy
   module MultiAgent
-    # Runtime-local Team identity and construction exclusion; no execution state.
+    # Environment-local Team identity and construction exclusion; no execution state.
     # @api private
     class TeamOwnershipRegistry
-      def self.for(runtime)
-        existing_for(runtime) || runtime.__register_shutdown_participant(
-          key: self, participant: new
-        )
-      end
-
-      def self.existing_for(runtime)
-        runtime.__shutdown_participant(key: self)
-      end
-
       def initialize
         @mutex = Mutex.new
         @condition = ConditionVariable.new

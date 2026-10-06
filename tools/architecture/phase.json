@@ -119,5 +119,29 @@
       "Full semantic dependency review",
       "Live provider verification and additional persistence acceptance gates"
     ]
+  },
+  "r8_unit9": {
+    "status": "scoped_tool_result_transforms_corrected",
+    "completed_scope": [
+      "Application-defined Tool result transformation order and multiplicity preserved across standard async delegation"
+    ],
+    "pending_scope": [
+      "MultiAgent/Workflow Runtime connections",
+      "Workflow durable child protocol",
+      "Full semantic dependency review"
+    ]
+  },
+  "r8_unit10": {
+    "status": "scoped_multi_agent_boundary_implemented",
+    "completed_scope": [
+      "C01 owns coordination admission and Team identity without concrete Runtime selection",
+      "Composition-owned MultiAgent execution environment and Engine binding",
+      "Originating environment retained for Team cancellation and caller validity"
+    ],
+    "pending_scope": [
+      "Workflow Runtime connections and durable child protocol",
+      "MultiAgent default persistence composition and full semantic dependency review",
+      "Live provider and additional persistence acceptance gates"
+    ]
   }
 }

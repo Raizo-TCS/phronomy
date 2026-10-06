@@ -250,6 +250,11 @@
       "id": "G62",
       "title": "AGENT ENGINE BINDING",
       "kind": "domain_binding"
+    },
+    {
+      "id": "G63",
+      "title": "MULTIAGENT ENGINE BINDING",
+      "kind": "domain_binding"
     }
   ],
   "retired_groups": {
@@ -355,6 +360,12 @@
       "directory": "lib/phronomy/agent/runtime_binding",
       "group": "G62",
       "phase": "r8-unit7"
+    },
+    {
+      "id": "M89",
+      "directory": "lib/phronomy/multi_agent/runtime_binding",
+      "group": "G63",
+      "phase": "r8-unit10"
     }
   ],
   "retired_ids": {

@@ -2,18 +2,11 @@
 
 module Phronomy
   module MultiAgent
-    # Runtime-local admission for one synchronous coordination call per owner
+    # Environment-local admission for one synchronous coordination call per owner
     # (a Handoff main Agent or TeamCoordinator). This does not own durable runs
     # or active-agent mutation; those remain in their existing domains.
     # @api private
     class AdmissionRegistry
-      # Construction has no side effects. Runtime returns the registered instance
-      # when callers concurrently supply candidates for the same key.
-      # @api private
-      def self.for(runtime)
-        runtime.__register_shutdown_participant(key: self, participant: new)
-      end
-
       def initialize
         @mutex = Mutex.new
         @cond = ConditionVariable.new

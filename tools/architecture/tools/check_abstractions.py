@@ -37,6 +37,11 @@ def violations(repository):
             tool_contract = relative.startswith('lib/phronomy/tool/')
             llm_contract = relative.startswith('lib/phronomy/llm_adapter/') and '/backends/' not in relative and '/async/' not in relative
             agent = relative.startswith('lib/phronomy/agent/')
+            coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
+            if coordination and node.type == 'constant' and text(node) in {
+                    'Runtime', 'EventLoop', 'FSMSession', 'EngineEnvironment'}:
+                findings.append({'kind': 'coordination-selects-engine', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             agent_progress = relative.startswith((
                 'lib/phronomy/agent/execution/', 'lib/phronomy/agent/recovery/',
                 'lib/phronomy/agent/lifecycle/', 'lib/phronomy/agent/tool_execution/')) or relative == 'lib/phronomy/agent/execution_environment.rb'
@@ -72,6 +77,10 @@ def violations(repository):
                 first = args.named_children[0] if args and args.named_children else None
                 indirect = (text(first).lstrip(':').strip('\"\'')
                             if method in {'send', '__send__', 'public_send'} else '')
+                if coordination and (method in {'__register_shutdown_participant', '__shutdown_participant'}
+                                     or indirect in {'__register_shutdown_participant', '__shutdown_participant'}):
+                    findings.append({'kind': 'coordination-selects-engine', 'file': relative,
+                                     'line': node.start_point.row + 1, 'call': text(node)})
                 if relative in ADMISSION and (method in PARENT_CALLS or indirect in PARENT_CALLS):
                     findings.append({'kind': 'agent-interprets-parent-reservation',
                                      'file': relative, 'line': node.start_point.row + 1,

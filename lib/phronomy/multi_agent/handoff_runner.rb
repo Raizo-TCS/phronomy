@@ -21,13 +21,13 @@ module Phronomy
           raise ArgumentError, "Duplicate Source/Target Handoff edges"
         end
         @bindings = @handoffs.group_by { |edge| edge.source_agent.agent_id }.transform_values { |edges| edges.map { |edge| HandoffCapabilityFactory.build(edge) }.freeze }.freeze
-        @runtime = Phronomy::Runtime.instance
-        @admissions = AdmissionRegistry.for(@runtime)
+        @environment = ExecutionEnvironment.current
+        @admissions = @environment.admissions
       end
 
       def invoke(input, config: {})
         raise Phronomy::EventLoopReentrancyError, "HandoffRunner#invoke cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
-        raise Phronomy::RuntimeShutdownError, "HandoffRunner belongs to a previous Runtime" unless Phronomy::Runtime.instance.equal?(@runtime)
+        raise Phronomy::RuntimeShutdownError, "HandoffRunner belongs to a previous Runtime" unless @environment.current?
         trace = Phronomy::Tracing::Automatic.start("multi_agent.turn", input: input, main_agent_id: main_agent.agent_id)
         error = result = nil
         config = config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)

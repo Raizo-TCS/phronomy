@@ -10,6 +10,26 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_coordination_cannot_select_runtime_or_register_shutdown_participants(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/multi_agent/admission_registry.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('''# Runtime is a comment
+Phronomy::Runtime.instance
+EngineEnvironment.new
+runtime.__register_shutdown_participant(key: self, participant: new)
+runtime.send(:__shutdown_participant, key: self)
+''')
+            found = violations(repo)
+            self.assertEqual([2, 3, 4, 5], [v['line'] for v in found])
+            self.assertEqual({'coordination-selects-engine'}, {v['kind'] for v in found})
+            path.write_text('ExecutionEnvironment.current.admissions\nenvironment.submit {}\n')
+            binding = path.parent / 'runtime_binding/engine_environment.rb'
+            binding.parent.mkdir()
+            binding.write_text('Phronomy::Runtime.instance\nruntime.__register_shutdown_participant(key: self, participant: new)\n')
+            self.assertEqual([], violations(repo))
+
     def test_agent_progress_cannot_select_engine_implementation(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

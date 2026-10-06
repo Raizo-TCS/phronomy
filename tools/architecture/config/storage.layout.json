@@ -1,6 +1,6 @@
 {
   "format": "phronomy-layered-display-v5",
-  "diagram_revision": "r8-unit8-tool-child-contracts",
+  "diagram_revision": "r8-unit10-multi-agent-contracts",
   "width": 3260,
   "column_centers": [
     330,
@@ -114,7 +114,8 @@
       "title": "ASYNC CLIENTS / BACKEND IMPLEMENTATIONS",
       "columns": [
         [
-          "M88"
+          "M88",
+          "M89"
         ],
         [],
         [

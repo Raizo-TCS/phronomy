@@ -58,6 +58,23 @@ class BoundaryTests(unittest.TestCase):
     def test_accepts_implemented_llm_boundary_with_declared_vector_work_remaining(self):
         self.assertTrue(self.check_graph()['passed'])
 
+    def test_multi_agent_binding_does_not_allow_domain_or_engine_reverse_dependencies(self):
+        config = refresh.read_architecture('storage')
+        binding = 'lib/phronomy/multi_agent/runtime_binding'
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': binding, 'to': 'lib/phronomy/multi_agent'},
+            {'from': binding, 'to': 'lib/phronomy/engine'}]}
+        modules = {module['directory'] for module in config['modules']}
+        audit['module_pairs'] += [{'from': source, 'to': target} for source, target in
+                                  refresh.IMPLEMENTATIONS.items() if source in modules]
+        self.assertTrue(refresh.check_boundaries(audit, 'storage', REPO, config)['passed'])
+        for source, target in [('multi_agent', 'engine'), ('multi_agent', 'multi_agent/runtime_binding'),
+                               ('engine', 'multi_agent/runtime_binding'), ('execution', 'multi_agent/runtime_binding'),
+                               ('llm_adapter', 'multi_agent/runtime_binding')]:
+            changed = deepcopy(audit)
+            changed['module_pairs'].append({'from': 'lib/phronomy/' + source, 'to': 'lib/phronomy/' + target})
+            self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO, config)['passed'], (source, target))
+
     def test_group_identifiers_and_display_order_do_not_define_policy(self):
         changed = deepcopy(self.config)
         names = {g['id']: 'X' + str(100 - i) for i, g in enumerate(changed['groups'])}

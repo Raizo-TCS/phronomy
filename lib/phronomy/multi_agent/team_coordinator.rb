@@ -80,7 +80,7 @@ module Phronomy
 
         # @api public
         def get(team_id)
-          TeamOwnershipRegistry.existing_for(Phronomy::Runtime.instance)&.get(team_id.to_s, klass: self)
+          ExecutionEnvironment.current.existing_ownership&.get(team_id.to_s, klass: self)
         end
 
         # @api private
@@ -107,10 +107,10 @@ module Phronomy
           key = id.to_s
           raise ArgumentError, "team_id must not be empty" if key.empty?
           store = persistence || Phronomy.configuration.multi_agent_store || TeamCoordinator.build_default_persistence
-          runtime = Phronomy::Runtime.instance
-          TeamOwnershipRegistry.for(runtime).fetch(key, klass: self, create: create, persistence: store) do
+          environment = ExecutionEnvironment.current
+          environment.ownership.fetch(key, klass: self, create: create, persistence: store) do
             instance = allocate
-            instance.send(:initialize, key.freeze, store, metadata, listener, runtime, create: create)
+            instance.send(:initialize, key.freeze, store, metadata, listener, environment, create: create)
             instance
           end
         end
@@ -170,9 +170,9 @@ module Phronomy
 
       private
 
-      def initialize(id, store, metadata, listener, runtime, create:)
-        @team_id, @persistence, @listener, @runtime = id, store, listener, runtime
-        @admissions = AdmissionRegistry.for(@runtime)
+      def initialize(id, store, metadata, listener, environment, create:)
+        @team_id, @persistence, @listener, @environment = id, store, listener, environment
+        @admissions = @environment.admissions
         @tokens_mutex, @tokens = Mutex.new, {}
         @coordinator_classes = {}
         definition = self.class.team_definition
@@ -196,7 +196,7 @@ module Phronomy
 
       def assert_caller!
         raise Phronomy::EventLoopReentrancyError, "Team operation cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
-        unless @runtime.equal?(Phronomy::Runtime.instance)
+        unless @environment.current?
           raise Phronomy::RuntimeShutdownError, "Team #{team_id} belongs to a previous Runtime"
         end
       end
@@ -294,7 +294,7 @@ module Phronomy
         token = Phronomy::Concurrency::CancellationToken.new
         @tokens_mutex.synchronize { @tokens[id] = token }
         external = config[:cancellation_token]
-        callback = proc { Phronomy::Execution.submit(runtime: @runtime, on_full: :raise) { cancel(id) } }
+        callback = proc { @environment.submit(on_full: :raise) { cancel(id) } }
         external&.on_cancel(&callback)
         token.cancel! if current.metadata["cancel_requested"]
         begin

@@ -1,3 +1,12 @@
+## r8 unit 10 update
+
+C01 retains coordination admission and Team identity rules. Concrete Runtime
+registration, lookup, validity checks and cancellation submission now belong to
+M89/G63 multi_agent/runtime_binding through a private ExecutionEnvironment port.
+The existing Engine shutdown participant protocol is unchanged. AST and graph
+checks reject concrete Engine connections in MultiAgent domain files. Workflow
+connections and broader dependency review remain; see `docs/architecture/r8-unit10.md`.
+
 ## r8 unit 9 update
 
 C06's result decorators preserve application-defined stage ordering and repeated
