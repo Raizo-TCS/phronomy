@@ -286,7 +286,7 @@ module Phronomy
 
       recursion_limit = request.config.fetch(
         :recursion_limit,
-        Phronomy.configuration.recursion_limit
+        Phronomy::WorkflowSettings.current.recursion_limit
       )
       repository = configured_repository
       persist = request.explicit_workflow_instance_id && !repository.nil?
@@ -341,7 +341,7 @@ module Phronomy
           context: context,
           workflow_instance_id: request.workflow_instance_id,
           owner_token: request.owner_token,
-          recursion_limit: Phronomy.configuration.recursion_limit,
+          recursion_limit: Phronomy::WorkflowSettings.current.recursion_limit,
           repository: nil,
           persist: false,
           expected_revision: nil
@@ -406,7 +406,7 @@ module Phronomy
 
       recursion_limit = request.config.fetch(
         :recursion_limit,
-        Phronomy.configuration.recursion_limit
+        Phronomy::WorkflowSettings.current.recursion_limit
       )
       execution = build_new_execution(
         request.input,
@@ -444,7 +444,7 @@ module Phronomy
         context: context,
         workflow_instance_id: request.workflow_instance_id,
         owner_token: request.owner_token,
-        recursion_limit: Phronomy.configuration.recursion_limit,
+        recursion_limit: Phronomy::WorkflowSettings.current.recursion_limit,
         repository: ready.result.repository,
         persist: true,
         expected_revision: expected_revision
@@ -552,7 +552,7 @@ module Phronomy
     end
 
     def configured_repository
-      @persistence || Phronomy.configuration.workflow_store
+      @persistence || Phronomy::WorkflowSettings.current.workflow_store
     end
 
     def register_execution(
@@ -672,7 +672,7 @@ module Phronomy
       end
       accepted = event_sink.post(:workflow_terminal_persistence_result, delivery)
       unless accepted
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] EventLoop rejected Workflow terminal persistence result " \
           "for #{execution.workflow_instance_id.inspect}"
         )

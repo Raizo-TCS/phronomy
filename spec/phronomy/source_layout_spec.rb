@@ -244,6 +244,16 @@ RSpec.describe "Responsibility-based source layout" do
       end
       abort "first scope did not restore the uninitialized state" if Phronomy.instance_variable_get(:@configuration)
       abort "lazy provider retained expired scoped settings" unless Phronomy::RuntimeSettings.current.offload_pool_size == 10
+      Phronomy.reset_configuration!
+      Phronomy.with_configuration do |scoped|
+        scoped.default_model = "scoped"
+        scoped.recursion_limit = 3
+        abort "Agent values not visible" unless Phronomy::Agent::Settings.current.default_model == "scoped"
+        abort "Workflow values not visible" unless Phronomy::WorkflowSettings.current.recursion_limit == 3
+        abort "unexpected MultiAgent fallback" unless Phronomy::MultiAgent::Store.configured.nil?
+      end
+      abort "Agent scope not restored" unless Phronomy::Agent::Settings.current.default_model.nil?
+      abort "Workflow scope not restored" unless Phronomy::WorkflowSettings.current.recursion_limit == 25
       abort "reading settings started Runtime" if Phronomy::Runtime.default_if_initialized_for_test
     RUBY
 

@@ -30,11 +30,8 @@ RSpec.describe "Tool child execution environment" do
     child = invocation
     operation = Phronomy::TaskResult.deferred
     work = nil
-    expect(environment).to receive(:submit).with(
-      pool_name: :authorization,
-      size: Phronomy.configuration.authorization_pool_size,
-      queue_size: Phronomy.configuration.authorization_queue_size,
-      timeout: 3, cancellation_token: nil, on_full: :raise
+    expect(environment).to receive(:submit_authorization).with(
+      timeout: 3, cancellation_token: nil
     ) { |&block|
       work = block
       operation

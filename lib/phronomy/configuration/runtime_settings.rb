@@ -33,6 +33,7 @@ module Phronomy
     attr_accessor :event_loop_starvation_threshold_seconds
     attr_accessor :event_loop_dispatch_threshold_seconds
     attr_accessor :offload_pool_size, :offload_queue_size
+    attr_accessor :authorization_pool_size, :authorization_queue_size
 
     # The tracer is injected; selecting a concrete implementation belongs to
     # application composition. Explicit nil retains its existing meaning.
@@ -45,6 +46,8 @@ module Phronomy
       @event_loop_dispatch_threshold_seconds = nil
       @offload_pool_size = 10
       @offload_queue_size = 100
+      @authorization_pool_size = 4
+      @authorization_queue_size = 100
     end
   end
 end

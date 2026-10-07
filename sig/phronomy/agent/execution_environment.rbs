@@ -11,6 +11,7 @@ module Phronomy
       def executing?: () -> bool
       def session_phase: (String id) -> Symbol?
       def submit: [V] (**untyped options) { () -> V } -> TaskResult[V]
+      def submit_authorization: [V] (timeout: Numeric?, cancellation_token: Concurrency::CancellationToken?) { () -> V } -> TaskResult[V]
       def build_agent_session: (invocation: untyped, ?resume_event: Symbol?, ?resume_phase: Symbol?) -> untyped
       def build_tool_session: (invocation: untyped, parent_sink: untyped, ?resume_event: Symbol?, ?resume_phase: Symbol?) -> untyped
       def register_session: (untyped session, completion: TaskResult[untyped]) -> untyped

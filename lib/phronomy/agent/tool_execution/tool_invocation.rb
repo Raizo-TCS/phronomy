@@ -228,15 +228,11 @@ module Phronomy
         tool_invocation_id = @id.to_s.freeze
         timeout = @config.fetch(
           :authorization_timeout,
-          Phronomy.configuration.authorization_timeout
+          Phronomy::Agent::Settings.current.authorization_timeout
         )
-        operation = environment.submit(
-          pool_name: :authorization,
-          size: Phronomy.configuration.authorization_pool_size,
-          queue_size: Phronomy.configuration.authorization_queue_size,
+        operation = environment.submit_authorization(
           timeout: timeout,
-          cancellation_token: @config[:cancellation_token],
-          on_full: :raise
+          cancellation_token: @config[:cancellation_token]
         ) { evaluator.send(:evaluate_authorization_command, command) }
         environment.registry.supervise_agent_operation(@execution_id, operation)
         operation.on_complete do |outcome, error|

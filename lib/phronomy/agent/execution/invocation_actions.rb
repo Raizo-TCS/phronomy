@@ -129,7 +129,7 @@ module Phronomy
           **agent.send(:_build_caller_meta, config)
         )
 
-        client = environment.build_llm_client(adapter: Phronomy.configuration.llm_adapter)
+        client = environment.build_llm_client(adapter: Phronomy::Agent::Settings.current.llm_adapter)
         token = config[:cancellation_token]
         llm_call_id = call_context.fetch(:llm_call_id)
         operation = if streaming
@@ -234,7 +234,7 @@ module Phronomy
       def self.post_session_event!(event_sink, event_type, payload)
         return if event_sink.post(event_type, payload)
 
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Dropped late #{event_type.inspect} for " \
           "FSMSession #{event_sink.fsm_session_id}"
         )

@@ -222,7 +222,7 @@ module Phronomy
           "[Phronomy] Workflow has unreachable state(s): " \
           "#{unreachable.sort.inspect}. These states can never be entered " \
           "from the initial state #{entry_point.inspect}."
-        logger = Phronomy.configuration.logger
+        logger = Phronomy::RuntimeSettings.current.logger
         logger ? logger.warn(message) : Kernel.warn(message)
       end
     end

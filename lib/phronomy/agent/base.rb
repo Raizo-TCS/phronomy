@@ -46,7 +46,7 @@ module Phronomy
           if name
             @model = name
           else
-            @model || Phronomy.configuration.default_model
+            @model || Phronomy::Agent::Settings.current.default_model
           end
         end
 
@@ -572,7 +572,7 @@ module Phronomy
         load_existing:
       )
         @persistence = persistence ||
-          Phronomy.configuration.agent_store ||
+          Phronomy::Agent::Settings.current.agent_store ||
           DefaultPersistence.build
         @agent_id = agent_id.to_s.freeze
 
@@ -778,7 +778,7 @@ module Phronomy
       end
 
       def _warn_stream_callback_error(message)
-        logger = Phronomy.configuration.logger
+        logger = Phronomy::RuntimeSettings.current.logger
         unless logger
           _kernel_warn_safely(message)
           return

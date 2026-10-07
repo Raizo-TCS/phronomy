@@ -13,6 +13,8 @@ module Phronomy
     attr_accessor event_loop_dispatch_threshold_seconds: Numeric?
     attr_accessor offload_pool_size: Integer
     attr_accessor offload_queue_size: Integer
+    attr_accessor authorization_pool_size: Integer
+    attr_accessor authorization_queue_size: Integer
   end
 
   class Configuration

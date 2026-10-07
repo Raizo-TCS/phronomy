@@ -106,7 +106,7 @@ module Phronomy
           raise Phronomy::EventLoopReentrancyError, "Team construction cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
           key = id.to_s
           raise ArgumentError, "team_id must not be empty" if key.empty?
-          store = persistence || Phronomy.configuration.multi_agent_store || TeamCoordinator.build_default_persistence
+          store = persistence || Phronomy::MultiAgent::Store.configured || TeamCoordinator.build_default_persistence
           environment = ExecutionEnvironment.current
           environment.ownership.fetch(key, klass: self, create: create, persistence: store) do
             instance = allocate

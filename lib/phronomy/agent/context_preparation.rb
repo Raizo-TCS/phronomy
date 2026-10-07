@@ -251,7 +251,7 @@ module Phronomy
         tools:,
         current_input:
       )
-        token_budget = Phronomy.configuration.llm_adapter.input_budget(model_config)
+        token_budget = Phronomy::Agent::Settings.current.llm_adapter.input_budget(model_config)
         policy_input = @input_builder.build(
           agent_id: agent_root.agent_id,
           execution_id: execution.execution_id,
@@ -273,7 +273,7 @@ module Phronomy
         )
         Phronomy::Context::Assembly.new.prepare(
           input: policy_input, policy: @policy,
-          adapter_identity: Phronomy.configuration.llm_adapter.identity
+          adapter_identity: Phronomy::Agent::Settings.current.llm_adapter.identity
         )
       end
 

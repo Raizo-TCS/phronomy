@@ -27,6 +27,16 @@ module Phronomy
         Phronomy::Execution.submit(runtime: @runtime, **options, &operation)
       end
 
+      # Pool sizing is an execution resource choice, separate from Agent's
+      # authorization decision and timeout selection. Read at submission time.
+      def submit_authorization(timeout:, cancellation_token:, &operation)
+        submit(pool_name: :authorization,
+          size: Phronomy::RuntimeSettings.current.authorization_pool_size,
+          queue_size: Phronomy::RuntimeSettings.current.authorization_queue_size,
+          timeout: timeout, cancellation_token: cancellation_token,
+          on_full: :raise, &operation)
+      end
+
       def build_llm_client(adapter:)
         Phronomy::LLMAdapter::AsyncClient.new(adapter: adapter, submitter: self)
       end

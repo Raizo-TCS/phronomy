@@ -25,7 +25,7 @@ module Phronomy
 
       def run_before_llm_input_hooks(call_sequence:, config:)
         hooks = [
-          Phronomy.configuration.before_llm_input,
+          Phronomy::Agent::Settings.current.before_llm_input,
           self.class._before_llm_input,
           @before_llm_input
         ].compact

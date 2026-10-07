@@ -17,6 +17,33 @@ RSpec.describe Phronomy::Agent::EngineEnvironment do
   end
   let(:agent) { agent_class.new }
 
+  describe "authorization resources" do
+    it "reads current pool options at submission while retaining its owning Runtime" do
+      runtime = Phronomy::Runtime.new
+      connection = described_class.new(runtime: runtime)
+      token = Phronomy::Concurrency::CancellationToken.new
+      expect(Phronomy::Runtime).not_to receive(:instance)
+      Phronomy.configure do |c|
+        c.authorization_pool_size = 2
+        c.authorization_queue_size = 3
+      end
+      expect(Phronomy::Execution).to receive(:submit).with(runtime: runtime,
+        pool_name: :authorization, size: 2, queue_size: 3,
+        timeout: nil, cancellation_token: token, on_full: :raise).and_yield
+      expect(connection.submit_authorization(timeout: nil, cancellation_token: token) { :first }).to eq(:first)
+      Phronomy.configure do |c|
+        c.authorization_pool_size = 4
+        c.authorization_queue_size = 6
+      end
+      expect(Phronomy::Execution).to receive(:submit).with(runtime: runtime,
+        pool_name: :authorization, size: 4, queue_size: 6,
+        timeout: 9, cancellation_token: token, on_full: :raise).and_yield
+      expect(connection.submit_authorization(timeout: 9, cancellation_token: token) { :second }).to eq(:second)
+    ensure
+      runtime&.shutdown
+    end
+  end
+
   describe "LLM connection" do
     it "constructs the client without starting resources or selecting a default Runtime" do
       runtime = Phronomy::Runtime.new

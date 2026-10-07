@@ -492,7 +492,7 @@ module Phronomy
       end
 
       def warn_stale_llm_result(llm_call_id)
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Dropped stale Provider result: " \
           "execution_id=#{@execution_id} expected_llm_call_id=#{current_llm_call_id.inspect} " \
           "actual_llm_call_id=#{llm_call_id.inspect}"
@@ -529,13 +529,13 @@ module Phronomy
         if @event_sink
           accepted = @event_sink.post(:application_callback_failed, {failure: failure})
           unless accepted
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] Callback failure recorded but could not notify " \
               "FSMSession #{@event_sink.fsm_session_id}: execution_id=#{@execution_id}"
             )
           end
         end
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Application event listener failed: " \
           "#{failure.error.class}: #{failure.error.message}"
         )

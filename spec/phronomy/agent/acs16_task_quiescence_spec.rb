@@ -315,7 +315,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
     end
 
     it "fails the task when stream_callback_error_policy is :fail_task and on_event raises" do
-      allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+      Phronomy.configuration.stream_callback_error_policy = :fail_task
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
       agent = ACS16TerminalBarrierAgent.new(
@@ -337,7 +337,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
       logger = instance_double(Logger, warn: nil)
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
 
       agent = ACS16TerminalBarrierAgent.new(persistence: persistence)
       task = agent.invoke_async("finish normally")

@@ -91,7 +91,7 @@ module Phronomy
       def self.post_to_session(event_sink, event_type, payload)
         return if event_sink.post(event_type, payload)
 
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Dropped #{event_type.inspect} for " \
           "FSMSession #{event_sink.fsm_session_id}"
         )

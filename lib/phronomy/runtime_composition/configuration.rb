@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
+require "forwardable"
 require_relative "../configuration/runtime_settings"
+require_relative "../agent/settings"
+require_relative "../workflow/execution/workflow_settings"
 
 module Phronomy
   # Application-facing configuration composes domain options and neutral runtime
   # settings. Public accessors and constructor behavior stay unchanged.
   class Configuration
-    STREAM_CALLBACK_ERROR_POLICIES = %i[report fail_task].freeze
-    private_constant :STREAM_CALLBACK_ERROR_POLICIES
+    extend Forwardable
 
     DEFAULT_FACTORIES = {}
     private_constant :DEFAULT_FACTORIES
@@ -21,26 +23,22 @@ module Phronomy
       nil
     end
 
-    attr_accessor :default_model
-    attr_accessor :default_embedding_model
-    attr_accessor :before_llm_input
-    attr_accessor :recursion_limit
-    attr_accessor :agent_store, :multi_agent_store, :workflow_store
-    attr_accessor :llm_adapter
-    attr_reader :stream_callback_error_policy
-    attr_accessor :authorization_pool_size
-    attr_accessor :authorization_queue_size
-    attr_accessor :authorization_timeout
+    attr_accessor :default_embedding_model, :multi_agent_store
 
-    def stream_callback_error_policy=(value)
-      unless STREAM_CALLBACK_ERROR_POLICIES.include?(value)
-        allowed = STREAM_CALLBACK_ERROR_POLICIES.map(&:inspect).join(", ")
-        raise Phronomy::ConfigurationError,
-          "stream_callback_error_policy must be one of: #{allowed}"
-      end
+    # Preserve the public settings facade while each domain owns its values.
+    def_delegators :@__agent_settings, :default_model, :default_model=
+    def_delegators :@__agent_settings, :before_llm_input, :before_llm_input=
+    def_delegators :@__agent_settings, :agent_store, :agent_store=
+    def_delegators :@__agent_settings, :llm_adapter, :llm_adapter=
+    def_delegators :@__agent_settings, :stream_callback_error_policy, :stream_callback_error_policy=
+    def_delegators :@__agent_settings, :authorization_timeout, :authorization_timeout=
+    def_delegators :@__workflow_settings, :recursion_limit, :recursion_limit=
+    def_delegators :@__workflow_settings, :workflow_store, :workflow_store=
+    def_delegators :@__runtime_settings, :authorization_pool_size, :authorization_pool_size=
+    def_delegators :@__runtime_settings, :authorization_queue_size, :authorization_queue_size=
 
-      @stream_callback_error_policy = value
-    end
+    # @api private
+    attr_reader :__agent_settings, :__workflow_settings
 
     # Engine access is bound by the composition root, not by Engine itself.
     # @api private
@@ -119,14 +117,13 @@ module Phronomy
     end
 
     def initialize
-      @recursion_limit = 25
+      @__workflow_settings = WorkflowSettings.new(recursion_limit: 25)
       @__runtime_settings = RuntimeSettings.new(tracer: DEFAULT_FACTORIES.fetch(:tracer).call)
-      @llm_adapter = DEFAULT_FACTORIES.fetch(:llm_adapter).call
-      @stream_callback_error_policy = :report
-      @authorization_pool_size = 4
-      @authorization_queue_size = 100
-      @authorization_timeout = 5
-      @agent_store = @multi_agent_store = @workflow_store = nil
+      @__agent_settings = Agent::Settings.new(
+        llm_adapter: DEFAULT_FACTORIES.fetch(:llm_adapter).call,
+        stream_callback_error_policy: :report, authorization_timeout: 5
+      )
+      @multi_agent_store = nil
     end
 
     private
@@ -136,6 +133,8 @@ module Phronomy
     def initialize_copy(original)
       super
       @__runtime_settings = original.__runtime_settings.dup
+      @__agent_settings = original.__agent_settings.dup
+      @__workflow_settings = original.__workflow_settings.dup
     end
   end
 end

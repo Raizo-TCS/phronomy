@@ -10,6 +10,36 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_domain_settings_do_not_reach_application_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            for directory_name in ['agent', 'workflow/execution', 'multi_agent']:
+                path = repo / 'lib/phronomy' / directory_name / 'consumer.rb'
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("# Phronomy.configuration is only a comment\nPhronomy.configuration.logger\n::Phronomy.send(:configuration)\nPhronomy.public_send('configuration')\nPhronomy::Configuration.new\n")
+            found = violations(repo)
+            self.assertEqual(12, len(found))
+            self.assertEqual({'domain-reads-application-configuration'}, {v['kind'] for v in found})
+            for path in repo.glob('lib/**/*.rb'):
+                path.write_text('Phronomy::RuntimeSettings.current.logger\nPhronomy::Agent::Settings.current.llm_adapter\n')
+            composition = repo / 'lib/phronomy/runtime_composition/global_configuration.rb'
+            composition.parent.mkdir()
+            composition.write_text('Phronomy.configuration.__agent_settings\n')
+            self.assertEqual([], violations(repo))
+
+    def test_authorization_pool_sizes_belong_to_execution_connection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/agent/tool_execution/tool_invocation.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('Phronomy::RuntimeSettings.current.authorization_pool_size\nsettings.authorization_queue_size\n')
+            self.assertEqual({'domain-selects-execution-pool-resources'}, {v['kind'] for v in violations(repo)})
+            path.write_text('environment.submit_authorization(timeout: limit, cancellation_token: token) {}\n')
+            binding = repo / 'lib/phronomy/agent/runtime_binding/engine_environment.rb'
+            binding.parent.mkdir()
+            binding.write_text('Phronomy::RuntimeSettings.current.authorization_pool_size\n')
+            self.assertEqual([], violations(repo))
+
     def test_cancellation_registration_disposal_is_execution_owned(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

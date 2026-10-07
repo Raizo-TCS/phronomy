@@ -175,7 +175,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
       it "retains #{error_class} precedence when the listener also fails" do
         install
         error = error_class.new("execution stopped")
-        allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+        Phronomy.configuration.stream_callback_error_policy = :fail_task
         ready = terminal_ready(:failed, error: error,
           delivery: delivery.with(application_listener: ->(_) { raise "callback failed" }))
         expect(agent.persistence).not_to receive(:transaction)
@@ -187,7 +187,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
 
     it "retains suspension and pending execution tasks while failing exact observers" do
       install
-      allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+      Phronomy.configuration.stream_callback_error_policy = :fail_task
       listener = ->(event) {
         events << [event.type, event.payload, observation]
         raise "approval callback failed"

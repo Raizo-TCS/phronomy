@@ -193,7 +193,7 @@ module Phronomy
             error: error
           )
           unless post_control(environment, ready)
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] EventLoop rejected Provider dispatch preparation result for " \
               "#{operation.execution_id}"
             )
@@ -214,7 +214,7 @@ module Phronomy
             error: error
           )
           unless post_control(environment, ready)
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] EventLoop rejected Tool dispatch preparation result for " \
               "#{operation.execution_id}"
             )
@@ -863,7 +863,7 @@ module Phronomy
           execution_id: operation.execution_id,
           state: :recovery_required
         )
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] causal durable barrier requires recovery for " \
           "#{operation.execution_id}: #{error.class}: #{error.message}"
         )
@@ -1209,7 +1209,7 @@ module Phronomy
         unless state && state.agent.equal?(@agent) &&
             state.fsm_session_id.to_s == command.fsm_session_id.to_s &&
             state.invocation.equal?(command.invocation)
-          Phronomy.configuration.logger&.warn(
+          Phronomy::RuntimeSettings.current.logger&.warn(
             "[Phronomy] Dropped stale deferred terminal for #{command.execution_id}"
           )
           return
@@ -1356,7 +1356,7 @@ module Phronomy
             execution_id: operation.execution_id,
             state: :recovery_required
           )
-          Phronomy.configuration.logger&.warn(
+          Phronomy::RuntimeSettings.current.logger&.warn(
             "[Phronomy] Agent terminal transition requires recovery for " \
             "#{operation.execution_id}: #{error.class}: #{error.message}"
           )
@@ -1401,7 +1401,7 @@ module Phronomy
           unless state && state.agent.equal?(@agent) &&
               state.execution.execution_revision == operation.expected_execution_revision &&
               state.fsm_session_id.to_s == operation.fsm_session_id.to_s
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] Dropped stale Agent terminal result for #{operation.execution_id}"
             )
             return
@@ -1449,7 +1449,7 @@ module Phronomy
           execution_id: operation.execution_id,
           state: :recovery_required
         )
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Agent terminal durable outcome requires recovery for " \
           "#{operation.execution_id}: #{ready.error.class}: #{ready.error.message}"
         )
@@ -1575,7 +1575,7 @@ module Phronomy
           environment.session_phase(fsm_session_id) == expected_fsm_state
         return state if authoritative
 
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Dropped stale Agent operation result: " \
           "execution_id=#{execution_id} fsm_session_id=#{fsm_session_id}"
         )
@@ -1630,7 +1630,7 @@ module Phronomy
       end
 
       def report_approval_dispatch_failure(error)
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] approval listener dispatch failed: #{error.class}: #{error.message}"
         )
       end
@@ -1658,7 +1658,7 @@ module Phronomy
           callback_error,
           event: StreamEvent.new(type: event_type, payload: result),
           execution_id: result&.fetch(:execution_id, nil),
-          callback_error_policy: Phronomy.configuration.stream_callback_error_policy
+          callback_error_policy: Phronomy::Agent::Settings.current.stream_callback_error_policy
         )
       end
 
@@ -1670,7 +1670,7 @@ module Phronomy
         execution_error = nil
       )
         if callback_error
-          policy = Phronomy.configuration.stream_callback_error_policy
+          policy = Phronomy::Agent::Settings.current.stream_callback_error_policy
           @agent.send(
             :_report_stream_callback_error,
             callback_error,

@@ -1,0 +1,13 @@
+module Phronomy
+  class WorkflowSettings
+    def self.install_provider: () { () -> WorkflowSettings } -> void
+    def self.current: () -> WorkflowSettings
+    def initialize: (recursion_limit: Integer) -> void
+    attr_accessor recursion_limit: Integer
+    attr_accessor workflow_store: _WorkflowStateRepository?
+  end
+
+  class Configuration
+    attr_reader __workflow_settings: WorkflowSettings
+  end
+end

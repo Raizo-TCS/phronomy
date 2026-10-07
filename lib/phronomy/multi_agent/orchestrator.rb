@@ -21,7 +21,7 @@ module Phronomy
       end
 
       def initialize(coordination_store: nil, execution_wiring: {}, **options, &block)
-        @coordination_store = coordination_store || execution_wiring[:phronomy_execution_participant]&.persistence || Phronomy.configuration.multi_agent_store
+        @coordination_store = coordination_store || execution_wiring[:phronomy_execution_participant]&.persistence || Phronomy::MultiAgent::Store.configured
         super(execution_wiring: execution_wiring, **options, &block)
         if @coordination_store && !@coordination_store.agent_store.equal?(persistence)
           raise Phronomy::ConfigurationError, "Orchestrator stores must share the same Agent store"

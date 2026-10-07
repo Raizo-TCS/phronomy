@@ -6,6 +6,18 @@ module Phronomy
     # adapter implements storage; this framework never selects a DB or codec.
     # @api public
     class Store
+      # Composition supplies the optional configured store without constructing
+      # a fallback. Team and Orchestrator retain their different fallback rules.
+      # @api private
+      def self.install_configured_provider(&provider)
+        raise ArgumentError, "store provider requires a block" unless provider
+        @configured_provider = provider
+        nil
+      end
+
+      # @api private
+      def self.configured = @configured_provider.call
+
       attr_reader :coordinator, :agent_store
 
       # Record protocol for MultiAgent-owned framework operations only.

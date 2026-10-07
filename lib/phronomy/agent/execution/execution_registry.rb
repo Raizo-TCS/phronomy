@@ -368,7 +368,7 @@ module Phronomy
         callback = lambda do
           accepted = post_message(PhysicalCompletion.new(execution_id: key, token: token))
           unless accepted
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] EventLoop rejected physical-completion delivery for #{key}"
             )
           end

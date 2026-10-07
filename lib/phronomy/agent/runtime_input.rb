@@ -88,7 +88,7 @@ module Phronomy
       end
 
       def verify_adapter!(manifest)
-        actual = Phronomy.configuration.llm_adapter.class.name
+        actual = Phronomy::Agent::Settings.current.llm_adapter.class.name
         return if manifest.adapter_name.nil? || manifest.adapter_name == actual
 
         raise Phronomy::ConfigurationError,

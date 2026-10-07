@@ -86,6 +86,26 @@ def violations(repository):
                     findings.append({'kind': 'workflow-selects-engine', 'file': relative,
                                      'line': node.start_point.row + 1, 'call': text(node)})
             coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
+            if agent_domain or workflow_domain or coordination:
+                if node.type == 'call':
+                    method = text(node.child_by_field_name('method'))
+                    receiver = text(node.child_by_field_name('receiver')).lstrip(':')
+                    args = node.child_by_field_name('arguments')
+                    first = args.named_children[0] if args and args.named_children else None
+                    indirect = (text(first).lstrip(':').strip('\"\'')
+                                if method in {'send', '__send__', 'public_send'} else '')
+                    if receiver == 'Phronomy' and (method == 'configuration' or indirect == 'configuration'):
+                        findings.append({'kind': 'domain-reads-application-configuration',
+                                         'file': relative, 'line': node.start_point.row + 1,
+                                         'call': text(node)})
+                    if method in {'authorization_pool_size', 'authorization_queue_size'}:
+                        findings.append({'kind': 'domain-selects-execution-pool-resources',
+                                         'file': relative, 'line': node.start_point.row + 1,
+                                         'call': text(node)})
+                if node.type == 'constant' and text(node) == 'Configuration':
+                    findings.append({'kind': 'domain-reads-application-configuration',
+                                     'file': relative, 'line': node.start_point.row + 1,
+                                     'call': text(node)})
             if coordination and node.type == 'constant' and text(node) == 'Tools':
                 findings.append({'kind': 'coordination-selects-concrete-tool', 'file': relative,
                                  'line': node.start_point.row + 1, 'call': text(node)})

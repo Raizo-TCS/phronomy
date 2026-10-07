@@ -1,0 +1,19 @@
+module Phronomy
+  module Agent
+    class Settings
+      def self.install_provider: () { () -> Settings } -> void
+      def self.current: () -> Settings
+      def initialize: (llm_adapter: LLMAdapter::Base?, authorization_timeout: Numeric?, stream_callback_error_policy: Symbol) -> void
+      attr_accessor default_model: String?
+      attr_accessor before_llm_input: _BeforeLLMInputHook?
+      attr_accessor agent_store: Store?
+      attr_accessor llm_adapter: LLMAdapter::Base?
+      attr_accessor authorization_timeout: Numeric?
+      attr_accessor stream_callback_error_policy: Symbol
+    end
+  end
+
+  class Configuration
+    attr_reader __agent_settings: Agent::Settings
+  end
+end

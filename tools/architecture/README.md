@@ -1,3 +1,13 @@
+## r8 unit 17 update
+
+B08 separates domain option values from application configuration. Agent and
+Workflow own narrow value containers; MultiAgent owns its optional Store access.
+Composition selects defaults and binds lazy readers. Logger access reuses neutral
+RuntimeSettings; authorization pool sizing belongs to the execution connection.
+There is no notification mechanism, settings snapshot cache, or change in read
+timing. AST gates reject domain-to-Configuration access and domain pool sizing.
+See `docs/architecture/r8-unit17.md`; earlier checkpoints are historical.
+
 ## r8 unit 16 update
 
 C13 owns the explicit-cancellation registration/cleanup operation through the
