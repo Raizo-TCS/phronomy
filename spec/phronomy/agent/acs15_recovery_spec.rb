@@ -115,7 +115,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
   end
 
-  describe Phronomy::Recovery do
+  describe Phronomy::Agent::RecoveryRules do
     it "normalizes purpose-specific Recovery subjects" do
       expect(
         described_class.normalize_subject(
@@ -164,34 +164,6 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
           error_present: false
         )
       }.to raise_error(ArgumentError, /neither result: nor error:/)
-    end
-
-    it "reconciles revisioned Workflow snapshots as post, pre, or conflict" do
-      intended = {fields: {count: 2}, phase: "done"}
-
-      expect(
-        described_class.compare_revisioned_snapshot(
-          record: {revision: 4, snapshot: intended},
-          expected_pre_revision: 3,
-          intended_snapshot: intended
-        )
-      ).to eq(:post_state)
-
-      expect(
-        described_class.compare_revisioned_snapshot(
-          record: {revision: 3, snapshot: {fields: {count: 1}}},
-          expected_pre_revision: 3,
-          intended_snapshot: intended
-        )
-      ).to eq(:pre_state)
-
-      expect(
-        described_class.compare_revisioned_snapshot(
-          record: {revision: 4, snapshot: {fields: {count: 99}}},
-          expected_pre_revision: 3,
-          intended_snapshot: intended
-        )
-      ).to eq(:conflict)
     end
   end
 

@@ -78,7 +78,7 @@
     {
       "id": "M61",
       "directory": "lib/phronomy/agent/recovery",
-      "role": "Recovery / invocation restoration",
+      "role": "Agent recovery subjects / resolution rules / invocation restoration",
       "mixed": false,
       "group": "G05"
     },
@@ -208,13 +208,6 @@
       "role": "Select backends and bind domain stores",
       "mixed": false,
       "group": "G24"
-    },
-    {
-      "id": "M50",
-      "directory": "lib/phronomy/recovery",
-      "role": "Recovery subjects / outcome checks",
-      "mixed": false,
-      "group": "G34"
     },
     {
       "id": "M51",
@@ -394,7 +387,7 @@
     {
       "id": "M74",
       "directory": "lib/phronomy/persistence",
-      "role": "Atomic scopes / participation / failures",
+      "role": "Transaction participation / save evidence / snapshot comparison",
       "mixed": false,
       "group": "G55"
     },
@@ -572,14 +565,6 @@
       "title": "OUTPUT PARSER",
       "members": [
         "M18"
-      ],
-      "kind": "domain"
-    },
-    {
-      "id": "G34",
-      "title": "RECOVERY SEMANTICS",
-      "members": [
-        "M50"
       ],
       "kind": "domain"
     },
@@ -824,7 +809,6 @@
     "M59",
     "M61",
     "M08",
-    "M50",
     "M25",
     "M40",
     "M14",
@@ -864,7 +848,7 @@
   "group_number_semantics": "Stable identifiers only; no ordering or abstraction rank",
   "execution_abstraction_revision": 3,
   "execution_framework_unified": true,
-  "scope_note": "r8 unit 13: C02 Workflow owns callback, admission and durable outcome rules; its binding owns Runtime selection, FSM compilation and terminal gate translation. Durable Workflow children and broader Recovery semantic review remain.",
+  "scope_note": "r8 unit 14: Agent owns recovery subjects and factual resolution rules; Persistence owns generic revision/snapshot evidence comparison. Workflow retains save interpretation and admission decisions. No independent Recovery Contract; durable Workflow children are deferred feature work.",
   "persistence_framework_separated": true,
   "r8_unit5_contracts": true,
   "r8_unit6_contracts": true,
@@ -873,5 +857,6 @@
   "r8_unit10_contracts": true,
   "r8_unit11_contracts": true,
   "r8_unit12_contracts": true,
-  "r8_unit13_contracts": true
+  "r8_unit13_contracts": true,
+  "r8_unit14_contracts": true
 }

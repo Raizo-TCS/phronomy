@@ -34,6 +34,18 @@ def violations(repository):
         def text(node):
             return source[node.start_byte:node.end_byte].decode() if node else ''
         def walk(node):
+            persistence_evidence = relative in {
+                'lib/phronomy/persistence/snapshot_comparison.rb',
+                'lib/phronomy/persistence/save_outcome.rb'}
+            if persistence_evidence and node.type == 'constant' and text(node) in {
+                    'Agent', 'MultiAgent', 'Workflow', 'RecoveryRules', 'Runtime', 'Engine'}:
+                findings.append({'kind': 'persistence-evidence-knows-domain', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
+            if (node.type == 'scope_resolution' and text(node) in {'Phronomy::Recovery', '::Phronomy::Recovery'}
+                    or node.type == 'constant' and text(node) == 'RecoveryRules'
+                    and not relative.startswith('lib/phronomy/agent/')):
+                findings.append({'kind': 'recovery-rules-owner-leak', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             tool_contract = relative.startswith('lib/phronomy/tool/')
             llm_contract = relative.startswith('lib/phronomy/llm_adapter/') and '/backends/' not in relative and '/async/' not in relative
             agent = relative.startswith('lib/phronomy/agent/')

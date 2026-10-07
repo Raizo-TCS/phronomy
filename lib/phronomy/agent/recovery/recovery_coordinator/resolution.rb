@@ -38,7 +38,7 @@ module Phronomy
           descriptor =
             coordination_recovery_descriptor(current)
           unless descriptor &&
-              Phronomy::Recovery.subject_equal?(
+              Phronomy::Agent::RecoveryRules.subject_equal?(
                 descriptor.fetch(:subject),
                 request.subject
               )

@@ -258,11 +258,13 @@
     }
   ],
   "retired_groups": {
-    "G19": "Split into G47 contracts and G48 implementations"
+    "G19": "Split into G47 contracts and G48 implementations",
+    "G34": "r8 unit14: recovery semantics assigned to Agent and Persistence; never reuse"
   },
   "retired_module_reservations": {
     "M65": "Prior unimplemented single async directory; never reuse",
-    "M73": "ContentStore implementation merged into M10 content service; never reuse"
+    "M73": "ContentStore implementation merged into M10 content service; never reuse",
+    "M50": "r8 unit14: recovery/recovery.rb split into Agent recovery rules and Persistence snapshot comparison; never reuse"
   },
   "planned_modules": [
     {
@@ -374,7 +376,8 @@
       "G08",
       "G43",
       "G59",
-      "G60"
+      "G60",
+      "G34"
     ],
     "modules": [
       "M03",
@@ -397,7 +400,8 @@
       "M79",
       "M80",
       "M81",
-      "M82"
+      "M82",
+      "M50"
     ],
     "reason": "Consolidated within the owning domain; old IDs retained only as migration evidence, never reused."
   },

@@ -144,8 +144,8 @@ module Phronomy
         expected_execution_revision:,
         subject:,
         outcome:,
-        result: Phronomy::Recovery::MISSING,
-        error: Phronomy::Recovery::MISSING
+        result: Phronomy::Agent::RecoveryRules::MISSING,
+        error: Phronomy::Agent::RecoveryRules::MISSING
       )
         _check_event_loop_reentrancy(:resolve, :resolve_async)
         resolve_async(
@@ -163,8 +163,8 @@ module Phronomy
         expected_execution_revision:,
         subject:,
         outcome:,
-        result: Phronomy::Recovery::MISSING,
-        error: Phronomy::Recovery::MISSING
+        result: Phronomy::Agent::RecoveryRules::MISSING,
+        error: Phronomy::Agent::RecoveryRules::MISSING
       )
         Phronomy::Agent::RecoveryCoordinator.new(self).resolve(
           execution_id,

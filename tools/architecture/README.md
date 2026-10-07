@@ -1,3 +1,13 @@
+## r8 unit 14 update
+
+The former shared Recovery directory is retired (M50/G34). C04 owns Agent
+subjects, factual resolutions and resumption classifications; C07 owns generic
+revision/snapshot evidence comparison. C02 retains evidence selection and
+completion/admission decisions. No independent Recovery Contract is introduced.
+AST and Ruby/RBS graph gates guard this ownership without adding recovery
+behavior. F01 durable Workflow children are deferred feature work, outside this
+refactor. See `docs/architecture/r8-unit14.md`; earlier checkpoints are historical.
+
 ## r8 unit 13 update
 
 C02 Workflow rules no longer select Runtime, FSMSession or Engine event

@@ -7,7 +7,7 @@ module Phronomy
     # Durable Agent Recovery owner/resolver.
     #
     # This class owns Agent-specific restart hydration and factual resolution.
-    # Shared Recovery semantics remain in Phronomy::Recovery.
+    # Agent recovery semantics remain in RecoveryRules.
     # @api private
     class RecoveryCoordinator
       class ResolutionOutcomeUnknownError < Phronomy::Error
@@ -83,7 +83,7 @@ module Phronomy
         plan = prepare_plan(execution)
         classification = plan.classification
         if classification.disposition ==
-            Phronomy::Recovery::RESOLUTION_REQUIRED &&
+            Phronomy::Agent::RecoveryRules::RESOLUTION_REQUIRED &&
             !agent.send(:_phronomy_event_listener)
           raise Phronomy::ConfigurationError,
             "Agent #{agent.agent_id.inspect} requires Recovery resolution; " \
@@ -121,21 +121,21 @@ module Phronomy
         expected_execution_revision:,
         subject:,
         outcome:,
-        result: Phronomy::Recovery::MISSING,
-        error: Phronomy::Recovery::MISSING
+        result: Phronomy::Agent::RecoveryRules::MISSING,
+        error: Phronomy::Agent::RecoveryRules::MISSING
       )
         agent.send(:__assert_live_agent!)
-        normalized_outcome = Phronomy::Recovery.normalize_outcome(outcome)
-        result_present = !result.equal?(Phronomy::Recovery::MISSING)
-        error_present = !error.equal?(Phronomy::Recovery::MISSING)
-        Phronomy::Recovery.validate_resolution_material!(
+        normalized_outcome = Phronomy::Agent::RecoveryRules.normalize_outcome(outcome)
+        result_present = !result.equal?(Phronomy::Agent::RecoveryRules::MISSING)
+        error_present = !error.equal?(Phronomy::Agent::RecoveryRules::MISSING)
+        Phronomy::Agent::RecoveryRules.validate_resolution_material!(
           outcome: normalized_outcome,
           result_present: result_present,
           error_present: error_present
         )
 
         normalized_subject =
-          Phronomy::Recovery.normalize_subject(subject)
+          Phronomy::Agent::RecoveryRules.normalize_subject(subject)
         canonical_result = if result_present
           if normalized_subject[:type] == :llm_call &&
               normalized_outcome == :succeeded

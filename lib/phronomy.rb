@@ -19,7 +19,7 @@ loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 # These responsibility directories do not add a public Ruby namespace.
-%w[common configuration engine execution generation recovery runtime_composition].each do |directory|
+%w[common configuration engine execution generation runtime_composition].each do |directory|
   loader.collapse("#{__dir__}/phronomy/#{directory}")
 end
 # Backend contracts, execution clients and implementations have separate source
@@ -110,5 +110,7 @@ require_relative "phronomy/runtime_composition/multi_agent_defaults"
 require_relative "phronomy/runtime_composition/workflow_defaults"
 require_relative "phronomy/agent/composition/run_once"
 
-# Load the common recovery vocabulary during ordinary application loading.
-require_relative "phronomy/recovery/recovery"
+# Preserve ordinary boot loading of the existing recovery rules and comparisons
+# while giving each definition its owning domain.
+require_relative "phronomy/agent/recovery/recovery_rules"
+require_relative "phronomy/persistence/snapshot_comparison"

@@ -681,13 +681,13 @@ module Phronomy
 
     def reconcile_workflow_terminal_f1(operation, original_error)
       record = operation.repository.load(operation.workflow_instance_id)
-      case Phronomy::Recovery.compare_revisioned_snapshot(
+      case Phronomy::Persistence::SnapshotComparison.compare_revisioned_snapshot(
         record: record,
         expected_pre_revision: operation.expected_revision,
         intended_snapshot: operation.snapshot
       )
       when :post_state
-        revision = Phronomy::Recovery.fetch_value(record, :revision)
+        revision = Phronomy::Persistence::SnapshotComparison.fetch_value(record, :revision)
         Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
           outcome: :success,
           revision: revision,

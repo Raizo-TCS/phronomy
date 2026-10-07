@@ -128,6 +128,11 @@ def check_boundaries(audit, phase, repo, architecture=None):
             if (beneath(source, "lib/phronomy/workflow") and roles.get(source) != "domain_binding"
                     and (beneath(target, ENGINE) or roles.get(target) == "domain_binding")):
                 violations.append({"kind": "workflow-selects-engine", "pair": (source, target)})
+    if architecture.get("r8_unit14_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(target, "lib/phronomy/agent/recovery")
+                    and not beneath(source, "lib/phronomy/agent")):
+                violations.append({"kind": "agent-recovery-rules-owner-leak", "pair": (source, target)})
     if architecture.get("r8_unit12_contracts"):
         for source, target in sorted(pairs):
             if (beneath(source, "lib/phronomy/multi_agent") and roles.get(source) != "domain_binding"

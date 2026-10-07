@@ -58,6 +58,22 @@ class BoundaryTests(unittest.TestCase):
     def test_accepts_implemented_llm_boundary_with_declared_vector_work_remaining(self):
         self.assertTrue(self.check_graph()['passed'])
 
+    def test_recovery_evidence_does_not_give_other_domains_agent_recovery_dependencies(self):
+        config = refresh.read_architecture('storage')
+        modules = {module['directory'] for module in config['modules']}
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': source, 'to': target} for source, target in
+            refresh.IMPLEMENTATIONS.items() if source in modules]}
+        audit['module_pairs'].append({'from': 'lib/phronomy/workflow/execution',
+                                      'to': 'lib/phronomy/persistence'})
+        self.assertTrue(refresh.check_boundaries(audit, 'storage', REPO, config)['passed'])
+        for source in ['workflow/execution', 'multi_agent', 'persistence']:
+            changed = deepcopy(audit)
+            changed['module_pairs'].append({'from': 'lib/phronomy/' + source,
+                                            'to': 'lib/phronomy/agent/recovery'})
+            result = refresh.check_boundaries(changed, 'storage', REPO, config)
+            self.assertIn('agent-recovery-rules-owner-leak', [v['kind'] for v in result['violations']])
+
     def test_agent_llm_client_selection_belongs_to_binding_or_composition(self):
         config = refresh.read_architecture('storage')
         client = 'lib/phronomy/llm_adapter/async'

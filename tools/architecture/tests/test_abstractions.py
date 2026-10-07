@@ -10,6 +10,26 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_recovery_rules_are_agent_owned_and_persistence_evidence_is_domain_neutral(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/persistence/snapshot_comparison.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('# Agent is a comment\nPhronomy::Agent::RecoveryRules.normalize_subject(x)\n')
+            self.assertIn('persistence-evidence-knows-domain', {v['kind'] for v in violations(repo)})
+            path.write_text('record.revision == expected_revision\n')
+            workflow = repo / 'lib/phronomy/workflow/execution/workflow_runner.rb'
+            workflow.parent.mkdir(parents=True)
+            for source in ['Phronomy::Recovery.compare_revisioned_snapshot()',
+                           'Phronomy::Agent::RecoveryRules.normalize_subject(x)']:
+                workflow.write_text(source + '\n')
+                self.assertIn('recovery-rules-owner-leak', {v['kind'] for v in violations(repo)})
+            workflow.write_text('Phronomy::Persistence::SnapshotComparison.compare_revisioned_snapshot()\n')
+            agent = repo / 'lib/phronomy/agent/recovery/recovery_rules.rb'
+            agent.parent.mkdir(parents=True)
+            agent.write_text('module Phronomy::Agent::RecoveryRules; end\n')
+            self.assertEqual([], violations(repo))
+
     def test_workflow_rules_do_not_select_engine_or_construct_events(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

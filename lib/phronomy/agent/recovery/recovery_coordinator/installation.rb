@@ -70,7 +70,7 @@ module Phronomy
 
         def classify(execution)
           if framework_batch?(execution)
-            return Phronomy::Recovery::Classification.new(disposition: Phronomy::Recovery::RESUMABLE, reason: :framework_tools)
+            return Phronomy::Agent::RecoveryRules::Classification.new(disposition: Phronomy::Agent::RecoveryRules::RESUMABLE, reason: :framework_tools)
           end
           if execution.status == :preparing &&
               execution.phase.to_sym == :preparing
@@ -79,16 +79,16 @@ module Phronomy
                 "execution #{execution.execution_id} is :preparing but replay safety " \
                   "was not durably established"
             end
-            return Phronomy::Recovery::Classification.new(
-              disposition: Phronomy::Recovery::RESUMABLE,
+            return Phronomy::Agent::RecoveryRules::Classification.new(
+              disposition: Phronomy::Agent::RecoveryRules::RESUMABLE,
               reason: :initial_preparation
             )
           end
 
           if execution.status == :suspended &&
               execution.phase.to_sym == :approval
-            return Phronomy::Recovery::Classification.new(
-              disposition: Phronomy::Recovery::RESUMABLE,
+            return Phronomy::Agent::RecoveryRules::Classification.new(
+              disposition: Phronomy::Agent::RecoveryRules::RESUMABLE,
               reason: :approval_wait,
               facts: {
                 approval_request_id:
@@ -105,8 +105,8 @@ module Phronomy
           when :recovery_provider_completed,
             :recovery_tools_completed,
             :recovery_resolved_failed
-            return Phronomy::Recovery::Classification.new(
-              disposition: Phronomy::Recovery::RESUMABLE,
+            return Phronomy::Agent::RecoveryRules::Classification.new(
+              disposition: Phronomy::Agent::RecoveryRules::RESUMABLE,
               reason: execution.phase
             )
           when :resuming
@@ -116,8 +116,8 @@ module Phronomy
                 execution.approval_request[:approved]
               )
             unless approved
-              return Phronomy::Recovery::Classification.new(
-                disposition: Phronomy::Recovery::RESUMABLE,
+              return Phronomy::Agent::RecoveryRules::Classification.new(
+                disposition: Phronomy::Agent::RecoveryRules::RESUMABLE,
                 reason: :approval_rejection_committed
               )
             end
@@ -127,8 +127,8 @@ module Phronomy
             execution
           )
           if descriptor
-            return Phronomy::Recovery::Classification.new(
-              disposition: Phronomy::Recovery::RESOLUTION_REQUIRED,
+            return Phronomy::Agent::RecoveryRules::Classification.new(
+              disposition: Phronomy::Agent::RecoveryRules::RESOLUTION_REQUIRED,
               reason: descriptor.fetch(:reason),
               subject: descriptor.fetch(:subject),
               allowed_outcomes:
@@ -214,7 +214,7 @@ module Phronomy
           end
 
           case plan.classification.disposition
-          when Phronomy::Recovery::RESOLUTION_REQUIRED
+          when Phronomy::Agent::RecoveryRules::RESOLUTION_REQUIRED
             environment.registry.mark_agent_execution_admission(
               agent.agent_id,
               execution_id: execution.execution_id,
@@ -247,7 +247,7 @@ module Phronomy
               )
             end
             command.completion.complete(agent)
-          when Phronomy::Recovery::RESUMABLE
+          when Phronomy::Agent::RecoveryRules::RESUMABLE
             continue_resumable_on_event_loop(
               execution,
               completion: command.completion, material: plan.material
