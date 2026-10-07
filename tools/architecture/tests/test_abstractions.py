@@ -10,6 +10,38 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_generation_uses_public_agent_operations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/generation/generator_verifier/workflow_builder.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('''# __invoke_async_with_event_sink is a comment
+agent.__invoke_async_with_event_sink(input)
+agent.send(:__invoke_async_with_event_sink, input)
+agent.__send__('__invoke_async_with_event_sink', input)
+''')
+            found = violations(repo)
+            self.assertEqual([2, 3, 4], [v['line'] for v in found])
+            self.assertEqual({'generation-invokes-private-agent-operation'}, {v['kind'] for v in found})
+            path.write_text('agent.invoke_async(input).on_complete {}\nagent_class.new(on_event: listener)\n')
+            self.assertEqual([], violations(repo))
+
+    def test_generation_default_parser_is_selected_by_composition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/generation/generator_verifier.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('Phronomy::OutputParser::JsonParser.new\nPhronomy::OutputParser::StructuredParser.new\n')
+            self.assertEqual({'generation-selects-concrete-parser'}, {v['kind'] for v in violations(repo)})
+            path.write_text('DefaultParser.build\nparser.parse(text)\n')
+            composition = repo / 'lib/phronomy/runtime_composition/generation_defaults.rb'
+            composition.parent.mkdir()
+            composition.write_text('Phronomy::OutputParser::JsonParser.new\n')
+            concrete = repo / 'lib/phronomy/output_parser/structured_parser.rb'
+            concrete.parent.mkdir()
+            concrete.write_text('Phronomy::OutputParser::JsonParser.new\n')
+            self.assertEqual([], violations(repo))
+
     def test_recovery_rules_are_agent_owned_and_persistence_evidence_is_domain_neutral(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

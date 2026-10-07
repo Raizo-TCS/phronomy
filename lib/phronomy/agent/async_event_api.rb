@@ -178,24 +178,6 @@ module Phronomy
 
       private
 
-      # Framework-private execution-local event routing. This is intentionally
-      # not a public compatibility path for invoke_async(..., on_event:).
-      def __invoke_async_with_event_sink(
-        input,
-        on_event:, config: {},
-        invocation_context: nil
-      )
-        raise ArgumentError, "on_event is required" unless on_event
-
-        config = _prepare_invocation_config(config, invocation_context)
-        _start_agent_operation(
-          input,
-          config: config,
-          mode: :invoke,
-          listener: on_event
-        )
-      end
-
       def _start_agent_operation(input, config:, mode:, listener:)
         config = __invocation_config(_snapshot_durable_context(config))
         @_phronomy_execution_wiring = config.dup.freeze

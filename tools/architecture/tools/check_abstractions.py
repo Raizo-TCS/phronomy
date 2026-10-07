@@ -50,6 +50,10 @@ def violations(repository):
             llm_contract = relative.startswith('lib/phronomy/llm_adapter/') and '/backends/' not in relative and '/async/' not in relative
             agent = relative.startswith('lib/phronomy/agent/')
             agent_domain = agent and '/runtime_binding/' not in relative and '/composition/' not in relative
+            generation = relative.startswith('lib/phronomy/generation/')
+            if generation and node.type == 'constant' and text(node) in {'JsonParser', 'StructuredParser'}:
+                findings.append({'kind': 'generation-selects-concrete-parser', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             if agent_domain and node.type == 'constant' and text(node) in {'DefaultPolicy', 'AsyncClient'}:
                 findings.append({'kind': 'agent-selects-concrete-policy-or-client', 'file': relative,
                                  'line': node.start_point.row + 1, 'call': text(node)})
@@ -108,6 +112,11 @@ def violations(repository):
                 first = args.named_children[0] if args and args.named_children else None
                 indirect = (text(first).lstrip(':').strip('\"\'')
                             if method in {'send', '__send__', 'public_send'} else '')
+                if generation and (method == '__invoke_async_with_event_sink'
+                                   or indirect == '__invoke_async_with_event_sink'):
+                    findings.append({'kind': 'generation-invokes-private-agent-operation',
+                                     'file': relative, 'line': node.start_point.row + 1,
+                                     'call': text(node)})
                 if coordination and (method in {'__register_shutdown_participant', '__shutdown_participant'}
                                      or indirect in {'__register_shutdown_participant', '__shutdown_participant'}):
                     findings.append({'kind': 'coordination-selects-engine', 'file': relative,

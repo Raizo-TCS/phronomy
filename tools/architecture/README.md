@@ -1,3 +1,12 @@
+## r8 unit 15 update
+
+C03 Generation uses public Agent invocation, TaskResult completion and
+constructor-bound approval notifications. It no longer calls the private Agent
+event-sink entry point. Boot composition selects its default JsonParser;
+Generation owns parsing fallbacks and generation/review decisions. Targeted AST
+gates prevent both boundary leaks. See `docs/architecture/r8-unit15.md` for the
+preserved behavior and connection assumptions. Earlier checkpoints are historical.
+
 ## r8 unit 14 update
 
 The former shared Recovery directory is retired (M50/G34). C04 owns Agent

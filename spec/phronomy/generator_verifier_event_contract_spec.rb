@@ -3,11 +3,18 @@
 require "spec_helper"
 require "timeout"
 
-# These expectations run unchanged on the implementation before extraction.
+# Domain event interpretation is tested through the private Generation operation
+# port. Public Agent/TaskResult binding is covered by agent_operation_spec and
+# the real-Agent GeneratorVerifier integration suite.
 RSpec.describe Phronomy::GeneratorVerifier do
   let(:draft_json) { '{"answer":"answer","confidence":0.9,"citations":[{"source":"ref"}]}' }
   let(:review_json) { '{"approved":true,"score":0.8,"feedback":"accepted"}' }
   let(:prompts) { [] }
+
+  before do
+    operation = described_class.const_get(:AgentOperation)
+    allow(operation).to receive(:new) { |agent_class| agent_class.new }
+  end
 
   def event(type, payload = {})
     Phronomy::Agent::StreamEvent.new(type: type, payload: payload)
@@ -15,12 +22,11 @@ RSpec.describe Phronomy::GeneratorVerifier do
 
   def scripted_agent(&script)
     Class.new do
-      define_method(:__invoke_async_with_event_sink) do |input, on_event:, **keywords|
-        script.call(input, on_event, keywords)
+      define_method(:start) do |input, listener:, **keywords|
+        script.call(input, listener, keywords)
         # Completion is driven by the event, not by observing this pending Task.
         Phronomy::TaskResult.new(name: "generator-verifier-contract")
       end
-      private :__invoke_async_with_event_sink
     end
   end
 
