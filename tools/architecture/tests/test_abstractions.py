@@ -10,6 +10,29 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_cancellation_registration_disposal_is_execution_owned(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            source = '''# token.unregister_cancel_callback is a comment
+token.unregister_cancel_callback(callback)
+token.send(:unregister_cancel_callback, callback)
+token.__send__('unregister_cancel_callback', callback)
+token.public_send(:unregister_cancel_callback, callback)
+'''
+            for file in ['multi_agent/team_coordinator.rb', 'engine/concurrency/offload_pool.rb']:
+                path = repo / 'lib/phronomy' / file
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(source)
+            owner = repo / 'lib/phronomy/execution/concurrency/result_subscriptions.rb'
+            owner.parent.mkdir(parents=True)
+            owner.write_text(source)
+            found = violations(repo)
+            self.assertEqual([2, 3, 4, 5, 2, 3, 4, 5], [v['line'] for v in found])
+            self.assertEqual({'private-cancellation-registration-leak'}, {v['kind'] for v in found})
+            for file in ['multi_agent/team_coordinator.rb', 'engine/concurrency/offload_pool.rb']:
+                (repo / 'lib/phronomy' / file).write_text('subscriptions.explicit_cancellation(token) {}\nsubscriptions.close\n')
+            self.assertEqual([], violations(repo))
+
     def test_generation_uses_public_agent_operations(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

@@ -293,9 +293,9 @@ module Phronomy
         end
         token = Phronomy::Concurrency::CancellationToken.new
         @tokens_mutex.synchronize { @tokens[id] = token }
-        external = config[:cancellation_token]
+        cancellation_subscriptions = Phronomy::Concurrency::ResultSubscriptions.new
         callback = proc { @environment.submit(on_full: :raise) { cancel(id) } }
-        external&.on_cancel(&callback)
+        cancellation_subscriptions.explicit_cancellation(config[:cancellation_token], &callback)
         token.cancel! if current.metadata["cancel_requested"]
         begin
           loop do
@@ -356,7 +356,7 @@ module Phronomy
             terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"))
           end
         ensure
-          external&.send(:unregister_cancel_callback, callback)
+          cancellation_subscriptions.close
           @tokens_mutex.synchronize { @tokens.delete(id) }
         end
       end

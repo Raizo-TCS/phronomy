@@ -1,3 +1,12 @@
+## r8 unit 16 update
+
+C13 owns the explicit-cancellation registration/cleanup operation through the
+existing ResultSubscriptions collection. Team and OffloadPool retain their
+domain/execution decisions and no longer call CancellationToken's private
+removal method. The AST gate rejects direct and literal reflective removal
+calls outside Execution, including Engine. Deadline promotion, delivery races,
+and Tool dispatch modes retain their existing behavior. B08 remains separate.
+
 ## r8 unit 15 update
 
 C03 Generation uses public Agent invocation, TaskResult completion and

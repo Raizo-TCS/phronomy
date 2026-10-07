@@ -28,11 +28,23 @@ module Phronomy
         add { result.__unsubscribe(callback) }
       end
 
-      def cancellation(token, &callback)
+      # Own the lifetime of explicit-cancellation notifications only. An elapsed
+      # deadline is not promoted to a notification here. close can race delivery:
+      # a callback already taken by cancel! may still run, as with the token API.
+      # Registration may deliver inline and close this collection before add;
+      # add then immediately disposes the completed registration.
+      # @api private
+      def explicit_cancellation(token, &callback)
         return unless token
 
         token.on_cancel(&callback)
         add { token.send(:unregister_cancel_callback, callback) }
+      end
+
+      def cancellation(token, &callback)
+        return unless token
+
+        explicit_cancellation(token, &callback)
         callback.call if token.cancelled?
       end
 

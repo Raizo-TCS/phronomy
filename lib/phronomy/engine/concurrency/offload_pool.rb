@@ -82,13 +82,11 @@ module Phronomy
             Process.clock_gettime(Process::CLOCK_MONOTONIC)
           @mutex = Mutex.new
           @timer_subscriptions = ResultSubscriptions.new
+          @cancellation_subscriptions = ResultSubscriptions.new
 
           # Explicit submit cancellation is operation-wide. Deadline-only tokens are
           # promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
-          @cancellation_callback = if @cancellation_token
-            -> { fire_cancellation! }
-          end
-          @cancellation_token&.on_cancel(&@cancellation_callback)
+          @cancellation_subscriptions.explicit_cancellation(@cancellation_token) { fire_cancellation! }
         end
 
         # @return [Boolean] true when caller-facing settlement has been claimed
@@ -293,13 +291,7 @@ module Phronomy
 
         def detach_submit_cancellation
           @timer_subscriptions.close
-          return unless @cancellation_token && @cancellation_callback
-
-          @cancellation_token.send(
-            :unregister_cancel_callback,
-            @cancellation_callback
-          )
-          @cancellation_callback = nil
+          @cancellation_subscriptions.close
         end
       end
       private_constant :Operation

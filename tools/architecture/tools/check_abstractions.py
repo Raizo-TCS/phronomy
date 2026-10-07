@@ -24,7 +24,7 @@ def violations(repository):
     findings = []
     for path in sorted(Path(repository).glob('lib/**/*.rb')):
         relative = path.relative_to(repository).as_posix()
-        if relative.startswith(OWNERS):
+        if relative.startswith('lib/phronomy/execution/'):
             continue
         source = path.read_bytes()
         root = parser.parse(source).root_node
@@ -34,6 +34,22 @@ def violations(repository):
         def text(node):
             return source[node.start_byte:node.end_byte].decode() if node else ''
         def walk(node):
+            if node.type == 'call':
+                method = text(node.child_by_field_name('method'))
+                args = node.child_by_field_name('arguments')
+                first = args.named_children[0] if args and args.named_children else None
+                indirect = (text(first).lstrip(':').strip('\"\'')
+                            if method in {'send', '__send__', 'public_send'} else '')
+                if method == 'unregister_cancel_callback' or indirect == 'unregister_cancel_callback':
+                    findings.append({'kind': 'private-cancellation-registration-leak',
+                                     'file': relative, 'line': node.start_point.row + 1,
+                                     'call': text(node)})
+            # Engine is an allowed owner for the older execution-control gates,
+            # but cancellation registration disposal belongs to Execution alone.
+            if relative.startswith(OWNERS):
+                for child in node.named_children:
+                    walk(child)
+                return
             persistence_evidence = relative in {
                 'lib/phronomy/persistence/snapshot_comparison.rb',
                 'lib/phronomy/persistence/save_outcome.rb'}
