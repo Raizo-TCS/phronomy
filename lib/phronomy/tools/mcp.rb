@@ -273,8 +273,9 @@ module Phronomy
         end
 
         def warn_mcp(message)
-          if Phronomy.configuration.logger
-            Phronomy.configuration.logger.warn(message)
+          logger = Phronomy::RuntimeSettings.current.logger
+          if logger
+            logger.warn(message)
           else
             Kernel.warn(message)
           end
@@ -344,7 +345,8 @@ module Phronomy
       private
 
       def perform_mcp_call(cancellation_token:, args:)
-        mcp_cancellation = build_mcp_cancellation(cancellation_token)
+        subscriptions = Phronomy::Concurrency::ResultSubscriptions.new
+        mcp_cancellation = build_mcp_cancellation(cancellation_token, subscriptions: subscriptions)
         response = begin
           @mcp_client.call_tool(
             name: self.class.tool_name,
@@ -376,13 +378,17 @@ module Phronomy
 
         result = validate_call_tool_response!(response)
         format_tool_result(result)
+      ensure
+        # A caller-facing timeout can settle before this SDK call returns.
+        # Keep its bridge alive until this invocation actually leaves the SDK.
+        subscriptions&.close
       end
 
-      def build_mcp_cancellation(cancellation_token)
+      def build_mcp_cancellation(cancellation_token, subscriptions:)
         return nil unless cancellation_token
 
         mcp_cancellation = MCP::Cancellation.new
-        cancellation_token.on_cancel do
+        subscriptions.explicit_cancellation(cancellation_token) do
           mcp_cancellation.cancel(reason: "phronomy_cancelled")
         end
         mcp_cancellation
@@ -486,9 +492,10 @@ module Phronomy
         ) do
           self.class.send(:close_transport_safely, transport)
         end
-      rescue Phronomy::BackpressureError, Phronomy::PoolShutdownError
+      rescue Phronomy::BackpressureError, Phronomy::PoolShutdownError, Phronomy::RuntimeShutdownError
         # During shutdown or an exceptional cleanup burst, prefer a bounded
-        # synchronous fallback over leaking the child process/socket.
+        # synchronous fallback over leaking the child process/socket. Runtime
+        # can reject acquisition before the cleanup pool itself is consulted.
         self.class.send(:close_transport_safely, transport)
       end
     end

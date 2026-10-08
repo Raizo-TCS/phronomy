@@ -297,16 +297,16 @@ RSpec.describe Phronomy::Tools::Mcp do
       )
     end
 
-    it "cancels the MCP::Cancellation when cancel! is called on the CancellationToken" do
+    it "cancels the MCP::Cancellation while the SDK call is in progress" do
+      ct = Phronomy::Concurrency::CancellationToken.new
       received_cancellation = nil
       allow(instance_client).to receive(:call_tool) do |**kwargs|
         received_cancellation = kwargs[:cancellation]
+        ct.cancel!
         {"result" => {"content" => [{"type" => "text", "text" => "ok"}]}}
       end
-      ct = Phronomy::Concurrency::CancellationToken.new
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
       tool.execute(cancellation_token: ct, query: "test")
-      ct.cancel!
       expect(received_cancellation).to be_cancelled
     end
 
