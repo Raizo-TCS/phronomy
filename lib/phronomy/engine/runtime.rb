@@ -211,13 +211,14 @@ module Phronomy
           :not_started
         end
 
-        subsystem_error = shutdown_pools_and_timer
+        pools_stopped, subsystem_error = shutdown_pools_and_timer(deadline: stop_deadline)
         participant_error = @lifecycle_mutex.synchronize { @shutdown_participant_error }
         cleanup_complete = participants_idle && participant_error.nil? &&
           loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           (!loop_instance || loop_instance.__receiver_cleanup_complete?) &&
+          pools_stopped &&
           subsystem_error.nil?
 
         cleanup_complete = finalize_participants(participants) if cleanup_complete
@@ -293,10 +294,11 @@ module Phronomy
         "Runtime is #{current_state}; new work is not accepted"
     end
 
-    def shutdown_pools_and_timer
+    def shutdown_pools_and_timer(deadline:)
       error = nil
+      pools_stopped = false
       begin
-        @pool_registry.shutdown
+        pools_stopped = @pool_registry.shutdown(deadline: deadline)
       rescue => caught
         error ||= caught
       ensure
@@ -306,7 +308,7 @@ module Phronomy
           error ||= caught
         end
       end
-      error
+      [pools_stopped, error]
     end
 
     def validate_timeout!(value, name)

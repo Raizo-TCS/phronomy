@@ -483,19 +483,42 @@ module Phronomy
         task
       end
 
-      # Gracefully drains the pool and terminates all worker threads.
-      # Waits up to +drain_timeout+ seconds for in-flight operations to finish.
+      # Close admission without waiting for worker termination. Already queued
+      # operations drain normally; running workers are never interrupted.
+      # @api private
+      def begin_shutdown
+        @shutdown = true
+        @queue.close
+        self
+      end
+
+      # Whether shutdown has closed admission and all workers have exited.
+      # Logical TaskResult settlement alone does not establish this fact.
+      # @api private
+      def terminated?
+        @shutdown && @workers.none?(&:alive?)
+      end
+
+      # Gracefully drains the pool and waits for worker threads to terminate.
+      # All workers share +drain_timeout+ or the supplied monotonic +deadline+.
+      # A deadline expiry leaves workers running; callers inspect terminated?.
       #
       # Closing the underlying SizedQueue signals workers to exit after draining
       # remaining items, without blocking on a full-queue push.
       #
       # @param drain_timeout [Numeric] seconds to wait for workers to finish
+      # @param deadline [Numeric, nil] absolute monotonic shutdown deadline
       # @return [self]
       # @api private
-      def shutdown(drain_timeout: 30)
-        @shutdown = true
-        @queue.close
-        @workers.each { |thread| thread.join(drain_timeout) }
+      def shutdown(drain_timeout: 30, deadline: nil)
+        deadline ||= Process.clock_gettime(Process::CLOCK_MONOTONIC) + drain_timeout
+        begin_shutdown
+        @workers.each do |thread|
+          remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          break if remaining <= 0
+
+          thread.join(remaining)
+        end
         self
       end
 

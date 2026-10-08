@@ -581,6 +581,18 @@ Use these to distinguish worker saturation from EventLoop backlog/latency.
 
 ## Shutdown
 
+Pool creation and registration close atomically before the shutdown resource set
+is captured. Accepted continuations can still acquire resources during Runtime's
+draining phase. Once resource shutdown begins, all pools close admission before
+any pool waits for its workers.
+
+The stop-phase monotonic deadline is shared by EventLoop and every pool join.
+A join timeout does not stop a synchronous worker. Runtime reports incomplete
+cleanup while any worker remains, even if that worker's TaskResult has already
+been cancelled or timed out. It does not forcefully interrupt worker threads.
+See [R8 unit19](architecture/r8-unit19.md) and its
+[migration notes](migrations/r8-unit19.md) for the shutdown budget and result rules.
+
 `Runtime#shutdown` is terminal for that Runtime. It drains/terminates the
 Runtime-owned EventLoop, then closes pools and timers according to the Runtime
 shutdown contract.
