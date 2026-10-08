@@ -16,6 +16,10 @@ module Phronomy
       end
       private_constant :WorkerState
 
+      # Raised before writing an operation; update still verifies readback.
+      OperationRejected = Class.new(Phronomy::ConfigurationError)
+      private_constant :OperationRejected
+
       class << self
         # Boot composition supplies a fresh store without selecting it here.
         # @api private
@@ -509,6 +513,8 @@ module Phronomy
             key = config.fetch(:phronomy_tool_invocation_id)
             Phronomy::Execution.submit(on_full: :raise) do
               team.send(:apply_operation, run_id, key, operation, arguments)
+            rescue OperationRejected => error
+              raise Phronomy::ConfigurationError, error.message
             rescue Phronomy::CancellationError
               raise
             rescue => error
@@ -545,7 +551,7 @@ module Phronomy
             name = entry.name
             values = entry.arguments
             if name == "enqueue_task"
-              raise Phronomy::ConfigurationError, "Cannot enqueue after finalize" if metadata["finalized"]
+              raise OperationRejected, "Cannot enqueue after finalize" if metadata["finalized"]
               task = {"id" => Digest::SHA256.hexdigest(entry_id)[0, 32], "description" => values.fetch("description"), "metadata" => values["metadata"]}
               tasks << task
               output = "Task ##{tasks.length} enqueued: #{task.fetch("description")}"
