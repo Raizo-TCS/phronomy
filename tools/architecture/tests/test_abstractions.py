@@ -10,6 +10,53 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_tool_tracing_and_context_do_not_read_application_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            for domain in ['tool', 'tracing', 'context']:
+                path = repo / 'lib/phronomy' / domain / 'consumer.rb'
+                path.parent.mkdir(parents=True)
+                path.write_text('''# Phronomy.configuration is only a comment
+Phronomy.configuration.tracer
+Phronomy.send(:configuration)
+::Phronomy.public_send('configuration')
+Phronomy::Configuration.new
+''')
+            found = violations(repo)
+            self.assertEqual(12, len(found))
+            self.assertEqual({'domain-reads-application-configuration'}, {v['kind'] for v in found})
+            for path in repo.glob('lib/**/*.rb'):
+                path.write_text('Phronomy::Tracing::Settings.current.tracer\nPhronomy::Tool::Settings.current.max_result_size\nPhronomy::RuntimeSettings.current.logger\n')
+            self.assertEqual([], violations(repo))
+
+    def test_neutral_settings_cannot_reacquire_tool_or_tracing_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            owner = repo / 'lib/phronomy/configuration/runtime_settings.rb'
+            owner.parent.mkdir(parents=True)
+            owner.write_text('attr_accessor :tracer, :trace_pii, :tool_result_max_size\n@tracer = nil\n')
+            found = violations(repo)
+            self.assertEqual(4, len(found))
+            self.assertEqual({'runtime-settings-own-domain-values'}, {v['kind'] for v in found})
+            owner.write_text('# tracer and trace_pii belong to Tracing\nattr_accessor :logger, :offload_pool_size\n')
+            self.assertEqual([], violations(repo))
+
+    def test_domain_values_cannot_be_read_through_runtime_settings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            consumer = repo / 'lib/phronomy/tool/base.rb'
+            consumer.parent.mkdir(parents=True)
+            consumer.write_text('''# RuntimeSettings.current.tracer is only a comment
+Phronomy::RuntimeSettings.current.tool_result_max_size
+RuntimeSettings.current.trace_pii
+::Phronomy::RuntimeSettings.current.send(:tracer)
+''')
+            found = violations(repo)
+            self.assertEqual([2, 3, 4], [v['line'] for v in found])
+            self.assertEqual({'domain-value-read-through-runtime-settings'}, {v['kind'] for v in found})
+            consumer.write_text('Settings.current.max_result_size\nPhronomy::RuntimeSettings.current.logger\n')
+            self.assertEqual([], violations(repo))
+
     def test_domain_settings_do_not_reach_application_configuration(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

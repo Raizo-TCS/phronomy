@@ -18,7 +18,7 @@ module Phronomy
 
       Prepared = Data.define(:input, :plan, :model_config, :call_sequence, :call_mode, :adapter_identity)
 
-      def initialize(tracer: Phronomy::RuntimeSettings.current.tracer)
+      def initialize(tracer: Phronomy::Tracing::Settings.current.tracer)
         @tracer = tracer
       end
 

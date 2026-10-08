@@ -1,3 +1,17 @@
+## r8 unit 21 update
+
+B10 assigns result-length settings to C06 Tool and tracer/recording settings to
+C15 Tracing. C05 obtains its default tracer through C15. Application composition
+supplies the values through the existing public Configuration facade; neutral
+RuntimeSettings retains only logger and execution resources. Read timing, span
+capture, scoped copies, reset, result transforms and privacy behavior are kept.
+
+AST gates reject Configuration access from Tool, Tracing and Context, domain
+fields in RuntimeSettings, and direct/literal-reflective reads through the old
+RuntimeSettings domain accessors. This complements the graph's structural checks
+with targeted field-ownership checks. There is no notification, cache, new
+Contract or feature addition. See `docs/architecture/r8-unit21.md`.
+
 ## r8 unit 17 update
 
 B08 separates domain option values from application configuration. Agent and
@@ -287,8 +301,9 @@ Display filters never alter the audit, matrix or SCC calculation.
 ## Strict configuration boundary
 
 Engine reads only the internal `RuntimeSettings` value object in
-`lib/phronomy/configuration/`. It contains no Agent, LLM adapter, persistence or
-concrete tracer class references. Application-facing `Configuration` and its
+`lib/phronomy/configuration/`. It contains logger and execution resource values,
+with no Agent, LLM adapter, persistence, Tool limit or Tracing option values.
+Application-facing `Configuration` and its
 global/scoped accessors belong to `runtime_composition/`; they compose these
 neutral settings with application options. Their public RBS signatures retain
 the same types and follow the Ruby declaration owner.

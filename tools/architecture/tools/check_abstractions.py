@@ -34,12 +34,27 @@ def violations(repository):
         def text(node):
             return source[node.start_byte:node.end_byte].decode() if node else ''
         def walk(node):
+            # Neutral runtime values cannot acquire domain-specific settings.
+            # Check definitions as well as direct reads: the graph alone treats
+            # RuntimeSettings as common and cannot detect its field semantics.
+            if (relative == 'lib/phronomy/configuration/runtime_settings.rb'
+                    and node.type in {'simple_symbol', 'instance_variable', 'identifier'}
+                    and text(node).lstrip('@:') in {'tracer', 'trace_pii', 'tool_result_max_size'}):
+                findings.append({'kind': 'runtime-settings-own-domain-values', 'file': relative,
+                                 'line': node.start_point.row + 1, 'call': text(node)})
             if node.type == 'call':
                 method = text(node.child_by_field_name('method'))
                 args = node.child_by_field_name('arguments')
                 first = args.named_children[0] if args and args.named_children else None
                 indirect = (text(first).lstrip(':').strip('\"\'')
                             if method in {'send', '__send__', 'public_send'} else '')
+                receiver = text(node.child_by_field_name('receiver')).lstrip(':')
+                if (receiver in {'Phronomy::RuntimeSettings.current', 'RuntimeSettings.current'}
+                        and (method in {'tracer', 'trace_pii', 'tool_result_max_size'}
+                             or indirect in {'tracer', 'trace_pii', 'tool_result_max_size'})):
+                    findings.append({'kind': 'domain-value-read-through-runtime-settings',
+                                     'file': relative, 'line': node.start_point.row + 1,
+                                     'call': text(node)})
                 if method == 'unregister_cancel_callback' or indirect == 'unregister_cancel_callback':
                     findings.append({'kind': 'private-cancellation-registration-leak',
                                      'file': relative, 'line': node.start_point.row + 1,
@@ -86,7 +101,9 @@ def violations(repository):
                     findings.append({'kind': 'workflow-selects-engine', 'file': relative,
                                      'line': node.start_point.row + 1, 'call': text(node)})
             coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
-            if agent_domain or workflow_domain or coordination:
+            tracing = relative.startswith('lib/phronomy/tracing/')
+            context = relative.startswith('lib/phronomy/context/')
+            if agent_domain or workflow_domain or coordination or tool_contract or tracing or context:
                 if node.type == 'call':
                     method = text(node.child_by_field_name('method'))
                     receiver = text(node.child_by_field_name('receiver')).lstrip(':')
@@ -98,7 +115,7 @@ def violations(repository):
                         findings.append({'kind': 'domain-reads-application-configuration',
                                          'file': relative, 'line': node.start_point.row + 1,
                                          'call': text(node)})
-                    if method in {'authorization_pool_size', 'authorization_queue_size'}:
+                    if (agent_domain or workflow_domain or coordination) and method in {'authorization_pool_size', 'authorization_queue_size'}:
                         findings.append({'kind': 'domain-selects-execution-pool-resources',
                                          'file': relative, 'line': node.start_point.row + 1,
                                          'call': text(node)})

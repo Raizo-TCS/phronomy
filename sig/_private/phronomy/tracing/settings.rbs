@@ -1,0 +1,15 @@
+module Phronomy
+  module Tracing
+    class Settings
+      def self.install_provider: () { () -> Settings } -> void
+      def self.current: () -> Settings
+      def initialize: (tracer: Tracing::Base?) -> void
+      attr_accessor tracer: Tracing::Base?
+      attr_accessor trace_pii: bool
+    end
+  end
+
+  class Configuration
+    attr_reader __tracing_settings: Tracing::Settings
+  end
+end

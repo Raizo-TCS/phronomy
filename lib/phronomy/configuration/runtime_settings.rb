@@ -4,7 +4,7 @@ require_relative "../common/configuration_error"
 
 module Phronomy
   # Neutral runtime values only. Application composition supplies the current
-  # settings object; this contract knows no Agent, adapter or tracer class.
+  # settings object; Tool and Tracing own their domain-specific settings.
   # @api private
   class RuntimeSettings
     # Bind the application's settings accessor without evaluating it at boot.
@@ -28,19 +28,15 @@ module Phronomy
       settings
     end
 
-    attr_accessor :tracer, :trace_pii, :logger, :tool_result_max_size
+    attr_accessor :logger
     attr_accessor :event_loop_stop_grace_seconds
     attr_accessor :event_loop_starvation_threshold_seconds
     attr_accessor :event_loop_dispatch_threshold_seconds
     attr_accessor :offload_pool_size, :offload_queue_size
     attr_accessor :authorization_pool_size, :authorization_queue_size
 
-    # The tracer is injected; selecting a concrete implementation belongs to
-    # application composition. Explicit nil retains its existing meaning.
     # @api private
-    def initialize(tracer:)
-      @tracer = tracer
-      @trace_pii = false
+    def initialize
       @event_loop_stop_grace_seconds = 5
       @event_loop_starvation_threshold_seconds = nil
       @event_loop_dispatch_threshold_seconds = nil

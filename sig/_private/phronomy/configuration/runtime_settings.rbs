@@ -3,11 +3,8 @@ module Phronomy
   class RuntimeSettings
     def self.install_provider: () { () -> RuntimeSettings } -> void
     def self.current: () -> RuntimeSettings
-    def initialize: (tracer: untyped) -> void
-    attr_accessor tracer: untyped
+    def initialize: () -> void
     attr_accessor logger: untyped
-    attr_accessor tool_result_max_size: Integer?
-    attr_accessor trace_pii: bool
     attr_accessor event_loop_stop_grace_seconds: Numeric
     attr_accessor event_loop_starvation_threshold_seconds: Numeric?
     attr_accessor event_loop_dispatch_threshold_seconds: Numeric?

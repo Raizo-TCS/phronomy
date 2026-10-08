@@ -174,9 +174,8 @@ RSpec.describe "Responsibility-based source layout" do
   it "constructs neutral runtime settings without loading application configuration" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/configuration/runtime_settings"
-      tracer = Object.new
-      settings = Phronomy::RuntimeSettings.new(tracer: tracer)
-      abort "tracer identity lost" unless settings.tracer.equal?(tracer)
+      settings = Phronomy::RuntimeSettings.new
+      abort "Tool or Tracing settings leaked" if settings.respond_to?(:tool_result_max_size) || settings.respond_to?(:tracer) || settings.respond_to?(:trace_pii)
       abort "default pool settings changed" unless settings.offload_pool_size == 10 && settings.offload_queue_size == 100
       abort "application setting leaked" if settings.respond_to?(:llm_adapter) || settings.respond_to?(:before_llm_input)
       unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition|agent|llm_adapter|tracing)/})
@@ -203,6 +202,41 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
+  {"tool" => ["Tool", ""], "tracing" => ["Tracing", "tracer: nil"]}.each do |directory, (namespace, arguments)|
+    it "loads #{namespace} settings without composition, a backend or execution resources" do
+      stdout, stderr, status = isolated_ruby(<<~RUBY)
+        require "phronomy/#{directory}/settings"
+        settings_class = Phronomy::#{namespace}::Settings
+        settings = settings_class.new(#{arguments})
+        unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition|agent|llm_adapter|tracing|tool)/}).reject { |path| path.end_with?("/#{directory}/settings.rb") }
+        abort "concrete implementation loaded: \#{unexpected.inspect}" unless unexpected.empty?
+        begin
+          settings_class.current
+          abort "missing provider accepted"
+        rescue Phronomy::ConfigurationError
+        end
+        begin
+          settings_class.install_provider
+          abort "missing block accepted"
+        rescue ArgumentError
+        end
+        calls = 0
+        settings_class.install_provider { calls += 1; settings }
+        abort "provider evaluated during binding" unless calls == 0
+        abort "settings identity changed" unless settings_class.current.equal?(settings)
+        settings = settings_class.new(#{arguments})
+        abort "stale settings cached" unless settings_class.current.equal?(settings) && calls == 2
+        settings_class.install_provider { Object.new }
+        begin
+          settings_class.current
+          abort "application object accepted as domain settings"
+        rescue Phronomy::ConfigurationError
+        end
+      RUBY
+      expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+    end
+  end
+
   it "constructs application configuration using supplied factories without concrete feature implementations" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/runtime_composition/configuration"
@@ -218,7 +252,7 @@ RSpec.describe "Responsibility-based source layout" do
       abort "tracer shared across configurations" if first.tracer.equal?(second.tracer)
       abort "adapter shared across configurations" if first.llm_adapter.equal?(second.llm_adapter)
       abort "scalar defaults changed" unless first.recursion_limit == 25 && second.trace_pii == false
-      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|llm_adapter|tracing)/})
+      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|llm_adapter|tracing)/}).reject { |path| path.end_with?("/tracing/settings.rb") }
       abort "feature implementation loaded: \#{unexpected.inspect}" unless unexpected.empty?
     RUBY
 
@@ -240,10 +274,16 @@ RSpec.describe "Responsibility-based source layout" do
       abort "Runtime started by configuration or eager loading" if Phronomy::Runtime.default_if_initialized_for_test
       Phronomy.with_configuration do |scoped|
         scoped.offload_pool_size = 2
+        scoped.tool_result_max_size = 7
+        scoped.trace_pii = true
         abort "first scoped settings not visible" unless Phronomy::RuntimeSettings.current.offload_pool_size == 2
+        abort "Tool settings not visible" unless Phronomy::Tool::Settings.current.max_result_size == 7
+        abort "Tracing settings not visible" unless Phronomy::Tracing::Settings.current.trace_pii
       end
       abort "first scope did not restore the uninitialized state" if Phronomy.instance_variable_get(:@configuration)
       abort "lazy provider retained expired scoped settings" unless Phronomy::RuntimeSettings.current.offload_pool_size == 10
+      abort "Tool scope not restored" unless Phronomy::Tool::Settings.current.max_result_size.nil?
+      abort "Tracing scope not restored" unless Phronomy::Tracing::Settings.current.trace_pii == false
       Phronomy.reset_configuration!
       Phronomy.with_configuration do |scoped|
         scoped.default_model = "scoped"

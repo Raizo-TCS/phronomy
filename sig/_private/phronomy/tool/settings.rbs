@@ -1,0 +1,13 @@
+module Phronomy
+  module Tool
+    class Settings
+      def self.install_provider: () { () -> Settings } -> void
+      def self.current: () -> Settings
+      attr_accessor max_result_size: Integer?
+    end
+  end
+
+  class Configuration
+    attr_reader __tool_settings: Tool::Settings
+  end
+end

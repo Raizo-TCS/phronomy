@@ -103,7 +103,8 @@ RSpec.describe Phronomy::Tool::Schema do
     source = <<~SOURCE
       require "phronomy/tool/base"
       require "phronomy/llm_adapter/base"
-      Phronomy::RuntimeSettings.install_provider { Phronomy::RuntimeSettings.new(tracer: nil) }
+      Phronomy::RuntimeSettings.install_provider { Phronomy::RuntimeSettings.new }
+      Phronomy::Tool::Settings.install_provider { Phronomy::Tool::Settings.new }
       tool = Class.new(Phronomy::Tool::Base) do
         param :n, type: :integer
         def execute(n:) = n + 1

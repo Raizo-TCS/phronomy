@@ -19,9 +19,9 @@ module Phronomy
 
       def start(name, input: nil, **metadata)
         trace_pii = false
-        configuration = Phronomy::RuntimeSettings.current
-        trace_pii = !!configuration.trace_pii
-        tracer = configuration.tracer
+        settings = Settings.current
+        trace_pii = !!settings.trace_pii
+        tracer = settings.tracer
         span = tracer.start_span(
           name,
           input: traced_payload(input, trace_pii: trace_pii),

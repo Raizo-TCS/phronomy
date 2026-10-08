@@ -16,16 +16,16 @@ module Phronomy
       #   trace("my_chain", input: input) { [invoke(input), nil] }
       # @api public
       def self.trace(name, input: nil, **meta, &block)
-        traced_input = Phronomy::RuntimeSettings.current.trace_pii ? input : "[REDACTED]"
+        traced_input = Settings.current.trace_pii ? input : "[REDACTED]"
 
-        if Phronomy::RuntimeSettings.current.trace_pii
+        if Settings.current.trace_pii
           # PII recording is allowed: pass through unchanged.
-          Phronomy::RuntimeSettings.current.tracer.trace(name, input: traced_input, **meta, &block)
+          Settings.current.tracer.trace(name, input: traced_input, **meta, &block)
         else
           # Redact both input (above) and output before forwarding to the tracer.
           # Capture the real result so callers receive the unredacted value.
           real_result = nil
-          Phronomy::RuntimeSettings.current.tracer.trace(name, input: traced_input, **meta) do |span|
+          Settings.current.tracer.trace(name, input: traced_input, **meta) do |span|
             real_result, usage = block.call(span)
             ["[REDACTED]", usage]
           end

@@ -3,6 +3,7 @@
 require_relative "../execution/concurrency/worker_input_restricted"
 require_relative "../execution/cancellation_error"
 require_relative "../configuration/runtime_settings"
+require_relative "settings"
 require_relative "tool_error"
 require_relative "schema"
 
@@ -511,7 +512,7 @@ module Phronomy
       end
 
       def truncate_result_if_needed(result)
-        max = self.class.max_result_size || Phronomy::RuntimeSettings.current.tool_result_max_size
+        max = self.class.max_result_size || Settings.current.max_result_size
         return result unless max && result.respond_to?(:length) && result.length > max
 
         msg = "[Phronomy] Tool #{self.class.name} result truncated " \

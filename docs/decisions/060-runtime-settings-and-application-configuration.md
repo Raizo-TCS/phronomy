@@ -2,6 +2,12 @@
 
 ## Status
 
+The settings membership is amended by
+[r8 unit21](../architecture/r8-unit21.md): Tool owns its result limit and Tracing
+owns tracer/recording settings. RuntimeSettings retains logger and execution
+resource values. The original decision below records the earlier checkpoint;
+lazy composition, public compatibility and the strict dependency rules remain.
+
 Accepted for this refactoring. Amends the configuration ownership in
 [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md),
 [039-runtime-configuration-lifecycle-ownership](039-runtime-configuration-lifecycle-ownership.md)
