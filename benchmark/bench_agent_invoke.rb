@@ -19,43 +19,15 @@ require_relative "../lib/phronomy"
 # Shared stubs
 # ---------------------------------------------------------------------------
 
-module BenchAgentMessage
-  def self.assistant(content = "done")
-    RubyLLM::Message.new(
-      role: :assistant, content: content,
-      tokens: RubyLLM::Tokens.new(input: 5, output: 5, cache_read: 0, cache_write: 0)
-    )
-  end
-end
-
-# A minimal stub Chat that returns a pre-built response immediately.
-class BenchStubChat
-  attr_reader :messages
-
+# A stub backend that preserves the adapter's validation/cancellation template.
+class BenchStubLLMAdapter < Phronomy::LLMAdapter::Base
   def initialize(response)
     @response = response
-    @messages = []
   end
 
-  def with_instructions(_, **_options) = self
-  def with_tools(*) = self
-  def with_temperature(_) = self
-  def with_cache_instructions(_) = self
-  def with_output_schema(_) = self
-  def last_message = @response
+  protected
 
-  def after_message(&block)
-    @after_message = block
-    self
-  end
-
-  def ask(_)
-    complete
-  end
-
-  def complete
-    @messages << @response
-    @after_message&.call(@response)
+  def perform_complete(request, cancellation_token:)
     @response
   end
 end
@@ -74,38 +46,41 @@ end
 # Agent classes
 # ---------------------------------------------------------------------------
 
-BENCH_RESP = BenchAgentMessage.assistant("benchmark complete")
+BENCH_RESP = Phronomy::LLMAdapter::Response.new(
+  content: "benchmark complete",
+  usage: Phronomy::LLMAdapter::TokenUsage.new(input: 5, output: 5, cached: 0, cache_creation: 0)
+)
 
 bench_minimal_class = Class.new(Phronomy::Agent::Base) do
   agent_definition id: "bench-minimal", version: 1
   model "stub-model"
-
-  define_method(:build_chat) { |*| BenchStubChat.new(BENCH_RESP) }
 end
 
 bench_tool_class = Class.new(Phronomy::Agent::Base) do
   agent_definition id: "bench-tool", version: 1
   model "stub-model"
   tools(BenchNullTool => nil)
-
-  define_method(:build_chat) { |*| BenchStubChat.new(BENCH_RESP) }
 end
 
 AGENT_INVOKE_ITERATIONS = 200
-BENCH_AGENTS_MINIMAL = Array.new(AGENT_INVOKE_ITERATIONS) { bench_minimal_class.new }.freeze
-BENCH_AGENTS_TOOLS = Array.new(AGENT_INVOKE_ITERATIONS) { bench_tool_class.new }.freeze
 
-puts "=== bench_agent_invoke ==="
-Benchmark.bm(50) do |x|
-  x.report("Agent#invoke — fresh, no tools, #{AGENT_INVOKE_ITERATIONS} iters") do
-    BENCH_AGENTS_MINIMAL.each do |agent|
-      agent.invoke("ping")
+Phronomy.with_configuration do |config|
+  config.llm_adapter = BenchStubLLMAdapter.new(BENCH_RESP)
+  bench_agents_minimal = Array.new(AGENT_INVOKE_ITERATIONS) { bench_minimal_class.new }.freeze
+  bench_agents_tools = Array.new(AGENT_INVOKE_ITERATIONS) { bench_tool_class.new }.freeze
+
+  puts "=== bench_agent_invoke ==="
+  Benchmark.bm(50) do |x|
+    x.report("Agent#invoke — fresh, no tools, #{AGENT_INVOKE_ITERATIONS} iters") do
+      bench_agents_minimal.each do |agent|
+        agent.invoke("ping")
+      end
     end
-  end
 
-  x.report("Agent#invoke — fresh, tool-aware, #{AGENT_INVOKE_ITERATIONS} iters") do
-    BENCH_AGENTS_TOOLS.each do |agent|
-      agent.invoke("ping")
+    x.report("Agent#invoke — fresh, tool-aware, #{AGENT_INVOKE_ITERATIONS} iters") do
+      bench_agents_tools.each do |agent|
+        agent.invoke("ping")
+      end
     end
   end
 end
