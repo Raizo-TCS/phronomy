@@ -81,7 +81,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/llm_adapter.rb<span class="defines">,<br>
-  lib/phronomy/llm_adapter/base.rb,<br> lib/phronomy/llm_adapter/backends/ruby_llm.rb,<br> lib/phronomy/llm_adapter/async/async_client.rb</span>
+  lib/phronomy/llm_adapter/base.rb,<br> lib/phronomy/llm_adapter/message.rb,<br> lib/phronomy/llm_adapter/request.rb,<br> lib/phronomy/llm_adapter/response.rb,<br> lib/phronomy/llm_adapter/token_usage.rb,<br> lib/phronomy/llm_adapter/stream_chunk.rb,<br> lib/phronomy/llm_adapter/transport_error.rb,<br> lib/phronomy/llm_adapter/rate_limit_error.rb,<br> lib/phronomy/llm_adapter/backends/ruby_llm.rb,<br> lib/phronomy/llm_adapter/async/async_client.rb,<br> lib/phronomy/llm_adapter/authentication_error.rb,<br> lib/phronomy/llm_adapter/context_length_error.rb,<br> lib/phronomy/llm_adapter/invalid_result_error.rb</span>
 
 </dd>
   </dl>
@@ -90,31 +90,14 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Namespace for LLM call adapters.</p>
-<p>The public extension boundary is <span class='object_link'><a href="LLMAdapter/Base.html#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">Base#complete</a></span> and
-<span class='object_link'><a href="LLMAdapter/Base.html#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">Base#stream</a></span>. Those methods receive Phronomy's currently
-materialized chat/runtime object and perform the provider call. Phronomy owns
-the async/offload bridge around that synchronous contract.</p>
-<p>This SPI does not by itself make the complete input-materialization pipeline
-provider-neutral: the current Agent pipeline still materializes the canonical
-LLM input through RubyLLM-specific runtime objects before invoking the adapter.</p>
+    <p>LLM domain operations and public request, response, usage and failure values.
+A backend implements Base's protected hooks. SDK objects remain inside the
+backend; AsyncClient executes the entire synchronous operation on a worker.</p>
 
   </div>
 </div>
 <div class="tags">
   
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Configuring a custom adapter</p></div></h5>
-      
-      <pre class="example code"><code><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
-  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_llm_adapter'>llm_adapter</span> <span class='op'>=</span> <span class='const'>MyCustomAdapter</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-<span class='kw'>end</span></code></pre>
-    
-  </div>
-
 
 </div><h2>Defined Under Namespace</h2>
 <p class="children">
@@ -122,7 +105,7 @@ LLM input through RubyLLM-specific runtime objects before invoking the adapter.<
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="LLMAdapter/AsyncClient.html" title="Phronomy::LLMAdapter::AsyncClient (class)">AsyncClient</a></span>, <span class='object_link'><a href="LLMAdapter/Base.html" title="Phronomy::LLMAdapter::Base (class)">Base</a></span>, <span class='object_link'><a href="LLMAdapter/RubyLLM.html" title="Phronomy::LLMAdapter::RubyLLM (class)">RubyLLM</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="LLMAdapter/AsyncClient.html" title="Phronomy::LLMAdapter::AsyncClient (class)">AsyncClient</a></span>, <span class='object_link'><a href="LLMAdapter/AuthenticationError.html" title="Phronomy::LLMAdapter::AuthenticationError (class)">AuthenticationError</a></span>, <span class='object_link'><a href="LLMAdapter/Base.html" title="Phronomy::LLMAdapter::Base (class)">Base</a></span>, <span class='object_link'><a href="LLMAdapter/ContextLengthError.html" title="Phronomy::LLMAdapter::ContextLengthError (class)">ContextLengthError</a></span>, <span class='object_link'><a href="LLMAdapter/InvalidResultError.html" title="Phronomy::LLMAdapter::InvalidResultError (class)">InvalidResultError</a></span>, <span class='object_link'><a href="LLMAdapter/Message.html" title="Phronomy::LLMAdapter::Message (class)">Message</a></span>, <span class='object_link'><a href="LLMAdapter/RateLimitError.html" title="Phronomy::LLMAdapter::RateLimitError (class)">RateLimitError</a></span>, <span class='object_link'><a href="LLMAdapter/Request.html" title="Phronomy::LLMAdapter::Request (class)">Request</a></span>, <span class='object_link'><a href="LLMAdapter/Response.html" title="Phronomy::LLMAdapter::Response (class)">Response</a></span>, <span class='object_link'><a href="LLMAdapter/RubyLLM.html" title="Phronomy::LLMAdapter::RubyLLM (class)">RubyLLM</a></span>, <span class='object_link'><a href="LLMAdapter/StreamChunk.html" title="Phronomy::LLMAdapter::StreamChunk (class)">StreamChunk</a></span>, <span class='object_link'><a href="LLMAdapter/TokenUsage.html" title="Phronomy::LLMAdapter::TokenUsage (class)">TokenUsage</a></span>, <span class='object_link'><a href="LLMAdapter/TransportError.html" title="Phronomy::LLMAdapter::TransportError (class)">TransportError</a></span>
     
   
 </p>
@@ -138,7 +121,7 @@ LLM input through RubyLLM-specific runtime objects before invoking the adapter.<
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

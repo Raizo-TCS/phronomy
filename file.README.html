@@ -69,13 +69,17 @@ We apologise for the instability this may cause.</p>
 </blockquote>
 <p><strong>Phronomy</strong> is a Ruby AI agent framework for stateful Agents, Workflows, Tools,
 context management, filtering, tracing, and multi-agent coordination. Large Language
-Model (LLM) access is provided through <a href="https://github.com/crmne/ruby_llm">RubyLLM</a>.</p>
+Model (LLM) operations use <code>Phronomy::LLMAdapter</code>; the default backend uses
+<a href="https://github.com/crmne/ruby_llm">RubyLLM</a>. Custom backends implement the
+<a href="docs/migrations/r8-unit6.md">SDK-independent LLM contract</a>.
+Tool declarations and argument validation belong to <code>Phronomy::Tool</code>, independently
+of the selected LLM backend.</p>
 <p>Phronomy is pre-1.0. Pin to a released gem version for production use rather than
 tracking <code>main</code> directly.</p>
 <h2 id="Core_concepts">Core concepts</h2>
 <ul>
 <li><strong>Agent</strong> — stateful, persistence-backed LLM agent with canonical execution history.</li>
-<li><strong>Persistence</strong> — unified durable backend for Agent state and Workflow <code>workflow_states</code>.</li>
+<li><strong>Persistence</strong> — shared atomic scopes with domain-owned Agent/Team stores and Workflow checkpoints.</li>
 <li><strong>Workflow</strong> — state-machine-driven application workflow with explicit events and wait states.</li>
 <li><strong>Tool / Capability</strong> — callable application capability exposed to an Agent; application-defined Tools subclass <code>Phronomy::Tool::Base</code>.</li>
 <li><strong>Multi-Agent Handoff</strong> — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.</li>
@@ -110,7 +114,7 @@ your application. Phronomy does not add another LLM transport retry/timeout laye
 <p>See <a href="docs/getting-started.md">Getting started</a> for installation details, optional
 dependencies, stateful Agent setup, streaming, and Workflow examples.</p>
 <h2 id="Quick_start">Quick start</h2>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>WebSearch</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html#Base-constant" title="Phronomy::Tool::Base (constant)">Base</a></span></span>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>WebSearch</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool/Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></span>
   <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Search the web</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_param'>param</span> <span class='symbol'>:query</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>desc:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Search query</span><span class='tstring_end'>&quot;</span></span>
 
@@ -131,7 +135,7 @@ dependencies, stateful Agent setup, streaming, and Workflow examples.</p>
 <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
 </code></pre>
 <p><code>Phronomy::Tool::Base</code> is the public authoring name for the existing Tool base
-class. The legacy <code>Phronomy::Agent::Context::Capability::Base</code> constant remains
+class. The legacy <code>Phronomy::Tool::Base</code> constant remains
 valid for compatibility.</p>
 <p>For non-blocking top-level use, call <code>invoke_async</code> and keep the returned
 <code>Phronomy::TaskResult</code>. Inside Phronomy lifecycle callbacks, do not block waiting for
@@ -185,6 +189,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <li><a href="docs/mcp-client.md">MCP client</a> — Model Context Protocol (MCP) integration and supported schema subset.</li>
 <li><a href="docs/migrations/0.15.md">Migration from 0.15-era APIs</a>.</li>
 <li><a href="docs/migrations/0.16.md">0.16 cleanup migration</a>.</li>
+<li><a href="docs/architecture/r8-unit3.md">r8 persistence boundary migration</a> — domain stores, shared scopes, and removed facade APIs.</li>
 <li><a href="docs/migrations/persistence-failure-contracts.md">Persistence failure contract migration</a> — domain rescue clauses and unchanged raw backend errors.</li>
 <li><a href="docs/migrations/0.19.md">0.19 unified Persistence migration</a>.</li>
 <li><a href="docs/migrations/0.22.md">0.22 semantic Multi-Agent Handoff migration</a>.</li>
@@ -218,7 +223,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

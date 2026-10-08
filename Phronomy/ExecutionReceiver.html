@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/engine/execution_receiver.rb
+    <dd>lib/phronomy/execution/execution_receiver.rb
 </dd>
   </dl>
   
@@ -109,10 +109,10 @@
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
 <p>Internal lifecycle/delivery contract for feature-owned execution state.
-Receivers are retained by one EventLoop, not an application callback SPI.
-Normal mutation and delivery run only on that loop. idle? runs with its
-lifecycle lock held; it must not call Runtime or acquire that lock again.
-shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
+A receiver has one serial owner supplied by composition, not an application
+callback SPI. Normal mutation and delivery run only on that owner. idle?
+runs under its lifecycle lock and must not acquire that lock again.
+shutdown runs on the failing owner or exclusively after it joins.</p>
 
   </div>
 </div>
@@ -141,7 +141,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#existing_for-class_method" title="existing_for (class method)">.<strong>existing_for</strong>(runtime)  &#x21d2; Object </a>
+      <a href="#binding-class_method" title="binding (class method)">.<strong>binding</strong>  &#x21d2; Object </a>
     
 
     
@@ -155,7 +155,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Lookup only: neither a loop nor a receiver is created during inspection.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -163,7 +163,51 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#for-class_method" title="for (class method)">.<strong>for</strong>(event_loop)  &#x21d2; Object </a>
+      <a href="#existing_for-class_method" title="existing_for (class method)">.<strong>existing_for</strong>(owner)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#for-class_method" title="for (class method)">.<strong>for</strong>(owner)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#install_binding-class_method" title="install_binding (class method)">.<strong>install_binding</strong>(provider)  &#x21d2; Object </a>
     
 
     
@@ -195,7 +239,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#__bound_to%3F-instance_method" title="#__bound_to? (instance method)">#<strong>__bound_to?</strong>(event_loop)  &#x21d2; Boolean </a>
+      <a href="#__bound_to%3F-instance_method" title="#__bound_to? (instance method)">#<strong>__bound_to?</strong>(owner)  &#x21d2; Boolean </a>
     
 
     
@@ -261,7 +305,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(event_loop:)  &#x21d2; ExecutionReceiver </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(channel:)  &#x21d2; ExecutionReceiver </a>
     
 
     
@@ -336,7 +380,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(event_loop:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::ExecutionReceiver (class)">ExecutionReceiver</a></span></tt> 
+    #<strong>initialize</strong>(channel:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::ExecutionReceiver (class)">ExecutionReceiver</a></span></tt> 
   
 
   
@@ -361,15 +405,15 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-21
-22
-23</pre>
+28
+29
+30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 28</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>event_loop:</span><span class='rparen'>)</span>
-  <span class='ivar'>@event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_event_loop'>event_loop</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>channel:</span><span class='rparen'>)</span>
+  <span class='ivar'>@channel</span> <span class='op'>=</span> <span class='id identifier rubyid_channel'>channel</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -384,9 +428,9 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="existing_for-class_method">
+  <h3 class="signature first" id="binding-class_method">
   
-    .<strong>existing_for</strong>(runtime)  &#x21d2; <tt>Object</tt> 
+    .<strong>binding</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -398,7 +442,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Lookup only: neither a loop nor a receiver is created during inspection.</p>
+
 
   </div>
 </div>
@@ -411,15 +455,15 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-17
-18
-19</pre>
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 24</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_existing_for'>existing_for</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid___event_loop_if_initialized'>__event_loop_if_initialized</span><span class='op'>&amp;.</span><span class='id identifier rubyid___execution_receiver'>__execution_receiver</span><span class='lparen'>(</span><span class='label'>key:</span> <span class='kw'>self</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_binding'>binding</span>
+  <span class='ivar'>@binding_provider</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span> <span class='op'>||</span> <span class='id identifier rubyid_raise'>raise</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution receiver binding has not been configured</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -427,9 +471,9 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="for-class_method">
+  <h3 class="signature " id="existing_for-class_method">
   
-    .<strong>for</strong>(event_loop)  &#x21d2; <tt>Object</tt> 
+    .<strong>existing_for</strong>(owner)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -447,6 +491,105 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
 </div>
 <div class="tags">
   
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+20
+21
+22</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 20</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_existing_for'>existing_for</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="" title="Phronomy::ExecutionReceiver (class)">ExecutionReceiver</a></span></span><span class='period'>.</span><span class='id identifier rubyid_binding'><span class='object_link'><a href="#binding-class_method" title="Phronomy::ExecutionReceiver.binding (method)">binding</a></span></span><span class='period'>.</span><span class='id identifier rubyid_existing_receiver'>existing_receiver</span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="for-class_method">
+  
+    .<strong>for</strong>(owner)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17
+18</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='kw'>for</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
+  <span class='const'>ExecutionReceiver</span><span class='period'>.</span><span class='id identifier rubyid_binding'>binding</span><span class='period'>.</span><span class='id identifier rubyid_receiver'>receiver</span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="install_binding-class_method">
+  
+    .<strong>install_binding</strong>(provider)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -460,11 +603,11 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
 14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 11</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 11</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='kw'>for</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid___execution_receiver'>__execution_receiver</span><span class='lparen'>(</span><span class='label'>key:</span> <span class='kw'>self</span><span class='rparen'>)</span> <span class='op'>||</span>
-    <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid___register_execution_receiver'>__register_execution_receiver</span><span class='lparen'>(</span><span class='label'>key:</span> <span class='kw'>self</span><span class='comma'>,</span> <span class='label'>receiver:</span> <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>event_loop:</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_install_binding'>install_binding</span><span class='lparen'>(</span><span class='id identifier rubyid_provider'>provider</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution receiver provider must be callable</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_provider'>provider</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:call</span><span class='rparen'>)</span>
+  <span class='ivar'>@binding_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_provider'>provider</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -480,7 +623,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <div class="method_details first">
   <h3 class="signature first" id="__bound_to?-instance_method">
   
-    #<strong>__bound_to?</strong>(event_loop)  &#x21d2; <tt>Boolean</tt> 
+    #<strong>__bound_to?</strong>(owner)  &#x21d2; <tt>Boolean</tt> 
   
 
   
@@ -518,15 +661,15 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-25
-26
-27</pre>
+32
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 32</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid___bound_to?'>__bound_to?</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
-  <span class='ivar'>@event_loop</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid___bound_to?'>__bound_to?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
+  <span class='ivar'>@channel</span><span class='period'>.</span><span class='id identifier rubyid_bound_to?'>bound_to?</span><span class='lparen'>(</span><span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -574,12 +717,12 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+40
+41
+42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver'>deliver</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span>
@@ -643,12 +786,12 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+36
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span>
@@ -686,11 +829,11 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-41
-42</pre>
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_session_retired'>session_retired</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session_id'>fsm_session_id</span><span class='comma'>,</span> <span class='label'>reason:</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
@@ -740,12 +883,12 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
       <pre class="lines">
 
 
-37
-38
-39</pre>
+44
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/execution_receiver.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution_receiver.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>error:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span>
@@ -760,7 +903,7 @@ shutdown runs on a failing loop, or exclusively after a clean loop joins.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:28 2026 by
+  Generated on Thu Oct  8 15:22:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -104,15 +104,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Beta extension SPI for LLM call adapters.</p>
-<p>External adapters implement <span class='object_link'><a href="#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">#complete</a></span> and <span class='object_link'><a href="#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">#stream</a></span>. The adapter or the
-underlying provider client owns transport timeout, retry, backoff, and
-rate-limit behavior. The framework supplies asynchronous execution outside
-this synchronous contract. Adapter implementers provide only these two
-methods and do not depend on the execution engine or its clients.</p>
-<p>The current input to this SPI is the configured/materialized chat runtime
-object. Formalizing this SPI therefore does not imply a provider-neutral
-replacement for RubyLLMMaterializer.</p>
+    <p>Owns one-turn operations. Backends implement protected synchronous hooks.
+SDK construction and translation happen entirely inside those hooks.</p>
 
   </div>
 </div>
@@ -141,7 +134,7 @@ replacement for RubyLLMMaterializer.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#complete-instance_method" title="#complete (instance method)">#<strong>complete</strong>(chat, message, config: {})  &#x21d2; Object </a>
+      <a href="#complete-instance_method" title="#complete (instance method)">#<strong>complete</strong>(request, cancellation_token: nil)  &#x21d2; Object </a>
     
 
     
@@ -155,7 +148,7 @@ replacement for RubyLLMMaterializer.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Performs a blocking (non-streaming) LLM completion.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -163,7 +156,7 @@ replacement for RubyLLMMaterializer.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(chat, message, config: {}) {|chunk| ... } &#x21d2; Object </a>
+      <a href="#identity-instance_method" title="#identity (instance method)">#<strong>identity</strong>  &#x21d2; Object </a>
     
 
     
@@ -177,7 +170,51 @@ replacement for RubyLLMMaterializer.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Performs a blocking streaming LLM completion.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#input_budget-instance_method" title="#input_budget (instance method)">#<strong>input_budget</strong>(model_config)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Local model metadata only.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(request, cancellation_token: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Notifications run on the caller thread.</p></div></span>
   
 </li>
 
@@ -195,7 +232,7 @@ replacement for RubyLLMMaterializer.</p>
       <div class="method_details first">
   <h3 class="signature first" id="complete-instance_method">
   
-    #<strong>complete</strong>(chat, message, config: {})  &#x21d2; <tt>Object</tt> 
+    #<strong>complete</strong>(request, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -203,91 +240,12 @@ replacement for RubyLLMMaterializer.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Performs a blocking (non-streaming) LLM completion.</p>
-<p>Implementors call the configured chat/runtime client and return its
-response object. Transport/retry policy remains adapter-owned.</p>
+    
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>chat</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the configured/materialized chat runtime object</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>message</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user message, or nil to continue without adding a new user turn</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>invocation config (e.g. <code>:cancellation_token</code>)</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>LLM response object</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -295,15 +253,99 @@ response object. Transport/retry policy remains adapter-owned.</p>
       <pre class="lines">
 
 
+26
+27
+28
+29
 30
-31
-32</pre>
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 26</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#complete is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate_request!'>validate_request!</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_perform_complete'>perform_complete</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
+  <span class='id identifier rubyid_validate_response!'>validate_response!</span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="identity-instance_method">
+  
+    #<strong>identity</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+15
+16
+17</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 15</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_identity'>identity</span>
+  <span class='lbrace'>{</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>adapter_name</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="input_budget-instance_method">
+  
+    #<strong>input_budget</strong>(model_config)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Local model metadata only. Missing capacity is permitted.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+21
+22
+23</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 21</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_input_budget'>input_budget</span><span class='lparen'>(</span><span class='id identifier rubyid_model_config'>model_config</span><span class='rparen'>)</span>
+  <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -313,7 +355,7 @@ response object. Transport/retry policy remains adapter-owned.</p>
       <div class="method_details ">
   <h3 class="signature " id="stream-instance_method">
   
-    #<strong>stream</strong>(chat, message, config: {}) {|chunk| ... } &#x21d2; <tt>Object</tt> 
+    #<strong>stream</strong>(request, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -321,99 +363,20 @@ response object. Transport/retry policy remains adapter-owned.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Performs a blocking streaming LLM completion.</p>
+    <p>Notifications run on the caller thread. AsyncClient supplies an internal
+event sink; application callbacks remain with their owning domain.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>chat</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the configured/materialized chat runtime object</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>message</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user message, or nil to continue without adding a new user turn</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>invocation config</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Yields:</p>
-<ul class="yield">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>chunk</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>streaming chunk from the LLM</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>LLM response object</p></div>
-      
-    </li>
-  
-</ul>
 <p class="tag_title">Raises:</p>
 <ul class="raise">
   
     <li>
       
       
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
       
       
       
@@ -427,15 +390,31 @@ response object. Transport/retry policy remains adapter-owned.</p>
       <pre class="lines">
 
 
+36
+37
+38
+39
+40
+41
+42
 43
 44
-45</pre>
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 36</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#stream is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block_given?'>block_given?</span>
+  <span class='id identifier rubyid_validate_request!'>validate_request!</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_perform_stream'>perform_stream</span><span class='lparen'>(</span><span class='id identifier rubyid_request'>request</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
+    <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="InvalidResultError.html" title="Phronomy::LLMAdapter::InvalidResultError (class)">InvalidResultError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream must yield StreamChunk values</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_chunk'>chunk</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamChunk.html" title="Phronomy::LLMAdapter::StreamChunk (class)">StreamChunk</a></span></span><span class='rparen'>)</span>
+    <span class='kw'>yield</span> <span class='id identifier rubyid_chunk'>chunk</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
+  <span class='id identifier rubyid_validate_response!'>validate_response!</span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -447,7 +426,7 @@ response object. Transport/retry policy remains adapter-owned.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:27 2026 by
+  Generated on Thu Oct  8 15:22:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

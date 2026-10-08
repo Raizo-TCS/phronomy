@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/persistence/contract/error.rb
+    <dd>lib/phronomy/persistence/errors.rb
 </dd>
   </dl>
   
@@ -106,7 +106,7 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Base for domain-facing Persistence failures. Not every Error implies a known rollback.</p>
+    <p>Failures describe a category, not a universal claim about commit outcome.</p>
 
   </div>
 </div>
@@ -115,7 +115,7 @@
 
 </div><div id="subclasses">
   <h2>Direct Known Subclasses</h2>
-  <p class="children"><span class='object_link'><a href="ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span>, <span class='object_link'><a href="NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span>, <span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span>, <span class='object_link'><a href="UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></p>
+  <p class="children"><span class='object_link'><a href="ConflictError.html" title="Phronomy::Persistence::ConflictError (class)">ConflictError</a></span>, <span class='object_link'><a href="NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span>, <span class='object_link'><a href="SerializationError.html" title="Phronomy::Persistence::SerializationError (class)">SerializationError</a></span>, <span class='object_link'><a href="TransactionError.html" title="Phronomy::Persistence::TransactionError (class)">TransactionError</a></span>, <span class='object_link'><a href="UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></p>
 </div>
 
 
@@ -130,7 +130,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:28 2026 by
+  Generated on Thu Oct  8 15:22:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

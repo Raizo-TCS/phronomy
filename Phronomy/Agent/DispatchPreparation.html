@@ -129,7 +129,7 @@ execution owner. No operation-local state is retained between calls.</p>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="DispatchPreparation/OutcomeUnknownError.html" title="Phronomy::Agent::DispatchPreparation::OutcomeUnknownError (class)">OutcomeUnknownError</a></span>, <span class='object_link'><a href="DispatchPreparation/ProviderCommand.html" title="Phronomy::Agent::DispatchPreparation::ProviderCommand (class)">ProviderCommand</a></span>, <span class='object_link'><a href="DispatchPreparation/ProviderReconciliationCommand.html" title="Phronomy::Agent::DispatchPreparation::ProviderReconciliationCommand (class)">ProviderReconciliationCommand</a></span>, <span class='object_link'><a href="DispatchPreparation/ProviderReconciliationResult.html" title="Phronomy::Agent::DispatchPreparation::ProviderReconciliationResult (class)">ProviderReconciliationResult</a></span>, <span class='object_link'><a href="DispatchPreparation/ProviderResult.html" title="Phronomy::Agent::DispatchPreparation::ProviderResult (class)">ProviderResult</a></span>, <span class='object_link'><a href="DispatchPreparation/ToolCommand.html" title="Phronomy::Agent::DispatchPreparation::ToolCommand (class)">ToolCommand</a></span>, <span class='object_link'><a href="DispatchPreparation/ToolReconciliationCommand.html" title="Phronomy::Agent::DispatchPreparation::ToolReconciliationCommand (class)">ToolReconciliationCommand</a></span>, <span class='object_link'><a href="DispatchPreparation/ToolReconciliationResult.html" title="Phronomy::Agent::DispatchPreparation::ToolReconciliationResult (class)">ToolReconciliationResult</a></span>, <span class='object_link'><a href="DispatchPreparation/ToolResult.html" title="Phronomy::Agent::DispatchPreparation::ToolResult (class)">ToolResult</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="DispatchPreparation/ProviderCommand.html" title="Phronomy::Agent::DispatchPreparation::ProviderCommand (class)">ProviderCommand</a></span>, <span class='object_link'><a href="DispatchPreparation/ProviderResult.html" title="Phronomy::Agent::DispatchPreparation::ProviderResult (class)">ProviderResult</a></span>, <span class='object_link'><a href="DispatchPreparation/ToolCommand.html" title="Phronomy::Agent::DispatchPreparation::ToolCommand (class)">ToolCommand</a></span>, <span class='object_link'><a href="DispatchPreparation/ToolResult.html" title="Phronomy::Agent::DispatchPreparation::ToolResult (class)">ToolResult</a></span>
     
   
 </p>
@@ -216,50 +216,6 @@ execution owner. No operation-local state is retained between calls.</p>
 </li>
 
       
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#reconcile_provider-instance_method" title="#reconcile_provider (instance method)">#<strong>reconcile_provider</strong>(command)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#reconcile_tools-instance_method" title="#reconcile_tools (instance method)">#<strong>reconcile_tools</strong>(command)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
     </ul>
     
   
@@ -302,13 +258,13 @@ execution owner. No operation-local state is retained between calls.</p>
       <pre class="lines">
 
 
-53
-54
-55
-56</pre>
+28
+29
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
@@ -354,18 +310,18 @@ execution owner. No operation-local state is retained between calls.</p>
       <pre class="lines">
 
 
-59
-60
-61
-62
-63
-64
-65
-66
-67</pre>
+34
+35
+36
+37
+38
+39
+40
+41
+42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_provider'>prepare_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_staged'>staged</span> <span class='op'>=</span> <span class='id identifier rubyid_stage_provider_call'>stage_provider_call</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
@@ -409,161 +365,27 @@ execution owner. No operation-local state is retained between calls.</p>
       <pre class="lines">
 
 
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90</pre>
+45
+46
+47
+48
+49
+50
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_tools'>prepare_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_intended'>intended</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='kw'>begin</span>
-    <span class='ivar'>@persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
-      <span class='id identifier rubyid_assert_local_durable_base!'>assert_local_durable_base!</span><span class='lparen'>(</span><span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_root'>root</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='id identifier rubyid_build_tool_dispatch_execution'>build_tool_dispatch_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_tx'>tx</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid___prepare_coordination_record'>__prepare_coordination_record</span><span class='lparen'>(</span><span class='id identifier rubyid_updated'>updated</span><span class='comma'>,</span> <span class='label'>tx:</span> <span class='id identifier rubyid_tx'>tx</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
-        <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-        <span class='label'>expected_revision:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
-        <span class='label'>execution:</span> <span class='id identifier rubyid_updated'>updated</span>
-      <span class='rparen'>)</span>
-      <span class='id identifier rubyid_intended'>intended</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="DispatchPreparation/ToolResult.html" title="Phronomy::Agent::DispatchPreparation::ToolResult (class)">ToolResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>execution:</span> <span class='id identifier rubyid_updated'>updated</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-  <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_caught'>caught</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='kw'>if</span> <span class='id identifier rubyid_known_durable_failure?'>known_durable_failure?</span><span class='lparen'>(</span><span class='id identifier rubyid_caught'>caught</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='id identifier rubyid_intended'>intended</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
-
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="DispatchPreparation/OutcomeUnknownError.html" title="Phronomy::Agent::DispatchPreparation::OutcomeUnknownError (class)">OutcomeUnknownError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="DispatchPreparation/OutcomeUnknownError.html#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation::OutcomeUnknownError#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_caught'>caught</span><span class='comma'>,</span> <span class='id identifier rubyid_intended'>intended</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='ivar'>@persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
+    <span class='id identifier rubyid_assert_local_durable_base!'>assert_local_durable_base!</span><span class='lparen'>(</span><span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_root'>root</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_build_tool_dispatch_execution'>build_tool_dispatch_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_tx'>tx</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_intended'>intended</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="reconcile_provider-instance_method">
-  
-    #<strong>reconcile_provider</strong>(command)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-93
-94
-95
-96
-97
-98
-99
-100
-101</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 93</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_reconcile_provider'>reconcile_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_disposition'>disposition</span><span class='comma'>,</span> <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_reconcile_preparation'>reconcile_preparation</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_intended_result'>intended_result</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_restore_provider_result'>restore_provider_result</span><span class='lparen'>(</span><span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_disposition'>disposition</span> <span class='op'>==</span> <span class='symbol'>:committed</span>
-  <span class='const'><span class='object_link'><a href="DispatchPreparation/ProviderReconciliationResult.html" title="Phronomy::Agent::DispatchPreparation::ProviderReconciliationResult (class)">ProviderReconciliationResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>disposition:</span> <span class='id identifier rubyid_disposition'>disposition</span><span class='comma'>,</span> <span class='label'>preparation_result:</span> <span class='id identifier rubyid_result'>result</span>
-  <span class='rparen'>)</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="reconcile_tools-instance_method">
-  
-    #<strong>reconcile_tools</strong>(command)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-104
-105
-106
-107
-108
-109
-110
-111
-112</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 104</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_reconcile_tools'>reconcile_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_disposition'>disposition</span><span class='comma'>,</span> <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_reconcile_preparation'>reconcile_preparation</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_intended_result'>intended_result</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="DispatchPreparation/ToolResult.html" title="Phronomy::Agent::DispatchPreparation::ToolResult (class)">ToolResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>execution:</span> <span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_disposition'>disposition</span> <span class='op'>==</span> <span class='symbol'>:committed</span>
-  <span class='const'><span class='object_link'><a href="DispatchPreparation/ToolReconciliationResult.html" title="Phronomy::Agent::DispatchPreparation::ToolReconciliationResult (class)">ToolReconciliationResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>disposition:</span> <span class='id identifier rubyid_disposition'>disposition</span><span class='comma'>,</span> <span class='label'>preparation_result:</span> <span class='id identifier rubyid_result'>result</span>
-  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_change'>change</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionChange.html" title="Phronomy::Agent::ExecutionChange (class)">ExecutionChange</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ExecutionChange.html#initialize-instance_method" title="Phronomy::Agent::ExecutionChange#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span> <span class='label'>current:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span>
+    <span class='label'>root:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_root'>root</span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='symbol'>:dispatch</span><span class='comma'>,</span> <span class='label'>updated:</span> <span class='id identifier rubyid_updated'>updated</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_invocation_config'>invocation_config</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="DispatchPreparation/ToolResult.html" title="Phronomy::Agent::DispatchPreparation::ToolResult (class)">ToolResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::DispatchPreparation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>execution:</span> <span class='id identifier rubyid_change'>change</span><span class='period'>.</span><span class='id identifier rubyid_perform'>perform</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -575,7 +397,7 @@ execution owner. No operation-local state is retained between calls.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:30 2026 by
+  Generated on Thu Oct  8 15:22:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

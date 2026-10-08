@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/engine/concurrency/result_collector.rb
+    <dd>lib/phronomy/execution/concurrency/result_collector.rb
 </dd>
   </dl>
   
@@ -289,7 +289,7 @@ completion callback runs while this collector's lock is held.</p>
 17</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/result_collector.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/result_collector.rb', line 9</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_size'>size</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_finished'>finished</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -297,7 +297,7 @@ completion callback runs while this collector's lock is held.</p>
   <span class='ivar'>@remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@closed</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@sources</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_compare_by_identity'>compare_by_identity</span>
-  <span class='ivar'>@subscriptions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Subscriptions.html" title="Phronomy::Concurrency::Subscriptions (class)">Subscriptions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Subscriptions.html#initialize-instance_method" title="Phronomy::Concurrency::Subscriptions#initialize (method)">new</a></span></span>
+  <span class='ivar'>@subscriptions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ResultSubscriptions.html" title="Phronomy::Concurrency::ResultSubscriptions (class)">ResultSubscriptions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ResultSubscriptions.html#initialize-instance_method" title="Phronomy::Concurrency::ResultSubscriptions#initialize (method)">new</a></span></span>
   <span class='ivar'>@finished</span> <span class='op'>=</span> <span class='id identifier rubyid_finished'>finished</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -353,7 +353,7 @@ completion callback runs while this collector's lock is held.</p>
 52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/result_collector.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/result_collector.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='id identifier rubyid_kind'>kind</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_snapshot'>snapshot</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -417,7 +417,7 @@ completion callback runs while this collector's lock is held.</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/result_collector.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/result_collector.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_open?'>open?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='op'>!</span><span class='ivar'>@closed</span> <span class='rbrace'>}</span>
@@ -471,7 +471,7 @@ completion callback runs while this collector's lock is held.</p>
 40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/result_collector.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/result_collector.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_watch'>watch</span><span class='lparen'>(</span><span class='id identifier rubyid_index'>index</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_recorded'>recorded</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_subscribe'>subscribe</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -525,7 +525,7 @@ completion callback runs while this collector's lock is held.</p>
 21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/result_collector.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/result_collector.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_while_open'>while_open</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='kw'>yield</span> <span class='kw'>unless</span> <span class='ivar'>@closed</span> <span class='rbrace'>}</span>
@@ -540,7 +540,7 @@ completion callback runs while this collector's lock is held.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:30 2026 by
+  Generated on Thu Oct  8 15:22:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -108,7 +108,7 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Runtime-local admission for one synchronous coordination call per owner
+<p>Environment-local admission for one synchronous coordination call per owner
 (a Handoff main Agent or TeamCoordinator). This does not own durable runs
 or active-agent mutation; those remain in their existing domains.</p>
 
@@ -124,38 +124,6 @@ or active-agent mutation; those remain in their existing domains.</p>
 
 
 
-  
-    <h2>
-      Class Method Summary
-      <small><a href="#" class="summary_toggle">collapse</a></small>
-    </h2>
-
-    <ul class="summary">
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#for-class_method" title="for (class method)">.<strong>for</strong>(runtime)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Construction has no side effects.</p></div></span>
-  
-</li>
-
-      
-    </ul>
-    
   
     <h2>
       Instance Method Summary
@@ -333,15 +301,15 @@ or active-agent mutation; those remain in their existing domains.</p>
       <pre class="lines">
 
 
-17
-18
-19
-20
-21
-22</pre>
+10
+11
+12
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -356,56 +324,6 @@ or active-agent mutation; those remain in their existing domains.</p>
   
 </div>
 
-
-  <div id="class_method_details" class="method_details_list">
-    <h2>Class Method Details</h2>
-
-    
-      <div class="method_details first">
-  <h3 class="signature first" id="for-class_method">
-  
-    .<strong>for</strong>(runtime)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Construction has no side effects. Runtime returns the registered instance
-when callers concurrently supply candidates for the same key.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-13
-14
-15</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 13</span>
-
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='kw'>for</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid___register_shutdown_participant'>__register_shutdown_participant</span><span class='lparen'>(</span><span class='label'>key:</span> <span class='kw'>self</span><span class='comma'>,</span> <span class='label'>participant:</span> <span class='id identifier rubyid_new'>new</span><span class='rparen'>)</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-  </div>
 
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
@@ -439,6 +357,13 @@ when callers concurrently supply candidates for the same key.</p>
       <pre class="lines">
 
 
+17
+18
+19
+20
+21
+22
+23
 24
 25
 26
@@ -446,17 +371,10 @@ when callers concurrently supply candidates for the same key.</p>
 28
 29
 30
-31
-32
-33
-34
-35
-36
-37
-38</pre>
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_admit!'>admit!</span><span class='lparen'>(</span><span class='id identifier rubyid_coordinator'>coordinator</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span>
@@ -507,12 +425,12 @@ admitted callers or calling back into Runtime. Repeated closure is safe.</p>
       <pre class="lines">
 
 
-55
-56
-57</pre>
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_draining'>begin_draining</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@draining</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
@@ -563,12 +481,12 @@ admitted callers or calling back into Runtime. Repeated closure is safe.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@owners</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='rbrace'>}</span>
@@ -606,17 +524,17 @@ admitted callers or calling back into Runtime. Repeated closure is safe.</p>
       <pre class="lines">
 
 
-40
-41
-42
-43
-44
-45
-46
-47</pre>
+33
+34
+35
+36
+37
+38
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release!'>release!</span><span class='lparen'>(</span><span class='id identifier rubyid_coordinator'>coordinator</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span>
@@ -659,19 +577,19 @@ admitted callers or calling back into Runtime. Repeated closure is safe.</p>
       <pre class="lines">
 
 
+52
+53
+54
+55
+56
+57
+58
 59
 60
-61
-62
-63
-64
-65
-66
-67
-68</pre>
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/admission_registry.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -693,7 +611,7 @@ admitted callers or calling back into Runtime. Repeated closure is safe.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:29 2026 by
+  Generated on Thu Oct  8 15:22:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

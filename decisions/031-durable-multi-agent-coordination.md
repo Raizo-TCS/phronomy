@@ -1,5 +1,7 @@
 # ADR-031: Durable Multi-Agent Semantic Coordination
 
+> Agent/MultiAgent ownership is amended by [ADR-064](064-agent-execution-and-multi-agent-responsibility.md).
+
 ## Status
 
 Accepted. V2 revision 2, 2026-09-06.

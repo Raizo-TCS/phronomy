@@ -78,14 +78,14 @@
   
   <dl>
     <dt>Included in:</dt>
-    <dd><span class='object_link'><a href="Agent/Base.html" title="Phronomy::Agent::Base (class)">Agent::Base</a></span>, <span class='object_link'><a href="Agent/Context/Instruction/PromptTemplate.html" title="Phronomy::Agent::Context::Instruction::PromptTemplate (class)">Agent::Context::Instruction::PromptTemplate</a></span>, <span class='object_link'><a href="OutputParser/Base.html" title="Phronomy::OutputParser::Base (class)">OutputParser::Base</a></span>, <span class='object_link'><a href="Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span>, <span class='object_link'><a href="WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></dd>
+    <dd><span class='object_link'><a href="Agent/Base.html" title="Phronomy::Agent::Base (class)">Agent::Base</a></span>, <span class='object_link'><a href="Context/PromptTemplate.html" title="Phronomy::Context::PromptTemplate (class)">Context::PromptTemplate</a></span>, <span class='object_link'><a href="OutputParser/Base.html" title="Phronomy::OutputParser::Base (class)">OutputParser::Base</a></span>, <span class='object_link'><a href="Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span>, <span class='object_link'><a href="WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></dd>
   </dl>
   
 
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/execution_contract/runnable.rb
+    <dd>lib/phronomy/execution/runnable.rb
 </dd>
   </dl>
   
@@ -182,28 +182,6 @@ Provides invoke / stream / batch.</p>
 </li>
 
       
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#trace-instance_method" title="#trace (instance method)">#<strong>trace</strong>(name, input: nil, **meta, &amp;block)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Convenience wrapper that delegates to the global tracer.</p></div></span>
-  
-</li>
-
-      
     </ul>
     
   
@@ -243,7 +221,7 @@ Provides invoke / stream / batch.</p>
 22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_contract/runnable.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/runnable.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_batch'>batch</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_input'>input</span><span class='op'>|</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -295,7 +273,7 @@ Provides invoke / stream / batch.</p>
 10</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_contract/runnable.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/runnable.rb', line 8</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#invoke is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -349,7 +327,7 @@ Provides invoke / stream / batch.</p>
 17</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_contract/runnable.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/runnable.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -361,93 +339,12 @@ Provides invoke / stream / batch.</p>
 </table>
 </div>
     
-      <div class="method_details ">
-  <h3 class="signature " id="trace-instance_method">
-  
-    #<strong>trace</strong>(name, input: nil, **meta, &amp;block)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Convenience wrapper that delegates to the global tracer.
-Yields a span; the block must return [result, usage] where usage is a
-Phronomy::TokenUsage or nil. Returns only the result value.</p>
-<p>When <code>trace_pii</code> is disabled, both the input and the output (LLM response,
-tool result) are replaced with the literal string &quot;[REDACTED]&quot; before being
-forwarded to the tracing backend. The actual result is still returned to
-the caller — only the copy sent to the tracer is redacted.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>my_chain</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='lbracket'>[</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rbracket'>]</span> <span class='rbrace'>}</span></code></pre>
-    
-  </div>
-
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-36
-37
-38
-39
-40
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_contract/runnable.rb', line 36</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_traced_input'>traced_input</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'><span class='object_link'><a href="RuntimeSettings.html#trace_pii-instance_method" title="Phronomy::RuntimeSettings#trace_pii (method)">trace_pii</a></span></span> <span class='op'>?</span> <span class='id identifier rubyid_input'>input</span> <span class='op'>:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[REDACTED]</span><span class='tstring_end'>&quot;</span></span>
-
-  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'><span class='object_link'><a href="RuntimeSettings.html#trace_pii-instance_method" title="Phronomy::RuntimeSettings#trace_pii (method)">trace_pii</a></span></span>
-    <span class='comment'># PII recording is allowed: pass through unchanged.
-</span>    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_tracer'><span class='object_link'><a href="RuntimeSettings.html#tracer-instance_method" title="Phronomy::RuntimeSettings#tracer (method)">tracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_traced_input'>traced_input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='comment'># Redact both input (above) and output before forwarding to the tracer.
-</span>    <span class='comment'># Capture the real result so callers receive the unredacted value.
-</span>    <span class='id identifier rubyid_real_result'>real_result</span> <span class='op'>=</span> <span class='kw'>nil</span>
-    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_tracer'><span class='object_link'><a href="RuntimeSettings.html#tracer-instance_method" title="Phronomy::RuntimeSettings#tracer (method)">tracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_traced_input'>traced_input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_span'>span</span><span class='op'>|</span>
-      <span class='id identifier rubyid_real_result'>real_result</span><span class='comma'>,</span> <span class='id identifier rubyid_usage'>usage</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_span'>span</span><span class='rparen'>)</span>
-      <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[REDACTED]</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_usage'>usage</span><span class='rbracket'>]</span>
-    <span class='kw'>end</span>
-    <span class='id identifier rubyid_real_result'>real_result</span>
-  <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

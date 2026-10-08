@@ -158,6 +158,28 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#default_pool_if_initialized-instance_method" title="#default_pool_if_initialized (instance method)">#<strong>default_pool_if_initialized</strong>  &#x21d2; OffloadPool<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Lookup only, including after registration has closed.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(timer_queue_provider: nil)  &#x21d2; PoolRegistry </a>
     
 
@@ -204,7 +226,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>  &#x21d2; void </a>
+      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(deadline: Process.clock_gettime(Process::CLOCK_MONOTONIC) + 30)  &#x21d2; Boolean </a>
     
 
     
@@ -218,7 +240,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Shuts down the default pool and all named pools.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Closes registration and every pool before waiting, outside the registry lock.</p></div></span>
   
 </li>
 
@@ -283,7 +305,8 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 16
 17
 18
-19</pre>
+19
+20</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 14</span>
@@ -293,6 +316,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@pools</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@default</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@closed</span> <span class='op'>=</span> <span class='kw'>false</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -377,25 +401,87 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-26
 27
 28
 29
 30
 31
 32
-33</pre>
+33
+34
+35
+36
+37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
-  <span class='ivar'>@default</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="OffloadPool.html#initialize-instance_method" title="Phronomy::Concurrency::OffloadPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span> <span class='symbol'>:default</span><span class='comma'>,</span>
-    <span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
-    <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='comma'>,</span>
-    <span class='label'>timer_queue_provider:</span> <span class='ivar'>@timer_queue_provider</span>
-  <span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ensure_open!'>ensure_open!</span>
+    <span class='ivar'>@default</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="OffloadPool.html#initialize-instance_method" title="Phronomy::Concurrency::OffloadPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>name:</span> <span class='symbol'>:default</span><span class='comma'>,</span>
+      <span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
+      <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='comma'>,</span>
+      <span class='label'>timer_queue_provider:</span> <span class='ivar'>@timer_queue_provider</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="default_pool_if_initialized-instance_method">
+  
+    #<strong>default_pool_if_initialized</strong>  &#x21d2; <tt><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Lookup only, including after registration has closed.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+42
+43
+44</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 42</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_default_pool_if_initialized'>default_pool_if_initialized</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@default</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -484,22 +570,24 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50</pre>
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_named_pool'>named_pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ensure_open!'>ensure_open!</span>
     <span class='ivar'>@pools</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="OffloadPool.html#initialize-instance_method" title="Phronomy::Concurrency::OffloadPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
       <span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span>
       <span class='label'>pool_size:</span> <span class='id identifier rubyid_size'>size</span><span class='comma'>,</span>
@@ -516,7 +604,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <div class="method_details ">
   <h3 class="signature " id="shutdown-instance_method">
   
-    #<strong>shutdown</strong>  &#x21d2; <tt>void</tt> 
+    #<strong>shutdown</strong>(deadline: Process.clock_gettime(Process::CLOCK_MONOTONIC) + 30)  &#x21d2; <tt>Boolean</tt> 
   
 
   
@@ -528,12 +616,30 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p class="note returns_void">This method returns an undefined value.</p><p>Shuts down the default pool and all named pools.</p>
+<p>Closes registration and every pool before waiting, outside the registry
+lock. All pools share one absolute monotonic deadline. Attempt every
+cleanup even if one fails; report physical completion separately.</p>
 
   </div>
 </div>
 <div class="tags">
   
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>whether every owned worker has stopped</p></div>
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -541,19 +647,49 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-55
-56
-57
-58
-59</pre>
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 69</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
-  <span class='ivar'>@default</span><span class='op'>&amp;.</span><span class='id identifier rubyid_shutdown'>shutdown</span>
-  <span class='id identifier rubyid_pools'>pools</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@pools</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_pools'>pools</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:shutdown</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='int'>30</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_pools'>pools</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@closed</span> <span class='op'>=</span> <span class='kw'>true</span>
+    <span class='lbracket'>[</span><span class='ivar'>@default</span><span class='comma'>,</span> <span class='op'>*</span><span class='ivar'>@pools</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_pools'>pools</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_pool'>pool</span><span class='op'>|</span>
+    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_begin_shutdown'>begin_shutdown</span>
+  <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_caught'>caught</span>
+    <span class='id identifier rubyid_error'>error</span> <span class='op'>||=</span> <span class='id identifier rubyid_caught'>caught</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_pools'>pools</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_pool'>pool</span><span class='op'>|</span>
+    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+  <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_caught'>caught</span>
+    <span class='id identifier rubyid_error'>error</span> <span class='op'>||=</span> <span class='id identifier rubyid_caught'>caught</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='id identifier rubyid_error'>error</span> <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
+
+  <span class='id identifier rubyid_pools'>pools</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:terminated?</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -565,7 +701,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:29 2026 by
+  Generated on Thu Oct  8 15:22:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

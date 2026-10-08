@@ -168,7 +168,7 @@
         <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage/Resource.html" title="Phronomy::Storage::Resource (class)">Resource</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../../Storage/Resource.html#initialize-instance_method" title="Phronomy::Storage::Resource#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.journal</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='symbol'>:streams</span><span class='comma'>,</span>
 <span class='label'>guard:</span> <span class='lbrace'>{</span><span class='label'>resource:</span> <span class='const'><span class='object_link'><a href="#ROOTS-constant" title="Phronomy::Agent::Persistence::StorageSchema::ROOTS (constant)">ROOTS</a></span></span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>via:</span> <span class='symbol'>:stream</span><span class='rbrace'>}</span><span class='rparen'>)</span></pre></dd>
       
-        <dt id="HANDOFF_STATES-constant" class="">HANDOFF_STATES =
+        <dt id="CANCELLATIONS-constant" class="">CANCELLATIONS =
           <div class="docstring">
   <div class="discussion">
     <p class="note private">
@@ -184,8 +184,30 @@
 
 </div>
         </dt>
-        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage/Resource.html" title="Phronomy::Storage::Resource (class)">Resource</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../../Storage/Resource.html#initialize-instance_method" title="Phronomy::Storage::Resource#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>handoff.states</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='symbol'>:records</span><span class='comma'>,</span>
-<span class='label'>attributes:</span> <span class='lbrace'>{</span><span class='label'>active_agent_id:</span> <span class='symbol'>:string</span><span class='rbrace'>}</span><span class='rparen'>)</span></pre></dd>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage/Resource.html" title="Phronomy::Storage::Resource (class)">Resource</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../../Storage/Resource.html#initialize-instance_method" title="Phronomy::Storage::Resource#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.cancellations</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='symbol'>:records</span><span class='comma'>,</span>
+<span class='label'>attributes:</span> <span class='lbrace'>{</span><span class='label'>owner:</span> <span class='symbol'>:string</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>immutable_attributes:</span> <span class='lbracket'>[</span><span class='symbol'>:owner</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>indexes:</span> <span class='lbrace'>{</span><span class='label'>owner:</span> <span class='lbracket'>[</span><span class='symbol'>:owner</span><span class='rbracket'>]</span><span class='rbrace'>}</span><span class='comma'>,</span>
+<span class='label'>guard:</span> <span class='lbrace'>{</span><span class='label'>resource:</span> <span class='const'><span class='object_link'><a href="#ROOTS-constant" title="Phronomy::Agent::Persistence::StorageSchema::ROOTS (constant)">ROOTS</a></span></span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>via:</span> <span class='symbol'>:owner</span><span class='rbrace'>}</span><span class='rparen'>)</span></pre></dd>
+      
+        <dt id="RETENTIONS-constant" class="">RETENTIONS =
+          <div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This constant is part of a private API.</strong>
+  You should avoid using this constant if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Storage/Resource.html" title="Phronomy::Storage::Resource (class)">Resource</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../../Storage/Resource.html#initialize-instance_method" title="Phronomy::Storage::Resource#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.retentions</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='symbol'>:records</span><span class='comma'>,</span>
+<span class='label'>attributes:</span> <span class='lbrace'>{</span><span class='label'>owner:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>holder:</span> <span class='symbol'>:string</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>immutable_attributes:</span> <span class='lbracket'>[</span><span class='symbol'>:owner</span><span class='comma'>,</span> <span class='symbol'>:holder</span><span class='rbracket'>]</span><span class='comma'>,</span>
+<span class='label'>indexes:</span> <span class='lbrace'>{</span><span class='label'>owner:</span> <span class='lbracket'>[</span><span class='symbol'>:owner</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>holder:</span> <span class='lbracket'>[</span><span class='symbol'>:holder</span><span class='rbracket'>]</span><span class='rbrace'>}</span><span class='comma'>,</span>
+<span class='label'>guard:</span> <span class='lbrace'>{</span><span class='label'>resource:</span> <span class='const'><span class='object_link'><a href="#ROOTS-constant" title="Phronomy::Agent::Persistence::StorageSchema::ROOTS (constant)">ROOTS</a></span></span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>via:</span> <span class='symbol'>:owner</span><span class='rbrace'>}</span><span class='rparen'>)</span></pre></dd>
       
     </dl>
   
@@ -201,7 +223,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

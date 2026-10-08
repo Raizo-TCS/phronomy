@@ -23,6 +23,13 @@ reviewed explicitly rather than resolved by recency.
 
 ## Design principles
 
+The current r8 refinement of Agent parent/Tool child progress and concrete
+execution connections is described in [unit 8](architecture/r8-unit8.md), building
+on [unit 7](architecture/r8-unit7.md). C04 owns Agent progress and approval/recovery;
+C06 owns Tool operations; C13 supplies execution submission/completion. Concrete
+FSM construction stays in Agent runtime_binding. These scoped changes do not
+declare the full contract target or remaining dependency cycles complete.
+
 These are design heuristics for new and revised architecture. They do not
 override an Accepted ADR, an established public/extension contract, or an
 explicit compatibility decision.
@@ -105,7 +112,8 @@ synchronous FSM callback exceptions. Recovery owns shared rehydration
 requirements. Workflow implementation lives under `workflow/execution/`;
 Agent namespace/event loading lives under `agent/api/`, separately from the shared
 Agent lifecycle exceptions in `agent/lifecycle_contract/`. LLM values and
-call-boundary exceptions live under `llm_contract/`.
+call-boundary exceptions live under `llm_adapter/`, together with the SDK-neutral
+operation contract. See [r8 unit 6](architecture/r8-unit6.md).
 
 Agent consumes its private fresh-Persistence factory only when neither an
 explicit instance nor a configured instance is available. Concrete selection
@@ -175,14 +183,13 @@ confirmed resume. Internal Coordinator type aliases remain, with changed
 canonical names and an added Command snapshot field. See
 [ADR-050](decisions/050-approval-resume-snapshot-and-commit-ownership.md).
 
-`Agent::ExecutionOutcomeCommitter` owns ordinary completion, failure, suspension
-and child waiting; `Agent::HandoffOutcomeCommitter` adds atomic Source transfer.
-The Handoff Coordinator now only selects its worker. Transaction boundaries,
-operation-specific readback and Handoff selection precedence remain unchanged.
-Coordinator retains quiescence, submission, stale-result validation, live-state
-application, admission and Task/listener delivery. Command/view/outcome types are
-worker-owned with internal Coordinator aliases and changed canonical Ruby names.
-See [ADR-051](decisions/051-execution-outcome-worker-ownership.md).
+`Agent::ExecutionOutcomeCommitter` and `Agent::ExecutionChange` own Agent
+completion, failure, suspension, dispatch preparation and commit proof. A limited
+participant joins its own domain changes to the same scope. MultiAgent owns
+subagent reservations and Handoff routing; it passes extension state and transfer
+receipts, never Agent records or arbitrary update blocks. The EventLoop owner
+continues to apply confirmed results and deliver callbacks. See
+[r8 unit 4](architecture/r8-unit4.md).
 
 The remaining execution owner expresses result handling as validation, committed
 state installation, and continuation or delivery. Private methods keep these
@@ -299,3 +306,6 @@ Durable multi-agent coordination is described by [ADR-029](decisions/029-semanti
 TeamExecution is a purpose-specific CAS authority delegating coordinator/workers
 to ordinary Agents, with no Team FSMSession or second Workflow engine.
 Static subagent reservation lives in the existing parent AgentExecution metadata.
+
+Current C10/C11 common operation ownership and independent Embeddings/Documents
+placement are specified in [r8 unit 5](architecture/r8-unit5.md).

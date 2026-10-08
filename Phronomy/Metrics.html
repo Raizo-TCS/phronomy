@@ -89,7 +89,9 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Runtime observability snapshot for the two concurrency boundaries:
-EventLoop and OffloadPool.</p>
+EventLoop and the default OffloadPool. Observation never creates resources;
+missing resources contribute zero values. Individual counters are sampled
+independently, not as an atomic view of concurrent execution.</p>
 
   </div>
 </div>
@@ -158,8 +160,6 @@ EventLoop and OffloadPool.</p>
       <pre class="lines">
 
 
-7
-8
 9
 10
 11
@@ -175,27 +175,29 @@ EventLoop and OffloadPool.</p>
 21
 22
 23
-24</pre>
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/metrics.rb', line 7</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/metrics.rb', line 9</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'>snapshot</span>
-  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_pool'>pool</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span>
-  <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
+  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid___default_if_initialized'><span class='object_link'><a href="Runtime.html#__default_if_initialized-class_method" title="Phronomy::Runtime.__default_if_initialized (method)">__default_if_initialized</a></span></span>
+  <span class='id identifier rubyid_pool'>pool</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='op'>&amp;.</span><span class='id identifier rubyid___offload_if_initialized'>__offload_if_initialized</span>
+  <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='op'>&amp;.</span><span class='id identifier rubyid___event_loop_if_initialized'>__event_loop_if_initialized</span>
 
   <span class='lbrace'>{</span>
-    <span class='label'>offload_pool_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_active_count'>active_count</span><span class='comma'>,</span>
-    <span class='label'>offload_pool_queue_length:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
-    <span class='label'>offload_pool_abandoned_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_abandoned_active_count'>abandoned_active_count</span><span class='comma'>,</span>
-    <span class='label'>offload_pool_abandoned_total:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_abandoned_count'>abandoned_count</span><span class='comma'>,</span>
-    <span class='label'>offload_pool_size:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
-    <span class='label'>event_loop_queue_depth:</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
-    <span class='label'>event_loop_queue_max_depth:</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_max_queue_depth'>max_queue_depth</span><span class='comma'>,</span>
-    <span class='label'>event_loop_lag_last_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>event_loop_lag_max_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>event_loop_lag_average_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span>
+    <span class='label'>offload_pool_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_active_count'>active_count</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>offload_pool_queue_length:</span> <span class='id identifier rubyid_pool'>pool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>offload_pool_abandoned_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_abandoned_active_count'>abandoned_active_count</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>offload_pool_abandoned_total:</span> <span class='id identifier rubyid_pool'>pool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_abandoned_count'>abandoned_count</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>offload_pool_size:</span> <span class='id identifier rubyid_pool'>pool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_pool_size'>pool_size</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>event_loop_queue_depth:</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='op'>&amp;.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>event_loop_queue_max_depth:</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='op'>&amp;.</span><span class='id identifier rubyid_max_queue_depth'>max_queue_depth</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span>
+    <span class='label'>event_loop_lag_last_ms:</span> <span class='lparen'>(</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='op'>&amp;.</span><span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span> <span class='op'>||</span> <span class='float'>0.0</span><span class='rparen'>)</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>event_loop_lag_max_ms:</span> <span class='lparen'>(</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='op'>&amp;.</span><span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span> <span class='op'>||</span> <span class='float'>0.0</span><span class='rparen'>)</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>event_loop_lag_average_ms:</span> <span class='lparen'>(</span><span class='lparen'>(</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='op'>&amp;.</span><span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span> <span class='op'>||</span> <span class='float'>0.0</span><span class='rparen'>)</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span>
   <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -208,7 +210,7 @@ EventLoop and OffloadPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

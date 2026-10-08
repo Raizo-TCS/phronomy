@@ -28,7 +28,7 @@ public compatibility decision.
 ## Decision
 
 1. Move the helper to
-   `Phronomy::Agent::Context::Capability::ToolExecutor`, in
+   `Phronomy::Tool::ToolExecutor`, in
    `agent/context/capability/tool_executor.rb`. Classify this helper as private
    API and remove the old internal constant without a compatibility alias.
 2. Use the new helper from Capability Base and Agent ToolInvocation. Preserve

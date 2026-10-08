@@ -9,7 +9,7 @@ Accepted.
 Phronomy has accumulated two related API-maintenance problems:
 
 1. Application-defined Tools are implemented by subclassing the internal-taxonomy
-   name `Phronomy::Agent::Context::Capability::Base`, even though the product
+   name `Phronomy::Tool::Base`, even though the product
    concept exposed to users is simply a Tool.
 2. The gem ships almost no RBS signatures, so the distinction between
    application APIs, extension SPIs, and private implementation objects is not
@@ -42,7 +42,7 @@ Phronomy::Tool::Base
 The existing implementation class remains:
 
 ```ruby
-Phronomy::Agent::Context::Capability::Base
+Phronomy::Tool::Base
 ```
 
 `Phronomy::Tool::Base` is an exact constant alias to that same class object. It
@@ -58,7 +58,7 @@ This preserves:
   name.
 
 Consequently, `Phronomy::Tool::Base.name` intentionally remains
-`"Phronomy::Agent::Context::Capability::Base"`. If a future public contract
+`"Phronomy::Tool::Base"`. If a future public contract
 requires the runtime class name itself to become `Phronomy::Tool::Base`, that is
 a separate migration decision.
 

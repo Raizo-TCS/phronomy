@@ -117,6 +117,7 @@ resolved explicitly.
 | [`062-content-store-service`](062-content-store-service.md) | Accepted | Yes | Content management over neutral Storage; removes the unnecessary backend subdivision and preserves content/Persistence behavior. |
 
 | [`063-execution-contracts-and-services`](063-execution-contracts-and-services.md) | Accepted | Yes | Shared execution contracts and result/call services separated from Engine internals; preserves public APIs and fixes filtered physical completion. |
+| [`068-agent-tool-child-progress-and-tool-operation`](068-agent-tool-child-progress-and-tool-operation.md) | Accepted | Yes | C04 Tool child progress and original environment; C06 operation dispatch/result adaptation; child FSM in runtime_binding. |
 
 ## Legacy duplicate `011`
 
@@ -211,3 +212,11 @@ Current explanatory architecture starts at
 segregated under `docs/archive/design/` and are non-normative. Explanatory
 architecture documents describe the reconciled current system but do not
 supersede ADRs merely by being newer.
+
+- [`064-agent-execution-and-multi-agent-responsibility`](064-agent-execution-and-multi-agent-responsibility.md)
+
+- [`065-vector-and-embeddings-common-operations`](065-vector-and-embeddings-common-operations.md) — accepted for r8 unit 5; amends the vector/embedding SPI and namespace provisions of ADR-059.
+
+- [`066-llm-and-tool-operation-contracts`](066-llm-and-tool-operation-contracts.md)
+
+- [`067-agent-progress-and-engine-connection`](067-agent-progress-and-engine-connection.md) — Agent progress rules and Engine connection ownership.

@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/execution_services/execution.rb
+    <dd>lib/phronomy/execution/execution.rb
 </dd>
   </dl>
   
@@ -115,6 +115,38 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 </div>
 
 
+
+  <h2>Class Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#backend_provider=-class_method" title="backend_provider= (class method)">.<strong>backend_provider</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+      <span class="note title writeonly">writeonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+  </ul>
 
   <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
   <ul class="summary">
@@ -162,7 +194,29 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#run-class_method" title="run (class method)">.<strong>run</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, &amp;block)  &#x21d2; Array&lt;TaskResult::Outcome&gt; </a>
+      <a href="#after-class_method" title="after (class method)">.<strong>after</strong>(seconds, &amp;callback)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#run-class_method" title="run (class method)">.<strong>run</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, max_concurrency: nil) {|input, execution| ... } &#x21d2; Array&lt;TaskResult::Outcome&gt; </a>
     
 
     
@@ -184,7 +238,29 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#run_async-class_method" title="run_async (class method)">.<strong>run_async</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil) {|input, execution| ... } &#x21d2; TaskResult&lt;Array&lt;TaskResult::Outcome&gt;&gt; </a>
+      <a href="#run_async-class_method" title="run_async (class method)">.<strong>run_async</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, max_concurrency: nil, &amp;block)  &#x21d2; TaskResult&lt;Array&lt;TaskResult::Outcome&gt;&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Starts bounded fan-out without exposing collector or child bindings.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#submit-class_method" title="submit (class method)">.<strong>submit</strong>(**options, &amp;operation)  &#x21d2; Object </a>
     
 
     
@@ -323,10 +399,78 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#start_child-instance_method" title="#start_child (instance method)">#<strong>start_child</strong>(invocation_context: nil, cancellation_token: nil, parent_task_id: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Starts one child with this execution's controls and the child's explicit context.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
 
+
+  <div id="class_attr_details" class="attr_details">
+    <h2>Class Attribute Details</h2>
+    
+      
+      <span id=""></span>
+      <div class="method_details first">
+  <h3 class="signature first" id="backend_provider=-class_method">
+  
+    .<strong>backend_provider=</strong>(value)  &#x21d2; <tt>Object</tt>  <span class="extras">(writeonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+11
+12
+13</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 11</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_backend_provider='>backend_provider=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='ivar'>@backend_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
   <div id="instance_attr_details" class="attr_details">
     <h2>Instance Attribute Details</h2>
@@ -373,12 +517,12 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-10
-11
-12</pre>
+32
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
   <span class='ivar'>@invocation_context</span>
@@ -396,9 +540,63 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="run-class_method">
+  <h3 class="signature first" id="after-class_method">
   
-    .<strong>run</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, &amp;block)  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;</tt> 
+    .<strong>after</strong>(seconds, &amp;callback)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+18
+19
+20
+21</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 18</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_after'>after</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution.after requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
+  <span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_after'>after</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="run-class_method">
+  
+    .<strong>run</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, max_concurrency: nil) {|input, execution| ... } &#x21d2; <tt>Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;</tt> 
   
 
   
@@ -407,75 +605,6 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Starts the same execution once and waits outside EventLoop.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-  <p class="tag_title">See Also:</p>
-  <ul class="see">
-    
-      <li><span class='object_link'><a href="#run_async-class_method" title="Phronomy::Execution.run_async (method)">run_async</a></span></li>
-    
-  </ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-29
-30
-31
-32
-33
-34
-35
-36</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 29</span>
-
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution.run cannot run on EventLoop; use run_async</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-  <span class='id identifier rubyid_run_async'>run_async</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="run_async-class_method">
-  
-    .<strong>run_async</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil) {|input, execution| ... } &#x21d2; <tt><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;&gt;</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    
 
   </div>
 </div>
@@ -566,7 +695,109 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
     <li>
       
       
+        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><span class='object_link'><a href="#run_async-class_method" title="Phronomy::Execution.run_async (method)">run_async</a></span></li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+43
+44
+45
+46
+47
+48
+49
+50</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 43</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="WaitPolicy.html" title="Phronomy::WaitPolicy (module)">WaitPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_forbidden?'><span class='object_link'><a href="WaitPolicy.html#blocking_forbidden%3F-class_method" title="Phronomy::WaitPolicy.blocking_forbidden? (method)">blocking_forbidden?</a></span></span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution.run cannot run on EventLoop; use run_async</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_run_async'>run_async</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="run_async-class_method">
+  
+    .<strong>run_async</strong>(inputs, timeout: nil, cancellation_token: nil, invocation_context: nil, max_concurrency: nil, &amp;block)  &#x21d2; <tt><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Starts bounded fan-out without exposing collector or child bindings.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>max_concurrency</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>maximum concurrently admitted JOBs</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
         <span class='type'>(<tt><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="TaskResult/Outcome.html" title="Phronomy::TaskResult::Outcome (class)">TaskResult::Outcome</a></span>&gt;&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>TypeError</tt>)</span>
       
       
       
@@ -580,19 +811,109 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-19
-20
-21
-22
-23</pre>
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run_async'>run_async</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid___run_async'>__run_async</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>inputs must be an Array</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Array</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution.run_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
+  <span class='kw'>if</span> <span class='op'>!</span><span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancellation_token must be a Phronomy::Concurrency::CancellationToken or nil</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='op'>!</span><span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="InvocationContext.html" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invocation_context must be a Phronomy::InvocationContext or nil</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timeout must be Numeric or nil</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Complex</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='op'>!</span><span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_finite?'>finite?</span> <span class='op'>||</span> <span class='op'>!</span><span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='period'>.</span><span class='id identifier rubyid_finite?'>finite?</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timeout must be a finite real number</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='op'>!</span><span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='lparen'>(</span><span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Integer</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='period'>.</span><span class='id identifier rubyid_positive?'>positive?</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>max_concurrency must be a positive Integer</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span> <span class='label'>concurrency_limit:</span> <span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='comma'>,</span>
+    <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:start</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="submit-class_method">
+  
+    .<strong>submit</strong>(**options, &amp;operation)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+13
+14
+15
+16</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 13</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution.submit requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_operation'>operation</span>
+  <span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -633,15 +954,15 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-113
-114
-115</pre>
+147
+148
+149</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 113</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 147</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___cancellation_error'>__cancellation_error</span>
-  <span class='ivar'>@cancellation_error</span>
+  <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid___cancellation_error'>__cancellation_error</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -676,12 +997,12 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-108
-109
-110</pre>
+142
+143
+144</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 142</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___cancellation_token'>__cancellation_token</span>
   <span class='ivar'>@token</span>
@@ -732,15 +1053,15 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-103
-104
-105</pre>
+137
+138
+139</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 103</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 137</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___open?'>__open?</span>
-  <span class='ivar'>@collector</span><span class='period'>.</span><span class='id identifier rubyid_open?'>open?</span>
+  <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid___open?'>__open?</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -775,15 +1096,15 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-98
-99
-100</pre>
+132
+133
+134</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 132</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___while_open'>__while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@collector</span><span class='period'>.</span><span class='id identifier rubyid_while_open'>while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid___while_open'>__while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -862,42 +1183,42 @@ keep their original ownership. Bind before adding this run's map/flat_map.</p>
       <pre class="lines">
 
 
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94</pre>
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution_services/execution.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_observe'>observe</span><span class='lparen'>(</span><span class='id identifier rubyid_source_result'>source_result</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_source_result'>source_result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>source_result must be a Phronomy::TaskResult</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_observed'>observed</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="TaskResult.html#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution-observation</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid___bind_execution'>__bind_execution</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_subscriptions'>subscriptions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/Subscriptions.html" title="Phronomy::Concurrency::Subscriptions (class)">Subscriptions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/Subscriptions.html#initialize-instance_method" title="Phronomy::Concurrency::Subscriptions#initialize (method)">new</a></span></span>
+  <span class='id identifier rubyid_observed'>observed</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="TaskResult.html#deferred-class_method" title="Phronomy::TaskResult.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution-observation</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid___bind_execution'>__bind_execution</span><span class='lparen'>(</span><span class='ivar'>@scope</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_subscriptions'>subscriptions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/Subscriptions.html" title="Phronomy::Concurrency::Subscriptions (class)">Subscriptions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/ResultSubscriptions.html#initialize-instance_method" title="Phronomy::Concurrency::ResultSubscriptions#initialize (method)">new</a></span></span>
   <span class='id identifier rubyid_subscriptions'>subscriptions</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='lparen'>(</span><span class='id identifier rubyid_observed'>observed</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_subscriptions'>subscriptions</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span> <span class='rbrace'>}</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid___open?'>__open?</span>
     <span class='id identifier rubyid_observed'>observed</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span><span class='lparen'>(</span><span class='id identifier rubyid___cancellation_error'>__cancellation_error</span><span class='rparen'>)</span>
@@ -923,12 +1244,74 @@ keep their original ownership. Bind before adding this run's map/flat_map.</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="start_child-instance_method">
+  
+    #<strong>start_child</strong>(invocation_context: nil, cancellation_token: nil, parent_task_id: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Starts one child with this execution's controls and the child's explicit
+context. Subscriptions live until the child settles, including start errors.
+A child-specific context keeps its own controls; the supplied token adds
+this execution's cancellation without mutating either original token.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 85</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_start_child'>start_child</span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent_task_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_controls'>controls</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="InvocationControls.html" title="Phronomy::InvocationControls (class)">InvocationControls</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InvocationControls.html#initialize-instance_method" title="Phronomy::InvocationControls#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>invocation_context:</span> <span class='ivar'>@invocation_context</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_controls'>controls</span><span class='period'>.</span><span class='id identifier rubyid_check_start!'>check_start!</span>
+  <span class='id identifier rubyid_child_context'>child_context</span> <span class='op'>=</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span> <span class='op'>||</span> <span class='ivar'>@invocation_context</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>parent_task_id:</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>yield</span> <span class='id identifier rubyid_child_context'>child_context</span><span class='comma'>,</span> <span class='id identifier rubyid_controls'>controls</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span>
+  <span class='id identifier rubyid_controls'>controls</span><span class='period'>.</span><span class='id identifier rubyid_track'>track</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
+<span class='kw'>rescue</span>
+  <span class='id identifier rubyid_controls'>controls</span><span class='op'>&amp;.</span><span class='id identifier rubyid_close'>close</span>
+  <span class='id identifier rubyid_raise'>raise</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:28 2026 by
+  Generated on Thu Oct  8 15:22:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

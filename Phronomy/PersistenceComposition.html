@@ -80,8 +80,8 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/persistence_composition/repositories.rb<span class="defines">,<br>
-  lib/phronomy/persistence_composition/storage_schema.rb</span>
+    <dd>lib/phronomy/persistence_composition/stores.rb<span class="defines">,<br>
+  lib/phronomy/persistence_composition/storage_schema.rb,<br> lib/phronomy/persistence_composition/unit4_migration.rb</span>
 
 </dd>
   </dl>
@@ -96,7 +96,7 @@
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="PersistenceComposition/Repositories.html" title="Phronomy::PersistenceComposition::Repositories (class)">Repositories</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="PersistenceComposition/Stores.html" title="Phronomy::PersistenceComposition::Stores (class)">Stores</a></span>, <span class='object_link'><a href="PersistenceComposition/Unit4Migration.html" title="Phronomy::PersistenceComposition::Unit4Migration (class)">Unit4Migration</a></span>
     
   
 </p>
@@ -107,12 +107,218 @@
 
 
 
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
 
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#agent-class_method" title="agent (class method)">.<strong>agent</strong>(backend: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>An ordinary Agent needs only its own records and content.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build-class_method" title="build (class method)">.<strong>build</strong>(backend:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#in_memory-class_method" title="in_memory (class method)">.<strong>in_memory</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="agent-class_method">
+  
+    .<strong>agent</strong>(backend: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>An ordinary Agent needs only its own records and content. Do not load or
+instantiate Team/Workflow implementations merely to construct an Agent.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+11
+12
+13
+14
+15
+16
+17
+18
+19</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence_composition/stores.rb', line 11</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='lparen'>(</span><span class='label'>backend:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_resources'>resources</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="PersistenceComposition/StorageSchema.html" title="Phronomy::PersistenceComposition::StorageSchema (module)">StorageSchema</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_resources'><span class='object_link'><a href="PersistenceComposition/StorageSchema.html#agent_resources-class_method" title="Phronomy::PersistenceComposition::StorageSchema.agent_resources (method)">agent_resources</a></span></span>
+  <span class='id identifier rubyid_backend'>backend</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage/Backends.html" title="Phronomy::Storage::Backends (module)">Backends</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage/Backends/InMemory.html" title="Phronomy::Storage::Backends::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Storage/Backends/InMemory.html#initialize-instance_method" title="Phronomy::Storage::Backends::InMemory#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>resources:</span> <span class='id identifier rubyid_resources'>resources</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence.html#initialize-instance_method" title="Phronomy::Persistence#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>backend:</span> <span class='id identifier rubyid_backend'>backend</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/StorageBoundary.html" title="Phronomy::Persistence::StorageBoundary (module)">StorageBoundary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="Persistence/StorageBoundary.html#call-class_method" title="Phronomy::Persistence::StorageBoundary.call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_resources'>resources</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_resource'>resource</span><span class='op'>|</span> <span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_resource'>resource</span><span class='period'>.</span><span class='id identifier rubyid_kind'>kind</span><span class='comma'>,</span> <span class='id identifier rubyid_resource'>resource</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Store.html" title="Phronomy::Agent::Store (class)">Store</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agent/Store.html#initialize-instance_method" title="Phronomy::Agent::Store#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>coordinator:</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='comma'>,</span> <span class='label'>records:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Persistence.html" title="Phronomy::Agent::Persistence (module)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Persistence/Records.html" title="Phronomy::Agent::Persistence::Records (class)">Records</a></span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="build-class_method">
+  
+    .<strong>build</strong>(backend:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+21
+22
+23
+24
+25
+26
+27
+28</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence_composition/stores.rb', line 21</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span><span class='label'>backend:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence.html#initialize-instance_method" title="Phronomy::Persistence#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>backend:</span> <span class='id identifier rubyid_backend'>backend</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/StorageBoundary.html" title="Phronomy::Persistence::StorageBoundary (module)">StorageBoundary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="Persistence/StorageBoundary.html#call-class_method" title="Phronomy::Persistence::StorageBoundary.call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='const'><span class='object_link'><a href="PersistenceComposition/StorageSchema.html" title="Phronomy::PersistenceComposition::StorageSchema (module)">StorageSchema</a></span></span><span class='period'>.</span><span class='id identifier rubyid_validate!'><span class='object_link'><a href="PersistenceComposition/StorageSchema.html#validate!-class_method" title="Phronomy::PersistenceComposition::StorageSchema.validate! (method)">validate!</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_view'>view</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Store.html" title="Phronomy::Agent::Store (class)">Store</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agent/Store.html#initialize-instance_method" title="Phronomy::Agent::Store#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>coordinator:</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='comma'>,</span> <span class='label'>records:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Persistence.html" title="Phronomy::Agent::Persistence (module)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Persistence/Records.html" title="Phronomy::Agent::Persistence::Records (class)">Records</a></span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_multi_agent'>multi_agent</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent/Store.html" title="Phronomy::MultiAgent::Store (class)">Store</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="MultiAgent/Store.html#initialize-instance_method" title="Phronomy::MultiAgent::Store#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>coordinator:</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='comma'>,</span> <span class='label'>records:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent/Persistence.html" title="Phronomy::MultiAgent::Persistence (module)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent/Persistence/Records.html" title="Phronomy::MultiAgent::Persistence::Records (class)">Records</a></span></span><span class='comma'>,</span> <span class='label'>agent_store:</span> <span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_workflow'>workflow</span> <span class='op'>=</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='period'>.</span><span class='id identifier rubyid_bind'>bind</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Workflow/Persistence.html" title="Phronomy::Workflow::Persistence (module)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Workflow/Persistence/StateRepository.html" title="Phronomy::Workflow::Persistence::StateRepository (class)">StateRepository</a></span></span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="PersistenceComposition/Stores.html" title="Phronomy::PersistenceComposition::Stores (class)">Stores</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>coordinator:</span> <span class='id identifier rubyid_coordinator'>coordinator</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>multi_agent:</span> <span class='id identifier rubyid_multi_agent'>multi_agent</span><span class='comma'>,</span> <span class='label'>workflow:</span> <span class='id identifier rubyid_workflow'>workflow</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="in_memory-class_method">
+  
+    .<strong>in_memory</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+30
+31
+32</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence_composition/stores.rb', line 30</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_in_memory'>in_memory</span>
+  <span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span><span class='label'>backend:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage.html" title="Phronomy::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage/Backends.html" title="Phronomy::Storage::Backends (module)">Backends</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage/Backends/InMemory.html" title="Phronomy::Storage::Backends::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Storage/Backends/InMemory.html#initialize-instance_method" title="Phronomy::Storage::Backends::InMemory#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>resources:</span> <span class='const'><span class='object_link'><a href="PersistenceComposition/StorageSchema.html" title="Phronomy::PersistenceComposition::StorageSchema (module)">StorageSchema</a></span></span><span class='period'>.</span><span class='id identifier rubyid_resources'><span class='object_link'><a href="PersistenceComposition/StorageSchema.html#resources-class_method" title="Phronomy::PersistenceComposition::StorageSchema.resources (method)">resources</a></span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -863,7 +863,7 @@ happens by short event dispatches on this thread.</p>
   <span class='ivar'>@dispatch_count</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@total_lag_ns</span> <span class='op'>=</span> <span class='int'>0</span>
 
-  <span class='ivar'>@thread</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_run_loop'>run_loop</span> <span class='rbrace'>}</span>
+  <span class='ivar'>@thread</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WaitPolicy.html" title="Phronomy::WaitPolicy (module)">WaitPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_without_blocking'><span class='object_link'><a href="WaitPolicy.html#without_blocking-class_method" title="Phronomy::WaitPolicy.without_blocking (method)">without_blocking</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_run_loop'>run_loop</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
   <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy-event-loop</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
@@ -2222,7 +2222,7 @@ short state reads/writes, never I/O, delivery callbacks or Runtime calls.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:27 2026 by
+  Generated on Thu Oct  8 15:22:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

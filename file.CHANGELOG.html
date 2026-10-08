@@ -67,6 +67,22 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="r8_first_implementation_unit__breaking__unreleased_">r8 first implementation unit (breaking, unreleased)</h3>
+<ul>
+<li>Move Context policy/plan/manifest/budget/prompt operations into <code>Phronomy::Context</code>.
+Agent retains snapshot, journal and lifecycle ownership. Manifest and execution
+references remain written within the same transaction.</li>
+<li>Make <code>Tool::Base</code> the actual implementation; move common definition and
+authorization operations into Tool. Remove the old Agent Context namespace.</li>
+<li>Move chat construction and SDK failure translation into the LLM adapter.
+Custom synchronous adapters must implement the expanded construction SPI.</li>
+<li>Unite execution contracts and services in <code>execution/</code>; move FSM values and
+scheduling bindings to Engine, observation to Tracing. Keep result/control
+rules independent of Engine startup. Update Ruby/RBS analysis and diagrams.</li>
+<li>Remove empty contract-only subdivisions and old API aliases. This unit does
+not complete r8 Persistence, parent admission or all domain FSM separation.
+See <a href="docs/architecture/r8-unit1.md">the scope and migration report</a>.</li>
+</ul>
 <h3 id="Changed">Changed</h3>
 <ul>
 <li>
@@ -833,7 +849,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:26 2026 by
+  Generated on Thu Oct  8 15:22:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

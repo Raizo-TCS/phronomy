@@ -127,6 +127,38 @@ The EventLoop remains the sole writer during execution.</p>
 
   
     <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#existing_current-class_method" title="existing_current (class method)">.<strong>existing_current</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+    <h2>
       Instance Method Summary
       <small><a href="#" class="summary_toggle">collapse</a></small>
     </h2>
@@ -356,7 +388,7 @@ The EventLoop remains the sole writer during execution.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(event_loop:)  &#x21d2; ExecutionRegistry </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(channel:)  &#x21d2; ExecutionRegistry </a>
     
 
     
@@ -634,14 +666,14 @@ The EventLoop remains the sole writer during execution.</p>
   
   
   <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../ExecutionReceiver.html" title="Phronomy::ExecutionReceiver (class)">ExecutionReceiver</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../ExecutionReceiver.html#__bound_to%3F-instance_method" title="Phronomy::ExecutionReceiver#__bound_to? (method)">#__bound_to?</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#existing_for-class_method" title="Phronomy::ExecutionReceiver.existing_for (method)">existing_for</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#for-class_method" title="Phronomy::ExecutionReceiver.for (method)">for</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#session_retired-instance_method" title="Phronomy::ExecutionReceiver#session_retired (method)">#session_retired</a></span></p>
+  <p class="inherited"><span class='object_link'><a href="../ExecutionReceiver.html#__bound_to%3F-instance_method" title="Phronomy::ExecutionReceiver#__bound_to? (method)">#__bound_to?</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#binding-class_method" title="Phronomy::ExecutionReceiver.binding (method)">binding</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#existing_for-class_method" title="Phronomy::ExecutionReceiver.existing_for (method)">existing_for</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#for-class_method" title="Phronomy::ExecutionReceiver.for (method)">for</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#install_binding-class_method" title="Phronomy::ExecutionReceiver.install_binding (method)">install_binding</a></span>, <span class='object_link'><a href="../ExecutionReceiver.html#session_retired-instance_method" title="Phronomy::ExecutionReceiver#session_retired (method)">#session_retired</a></span></p>
 <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(event_loop:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ExecutionRegistry (class)">ExecutionRegistry</a></span></tt> 
+    #<strong>initialize</strong>(channel:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ExecutionRegistry (class)">ExecutionRegistry</a></span></tt> 
   
 
   
@@ -666,19 +698,19 @@ The EventLoop remains the sole writer during execution.</p>
       <pre class="lines">
 
 
-39
-40
-41
-42
 43
 44
 45
-46</pre>
+46
+47
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 43</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>event_loop:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>channel:</span><span class='rparen'>)</span>
   <span class='kw'>super</span>
   <span class='ivar'>@agent_admissions</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@agent_executions</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -693,6 +725,55 @@ The EventLoop remains the sole writer during execution.</p>
   
 </div>
 
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="existing_current-class_method">
+  
+    .<strong>existing_current</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+9
+10
+11</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 9</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_existing_current'>existing_current</span>
+  <span class='const'><span class='object_link'><a href="ExecutionEnvironment.html" title="Phronomy::Agent::ExecutionEnvironment (class)">ExecutionEnvironment</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="ExecutionEnvironment.html#current-class_method" title="Phronomy::Agent::ExecutionEnvironment.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_existing_registry'>existing_registry</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
@@ -740,10 +821,6 @@ Persistence execution admission is attempted.</p>
       <pre class="lines">
 
 
-98
-99
-100
-101
 102
 103
 104
@@ -759,10 +836,14 @@ Persistence execution admission is attempted.</p>
 114
 115
 116
-117</pre>
+117
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_admit_agent_execution'>admit_agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -831,12 +912,12 @@ operations. The mutable admission map itself remains Agent-owned.</p>
       <pre class="lines">
 
 
-91
-92
-93</pre>
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 91</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_admitted?'>agent_execution_admitted?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -875,10 +956,6 @@ crosses this boundary; external callers receive only routing/ownership data.</p>
       <pre class="lines">
 
 
-217
-218
-219
-220
 221
 222
 223
@@ -888,10 +965,14 @@ crosses this boundary; external callers receive only routing/ownership data.</p>
 227
 228
 229
-230</pre>
+230
+231
+232
+233
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 217</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 221</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_owner'>agent_execution_owner</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -953,17 +1034,17 @@ crosses this boundary; external callers receive only routing/ownership data.</p>
       <pre class="lines">
 
 
-382
-383
-384
-385
 386
 387
 388
-389</pre>
+389
+390
+391
+392
+393</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 382</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 386</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_quiescent?'>agent_execution_quiescent?</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1007,13 +1088,13 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-235
-236
-237
-238</pre>
+239
+240
+241
+242</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 235</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 239</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_execution_state'>agent_execution_state</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1052,15 +1133,15 @@ Offload workers receive operation-specific immutable snapshots instead.</p>
       <pre class="lines">
 
 
-407
-408
-409
-410
 411
-412</pre>
+412
+413
+414
+415
+416</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 407</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 411</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_inflight_work_count'>agent_inflight_work_count</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -1102,10 +1183,6 @@ process-local admission.</p>
       <pre class="lines">
 
 
-122
-123
-124
-125
 126
 127
 128
@@ -1121,10 +1198,14 @@ process-local admission.</p>
 138
 139
 140
-141</pre>
+141
+142
+143
+144
+145</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 122</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 126</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_bind_agent_execution_admission'>bind_agent_execution_admission</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1180,20 +1261,20 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-394
-395
-396
-397
 398
 399
 400
 401
 402
 403
-404</pre>
+404
+405
+406
+407
+408</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 394</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 398</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_defer_agent_terminal_until_quiescent'>defer_agent_terminal_until_quiescent</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1239,17 +1320,17 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-52
-53
-54
-55
 56
 57
 58
-59</pre>
+59
+60
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver'>deliver</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1305,14 +1386,14 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-62
-63
-64
-65
-66</pre>
+66
+67
+68
+69
+70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
   <span class='ivar'>@agent_inflight_work</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:empty?</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
@@ -1352,10 +1433,6 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-241
-242
-243
-244
 245
 246
 247
@@ -1381,10 +1458,14 @@ revoked result authority but execution-owned physical work is still live.</p>
 267
 268
 269
-270</pre>
+270
+271
+272
+273
+274</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 241</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 245</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_install_agent_execution'>install_agent_execution</span><span class='lparen'>(</span>
   <span class='label'>execution_id:</span><span class='comma'>,</span>
@@ -1449,10 +1530,6 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-171
-172
-173
-174
 175
 176
 177
@@ -1467,10 +1544,14 @@ revoked result authority but execution-owned physical work is still live.</p>
 186
 187
 188
-189</pre>
+189
+190
+191
+192
+193</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 171</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 175</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_agent_admission_recovery_required'>mark_agent_admission_recovery_required</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1524,10 +1605,6 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-144
-145
-146
-147
 148
 149
 150
@@ -1548,10 +1625,14 @@ revoked result authority but execution-owned physical work is still live.</p>
 165
 166
 167
-168</pre>
+168
+169
+170
+171
+172</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 144</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_agent_execution_admission'>mark_agent_execution_admission</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>state:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1611,12 +1692,12 @@ revoked result authority but execution-owned physical work is still live.</p>
       <pre class="lines">
 
 
-48
-49
-50</pre>
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='comma'>,</span> <span class='label'>admission:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_post_message'>post_message</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='comma'>,</span> <span class='label'>admission:</span> <span class='id identifier rubyid_admission'>admission</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='id identifier rubyid_completion'>completion</span><span class='rparen'>)</span>
@@ -1656,10 +1737,6 @@ never persisted or rehydrated.</p>
       <pre class="lines">
 
 
-307
-308
-309
-310
 311
 312
 313
@@ -1668,10 +1745,14 @@ never persisted or rehydrated.</p>
 316
 317
 318
-319</pre>
+319
+320
+321
+322
+323</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 307</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 311</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register_agent_completion_waiter'>register_agent_completion_waiter</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1719,10 +1800,6 @@ never persisted or rehydrated.</p>
       <pre class="lines">
 
 
-415
-416
-417
-418
 419
 420
 421
@@ -1735,10 +1812,14 @@ never persisted or rehydrated.</p>
 428
 429
 430
-431</pre>
+431
+432
+433
+434
+435</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 415</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 419</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release_agent_execution'>release_agent_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1791,10 +1872,6 @@ terminal outcomes release by execution_id.</p>
       <pre class="lines">
 
 
-194
-195
-196
-197
 198
 199
 200
@@ -1810,10 +1887,14 @@ terminal outcomes release by execution_id.</p>
 210
 211
 212
-213</pre>
+213
+214
+215
+216
+217</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 194</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 198</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release_agent_execution_admission'>release_agent_execution_admission</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -1868,10 +1949,6 @@ terminal outcomes release by execution_id.</p>
       <pre class="lines">
 
 
-273
-274
-275
-276
 277
 278
 279
@@ -1896,10 +1973,14 @@ terminal outcomes release by execution_id.</p>
 298
 299
 300
-301</pre>
+301
+302
+303
+304
+305</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 273</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 277</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_replace_agent_execution'>replace_agent_execution</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -1964,10 +2045,6 @@ after that thread has joined. Task callbacks run outside the lifecycle lock.</p>
       <pre class="lines">
 
 
-70
-71
-72
-73
 74
 75
 76
@@ -1981,10 +2058,14 @@ after that thread has joined. Task callbacks run outside the lifecycle lock.</p>
 84
 85
 86
-87</pre>
+87
+88
+89
+90
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>error:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_pending'>pending</span> <span class='op'>=</span> <span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -2040,10 +2121,6 @@ ordinary completion mean that no residual execution-affecting work remains.</p>
       <pre class="lines">
 
 
-340
-341
-342
-343
 344
 345
 346
@@ -2079,10 +2156,14 @@ ordinary completion mean that no residual execution-affecting work remains.</p>
 376
 377
 378
-379</pre>
+379
+380
+381
+382
+383</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 340</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 344</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_supervise_agent_operation'>supervise_agent_operation</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -2111,7 +2192,7 @@ ordinary completion mean that no residual execution-affecting work remains.</p>
   <span class='id identifier rubyid_callback'>callback</span> <span class='op'>=</span> <span class='id identifier rubyid_lambda'>lambda</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_accepted'>accepted</span> <span class='op'>=</span> <span class='id identifier rubyid_post_message'>post_message</span><span class='lparen'>(</span><span class='const'>PhysicalCompletion</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionRegistry#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>execution_id:</span> <span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span><span class='rparen'>)</span>
     <span class='kw'>unless</span> <span class='id identifier rubyid_accepted'>accepted</span>
-      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='op'>&amp;.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span>
+      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="../RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'><span class='object_link'><a href="../RuntimeSettings.html#logger-instance_method" title="Phronomy::RuntimeSettings#logger (method)">logger</a></span></span><span class='op'>&amp;.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] EventLoop rejected physical-completion delivery for </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
       <span class='rparen'>)</span>
     <span class='kw'>end</span>
@@ -2159,18 +2240,18 @@ paths that never acquired a live execution directory entry.</p>
       <pre class="lines">
 
 
-325
-326
-327
-328
 329
 330
 331
 332
-333</pre>
+333
+334
+335
+336
+337</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 325</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_registry.rb', line 329</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_take_agent_completion_waiters'>take_agent_completion_waiters</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>fallback:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_event_loop_thread!'>assert_event_loop_thread!</span>
@@ -2191,7 +2272,7 @@ paths that never acquired a live execution directory entry.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:30 2026 by
+  Generated on Thu Oct  8 15:22:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -108,8 +108,8 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Engine-facing values only. Application composition supplies the current
-settings object; this contract knows no Agent, adapter or tracer class.</p>
+<p>Neutral runtime values only. Application composition supplies the current
+settings object; Tool and Tracing own their domain-specific settings.</p>
 
   </div>
 </div>
@@ -122,6 +122,56 @@ settings object; this contract knows no Agent, adapter or tracer class.</p>
 
   <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
   <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#authorization_pool_size-instance_method" title="#authorization_pool_size (instance method)">#<strong>authorization_pool_size</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#authorization_queue_size-instance_method" title="#authorization_queue_size (instance method)">#<strong>authorization_queue_size</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
     
       <li class="public ">
   <span class="summary_signature">
@@ -273,56 +323,6 @@ settings object; this contract knows no Agent, adapter or tracer class.</p>
 </li>
 
     
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#trace_pii-instance_method" title="#trace_pii (instance method)">#<strong>trace_pii</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#tracer-instance_method" title="#tracer (instance method)">#<strong>tracer</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-    
   </ul>
 
 
@@ -393,7 +393,7 @@ settings object; this contract knows no Agent, adapter or tracer class.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(tracer:)  &#x21d2; RuntimeSettings </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>  &#x21d2; RuntimeSettings </a>
     
 
     
@@ -409,7 +409,7 @@ settings object; this contract knows no Agent, adapter or tracer class.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>The tracer is injected; selecting a concrete implementation belongs to application composition.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>A new instance of RuntimeSettings.</p></div></span>
   
 </li>
 
@@ -424,7 +424,7 @@ settings object; this contract knows no Agent, adapter or tracer class.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(tracer:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></tt> 
+    #<strong>initialize</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></tt> 
   
 
   
@@ -436,8 +436,7 @@ settings object; this contract knows no Agent, adapter or tracer class.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>The tracer is injected; selecting a concrete implementation belongs to
-application composition. Explicit nil retains its existing meaning.</p>
+<p>Returns a new instance of RuntimeSettings.</p>
 
   </div>
 </div>
@@ -450,6 +449,7 @@ application composition. Explicit nil retains its existing meaning.</p>
       <pre class="lines">
 
 
+39
 40
 41
 42
@@ -457,20 +457,19 @@ application composition. Explicit nil retains its existing meaning.</p>
 44
 45
 46
-47
-48</pre>
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration/runtime_settings.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration/runtime_settings.rb', line 39</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>tracer:</span><span class='rparen'>)</span>
-  <span class='ivar'>@tracer</span> <span class='op'>=</span> <span class='id identifier rubyid_tracer'>tracer</span>
-  <span class='ivar'>@trace_pii</span> <span class='op'>=</span> <span class='kw'>false</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@event_loop_stop_grace_seconds</span> <span class='op'>=</span> <span class='int'>5</span>
   <span class='ivar'>@event_loop_starvation_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@event_loop_dispatch_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@offload_pool_size</span> <span class='op'>=</span> <span class='int'>10</span>
   <span class='ivar'>@offload_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
+  <span class='ivar'>@authorization_pool_size</span> <span class='op'>=</span> <span class='int'>4</span>
+  <span class='ivar'>@authorization_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -483,9 +482,99 @@ application composition. Explicit nil retains its existing meaning.</p>
     <h2>Instance Attribute Details</h2>
     
       
-      <span id="event_loop_dispatch_threshold_seconds=-instance_method"></span>
+      <span id="authorization_pool_size=-instance_method"></span>
       <div class="method_details first">
-  <h3 class="signature first" id="event_loop_dispatch_threshold_seconds-instance_method">
+  <h3 class="signature first" id="authorization_pool_size-instance_method">
+  
+    #<strong>authorization_pool_size</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+36
+37
+38</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration/runtime_settings.rb', line 36</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_authorization_pool_size'>authorization_pool_size</span>
+  <span class='ivar'>@authorization_pool_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="authorization_queue_size=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="authorization_queue_size-instance_method">
+  
+    #<strong>authorization_queue_size</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+36
+37
+38</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration/runtime_settings.rb', line 36</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_authorization_queue_size'>authorization_queue_size</span>
+  <span class='ivar'>@authorization_queue_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="event_loop_dispatch_threshold_seconds=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="event_loop_dispatch_threshold_seconds-instance_method">
   
     #<strong>event_loop_dispatch_threshold_seconds</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -752,96 +841,6 @@ application composition. Explicit nil retains its existing meaning.</p>
 </table>
 </div>
     
-      
-      <span id="trace_pii=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="trace_pii-instance_method">
-  
-    #<strong>trace_pii</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-31
-32
-33</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration/runtime_settings.rb', line 31</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_trace_pii'>trace_pii</span>
-  <span class='ivar'>@trace_pii</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="tracer=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="tracer-instance_method">
-  
-    #<strong>tracer</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-31
-32
-33</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration/runtime_settings.rb', line 31</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_tracer'>tracer</span>
-  <span class='ivar'>@tracer</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
   </div>
 
 
@@ -982,7 +981,7 @@ application composition. Explicit nil retains its existing meaning.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:29 2026 by
+  Generated on Thu Oct  8 15:22:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -1,5 +1,7 @@
 # ADR-030: Agent Handoff Domain and Durable Responsibility
 
+> r8 unit 4 supersedes the Agent/Handoff ownership and storage portions below. See [the unit 4 migration](../migrations/r8-unit4.md). Earlier statements describe their original change only.
+
 ## Status
 
 Accepted. V2 revision 2, 2026-09-06.

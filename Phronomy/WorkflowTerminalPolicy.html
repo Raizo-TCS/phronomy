@@ -101,7 +101,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/workflow/execution/workflow_terminal_policy.rb
+    <dd>lib/phronomy/workflow/runtime_binding/workflow_terminal_policy.rb
 </dd>
   </dl>
   
@@ -113,7 +113,7 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Interprets durable Workflow results for the shared FSM terminal gate.
+<p>Translates classified Workflow outcomes into shared FSM terminal decisions.
 The session owns pending state; Runner owns persistence and reconciliation.</p>
 
   </div>
@@ -273,7 +273,7 @@ The session owns pending state; Runner owns persistence and reconciliation.</p>
 12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_terminal_policy.rb', line 10</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_terminal_policy.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>persist:</span><span class='rparen'>)</span>
   <span class='ivar'>@persist</span> <span class='op'>=</span> <span class='id identifier rubyid_persist'>persist</span>
@@ -337,20 +337,20 @@ The session owns pending state; Runner owns persistence and reconciliation.</p>
 38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_terminal_policy.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_terminal_policy.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_decision_for'>decision_for</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_outcome'>outcome</span>
   <span class='kw'>when</span> <span class='symbol'>:success</span>
-    <span class='const'><span class='object_link'><a href="FSMProtocol.html" title="Phronomy::FSMProtocol (module)">FSMProtocol</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="FSMProtocol/TerminalDecision.html" title="Phronomy::FSMProtocol::TerminalDecision (class)">TerminalDecision</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>action:</span> <span class='symbol'>:complete</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TerminalDecision.html" title="Phronomy::TerminalDecision (class)">TerminalDecision</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>action:</span> <span class='symbol'>:complete</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>when</span> <span class='symbol'>:known_failure</span>
-    <span class='const'><span class='object_link'><a href="FSMProtocol.html" title="Phronomy::FSMProtocol (module)">FSMProtocol</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="FSMProtocol/TerminalDecision.html" title="Phronomy::FSMProtocol::TerminalDecision (class)">TerminalDecision</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TerminalDecision.html" title="Phronomy::TerminalDecision (class)">TerminalDecision</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
       <span class='label'>action:</span> <span class='symbol'>:fail</span><span class='comma'>,</span>
       <span class='label'>error:</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Workflow terminal persistence failed</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
     <span class='rparen'>)</span>
   <span class='kw'>when</span> <span class='symbol'>:outcome_unknown</span>
-    <span class='const'><span class='object_link'><a href="FSMProtocol.html" title="Phronomy::FSMProtocol (module)">FSMProtocol</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="FSMProtocol/TerminalDecision.html" title="Phronomy::FSMProtocol::TerminalDecision (class)">TerminalDecision</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>action:</span> <span class='symbol'>:retire</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TerminalDecision.html" title="Phronomy::TerminalDecision (class)">TerminalDecision</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>action:</span> <span class='symbol'>:retire</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unknown Workflow terminal persistence outcome: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_outcome'>outcome</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
@@ -407,7 +407,7 @@ The session owns pending state; Runner owns persistence and reconciliation.</p>
 20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_terminal_policy.rb', line 18</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_terminal_policy.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handles?'>handles?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:workflow_terminal_persistence_result</span>
@@ -450,7 +450,7 @@ The session owns pending state; Runner owns persistence and reconciliation.</p>
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/execution/workflow_terminal_policy.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_terminal_policy.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span><span class='label'>terminal_type:</span><span class='comma'>,</span> <span class='label'>context:</span><span class='comma'>,</span> <span class='label'>event_sink:</span><span class='rparen'>)</span>
   <span class='ivar'>@persist</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='label'>terminal_type:</span> <span class='id identifier rubyid_terminal_type'>terminal_type</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='label'>event_sink:</span> <span class='id identifier rubyid_event_sink'>event_sink</span><span class='rparen'>)</span>
@@ -465,7 +465,7 @@ The session owns pending state; Runner owns persistence and reconciliation.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:32 2026 by
+  Generated on Thu Oct  8 15:22:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

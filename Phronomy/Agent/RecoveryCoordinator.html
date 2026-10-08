@@ -117,7 +117,7 @@
 </p>
 <p>Durable Agent Recovery owner/resolver.</p>
 <p>This class owns Agent-specific restart hydration and factual resolution.
-Shared Recovery semantics remain in Phronomy::Recovery.</p>
+Agent recovery semantics remain in RecoveryRules.</p>
 
   </div>
 </div>
@@ -254,7 +254,7 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#resolve-instance_method" title="#resolve (instance method)">#<strong>resolve</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Recovery::MISSING, error: Phronomy::Recovery::MISSING)  &#x21d2; Object </a>
+      <a href="#resolve-instance_method" title="#resolve (instance method)">#<strong>resolve</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Agent::RecoveryRules::MISSING, error: Phronomy::Agent::RecoveryRules::MISSING)  &#x21d2; Object </a>
     
 
     
@@ -339,7 +339,7 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
-  <span class='ivar'>@runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+  <span class='ivar'>@environment</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___execution_environment'>__execution_environment</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -431,22 +431,22 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-173
-174
-175
-176
-177
-178
-179
 180
 181
 182
 183
 184
-185</pre>
+185
+186
+187
+188
+189
+190
+191
+192</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery/recovery_coordinator.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery/recovery_coordinator.rb', line 180</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver_on_event_loop'>deliver_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_command'>command</span>
@@ -549,7 +549,14 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 107
 108
 109
-110</pre>
+110
+111
+112
+113
+114
+115
+116
+117</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery/recovery_coordinator.rb', line 55</span>
@@ -570,15 +577,22 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>active AgentExecution belongs to another Agent: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_coordination'>coordination</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>coordination</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_coordination'>coordination</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___coordination_config'>__coordination_config</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='id identifier rubyid_coordination'>coordination</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>reservation</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_extension</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_coordination'>coordination</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___execution_wiring'>__execution_wiring</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
     <span class='kw'>return</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='kw'>end</span>
 
+  <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_raw'>raw</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_extension</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_extension'>extension</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionExtensionState.html" title="Phronomy::Agent::ExecutionExtensionState (class)">ExecutionExtensionState</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="ExecutionExtensionState.html#from_h-class_method" title="Phronomy::Agent::ExecutionExtensionState.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_raw'>raw</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_binding'>binding</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid___execution_wiring'>__execution_wiring</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_execution_participant</span><span class='rbracket'>]</span><span class='op'>&amp;.</span><span class='id identifier rubyid_binding'>binding</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_binding'>binding</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_binding'>binding</span><span class='period'>.</span><span class='id identifier rubyid_binding_key'>binding_key</span> <span class='op'>==</span> <span class='id identifier rubyid_extension'>extension</span><span class='period'>.</span><span class='id identifier rubyid_binding_key'>binding_key</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_binding'>binding</span><span class='period'>.</span><span class='id identifier rubyid_binding_version'>binding_version</span> <span class='op'>==</span> <span class='id identifier rubyid_extension'>extension</span><span class='period'>.</span><span class='id identifier rubyid_binding_version'>binding_version</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ExecutionRehydrationRequiredError.html" title="Phronomy::ExecutionRehydrationRequiredError (class)">ExecutionRehydrationRequiredError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_content'> needs its current participant binding</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_plan'>plan</span> <span class='op'>=</span> <span class='id identifier rubyid_prepare_plan'>prepare_plan</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_classification'>classification</span> <span class='op'>=</span> <span class='id identifier rubyid_plan'>plan</span><span class='period'>.</span><span class='id identifier rubyid_classification'>classification</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_classification'>classification</span><span class='period'>.</span><span class='id identifier rubyid_disposition'>disposition</span> <span class='op'>==</span>
-      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#RESOLUTION_REQUIRED-constant" title="Phronomy::Recovery::RESOLUTION_REQUIRED (constant)">RESOLUTION_REQUIRED</a></span></span> <span class='op'>&amp;&amp;</span>
+      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html#RESOLUTION_REQUIRED-constant" title="Phronomy::Agent::RecoveryRules::RESOLUTION_REQUIRED (constant)">RESOLUTION_REQUIRED</a></span></span> <span class='op'>&amp;&amp;</span>
       <span class='op'>!</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_phronomy_event_listener</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span></span><span class='comma'>,</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> requires Recovery resolution; </span><span class='tstring_end'>&quot;</span></span> \
@@ -618,7 +632,7 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <div class="method_details ">
   <h3 class="signature " id="resolve-instance_method">
   
-    #<strong>resolve</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Recovery::MISSING, error: Phronomy::Recovery::MISSING)  &#x21d2; <tt>Object</tt> 
+    #<strong>resolve</strong>(execution_id, expected_execution_revision:, subject:, outcome:, result: Phronomy::Agent::RecoveryRules::MISSING, error: Phronomy::Agent::RecoveryRules::MISSING)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -643,13 +657,6 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
       <pre class="lines">
 
 
-112
-113
-114
-115
-116
-117
-118
 119
 120
 121
@@ -702,31 +709,38 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 168
 169
 170
-171</pre>
+171
+172
+173
+174
+175
+176
+177
+178</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery/recovery_coordinator.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/recovery/recovery_coordinator.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
   <span class='label'>expected_execution_revision:</span><span class='comma'>,</span>
   <span class='label'>subject:</span><span class='comma'>,</span>
   <span class='label'>outcome:</span><span class='comma'>,</span>
-  <span class='label'>result:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span><span class='comma'>,</span>
-  <span class='label'>error:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span>
+  <span class='label'>result:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html#MISSING-constant" title="Phronomy::Agent::RecoveryRules::MISSING (constant)">MISSING</a></span></span><span class='comma'>,</span>
+  <span class='label'>error:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html#MISSING-constant" title="Phronomy::Agent::RecoveryRules::MISSING (constant)">MISSING</a></span></span>
 <span class='rparen'>)</span>
   <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:__assert_live_agent!</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_normalized_outcome'>normalized_outcome</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='period'>.</span><span class='id identifier rubyid_normalize_outcome'><span class='object_link'><a href="../Recovery.html#normalize_outcome-class_method" title="Phronomy::Recovery.normalize_outcome (method)">normalize_outcome</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_result_present'>result_present</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_error_present'>error_present</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html#MISSING-constant" title="Phronomy::Recovery::MISSING (constant)">MISSING</a></span></span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='period'>.</span><span class='id identifier rubyid_validate_resolution_material!'><span class='object_link'><a href="../Recovery.html#validate_resolution_material!-class_method" title="Phronomy::Recovery.validate_resolution_material! (method)">validate_resolution_material!</a></span></span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_normalized_outcome'>normalized_outcome</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='period'>.</span><span class='id identifier rubyid_normalize_outcome'><span class='object_link'><a href="RecoveryRules.html#normalize_outcome-class_method" title="Phronomy::Agent::RecoveryRules.normalize_outcome (method)">normalize_outcome</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_result_present'>result_present</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html#MISSING-constant" title="Phronomy::Agent::RecoveryRules::MISSING (constant)">MISSING</a></span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_error_present'>error_present</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html#MISSING-constant" title="Phronomy::Agent::RecoveryRules::MISSING (constant)">MISSING</a></span></span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='period'>.</span><span class='id identifier rubyid_validate_resolution_material!'><span class='object_link'><a href="RecoveryRules.html#validate_resolution_material!-class_method" title="Phronomy::Agent::RecoveryRules.validate_resolution_material! (method)">validate_resolution_material!</a></span></span><span class='lparen'>(</span>
     <span class='label'>outcome:</span> <span class='id identifier rubyid_normalized_outcome'>normalized_outcome</span><span class='comma'>,</span>
     <span class='label'>result_present:</span> <span class='id identifier rubyid_result_present'>result_present</span><span class='comma'>,</span>
     <span class='label'>error_present:</span> <span class='id identifier rubyid_error_present'>error_present</span>
   <span class='rparen'>)</span>
 
   <span class='id identifier rubyid_normalized_subject'>normalized_subject</span> <span class='op'>=</span>
-    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Recovery.html" title="Phronomy::Recovery (module)">Recovery</a></span></span><span class='period'>.</span><span class='id identifier rubyid_normalize_subject'><span class='object_link'><a href="../Recovery.html#normalize_subject-class_method" title="Phronomy::Recovery.normalize_subject (method)">normalize_subject</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_subject'>subject</span><span class='rparen'>)</span>
+    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RecoveryRules.html" title="Phronomy::Agent::RecoveryRules (module)">RecoveryRules</a></span></span><span class='period'>.</span><span class='id identifier rubyid_normalize_subject'><span class='object_link'><a href="RecoveryRules.html#normalize_subject-class_method" title="Phronomy::Agent::RecoveryRules.normalize_subject (method)">normalize_subject</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_subject'>subject</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_canonical_result'>canonical_result</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_result_present'>result_present</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_normalized_subject'>normalized_subject</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:llm_call</span> <span class='op'>&amp;&amp;</span>
         <span class='id identifier rubyid_normalized_outcome'>normalized_outcome</span> <span class='op'>==</span> <span class='symbol'>:succeeded</span>
@@ -777,7 +791,7 @@ Shared Recovery semantics remain in Phronomy::Recovery.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:30 2026 by
+  Generated on Thu Oct  8 15:22:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

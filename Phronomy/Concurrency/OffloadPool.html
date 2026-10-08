@@ -350,6 +350,28 @@ resource isolation may use named pools via <span class='object_link'><a href="..
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#begin_shutdown-instance_method" title="#begin_shutdown (instance method)">#<strong>begin_shutdown</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Close admission without waiting for worker termination.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil, timer_queue_provider: nil)  &#x21d2; OffloadPool </a>
     
 
@@ -396,7 +418,7 @@ resource isolation may use named pools via <span class='object_link'><a href="..
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(drain_timeout: 30)  &#x21d2; self </a>
+      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(drain_timeout: 30, deadline: nil)  &#x21d2; self </a>
     
 
     
@@ -410,7 +432,7 @@ resource isolation may use named pools via <span class='object_link'><a href="..
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Gracefully drains the pool and terminates all worker threads.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Gracefully drains the pool and waits for worker threads to terminate.</p></div></span>
   
 </li>
 
@@ -433,6 +455,28 @@ resource isolation may use named pools via <span class='object_link'><a href="..
 
   
     <span class="summary_desc"><div class='inline'><p>Submits synchronous off-EventLoop work to the pool.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#terminated%3F-instance_method" title="#terminated? (instance method)">#<strong>terminated?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Whether shutdown has closed admission and all workers have exited.</p></div></span>
   
 </li>
 
@@ -565,6 +609,14 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
+307
+308
+309
+310
+311
+312
+313
+314
 315
 316
 317
@@ -579,18 +631,10 @@ cancellation token is used.</p></div>
 326
 327
 328
-329
-330
-331
-332
-333
-334
-335
-336
-337</pre>
+329</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 315</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 307</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span>
@@ -667,12 +711,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-557
-558
-559</pre>
+572
+573
+574</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 557</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 572</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -724,12 +768,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-551
-552
-553</pre>
+566
+567
+568</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 551</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 566</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -781,12 +825,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-554
-555
-556</pre>
+569
+570
+571</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 554</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 569</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -849,12 +893,12 @@ capacity at this instant</p></div>
       <pre class="lines">
 
 
-534
-535
-536</pre>
+549
+550
+551</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 534</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 549</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_active_count'>abandoned_active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_active_operation_ids</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
@@ -910,12 +954,12 @@ or cancellation settled after worker execution had started</p></div>
       <pre class="lines">
 
 
-527
-528
-529</pre>
+542
+543
+544</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 527</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 542</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -969,12 +1013,12 @@ or cancellation settled after worker execution had started</p></div>
       <pre class="lines">
 
 
-514
-515
-516</pre>
+529
+530
+531</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 514</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 529</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -1026,16 +1070,16 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-542
-543
-544
-545
-546
-547
-548</pre>
+557
+558
+559
+560
+561
+562
+563</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 542</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 557</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1043,6 +1087,54 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
 
     <span class='ivar'>@total_wait_ns</span> <span class='op'>/</span> <span class='ivar'>@completed_count</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="begin_shutdown-instance_method">
+  
+    #<strong>begin_shutdown</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Close admission without waiting for worker termination. Already queued
+operations drain normally; running workers are never interrupted.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+489
+490
+491
+492
+493</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 489</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_begin_shutdown'>begin_shutdown</span>
+  <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1093,12 +1185,12 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-520
-521
-522</pre>
+535
+536
+537</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 520</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 535</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -1111,7 +1203,7 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <div class="method_details ">
   <h3 class="signature " id="shutdown-instance_method">
   
-    #<strong>shutdown</strong>(drain_timeout: 30)  &#x21d2; <tt>self</tt> 
+    #<strong>shutdown</strong>(drain_timeout: 30, deadline: nil)  &#x21d2; <tt>self</tt> 
   
 
   
@@ -1123,8 +1215,9 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Gracefully drains the pool and terminates all worker threads.
-Waits up to <code>drain_timeout</code> seconds for in-flight operations to finish.</p>
+<p>Gracefully drains the pool and waits for worker threads to terminate.
+All workers share <code>drain_timeout</code> or the supplied monotonic <code>deadline</code>.
+A deadline expiry leaves workers running; callers inspect terminated?.</p>
 <p>Closing the underlying SizedQueue signals workers to exit after draining
 remaining items, without blocking on a full-queue push.</p>
 
@@ -1150,6 +1243,22 @@ remaining items, without blocking on a full-queue push.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>deadline</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>absolute monotonic shutdown deadline</p></div>
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -1172,20 +1281,30 @@ remaining items, without blocking on a full-queue push.</p>
       <pre class="lines">
 
 
-503
-504
-505
-506
-507
-508</pre>
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 503</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 513</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
-  <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
-  <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
-  <span class='ivar'>@workers</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_thread'>thread</span><span class='op'>|</span> <span class='id identifier rubyid_thread'>thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_timeout'>drain_timeout</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='comma'>,</span> <span class='label'>deadline:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>||=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_drain_timeout'>drain_timeout</span>
+  <span class='id identifier rubyid_begin_shutdown'>begin_shutdown</span>
+  <span class='ivar'>@workers</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_thread'>thread</span><span class='op'>|</span>
+    <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
+    <span class='kw'>break</span> <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
+
+    <span class='id identifier rubyid_thread'>thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1405,6 +1524,14 @@ timer queue provider is configured</p></div>
       <pre class="lines">
 
 
+372
+373
+374
+375
+376
+377
+378
+379
 380
 381
 382
@@ -1509,18 +1636,10 @@ timer queue provider is configured</p></div>
 481
 482
 483
-484
-485
-486
-487
-488
-489
-490
-491
-492</pre>
+484</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 380</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 372</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
   <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -1529,7 +1648,7 @@ timer queue provider is configured</p></div>
   <span class='label'>full_timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
 <span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="../Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_on_full'>on_full</span> <span class='op'>!=</span> <span class='symbol'>:raise</span>
+  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../WaitPolicy.html" title="Phronomy::WaitPolicy (module)">WaitPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_forbidden?'><span class='object_link'><a href="../WaitPolicy.html#blocking_forbidden%3F-class_method" title="Phronomy::WaitPolicy.blocking_forbidden? (method)">blocking_forbidden?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_on_full'>on_full</span> <span class='op'>!=</span> <span class='symbol'>:raise</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>OffloadPool admission cannot wait on EventLoop; use on_full: :raise</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
@@ -1640,12 +1759,69 @@ timer queue provider is configured</p></div>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="terminated?-instance_method">
+  
+    #<strong>terminated?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Whether shutdown has closed admission and all workers have exited.
+Logical TaskResult settlement alone does not establish this fact.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+498
+499
+500</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 498</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_terminated?'>terminated?</span>
+  <span class='ivar'>@shutdown</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@workers</span><span class='period'>.</span><span class='id identifier rubyid_none?'>none?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:alive?</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:29 2026 by
+  Generated on Thu Oct  8 15:22:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

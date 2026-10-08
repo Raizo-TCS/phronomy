@@ -87,6 +87,11 @@
 
   
   
+  <dl>
+      <dt>Extended by:</dt>
+      <dd>Forwardable</dd>
+  </dl>
+  
   
   
   
@@ -122,6 +127,33 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__agent_settings-instance_method" title="#__agent_settings (instance method)">#<strong>__agent_settings</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#__runtime_settings-instance_method" title="#__runtime_settings (instance method)">#<strong>__runtime_settings</strong>  &#x21d2; Object </a>
     
 
@@ -149,7 +181,7 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#authorization_pool_size-instance_method" title="#authorization_pool_size (instance method)">#<strong>authorization_pool_size</strong>  &#x21d2; Object </a>
+      <a href="#__tool_settings-instance_method" title="#__tool_settings (instance method)">#<strong>__tool_settings</strong>  &#x21d2; Object </a>
     
 
     
@@ -158,15 +190,17 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
   
     
+      <span class="note title readonly">readonly</span>
+    
     
   
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute authorization_pool_size.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -174,7 +208,7 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#authorization_queue_size-instance_method" title="#authorization_queue_size (instance method)">#<strong>authorization_queue_size</strong>  &#x21d2; Object </a>
+      <a href="#__tracing_settings-instance_method" title="#__tracing_settings (instance method)">#<strong>__tracing_settings</strong>  &#x21d2; Object </a>
     
 
     
@@ -183,15 +217,17 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
   
     
+      <span class="note title readonly">readonly</span>
+    
     
   
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute authorization_queue_size.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -199,7 +235,7 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#authorization_timeout-instance_method" title="#authorization_timeout (instance method)">#<strong>authorization_timeout</strong>  &#x21d2; Object </a>
+      <a href="#__workflow_settings-instance_method" title="#__workflow_settings (instance method)">#<strong>__workflow_settings</strong>  &#x21d2; Object </a>
     
 
     
@@ -208,40 +244,17 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
   
     
+      <span class="note title readonly">readonly</span>
+    
     
   
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute authorization_timeout.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#before_llm_input-instance_method" title="#before_llm_input (instance method)">#<strong>before_llm_input</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute before_llm_input.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -274,7 +287,7 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#default_model-instance_method" title="#default_model (instance method)">#<strong>default_model</strong>  &#x21d2; Object </a>
+      <a href="#multi_agent_store-instance_method" title="#multi_agent_store (instance method)">#<strong>multi_agent_store</strong>  &#x21d2; Object </a>
     
 
     
@@ -291,132 +304,7 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute default_model.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#llm_adapter-instance_method" title="#llm_adapter (instance method)">#<strong>llm_adapter</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute llm_adapter.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#persistence-instance_method" title="#persistence (instance method)">#<strong>persistence</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute persistence.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#recursion_limit-instance_method" title="#recursion_limit (instance method)">#<strong>recursion_limit</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute recursion_limit.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#stream_callback_error_policy-instance_method" title="#stream_callback_error_policy (instance method)">#<strong>stream_callback_error_policy</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute stream_callback_error_policy.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#tool_result_max_size-instance_method" title="#tool_result_max_size (instance method)">#<strong>tool_result_max_size</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute tool_result_max_size.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute multi_agent_store.</p></div></span>
   
 </li>
 
@@ -757,6 +645,50 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#tool_result_max_size-instance_method" title="#tool_result_max_size (instance method)">#<strong>tool_result_max_size</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tool_result_max_size=-instance_method" title="#tool_result_max_size= (instance method)">#<strong>tool_result_max_size=</strong>(value)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#trace_pii-instance_method" title="#trace_pii (instance method)">#<strong>trace_pii</strong>  &#x21d2; Object </a>
     
 
@@ -846,7 +778,8 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
     
   
 
-<div id="constructor_details" class="method_details_list">
+
+  <div id="constructor_details" class="method_details_list">
   <h2>Constructor Details</h2>
   
     <div class="method_details first">
@@ -873,29 +806,31 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <pre class="lines">
 
 
-114
-115
-116
-117
-118
-119
-120
 121
 122
-123</pre>
+123
+124
+125
+126
+127
+128
+129
+130
+131</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 114</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
-  <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
-  <span class='ivar'>@__runtime_settings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="RuntimeSettings.html#initialize-instance_method" title="Phronomy::RuntimeSettings#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>tracer:</span> <span class='const'>DEFAULT_FACTORIES</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:tracer</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='rparen'>)</span>
-  <span class='ivar'>@llm_adapter</span> <span class='op'>=</span> <span class='const'>DEFAULT_FACTORIES</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:llm_adapter</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
-  <span class='ivar'>@stream_callback_error_policy</span> <span class='op'>=</span> <span class='symbol'>:report</span>
-  <span class='ivar'>@authorization_pool_size</span> <span class='op'>=</span> <span class='int'>4</span>
-  <span class='ivar'>@authorization_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
-  <span class='ivar'>@authorization_timeout</span> <span class='op'>=</span> <span class='int'>5</span>
-  <span class='ivar'>@persistence</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@__workflow_settings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="WorkflowSettings.html" title="Phronomy::WorkflowSettings (class)">WorkflowSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="WorkflowSettings.html#initialize-instance_method" title="Phronomy::WorkflowSettings#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>recursion_limit:</span> <span class='int'>25</span><span class='rparen'>)</span>
+  <span class='ivar'>@__runtime_settings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="RuntimeSettings.html#initialize-instance_method" title="Phronomy::RuntimeSettings#initialize (method)">new</a></span></span>
+  <span class='ivar'>@__tool_settings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Tool/Settings.html" title="Phronomy::Tool::Settings (class)">Settings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@__tracing_settings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Tracing/Settings.html" title="Phronomy::Tracing::Settings (class)">Settings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Tracing/Settings.html#initialize-instance_method" title="Phronomy::Tracing::Settings#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>tracer:</span> <span class='const'>DEFAULT_FACTORIES</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:tracer</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='rparen'>)</span>
+  <span class='ivar'>@__agent_settings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Settings.html" title="Phronomy::Agent::Settings (class)">Settings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agent/Settings.html#initialize-instance_method" title="Phronomy::Agent::Settings#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+    <span class='label'>llm_adapter:</span> <span class='const'>DEFAULT_FACTORIES</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:llm_adapter</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='comma'>,</span>
+    <span class='label'>stream_callback_error_policy:</span> <span class='symbol'>:report</span><span class='comma'>,</span> <span class='label'>authorization_timeout:</span> <span class='int'>5</span>
+  <span class='rparen'>)</span>
+  <span class='ivar'>@multi_agent_store</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -910,7 +845,52 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="__runtime_settings-instance_method">
+  <h3 class="signature first" id="__agent_settings-instance_method">
+  
+    #<strong>__agent_settings</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+43
+44
+45</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 43</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___agent_settings'>__agent_settings</span>
+  <span class='ivar'>@__agent_settings</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="__runtime_settings-instance_method">
   
     #<strong>__runtime_settings</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
@@ -937,12 +917,12 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <pre class="lines">
 
 
+47
 48
-49
-50</pre>
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___runtime_settings'>__runtime_settings</span>
   <span class='ivar'>@__runtime_settings</span>
@@ -953,11 +933,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
 </div>
     
       
-      <span id="authorization_pool_size=-instance_method"></span>
+      <span id=""></span>
       <div class="method_details ">
-  <h3 class="signature " id="authorization_pool_size-instance_method">
+  <h3 class="signature " id="__tool_settings-instance_method">
   
-    #<strong>authorization_pool_size</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>__tool_settings</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
 
   
@@ -965,7 +945,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the value of attribute authorization_pool_size.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -978,15 +962,15 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <pre class="lines">
 
 
-32
-33
-34</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 43</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_authorization_pool_size'>authorization_pool_size</span>
-  <span class='ivar'>@authorization_pool_size</span>
+<span class='kw'>def</span> <span class='id identifier rubyid___tool_settings'>__tool_settings</span>
+  <span class='ivar'>@__tool_settings</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -994,11 +978,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
 </div>
     
       
-      <span id="authorization_queue_size=-instance_method"></span>
+      <span id=""></span>
       <div class="method_details ">
-  <h3 class="signature " id="authorization_queue_size-instance_method">
+  <h3 class="signature " id="__tracing_settings-instance_method">
   
-    #<strong>authorization_queue_size</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>__tracing_settings</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
 
   
@@ -1006,7 +990,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the value of attribute authorization_queue_size.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -1019,15 +1007,15 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 43</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_authorization_queue_size'>authorization_queue_size</span>
-  <span class='ivar'>@authorization_queue_size</span>
+<span class='kw'>def</span> <span class='id identifier rubyid___tracing_settings'>__tracing_settings</span>
+  <span class='ivar'>@__tracing_settings</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1035,11 +1023,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
 </div>
     
       
-      <span id="authorization_timeout=-instance_method"></span>
+      <span id=""></span>
       <div class="method_details ">
-  <h3 class="signature " id="authorization_timeout-instance_method">
+  <h3 class="signature " id="__workflow_settings-instance_method">
   
-    #<strong>authorization_timeout</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>__workflow_settings</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
 
   
@@ -1047,7 +1035,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the value of attribute authorization_timeout.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -1060,56 +1052,15 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 43</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_authorization_timeout'>authorization_timeout</span>
-  <span class='ivar'>@authorization_timeout</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="before_llm_input=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="before_llm_input-instance_method">
-  
-    #<strong>before_llm_input</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute before_llm_input.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-26
-27
-28</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 26</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_before_llm_input'>before_llm_input</span>
-  <span class='ivar'>@before_llm_input</span>
+<span class='kw'>def</span> <span class='id identifier rubyid___workflow_settings'>__workflow_settings</span>
+  <span class='ivar'>@__workflow_settings</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1142,12 +1093,12 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
       <pre class="lines">
 
 
-25
-26
-27</pre>
+28
+29
+30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_embedding_model'>default_embedding_model</span>
   <span class='ivar'>@default_embedding_model</span>
@@ -1158,11 +1109,11 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
 </div>
     
       
-      <span id="default_model=-instance_method"></span>
+      <span id="multi_agent_store=-instance_method"></span>
       <div class="method_details ">
-  <h3 class="signature " id="default_model-instance_method">
+  <h3 class="signature " id="multi_agent_store-instance_method">
   
-    #<strong>default_model</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>multi_agent_store</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1170,89 +1121,7 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the value of attribute default_model.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-24
-25
-26</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 24</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_default_model'>default_model</span>
-  <span class='ivar'>@default_model</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="llm_adapter=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="llm_adapter-instance_method">
-  
-    #<strong>llm_adapter</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute llm_adapter.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-30
-31
-32</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 30</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_llm_adapter'>llm_adapter</span>
-  <span class='ivar'>@llm_adapter</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="persistence=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="persistence-instance_method">
-  
-    #<strong>persistence</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute persistence.</p>
+    <p>Returns the value of attribute multi_agent_store.</p>
 
   </div>
 </div>
@@ -1272,131 +1141,8 @@ settings. Public accessors and constructor behavior stay unchanged.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 28</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_persistence'>persistence</span>
-  <span class='ivar'>@persistence</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="recursion_limit=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="recursion_limit-instance_method">
-  
-    #<strong>recursion_limit</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute recursion_limit.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-27
-28
-29</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 27</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span>
-  <span class='ivar'>@recursion_limit</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="stream_callback_error_policy=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="stream_callback_error_policy-instance_method">
-  
-    #<strong>stream_callback_error_policy</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute stream_callback_error_policy.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-31
-32
-33</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 31</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_stream_callback_error_policy'>stream_callback_error_policy</span>
-  <span class='ivar'>@stream_callback_error_policy</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="tool_result_max_size=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="tool_result_max_size-instance_method">
-  
-    #<strong>tool_result_max_size</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute tool_result_max_size.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-29
-30
-31</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 29</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_tool_result_max_size'>tool_result_max_size</span>
-  <span class='ivar'>@tool_result_max_size</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_multi_agent_store'>multi_agent_store</span>
+  <span class='ivar'>@multi_agent_store</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1440,13 +1186,13 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-19
-20
-21
-22</pre>
+23
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_install_default_factories'>install_default_factories</span><span class='lparen'>(</span><span class='label'>tracer:</span><span class='comma'>,</span> <span class='label'>llm_adapter:</span><span class='rparen'>)</span>
   <span class='const'>DEFAULT_FACTORIES</span><span class='period'>.</span><span class='id identifier rubyid_replace'>replace</span><span class='lparen'>(</span><span class='label'>tracer:</span> <span class='id identifier rubyid_tracer'>tracer</span><span class='comma'>,</span> <span class='label'>llm_adapter:</span> <span class='id identifier rubyid_llm_adapter'>llm_adapter</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -1478,12 +1224,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-90
-91
-92</pre>
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_dispatch_threshold_seconds'>event_loop_dispatch_threshold_seconds</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_dispatch_threshold_seconds'>event_loop_dispatch_threshold_seconds</span>
@@ -1508,12 +1254,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-94
-95
-96</pre>
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_dispatch_threshold_seconds='>event_loop_dispatch_threshold_seconds=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_dispatch_threshold_seconds'>event_loop_dispatch_threshold_seconds</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
@@ -1538,12 +1284,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-82
-83
-84</pre>
+89
+90
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_starvation_threshold_seconds'>event_loop_starvation_threshold_seconds</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_starvation_threshold_seconds'>event_loop_starvation_threshold_seconds</span>
@@ -1568,12 +1314,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-86
-87
-88</pre>
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_starvation_threshold_seconds='>event_loop_starvation_threshold_seconds=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_starvation_threshold_seconds'>event_loop_starvation_threshold_seconds</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
@@ -1598,12 +1344,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-74
-75
-76</pre>
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>
@@ -1628,12 +1374,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-78
-79
-80</pre>
+85
+86
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_stop_grace_seconds='>event_loop_stop_grace_seconds=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
@@ -1658,12 +1404,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
+65
 66
-67
-68</pre>
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_logger'>logger</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>
@@ -1688,12 +1434,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
+69
 70
-71
-72</pre>
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_logger='>logger=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
@@ -1718,12 +1464,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-98
-99
-100</pre>
+105
+106
+107</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span>
@@ -1748,12 +1494,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-102
-103
-104</pre>
+109
+110
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 109</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload_pool_size='>offload_pool_size=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
@@ -1778,12 +1524,12 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-106
-107
-108</pre>
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload_queue_size'>offload_queue_size</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_offload_queue_size'>offload_queue_size</span>
@@ -1808,15 +1554,75 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
-110
-111
-112</pre>
+117
+118
+119</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 117</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload_queue_size='>offload_queue_size=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_offload_queue_size'>offload_queue_size</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="tool_result_max_size-instance_method">
+  
+    #<strong>tool_result_max_size</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+73
+74
+75</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 73</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_tool_result_max_size'>tool_result_max_size</span>
+  <span class='ivar'>@__tool_settings</span><span class='period'>.</span><span class='id identifier rubyid_max_result_size'>max_result_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="tool_result_max_size=-instance_method">
+  
+    #<strong>tool_result_max_size=</strong>(value)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+77
+78
+79</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 77</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_tool_result_max_size='>tool_result_max_size=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='ivar'>@__tool_settings</span><span class='period'>.</span><span class='id identifier rubyid_max_result_size'>max_result_size</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1838,15 +1644,15 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
+57
 58
-59
-60</pre>
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_trace_pii'>trace_pii</span>
-  <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>
+  <span class='ivar'>@__tracing_settings</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1868,15 +1674,15 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
+61
 62
-63
-64</pre>
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_trace_pii='>trace_pii=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
-  <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+  <span class='ivar'>@__tracing_settings</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1898,15 +1704,15 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
+49
 50
-51
-52</pre>
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tracer'>tracer</span>
-  <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>
+  <span class='ivar'>@__tracing_settings</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1928,15 +1734,15 @@ Applications replace instances through the existing configuration writers.</p>
       <pre class="lines">
 
 
+53
 54
-55
-56</pre>
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime_composition/configuration.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tracer='>tracer=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
-  <span class='ivar'>@__runtime_settings</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+  <span class='ivar'>@__tracing_settings</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1948,7 +1754,7 @@ Applications replace instances through the existing configuration writers.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:30 2026 by
+  Generated on Thu Oct  8 15:22:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

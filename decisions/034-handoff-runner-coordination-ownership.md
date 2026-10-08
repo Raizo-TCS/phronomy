@@ -1,5 +1,7 @@
 # ADR-034: Handoff Runner Coordination Ownership
 
+> r8 unit 4 supersedes the Agent/Handoff ownership and storage portions below. See [the unit 4 migration](../migrations/r8-unit4.md). Earlier statements describe their original change only.
+
 ## Status
 
 Accepted for the H1 step on `refactor/architecture`, 2026-09-18.

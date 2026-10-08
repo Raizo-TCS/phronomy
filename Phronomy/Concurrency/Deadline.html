@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/engine/concurrency/deadline.rb
+    <dd>lib/phronomy/execution/concurrency/deadline.rb
 </dd>
   </dl>
   
@@ -172,28 +172,6 @@ skew from NTP adjustments or DST transitions.</p>
     </h2>
 
     <ul class="summary">
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#attach_to-instance_method" title="#attach_to (instance method)">#<strong>attach_to</strong>(token, timer_queue: Phronomy::Runtime.instance.timer_queue)  &#x21d2; self </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Attaches this deadline to a <span class='object_link'><a href="CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span> by cancelling the token when the deadline expires.</p></div></span>
-  
-</li>
-
       
         <li class="public ">
   <span class="summary_signature">
@@ -321,7 +299,7 @@ skew from NTP adjustments or DST transitions.</p>
 29</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/deadline.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_monotonic_at'>monotonic_at</span><span class='rparen'>)</span>
   <span class='ivar'>@monotonic_at</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_at'>monotonic_at</span>
@@ -402,7 +380,7 @@ skew from NTP adjustments or DST transitions.</p>
 23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/deadline.rb', line 21</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='kw'>in</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
@@ -419,105 +397,7 @@ skew from NTP adjustments or DST transitions.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="attach_to-instance_method">
-  
-    #<strong>attach_to</strong>(token, timer_queue: Phronomy::Runtime.instance.timer_queue)  &#x21d2; <tt>self</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Attaches this deadline to a <span class='object_link'><a href="CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span> by cancelling the token
-when the deadline expires. The Runtime timer queue is driven by EventLoop;
-no timer-specific OS thread is created.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>token</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>timer_queue</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">Runtime::TimerQueue</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>Phronomy::Runtime.instance.timer_queue</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>queue to register with;
-defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>self</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-55
-56
-57
-58
-59
-60
-61</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 55</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_attach_to'>attach_to</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>timer_queue:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_seconds'>seconds</span> <span class='op'>=</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
-  <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id identifier rubyid_seconds'>seconds</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
-
-  <span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="expired?-instance_method">
+  <h3 class="signature first" id="expired?-instance_method">
   
     #<strong>expired?</strong>  &#x21d2; <tt>Boolean</tt> 
   
@@ -562,7 +442,7 @@ defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
 36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/deadline.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_expired?'>expired?</span>
   <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>&gt;=</span> <span class='ivar'>@monotonic_at</span>
@@ -619,7 +499,7 @@ defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
 44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/concurrency/deadline.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
   <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='ivar'>@monotonic_at</span> <span class='op'>-</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
@@ -635,7 +515,7 @@ defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:28 2026 by
+  Generated on Thu Oct  8 15:22:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

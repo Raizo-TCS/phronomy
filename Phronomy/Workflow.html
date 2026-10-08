@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Workflow
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -102,7 +102,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/workflow/execution/workflow.rb<span class="defines">,<br>
-  lib/phronomy/workflow/persistence/codec.rb,<br> lib/phronomy/workflow/phase_machine_builder.rb,<br> lib/phronomy/workflow/persistence/state_repository.rb</span>
+  lib/phronomy/workflow/completion.rb,<br> lib/phronomy/workflow/persistence/codec.rb,<br> lib/phronomy/workflow/persistence/storage_schema.rb,<br> lib/phronomy/workflow/persistence/state_repository.rb</span>
 
 </dd>
   </dl>
@@ -111,7 +111,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>StateChart-style Workflow definition DSL.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>Domain-owned Workflow metadata, loadable without the Workflow runtime.</p>
 
   </div>
 </div>
@@ -122,11 +126,11 @@
 <p class="children">
   
     
-      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Workflow/Persistence.html" title="Phronomy::Workflow::Persistence (module)">Persistence</a></span>
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Workflow/Completion.html" title="Phronomy::Workflow::Completion (module)">Completion</a></span>, <span class='object_link'><a href="Workflow/Persistence.html" title="Phronomy::Workflow::Persistence (module)">Persistence</a></span>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Workflow/Builder.html" title="Phronomy::Workflow::Builder (class)">Builder</a></span>, <span class='object_link'><a href="Workflow/PhaseMachineBuilder.html" title="Phronomy::Workflow::PhaseMachineBuilder (class)">PhaseMachineBuilder</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Workflow/Builder.html" title="Phronomy::Workflow::Builder (class)">Builder</a></span>
     
   
 </p>
@@ -348,7 +352,7 @@
   
   
   <h3 class="inherited">Methods included from <span class='object_link'><a href="Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="Runnable.html#batch-instance_method" title="Phronomy::Runnable#batch (method)">#batch</a></span>, <span class='object_link'><a href="Runnable.html#trace-instance_method" title="Phronomy::Runnable#trace (method)">#trace</a></span></p>
+  <p class="inherited"><span class='object_link'><a href="Runnable.html#batch-instance_method" title="Phronomy::Runnable#batch (method)">#batch</a></span></p>
 
   
   
@@ -673,7 +677,7 @@ or Runtime shutdown has begun</p></div>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:28 2026 by
+  Generated on Thu Oct  8 15:22:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

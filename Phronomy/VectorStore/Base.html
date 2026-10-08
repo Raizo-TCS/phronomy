@@ -104,10 +104,9 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Public extension SPI for vector stores.</p>
-<p>Backends implement the synchronous add/search/remove/clear/size contract.
-The framework's separate execution client supplies asynchronous operations.
-Backend authors implement no asynchronous methods or execution-pool logic.</p>
+    <p>Owns synchronous operations, input validation and the public result shape.
+Backends implement protected perform_* operations and embedding_dimension.
+No execution client, SDK or embedding provider is selected by this class.</p>
 
   </div>
 </div>
@@ -136,7 +135,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#add-instance_method" title="#add (instance method)">#<strong>add</strong>(id:, embedding:, metadata: {}, cancellation_token: nil)  &#x21d2; Object </a>
+      <a href="#add-instance_method" title="#add (instance method)">#<strong>add</strong>(id:, embedding:, metadata: {}, cancellation_token: nil)  &#x21d2; self </a>
     
 
     
@@ -150,7 +149,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Add a document with its vector embedding.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Validate before invoking the backend.</p></div></span>
   
 </li>
 
@@ -158,7 +157,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#clear-instance_method" title="#clear (instance method)">#<strong>clear</strong>  &#x21d2; Object </a>
+      <a href="#clear-instance_method" title="#clear (instance method)">#<strong>clear</strong>  &#x21d2; self </a>
     
 
     
@@ -172,7 +171,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Remove all documents.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Clear documents without changing the configured dimension.</p></div></span>
   
 </li>
 
@@ -180,7 +179,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#remove-instance_method" title="#remove (instance method)">#<strong>remove</strong>(id:)  &#x21d2; Object </a>
+      <a href="#remove-instance_method" title="#remove (instance method)">#<strong>remove</strong>(id:)  &#x21d2; self </a>
     
 
     
@@ -194,7 +193,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Remove a single document by id.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Remove a document; an absent id is a successful no-op.</p></div></span>
   
 </li>
 
@@ -216,7 +215,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Return the k most similar documents to the query embedding.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Return at most k results ordered by descending similarity.</p></div></span>
   
 </li>
 
@@ -238,7 +237,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Return the number of documents stored.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Non-negative document count.</p></div></span>
   
 </li>
 
@@ -256,7 +255,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <div class="method_details first">
   <h3 class="signature first" id="add-instance_method">
   
-    #<strong>add</strong>(id:, embedding:, metadata: {}, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>add</strong>(id:, embedding:, metadata: {}, cancellation_token: nil)  &#x21d2; <tt>self</tt> 
   
 
   
@@ -264,7 +263,8 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Add a document with its vector embedding.</p>
+    <p>Validate before invoking the backend. Cancellation is checked before the
+write, never reported after a successful write. No operation is retried.</p>
 
   </div>
 </div>
@@ -281,9 +281,6 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>unique document identifier</p></div>
-      
     </li>
   
     <li>
@@ -291,12 +288,9 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <span class='name'>embedding</span>
       
       
-        <span class='type'>(<tt>Array&lt;Float&gt;</tt>)</span>
+        <span class='type'>(<tt>Array&lt;Numeric&gt;</tt>)</span>
       
       
-      
-        &mdash;
-        <div class='inline'><p>vector embedding</p></div>
       
     </li>
   
@@ -311,9 +305,6 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <em class="default">(defaults to: <tt>{}</tt>)</em>
       
       
-        &mdash;
-        <div class='inline'><p>arbitrary metadata</p></div>
-      
     </li>
   
     <li>
@@ -327,20 +318,30 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
       
-        &mdash;
-        <div class='inline'><p>cooperative cancellation signal</p></div>
-      
     </li>
   
 </ul>
 
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 <p class="tag_title">Raises:</p>
 <ul class="raise">
   
     <li>
       
       
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
       
       
       
@@ -357,14 +358,22 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
 20
 21
 22
-23</pre>
+23
+24
+25
+26
+27</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#add is not implemented</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_validate_id!'>validate_id!</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>metadata must be a Hash</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_vector'>vector</span> <span class='op'>=</span> <span class='id identifier rubyid_validate_vector!'>validate_vector!</span><span class='lparen'>(</span><span class='id identifier rubyid_embedding'>embedding</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_perform_add'>perform_add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_vector'>vector</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -374,7 +383,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <div class="method_details ">
   <h3 class="signature " id="clear-instance_method">
   
-    #<strong>clear</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>clear</strong>  &#x21d2; <tt>self</tt> 
   
 
   
@@ -382,19 +391,19 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Remove all documents.</p>
+    <p>Clear documents without changing the configured dimension.</p>
 
   </div>
 </div>
 <div class="tags">
   
-<p class="tag_title">Raises:</p>
-<ul class="raise">
+<p class="tag_title">Returns:</p>
+<ul class="return">
   
     <li>
       
       
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+        <span class='type'>(<tt>self</tt>)</span>
       
       
       
@@ -408,15 +417,17 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <pre class="lines">
 
 
-47
-48
-49</pre>
+58
+59
+60
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#clear is not implemented</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_perform_clear'>perform_clear</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -426,7 +437,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <div class="method_details ">
   <h3 class="signature " id="remove-instance_method">
   
-    #<strong>remove</strong>(id:)  &#x21d2; <tt>Object</tt> 
+    #<strong>remove</strong>(id:)  &#x21d2; <tt>self</tt> 
   
 
   
@@ -434,7 +445,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Remove a single document by id.</p>
+    <p>Remove a document; an absent id is a successful no-op.</p>
 
   </div>
 </div>
@@ -451,20 +462,17 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>document identifier</p></div>
-      
     </li>
   
 </ul>
 
-<p class="tag_title">Raises:</p>
-<ul class="raise">
+<p class="tag_title">Returns:</p>
+<ul class="return">
   
     <li>
       
       
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+        <span class='type'>(<tt>self</tt>)</span>
       
       
       
@@ -478,15 +486,19 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <pre class="lines">
 
 
-41
-42
-43</pre>
+49
+50
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#remove is not implemented</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_validate_id!'>validate_id!</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_perform_remove'>perform_remove</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -504,7 +516,8 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Return the k most similar documents to the query embedding.</p>
+    <p>Return at most k results ordered by descending similarity. Malformed
+backend output raises InvalidResultError; transport errors propagate.</p>
 
   </div>
 </div>
@@ -517,7 +530,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <span class='name'>query_embedding</span>
       
       
-        <span class='type'>(<tt>Array&lt;Float&gt;</tt>)</span>
+        <span class='type'>(<tt>Array&lt;Numeric&gt;</tt>)</span>
       
       
       
@@ -528,14 +541,14 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
         <span class='name'>k</span>
       
       
-        <span class='type'>(<tt>Integer</tt>)</span>
+        <span class='type'>(<tt>Integer</tt>, <tt>String</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>5</tt>)</em>
       
       
         &mdash;
-        <div class='inline'><p>number of results</p></div>
+        <div class='inline'><p>positive integer or its decimal string</p></div>
       
     </li>
   
@@ -549,9 +562,6 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
-      
-        &mdash;
-        <div class='inline'><p>cooperative cancellation signal</p></div>
       
     </li>
   
@@ -567,22 +577,6 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       
       
       
-        &mdash;
-        <div class='inline'><p>each element: { id:, score:, metadata: }</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
-      
-      
-      
     </li>
   
 </ul>
@@ -593,17 +587,25 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <pre class="lines">
 
 
-32
-33
-34
-35</pre>
+36
+37
+38
+39
+40
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#search is not implemented</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='id identifier rubyid_validate_k!'>validate_k!</span><span class='lparen'>(</span><span class='id identifier rubyid_k'>k</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_vector'>vector</span> <span class='op'>=</span> <span class='id identifier rubyid_validate_vector!'>validate_vector!</span><span class='lparen'>(</span><span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_perform_search'>perform_search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span> <span class='id identifier rubyid_vector'>vector</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='id identifier rubyid_limit'>limit</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate_results!'>validate_results!</span><span class='lparen'>(</span><span class='id identifier rubyid_results'>results</span><span class='comma'>,</span> <span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_results'>results</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -621,7 +623,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Return the number of documents stored.</p>
+    <p>Returns non-negative document count.</p>
 
   </div>
 </div>
@@ -637,18 +639,8 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       
       
       
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>NotImplementedError</tt>)</span>
-      
-      
+        &mdash;
+        <div class='inline'><p>non-negative document count</p></div>
       
     </li>
   
@@ -660,15 +652,23 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
       <pre class="lines">
 
 
-55
-56
-57</pre>
+65
+66
+67
+68
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/base.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#size is not implemented</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_count'>count</span> <span class='op'>=</span> <span class='id identifier rubyid_perform_size'>perform_size</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_count'>count</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Integer</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_count'>count</span> <span class='op'>&gt;=</span> <span class='int'>0</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="InvalidResultError.html" title="Phronomy::VectorStore::InvalidResultError (class)">InvalidResultError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>size must return a non-negative Integer</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_count'>count</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -680,7 +680,7 @@ Backend authors implement no asynchronous methods or execution-pool logic.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:27 2026 by
+  Generated on Thu Oct  8 15:22:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

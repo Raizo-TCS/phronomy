@@ -1,5 +1,11 @@
 # Agent Chat and explicit state ownership (R09, second slice)
 
+> Current boundary: r8 unit 6 supersedes the historical Chat/SDK ownership and
+> adapter extension SPI below. Agent uses LLMAdapter values; the backend owns SDK
+> construction/interception; Tool owns canonical schema validation. See
+> `docs/architecture/r8-unit6.md` and `docs/migrations/r8-unit6.md`.
+
+
 ## Purpose and clients
 
 Agent::Base is the declaration and lifecycle facade used by application Agent
@@ -62,7 +68,7 @@ hook retains application/test overrides of apply_instructions and Orchestrator's
 prepare_tool_class(invocation:) cooperation. Moving it into a builder receiving
 the entire Agent would merely introduce callbacks back into Base.
 
-AgentInvocationSessionBuilder and InvocationRestorer keep using the same hooks.
+InvocationActions and EngineSessionBuilder and InvocationRestorer keep using the same hooks.
 Saved config is authoritative during recovery; current class declarations do
 not overwrite it. A failure stops installation at that operation, propagates
 the same error and does not install later Tools/messages. No new Chat cache,

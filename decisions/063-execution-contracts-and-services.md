@@ -1,5 +1,7 @@
 # ADR-063: Execution Contracts, Services and Engine Internals
 
+> Historical decision. Superseded by [r8 unit 1](../architecture/r8-unit1.md): Execution contracts and services are now united, with mechanism binding in Engine.
+
 **Status**: Accepted for implementation
 **Date**: 2026-09-28
 **Refines**: [038-source-layout](038-responsibility-based-source-layout.md),

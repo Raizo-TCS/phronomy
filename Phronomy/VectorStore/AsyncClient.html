@@ -442,18 +442,16 @@ for each operation. An injected pool remains owned by its caller.</p>
 37
 38
 39
-40
-41</pre>
+40</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_async'>add_async</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'><span class='object_link'><a href="../Execution.html#submit-class_method" title="Phronomy::Execution.submit (method)">submit</a></span></span><span class='lparen'>(</span><span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -529,25 +527,23 @@ for each operation. An injected pool remains owned by its caller.</p>
       <pre class="lines">
 
 
+81
+82
+83
 84
 85
 86
 87
-88
-89
-90
-91
-92</pre>
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_async'>clear_async</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'><span class='object_link'><a href="../Execution.html#submit-class_method" title="Phronomy::Execution.submit (method)">submit</a></span></span><span class='lparen'>(</span><span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -634,25 +630,23 @@ for each operation. An injected pool remains owned by its caller.</p>
       <pre class="lines">
 
 
+66
+67
 68
 69
 70
 71
 72
-73
-74
-75
-76</pre>
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove_async'>remove_async</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'><span class='object_link'><a href="../Execution.html#submit-class_method" title="Phronomy::Execution.submit (method)">submit</a></span></span><span class='lparen'>(</span><span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -752,25 +746,23 @@ for each operation. An injected pool remains owned by its caller.</p>
       <pre class="lines">
 
 
+50
 51
 52
 53
 54
 55
 56
-57
-58
-59</pre>
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async/async_client.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search_async'>search_async</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_default_pool'>default_pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'><span class='object_link'><a href="../Execution.html#submit-class_method" title="Phronomy::Execution.submit (method)">submit</a></span></span><span class='lparen'>(</span><span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span> <span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='id identifier rubyid_k'>k</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -784,7 +776,7 @@ for each operation. An injected pool remains owned by its caller.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Sep 28 09:17:29 2026 by
+  Generated on Thu Oct  8 15:22:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
