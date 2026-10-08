@@ -96,6 +96,33 @@ RSpec.shared_context "durable coordination runtime" do
       LLMStub.tool_call_response("finalize", {}), "queued", "worker-result"]
   end
 
+  # Inspect the phase and copy the checkpoint under the same backend lock.
+  # Concurrent after_commit hooks must not replace an already chosen checkpoint.
+  def unresolved_child_checkpoint(parent)
+    captured = nil
+    store.after_commit = proc do |backend|
+      backend.backend.transaction do
+        next if captured
+        run = backend.agent.runs(parent.agent_id).first
+        next unless run&.metadata&.dig("execution_extension", "state_ref")
+        extension = backend.agent.contents.fetch_json(run.metadata.fetch("execution_extension").fetch("state_ref"))
+        child_id = extension.fetch("children").first.fetch("execution_id")
+        begin
+          child = backend.agent.executions.load(child_id)
+          captured = backend.snapshot if run.active? && run.phase == :dispatching_tools && child.phase == :calling_llm
+        rescue Phronomy::Persistence::NotFoundError
+          nil
+        end
+      end
+    end
+    LLMStub.activate(responses: [LLMStub.tool_call_response("dispatch_to_worker", {input: "job"}), "child", "parent"])
+    parent.invoke("plan")
+    raise "Unresolved child checkpoint was not captured" unless captured
+    captured
+  ensure
+    store.after_commit = nil
+  end
+
   def reboot(snapshot)
     Phronomy.reset_runtime!
     CoordinationFaultStore.restore(snapshot)

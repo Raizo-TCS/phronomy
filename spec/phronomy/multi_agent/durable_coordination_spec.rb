@@ -260,20 +260,7 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
 
   it "retains parent cancellation while an active child needs external factual resolution" do
     parent = parent_class.create(agent_id: "cancel-parent", persistence: store.agent, coordination_store: store.multi_agent)
-    captured = nil
-    store.after_commit = proc do |backend|
-      run = backend.agent.runs(parent.agent_id).first
-      next unless !captured && run&.metadata&.dig("execution_extension", "state_ref")
-      child_id = backend.agent.contents.fetch_json(run.metadata.fetch("execution_extension").fetch("state_ref")).fetch("children").first.fetch("execution_id")
-      begin
-        captured = backend.snapshot if backend.agent.executions.load(child_id).phase == :calling_llm
-      rescue Phronomy::Persistence::NotFoundError
-        nil
-      end
-    end
-    LLMStub.activate(responses: [LLMStub.tool_call_response("dispatch_to_worker", {input: "job"}), "child", "parent"])
-    parent.invoke("plan")
-    restored = reboot(captured)
+    restored = reboot(unresolved_child_checkpoint(parent))
     token = Phronomy::Concurrency::CancellationToken.new.cancel!
     llm = LLMStub.activate(responses: ["must not replay"])
     loaded = parent_class.load(parent.agent_id, persistence: restored.agent, coordination_store: restored.multi_agent)
@@ -281,7 +268,8 @@ RSpec.describe "Durable semantic coordination (F1/F4; external X0 remains Agent 
     expect { loaded.resume(id, config: {cancellation_token: token}) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     run = restored.agent.executions.load(id)
     expect(run).to be_active
-    expect(run.metadata["cancellation_requested"]).to be(true)
+    # Intent is durable even if it arrives after the last waiting snapshot.
+    expect(restored.agent.cancellation_requested?(agent_id: parent.agent_id, execution_id: id)).to be(true)
     snapshot = reboot(restored.snapshot)
     loaded = parent_class.load(parent.agent_id, persistence: snapshot.agent, coordination_store: snapshot.multi_agent)
     expect { loaded.resume(id) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)

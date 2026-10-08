@@ -71,6 +71,10 @@ module Phronomy
       end
 
       def deliver_on_event_loop(command)
+        # A token may change after preparation. Persist newly observed intent
+        # off EventLoop before propagating it to the current owner.
+        return start if @config[:cancellation_token]&.cancelled? && !@cancellation_recorded
+
         state = @environment.registry.agent_execution_state(command.execution_id)
         unless state
           # Ownership can be released between the durable read and this command.
@@ -127,7 +131,13 @@ module Phronomy
           if extension && (!participant || participant.binding.to_h.except("state_ref") != extension.except("state_ref"))
             raise Phronomy::ExecutionRehydrationRequiredError, "Execution #{@id} needs its current participant binding"
           end
+          # The ledger is independent of execution revision, so recording intent
+          # does not invalidate an already captured outcome command.
+          if @config[:cancellation_token]&.cancelled?
+            @cancellation_recorded = @agent.persistence.request_cancellation(agent_id: @agent.agent_id, execution_id: @id)
+          end
           if @agent.persistence.cancellation_requested?(agent_id: @agent.agent_id, execution_id: @id)
+            @cancellation_recorded = true
             token = @config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new
             token.cancel!
             @config = @config.merge(cancellation_token: token).freeze

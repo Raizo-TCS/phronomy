@@ -240,6 +240,23 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       expect(result.appended_records).to be_empty
     end
 
+    [false, true].each do |response_lost|
+      it "preserves cancellation recorded after command capture, response_lost=#{response_lost}" do
+        operation = command
+        expect(operation.terminal_view.cancel_requested).to be(false)
+        persistence.request_cancellation(agent_id: agent.agent_id, execution_id: execution.execution_id)
+        expect(persistence.executions.load(execution.execution_id).execution_revision).to eq(operation.expected_execution_revision)
+        lose_response if response_lost
+        result = worker.commit_outcome(operation)
+        expect(result.type).to eq(:coordination_wait)
+        expect(result.execution.metadata["cancellation_requested"]).to be(true)
+        expect(result.execution).to be_active
+        expect(result.execution.to_h).to eq(persistence.executions.load(execution.execution_id).to_h)
+        expect(operation.terminal_view.cancel_requested).to be(false)
+        expect(result.appended_records).to be_empty
+      end
+    end
+
     it "adopts exactly the saved waiting record after response loss (F1)" do
       operation = command(terminal_view: view.with(cancel_requested: true))
       lose_response

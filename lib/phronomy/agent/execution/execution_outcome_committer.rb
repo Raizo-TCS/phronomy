@@ -40,7 +40,7 @@ module Phronomy
           root: operation.root, kind: :terminal, terminal: view, config: operation.wiring) do |tx, state, receipt, pending|
           if pending
             waiting = operation.execution.with(metadata: extension_metadata(operation.execution, state).merge(
-              "cancellation_requested" => view.cancel_requested || operation.execution.metadata["cancellation_requested"] == true
+              "cancellation_requested" => change.cancel_requested || operation.execution.metadata["cancellation_requested"] == true
             ))
             save_execution(tx, operation.execution, waiting)
             Outcome.new(type: :coordination_wait, execution: waiting, root: operation.root,
