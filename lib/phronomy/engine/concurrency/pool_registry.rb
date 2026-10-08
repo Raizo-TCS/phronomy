@@ -36,6 +36,13 @@ module Phronomy
         end
       end
 
+      # Lookup only, including after registration has closed.
+      # @return [OffloadPool, nil]
+      # @api private
+      def default_pool_if_initialized
+        @mutex.synchronize { @default }
+      end
+
       # Returns (or lazily creates) a named pool.
       # @param name      [Symbol, String]
       # @param size      [Integer]

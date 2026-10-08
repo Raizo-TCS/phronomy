@@ -577,6 +577,19 @@ TaskResult reports only caller-facing settlement.
 ## EventLoop metrics
 
 `Phronomy::Metrics.snapshot` also reports EventLoop queue depth and lag values.
+
+Metrics and Diagnostics only observe resources already owned by the default
+Runtime. Calling `Metrics.snapshot`, `Diagnostics.snapshot` or `Diagnostics.dump`
+does not initialize a Runtime, pool, EventLoop or timer. Missing resources report
+zero values, including `offload_pool_size: 0` when no default pool exists. Once a
+pool exists, this field remains its configured capacity, not a live-worker count.
+Named pools are not aggregated into the default-pool metrics.
+
+Retained resources remain observable during and after shutdown, including
+incomplete cleanup. Observation does not reopen admission or change a shutdown
+result. After the default Runtime is reset, missing resources again report zero;
+the next snapshot uses any newly initialized default Runtime. Counters are sampled
+independently and do not constitute an atomic cross-resource snapshot.
 Use these to distinguish worker saturation from EventLoop backlog/latency.
 
 ## Shutdown

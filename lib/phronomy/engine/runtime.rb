@@ -17,8 +17,14 @@ module Phronomy
         instance_mutex.synchronize { @instance ||= new }
       end
 
-      def default_if_initialized_for_test
+      # Lookup only: diagnostics must not initialize the default Runtime.
+      # @api private
+      def __default_if_initialized
         instance_mutex.synchronize { @instance }
+      end
+
+      def default_if_initialized_for_test
+        __default_if_initialized
       end
 
       def replace_default_for_test(runtime)
@@ -90,6 +96,12 @@ module Phronomy
     def pool(name, size: 10, queue_size: 100)
       ensure_accepting_work!
       @pool_registry.named_pool(name, size: size, queue_size: queue_size)
+    end
+
+    # Lookup only; retained pools remain observable during and after shutdown.
+    # @api private
+    def __offload_if_initialized
+      @pool_registry.default_pool_if_initialized
     end
 
     def timer_queue
