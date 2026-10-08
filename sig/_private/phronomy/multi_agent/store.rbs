@@ -1,0 +1,8 @@
+module Phronomy
+  module MultiAgent
+    class Store
+      def self.install_configured_provider: () { () -> Store? } -> void
+      def self.configured: () -> Store?
+    end
+  end
+end

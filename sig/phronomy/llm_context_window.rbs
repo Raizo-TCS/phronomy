@@ -1,0 +1,10 @@
+module Phronomy
+  module LlmContextWindow
+    class TokenBudget
+      attr_reader max_input_tokens: Integer
+      def initialize: (max_input_tokens: Integer) -> void
+      def effective_input_limit: () -> Integer
+      def available: (?used: Integer) -> Integer
+    end
+  end
+end

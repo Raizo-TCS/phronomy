@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Context::Instruction::PromptTemplate do
+RSpec.describe Phronomy::Context::PromptTemplate do
   subject(:template) do
     described_class.new(
       template: "Translate to {{lang}}: {{text}}",
@@ -74,7 +74,7 @@ end
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent::Base instructions with PromptTemplate" do
   let(:fake_tokens) { double("Tokens", input: 5, output: 3, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 3, "cached" => 0, "cache_creation" => 0}) }
-  let(:fake_response) { double("Response", content: "answer", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+  let(:fake_response) { double("Response", role: :assistant, content: "answer", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
@@ -92,7 +92,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
   before { allow(RubyLLM).to receive(:chat).and_return(fake_chat) }
 
   it "uses the system_template as the system prompt when input is a Hash" do
-    tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(
+    tmpl = Phronomy::Context::PromptTemplate.new(
       template: "{{question}}",
       system_template: "You are a {{style}} assistant."
     )
@@ -108,7 +108,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
   end
 
   it "falls back to the human template when system_template is nil" do
-    tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "Act as a {{role}}.")
+    tmpl = Phronomy::Context::PromptTemplate.new(template: "Act as a {{role}}.")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-46", version: 1

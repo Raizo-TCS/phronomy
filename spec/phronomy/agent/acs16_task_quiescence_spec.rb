@@ -3,7 +3,7 @@
 require "spec_helper"
 require "timeout"
 
-class ACS16BlockingTool < Phronomy::Agent::Context::Capability::Base
+class ACS16BlockingTool < Phronomy::Tool::Base
   tool_name "acs16_blocking_tool"
   description "Blocks until the test releases it"
   param :value, type: :string, desc: "Input"
@@ -217,7 +217,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
 
   describe "nonterminal recovery boundary" do
     it "keeps the Execution TaskResult pending when terminal durability requires recovery" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
       allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
         if terminal_statuses.include?(execution.status)
@@ -315,7 +315,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
     end
 
     it "fails the task when stream_callback_error_policy is :fail_task and on_event raises" do
-      allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+      Phronomy.configuration.stream_callback_error_policy = :fail_task
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
       agent = ACS16TerminalBarrierAgent.new(
@@ -326,7 +326,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
     end
 
     it "logs the warning when terminal durability requires recovery and a logger is configured" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
       allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
         if terminal_statuses.include?(execution.status)
@@ -337,7 +337,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
       logger = instance_double(Logger, warn: nil)
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
 
       agent = ACS16TerminalBarrierAgent.new(persistence: persistence)
       task = agent.invoke_async("finish normally")
@@ -348,10 +348,10 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
     end
 
     it "suspends without calling the approval listener when no listener is provided" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
 
       # Minimal HITL tool that requires approval.
-      hitl_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      hitl_cls = Class.new(Phronomy::Tool::Base) do
         tool_name "acs16_hitl_tool"
         description "Requires approval"
         requires_approval true
@@ -411,7 +411,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       # This exercises the `elsif operation.respond_to?(:done?)` branch in
       # supervise_agent_operation, which fires when the operation lacks
       # physical_complete? but has done?.
-      cooperative_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      cooperative_cls = Class.new(Phronomy::Tool::Base) do
         tool_name "acs16_cooperative_tool"
         description "Cooperative tool returning a plain TaskResult"
         execution_mode :cooperative
@@ -464,7 +464,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       # A cooperative tool that returns a custom completion handle with only on_complete.
       # This exercises the `else false` branch of supervise_agent_operation and
       # the `else operation.on_complete` branch (no on_physical_complete).
-      custom_cls = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      custom_cls = Class.new(Phronomy::Tool::Base) do
         tool_name "acs16_custom_handle_tool"
         description "Returns a custom completion handle"
         execution_mode :cooperative

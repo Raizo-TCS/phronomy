@@ -188,7 +188,7 @@ module Phronomy
       end
 
       def build_read_tool(store)
-        Class.new(Phronomy::Agent::Context::Capability::Base) do
+        Class.new(Phronomy::Tool::Base) do
           tool_name "read_store"
           description "Read all current findings from the shared knowledge store. " \
             "Call this to see what other researchers have discovered."
@@ -199,7 +199,7 @@ module Phronomy
       end
 
       def build_write_tool(store, cycle, agent_key)
-        Class.new(Phronomy::Agent::Context::Capability::Base) do
+        Class.new(Phronomy::Tool::Base) do
           tool_name "write_finding"
           description "Record a new finding into the shared knowledge store so " \
             "that other researchers can build on your discovery."

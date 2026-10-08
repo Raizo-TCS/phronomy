@@ -10,24 +10,25 @@ module Phronomy
       Wait = Data.define(:coordinator, :agent, :execution_id)
       private_constant :Wait
 
-      def self.start(agent:, execution_id:, input:, config: {})
-        new(agent, execution_id, input, config).start
+      def self.start(agent:, execution_id:, input:, config: {}, resume_only: false)
+        new(agent, execution_id, input, config, resume_only).start
       end
 
-      def initialize(agent, execution_id, input, config)
+      def initialize(agent, execution_id, input, config, resume_only)
         @agent, @id, @input, @config = agent, execution_id.to_s.freeze, input, config.freeze
-        @runtime = Phronomy::Runtime.instance
+        @resume_only = resume_only
+        @environment = @agent.__execution_environment
         @completion = Phronomy::TaskResult.deferred(name: "exact-execution:#{@id}")
       end
 
       def start
-        preparation = Phronomy::Storage::AsyncClient.submit(pool: @runtime.offload) do
+        preparation = @environment.submit(on_full: :raise) do
           execution = read_execution
           if execution&.terminal?
             [:terminal, materialize(execution)]
           elsif execution
-            unless Phronomy::Agent::ExecutionRegistry.existing_for(@runtime)&.agent_execution_owner(@id)
-              @agent.instance_variable_set(:@_phronomy_coordination_config, @config)
+            unless @environment.existing_registry&.agent_execution_owner(@id)
+              @agent.instance_variable_set(:@_phronomy_execution_wiring, @config)
               begin
                 RecoveryCoordinator.new(@agent).recover_on_load!
               rescue Phronomy::ConfigurationError => error
@@ -37,6 +38,7 @@ module Phronomy
             end
             [:active, nil]
           else
+            raise Phronomy::Persistence::NotFoundError, "Execution #{@id} is absent" if @resume_only
             @config[:cancellation_token]&.raise_if_cancelled!
             [:absent, nil]
           end
@@ -55,7 +57,7 @@ module Phronomy
               source.on_complete { |_value, failure| reconcile(failure) }
             when :active
               command = Wait.new(coordinator: self, agent: @agent, execution_id: @id)
-              posted = ExecutionRegistry.for(@runtime.event_loop).post(command, completion: @completion)
+              posted = @environment.registry.post(command, completion: @completion)
               @completion.fail(Phronomy::RuntimeShutdownError.new("Exact execution observer rejected")) unless posted
             end
           end
@@ -69,7 +71,7 @@ module Phronomy
       end
 
       def deliver_on_event_loop(command)
-        state = Phronomy::Agent::ExecutionRegistry.for(@runtime.event_loop).agent_execution_state(command.execution_id)
+        state = @environment.registry.agent_execution_state(command.execution_id)
         unless state
           # Ownership can be released between the durable read and this command.
           # Reinstall once with the caller's current wiring/cancellation request.
@@ -83,6 +85,10 @@ module Phronomy
           raise Phronomy::Persistence::StateConflictError, "Exact execution #{@id} owner mismatch"
         end
         if @config[:cancellation_token]&.cancelled?
+          # One observation governs both recording and notification. A newly
+          # observed request must be persisted off EventLoop before signaling.
+          return start unless @cancellation_recorded
+
           state.invocation&.config&.fetch(:cancellation_token, nil)&.cancel!
         end
         if state.execution.status == :suspended || state.fsm_session_id.nil?
@@ -93,7 +99,7 @@ module Phronomy
         state.invocation.merge_config!(phronomy_exact_observers: (observers + [@completion]).uniq.freeze)
         waiter = Phronomy::TaskResult.deferred(name: "exact-wait:#{@id}")
         waiter.on_complete { |_result, failure| reconcile(failure) }
-        Phronomy::Agent::ExecutionRegistry.for(@runtime.event_loop).register_agent_completion_waiter(@id, waiter)
+        @environment.registry.register_agent_completion_waiter(@id, waiter)
       rescue => failure
         @completion.fail(failure)
       end
@@ -109,24 +115,39 @@ module Phronomy
         unless execution.agent_id == @agent.agent_id
           raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} belongs to another Agent"
         end
-        expected = @config[:phronomy_coordination]
-        stored = execution.metadata["coordination"]
+        expected = @config[:phronomy_reservation]
+        stored = execution.metadata["reservation"]
         if expected && stored != expected
-          actual_identity = stored&.except("handoff_revision")
-          expected_identity = expected.except("handoff_revision")
-          unless actual_identity == expected_identity
-            raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} coordination mismatch"
-          end
+          raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} correlation mismatch"
         end
         ref = execution.metadata["current_input_ref"]
+        @input = @agent.persistence.contents.fetch_text(ref) if @resume_only && ref
         if ref && @agent.persistence.contents.fetch_text(ref) != @input
           raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} input mismatch"
+        end
+        unless execution.terminal?
+          extension = execution.metadata["execution_extension"]
+          participant = @config[:phronomy_execution_participant]
+          if extension && (!participant || participant.binding.to_h.except("state_ref") != extension.except("state_ref"))
+            raise Phronomy::ExecutionRehydrationRequiredError, "Execution #{@id} needs its current participant binding"
+          end
+          # The ledger is independent of execution revision, so recording intent
+          # does not invalidate an already captured outcome command.
+          if @config[:cancellation_token]&.cancelled?
+            @cancellation_recorded = @agent.persistence.request_cancellation(agent_id: @agent.agent_id, execution_id: @id)
+          end
+          if @agent.persistence.cancellation_requested?(agent_id: @agent.agent_id, execution_id: @id)
+            @cancellation_recorded = true
+            token = @config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new
+            token.cancel!
+            @config = @config.merge(cancellation_token: token).freeze
+          end
         end
         execution
       end
 
       def reconcile(failure)
-        task = Phronomy::Storage::AsyncClient.submit(pool: @runtime.offload) do
+        task = @environment.submit(on_full: :raise) do
           execution = read_execution
           if execution&.terminal?
             materialize(execution)
@@ -144,7 +165,7 @@ module Phronomy
       end
 
       def materialize(execution)
-        result = @agent.persistence.execution_result(execution.execution_id)
+        result = @agent.persistence.result(execution.execution_id)
         result.merge(output: result[:result]).freeze
       end
     end

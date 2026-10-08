@@ -84,18 +84,15 @@ RSpec.describe "Workflow terminal save submission contract" do
   let(:delivered) { [] }
 
   before do
-    loop = double("EventLoop", current?: true)
-    pool = double("OffloadPool")
     task = double("Offload result")
     registry = double("Workflow execution registry")
-    runtime = double("Runtime", event_loop: loop, offload: pool)
-    allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-    allow(Phronomy::WorkflowExecutionRegistry).to receive(:for).with(loop).and_return(registry)
+    environment = instance_double(Phronomy::WorkflowExecutionEnvironment, executing?: true, registry: registry)
+    runner.instance_variable_set(:@environment, environment)
     @owner = Object.new.freeze
     expect(registry).to receive(:mark_workflow_admission).with(
       "workflow-save", owner_token: @owner, state: :persisting_terminal
     ).once
-    expect(pool).to receive(:submit).with(on_full: :raise) do |&work|
+    expect(environment).to receive(:submit).with(on_full: :raise) do |&work|
       stages[:work] = work
       task
     end
@@ -192,7 +189,7 @@ RSpec.describe "Workflow terminal save submission contract" do
 
   it "logs a rejected delivery without retrying the save or bypassing the session" do
     logger = double("logger")
-    allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+    Phronomy.configuration.logger = logger
     allow(sink).to receive(:post).and_return(false)
     expect(logger).to receive(:warn).with(/rejected Workflow terminal persistence result/).once
     expect(repository).to receive(:save).once.and_return(9)

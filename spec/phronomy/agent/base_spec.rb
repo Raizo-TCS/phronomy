@@ -79,7 +79,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "keeps agent_id stable and applies exact definition compatibility as a separate load policy" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
 
       version_one = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "cg04-load-lineage", version: 1
@@ -237,14 +237,6 @@ RSpec.describe Phronomy::Agent::Base do
       expect(events.last.type).to eq(:done)
       expect(event_loop_flags).not_to be_empty
       expect(event_loop_flags).to all(be(true))
-    end
-
-    it "keeps an immediately completed terminal callback on the EventLoop thread" do
-      skip "obsolete: terminal delivery always routes through EventLoop system channel in new architecture"
-    end
-
-    it "does not invoke a terminal callback when completion escapes the EventLoop" do
-      skip "obsolete: deliver_on_event_loop is always called from the EventLoop thread in new architecture"
     end
 
     it "requires a callback block" do

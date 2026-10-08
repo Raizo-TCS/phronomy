@@ -4,7 +4,7 @@ module Phronomy
   module Agent
     # Agent phase vocabulary and ordered external transitions. Both the phase
     # machine and FSMSession read this definition; Engine has no Agent policy.
-    # Automatic transition behavior and entry actions retain their own owners.
+    # Automatic and external transition priority belongs to this Agent contract.
     # @api private
     module InvocationTransitions
       ENTRY_POINT = :idle
@@ -80,6 +80,44 @@ module Phronomy
           transitions.each(&:freeze).freeze
         end
         events.freeze
+      end
+
+      AUTOMATIC_EVENTS = {
+        state_completed: [
+          {from: :idle, to: :filtering_input, guard: nil},
+          {from: :filtering_input, to: :building_context, guard: ->(ctx) { ctx.input_passed? }},
+          {from: :filtering_input, to: :blocked, guard: ->(ctx) { ctx.input_blocked? }},
+          {from: :building_context, to: :calling_llm, guard: nil},
+          {from: :starting_tools, to: :evaluating_tools, guard: nil},
+          {from: :evaluating_tools, to: :failed, guard: ->(ctx) { ctx.tool_batch_failed? }},
+          {from: :evaluating_tools, to: :blocked, guard: ->(ctx) { ctx.tool_batch_rejected? }},
+          {from: :evaluating_tools, to: :recording_tool_results, guard: ->(ctx) { ctx.tool_batch_completed? }},
+          {from: :evaluating_tools, to: :suspended, guard: ->(ctx) { ctx.approval_required? }},
+          {from: :evaluating_tools, to: :dispatching_tools, guard: ->(ctx) { ctx.ready_to_dispatch? }},
+          {from: :evaluating_tools, to: :waiting_for_tools, guard: nil},
+          {from: :recording_tool_results, to: :calling_llm, guard: nil},
+          {from: :output_filtering, to: :completed, guard: ->(ctx) { ctx.output_passed? }},
+          {from: :output_filtering, to: :blocked, guard: ->(ctx) { ctx.output_blocked? }}
+        ].each(&:freeze).freeze
+      }.freeze
+
+      EVENTS = AUTOMATIC_EVENTS.merge(EXTERNAL_EVENTS).freeze
+
+      def self.next_phase(phase, event, context)
+        definition = EVENTS.fetch(event.to_sym, []).find do |candidate|
+          candidate[:from] == phase.to_sym &&
+            allowed?(candidate, context)
+        end
+        definition&.fetch(:to)
+      end
+
+      def self.allowed?(definition, context)
+        guard = definition[:guard]
+        !guard || !!(context && guard.call(context))
+      end
+
+      def self.recursion_limit(max_iterations)
+        12 + ((max_iterations || 10) * 8)
       end
     end
   end

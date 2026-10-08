@@ -25,7 +25,8 @@ module PoolSpy
     counts = []
     original = pool.method(:submit)
     pool.define_singleton_method(:submit) do |**kwargs, &blk|
-      counts << caller(1, 1).first
+      # Submission now has a Execution binding; retain the originating client too.
+      counts << caller.join("\n")
       original.call(**kwargs, &blk)
     end
     yield counts
@@ -122,7 +123,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       PoolSpy.instrument(pool) do |counts|
         result = agent_class.new.invoke("run tools")
         expect(result[:output]).to be_a(String)
-        tool_dispatches = counts.grep(%r{agent/context/capability/tool_executor\.rb})
+        tool_dispatches = counts.grep(%r{tool/tool_executor\.rb})
         expect(tool_dispatches.size).to eq(2)
       end
     end
@@ -160,7 +161,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       result = agent_class.new.invoke("run cooperative tool")
       expect(result[:output]).to be_a(String)
 
-      tool_dispatches = calls_before_tool.grep(%r{agent/context/capability/tool_executor\.rb})
+      tool_dispatches = calls_before_tool.grep(%r{tool/tool_executor\.rb})
       expect(tool_dispatches).to be_empty
     ensure
       class << pool
@@ -174,8 +175,10 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # -------------------------------------------------------------------------
   describe "TC-004: embeddings — Embeddings::AsyncClient#embed_async routes through pool" do
     let(:embedder) do
-      Class.new(Phronomy::VectorStore::Embeddings::Base) do
-        def embed(text, _cancellation_token = nil)
+      Class.new(Phronomy::Embeddings::Base) do
+        protected
+
+        def perform_embed(text, _cancellation_token = nil)
           [text.length.to_f, 1.0]
         end
       end.new
@@ -183,7 +186,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
 
     it "routes embed_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = Phronomy::VectorStore::Embeddings::AsyncClient.new(adapter: embedder).embed_async("anything").wait_result
+        result = Phronomy::Embeddings::AsyncClient.new(adapter: embedder).embed_async("anything").wait_result
         expect(result).to eq([8.0, 1.0])
         expect(counts.size).to eq(1)
       end

@@ -217,7 +217,7 @@ RSpec.describe Phronomy::Workflow do
     end
 
     let(:increment_action) { ->(s) { s.merge(counter: s.counter + 1) } }
-    let(:persistence) { Phronomy::Persistence.in_memory }
+    let(:persistence) { Phronomy::PersistenceComposition.in_memory.workflow }
 
     let(:app) do
       action = increment_action
@@ -230,7 +230,7 @@ RSpec.describe Phronomy::Workflow do
 
     it "saves the final context snapshot after invoke" do
       app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
-      record = persistence.workflow_states.load("t1")
+      record = persistence.load("t1")
 
       expect(record).not_to be_nil
       expect(record[:snapshot]["phase"]).to eq("__end__")
@@ -241,7 +241,7 @@ RSpec.describe Phronomy::Workflow do
     it "loads stored fields as the initial context on re-invocation" do
       app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
       app.invoke({}, config: {workflow_instance_id: "t1"})
-      record = persistence.workflow_states.load("t1")
+      record = persistence.load("t1")
 
       expect(record[:snapshot]["fields"]["counter"]).to eq(2)
       expect(record[:revision]).to eq(2)
@@ -250,18 +250,18 @@ RSpec.describe Phronomy::Workflow do
     it "uses input to override stored fields on re-invocation" do
       app.invoke({counter: 10}, config: {workflow_instance_id: "t1"})
       app.invoke({counter: 0}, config: {workflow_instance_id: "t1"})
-      record = persistence.workflow_states.load("t1")
+      record = persistence.load("t1")
 
       expect(record[:snapshot]["fields"]["counter"]).to eq(1)
     end
 
     it "does not save state when no explicit workflow_instance_id is given" do
       app.invoke({counter: 0})
-      expect(persistence.workflow_states.load("t1")).to be_nil
+      expect(persistence.load("t1")).to be_nil
     end
 
     it "uses global configuration when the Workflow has no persistence" do
-      Phronomy.configure { |c| c.persistence = persistence }
+      Phronomy.configure { |c| c.workflow_store = persistence }
       action = increment_action
       global_app = Phronomy::Workflow.define(simple_ctx) do
         initial :step
@@ -270,21 +270,21 @@ RSpec.describe Phronomy::Workflow do
       end
 
       global_app.invoke({counter: 4}, config: {workflow_instance_id: "global"})
-      record = persistence.workflow_states.load("global")
+      record = persistence.load("global")
       expect(record[:snapshot]["fields"]["counter"]).to eq(5)
     ensure
-      Phronomy.configure { |c| c.persistence = nil }
+      Phronomy.configure { |c| c.workflow_store = nil }
     end
 
     it "keeps Workflow-definition Persistence fixed instead of switching per invocation" do
-      other = Phronomy::Persistence.in_memory
+      other = Phronomy::PersistenceComposition.in_memory.workflow
       app.invoke(
         {counter: 5},
         config: {workflow_instance_id: "fixed", persistence: other}
       )
 
-      expect(persistence.workflow_states.load("fixed")).not_to be_nil
-      expect(other.workflow_states.load("fixed")).to be_nil
+      expect(persistence.load("fixed")).not_to be_nil
+      expect(other.load("fixed")).to be_nil
     end
   end
 
@@ -297,7 +297,7 @@ RSpec.describe Phronomy::Workflow do
       end
     end
 
-    let(:persistence) { Phronomy::Persistence.in_memory }
+    let(:persistence) { Phronomy::PersistenceComposition.in_memory.workflow }
 
     let(:wait_app) do
       Phronomy::Workflow.define(wait_ctx, persistence: persistence) do
@@ -319,7 +319,7 @@ RSpec.describe Phronomy::Workflow do
       expect(final.phase).to eq(:__end__)
       expect(final.value).to eq("prepared:done")
 
-      record = persistence.workflow_states.load("persist-resume")
+      record = persistence.load("persist-resume")
       expect(record[:snapshot]["phase"]).to eq("__end__")
     end
 

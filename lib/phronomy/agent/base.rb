@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "../execution_contract/concurrency/worker_input_restricted"
+require_relative "../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
-require_relative "concerns/filterable"
-require_relative "concerns/before_llm_input"
-require_relative "concerns/error_translation"
+require_relative "filterable"
+require_relative "before_llm_input"
 
 module Phronomy
   module Agent
@@ -36,9 +35,8 @@ module Phronomy
       include Phronomy::Concurrency::WorkerInputRestricted
 
       include Phronomy::Runnable
-      include Concerns::Filterable
-      include Concerns::BeforeLLMInput
-      include Concerns::ErrorTranslation
+      include Filterable
+      include BeforeLLMInput
 
       APPROVAL_CONFIGURATION_INIT_MUTEX = Mutex.new
       private_constant :APPROVAL_CONFIGURATION_INIT_MUTEX
@@ -48,7 +46,7 @@ module Phronomy
           if name
             @model = name
           else
-            @model || Phronomy.configuration.default_model
+            @model || Phronomy::Agent::Settings.current.default_model
           end
         end
 
@@ -129,18 +127,18 @@ module Phronomy
           end
         end
 
-        # Binds one Application-constructed ContextPolicy instance to this
+        # Binds one Application-constructed Phronomy::Context::ContextPolicy instance to this
         # Agent class. Policy binding is Application code/runtime wiring rather
         # than durable Agent state.
         def context_policy(*args)
           if args.empty?
             return @context_policy if instance_variable_defined?(:@context_policy)
             return superclass.context_policy if superclass.respond_to?(:context_policy)
-            return ContextPolicies::Default.instance
+            raise Phronomy::ConfigurationError, "Agent ContextPolicy has not been configured"
           end
-          unless args.length == 1 && args.first.is_a?(ContextPolicy)
+          unless args.length == 1 && args.first.is_a?(Phronomy::Context::ContextPolicy)
             raise ArgumentError,
-              "context_policy expects one Phronomy::Agent::ContextPolicy instance"
+              "context_policy expects one Phronomy::Context::ContextPolicy instance"
           end
 
           @context_policy = args.first
@@ -171,6 +169,7 @@ module Phronomy
           agent_id: SecureRandom.uuid,
           context: nil,
           knowledge: [],
+          retention: nil,
           persistence: nil,
           metadata: {},
           on_event: nil,
@@ -180,6 +179,7 @@ module Phronomy
             agent_id: agent_id,
             context: context,
             knowledge: knowledge,
+            retention: retention,
             persistence: persistence,
             metadata: metadata,
             on_event: on_event,
@@ -189,7 +189,7 @@ module Phronomy
 
         # Resolves one existing logical Agent. A live process-local owner wins
         # without a Persistence reload; otherwise the durable Agent is hydrated.
-        def load(agent_id, persistence:, on_event: nil, &event_block)
+        def load(agent_id, persistence:, on_event: nil, execution_wiring: {}, &event_block)
           raise ArgumentError, "persistence is required" unless persistence
           if on_event && event_block
             raise ArgumentError, "Provide either on_event: or a block, not both"
@@ -199,10 +199,9 @@ module Phronomy
           raise ArgumentError, "agent_id must not be empty" if key.empty?
 
           listener_supplied = !on_event.nil? || !event_block.nil?
-          runtime = Phronomy::Runtime.instance
           materialized = false
 
-          agent = OwnershipRegistry.for(runtime).load(key, expected_class: self) do |owner_runtime|
+          agent = OwnershipRegistry.current.load(key, expected_class: self) do |owner_runtime|
             materialized = true
             instance = __construct_owned_agent(
               owner_runtime,
@@ -210,6 +209,7 @@ module Phronomy
               agent_id: key,
               persistence: persistence,
               load_existing: true,
+              execution_wiring: execution_wiring,
               on_event: on_event,
               &event_block
             )
@@ -236,14 +236,14 @@ module Phronomy
           key = agent_id.to_s
           raise ArgumentError, "agent_id must not be empty" if key.empty?
 
-          OwnershipRegistry.existing_for(Phronomy::Runtime.instance)&.get(key, expected_class: self)
+          OwnershipRegistry.existing_current&.get(key, expected_class: self)
         end
 
         # Resolves the live Agent instance that currently owns execution_id in
         # this process. The Runtime returns only a read-only ownership view;
         # mutable Agent execution state remains EventLoop-owned.
         def live_for_execution(execution_id)
-          owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(execution_id)
+          owner = Phronomy::Agent::ExecutionRegistry.existing_current&.agent_execution_owner(execution_id)
           unless owner
             raise Phronomy::ExecutionRehydrationRequiredError,
               "no live execution owner for #{execution_id}; durable rehydration is required"
@@ -268,9 +268,15 @@ module Phronomy
         end
       end
 
+      # Bound at Agent construction; no execution may silently switch Runtime.
       # @api private
-      def __coordination_config
-        @_phronomy_coordination_config || {}.freeze
+      def __execution_environment
+        @_phronomy_runtime_owner || ExecutionEnvironment.current
+      end
+
+      # @api private
+      def __execution_wiring
+        @_phronomy_execution_wiring || {}.freeze
       end
 
       # Framework-owned idempotent Tool operations opt into exact replay.
@@ -279,16 +285,17 @@ module Phronomy
 
       # @api private
       def __framework_call?(name)
-        __framework_tool_replayable?(name) || Array(__coordination_config[:phronomy_handoff_bindings]).any? { |binding| binding.tool_name == name }
+        __framework_tool_replayable?(name) || Array(__execution_wiring[:phronomy_control_bindings]).any? { |binding| binding.tool_name == name }
       end
-
-      # Captured Tool wiring is supplied explicitly; this hook only writes semantic values.
-      # @api private
-      def __prepare_coordination_record(execution, tx:) = execution
 
       # Runtime configuration only; no value returned here is serialized.
       # @api private
       def __invocation_config(config) = config
+
+      def knowledge_snapshot = persistence.knowledge_snapshot(agent_id: agent_id)
+
+      # Listener inheritance is an explicit orchestration choice, not a private getter.
+      def event_listener = _phronomy_event_listener
 
       attr_reader :agent_id, :persistence
 
@@ -296,9 +303,11 @@ module Phronomy
         agent_id: nil,
         context: nil,
         knowledge: [],
+        retention: nil,
         persistence: nil,
         metadata: {},
         load_existing: false,
+        execution_wiring: {},
         on_event: nil,
         &event_block
       )
@@ -306,6 +315,11 @@ module Phronomy
           raise ArgumentError, "Provide either on_event: or a block, not both"
         end
         @_phronomy_event_listener = on_event || event_block
+        @_phronomy_execution_wiring = execution_wiring.dup.freeze
+        @initial_retention = retention
+        if retention && retention.agent_id != agent_id.to_s
+          raise ArgumentError, "retention must refer to the new Agent"
+        end
 
         reserved_agent_id = @_phronomy_reserved_agent_id
         effective_agent_id = if agent_id.nil?
@@ -337,9 +351,8 @@ module Phronomy
             "load_existing: is an internal hydration option; use .load(agent_id, persistence:)"
         end
 
-        runtime = Phronomy::Runtime.instance
         begin
-          OwnershipRegistry.for(runtime).create(effective_agent_id, expected_class: self.class) do |owner_runtime|
+          OwnershipRegistry.current.create(effective_agent_id, expected_class: self.class) do |owner_runtime|
             __prepare_runtime_owner!(owner_runtime, effective_agent_id)
             initialize_owned_state(
               agent_id: effective_agent_id,
@@ -427,7 +440,7 @@ module Phronomy
         runtime = @_phronomy_runtime_owner
         registry = OwnershipRegistry.for(runtime)
         token = registry.begin_purge(self)
-        if Phronomy::Agent::ExecutionRegistry.existing_for(runtime)&.agent_execution_admitted?(agent_id)
+        if runtime.existing_registry&.agent_execution_admitted?(agent_id)
           registry.abort_purge(self, token)
           raise Phronomy::AgentBusyError,
             "Agent #{agent_id.inspect} has a nonterminal top-level execution"
@@ -436,12 +449,11 @@ module Phronomy
         begin
           persistence.transaction do |tx|
             tx.executions.assert_idle!(agent_id)
-            if (routing = tx.handoff_states.load(agent_id))
-              unless routing.phase == "stable" && tx.executions.list_active(routing.active_agent_id).empty?
-                raise Phronomy::AgentBusyError, "Handoff anchor #{agent_id} owns an unfinished turn"
-              end
-              tx.handoff_states.delete(agent_id, expected_revision: routing.handoff_revision)
+            tx.guard_agent!(agent_id)
+            unless tx.retentions.list(agent_id).empty?
+              raise Phronomy::AgentBusyError, "Agent #{agent_id} is retained by durable coordination history"
             end
+            tx.cancellations.delete_for_agent(agent_id)
             tx.journals.delete(agent_id)
             tx.executions.delete_for_agent(agent_id)
             tx.agents.delete(agent_id)
@@ -560,7 +572,7 @@ module Phronomy
         load_existing:
       )
         @persistence = persistence ||
-          Phronomy.configuration.persistence ||
+          Phronomy::Agent::Settings.current.agent_store ||
           DefaultPersistence.build
         @agent_id = agent_id.to_s.freeze
 
@@ -607,7 +619,7 @@ module Phronomy
       def create_agent_root!(context:, knowledge:, metadata:)
         definition = self.class.agent_definition
         state_writer.create_root(
-          definition: definition, context: context, knowledge: knowledge, metadata: metadata
+          definition: definition, context: context, knowledge: knowledge, metadata: metadata, retention: @initial_retention
         )
       end
 
@@ -708,7 +720,7 @@ module Phronomy
       end
 
       def _check_event_loop_reentrancy(sync_method, async_method)
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError,
             "#{self.class.name}##{sync_method} cannot run on the EventLoop thread. " \
             "Use #{async_method} and return immediately."
@@ -721,12 +733,6 @@ module Phronomy
 
       def _fail_result_task(task, error)
         task.fail(error)
-      end
-
-      def _translated_error(error)
-        translate_and_reraise!(error)
-      rescue => translated
-        translated
       end
 
       def _deliver_stream_event(listener, event)
@@ -772,7 +778,7 @@ module Phronomy
       end
 
       def _warn_stream_callback_error(message)
-        logger = Phronomy.configuration.logger
+        logger = Phronomy::RuntimeSettings.current.logger
         unless logger
           _kernel_warn_safely(message)
           return
@@ -820,46 +826,34 @@ module Phronomy
         meta
       end
 
-      def _apply_runtime_projection_to_chat(chat, projection, invocation: nil)
-        if projection.system
-          apply_instructions(
-            chat,
-            projection.system,
-            cache: projection.model_config["cache_instructions"],
-            provider: projection.model_config["provider"]
-          )
+      def prepare_runtime_input(projection, invocation:)
+        tools = projection.tool_classes.map do |tool|
+          prepared = prepare_tool_class(tool, invocation: invocation)
+          prepared.is_a?(Class) ? prepared.new : prepared
         end
-        projection.tool_classes.each do |tool_class|
-          chat.with_tools(prepare_tool_class(tool_class, invocation: invocation))
-        end
-        projection.messages.each { |message| chat.messages << message }
-        chat
+        invocation.tools = tools.to_h { |tool| [tool.name.to_sym, tool] }.freeze
+        invocation.messages = projection.messages.dup
+        invocation
       end
 
-      def build_chat(model_config: nil)
-        config = model_config || {
-          "model" => self.class.model,
-          "provider" => self.class.provider,
-          "temperature" => self.class.temperature,
-          "max_output_tokens" => self.class.max_output_tokens
-        }
-        RuntimeChatBuilder.build(config)
+      def build_llm_request(projection, invocation:)
+        definitions = Phronomy::Tool::DefinitionSet.build(tools: invocation.tools.values).definitions
+        Phronomy::LLMAdapter::Request.new(
+          model_config: projection.model_config, system: projection.system,
+          messages: invocation.messages, tools: definitions, message: projection.ask_message
+        )
       end
 
       def build_instructions(input)
         instr = self.class.instructions
         case instr
-        when Phronomy::Agent::Context::Instruction::PromptTemplate
+        when Phronomy::Context::PromptTemplate
           vars = input.is_a?(Hash) ? input : {input: input}
           instr.format_system(**vars) || instr.format(**vars)
         when String then instr
         when Proc then instr.call(input)
         when nil then nil
         end
-      end
-
-      def apply_instructions(chat, text, cache: false, provider: nil)
-        RuntimeChatBuilder.apply_instructions(chat, text, cache: cache, provider: provider)
       end
 
       def extract_message(input)
@@ -882,6 +876,14 @@ module Phronomy
           raise Phronomy::TimeoutError, message
         end
         raise Phronomy::CancellationError, message
+      end
+
+      def tool_definition_set(additional_tools: [])
+        runtime_tools = (self.class.tools + Array(additional_tools)).freeze
+        Phronomy::Tool::DefinitionSet.build(
+          tools: runtime_tools.map { |tool| prepare_tool_class(tool) },
+          runtime_tools: runtime_tools
+        )
       end
 
       def prepare_tool_class(tool_class, invocation: nil)

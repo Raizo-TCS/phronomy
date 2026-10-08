@@ -146,9 +146,9 @@ RSpec.describe "Agent terminal stream callback error policy" do
     it "keeps the original Agent error when the :error callback also fails" do
       bad_chat = build_streaming_chat_for_policy(fake_response)
       allow(bad_chat).to receive(:ask)
-        .and_raise(Phronomy::TransportError, "provider failed")
+        .and_raise(Phronomy::LLMAdapter::TransportError, "provider failed")
       allow(bad_chat).to receive(:complete)
-        .and_raise(Phronomy::TransportError, "provider failed")
+        .and_raise(Phronomy::LLMAdapter::TransportError, "provider failed")
       allow(RubyLLM).to receive(:chat).and_return(bad_chat)
 
       callback_error = RuntimeError.new("error sink failed")
@@ -159,7 +159,7 @@ RSpec.describe "Agent terminal stream callback error policy" do
         }
       )
       expect { agent.stream_async("hello").wait_result }
-        .to raise_error(Phronomy::TransportError, "provider failed")
+        .to raise_error(Phronomy::LLMAdapter::TransportError, "provider failed")
     end
 
     it "uses Kernel.warn as fallback when the configured logger fails" do

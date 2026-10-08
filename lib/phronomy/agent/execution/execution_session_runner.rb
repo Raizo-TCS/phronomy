@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   module Agent
@@ -11,10 +11,9 @@ module Phronomy
     class ExecutionSessionRunner
       include Phronomy::Concurrency::WorkerInputRestricted
 
-      def initialize(runtime:, on_complete:)
+      def initialize(environment:, on_complete:)
         @on_complete = on_complete
-        @runtime = runtime
-        @event_loop = runtime.event_loop
+        @environment = environment
       end
 
       def register(session, result_task, source_name: "#{result_task.name}-source")
@@ -29,20 +28,19 @@ module Phronomy
             fsm_session_id: session.id
           )
         end
-        @event_loop.register(session, completion: source)
+        @environment.register_session(session, completion: source)
         session
       end
 
       def resume(invocation, result_task, resume_event:, resume_phase:,
         source_name: "#{result_task.name}-source")
         assert_event_loop!
-        session = AgentInvocationSessionBuilder.build_for_resume(
-          agent_invocation: invocation,
+        session = @environment.build_agent_session(
+          invocation: invocation,
           resume_event: resume_event,
-          resume_phase: resume_phase,
-          runtime: @runtime
+          resume_phase: resume_phase
         )
-        ExecutionRegistry.for(@event_loop).replace_agent_execution(
+        @environment.registry.replace_agent_execution(
           invocation.execution_id,
           invocation: invocation,
           fsm_session_id: session.id
@@ -58,20 +56,18 @@ module Phronomy
           resume_event: :resume, resume_phase: :suspended)
         invocation.tool_invocations.each do |child|
           session = if child.awaiting_approval?
-            ToolInvocationSessionBuilder.build_for_resume(
-              tool_invocation: child,
-              parent_event_sink: parent.event_sink,
+            @environment.build_tool_session(
+              invocation: child,
+              parent_sink: parent.event_sink,
               resume_event: approved ? :approve : :reject,
-              resume_phase: :awaiting_approval,
-              runtime: @runtime
+              resume_phase: :awaiting_approval
             )
           elsif !approved && child.authorized?
-            ToolInvocationSessionBuilder.build_for_resume(
-              tool_invocation: child,
-              parent_event_sink: parent.event_sink,
+            @environment.build_tool_session(
+              invocation: child,
+              parent_sink: parent.event_sink,
               resume_event: :cancel,
-              resume_phase: :authorized,
-              runtime: @runtime
+              resume_phase: :authorized
             )
           end
           register_child(child, session, parent.event_sink) if session
@@ -84,12 +80,11 @@ module Phronomy
           resume_event: :resume, resume_phase: :suspended,
           source_name: "framework-tool-recovery-source")
         invocation.tool_invocations.select(&:authorized?).each do |child|
-          session = ToolInvocationSessionBuilder.build_for_resume(
-            tool_invocation: child,
-            parent_event_sink: parent.event_sink,
+          session = @environment.build_tool_session(
+            invocation: child,
+            parent_sink: parent.event_sink,
             resume_event: :dispatch,
-            resume_phase: :authorized,
-            runtime: @runtime
+            resume_phase: :authorized
           )
           register_child(child, session, parent.event_sink)
         end
@@ -105,11 +100,11 @@ module Phronomy
           child.mark_framework_failed!(error)
           parent_event_sink.post(:tool_failed, {tool_invocation_id: child.id})
         end
-        @event_loop.register(session, completion: completion)
+        @environment.register_session(session, completion: completion)
       end
 
       def assert_event_loop!
-        return if @event_loop.current?
+        return if @environment.executing?
 
         raise Phronomy::Error, "Agent session registration must run on EventLoop"
       end

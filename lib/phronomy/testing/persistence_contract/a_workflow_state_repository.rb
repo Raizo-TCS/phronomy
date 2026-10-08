@@ -3,7 +3,7 @@
 require "securerandom"
 
 RSpec.shared_examples "a workflow state repository" do
-  let(:repository) { persistence.workflow_states }
+  let(:repository) { stores.workflow }
 
   def workflow_contract_value(hash, key)
     hash.key?(key) ? hash[key] : hash[key.to_s]

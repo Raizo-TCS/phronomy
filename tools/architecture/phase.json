@@ -1,5 +1,147 @@
 {
   "phase": "storage",
-  "completed_steps": ["P1", "P2", "P3", "P4"],
-  "pending_steps": ["P5"]
+  "completed_steps": [
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ],
+  "pending_steps": [
+    "P5"
+  ],
+  "r8_unit1": {
+    "status": "partial_spec_implementation",
+    "completed_scope": [
+      "Context and Tool common operations",
+      "Execution common framework and Engine binding"
+    ],
+    "pending_scope": [
+      "Persistence participation API and parent admission",
+      "Domain FSM connection decomposition",
+      "Remaining r8 domain regrouping",
+      "155 pair / 393 triangle semantic review"
+    ]
+  },
+  "r8_unit2": {
+    "status": "partial_spec_implementation",
+    "completed_scope": [
+      "Synchronous Persistence participation with savepoint/commit ownership",
+      "Parent-owned Team/subagent/Handoff reservation validation",
+      "Reservation locking and Handoff cancellation re-read"
+    ],
+    "pending_scope": [
+      "Persistence facade removal / composition separation",
+      "Parent result and authorization projections",
+      "Domain FSM connection decomposition",
+      "Workflow durable child protocol / persistence evidence",
+      "Remaining r8 domain regrouping and semantic dependency review"
+    ],
+    "postgresql_verification": {
+      "examples_commit": "70b7244c9f6542062849869a7106c5a627868a80",
+      "core_commit": "a82974a7fd2360a13af71831a0c3ddc75942fae3",
+      "run_id": 36690643058,
+      "status": "success on Ruby 3.2/3.3/3.4; 127 examples each"
+    }
+  },
+  "r8_unit3": {
+    "status": "partial_spec_implementation",
+    "completed_scope": [
+      "Neutral Persistence; shared facade removed",
+      "Domain-owned Agent/Team stores with injected record adapters",
+      "Application assembly and separate Workflow checkpoint port",
+      "Persistence failures and domain schemas consolidated",
+      "Team authorization uses immutable Agent public operation projection in the same scope",
+      "Team scheduling uses its own assignment history, not Agent journal_position"
+    ],
+    "pending_scope": [
+      "Subagent/Handoff and Orchestrator record/metadata ownership and public operations",
+      "Domain FSM connections",
+      "Workflow durable children and cross-record outcome evidence",
+      "Full semantic dependency review"
+    ]
+  },
+  "r8_unit5": {
+    "status": "contract_scope_implemented",
+    "completed_scope": [
+      "C10/C11 common operation templates and validation",
+      "Independent Embeddings namespace and Documents helpers",
+      "Runtime, RBS, public API and examples migration without aliases"
+    ],
+    "pending_scope": [
+      "Actual Pgvector / RedisSearch / embedding provider services",
+      "LLM/Tool SDK-neutral operation boundary",
+      "Domain FSM and Runtime connections",
+      "Workflow durable child protocol",
+      "Overall semantic dependency review"
+    ]
+  },
+  "r8_unit6": {
+    "status": "contract_scope_implemented",
+    "completed_scope": [
+      "C09 typed one-turn operations, usage and failures",
+      "Backend-local SDK initialization and Tool interception",
+      "C06 SDK-independent declarations and canonical schema validation",
+      "Agent/recovery use Phronomy values; RBS and examples migrated"
+    ],
+    "pending_scope": [
+      "Domain FSM and Runtime connections",
+      "Workflow durable child protocol",
+      "Live provider service verification",
+      "Overall semantic dependency review"
+    ]
+  },
+  "r8_unit7": {
+    "status": "scoped_agent_boundary_implemented",
+    "completed_scope": [
+      "Agent automatic/external transition policy and entry operations",
+      "Composition-owned Agent execution environment; Engine session binding",
+      "Agent recovery/cancellation retain their originating environment",
+      "Serial receiver lifecycle contract with Engine channel binding"
+    ],
+    "pending_scope": [
+      "Agent Tool child FSM and its Runtime connection",
+      "MultiAgent/Workflow FSM and Runtime connections",
+      "Workflow durable child protocol and outcome evidence",
+      "Full semantic dependency review"
+    ]
+  },
+  "r8_unit8": {
+    "status": "scoped_tool_child_boundary_implemented",
+    "completed_scope": [
+      "C04 Tool child transition policy and entry operations",
+      "Agent parent and Tool child FSM construction in runtime_binding",
+      "Authorization and default Tool work use the original execution environment",
+      "C06 operation dispatch, custom async protocol and result adaptation"
+    ],
+    "pending_scope": [
+      "MultiAgent/Workflow FSM and Runtime connections",
+      "Workflow durable child protocol and outcome evidence",
+      "Full semantic dependency review",
+      "Live provider verification and additional persistence acceptance gates"
+    ]
+  },
+  "r8_unit9": {
+    "status": "scoped_tool_result_transforms_corrected",
+    "completed_scope": [
+      "Application-defined Tool result transformation order and multiplicity preserved across standard async delegation"
+    ],
+    "pending_scope": [
+      "MultiAgent/Workflow Runtime connections",
+      "Workflow durable child protocol",
+      "Full semantic dependency review"
+    ]
+  },
+  "r8_unit10": {
+    "status": "scoped_multi_agent_boundary_implemented",
+    "completed_scope": [
+      "C01 owns coordination admission and Team identity without concrete Runtime selection",
+      "Composition-owned MultiAgent execution environment and Engine binding",
+      "Originating environment retained for Team cancellation and caller validity"
+    ],
+    "pending_scope": [
+      "Workflow Runtime connections and durable child protocol",
+      "MultiAgent default persistence composition and full semantic dependency review",
+      "Live provider and additional persistence acceptance gates"
+    ]
+  }
 }

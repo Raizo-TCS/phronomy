@@ -20,7 +20,7 @@ RSpec.describe "ACS-11 Tool authorization worker snapshot boundary" do
   end
 
   let(:tool_class) do
-    Class.new(Phronomy::Agent::Context::Capability::Base) do
+    Class.new(Phronomy::Tool::Base) do
       tool_name "snapshot_tool"
       description "Tool used by the ACS-11 authorization snapshot contract"
       param :value, type: :string, desc: "Input"
@@ -101,7 +101,7 @@ RSpec.describe "ACS-11 Tool authorization worker snapshot boundary" do
     end
     invocation = build_invocation(approval_policy: policy)
 
-    outcome = invocation.send(:evaluate_authorization)
+    outcome = Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, invocation.send(:authorization_command))
 
     expect(outcome.decision).to eq(:require_approval)
     expect(captured.agent_id).to eq("acs11-agent-instance")
@@ -270,7 +270,7 @@ RSpec.describe "ACS-11 Tool authorization worker snapshot boundary" do
       }
     )
     command = invocation.send(:authorization_command)
-    outcome = invocation.send(:evaluate_authorization)
+    outcome = Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, invocation.send(:authorization_command))
 
     expect(command.approval_context[:opaque]).to be(opaque)
     expect(captured_request.invocation_context[:opaque]).to be(opaque)

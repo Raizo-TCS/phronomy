@@ -8,7 +8,11 @@
 
 **Phronomy** is a Ruby AI agent framework for stateful Agents, Workflows, Tools,
 context management, filtering, tracing, and multi-agent coordination. Large Language
-Model (LLM) access is provided through [RubyLLM](https://github.com/crmne/ruby_llm).
+Model (LLM) operations use `Phronomy::LLMAdapter`; the default backend uses
+[RubyLLM](https://github.com/crmne/ruby_llm). Custom backends implement the
+[SDK-independent LLM contract](docs/migrations/r8-unit6.md).
+Tool declarations and argument validation belong to `Phronomy::Tool`, independently
+of the selected LLM backend.
 
 Phronomy is pre-1.0. Pin to a released gem version for production use rather than
 tracking `main` directly.
@@ -16,7 +20,7 @@ tracking `main` directly.
 ## Core concepts
 
 - **Agent** — stateful, persistence-backed LLM agent with canonical execution history.
-- **Persistence** — unified durable backend for Agent state and Workflow `workflow_states`.
+- **Persistence** — shared atomic scopes with domain-owned Agent/Team stores and Workflow checkpoints.
 - **Workflow** — state-machine-driven application workflow with explicit events and wait states.
 - **Tool / Capability** — callable application capability exposed to an Agent; application-defined Tools subclass `Phronomy::Tool::Base`.
 - **Multi-Agent Handoff** — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.
@@ -88,7 +92,7 @@ puts result[:output]
 ```
 
 `Phronomy::Tool::Base` is the public authoring name for the existing Tool base
-class. The legacy `Phronomy::Agent::Context::Capability::Base` constant remains
+class. The legacy `Phronomy::Tool::Base` constant remains
 valid for compatibility.
 
 For non-blocking top-level use, call `invoke_async` and keep the returned
@@ -155,6 +159,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [MCP client](docs/mcp-client.md) — Model Context Protocol (MCP) integration and supported schema subset.
 - [Migration from 0.15-era APIs](docs/migrations/0.15.md).
 - [0.16 cleanup migration](docs/migrations/0.16.md).
+- [r8 persistence boundary migration](docs/architecture/r8-unit3.md) — domain stores, shared scopes, and removed facade APIs.
 - [Persistence failure contract migration](docs/migrations/persistence-failure-contracts.md) — domain rescue clauses and unchanged raw backend errors.
 - [0.19 unified Persistence migration](docs/migrations/0.19.md).
 - [0.22 semantic Multi-Agent Handoff migration](docs/migrations/0.22.md).

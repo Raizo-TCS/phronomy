@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   module Concurrency
@@ -81,14 +81,12 @@ module Phronomy
           @submitted_at = submitted_at ||
             Process.clock_gettime(Process::CLOCK_MONOTONIC)
           @mutex = Mutex.new
-          @timer_subscriptions = Subscriptions.new
+          @timer_subscriptions = ResultSubscriptions.new
+          @cancellation_subscriptions = ResultSubscriptions.new
 
           # Explicit submit cancellation is operation-wide. Deadline-only tokens are
           # promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
-          @cancellation_callback = if @cancellation_token
-            -> { fire_cancellation! }
-          end
-          @cancellation_token&.on_cancel(&@cancellation_callback)
+          @cancellation_subscriptions.explicit_cancellation(@cancellation_token) { fire_cancellation! }
         end
 
         # @return [Boolean] true when caller-facing settlement has been claimed
@@ -293,13 +291,7 @@ module Phronomy
 
         def detach_submit_cancellation
           @timer_subscriptions.close
-          return unless @cancellation_token && @cancellation_callback
-
-          @cancellation_token.send(
-            :unregister_cancel_callback,
-            @cancellation_callback
-          )
-          @cancellation_callback = nil
+          @cancellation_subscriptions.close
         end
       end
       private_constant :Operation
@@ -384,7 +376,7 @@ module Phronomy
         full_timeout: nil,
         &block
       )
-        if Phronomy::Runtime.in_event_loop_context? && on_full != :raise
+        if Phronomy::WaitPolicy.blocking_forbidden? && on_full != :raise
           raise Phronomy::EventLoopReentrancyError,
             "OffloadPool admission cannot wait on EventLoop; use on_full: :raise"
         end
@@ -491,19 +483,42 @@ module Phronomy
         task
       end
 
-      # Gracefully drains the pool and terminates all worker threads.
-      # Waits up to +drain_timeout+ seconds for in-flight operations to finish.
+      # Close admission without waiting for worker termination. Already queued
+      # operations drain normally; running workers are never interrupted.
+      # @api private
+      def begin_shutdown
+        @shutdown = true
+        @queue.close
+        self
+      end
+
+      # Whether shutdown has closed admission and all workers have exited.
+      # Logical TaskResult settlement alone does not establish this fact.
+      # @api private
+      def terminated?
+        @shutdown && @workers.none?(&:alive?)
+      end
+
+      # Gracefully drains the pool and waits for worker threads to terminate.
+      # All workers share +drain_timeout+ or the supplied monotonic +deadline+.
+      # A deadline expiry leaves workers running; callers inspect terminated?.
       #
       # Closing the underlying SizedQueue signals workers to exit after draining
       # remaining items, without blocking on a full-queue push.
       #
       # @param drain_timeout [Numeric] seconds to wait for workers to finish
+      # @param deadline [Numeric, nil] absolute monotonic shutdown deadline
       # @return [self]
       # @api private
-      def shutdown(drain_timeout: 30)
-        @shutdown = true
-        @queue.close
-        @workers.each { |thread| thread.join(drain_timeout) }
+      def shutdown(drain_timeout: 30, deadline: nil)
+        deadline ||= Process.clock_gettime(Process::CLOCK_MONOTONIC) + drain_timeout
+        begin_shutdown
+        @workers.each do |thread|
+          remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          break if remaining <= 0
+
+          thread.join(remaining)
+        end
         self
       end
 

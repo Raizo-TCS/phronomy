@@ -48,7 +48,7 @@ RSpec.describe Phronomy::Configuration do
     end
 
     it "defaults persistence to nil and no longer exposes state_store" do
-      expect(config.persistence).to be_nil
+      expect(config.agent_store).to be_nil
       expect(config).not_to respond_to(:state_store)
       expect(config).not_to respond_to(:state_store=)
     end
@@ -72,9 +72,9 @@ RSpec.describe Phronomy::Configuration do
     end
 
     it "sets the unified Persistence backend" do
-      persistence = Phronomy::Persistence.in_memory
-      config.persistence = persistence
-      expect(config.persistence).to be(persistence)
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
+      config.agent_store = persistence
+      expect(config.agent_store).to be(persistence)
     end
 
     it "keeps explicitly assigned nil components instead of recreating defaults" do
@@ -152,22 +152,22 @@ RSpec.describe "Phronomy.configure" do
   end
 
   it "uses the global Persistence for Agents that do not inject another backend" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "global-persistence-agent", version: 1
     end
-    Phronomy.configure { |c| c.persistence = persistence }
+    Phronomy.configure { |c| c.agent_store = persistence }
 
     expect(klass.new.persistence).to be(persistence)
   end
 
   it "keeps an explicitly injected Agent Persistence ahead of the global backend" do
-    global = Phronomy::Persistence.in_memory
-    explicit = Phronomy::Persistence.in_memory
+    global = Phronomy::PersistenceComposition.in_memory.agent
+    explicit = Phronomy::PersistenceComposition.in_memory.agent
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "explicit-persistence-agent", version: 1
     end
-    Phronomy.configure { |c| c.persistence = global }
+    Phronomy.configure { |c| c.agent_store = global }
 
     expect(klass.new(persistence: explicit).persistence).to be(explicit)
   end

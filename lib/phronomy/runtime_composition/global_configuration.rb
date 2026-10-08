@@ -28,3 +28,11 @@ end
 # The provider yields only the Engine-facing value object, never Configuration.
 # It is intentionally lazy and follows reset_configuration!/with_configuration.
 Phronomy::RuntimeSettings.install_provider { Phronomy.configuration.__runtime_settings }
+
+# Domain accessors are lazy too. Each returns only the owning domain's values
+# or operation, never the application Configuration or a captured snapshot.
+Phronomy::Agent::Settings.install_provider { Phronomy.configuration.__agent_settings }
+Phronomy::WorkflowSettings.install_provider { Phronomy.configuration.__workflow_settings }
+Phronomy::Tool::Settings.install_provider { Phronomy.configuration.__tool_settings }
+Phronomy::Tracing::Settings.install_provider { Phronomy.configuration.__tracing_settings }
+Phronomy::MultiAgent::Store.install_configured_provider { Phronomy.configuration.multi_agent_store }

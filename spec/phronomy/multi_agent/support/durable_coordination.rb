@@ -7,11 +7,14 @@ RSpec.shared_context "durable coordination runtime" do
   # and Runtime. This models F4 without retaining any Agent/TaskResult/Class handles.
   class CoordinationFaultStore < Phronomy::Persistence
     attr_accessor :after_commit, :before_io
+    attr_reader :agent, :multi_agent
 
     def initialize
       super(backend: Phronomy::Storage::Backends::InMemory.new(resources: Phronomy::PersistenceComposition::StorageSchema.resources))
+      @agent = Phronomy::Agent::Store.new(coordinator: self, records: Phronomy::Agent::Persistence::Records)
+      @multi_agent = Phronomy::MultiAgent::Store.new(coordinator: self, records: Phronomy::MultiAgent::Persistence::Records, agent_store: @agent)
       owner = self
-      {contents => :fetch, executions => :load}.each do |repository, operation|
+      {@agent.contents => :fetch, @agent.executions => :load}.each do |repository, operation|
         repository.define_singleton_method(operation) do |*args|
           owner.check_io_thread!(operation)
           super(*args)
@@ -28,7 +31,7 @@ RSpec.shared_context "durable coordination runtime" do
       before_io&.call(operation)
     end
 
-    def transaction
+    def atomic
       check_io_thread!(:transaction)
       value = super { |tx| yield tx }
       hook = after_commit
@@ -91,6 +94,33 @@ RSpec.shared_context "durable coordination runtime" do
   def team_responses
     [LLMStub.tool_call_response("enqueue_task", {description: "task-one"}),
       LLMStub.tool_call_response("finalize", {}), "queued", "worker-result"]
+  end
+
+  # Inspect the phase and copy the checkpoint under the same backend lock.
+  # Concurrent after_commit hooks must not replace an already chosen checkpoint.
+  def unresolved_child_checkpoint(parent)
+    captured = nil
+    store.after_commit = proc do |backend|
+      backend.backend.transaction do
+        next if captured
+        run = backend.agent.runs(parent.agent_id).first
+        next unless run&.metadata&.dig("execution_extension", "state_ref")
+        extension = backend.agent.contents.fetch_json(run.metadata.fetch("execution_extension").fetch("state_ref"))
+        child_id = extension.fetch("children").first.fetch("execution_id")
+        begin
+          child = backend.agent.executions.load(child_id)
+          captured = backend.snapshot if run.active? && run.phase == :dispatching_tools && child.phase == :calling_llm
+        rescue Phronomy::Persistence::NotFoundError
+          nil
+        end
+      end
+    end
+    LLMStub.activate(responses: [LLMStub.tool_call_response("dispatch_to_worker", {input: "job"}), "child", "parent"])
+    parent.invoke("plan")
+    raise "Unresolved child checkpoint was not captured" unless captured
+    captured
+  ensure
+    store.after_commit = nil
   end
 
   def reboot(snapshot)

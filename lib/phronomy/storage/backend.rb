@@ -30,8 +30,9 @@ module Phronomy
       def self.validate_capabilities!(backend)
         capabilities = backend.respond_to?(:capabilities) ? backend.capabilities : {}
         missing = REQUIRED_CAPABILITIES.reject { |key, value| capabilities.is_a?(Hash) && capabilities[key] == value }
-        unless missing.empty? && backend.respond_to?(:view) && backend.respond_to?(:transaction)
-          raise UnsupportedBackendError, "Persistence requires Storage SPI 2: #{missing.keys.join(", ")}"
+        missing_methods = %i[view transaction transaction_open?].reject { |name| backend.respond_to?(name) }
+        unless missing.empty? && missing_methods.empty?
+          raise UnsupportedBackendError, "Persistence requires Storage SPI 2: #{(missing.keys + missing_methods).join(", ")}"
         end
       end
 
@@ -39,6 +40,11 @@ module Phronomy
       def capabilities
         REQUIRED_CAPABILITIES.transform_values { |value| (value == true) ? false : value }.freeze
       end
+
+      # Whether this synchronous context is already inside a backend transaction.
+      # Lets higher-level scopes reject claiming ownership of somebody else's commit.
+      # @api public
+      def transaction_open? = !current_view.nil?
 
       # All declared resources participate in one atomic transaction domain.
       # Record and stream revisions provide compare-and-swap conflict detection.

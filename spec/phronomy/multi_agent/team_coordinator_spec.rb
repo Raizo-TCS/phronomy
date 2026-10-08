@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:store) { Phronomy::PersistenceComposition.in_memory.multi_agent }
   let(:worker) do
     Class.new(Phronomy::Agent::Base) { agent_definition id: "team-unit-worker", version: 1 }
   end
@@ -48,7 +48,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     expect(definition.get("owned")).to equal(team)
     expect(definition.load("owned", persistence: store)).to equal(team)
     expect { definition.new(team_id: "owned", persistence: store) }.to raise_error(Phronomy::Persistence::ConflictError)
-    expect { definition.load("owned", persistence: Phronomy::Persistence.in_memory) }.to raise_error(Phronomy::ConfigurationError)
+    expect { definition.load("owned", persistence: Phronomy::PersistenceComposition.in_memory.multi_agent) }.to raise_error(Phronomy::ConfigurationError)
   end
 
   it "does not rebind a live Team listener" do
@@ -81,5 +81,38 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     run = other.send(:admit, "one")
     expect { team.cancel(run.team_execution_id) }.to raise_error(Phronomy::Persistence::ConflictError)
     expect(other.executions.first.metadata["cancel_requested"]).to be(false)
+  end
+
+  it "releases the external cancellation notification when a run completes" do
+    team = definition.create(persistence: store)
+    token = Phronomy::Concurrency::CancellationToken.new
+    allow(team).to receive(:next_run_action).and_return([:complete, nil])
+    team.invoke("empty plan", config: {cancellation_token: token})
+    expect(team.executions.first.status).to eq("completed")
+    expect(token.instance_variable_get(:@cancel_callbacks)).to be_empty
+    token.cancel!
+    expect(team.executions.first.metadata["cancel_requested"]).to be(false)
+  end
+
+  it "releases the external cancellation notification when a run raises" do
+    team = definition.create(persistence: store)
+    token = Phronomy::Concurrency::CancellationToken.new
+    error = RuntimeError.new("planning failed")
+    allow(team).to receive(:next_run_action).and_raise(error)
+    expect { team.invoke("plan", config: {cancellation_token: token}) }.to raise_error { |e| expect(e).to equal(error) }
+    expect(token.instance_variable_get(:@cancel_callbacks)).to be_empty
+    token.cancel!
+    expect(team.executions.first.metadata["cancel_requested"]).to be(false)
+  end
+
+  it "does not turn a deadline-only token into a Team cancellation notification" do
+    team = definition.create(persistence: store)
+    token = Phronomy::Concurrency::CancellationToken.timeout_after(-1)
+    allow(team).to receive(:next_run_action).and_return([:complete, nil])
+    expect(team.instance_variable_get(:@environment)).not_to receive(:submit)
+    team.invoke("empty plan", config: {cancellation_token: token})
+    expect(team.executions.first.status).to eq("completed")
+    expect(team.executions.first.metadata["cancel_requested"]).to be(false)
+    expect(token.instance_variable_get(:@cancel_callbacks)).to be_empty
   end
 end

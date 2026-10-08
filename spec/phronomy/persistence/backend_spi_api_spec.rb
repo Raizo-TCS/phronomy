@@ -3,15 +3,19 @@
 require "spec_helper"
 
 RSpec.describe "Persistence and Storage SPI 2 public contract" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
-  let(:backend) { persistence.backend }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
+  let(:backend) { persistence.coordinator.backend }
 
-  it "keeps domain repositories on Persistence and exposes neutral primitives on View" do
-    expect(persistence).to respond_to(:contents, :agents, :journals, :executions, :workflow_states,
-      :handoff_states, :teams, :team_executions, :transaction, :assert_agent_watermark!)
+  it "separates neutral transactions, domain records, and application composition" do
+    stores = Phronomy::PersistenceComposition.in_memory
+    expect(stores.coordinator).to respond_to(:atomic)
+    expect(stores.coordinator).not_to respond_to(:agents, :teams, :workflow_states, :execution_result, :transaction)
+    expect(Phronomy::Persistence).not_to respond_to(:in_memory)
+    expect(stores.agent).to respond_to(:result, :runs, :transaction, :participate)
+    expect(stores.agent).not_to respond_to(:teams, :team_executions, :workflow_states)
+    expect(stores.multi_agent).not_to respond_to(:agents, :executions, :workflow_states)
     expect(backend.view).to respond_to(:records, :streams, :blobs, :check!)
     expect(backend).not_to respond_to(:agents, :contents, :assert_agent_watermark!)
-    expect(persistence.capabilities).to eq(atomic_all: true, atomic_admission: true, optimistic_revision: true)
     expect(backend.capabilities).to eq(Phronomy::Storage::Backend::REQUIRED_CAPABILITIES)
     expect(backend.capabilities[:spi_version]).to eq(2)
   end

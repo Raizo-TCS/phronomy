@@ -11,81 +11,14 @@
   },
   "surfaces": {
     "Phronomy::Persistence": {
-      "agents": [],
-      "assert_agent_watermark!": [
-        [
-          "keyreq",
-          "agent_id"
-        ],
-        [
-          "keyreq",
-          "agent_revision"
-        ],
-        [
-          "keyreq",
-          "journal_position"
-        ]
-      ],
+      "atomic": [],
       "backend": [],
-      "capabilities": [],
-      "contents": [],
-      "execution_result": [
+      "bind": [
         [
           "req",
-          "execution_id"
+          "adapter"
         ]
-      ],
-      "executions": [],
-      "handoff_result": [
-        [
-          "req",
-          "execution_id"
-        ],
-        [
-          "key",
-          "main_agent_id"
-        ]
-      ],
-      "handoff_states": [],
-      "journals": [],
-      "list_executions": [
-        [
-          "req",
-          "agent_id"
-        ],
-        [
-          "key",
-          "after"
-        ],
-        [
-          "key",
-          "limit"
-        ]
-      ],
-      "list_team_executions": [
-        [
-          "req",
-          "team_id"
-        ],
-        [
-          "key",
-          "after"
-        ],
-        [
-          "key",
-          "limit"
-        ]
-      ],
-      "team_execution_result": [
-        [
-          "req",
-          "team_execution_id"
-        ]
-      ],
-      "team_executions": [],
-      "teams": [],
-      "transaction": [],
-      "workflow_states": []
+      ]
     },
     "Phronomy::Storage::Backend": {
       "capabilities": [],

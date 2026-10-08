@@ -21,11 +21,10 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
     end
   end
 
-  describe Phronomy::Agent::ToolCallIntercepted do
-    it "accepts nil llm_call_id (safe-navigation nil path)" do
-      tc = double("tc", id: "tc-1", name: "tool", arguments: {}, thought_signature: nil)
-      err = described_class.new([tc], llm_call_id: nil)
-      expect(err.instance_variable_get(:@llm_call_id)).to be_nil
+  describe Phronomy::Tool::CallRequest do
+    it "rejects an absent request identity" do
+      expect { described_class.new(id: nil, name: "tool", arguments: {}) }
+        .to raise_error(ArgumentError, /id and name/)
     end
   end
 
@@ -146,7 +145,7 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
     end
   end
 
-  describe "Phronomy::Agent::Handoff guard clauses" do
+  describe "Phronomy::MultiAgent::Handoff guard clauses" do
     class HandoffTestAgentA < Phronomy::Agent::Base
       agent_definition id: "handoff-test-a", version: 1
       model "test-model"
@@ -159,19 +158,19 @@ RSpec.describe "Coverage gap fill-in for small utility classes" do
       instructions "test"
     end
 
-    let(:persistence) { Phronomy::Persistence.in_memory }
+    let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
     let(:agent_a) { HandoffTestAgentA.new(persistence: persistence) }
     let(:agent_b) { HandoffTestAgentB.new(persistence: persistence) }
 
     it "raises when source and target are the same instance" do
       expect {
-        Phronomy::Agent::Handoff.new(source_agent: agent_a, target_agent: agent_a)
+        Phronomy::MultiAgent::Handoff.new(source_agent: agent_a, target_agent: agent_a)
       }.to raise_error(ArgumentError, /must be different instances/)
     end
 
     it "raises when policy is not a HandoffPolicy" do
       expect {
-        Phronomy::Agent::Handoff.new(
+        Phronomy::MultiAgent::Handoff.new(
           source_agent: agent_a,
           target_agent: agent_b,
           policy: "not-a-policy"

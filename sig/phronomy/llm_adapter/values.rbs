@@ -1,0 +1,43 @@
+module Phronomy
+  module LLMAdapter
+    class Request
+      attr_reader model_config: Hash[String, untyped]
+      attr_reader system: String?
+      attr_reader messages: Array[Message]
+      attr_reader tools: Array[Hash[String, untyped]]
+      attr_reader message: String?
+      def initialize: (?model_config: Hash[String | Symbol, untyped], ?system: String?, ?messages: Array[Message], ?tools: Array[Hash[String, untyped]], ?message: String?) -> void
+    end
+    class Message
+      attr_reader role: Symbol
+      attr_reader content: json_value
+      attr_reader tool_calls: Array[Tool::CallRequest]
+      attr_reader tool_call_id: String?
+      attr_reader metadata: Hash[String, json_value]
+      def initialize: (role: String | Symbol, ?content: json_value, ?tool_calls: Array[Tool::CallRequest], ?tool_call_id: String?, ?metadata: Hash[String, json_value]) -> void
+      def tool_call?: () -> bool
+      def content_present?: () -> bool
+      def to_h: () -> Hash[String, untyped]
+    end
+    class Response < Message
+      attr_reader usage: TokenUsage
+      def initialize: (?content: json_value, ?tool_calls: Array[Tool::CallRequest], ?usage: TokenUsage, ?metadata: Hash[String, json_value], ?role: String | Symbol) -> void
+      def self.from_h: (Hash[String | Symbol, untyped] value) -> Response
+      def to_h: () -> Hash[String, untyped]
+    end
+    class StreamChunk
+      attr_reader content: String?
+      def initialize: (content: String?) -> void
+    end
+    class InvalidResultError < Error
+    end
+    class TransportError < Error
+    end
+    class RateLimitError < TransportError
+    end
+    class AuthenticationError < TransportError
+    end
+    class ContextLengthError < Error
+    end
+  end
+end

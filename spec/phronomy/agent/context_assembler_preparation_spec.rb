@@ -3,12 +3,12 @@
 require "spec_helper"
 
 # These expectations also run on the implementation before private extraction.
-RSpec.describe Phronomy::Agent::ContextAssembler do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+RSpec.describe Phronomy::Agent::ContextPreparation do
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:policy) do
-    Class.new(Phronomy::Agent::ContextPolicy) do
+    Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
-        Phronomy::Agent::ContextPolicies::Default.instance.call(input)
+        Phronomy::Context::DefaultPolicy.instance.call(input)
       end
     end.new
   end
@@ -41,18 +41,18 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
     )
   end
   let(:patch) do
-    Phronomy::Agent::LLMInputPatch.new(segment_candidates: [
+    Phronomy::Context::LLMInputPatch.new(segment_candidates: [
       {content: {"fact" => "Hook knowledge"}, category: :knowledge, metadata: {"label" => "hook"}},
       {content: "Current hook instruction", category: :instruction}
     ])
   end
   let(:handoff) do
-    Phronomy::Agent::HandoffContext.new(
+    Phronomy::Agent::TransferContext.new(
       responsibility: "Continue the task",
-      items: [Phronomy::Agent::HandoffContext::Item.new(
+      items: [Phronomy::Agent::TransferContext::Item.new(
         candidate_category: :knowledge, policy_category: :knowledge,
         content: "Transferred knowledge", role: :user,
-        provenance: Phronomy::Agent::HandoffContext::Provenance.new(
+        provenance: Phronomy::Agent::TransferContext::Provenance.new(
           origin_agent_id: "source-agent", origin_record_id: "source-record"
         )
       )]
@@ -84,7 +84,7 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
   def prepare_initial(**overrides)
     assembler.prepare_initial(
       input: "Input supplied to the instruction callback", agent_root: root,
-      execution: execution, patch: patch, config: {phronomy_handoff_context: handoff},
+      execution: execution, patch: patch, config: {phronomy_transfer_context: handoff},
       **overrides
     )
   end
@@ -154,7 +154,7 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
 
   it "omits empty base instructions and an absent Handoff without omitting the current request" do
     allow(agent).to receive(:build_instructions).and_return(nil)
-    prepared = prepare_initial(config: {}, patch: Phronomy::Agent::LLMInputPatch.empty)
+    prepared = prepare_initial(config: {}, patch: Phronomy::Context::LLMInputPatch.empty)
     expect(prepared.input.instruction).to be_empty
     expect(prepared.input.conversation.flatten.count { |item| item.delivery == :ask_argument }).to eq(1)
     expect(events).to eq([[:records, %w[current working], ["current"]], :policy])
@@ -162,19 +162,19 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
 
   it "retains base instructions on follow-up and rebuilds current hooks and record candidates" do
     initial = prepare_initial
-    manifest, manifest_ref = assembler.finalize(initial)
+    manifest, manifest_ref = Phronomy::Context::Assembly.new.store(initial, contents: persistence.contents)
     call = Phronomy::Agent::LLMCallRecord.new(
       execution_id: execution.execution_id, sequence: 1, status: :completed,
       manifest_ref: manifest_ref, completed_at: "2026-01-01T00:00:00.000000Z"
     )
     next_execution = execution.with(execution_revision: 0, llm_calls: [call])
-    next_patch = Phronomy::Agent::LLMInputPatch.new(
+    next_patch = Phronomy::Context::LLMInputPatch.new(
       segment_candidates: [{content: "New hook instruction", category: :instruction}]
     )
     events.clear
     prepared = assembler.prepare_followup(
       base_manifest: manifest, agent_root: root, execution: next_execution,
-      patch: next_patch, config: {phronomy_handoff_context: handoff}
+      patch: next_patch, config: {phronomy_transfer_context: handoff}
     )
     expect([prepared.call_sequence, prepared.call_mode]).to eq([2, :complete])
     expect(prepared.input.previous_manifest).to equal(manifest)
@@ -194,17 +194,32 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
     prepared = prepare_initial
     expect(policy_inputs).to eq([prepared.input])
     # A separate service over the same backend supplies the commit transaction.
-    commit_service = Phronomy::Persistence.new(backend: persistence.backend)
+    commit_service = Phronomy::PersistenceComposition.build(backend: persistence.coordinator.backend).agent
     expect(policy).not_to receive(:call)
-    manifest, ref = commit_service.transaction { |tx| assembler.finalize(prepared, persistence: tx) }
+    manifest, ref = commit_service.transaction { |tx| Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents) }
     expect(manifest.call_mode).to eq(:ask)
     expect(manifest.assembly_policy_version).to eq(9)
     expect(persistence.contents.fetch_json(ref)).to eq(manifest.to_h)
     expect(manifest.segments.count { |segment| segment.delivery == :ask_argument }).to eq(1)
   end
 
+  it "rolls back the canonical manifest when the enclosing Agent commit fails without replaying policy" do
+    prepared = prepare_initial
+    expect(policy).not_to receive(:call)
+    manifest_ref = nil
+    failure = RuntimeError.new("Agent record write failed")
+    expect do
+      persistence.transaction do |tx|
+        _manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
+        raise failure
+      end
+    end.to raise_error { |error| expect(error).to equal(failure) }
+    expect(manifest_ref).not_to be_nil
+    expect(persistence.contents.exist?(manifest_ref)).to be(false)
+  end
+
   it "rejects reserved hook metadata before attempting to read a missing current input" do
-    invalid = Phronomy::Agent::LLMInputPatch.new(segment_candidates: [
+    invalid = Phronomy::Context::LLMInputPatch.new(segment_candidates: [
       {content: "hook", metadata: {"context_policy_origin" => "forged"}}
     ])
     no_input = execution.with(execution_revision: 0, metadata: {})
@@ -228,8 +243,8 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
 
   it "keeps Hook writes before the existing Handoff type error and does not invoke Policy" do
     invalid = Struct.new(:responsibility).new("Responsibility before type validation")
-    expect { prepare_initial(config: {phronomy_handoff_context: invalid}) }
-      .to raise_error(ArgumentError, "phronomy_handoff_context must be a HandoffContext")
+    expect { prepare_initial(config: {phronomy_transfer_context: invalid}) }
+      .to raise_error(ArgumentError, "phronomy_transfer_context must be a TransferContext")
     expect(events).to eq([
       [:records, %w[current working], ["current"]],
       [:put_json, {"fact" => "Hook knowledge"}], [:put_text, "Current hook instruction"]
@@ -247,24 +262,24 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
     ])
   end
   it "rejects a hook override of registry-owned context_window before policy selection" do
-    patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {context_window: 1000})
+    patch = Phronomy::Context::LLMInputPatch.new(model_config_patch: {context_window: 1000})
     expect { prepare_initial(patch: patch) }
-      .to raise_error(Phronomy::ConfigurationError, /RubyLLM model registry/)
+      .to raise_error(Phronomy::ConfigurationError, /LLM backend model metadata/)
     expect(policy_inputs).to be_empty
   end
 
   it "persists an explicit hook output cap without storing model capabilities" do
-    patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {max_output_tokens: "321"})
+    patch = Phronomy::Context::LLMInputPatch.new(model_config_patch: {max_output_tokens: "321"})
     prepared = prepare_initial(patch: patch)
-    manifest, manifest_ref = assembler.finalize(prepared)
+    manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: persistence.contents)
     config = persistence.contents.fetch_json(manifest.model_config_ref)
     expect(config["max_output_tokens"]).to eq(321)
     expect(config).not_to have_key("context_window")
 
-    expect(Phronomy::Agent::TokenBudgetResolver).not_to receive(:new)
+    expect(Phronomy.configuration.llm_adapter).not_to receive(:input_budget)
     expect(policy).not_to receive(:call)
     agent_class.max_output_tokens 999
-    projection = Phronomy::Agent::RubyLLMMaterializer.new(agent: agent, persistence: persistence)
+    projection = Phronomy::Agent::RuntimeInput.new(agent: agent, persistence: persistence)
       .materialize(manifest: manifest, manifest_ref: manifest_ref)
     expect(projection.model_config["max_output_tokens"]).to eq(321)
     expect(projection.manifest.segments).to eq(manifest.segments)
@@ -272,7 +287,7 @@ RSpec.describe Phronomy::Agent::ContextAssembler do
 
   [0, -1, false, "invalid"].each do |cap|
     it "rejects invalid output cap #{cap.inspect} supplied by a hook" do
-      patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {max_output_tokens: cap})
+      patch = Phronomy::Context::LLMInputPatch.new(model_config_patch: {max_output_tokens: cap})
       expect { prepare_initial(patch: patch) }.to raise_error { |error| expect([ArgumentError, TypeError]).to include(error.class) }
     end
   end

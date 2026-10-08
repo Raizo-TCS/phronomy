@@ -7,11 +7,12 @@ require "rbconfig"
 RSpec.describe "FSM dependency contract" do
   it "loads the session and compiles a terminal transition without a WorkflowRunner definition" do
     source = <<~RUBY
-      require "phronomy/execution_contract/fsm_protocol"
+      require "phronomy/engine/fsm_protocol"
       require "phronomy/engine/fsm_session"
-      require "phronomy/workflow/phase_machine_builder"
+      require "phronomy/workflow/completion"
+      require "phronomy/workflow/runtime_binding/workflow_phase_machine_builder"
 
-      builder = Phronomy::Workflow::PhaseMachineBuilder.new(
+      builder = Phronomy::WorkflowPhaseMachineBuilder.new(
         entry_point: :start,
         declared_states: [:start],
         wait_state_names: [],
@@ -19,7 +20,7 @@ RSpec.describe "FSM dependency contract" do
         entry_actions: {},
         exit_actions: {},
         auto_transitions: [
-          {from: :start, to: Phronomy::FSMProtocol::FINISH}
+          {from: :start, to: Phronomy::Workflow::Completion::FINISH}
         ]
       )
       machine = builder.build.new

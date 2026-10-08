@@ -10,9 +10,9 @@
 require "spec_helper"
 
 RSpec.describe "README API smoke tests (Issue #141)" do
-  describe "Phronomy::Agent::Context::Capability::Base DSL" do
+  describe "Phronomy::Tool::Base DSL" do
     it "supports the README quick-start Tool definition" do
-      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      klass = Class.new(Phronomy::Tool::Base) do
         description "Search the web"
         param :query, type: :string, desc: "Search query"
 
@@ -27,7 +27,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
     end
 
     it "supports nested properties on object params" do
-      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      klass = Class.new(Phronomy::Tool::Base) do
         description "nested"
         param :config, type: :object, desc: "config",
           properties: {
@@ -131,7 +131,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
 
   describe "Chain DSL" do
     it "supports PromptTemplate definition and invoke as shown in README" do
-      prompt = Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "Hello {{name}}")
+      prompt = Phronomy::Context::PromptTemplate.new(template: "Hello {{name}}")
       expect(prompt).to respond_to(:invoke)
       expect(prompt.format(name: "World")).to eq("Hello World")
     end
@@ -141,10 +141,10 @@ RSpec.describe "README API smoke tests (Issue #141)" do
     it "exposes all documented error classes" do
       expect(Phronomy::Error).to be < StandardError
       expect(Phronomy::ToolError).to be < Phronomy::Error
-      expect(Phronomy::TransportError).to be < Phronomy::Error
-      expect(Phronomy::RateLimitError).to be < Phronomy::TransportError
-      expect(Phronomy::AuthenticationError).to be < Phronomy::TransportError
-      expect(Phronomy::ContextLengthError).to be < Phronomy::Error
+      expect(Phronomy::LLMAdapter::TransportError).to be < Phronomy::Error
+      expect(Phronomy::LLMAdapter::RateLimitError).to be < Phronomy::LLMAdapter::TransportError
+      expect(Phronomy::LLMAdapter::AuthenticationError).to be < Phronomy::LLMAdapter::TransportError
+      expect(Phronomy::LLMAdapter::ContextLengthError).to be < Phronomy::Error
       expect(Phronomy::CancellationError).to be < Phronomy::Error
       expect(Phronomy::TimeoutError).to be < Phronomy::Error
     end

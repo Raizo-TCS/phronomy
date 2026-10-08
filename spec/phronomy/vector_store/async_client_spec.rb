@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe Phronomy::VectorStore::AsyncClient do
   let(:sync_backend) do
     Class.new(Phronomy::VectorStore::Base) do
-      def search(query_embedding:, k: 5, cancellation_token: nil)
+      def perform_search(query_embedding:, k: 5, cancellation_token: nil)
         []
       end
     end.new

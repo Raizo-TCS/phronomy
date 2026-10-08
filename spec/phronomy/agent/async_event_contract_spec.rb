@@ -157,7 +157,7 @@ RSpec.describe "Agent async event contract" do
         event_listener: ->(event) { event_types << event.type },
         mode: mode
       )
-      invocation.chat = double("Chat", messages: [])
+      invocation.messages = []
       tool_call = double("ToolCall")
 
       invocation.accept_tool_calls!([tool_call])
@@ -177,7 +177,7 @@ RSpec.describe "Agent async event contract" do
         event_listener: ->(event) { event_types << event.type },
         mode: mode
       )
-      invocation.chat = chat
+      invocation.messages = []
       invocation.tool_invocations = [
         double(
           "ToolInvocation",
@@ -288,10 +288,10 @@ RSpec.describe "Agent async event contract" do
   it "passes tracing InvocationContext without generic identity" do
     ic = Phronomy::InvocationContext.new(task_id: "ctx-task")
     captured_config = nil
-    allow(Phronomy::Agent::AgentInvocationSessionBuilder)
+    allow(Phronomy::Agent::EngineSessionBuilder)
       .to receive(:build)
       .and_wrap_original do |original, **kwargs|
-        captured_config = kwargs[:config]
+        captured_config = kwargs[:invocation].config
         original.call(**kwargs)
       end
     events = []

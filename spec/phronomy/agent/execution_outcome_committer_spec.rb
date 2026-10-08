@@ -3,7 +3,9 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:persistence) { stores.agent }
+  let(:wiring) { {} }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "outcome-contract", version: 1
@@ -40,14 +42,28 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       expected_execution_revision: execution.execution_revision, root: agent.agent_root,
       journal_records: [].freeze, execution: execution,
       runtime_snapshot: {llm_results: [].freeze, runtime_events: [].freeze, active_call: nil}.freeze,
-      terminal_view: view, state_required: true, **changes)
+      terminal_view: view, state_required: true, wiring: wiring, **changes)
   end
 
-  def lose_response
-    allow(persistence).to receive(:transaction).and_wrap_original do |original, &write|
-      original.call(&write)
-      raise IOError, "response lost after commit"
+  def lose_atomic_response(coordinator, skip: 0, &after_commit)
+    armed = true
+    allow(coordinator).to receive(:atomic).and_wrap_original do |original, &write|
+      result = original.call(&write)
+      if armed
+        if skip > 0
+          skip -= 1
+        else
+          armed = false
+          after_commit&.call
+          raise IOError, "response lost after commit"
+        end
+      end
+      result
     end
+  end
+
+  def lose_response(&after_commit)
+    lose_atomic_response(persistence.coordinator, &after_commit)
   end
 
   before do
@@ -118,38 +134,32 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       result = worker.commit_outcome(operation)
       expect(result.type).to eq(error ? :failed : :completed)
       expect(result.execution.execution_revision).to eq(execution.execution_revision + 1)
-      expect(persistence).to have_received(:transaction).once
+      expect(persistence.coordinator).to have_received(:atomic).at_least(:once)
       expect(result.root.to_h).to eq(persistence.agents.load(agent.agent_id).to_h)
-      if error
-        expect(result.error).to be_an_instance_of(Phronomy::Error)
-        expect(result.error.message).to eq("Phronomy::CancellationError: cancelled")
-      else
-        expect(result.result[:output]).to eq("answer")
-        # Readback retains the existing durable-result shape, not the live result shape.
-        expect(result.result).not_to have_key(:messages)
-      end
+      expect(result.error).to equal(error) if error
+      expect(result.result[:output]).to eq("answer") unless error
     end
   end
 
-  it "does not adopt a suspended response loss as a terminal success (F1)" do
+  it "recovers a suspended change by proving its entire saved state (F1)" do
     request = approval_request
     operation = command(terminal_view: view.with(phase: :suspended, approval_request: request))
     lose_response
-    expect { worker.commit_outcome(operation) }.to raise_error(IOError, /response lost/)
-    expect(persistence).to have_received(:transaction).once
+    expect(worker.commit_outcome(operation).type).to eq(:suspended)
+    expect(persistence.coordinator).to have_received(:atomic).at_least(:once)
     expect(persistence.executions.load(execution.execution_id).status).to eq(:suspended)
   end
 
   it "rolls back a transcript failure and does not attempt a second terminal transition" do
     operation = command
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **args|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **args|
       reader = original.call(**args)
       allow(reader).to receive(:materialize_journal_records).and_raise(IOError, "transcript unavailable")
       reader
     end
-    allow(persistence).to receive(:transaction).and_call_original
+    allow(persistence.coordinator).to receive(:atomic).and_call_original
     expect { worker.commit_outcome(operation) }.to raise_error(IOError, /transcript unavailable/)
-    expect(persistence).to have_received(:transaction).once
+    expect(persistence.coordinator).to have_received(:atomic).at_least(:once)
     expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
     expect(persistence.agents.load(agent.agent_id).to_h).to eq(operation.root.to_h)
     expect(persistence.journals.read(agent.agent_id, after: 0)).to be_empty
@@ -165,46 +175,58 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
     expect(persistence.agents.load(agent.agent_id).to_h).to eq(concurrent.to_h)
   end
 
-  it "propagates a readback failure without retrying an uncertain write (F1)" do
+  it "leaves an uncertain result recoverable when the full readback fails" do
     operation = command
-    lose_response
-    allow(persistence.executions).to receive(:load).and_raise(IOError, "readback unavailable")
-    expect { worker.commit_outcome(operation) }.to raise_error(IOError, /readback unavailable/)
-    expect(persistence).to have_received(:transaction).once
+    lose_response do
+      allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:load).and_raise(IOError, "readback unavailable")
+    end
+    expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError, /readback unavailable/)
   end
 
-  [:active, :wrong_agent, :wrong_revision].each do |mismatch|
-    it "does not adopt #{mismatch} as a confirmed terminal result (F1)" do
+  [:execution, :root, :journal].each do |mismatch|
+    it "rejects changed #{mismatch} contents after F1 even with the same revision" do
       operation = command
-      confirmed = execution.with(status: :completed)
-      confirmed = case mismatch
-      when :active then execution
-      when :wrong_agent then confirmed.with(agent_id: "other", execution_revision: confirmed.execution_revision)
-      else confirmed.with(execution_revision: confirmed.execution_revision + 1)
+      lose_response do
+        case mismatch
+        when :execution
+          allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:load).and_wrap_original do |original, id|
+            value = original.call(id)
+            value.with(execution_revision: value.execution_revision, metadata: {"changed" => true})
+          end
+        when :root
+          allow_any_instance_of(Phronomy::Agent::Persistence::AgentRepository).to receive(:load).and_wrap_original do |original, id|
+            value = original.call(id)
+            value.with(agent_revision: value.agent_revision, context_revision: value.context_revision + 1)
+          end
+        when :journal
+          allow_any_instance_of(Phronomy::Agent::Persistence::JournalRepository).to receive(:read).and_return([])
+        end
       end
-      allow(persistence).to receive(:transaction).and_raise(IOError, "unknown outcome")
-      allow(persistence.executions).to receive(:load).and_return(confirmed)
-      expect { worker.commit_outcome(operation) }.to raise_error(IOError, /unknown outcome/)
-      expect(persistence).to have_received(:transaction).once
+      expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
   end
 
-  it "uses terminal identity/revision rather than comparing a new intended payload (F1)" do
+  it "rejects reuse of an old command instead of accepting a matching terminal identity" do
     operation = command
     committed = worker.commit_outcome(operation)
-    allow(persistence).to receive(:transaction).and_raise(IOError, "response unavailable")
-    result = worker.commit_outcome(operation.with(terminal_view: view.with(rejected: true)))
-    expect(result.execution.to_h).to eq(committed.execution.to_h)
-    expect(result.execution.status).to eq(:completed)
-    expect(persistence).to have_received(:transaction).once
+    expect { worker.commit_outcome(operation.with(terminal_view: view.with(rejected: true))) }
+      .to raise_error(Phronomy::Persistence::ConflictError)
+    expect(persistence.executions.load(execution.execution_id).to_h).to eq(committed.execution.to_h)
   end
 
   context "owned child coordination" do
     let(:child_state) { "active" }
-    let(:metadata) do
-      {"multi_agent_coordination_ref" => persistence.contents.put_json(
-        "children" => [{"state" => child_state}]
-      )}
+    let(:binding) { Phronomy::Agent::ExecutionExtensionState.new(binding_key: "test.participant", binding_version: 1) }
+    let(:metadata) { {"execution_extension" => binding.to_h} }
+    let(:wiring) do
+      participant = double(binding: binding, guard_change: nil, change_evidence: child_state)
+      allow(participant).to receive(:commit) do |change|
+        stores.coordinator.atomic do |scope|
+          change.prepare_in(scope)
+          change.commit_in(scope, pending: child_state == "active" && change.cancel_requested)
+        end
+      end
+      {phronomy_execution_participant: participant}
     end
 
     it "retains an active child and cancellation intent in a nonterminal wait" do
@@ -212,10 +234,27 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       result = worker.commit_outcome(operation)
       expect(result.type).to eq(:coordination_wait)
       expect(result.execution.status).to eq(:active)
-      expect(result.execution.metadata["coordination_cancel_requested"]).to be(true)
+      expect(result.execution.metadata["cancellation_requested"]).to be(true)
       expect(result.error).to be_a(Phronomy::ExecutionRehydrationRequiredError)
       expect(result.root).to equal(operation.root)
       expect(result.appended_records).to be_empty
+    end
+
+    [false, true].each do |response_lost|
+      it "preserves cancellation recorded after command capture, response_lost=#{response_lost}" do
+        operation = command
+        expect(operation.terminal_view.cancel_requested).to be(false)
+        persistence.request_cancellation(agent_id: agent.agent_id, execution_id: execution.execution_id)
+        expect(persistence.executions.load(execution.execution_id).execution_revision).to eq(operation.expected_execution_revision)
+        lose_response if response_lost
+        result = worker.commit_outcome(operation)
+        expect(result.type).to eq(:coordination_wait)
+        expect(result.execution.metadata["cancellation_requested"]).to be(true)
+        expect(result.execution).to be_active
+        expect(result.execution.to_h).to eq(persistence.executions.load(execution.execution_id).to_h)
+        expect(operation.terminal_view.cancel_requested).to be(false)
+        expect(result.appended_records).to be_empty
+      end
     end
 
     it "adopts exactly the saved waiting record after response loss (F1)" do
@@ -224,18 +263,18 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       result = worker.commit_outcome(operation)
       expect(result.type).to eq(:coordination_wait)
       expect(result.execution.to_h).to eq(persistence.executions.load(execution.execution_id).to_h)
-      expect(persistence).to have_received(:transaction).once
+      expect(persistence.coordinator).to have_received(:atomic).at_least(:once)
     end
 
     it "rejects a different waiting payload even at the expected revision (F1)" do
       operation = command(terminal_view: view.with(cancel_requested: true))
-      lose_response
-      allow(persistence.executions).to receive(:load).and_wrap_original do |original, id|
-        saved = original.call(id)
-        saved.with(metadata: saved.metadata.merge("different" => true), execution_revision: saved.execution_revision)
+      lose_response do
+        allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:load).and_wrap_original do |original, id|
+          saved = original.call(id)
+          saved.with(metadata: saved.metadata.merge("different" => true), execution_revision: saved.execution_revision)
+        end
       end
-      expect { worker.commit_outcome(operation) }.to raise_error(IOError, /response lost/)
-      expect(persistence).to have_received(:transaction).once
+      expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
 
     context "a cancelled reservation" do
@@ -250,40 +289,42 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
   end
 
   context "Handoff persistence" do
-    let(:worker) { Phronomy::Agent::HandoffOutcomeCommitter.new(agent: agent, persistence: persistence) }
+    let(:wiring) do
+      {phronomy_execution_participant: Phronomy::MultiAgent::HandoffParticipant.new(persistence: stores.multi_agent,
+        main_agent_id: agent.agent_id, expected_revision: 1)}
+    end
     let(:target) { agent_class.create(agent_id: "handoff-target", persistence: persistence) }
     let(:routing) do
-      Phronomy::Agent::HandoffState.new(main_agent_id: agent.agent_id, handoff_revision: 1,
+      Phronomy::MultiAgent::HandoffState.new(main_agent_id: agent.agent_id, handoff_revision: 1,
         active_agent_id: agent.agent_id, active_handoff_context_ref: nil, phase: "stable",
         pending_source_execution_id: nil, pending_target_execution_id: nil,
         created_at: Time.now.utc.iso8601(6), updated_at: Time.now.utc.iso8601(6), metadata: {})
     end
     let(:manifest) do
-      Phronomy::Agent::LLMInputManifest.new(call_sequence: 1, call_mode: :complete, segments: [],
+      Phronomy::Context::LLMInputManifest.new(call_sequence: 1, call_mode: :complete, segments: [],
         model_config_ref: persistence.contents.put_json({}), assembly_policy_version: 7)
     end
     let(:metadata) do
       {"manifest_ref" => persistence.contents.put_json(manifest.to_h),
-       "coordination" => {"kind" => "handoff", "main_agent_id" => agent.agent_id,
-                          "handoff_revision" => routing.handoff_revision}}
+       "reservation" => {"kind" => "handoff", "main_agent_id" => agent.agent_id},
+       "execution_extension" => wiring.fetch(:phronomy_execution_participant).binding.to_h}
     end
     let(:request) do
-      described_class::HandoffTerminalView.new(target_agent_id: target.agent_id, responsibility: "Continue",
-        selection_intent: {}.freeze, llm_call_id: "call-1", tool_call_id: "tool-1",
-        policy: Phronomy::Values::Immutable.copy(Phronomy::Agent::HandoffPolicy.default.to_h))
+      Phronomy::Agent::ControlRequest.new(target_agent_id: target.agent_id, responsibility: "Continue",
+        selection: {current_request: true, history: true, knowledge: false, tool_exchanges: true}, llm_call_id: "call-1", tool_call_id: "tool-1")
     end
     let(:view) { super().with(handoff: request) }
 
-    before { persistence.handoff_states.save(agent.agent_id, expected_revision: nil, state: routing) }
+    before { stores.multi_agent.handoff_states.save(agent.agent_id, expected_revision: nil, state: routing) }
 
     it "atomically transfers routing, Context and Source to one deterministic Target ID" do
       operation = command
       result = worker.commit_outcome(operation)
-      transfer = persistence.handoff_states.load(agent.agent_id)
+      transfer = stores.multi_agent.handoff_states.load(agent.agent_id)
       target_id = "handoff-target-#{Digest::SHA256.hexdigest([execution.execution_id, target.agent_id].join("\0"))}"
       expect(result.type).to eq(:handed_off)
       expect(result.execution.status).to eq(:handed_off)
-      expect(result.execution.metadata["handoff_target_execution_id"]).to eq(target_id)
+      expect(result.execution.metadata.fetch("transfer_receipt")["target_execution_id"]).to eq(target_id)
       expect(transfer.pending_target_execution_id).to eq(target_id)
       expect(transfer.phase).to eq("target_pending")
       expect(transfer.active_agent_id).to eq(target.agent_id)
@@ -298,21 +339,43 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
     it "reuses Source transfer after F1 without rebuilding Context or advancing routing twice" do
       operation = command
       lose_response
-      allow(Phronomy::Agent::HandoffProjection).to receive(:new).and_call_original
+      allow(Phronomy::Agent::TransferProjection).to receive(:new).and_call_original
       result = worker.commit_outcome(operation)
       expect(result.type).to eq(:handed_off)
-      expect(Phronomy::Agent::HandoffProjection).to have_received(:new).once
-      expect(persistence).to have_received(:transaction).once
-      expect(persistence.handoff_states.load(agent.agent_id).handoff_revision).to eq(2)
+      expect(Phronomy::Agent::TransferProjection).to have_received(:new).once
+      expect(persistence.coordinator).to have_received(:atomic).at_least(:once)
+      expect(stores.multi_agent.handoff_states.load(agent.agent_id).handoff_revision).to eq(2)
     end
 
     it "rolls back transfer and Source when the Root save fails" do
       operation = command
       allow_any_instance_of(Phronomy::Agent::Persistence::AgentRepository).to receive(:save).and_raise(Phronomy::Persistence::ConflictError, "Root conflict")
       expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::Persistence::ConflictError)
-      expect(persistence.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
+      expect(stores.multi_agent.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
       expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
       expect(persistence.journals.read(agent.agent_id, after: 0)).to be_empty
+    end
+
+    {
+      content: [Phronomy::Persistence::ContentRepository, :put_json],
+      retention: [Phronomy::Agent::Persistence::RetentionRepository, :retain],
+      routing: [Phronomy::MultiAgent::Persistence::HandoffStateRepository, :save],
+      journal: [Phronomy::Agent::Persistence::JournalRepository, :append],
+      execution: [Phronomy::Agent::Persistence::ExecutionRepository, :save]
+    }.each do |point, (repository, method)|
+      it "rolls Source, routing and holds back after the #{point} write fails" do
+        operation = command
+        allow_any_instance_of(repository).to receive(method).and_wrap_original do |original, *args, **kwargs|
+          original.call(*args, **kwargs)
+          raise IOError, "injected after #{point}"
+        end
+        expect { worker.commit_outcome(operation) }.to raise_error(IOError, /injected/)
+        expect(stores.multi_agent.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
+        expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
+        expect(persistence.journals.read(agent.agent_id, after: 0)).to be_empty
+        expect(persistence.retained_references(agent_id: agent.agent_id)).to be_empty
+        expect(persistence.retained_references(agent_id: target.agent_id)).to be_empty
+      end
     end
 
     [:owner, :revision, :cancelled].each do |conflict|
@@ -323,15 +386,10 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
         when :cancelled then routing.with(metadata: {"cancelled_execution_ids" => [execution.execution_id]})
         else routing.with
         end
-        persistence.handoff_states.save(agent.agent_id, expected_revision: 1, state: newer)
-        if conflict == :cancelled
-          current = Phronomy::Agent::ExecutionMetadata.with_values(execution,
-            "coordination" => metadata.fetch("coordination").merge("handoff_revision" => 2))
-          operation = operation.with(execution: current)
-        end
+        stores.multi_agent.handoff_states.save(agent.agent_id, expected_revision: 1, state: newer)
         error_class = (conflict == :cancelled) ? Phronomy::CancellationError : Phronomy::Persistence::ConflictError
         expect { worker.commit_outcome(operation) }.to raise_error(error_class)
-        expect(persistence.handoff_states.load(agent.agent_id).to_h).to eq(newer.to_h)
+        expect(stores.multi_agent.handoff_states.load(agent.agent_id).to_h).to eq(newer.to_h)
         expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
       end
     end
@@ -340,21 +398,16 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       it "stabilizes Target routing in the same #{error ? "failure" : "completion"} transaction" do
         operation = command(terminal_view: view.with(handoff: nil, source_error: error))
         pending = routing.with(phase: "target_active", pending_target_execution_id: execution.execution_id)
-        persistence.handoff_states.save(agent.agent_id, expected_revision: 1, state: pending)
+        stores.multi_agent.handoff_states.save(agent.agent_id, expected_revision: 1, state: pending)
         result = worker.commit_outcome(operation)
         expect(result.type).to eq(error ? :failed : :completed)
-        expect(persistence.handoff_states.load(agent.agent_id).phase).to eq("stable")
+        expect(stores.multi_agent.handoff_states.load(agent.agent_id).phase).to eq("stable")
       end
     end
 
     it "does not acquire ordinary child-wait selection for a Handoff recovery error" do
       operation = command
-      reference = persistence.contents.put_json("children" => [{"state" => "active"}])
-      current = Phronomy::Agent::ExecutionMetadata.with_values(execution,
-        "multi_agent_coordination_ref" => reference)
-      operation = operation.with(execution: current,
-        terminal_view: view.with(source_error: Phronomy::ExecutionRehydrationRequiredError.new("recover")))
-      expect(persistence).not_to receive(:transaction)
+      operation = operation.with(terminal_view: view.with(source_error: Phronomy::ExecutionRehydrationRequiredError.new("recover")))
       expect { worker.commit_outcome(operation) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
 
@@ -364,18 +417,12 @@ RSpec.describe Phronomy::Agent::ExecutionOutcomeCommitter do
       operation = command(terminal_view: view.with(callback_failure: callback, phase: :suspended,
         source_error: Phronomy::ExecutionRehydrationRequiredError.new("recover")))
       expect(worker.commit_outcome(operation).error).to equal(failure)
-      expect(persistence.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
+      expect(stores.multi_agent.handoff_states.load(agent.agent_id).to_h).to eq(routing.to_h)
     end
   end
 
-  it "retains internal type paths and members while moving their canonical ownership" do
-    {HandoffTerminalView: :HandoffTerminalView, TerminalView: :TerminalView,
-     TerminalCommitCommand: :Command, TerminalOutcome: :Outcome}.each do |old_name, new_name|
-      expect(Phronomy::Agent::ExecutionCoordinator.const_get(old_name)).to equal(described_class.const_get(new_name))
-      expect(described_class.const_get(new_name).name).to eq("#{described_class.name}::#{new_name}")
-    end
-    expect(described_class::Command.members).to eq(%i[execution_id fsm_session_id expected_execution_revision
-      root journal_records execution runtime_snapshot terminal_view state_required])
-    expect(described_class::Outcome.members).to eq(%i[type execution root appended_records result error approval_request])
+  it "exposes one internal command including current participant wiring" do
+    expect(described_class::Command.members).to include(:wiring, :execution, :terminal_view)
+    expect(Phronomy::Agent.const_defined?(:HandoffOutcomeCommitter, false)).to be(false)
   end
 end

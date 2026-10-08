@@ -33,7 +33,7 @@ module Phronomy
       def transaction_async(cancellation_token: nil, timeout: nil, &operation)
         raise ArgumentError, "transaction_async requires a block" unless operation
 
-        default_pool.submit(timeout: timeout, cancellation_token: cancellation_token, on_full: :raise) do
+        Phronomy::Execution.submit(pool: default_pool, timeout: timeout, cancellation_token: cancellation_token, on_full: :raise) do
           @backend.transaction(&operation)
         end
       end
@@ -47,13 +47,13 @@ module Phronomy
       def self.submit(pool:, &operation)
         raise ArgumentError, "storage submit requires a block" unless operation
 
-        pool.submit(on_full: :raise, &operation)
+        Phronomy::Execution.submit(pool: pool, on_full: :raise, &operation)
       end
 
       private
 
       def default_pool
-        @pool || Phronomy::Runtime.instance.offload
+        @pool
       end
     end
   end

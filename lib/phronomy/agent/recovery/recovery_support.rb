@@ -15,17 +15,14 @@ module Phronomy
       end
 
       def normalize_provider_outcome(value)
-        return value if value.is_a?(Phronomy::Agent::ProviderCallOutcome)
+        return value if value.is_a?(Phronomy::LLMAdapter::Response)
 
         if value.is_a?(Hash)
-          return Phronomy::Agent::ProviderCallOutcome.from_h(value)
+          return Phronomy::LLMAdapter::Response.from_h(value)
         end
 
-        captured = Phronomy::Agent::ProviderCallOutcome.capture(value)
-        return captured if captured
-
         raise ArgumentError,
-          "LLM Recovery :succeeded requires a Provider result or ProviderCallOutcome-compatible Hash"
+          "LLM Recovery :succeeded requires an LLMAdapter::Response or its canonical Hash"
       end
 
       def resolution_failure(error)
@@ -47,7 +44,7 @@ module Phronomy
           execution_id: execution.execution_id,
           execution_revision: execution.execution_revision,
           reason: descriptor.fetch(:reason),
-          subject: Phronomy::Recovery.normalize_subject(
+          subject: Phronomy::Agent::RecoveryRules.normalize_subject(
             descriptor.fetch(:subject)
           ),
           allowed_outcomes: Array(
@@ -69,7 +66,7 @@ module Phronomy
             type: :llm_call,
             llm_call_id: llm_call_id
           },
-          allowed_outcomes: Phronomy::Recovery::OUTCOMES,
+          allowed_outcomes: Phronomy::Agent::RecoveryRules::OUTCOMES,
           facts: {
             manifest_ref: execution.metadata["manifest_ref"],
             call_sequence: execution.llm_calls.length + 1
@@ -103,7 +100,7 @@ module Phronomy
           allowed_outcomes: Array(
             recovery["allowed_outcomes"] ||
               recovery[:allowed_outcomes] ||
-              Phronomy::Recovery::OUTCOMES
+              Phronomy::Agent::RecoveryRules::OUTCOMES
           ).map(&:to_sym),
           facts: {
             tool_call_id: hash["tool_call_id"],
@@ -145,7 +142,7 @@ module Phronomy
             type: :tool_invocation,
             tool_invocation_id: first.fetch("tool_invocation_id")
           },
-          allowed_outcomes: Phronomy::Recovery::OUTCOMES,
+          allowed_outcomes: Phronomy::Agent::RecoveryRules::OUTCOMES,
           facts: {
             tool_call_id: first["tool_call_id"],
             tool_name: first["tool_name"],
@@ -194,7 +191,7 @@ module Phronomy
         end.freeze
       end
 
-      def build_recovery_hash(subjects, reason: :outcome_unknown, allowed_outcomes: Phronomy::Recovery::OUTCOMES)
+      def build_recovery_hash(subjects, reason: :outcome_unknown, allowed_outcomes: Phronomy::Agent::RecoveryRules::OUTCOMES)
         {
           "version" => ExecutionMetadata::CONTRACT_VERSION,
           "reason" => reason.to_s,

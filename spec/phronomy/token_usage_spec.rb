@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::TokenUsage do
+RSpec.describe Phronomy::LLMAdapter::TokenUsage do
   describe ".zero" do
-    it "returns a TokenUsage with all-zero counts" do
+    it "returns a LLMAdapter::TokenUsage with all-zero counts" do
       z = described_class.zero
       expect(z.input).to eq(0)
       expect(z.output).to eq(0)
@@ -13,33 +13,24 @@ RSpec.describe Phronomy::TokenUsage do
     end
   end
 
-  describe ".from_tokens" do
-    it "returns zero when tokens is nil" do
-      usage = described_class.from_tokens(nil)
-      expect(usage).to eq(described_class.zero)
+  describe "unknown and invalid usage" do
+    it "preserves unknown counts instead of reporting zero" do
+      expect(described_class.new.to_h.values).to all(be_nil)
     end
 
-    it "builds a TokenUsage from a RubyLLM::Tokens-like object" do
-      tokens = double("Tokens", input: 100, output: 50, cache_read: 20, cache_write: 5, to_h: {"input" => 100, "output" => 50, "cached" => 20, "cache_creation" => 5})
-      usage = described_class.from_tokens(tokens)
-      expect(usage.input).to eq(100)
-      expect(usage.output).to eq(50)
-      expect(usage.cached).to eq(20)
-      expect(usage.cache_creation).to eq(5)
+    it "rejects negative or non-integer counts" do
+      [-1, 1.5, "3"].each do |value|
+        expect { described_class.new(input: value) }.to raise_error(ArgumentError)
+      end
     end
 
-    it "treats nil fields as 0" do
-      tokens = double("Tokens", input: nil, output: nil, cache_read: nil, cache_write: nil)
-      usage = described_class.from_tokens(tokens)
-      expect(usage.input).to eq(0)
-      expect(usage.output).to eq(0)
-      expect(usage.cached).to eq(0)
-      expect(usage.cache_creation).to eq(0)
+    it "is immutable" do
+      expect(described_class.new(input: 1)).to be_frozen
     end
   end
 
   describe "#+" do
-    it "adds all fields of two TokenUsage objects" do
+    it "adds all fields of two LLMAdapter::TokenUsage objects" do
       a = described_class.new(input: 10, output: 5, cached: 2, cache_creation: 1)
       b = described_class.new(input: 20, output: 8, cached: 3, cache_creation: 0)
       sum = a + b

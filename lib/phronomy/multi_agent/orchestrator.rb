@@ -9,32 +9,42 @@ module Phronomy
       ParallelChild = Data.define(:index, :agent, :input, :config)
       private_constant :ParallelChild
 
-      # Own one live cancellation token shared with this invocation's static
-      # children, including when Recovery reconstructs the invocation.
-      # @api private
-      def __invocation_config(config)
-        config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)
+      attr_reader :coordination_store
+
+      def self.create(coordination_store: nil, **options, &block)
+        new(coordination_store: coordination_store, **options, &block)
       end
 
-      # Resumes retained static child coordination with current class wiring.
-      # @api public
-      def resume(execution_id, config: {})
-        if Phronomy::Runtime.in_event_loop_context?
-          raise Phronomy::EventLoopReentrancyError, "Orchestrator#resume cannot block EventLoop"
+      def self.load(agent_id, persistence:, coordination_store:, **options, &block)
+        participant = DurableSubagentCoordinator.new(agent_class: self, persistence: coordination_store)
+        super(agent_id, persistence: persistence, execution_wiring: {phronomy_execution_participant: participant}, **options, &block)
+      end
+
+      def initialize(coordination_store: nil, execution_wiring: {}, **options, &block)
+        @coordination_store = coordination_store || execution_wiring[:phronomy_execution_participant]&.persistence || Phronomy::MultiAgent::Store.configured
+        super(execution_wiring: execution_wiring, **options, &block)
+        if @coordination_store && !@coordination_store.agent_store.equal?(persistence)
+          raise Phronomy::ConfigurationError, "Orchestrator stores must share the same Agent store"
         end
-        execution = persistence.executions.load(execution_id)
-        raise Phronomy::Persistence::StateConflictError, "Parent execution owner mismatch" unless execution.agent_id == agent_id
-        input = persistence.contents.fetch_text(execution.metadata.fetch("current_input_ref"))
-        result = Phronomy::Agent::ExactExecution.start(agent: self, execution_id: execution_id, input: input, config: config).wait_result
-        raise Phronomy::Agent::RecoverySupport.error_from_failure(result[:error]) if result[:error]
-        result
+        @participant = @coordination_store && DurableSubagentCoordinator.new(agent_class: self.class, persistence: @coordination_store)
+      end
+
+      # Current composition, never serialized in an execution record.
+      def __invocation_config(config)
+        if !self.class.registered_subagents.empty? && !@participant
+          raise Phronomy::ConfigurationError, "Durable subagents require coordination_store:"
+        end
+        config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new,
+          phronomy_execution_participant: @participant).compact
       end
 
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
         # A subagent Tool is logically asynchronous: ToolInvocation starts the
         # child Agent and resumes when its completion TaskResult settles. It must not
         # occupy an OffloadPool worker while waiting for the child.
-        tool_class = Class.new(Phronomy::Tools::Agent) do
+        tool_class = Class.new(Phronomy::Tool::Base) do
+          execution_mode :cooperative
+          param :input, type: :string, desc: "The input to forward to the wrapped Agent"
           def self.__framework_owned_operation? = true
           tool_name "dispatch_to_#{name}"
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"
@@ -53,14 +63,17 @@ module Phronomy
           # cancelled: an already admitted child must be settled, not forgotten.
           define_method(:call_async) do |args, cancellation_token: nil, config: {}|
             if @_orchestrator_context&.fetch(:parent, nil) && config[:phronomy_tool_invocation_id]
-              validated, schema_error = send(:validate_and_coerce, args)
+              validated, schema_error = validate_arguments(args)
               raise Phronomy::ToolError, schema_error if schema_error
               execute_async(**validated, cancellation_token: cancellation_token, config: config)
             else
-              super(args, cancellation_token: cancellation_token, config: config)
+              call_async_operation(args, cancellation_token: cancellation_token,
+                operation_name: "agent-tool-#{self.name}") do |validated_args|
+                execute_async(**validated_args, cancellation_token: cancellation_token, config: config || {})
+              end
             end
           rescue => error
-            Phronomy::TaskResult.deferred(name: "subagent-dispatch-failed").tap { |task| task.fail(error) }
+            Phronomy::TaskResult.failed(error, name: "subagent-dispatch-failed")
           end
 
           define_method(:execute_async) do |input:, cancellation_token: nil, config: {}|
@@ -86,29 +99,25 @@ module Phronomy
             agent = agent_class.new
             if inherit_knowledge
               Array(ctx[:knowledge]).each do |entry|
-                agent.add_knowledge(entry.fetch(:content), metadata: entry.fetch(:metadata, {}))
+                agent.add_knowledge(entry.content, metadata: entry.metadata)
               end
             end
-            source = agent.invoke_async(input, config: task_config)
-            result_task = Phronomy::TaskResult.deferred(
-              name: "subagent-tool-#{name}"
-            )
-            source.on_complete do |result, error|
-              if error
-                (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
-              else
-                result_task.complete(result[:output])
-              end
+            Phronomy::AsyncOperation.call(name: "subagent-tool-#{name}",
+              on_error: ->(error) { raise error if on_error == :raise },
+              transform: ->(result) { result[:output] }) do
+              agent.invoke_async(input, config: task_config)
             end
-            result_task
           rescue => error
-            result_task ||= Phronomy::TaskResult.deferred(
-              name: "subagent-tool-#{name}"
-            )
-            (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
-            result_task
+            Phronomy::AsyncOperation.capture(name: "subagent-tool-#{name}",
+              on_error: ->(failure) { raise failure if on_error == :raise }) { raise error }
           end
-          private :execute_async
+          # Recovery requirements retain their Agent meaning across delegation.
+          def async_error_value(error)
+            raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+
+            super
+          end
+          private :execute_async, :async_error_value
         end
 
         @_subagent_tool_classes = (@_subagent_tool_classes || []) + [tool_class]
@@ -138,7 +147,7 @@ module Phronomy
         invocation_context: nil,
         inherit_knowledge: true
       )
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError,
             "dispatch_parallel cannot block the EventLoop; use dispatch_parallel_async"
         end
@@ -169,25 +178,17 @@ module Phronomy
           invocation_context: nil,
           inherit_knowledge: inherit_knowledge
         )
-        Phronomy::Execution.send(:__run_async, children,
+        Phronomy::Execution.run_async(children,
           timeout: timeout, cancellation_token: cancellation_token,
-          invocation_context: invocation_context, concurrency_limit: max_concurrency) do |child, execution|
-          # Preserve a child-specific context as well as this dispatch's controls.
-          # Agent admission adds that context's constraints to the supplied token.
-          binding = Phronomy::Concurrency::OperationBinding.new(
-            invocation_context: execution.invocation_context,
-            cancellation_token: child.config[:cancellation_token]
-          )
-          child_context = child.config[:invocation_context] ||
-            execution.invocation_context.merge(parent_task_id: invocation_context&.task_id)
-          begin
-            source = child.agent.invoke_async(child.input,
-              config: child.config.merge(cancellation_token: binding.token),
+          invocation_context: invocation_context, max_concurrency: max_concurrency) do |child, execution|
+          execution.start_child(
+            invocation_context: child.config[:invocation_context],
+            cancellation_token: child.config[:cancellation_token],
+            parent_task_id: invocation_context&.task_id
+          ) do |child_context, token|
+            child.agent.invoke_async(child.input,
+              config: child.config.merge(cancellation_token: token),
               invocation_context: child_context)
-            binding.track(source)
-          rescue
-            binding.close
-            raise
           end
         end.map do |outcomes|
           failure = outcomes.find { |outcome| outcome.status != :completed }
@@ -203,7 +204,7 @@ module Phronomy
         config: nil,
         inherit_knowledge: true
       )
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError,
             "subagent cannot block the EventLoop; use the async Agent API"
         end
@@ -219,12 +220,6 @@ module Phronomy
       # @api private
       def __framework_tool_replayable?(name)
         self.class.registered_subagents.keys.any? { |key| "dispatch_to_#{key}" == name.to_s }
-      end
-
-      # Reserve child identity/input/knowledge in the parent's existing Agent transaction.
-      # @api private
-      def __prepare_coordination_record(execution, tx:)
-        DurableSubagentCoordinator.prepare(self, execution, tx: tx)
       end
 
       private
@@ -263,16 +258,7 @@ module Phronomy
         end
       end
 
-      def active_knowledge_snapshot
-        journal_projection.context_records.filter_map do |record|
-          next unless record.kind == :knowledge
-
-          {
-            content: persistence.contents.fetch_text(record.content_ref),
-            metadata: (record.metadata || {}).dup.freeze
-          }.freeze
-        end.freeze
-      end
+      def active_knowledge_snapshot = knowledge_snapshot
 
       def build_subagent(agent_class, inherit_knowledge: true, knowledge_snapshot: nil)
         agent = agent_class.new
@@ -281,8 +267,8 @@ module Phronomy
         snapshot = knowledge_snapshot || active_knowledge_snapshot
         snapshot.each do |entry|
           agent.add_knowledge(
-            entry.fetch(:content),
-            metadata: entry.fetch(:metadata, {})
+            entry.content,
+            metadata: entry.metadata
           )
         end
         agent

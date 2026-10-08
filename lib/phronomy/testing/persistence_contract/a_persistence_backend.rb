@@ -27,26 +27,25 @@ RSpec.shared_examples "a Persistence backend" do
 
   it "advertises every required capability" do
     Phronomy::Storage::Backend::REQUIRED_CAPABILITIES.each do |name, required_value|
-      expect(persistence.backend.capabilities[name]).to eq(required_value)
+      expect(stores.coordinator.backend.capabilities[name]).to eq(required_value)
     end
   end
 
-  it "yields a transaction view that exposes the complete durable SPI" do
-    persistence.transaction do |tx|
-      expect(tx).to respond_to(
-        :contents,
-        :agents,
-        :journals,
-        :executions,
-        :workflow_states,
-        :handoff_states, :teams, :team_executions,
-        :assert_agent_watermark!
-      )
+  it "binds each domain to its own record protocol in one common scope" do
+    stores.coordinator.atomic do |scope|
+      stores.agent.participate(scope) do |records|
+        expect(records).to respond_to(:contents, :agents, :journals, :executions, :retentions, :cancellations, :assert_agent_watermark!)
+        expect(records).not_to respond_to(:teams, :team_executions, :workflow_states)
+      end
+      stores.multi_agent.participate(scope) do |records|
+        expect(records).to respond_to(:contents, :teams, :team_executions, :handoff_states)
+        expect(records).not_to respond_to(:agents, :executions, :workflow_states)
+      end
     end
   end
 
   it "returns the transaction block result" do
-    expect(persistence.transaction { |_tx| :contract_result }).to eq(:contract_result)
+    expect(stores.agent.transaction { |_tx| :contract_result }).to eq(:contract_result)
   end
 
   it "commits changes across durable repositories as one transaction" do
@@ -55,7 +54,7 @@ RSpec.shared_examples "a Persistence backend" do
     workflow_id = "workflow-#{SecureRandom.uuid}"
     content_id = nil
 
-    persistence.transaction do |tx|
+    stores.agent.transaction do |tx, scope|
       content_id = tx.contents.put_text("committed")
       tx.agents.create(root)
       appended = tx.journals.append(
@@ -73,11 +72,13 @@ RSpec.shared_examples "a Persistence backend" do
         ]
       )
       tx.executions.create_active(execution)
-      tx.workflow_states.save(
-        workflow_id,
-        expected_revision: nil,
-        snapshot: {fields: {value: "committed"}, phase: "pause"}
-      )
+      scope.participate(persistence: stores.coordinator, adapter: Phronomy::Workflow::Persistence::StateRepository) do |workflow|
+        workflow.save(
+          workflow_id,
+          expected_revision: nil,
+          snapshot: {fields: {value: "committed"}, phase: "pause"}
+        )
+      end
 
       updated_root = root.with(
         agent_revision: 1,
@@ -87,12 +88,12 @@ RSpec.shared_examples "a Persistence backend" do
       tx.agents.save(root.agent_id, expected_revision: 0, root: updated_root)
     end
 
-    expect(persistence.contents.exist?(content_id)).to be(true)
-    expect(persistence.agents.load(root.agent_id).agent_revision).to eq(1)
-    expect(persistence.journals.head(root.agent_id)).to eq(1)
-    expect(persistence.executions.load(execution.execution_id).execution_id)
+    expect(stores.agent.contents.exist?(content_id)).to be(true)
+    expect(stores.agent.agents.load(root.agent_id).agent_revision).to eq(1)
+    expect(stores.agent.journals.head(root.agent_id)).to eq(1)
+    expect(stores.agent.executions.load(execution.execution_id).execution_id)
       .to eq(execution.execution_id)
-    expect(persistence.workflow_states.load(workflow_id)).not_to be_nil
+    expect(stores.workflow.load(workflow_id)).not_to be_nil
   end
 
   it "rolls back all durable repositories when the transaction block raises" do
@@ -102,7 +103,7 @@ RSpec.shared_examples "a Persistence backend" do
     content_id = nil
 
     expect do
-      persistence.transaction do |tx|
+      stores.agent.transaction do |tx, scope|
         content_id = tx.contents.put_text("temporary-#{SecureRandom.uuid}")
         tx.agents.create(root)
         tx.journals.append(
@@ -120,32 +121,34 @@ RSpec.shared_examples "a Persistence backend" do
           ]
         )
         tx.executions.create_active(execution)
-        tx.workflow_states.save(
-          workflow_id,
-          expected_revision: nil,
-          snapshot: {fields: {value: "temporary"}, phase: "pause"}
-        )
+        scope.participate(persistence: stores.coordinator, adapter: Phronomy::Workflow::Persistence::StateRepository) do |workflow|
+          workflow.save(
+            workflow_id,
+            expected_revision: nil,
+            snapshot: {fields: {value: "temporary"}, phase: "pause"}
+          )
+        end
         raise "rollback-contract"
       end
     end.to raise_error("rollback-contract")
 
-    expect(persistence.contents.exist?(content_id)).to be(false)
+    expect(stores.agent.contents.exist?(content_id)).to be(false)
     expect do
-      persistence.agents.load(root.agent_id)
+      stores.agent.agents.load(root.agent_id)
     end.to raise_error(Phronomy::Persistence::NotFoundError)
-    expect(persistence.journals.head(root.agent_id)).to eq(0)
+    expect(stores.agent.journals.head(root.agent_id)).to eq(0)
     expect do
-      persistence.executions.load(execution.execution_id)
+      stores.agent.executions.load(execution.execution_id)
     end.to raise_error(Phronomy::Persistence::NotFoundError)
-    expect(persistence.workflow_states.load(workflow_id)).to be_nil
+    expect(stores.workflow.load(workflow_id)).to be_nil
   end
 
   it "accepts the current Agent revision and Journal position watermark" do
     root = backend_agent_root
-    persistence.agents.create(root)
+    stores.agent.agents.create(root)
 
     expect(
-      persistence.assert_agent_watermark!(
+      stores.agent.assert_agent_watermark!(
         agent_id: root.agent_id,
         agent_revision: root.agent_revision,
         journal_position: root.journal_position
@@ -155,12 +158,12 @@ RSpec.shared_examples "a Persistence backend" do
 
   it "raises ConflictError when the durable Agent revision has advanced" do
     root = backend_agent_root
-    persistence.agents.create(root)
+    stores.agent.agents.create(root)
     advanced = root.with(agent_revision: 1)
-    persistence.agents.save(root.agent_id, expected_revision: 0, root: advanced)
+    stores.agent.agents.save(root.agent_id, expected_revision: 0, root: advanced)
 
     expect do
-      persistence.assert_agent_watermark!(
+      stores.agent.assert_agent_watermark!(
         agent_id: root.agent_id,
         agent_revision: 0,
         journal_position: 0
@@ -170,8 +173,8 @@ RSpec.shared_examples "a Persistence backend" do
 
   it "raises ConflictError when the durable Journal position has advanced" do
     root = backend_agent_root
-    persistence.agents.create(root)
-    persistence.journals.append(
+    stores.agent.agents.create(root)
+    stores.agent.journals.append(
       root.agent_id,
       expected_position: 0,
       records: [
@@ -186,7 +189,7 @@ RSpec.shared_examples "a Persistence backend" do
     )
 
     expect do
-      persistence.assert_agent_watermark!(
+      stores.agent.assert_agent_watermark!(
         agent_id: root.agent_id,
         agent_revision: 0,
         journal_position: 0
@@ -196,13 +199,13 @@ RSpec.shared_examples "a Persistence backend" do
 
   it "rolls back earlier writes when a watermark precondition fails" do
     root = backend_agent_root
-    persistence.agents.create(root)
+    stores.agent.agents.create(root)
     advanced = root.with(agent_revision: 1)
-    persistence.agents.save(root.agent_id, expected_revision: 0, root: advanced)
+    stores.agent.agents.save(root.agent_id, expected_revision: 0, root: advanced)
     temporary_content_id = nil
 
     expect do
-      persistence.transaction do |tx|
+      stores.agent.transaction do |tx, scope|
         temporary_content_id = tx.contents.put_text(
           "watermark-rollback-#{SecureRandom.uuid}"
         )
@@ -214,6 +217,6 @@ RSpec.shared_examples "a Persistence backend" do
       end
     end.to raise_error(Phronomy::Persistence::ConflictError)
 
-    expect(persistence.contents.exist?(temporary_content_id)).to be(false)
+    expect(stores.agent.contents.exist?(temporary_content_id)).to be(false)
   end
 end

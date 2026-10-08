@@ -17,8 +17,8 @@ RSpec.describe Phronomy::LlmContextWindow::TokenEstimator do
     end
 
     context "with an Array of message-like objects" do
-      let(:msg1) { double("msg", content: "abcd") }   # 1 token
-      let(:msg2) { double("msg", content: "abcdefgh") } # 2 tokens
+      let(:msg1) { double("msg", role: :assistant, content: "abcd") }   # 1 token
+      let(:msg2) { double("msg", role: :assistant, content: "abcdefgh") } # 2 tokens
 
       it "sums the estimated tokens for each element" do
         expect(described_class.estimate([msg1, msg2])).to eq(3)
@@ -30,7 +30,7 @@ RSpec.describe Phronomy::LlmContextWindow::TokenEstimator do
     end
 
     context "with a message-like object" do
-      let(:msg) { double("msg", content: "hello world!") } # 12 chars -> ceil(12/4) = 3
+      let(:msg) { double("msg", role: :assistant, content: "hello world!") } # 12 chars -> ceil(12/4) = 3
 
       it "calls estimate on the content" do
         expect(described_class.estimate(msg)).to eq(3)
@@ -38,7 +38,7 @@ RSpec.describe Phronomy::LlmContextWindow::TokenEstimator do
     end
 
     context "with nil content" do
-      let(:msg) { double("msg", content: nil) }
+      let(:msg) { double("msg", role: :assistant, content: nil) }
 
       it "treats nil content as empty string" do
         expect(described_class.estimate(msg)).to eq(0)
@@ -72,7 +72,7 @@ RSpec.describe Phronomy::LlmContextWindow::TokenEstimator do
 
     it "custom tokenizer is applied when estimating an Array" do
       described_class.tokenizer = ->(text) { text.length }
-      msg = double("msg", content: "hi")
+      msg = double("msg", role: :assistant, content: "hi")
       expect(described_class.estimate([msg])).to eq(2)
     end
   end

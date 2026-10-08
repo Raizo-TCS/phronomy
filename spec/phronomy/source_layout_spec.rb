@@ -74,11 +74,11 @@ RSpec.describe "Responsibility-based source layout" do
 
   it "loads execution vocabulary alone and preserves its identity during eager application loading" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
-      require "phronomy/execution_contract/runnable"
-      require "phronomy/execution_contract/invocation_context"
-      require "phronomy/execution_contract/fsm_protocol"
-      require "phronomy/execution_contract/cancellation_error"
-      require "phronomy/execution_contract/concurrency/cancellation_token"
+      require "phronomy/execution/runnable"
+      require "phronomy/execution/invocation_context"
+      require "phronomy/engine/fsm_protocol"
+      require "phronomy/execution/cancellation_error"
+      require "phronomy/execution/concurrency/cancellation_token"
       marker = Phronomy::Concurrency::WorkerInputRestricted
       token_class = Phronomy::Concurrency::CancellationToken
       token = token_class.new.cancel!
@@ -92,7 +92,7 @@ RSpec.describe "Responsibility-based source layout" do
       abort "unexpected namespace" if Phronomy.const_defined?(:ExecutionContract, false) || Phronomy.const_defined?(:ExecutionServices, false)
       abort "default Runtime started" if Phronomy::Runtime.default_if_initialized_for_test
       location = Phronomy.const_source_location(:TaskResult).first
-      abort "service not moved" unless location.end_with?("/execution_services/task_result.rb")
+      abort "service not moved" unless location.end_with?("/execution/task_result.rb")
       agent = Phronomy::Agent::Base.allocate
       agent.send(:_check_event_loop_reentrancy, :invoke, :invoke_async)
       abort "guard started Runtime" if Phronomy::Runtime.default_if_initialized_for_test
@@ -128,7 +128,7 @@ RSpec.describe "Responsibility-based source layout" do
   it "loads the LLM SPI without its implementations or Engine" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/llm_adapter/base"
-      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[complete stream]
+      abort "async methods in SPI" unless Phronomy::LLMAdapter::Base.public_instance_methods(false).sort == %i[complete identity input_budget stream]
       abort "Engine initialized by SPI" if Phronomy.const_defined?(:Runtime, false)
       abort "implementation initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:RubyLLM, false)
       abort "client initialized by SPI" if Phronomy::LLMAdapter.const_defined?(:AsyncClient, false)
@@ -174,9 +174,8 @@ RSpec.describe "Responsibility-based source layout" do
   it "constructs neutral runtime settings without loading application configuration" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/configuration/runtime_settings"
-      tracer = Object.new
-      settings = Phronomy::RuntimeSettings.new(tracer: tracer)
-      abort "tracer identity lost" unless settings.tracer.equal?(tracer)
+      settings = Phronomy::RuntimeSettings.new
+      abort "Tool or Tracing settings leaked" if settings.respond_to?(:tool_result_max_size) || settings.respond_to?(:tracer) || settings.respond_to?(:trace_pii)
       abort "default pool settings changed" unless settings.offload_pool_size == 10 && settings.offload_queue_size == 100
       abort "application setting leaked" if settings.respond_to?(:llm_adapter) || settings.respond_to?(:before_llm_input)
       unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition|agent|llm_adapter|tracing)/})
@@ -203,6 +202,41 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
+  {"tool" => ["Tool", ""], "tracing" => ["Tracing", "tracer: nil"]}.each do |directory, (namespace, arguments)|
+    it "loads #{namespace} settings without composition, a backend or execution resources" do
+      stdout, stderr, status = isolated_ruby(<<~RUBY)
+        require "phronomy/#{directory}/settings"
+        settings_class = Phronomy::#{namespace}::Settings
+        settings = settings_class.new(#{arguments})
+        unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|runtime_composition|agent|llm_adapter|tracing|tool)/}).reject { |path| path.end_with?("/#{directory}/settings.rb") }
+        abort "concrete implementation loaded: \#{unexpected.inspect}" unless unexpected.empty?
+        begin
+          settings_class.current
+          abort "missing provider accepted"
+        rescue Phronomy::ConfigurationError
+        end
+        begin
+          settings_class.install_provider
+          abort "missing block accepted"
+        rescue ArgumentError
+        end
+        calls = 0
+        settings_class.install_provider { calls += 1; settings }
+        abort "provider evaluated during binding" unless calls == 0
+        abort "settings identity changed" unless settings_class.current.equal?(settings)
+        settings = settings_class.new(#{arguments})
+        abort "stale settings cached" unless settings_class.current.equal?(settings) && calls == 2
+        settings_class.install_provider { Object.new }
+        begin
+          settings_class.current
+          abort "application object accepted as domain settings"
+        rescue Phronomy::ConfigurationError
+        end
+      RUBY
+      expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
+    end
+  end
+
   it "constructs application configuration using supplied factories without concrete feature implementations" do
     stdout, stderr, status = isolated_ruby(<<~RUBY)
       require "phronomy/runtime_composition/configuration"
@@ -218,7 +252,7 @@ RSpec.describe "Responsibility-based source layout" do
       abort "tracer shared across configurations" if first.tracer.equal?(second.tracer)
       abort "adapter shared across configurations" if first.llm_adapter.equal?(second.llm_adapter)
       abort "scalar defaults changed" unless first.recursion_limit == 25 && second.trace_pii == false
-      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|llm_adapter|tracing)/})
+      unexpected = $LOADED_FEATURES.grep(%r{/phronomy/(engine|llm_adapter|tracing)/}).reject { |path| path.end_with?("/tracing/settings.rb") }
       abort "feature implementation loaded: \#{unexpected.inspect}" unless unexpected.empty?
     RUBY
 
@@ -240,10 +274,26 @@ RSpec.describe "Responsibility-based source layout" do
       abort "Runtime started by configuration or eager loading" if Phronomy::Runtime.default_if_initialized_for_test
       Phronomy.with_configuration do |scoped|
         scoped.offload_pool_size = 2
+        scoped.tool_result_max_size = 7
+        scoped.trace_pii = true
         abort "first scoped settings not visible" unless Phronomy::RuntimeSettings.current.offload_pool_size == 2
+        abort "Tool settings not visible" unless Phronomy::Tool::Settings.current.max_result_size == 7
+        abort "Tracing settings not visible" unless Phronomy::Tracing::Settings.current.trace_pii
       end
       abort "first scope did not restore the uninitialized state" if Phronomy.instance_variable_get(:@configuration)
       abort "lazy provider retained expired scoped settings" unless Phronomy::RuntimeSettings.current.offload_pool_size == 10
+      abort "Tool scope not restored" unless Phronomy::Tool::Settings.current.max_result_size.nil?
+      abort "Tracing scope not restored" unless Phronomy::Tracing::Settings.current.trace_pii == false
+      Phronomy.reset_configuration!
+      Phronomy.with_configuration do |scoped|
+        scoped.default_model = "scoped"
+        scoped.recursion_limit = 3
+        abort "Agent values not visible" unless Phronomy::Agent::Settings.current.default_model == "scoped"
+        abort "Workflow values not visible" unless Phronomy::WorkflowSettings.current.recursion_limit == 3
+        abort "unexpected MultiAgent fallback" unless Phronomy::MultiAgent::Store.configured.nil?
+      end
+      abort "Agent scope not restored" unless Phronomy::Agent::Settings.current.default_model.nil?
+      abort "Workflow scope not restored" unless Phronomy::WorkflowSettings.current.recursion_limit == 25
       abort "reading settings started Runtime" if Phronomy::Runtime.default_if_initialized_for_test
     RUBY
 
@@ -252,9 +302,9 @@ RSpec.describe "Responsibility-based source layout" do
 
   [
     "Phronomy::MultiAgent::SharedState",
-    "Phronomy::Workflow::PhaseMachineBuilder",
+    "Phronomy::WorkflowPhaseMachineBuilder",
     "Phronomy::Workflow::Persistence::Codec",
-    "Phronomy::Agent::ContextPolicy",
+    "Phronomy::Context::ContextPolicy",
     "Phronomy::Agent",
     "Phronomy::Persistence",
     "Phronomy::AgentBusyError"
@@ -268,7 +318,7 @@ RSpec.describe "Responsibility-based source layout" do
         require "phronomy"
         #{first_constant}
 
-        names = %w[Workflow WorkflowContext WorkflowRunner Agent Persistence Execution Event TokenUsage]
+        names = %w[Workflow WorkflowContext WorkflowRunner Agent Persistence Execution Event LLMAdapter::TokenUsage]
         originals = names.to_h { |name| [name, Phronomy.const_get(name)] }
         abort "Workflow ceased to be a class" unless Phronomy::Workflow.is_a?(Class)
         abort "Agent ceased to be a module" unless Phronomy::Agent.instance_of?(Module)
@@ -298,8 +348,8 @@ RSpec.describe "Responsibility-based source layout" do
       before = $LOADED_FEATURES.dup
       stores = [Phronomy::VectorStore::Base, Phronomy::VectorStore::InMemory,
         Phronomy::VectorStore::Pgvector, Phronomy::VectorStore::RedisSearch]
-      embeddings = [Phronomy::VectorStore::Embeddings::Base,
-        Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings]
+      embeddings = [Phronomy::Embeddings::Base,
+        Phronomy::Embeddings::RubyLLMEmbeddings]
       loaded = $LOADED_FEATURES - before
       abort "engine loaded by synchronous contracts" if loaded.any? { |p| p.include?("/phronomy/engine/") || p.end_with?("/phronomy/engine/runtime.rb") }
       abort "client loaded by synchronous contracts" if loaded.any? { |p| p.include?("/vector_store/") && p.end_with?("/async/async_client.rb") }
@@ -310,19 +360,19 @@ RSpec.describe "Responsibility-based source layout" do
     expect(status).to be_success, -> { "stdout:\n#{stdout}\nstderr:\n#{stderr}" }
   end
 
-  %w[Phronomy::VectorStore::AsyncClient Phronomy::VectorStore::Embeddings::AsyncClient].each do |first_constant|
+  %w[Phronomy::VectorStore::AsyncClient Phronomy::Embeddings::AsyncClient].each do |first_constant|
     it "preserves feature namespaces and backend identities with #{first_constant} loaded first" do
       stdout, stderr, status = isolated_ruby(<<~RUBY)
         require "phronomy"
         #{first_constant}
         names = %w[Phronomy::VectorStore::Base Phronomy::VectorStore::InMemory
           Phronomy::VectorStore::Pgvector Phronomy::VectorStore::RedisSearch
-          Phronomy::VectorStore::Embeddings::Base Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings
-          Phronomy::VectorStore::AsyncClient Phronomy::VectorStore::Embeddings::AsyncClient]
+          Phronomy::Embeddings::Base Phronomy::Embeddings::RubyLLMEmbeddings
+          Phronomy::VectorStore::AsyncClient Phronomy::Embeddings::AsyncClient]
         originals = names.to_h { |name| [name, Object.const_get(name)] }
         2.times { Zeitwerk::Loader.eager_load_all }
         originals.each { |name, value| abort "constant replaced: \#{name}" unless value.equal?(Object.const_get(name)) && value.name == name }
-        [Phronomy::VectorStore, Phronomy::VectorStore::Embeddings].each do |owner|
+        [Phronomy::VectorStore, Phronomy::Embeddings].each do |owner|
           abort "unexpected grouping namespace" if owner.const_defined?(:Async, false) || owner.const_defined?(:Backends, false)
         end
         abort "Runtime started by loading" if Phronomy::Runtime.default_if_initialized_for_test

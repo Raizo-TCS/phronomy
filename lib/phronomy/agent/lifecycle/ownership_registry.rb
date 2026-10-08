@@ -12,21 +12,16 @@ module Phronomy
       # Candidates have no side effects. Runtime retains the first registration.
       # Existing instances remain available for lookup and transition completion
       # after admission closes; their own gate rejects new ownership changes.
-      def self.for(runtime)
-        existing_for(runtime) || runtime.__register_shutdown_participant(
-          key: self, participant: new(runtime: runtime)
-        )
-      end
-
-      def self.existing_for(runtime)
-        runtime.__shutdown_participant(key: self)
-      end
+      def self.current = ExecutionEnvironment.current.ownership
+      def self.existing_current = ExecutionEnvironment.current.existing_ownership
+      def self.for(environment) = environment.ownership
+      def self.existing_for(environment) = environment.existing_ownership
 
       Entry = Data.define(:state, :agent, :token)
       private_constant :Entry
 
-      def initialize(runtime:)
-        @runtime = runtime
+      def initialize(environment:)
+        @environment = environment
         @mutex = Mutex.new
         @condition = ConditionVariable.new
         @entries = {}
@@ -38,7 +33,7 @@ module Phronomy
         token = reserve_create!(key)
 
         begin
-          agent = yield(@runtime)
+          agent = yield(@environment)
         rescue Phronomy::AgentAlreadyExistsError,
           Phronomy::Persistence::ConflictError,
           Phronomy::Persistence::NotFoundError,
@@ -98,7 +93,7 @@ module Phronomy
         end
 
         begin
-          agent = yield(@runtime)
+          agent = yield(@environment)
           publish_constructed!(
             key,
             token,
@@ -161,7 +156,7 @@ module Phronomy
           end
           @entries[key] = Entry.new(state: :purging, agent: agent, token: token)
         end
-        agent.send(:__mark_purging!, @runtime)
+        agent.send(:__mark_purging!, @environment)
         token
       end
 
@@ -170,7 +165,7 @@ module Phronomy
         @mutex.synchronize do
           entry = @entries[key]
           validate_purge_entry!(entry, agent, token, key)
-          agent.send(:__mark_purged!, @runtime)
+          agent.send(:__mark_purged!, @environment)
           @entries.delete(key)
           @condition.broadcast
         end
@@ -183,7 +178,7 @@ module Phronomy
         @mutex.synchronize do
           entry = @entries[key]
           validate_purge_entry!(entry, agent, token, key)
-          agent.send(:__restore_live_after_purge_abort!, @runtime)
+          agent.send(:__restore_live_after_purge_abort!, @environment)
           @entries[key] = Entry.new(state: :live, agent: agent, token: nil)
           @condition.broadcast
         end
@@ -197,7 +192,7 @@ module Phronomy
         key = normalize_agent_id(agent.agent_id)
         @mutex.synchronize do
           validate_purge_entry!(@entries[key], agent, token, key)
-          agent.send(:__mark_ownership_recovery_required!, @runtime)
+          agent.send(:__mark_ownership_recovery_required!, @environment)
           @entries[key] = Entry.new(
             state: :recovery_required,
             agent: agent,
@@ -239,7 +234,7 @@ module Phronomy
           @condition.broadcast
           owned
         end
-        agents.each { |agent| agent.send(:__release_runtime_owner!, @runtime) }
+        agents.each { |agent| agent.send(:__release_runtime_owner!, @environment) }
         true
       end
 
@@ -267,7 +262,7 @@ module Phronomy
             "constructed Agent identity mismatch: reserved #{key.inspect}, got #{agent.agent_id.inspect}"
         end
 
-        agent.send(:__bind_runtime_owner!, @runtime)
+        agent.send(:__bind_runtime_owner!, @environment)
         @mutex.synchronize do
           entry = @entries[key]
           unless entry&.state == :constructing && entry.token.equal?(token)
@@ -282,7 +277,7 @@ module Phronomy
         # :nocov:
         if fail_closed
           fail_construction_closed!(key, token, agent: agent)
-          agent&.send(:__mark_ownership_recovery_required!, @runtime)
+          agent&.send(:__mark_ownership_recovery_required!, @environment)
         else
           release_construction!(key, token)
         end

@@ -12,7 +12,7 @@ RSpec.describe "Shared value dependency boundary" do
       loaded_at_entry = $LOADED_FEATURES.dup
 
       facts = {"observed" => ["before"]}
-      classification = Phronomy::Recovery::Classification.new(
+      classification = Phronomy::Agent::RecoveryRules::Classification.new(
         disposition: :resumable, reason: :checkpoint, facts: facts
       )
       facts.fetch("observed") << "after"

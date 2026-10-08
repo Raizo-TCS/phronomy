@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Tool class configuration inheritance" do
-  let(:capability_base) { Phronomy::Agent::Context::Capability::Base }
+  let(:capability_base) { Phronomy::Tool::Base }
 
   def passthrough_filter
     Class.new(Phronomy::Filter::Base) do

@@ -4,7 +4,7 @@ require "securerandom"
 
 # This same opaque-record suite runs against InMemory, SQLite and PostgreSQL.
 RSpec.shared_examples "neutral storage primitives" do
-  let(:raw_backend) { persistence.backend }
+  let(:raw_backend) { stores.coordinator.backend }
   let(:raw_view) { raw_backend.view }
   let(:raw_schema) { Phronomy::Agent::Persistence::StorageSchema }
   let(:raw_record) { Phronomy::Storage::DurableRecord.new(record_type: "unrelated.envelope", format_version: "0.1", payload: {"status" => "ignored"}) }

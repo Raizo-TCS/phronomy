@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::ToolDefinitionSet do
+RSpec.describe Phronomy::Tool::DefinitionSet do
   describe ".normalize" do
     subject(:normalize) { described_class.method(:normalize) }
 
@@ -43,7 +43,7 @@ RSpec.describe Phronomy::Agent::ToolDefinitionSet do
         tools selected_tool => nil
       end.allocate
     end
-    let(:definitions) { described_class.build(agent) }
+    let(:definitions) { agent.send(:tool_definition_set) }
 
     it "records the actual arguments and provider options, with an immutable round trip" do
       saved = definitions.definitions
@@ -53,7 +53,7 @@ RSpec.describe Phronomy::Agent::ToolDefinitionSet do
       expect(schema["required"]).to include("query")
       expect(saved.first["provider_options"]).to eq("strict" => true)
       persisted = Phronomy::CanonicalJSON.load(Phronomy::CanonicalJSON.dump(saved))
-      expect(described_class.build(agent).select_definitions(persisted).definitions).to eq(saved)
+      expect(agent.send(:tool_definition_set).select_definitions(persisted).definitions).to eq(saved)
     end
 
     [:type, :required, :enum, :provider_options].each do |change|
@@ -65,7 +65,7 @@ RSpec.describe Phronomy::Agent::ToolDefinitionSet do
         when :enum then tool.param :query, type: :string, enum: ["third"]
         when :provider_options then tool.provider_options strict: false
         end
-        expect { described_class.build(agent).select_definitions(saved) }
+        expect { agent.send(:tool_definition_set).select_definitions(saved) }
           .to raise_error(Phronomy::ConfigurationError, /definition changed/)
       end
     end

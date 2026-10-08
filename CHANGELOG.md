@@ -12,6 +12,22 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### r8 first implementation unit (breaking, unreleased)
+
+- Move Context policy/plan/manifest/budget/prompt operations into `Phronomy::Context`.
+  Agent retains snapshot, journal and lifecycle ownership. Manifest and execution
+  references remain written within the same transaction.
+- Make `Tool::Base` the actual implementation; move common definition and
+  authorization operations into Tool. Remove the old Agent Context namespace.
+- Move chat construction and SDK failure translation into the LLM adapter.
+  Custom synchronous adapters must implement the expanded construction SPI.
+- Unite execution contracts and services in `execution/`; move FSM values and
+  scheduling bindings to Engine, observation to Tracing. Keep result/control
+  rules independent of Engine startup. Update Ruby/RBS analysis and diagrams.
+- Remove empty contract-only subdivisions and old API aliases. This unit does
+  not complete r8 Persistence, parent admission or all domain FSM separation.
+  See [the scope and migration report](docs/architecture/r8-unit1.md).
+
 ### Changed
 
 - Add public Beta `Storage::AsyncClient#transaction_async` and route 16 existing

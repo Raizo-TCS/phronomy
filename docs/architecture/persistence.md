@@ -9,9 +9,11 @@
 
 ## 1. Durable boundary
 
-`Phronomy::Persistence` is the domain-facing service for the single durable-state
-transaction domain used by Agents, Teams, and Workflows. It composes a
-`Storage::Backend`; storage implementations do not inherit the domain service.
+`Phronomy::Persistence` owns domain-neutral atomic scopes over a `Storage::Backend`.
+`Agent::Store` and `MultiAgent::Store` own domain operations and result queries;
+Workflow consumes its checkpoint repository directly. These roles share a
+coordinator when operations must commit together. Storage implementations do not
+inherit a domain service. See [r8 unit 3](r8-unit3.md) for construction and migration.
 
 The `storage/` directory owns record carriers, portable errors, repository views,
 and the Backend contract. `storage/backends/` owns physical storage implementations.
@@ -27,14 +29,15 @@ digest identity and uses the injected view's Blobs. Its StorageSchema belongs
 to this service. Storage owns byte immutability, transactions and physical I/O.
 The service and its schema live together; there is no `content_store/backends/`
 directory or backend-selection API. See [ADR-062](../decisions/062-content-store-service.md).
-The public `Phronomy::Persistence` entry point delegates to those components and
-retains its observation-thread guard.
-The root and transaction paths use the same facade construction, with transaction
-facades bound to the raw backend view for that transaction.
+Domain stores receive their record adapters from `PersistenceComposition` and
+retain their observation-thread guards. The common Persistence does not select
+domains, assemble repositories, or delegate domain result queries. Domain-only
+record protocols bind to the exact scope when participating; there is no shared
+all-domain repository facade.
 See [ADR-032](../decisions/032-storage-backend-composition.md) and
 [ADR-033](../decisions/033-domain-persistence-ownership.md).
 
-`persistence/contract/` owns independent domain-facing failure classes. Repository
+`persistence/errors.rb` owns the shared domain-facing failure classes. Repository
 boundaries translate four known raw Storage categories to Persistence categories,
 retaining the original exception as `cause`. Upper domain state contradictions
 use `Persistence::StateConflictError < Persistence::ConflictError`. Unknown and
@@ -56,7 +59,7 @@ does not change record formats, transaction ownership, or recovery guarantees.
 | `agents` | AgentRoot |
 | `journals` | Append-only Agent journal |
 | `executions` | AgentExecution and owned child coordination |
-| `workflow_states` | Workflow snapshots |
+| Workflow checkpoint repository | Workflow snapshots |
 | `handoff_states` | Active responsibility and exact Target reservation |
 | `teams` | TeamRoot |
 | `team_executions` | Team tasks, assignments and outcomes |

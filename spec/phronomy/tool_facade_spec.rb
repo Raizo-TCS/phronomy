@@ -2,10 +2,10 @@
 
 require "spec_helper"
 
-RSpec.describe "Phronomy::Tool public authoring façade" do
-  it "is the exact same Class as the existing Capability::Base" do
-    expect(Phronomy::Tool::Base)
-      .to equal(Phronomy::Agent::Context::Capability::Base)
+RSpec.describe "Phronomy::Tool domain framework" do
+  it "owns the real implementation and removes the former Agent namespace" do
+    expect(Phronomy::Tool::Base.name).to eq("Phronomy::Tool::Base")
+    expect(Phronomy::Agent.const_defined?(:Context, false)).to be(false)
   end
 
   it "supports the existing Tool DSL when subclassed through the façade" do
@@ -30,6 +30,6 @@ RSpec.describe "Phronomy::Tool public authoring façade" do
 
   it "keeps the implementation Class name intentionally canonical" do
     expect(Phronomy::Tool::Base.name)
-      .to eq("Phronomy::Agent::Context::Capability::Base")
+      .to eq("Phronomy::Tool::Base")
   end
 end

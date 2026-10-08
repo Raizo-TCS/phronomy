@@ -109,7 +109,7 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     end
 
     task = Phronomy::TaskResult.deferred(name: "automatic-tracing-test")
-    usage = Phronomy::TokenUsage.new(input: 3, output: 4)
+    usage = Phronomy::LLMAdapter::TokenUsage.new(input: 3, output: 4)
     Phronomy::Tracing::Automatic.observe_task(
       task,
       "agent.execution",
@@ -168,7 +168,7 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
   it "keeps automatic coverage on logical operations instead of blocking facade wrappers" do
     async_api = File.read(File.join(root, "lib/phronomy/agent/async_event_api.rb"))
     coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
-    llm = File.read(File.join(root, "lib/phronomy/agent/execution/agent_invocation_session_builder.rb"))
+    llm = File.read(File.join(root, "lib/phronomy/agent/execution/invocation_actions.rb"))
     tool = File.read(File.join(root, "lib/phronomy/agent/tool_execution/tool_invocation.rb"))
     workflow = File.read(File.join(root, "lib/phronomy/workflow/execution/workflow_runner.rb"))
     multi = File.read(File.join(root, "lib/phronomy/multi_agent/handoff_runner.rb"))
@@ -200,11 +200,11 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     }
     Timeout.timeout(3) { started.pop }
     queued = Phronomy::Blocking.call_async { :queued }
-    allow(Phronomy::Runtime).to receive(:in_event_loop_context?).and_return(true)
+    allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_return(true)
     handle = Phronomy::Tracing::Automatic.start("full-pool")
     expect(Phronomy::Tracing::Automatic.finish(handle, output: "original")).to be_nil
     expect(logger).to have_received(:warn).with(/automatic tracing finish failed.*BackpressureError/).once
-    allow(Phronomy::Runtime).to receive(:in_event_loop_context?).and_call_original
+    allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_call_original
     release << true
     running.wait_result(timeout: 3)
     expect(queued.wait_result(timeout: 3)).to eq(:queued)
@@ -214,8 +214,8 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
 
   it "removes the unused InvocationContext tracer_span API without adding a replacement trace context" do
     invocation_context =
-      File.read(File.join(root, "lib/phronomy/execution_contract/invocation_context.rb"))
-    runtime_rbs = File.read(File.join(root, "sig/phronomy/execution_contract/invocation_context.rbs"))
+      File.read(File.join(root, "lib/phronomy/execution/invocation_context.rb"))
+    runtime_rbs = File.read(File.join(root, "sig/phronomy/execution/invocation_context.rbs"))
     api_snapshot =
       File.read(File.join(root, "spec/fixtures/api_snapshot.json"))
     automatic =

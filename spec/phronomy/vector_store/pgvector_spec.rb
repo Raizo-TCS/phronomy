@@ -135,10 +135,10 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
       expect(result.first[:metadata]).to eq({})
     end
 
-    it "returns {} for an empty string metadata column" do
+    it "rejects an empty string metadata column" do
       stub_search(store, [make_row("")])
-      result = store.search(query_embedding: [1.0, 0.0])
-      expect(result.first[:metadata]).to eq({})
+      expect { store.search(query_embedding: [1.0, 0.0]) }
+        .to raise_error(Phronomy::VectorStore::InvalidResultError)
     end
 
     it "handles an already-parsed Hash (some pg configurations)" do
@@ -153,10 +153,10 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
       expect(result.first[:metadata]).to eq({key: "val"})
     end
 
-    it "returns {} for invalid JSON without raising" do
+    it "rejects invalid JSON without inventing empty metadata" do
       stub_search(store, [make_row("{not_valid}")])
-      result = store.search(query_embedding: [1.0, 0.0])
-      expect(result.first[:metadata]).to eq({})
+      expect { store.search(query_embedding: [1.0, 0.0]) }
+        .to raise_error(Phronomy::VectorStore::InvalidResultError)
     end
   end
 

@@ -50,7 +50,7 @@ Install only the backend gems required by your application:
 ## Define a Tool and Agent
 
 Use `Phronomy::Tool::Base` as the application-facing authoring API. It is an
-exact alias of the existing `Phronomy::Agent::Context::Capability::Base`, so
+exact alias of the existing `Phronomy::Tool::Base`, so
 existing Tool definitions using the longer namespace remain compatible.
 
 ```ruby
@@ -85,7 +85,7 @@ application does not need to pass the previous `messages` array back into every
 invocation.
 
 ```ruby
-persistence = Phronomy::Persistence.in_memory
+persistence = Phronomy::PersistenceComposition.agent
 
 agent = ResearchAgent.create(
   agent_id: "research-session-42",
@@ -250,7 +250,7 @@ end
 write_draft  = ->(state) { state.merge(draft: "Draft content") }
 review_draft = ->(state) { state.merge(feedback: "Feedback on: #{state.draft}") }
 
-persistence = Phronomy::Persistence.in_memory
+persistence = Phronomy::PersistenceComposition.in_memory.workflow
 
 workflow = Phronomy::Workflow.define(
   ReviewContext,
@@ -274,7 +274,7 @@ final = workflow.send_event(state: state, event: :approve)
 puts final.approved
 ```
 
-`Persistence#workflow_states` is the durable Workflow repository. `workflow_instance_id`
+The injected Workflow checkpoint repository supplies `load`, `save`, and `delete`. `workflow_instance_id`
 identifies the durable Workflow state and remains stable across resume. Each
 concrete Runtime execution receives a separate internal `fsm_session_id`; the
 application-level `session_id` remains ordinary caller/tracing metadata. Phronomy
@@ -286,12 +286,15 @@ A global Persistence backend can be configured when Agents and Workflows should
 share one durable backend:
 
 ```ruby
+stores = Phronomy::PersistenceComposition.in_memory
 Phronomy.configure do |config|
-  config.persistence = persistence
+  config.agent_store = stores.agent
+  config.multi_agent_store = stores.multi_agent
+  config.workflow_store = stores.workflow
 end
 ```
 
-Agent `new`/`create` and Workflow definitions use the global backend when they do
+Agent `new`/`create`, Team construction, and Workflow definitions use their configured store when they do
 not inject an explicit `persistence:`. Workflow durability is fixed at the
 application/Workflow-definition boundary; there is no per-invocation backend
 switch.

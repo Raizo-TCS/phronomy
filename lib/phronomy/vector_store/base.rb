@@ -1,85 +1,156 @@
 # frozen_string_literal: true
 
+require_relative "invalid_result_error"
+
 module Phronomy
   module VectorStore
-    # Public extension SPI for vector stores.
-    #
-    # Backends implement the synchronous add/search/remove/clear/size contract.
-    # The framework's separate execution client supplies asynchronous operations.
-    # Backend authors implement no asynchronous methods or execution-pool logic.
-    #
+    # Owns synchronous operations, input validation and the public result shape.
+    # Backends implement protected perform_* operations and embedding_dimension.
+    # No execution client, SDK or embedding provider is selected by this class.
     # @api public
     class Base
-      # Add a document with its vector embedding.
-      #
-      # @param id                 [String] unique document identifier
-      # @param embedding          [Array<Float>] vector embedding
-      # @param metadata           [Hash] arbitrary metadata
-      # @param cancellation_token [#raise_if_cancelled!, nil] cooperative cancellation signal
+      # Validate before invoking the backend. Cancellation is checked before the
+      # write, never reported after a successful write. No operation is retried.
+      # @param id [String]
+      # @param embedding [Array<Numeric>]
+      # @param metadata [Hash]
+      # @param cancellation_token [#raise_if_cancelled!, nil]
+      # @return [self]
       # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
-        raise NotImplementedError, "#{self.class}#add is not implemented"
+        validate_id!(id)
+        raise ArgumentError, "metadata must be a Hash" unless metadata.is_a?(Hash)
+        vector = validate_vector!(embedding)
+        perform_add(id: id, embedding: vector, metadata: metadata, cancellation_token: cancellation_token)
+        self
       end
 
-      # Return the k most similar documents to the query embedding.
-      #
-      # @param query_embedding    [Array<Float>]
-      # @param k                  [Integer] number of results
-      # @param cancellation_token [#raise_if_cancelled!, nil] cooperative cancellation signal
-      # @return [Array<Hash>] each element: { id:, score:, metadata: }
+      # Return at most k results ordered by descending similarity. Malformed
+      # backend output raises InvalidResultError; transport errors propagate.
+      # @param query_embedding [Array<Numeric>]
+      # @param k [Integer, String] positive integer or its decimal string
+      # @param cancellation_token [#raise_if_cancelled!, nil]
+      # @return [Array<Hash>]
       # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
-        raise NotImplementedError, "#{self.class}#search is not implemented"
+        limit = validate_k!(k)
+        vector = validate_vector!(query_embedding)
+        results = perform_search(query_embedding: vector, k: limit, cancellation_token: cancellation_token)
+        validate_results!(results, limit)
+        results
       end
 
-      # Remove a single document by id.
-      #
-      # @param id [String] document identifier
+      # Remove a document; an absent id is a successful no-op.
+      # @param id [String]
+      # @return [self]
       # @api public
       def remove(id:)
-        raise NotImplementedError, "#{self.class}#remove is not implemented"
+        validate_id!(id)
+        perform_remove(id: id)
+        self
       end
 
-      # Remove all documents.
+      # Clear documents without changing the configured dimension.
+      # @return [self]
       # @api public
       def clear
-        raise NotImplementedError, "#{self.class}#clear is not implemented"
+        perform_clear
+        self
       end
 
-      # Return the number of documents stored.
-      #
-      # @return [Integer]
+      # @return [Integer] non-negative document count
       # @api public
       def size
-        raise NotImplementedError, "#{self.class}#size is not implemented"
+        count = perform_size
+        unless count.is_a?(Integer) && count >= 0
+          raise InvalidResultError, "size must return a non-negative Integer"
+        end
+        count
+      end
+
+      protected
+
+      # @return [Integer, nil] nil delegates dimension enforcement to the backend
+      # @api public
+      def embedding_dimension
+        nil
+      end
+
+      # Storage extension point; inputs have passed common validation.
+      # @api public
+      def perform_add(id:, embedding:, metadata:, cancellation_token:)
+        raise NotImplementedError, "#{self.class}#perform_add is not implemented"
+      end
+
+      # Search extension point; return the documented result hashes in order.
+      # @api public
+      def perform_search(query_embedding:, k:, cancellation_token:)
+        raise NotImplementedError, "#{self.class}#perform_search is not implemented"
+      end
+
+      # @api public
+      def perform_remove(id:)
+        raise NotImplementedError, "#{self.class}#perform_remove is not implemented"
+      end
+
+      # @api public
+      def perform_clear
+        raise NotImplementedError, "#{self.class}#perform_clear is not implemented"
+      end
+
+      # @api public
+      def perform_size
+        raise NotImplementedError, "#{self.class}#perform_size is not implemented"
       end
 
       private
 
-      # Validates that embedding has the expected dimension.
-      # Raises ArgumentError if sizes differ.
-      # A nil expected_dimension is a no-op (dimension not yet established).
-      def validate_embedding_dimension!(embedding, expected_dimension)
-        return unless expected_dimension
-
-        actual = embedding.size
-        return if actual == expected_dimension
-
-        raise ArgumentError,
-          "Embedding dimension mismatch: expected #{expected_dimension}, got #{actual}"
+      def validate_id!(id)
+        raise ArgumentError, "id must be a String" unless id.is_a?(String)
       end
 
-      # Validates that k is a positive integer.
-      # Accepts any value accepted by Integer() (e.g. "5"), but raises
-      # ArgumentError for non-integer strings, zero, and negative values.
+      def finite_real?(value)
+        value.is_a?(Numeric) && value.real? && value.finite? && value.to_f.finite?
+      end
+
+      def validate_vector!(embedding)
+        unless embedding.is_a?(Array) && embedding.all? { |value| finite_real?(value) }
+          raise ArgumentError, "embedding must be an Array of finite real numbers"
+        end
+        dimension = embedding_dimension
+        if dimension && embedding.size != dimension
+          raise ArgumentError, "Embedding dimension mismatch: expected #{dimension}, got #{embedding.size}"
+        end
+        embedding.map(&:to_f)
+      end
+
       def validate_k!(k)
-        int_k = Integer(k)
-        raise ArgumentError, "k must be a positive integer, got #{int_k}" unless int_k >= 1
-        int_k
-      rescue ArgumentError => e
-        raise ArgumentError, "k must be a positive integer: #{e.message}"
+        valid = k.is_a?(Integer) || (k.is_a?(String) && k.match?(/\A\+?\d+\z/))
+        unless valid
+          raise ArgumentError, "k must be a positive integer"
+        end
+        value = k.is_a?(String) ? Integer(k, 10) : k
+        raise ArgumentError, "k must be a positive integer" unless value >= 1
+        value
+      end
+
+      def validate_results!(results, limit)
+        unless results.is_a?(Array) && results.size <= limit
+          raise InvalidResultError, "search must return an Array with at most k results"
+        end
+        previous = Float::INFINITY
+        results.each do |result|
+          unless result.is_a?(Hash) && result[:id].is_a?(String) &&
+              result[:metadata].is_a?(Hash) && finite_real?(result[:score])
+            raise InvalidResultError, "search results require a String id, finite score and Hash metadata"
+          end
+          if result[:score] > previous
+            raise InvalidResultError, "search results must be ordered by descending score"
+          end
+          previous = result[:score]
+        end
       end
     end
   end

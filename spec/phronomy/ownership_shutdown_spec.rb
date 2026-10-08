@@ -4,7 +4,8 @@ require "spec_helper"
 
 RSpec.describe "Feature-owned identity and Runtime shutdown" do
   let(:runtime) { Phronomy::Runtime.instance }
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "ownership-shutdown-agent", version: 1
@@ -18,29 +19,31 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
 
   %i[agent team].each do |kind|
     context "with #{kind} ownership" do
+      let(:store) { stores.public_send((kind == :team) ? :multi_agent : :agent) }
       let(:owner_class) { (kind == :agent) ? agent_class : team_class }
-      let(:registry_class) do
-        (kind == :agent) ? Phronomy::Agent::OwnershipRegistry : Phronomy::MultiAgent::TeamOwnershipRegistry
+      let(:environment_class) do
+        (kind == :agent) ? Phronomy::Agent::EngineEnvironment : Phronomy::MultiAgent::EngineEnvironment
       end
-      let(:registry) { registry_class.for(runtime) }
+      let(:environment) { environment_class.new(runtime: runtime) }
+      let(:registry) { environment.ownership }
       let(:create_owner) do
         ->(id) { owner_class.create("#{kind}_id": id, persistence: store) }
       end
 
       it "shares one lazily registered registry per Runtime across concurrent callers" do
-        expect(registry_class.existing_for(runtime)).to be_nil
+        expect(environment.existing_ownership).to be_nil
         start = Queue.new
         threads = Array.new(2) {
           Thread.new {
             start.pop(timeout: 2)
-            registry_class.for(runtime)
+            environment.ownership
           }
         }
         2.times { start << true }
         threads.each { |thread| expect(thread.join(2)).not_to be_nil }
         expect(threads.first.value).to equal(threads.last.value)
         other = Phronomy::Runtime.new
-        expect(registry_class.for(other)).not_to equal(threads.first.value)
+        expect(environment_class.new(runtime: other).ownership).not_to equal(threads.first.value)
       ensure
         threads&.each { |thread| thread.join(2) }
         other&.shutdown
@@ -48,10 +51,10 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
 
       it "keeps get read-only before first registration and after shutdown" do
         expect(owner_class.get("missing")).to be_nil
-        expect(registry_class.existing_for(runtime)).to be_nil
+        expect(environment.existing_ownership).to be_nil
         expect(runtime.shutdown.cleanup_complete?).to be(true)
         expect(owner_class.get("missing")).to be_nil
-        expect(registry_class.existing_for(runtime)).to be_nil
+        expect(environment.existing_ownership).to be_nil
         expect { create_owner.call("late") }.to raise_error(Phronomy::RuntimeShutdownError)
       end
 
@@ -74,7 +77,7 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
         shutdown = Thread.new { runtime.shutdown(timeout: 2) }
         expect(waiting.pop(timeout: 2)).to be(true)
         expect(owner_class.get("live")).to equal(owner)
-        expect(registry_class.for(runtime)).to equal(registry)
+        expect(environment.ownership).to equal(registry)
         expect { create_owner.call("late") }.to raise_error(Phronomy::RuntimeShutdownError)
         expect { owner_class.load("live", persistence: store) }.to raise_error(Phronomy::RuntimeShutdownError)
         expect(shutdown.join(0.02)).to be_nil
@@ -95,7 +98,7 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
       it "closes an existing registry on EventLoop failure" do
         owner = create_owner.call("live")
         runtime.__event_loop_failed(RuntimeError.new("dispatcher failed"))
-        expect(registry_class.for(runtime)).to equal(registry)
+        expect(environment.ownership).to equal(registry)
         expect(owner_class.get("live")).to equal(owner)
         expect { create_owner.call("late") }.to raise_error(Phronomy::RuntimeShutdownError)
         expect { owner_class.load("live", persistence: store) }.to raise_error(Phronomy::RuntimeShutdownError)
@@ -131,7 +134,7 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
 
   it "retains Agent ownership and the default Runtime when purge misses the deadline" do
     agent = agent_class.create(agent_id: "purging", persistence: store)
-    registry = Phronomy::Agent::OwnershipRegistry.for(runtime)
+    registry = Phronomy::Agent::EngineEnvironment.new(runtime: runtime).ownership
     token = registry.begin_purge(agent)
     expect(registry).not_to receive(:after_runtime_shutdown)
     expect { Phronomy::Runtime.reset_default!(timeout: 0) }
@@ -151,7 +154,7 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
   }.each do |operation, hook|
     it "keeps #{operation} active until the Agent state transition finishes" do
       agent = agent_class.create(agent_id: "purging", persistence: store)
-      registry = Phronomy::Agent::OwnershipRegistry.for(runtime)
+      registry = Phronomy::Agent::EngineEnvironment.new(runtime: runtime).ownership
       token = registry.begin_purge(agent)
       entered = Queue.new
       release = Queue.new

@@ -9,7 +9,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
       .and_return(double("RubyLLM model", context_window: 1_000))
   end
 
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
 
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
@@ -47,9 +47,9 @@ RSpec.describe "Journal-backed Agent Knowledge" do
     [execution, input_record]
   end
 
-  def build_initial(agent, input: "hello", patch: Phronomy::Agent::LLMInputPatch.empty)
+  def build_initial(agent, input: "hello", patch: Phronomy::Context::LLMInputPatch.empty)
     execution, = execution_for(agent, input: input)
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextPreparation.new(
       agent: agent,
       persistence: agent.persistence
     )
@@ -59,7 +59,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
       execution: execution,
       patch: patch
     )
-    assembler.finalize(prepared).first
+    Phronomy::Context::Assembly.new.store(prepared, contents: persistence.contents).first
   end
 
   it "registers creation-time Knowledge as Journal context candidates, not transcript messages" do
@@ -216,7 +216,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
 
   it "routes before_llm_input Knowledge through Context Policy without journaling it" do
     agent = agent_class.new(persistence: persistence)
-    patch = Phronomy::Agent::LLMInputPatch.new(
+    patch = Phronomy::Context::LLMInputPatch.new(
       segment_candidates: [
         {
           content: "temporary retrieved context",
@@ -244,7 +244,7 @@ RSpec.describe "Journal-backed Agent Knowledge" do
       instructions "Base instruction"
     end
     agent = tight_class.new(persistence: persistence)
-    patch = Phronomy::Agent::LLMInputPatch.new(
+    patch = Phronomy::Context::LLMInputPatch.new(
       segment_candidates: [
         {content: "K" * 20_000, category: :knowledge, role: :user}
       ]

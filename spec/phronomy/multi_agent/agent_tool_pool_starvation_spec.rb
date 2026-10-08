@@ -11,10 +11,11 @@ RSpec.describe "Agent-as-Tool blocking-pool independence" do
     )
     runtime_double = instance_double(Phronomy::Runtime, offload: pool)
     allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_double)
-    allow(Phronomy::Agent::OwnershipRegistry).to receive(:for).with(runtime_double)
-      .and_return(double("ownership registry", create: nil).tap do |registry|
-                    allow(registry).to receive(:create).and_yield(runtime_double)
-                  end)
+    environment = instance_double(Phronomy::Agent::ExecutionEnvironment)
+    registry = double("ownership registry", create: nil)
+    allow(registry).to receive(:create).and_yield(environment)
+    allow(environment).to receive(:ownership).and_return(registry)
+    allow(Phronomy::Agent::ExecutionEnvironment).to receive(:current).and_return(environment)
 
     launch_thread_names = []
     child_agent = Class.new do

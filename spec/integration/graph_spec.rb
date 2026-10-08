@@ -8,7 +8,7 @@ require_relative "spec_helper"
 
 RSpec.describe "Group 7: Workflow", :integration do
   def with_in_memory_persistence
-    yield Phronomy::Persistence.in_memory
+    yield Phronomy::PersistenceComposition.in_memory.workflow
   end
 
   def without_persistence
@@ -362,7 +362,7 @@ RSpec.describe "Group 7: Workflow", :integration do
         expect(state.value).to eq("second")
         expect(state.step).to eq(2)
 
-        record = persistence.workflow_states.load("tc-016")
+        record = persistence.load("tc-016")
         expect(record[:snapshot]["phase"]).to eq("__end__")
         expect(record[:snapshot]["fields"]["value"]).to eq("second")
         expect(record[:snapshot]["fields"]["step"]).to eq(2)

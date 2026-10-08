@@ -18,7 +18,8 @@ RSpec.describe Phronomy::GeneratorVerifier do
         {output: output, messages: []}
       end
 
-      define_method(:__invoke_async_with_event_sink) do |input, on_event:, **_keywords|
+      define_method(:invoke_async) do |input, **_keywords|
+        on_event = @_phronomy_event_listener
         observed << on_event unless observed.nil?
         t = Phronomy::TaskResult.new(name: "generator-verifier-stub")
         Thread.new do
@@ -48,7 +49,8 @@ RSpec.describe Phronomy::GeneratorVerifier do
   def failing_agent(message)
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-115", version: 1
-      define_method(:__invoke_async_with_event_sink) do |_input, on_event:, **_keywords|
+      define_method(:invoke_async) do |_input, **_keywords|
+        on_event = @_phronomy_event_listener
         t = Phronomy::TaskResult.new(name: "generator-verifier-failure")
         Thread.new do
           error = RuntimeError.new(message)
@@ -126,7 +128,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
 
     result = invoke_bounded(pipeline, "What is the refund policy?")
 
-    expect(observed_listeners).to all(be_a(Proc))
+    expect(observed_listeners).to all(respond_to(:call))
     expect(result).to be_trusted
     expect(result.output).to include("30 days")
     expect(result.iterations).to eq(1)

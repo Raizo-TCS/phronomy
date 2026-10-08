@@ -21,17 +21,17 @@ RSpec.describe "Output filtering across ordinary execution and Recovery" do
         end
       end
       worker.output_filter(filter)
-      agent = worker.create(agent_id: "output-recovery", persistence: store, on_event: ->(_event) {})
+      agent = worker.create(agent_id: "output-recovery", persistence: store.agent, on_event: ->(_event) {})
       expected = {transform: :completed, block: :blocked, raise: :failed}.fetch(behavior)
       if route == :ordinary
         activate_filter_response(mode, "target output")
         invoke_filtered_output(behavior) { agent.public_send(mode, "input") }
         backend = store
-        id = store.list_executions(agent.agent_id).first.execution_id
+        id = store.agent.runs(agent.agent_id).first.execution_id
       else
         before_provider = nil
         store.after_commit = proc do |current|
-          run = current.list_executions(agent.agent_id).first
+          run = current.agent.runs(agent.agent_id).first
           before_provider ||= current.snapshot if run&.phase == :calling_llm
         end
         activate_filter_response(mode, "original output")
@@ -39,17 +39,17 @@ RSpec.describe "Output filtering across ordinary execution and Recovery" do
         expect(before_provider).not_to be_nil
         backend = reboot(before_provider)
         events = Queue.new
-        agent = worker.load(agent.agent_id, persistence: backend,
+        agent = worker.load(agent.agent_id, persistence: backend.agent,
           on_event: ->(event) { events << event.payload if event.type == :recovery_resolution_required })
         event = Timeout.timeout(3) { events.pop }
         id = event.fetch(:execution_id)
         after_resolution = nil
         backend.after_commit = proc do |current|
-          run = current.executions.load(id)
+          run = current.agent.executions.load(id)
           after_resolution ||= current.snapshot if run.phase == :recovery_provider_completed
         end
         llm = LLMStub.activate(responses: ["must not replay"])
-        outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: "target output", tool_calls: [])
+        outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: "target output", tool_calls: [])
         invoke_filtered_output(behavior) do
           agent.resolve_async(id, expected_execution_revision: event.fetch(:execution_revision),
             subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h).wait_result(timeout: 3)
@@ -60,24 +60,24 @@ RSpec.describe "Output filtering across ordinary execution and Recovery" do
           backend = reboot(after_resolution)
           terminal = Queue.new
           backend.after_commit = proc do |current|
-            run = current.executions.load(id)
+            run = current.agent.executions.load(id)
             terminal << run if run.terminal?
           end
           filtered = 0
           llm = LLMStub.activate(responses: ["must not replay"])
-          agent = worker.load(agent.agent_id, persistence: backend)
+          agent = worker.load(agent.agent_id, persistence: backend.agent)
           expect(Timeout.timeout(3) { terminal.pop }.status).to eq(expected)
           expect(llm.calls).to be_empty
         end
       end
 
-      run = backend.executions.load(id)
+      run = backend.agent.executions.load(id)
       expect(run.status).to eq(expected)
       expect(filtered).to eq(1)
       if behavior == :transform
-        expect(backend.execution_result(id)[:result]).to eq("filtered output")
+        expect(backend.agent.result(id)[:result]).to eq("filtered output")
       else
-        expect(backend.execution_result(id)[:error].fetch("message")).to match(/output filter (rejected|failed)/)
+        expect(backend.agent.result(id)[:error].fetch("message")).to match(/output filter (rejected|failed)/)
       end
       # A handled filter failure must release admission for the same Agent.
       LLMStub.activate(responses: ["next output"])

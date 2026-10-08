@@ -1,0 +1,7 @@
+module Phronomy
+  module AsyncOperation
+    def self.map: [A, B] (_CompletionHandle[A] source, name: String, ?on_error: (^(Exception) -> B)?) { (A) -> B } -> TaskResult[B]
+    def self.call: [A, B] (name: String, ?on_error: (^(Exception) -> B)?, ?transform: ^(A) -> B) { () -> _CompletionHandle[A] } -> TaskResult[B]
+    def self.capture: [V] (name: String, ?on_error: (^(Exception) -> V)?) { () -> V } -> TaskResult[V]
+  end
+end

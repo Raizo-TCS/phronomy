@@ -27,7 +27,7 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no
         end
       end
       let(:resource) do
-        (fixture == :agent_execution) ? Phronomy::Agent::Persistence::StorageSchema::EXECUTIONS : Phronomy::TeamStorageSchema::EXECUTIONS
+        (fixture == :agent_execution) ? Phronomy::Agent::Persistence::StorageSchema::EXECUTIONS : Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS
       end
       let(:repository) { repository_class.new(raw) }
 
@@ -84,7 +84,8 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no
 
   [:executions, :team_executions].each do |kind|
     it "rolls back the transaction when #{kind} maps a raw constraint" do
-      persistence = Phronomy::Persistence.in_memory
+      stores = Phronomy::PersistenceComposition.in_memory
+      persistence = (kind == :executions) ? stores.agent : stores.multi_agent
       if kind == :executions
         execution = agent_execution
         root = Phronomy::Agent::AgentRoot.create(agent_id: execution.agent_id,

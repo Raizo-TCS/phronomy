@@ -5,6 +5,19 @@ module Phronomy
     module Eval
       module Scorer
         class LlmJudge < Base
+          CLIENT_FACTORIES = {}
+          private_constant :CLIENT_FACTORIES
+
+          # One-time boot binding, not an application extension registry. The
+          # factory runs for each score, after its Request has been prepared.
+          # @api private
+          def self.install_client_factory(factory)
+            raise ArgumentError, "factory must respond to call" unless factory.respond_to?(:call)
+
+            CLIENT_FACTORIES.replace(client: factory).freeze
+            nil
+          end
+
           DEFAULT_PROMPT = <<~PROMPT
             You are an impartial judge evaluating the quality of an AI assistant response.
             Rate the response on a scale from 0.0 (completely wrong or unhelpful) to 1.0 (perfect).
@@ -32,9 +45,12 @@ module Phronomy
               expected: expected.to_s,
               actual: actual.to_s
             )
-            response = Phronomy::Blocking.call_async do
-              RubyLLM.chat(model: @model, provider: @provider, assume_model_exists: @assume_model_exists).ask(prompt)
-            end.wait_result
+            request = Phronomy::LLMAdapter::Request.new(
+              model_config: {"model" => @model, "provider" => @provider&.to_s,
+                             "assume_model_exists" => @assume_model_exists}.compact,
+              message: prompt
+            )
+            response = CLIENT_FACTORIES.fetch(:client).call.complete_async(request).wait_result
             response.content.to_s.strip.scan(/-?\d+\.?\d*/).first.to_f.clamp(0.0, 1.0)
           rescue => error
             raise if @raise_on_error

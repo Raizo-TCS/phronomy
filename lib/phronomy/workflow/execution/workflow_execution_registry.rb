@@ -13,7 +13,7 @@ module Phronomy
     )
     private_constant :WorkflowAdmission
 
-    def initialize(event_loop:)
+    def initialize(channel:)
       super
       @workflow_admissions = {}
     end
@@ -150,13 +150,11 @@ module Phronomy
     end
 
     def post_to_workflow(workflow_instance_id:, event:, payload: nil)
-      @event_loop.__route_execution_event(self) do
+      route_event(type: event.to_sym, payload: payload) do
         admission = @workflow_admissions[workflow_instance_id.to_s]
         next unless admission&.state == :executing && admission.fsm_session_id
 
-        Phronomy::Event.new(
-          type: event.to_sym, target_id: admission.fsm_session_id, payload: payload
-        )
+        admission.fsm_session_id
       end
     end
 

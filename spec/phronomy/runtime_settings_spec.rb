@@ -10,6 +10,7 @@ RSpec.describe Phronomy::RuntimeSettings do
       config.logger = logger
       config.tracer = tracer
       config.trace_pii = true
+      config.tool_result_max_size = 32
       config.event_loop_stop_grace_seconds = 3
       config.event_loop_starvation_threshold_seconds = 0.25
       config.event_loop_dispatch_threshold_seconds = 0.5
@@ -19,10 +20,12 @@ RSpec.describe Phronomy::RuntimeSettings do
 
     settings = described_class.current
     expect(settings).not_to be_a(Phronomy::Configuration)
-    expect(settings).not_to respond_to(:llm_adapter, :before_llm_input, :persistence)
+    expect(settings).not_to respond_to(:llm_adapter, :before_llm_input, :persistence,
+      :tracer, :trace_pii, :tool_result_max_size)
     expect(settings.logger).to equal(logger)
-    expect(settings.tracer).to equal(tracer)
-    expect(settings.trace_pii).to be(true)
+    expect(Phronomy::Tracing::Settings.current.tracer).to equal(tracer)
+    expect(Phronomy::Tracing::Settings.current.trace_pii).to be(true)
+    expect(Phronomy::Tool::Settings.current.max_result_size).to eq(32)
     expect(settings.event_loop_stop_grace_seconds).to eq(3)
     expect(settings.event_loop_starvation_threshold_seconds).to eq(0.25)
     expect(settings.event_loop_dispatch_threshold_seconds).to eq(0.5)
@@ -59,16 +62,16 @@ RSpec.describe Phronomy::RuntimeSettings do
           expect(described_class.current.offload_pool_size).to eq(1)
         end
         expect(described_class.current.offload_pool_size).to eq(3)
-        expect(described_class.current.trace_pii).to be(true)
-        expect(described_class.current.tracer).to equal(tracer)
+        expect(Phronomy::Tracing::Settings.current.trace_pii).to be(true)
+        expect(Phronomy::Tracing::Settings.current.tracer).to equal(tracer)
         expect(described_class.current.logger).to equal(logger)
         raise "scope failed"
       end
     }.to raise_error("scope failed")
 
     expect(described_class.current.offload_pool_size).to eq(10)
-    expect(described_class.current.trace_pii).to be(false)
-    expect(described_class.current.tracer).to equal(tracer)
+    expect(Phronomy::Tracing::Settings.current.trace_pii).to be(false)
+    expect(Phronomy::Tracing::Settings.current.tracer).to equal(tracer)
     expect(described_class.current.logger).to equal(logger)
   end
 

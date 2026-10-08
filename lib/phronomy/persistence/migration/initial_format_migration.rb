@@ -108,8 +108,8 @@ module Phronomy
             raise Phronomy::Storage::SerializationError,
               "unsupported pre-S3 LLMInputManifest version: #{old_version.inspect}"
           end
-          source["version"] = Phronomy::Agent::LLMInputManifest::VERSION
-          Phronomy::Agent::LLMInputManifest.from_h(source).to_h
+          source["version"] = Phronomy::Context::LLMInputManifest::VERSION
+          Phronomy::Context::LLMInputManifest.from_h(source).to_h
         rescue Phronomy::Storage::SerializationError
           raise
         rescue => error

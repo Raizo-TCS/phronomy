@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-class ApprovalTestTool < Phronomy::Agent::Context::Capability::Base
+class ApprovalTestTool < Phronomy::Tool::Base
   tool_name "approval_test"
   description "A tool that does not require approval"
   param :value, type: :string, desc: "Input value"
@@ -12,7 +12,7 @@ class ApprovalTestTool < Phronomy::Agent::Context::Capability::Base
   end
 end
 
-class ApprovalRequiredTool < Phronomy::Agent::Context::Capability::Base
+class ApprovalRequiredTool < Phronomy::Tool::Base
   tool_name "approval_required"
   description "A tool that requires approval"
   requires_approval true

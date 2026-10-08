@@ -1,0 +1,13 @@
+module Phronomy
+  class InvocationControls
+    @scope: _ExecutionScope?
+    attr_reader token: Concurrency::CancellationToken?
+    def self.attach: [V] (TaskResult[V] result, invocation_context: InvocationContext?, cancellation_token: Concurrency::CancellationToken?) -> instance
+    def initialize: (invocation_context: InvocationContext?, cancellation_token: Concurrency::CancellationToken?) -> void
+    def check_start!: () -> nil
+    def bind: [V] (TaskResult[V] result) -> TaskResult[V]
+    def track: [V] (TaskResult[V] result) -> TaskResult[V]
+    def close: () -> untyped
+    def self.effective_timeout_token: (InvocationContext context) -> Concurrency::CancellationToken?
+  end
+end

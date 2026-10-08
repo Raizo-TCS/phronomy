@@ -292,7 +292,7 @@ remain durable conflict defense rather than distributed ownership.
 ## Tool execution modes
 
 The default dispatch helper is the private
-`Phronomy::Agent::Context::Capability::ToolExecutor`, colocated with Capability
+`Phronomy::Tool::ToolExecutor`, colocated with Capability
 Base. Agent ToolInvocation supplies Runtime and admission policy for the
 standard path, and owns authorization and logical result handling. Custom
 `call_async` implementations keep the public Tool protocol. This ownership is
@@ -577,9 +577,34 @@ TaskResult reports only caller-facing settlement.
 ## EventLoop metrics
 
 `Phronomy::Metrics.snapshot` also reports EventLoop queue depth and lag values.
+
+Metrics and Diagnostics only observe resources already owned by the default
+Runtime. Calling `Metrics.snapshot`, `Diagnostics.snapshot` or `Diagnostics.dump`
+does not initialize a Runtime, pool, EventLoop or timer. Missing resources report
+zero values, including `offload_pool_size: 0` when no default pool exists. Once a
+pool exists, this field remains its configured capacity, not a live-worker count.
+Named pools are not aggregated into the default-pool metrics.
+
+Retained resources remain observable during and after shutdown, including
+incomplete cleanup. Observation does not reopen admission or change a shutdown
+result. After the default Runtime is reset, missing resources again report zero;
+the next snapshot uses any newly initialized default Runtime. Counters are sampled
+independently and do not constitute an atomic cross-resource snapshot.
 Use these to distinguish worker saturation from EventLoop backlog/latency.
 
 ## Shutdown
+
+Pool creation and registration close atomically before the shutdown resource set
+is captured. Accepted continuations can still acquire resources during Runtime's
+draining phase. Once resource shutdown begins, all pools close admission before
+any pool waits for its workers.
+
+The stop-phase monotonic deadline is shared by EventLoop and every pool join.
+A join timeout does not stop a synchronous worker. Runtime reports incomplete
+cleanup while any worker remains, even if that worker's TaskResult has already
+been cancelled or timed out. It does not forcefully interrupt worker threads.
+See [R8 unit19](architecture/r8-unit19.md) and its
+[migration notes](migrations/r8-unit19.md) for the shutdown budget and result rules.
 
 `Runtime#shutdown` is terminal for that Runtime. It drains/terminates the
 Runtime-owned EventLoop, then closes pools and timers according to the Runtime

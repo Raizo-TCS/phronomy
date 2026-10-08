@@ -1,9 +1,14 @@
 module Phronomy
   module LLMAdapter
     class Base
-      def complete: (untyped chat, String? message, ?config: Hash[untyped, untyped]) -> untyped
-      def stream: (untyped chat, String? message, ?config: Hash[untyped, untyped]) { (untyped chunk) -> void } -> untyped
+      def identity: () -> Hash[String, String?]
+      def input_budget: (Hash[String, untyped] model_config) -> LlmContextWindow::TokenBudget?
+      def complete: (Request request, ?cancellation_token: _CancellationSignal?) -> Response
+      def stream: (Request request, ?cancellation_token: _CancellationSignal?) { (StreamChunk chunk) -> void } -> Response
+      # Protected extension SPI at runtime; RBS has no protected visibility.
+      private
+      def perform_complete: (Request request, cancellation_token: _CancellationSignal?) -> Response
+      def perform_stream: (Request request, cancellation_token: _CancellationSignal?) { (StreamChunk chunk) -> void } -> Response
     end
-
   end
 end

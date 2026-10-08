@@ -19,9 +19,9 @@ module Phronomy
 
       def start(name, input: nil, **metadata)
         trace_pii = false
-        configuration = Phronomy::RuntimeSettings.current
-        trace_pii = !!configuration.trace_pii
-        tracer = configuration.tracer
+        settings = Settings.current
+        trace_pii = !!settings.trace_pii
+        tracer = settings.tracer
         span = tracer.start_span(
           name,
           input: traced_payload(input, trace_pii: trace_pii),
@@ -47,7 +47,7 @@ module Phronomy
           error: traced_error(error, trace_pii: handle.trace_pii)
         }.freeze
 
-        if Phronomy::Runtime.in_event_loop_context?
+        if Phronomy::WaitPolicy.blocking_forbidden?
           submit_finish(handle, attributes)
         else
           finish_now(handle, attributes)

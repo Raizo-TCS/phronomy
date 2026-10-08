@@ -3,7 +3,7 @@
 require "securerandom"
 
 RSpec.shared_examples "an Execution repository" do
-  let(:execution_repository) { persistence.executions }
+  let(:execution_repository) { stores.agent.executions }
   let(:execution_agent_root) do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "execution-agent-#{SecureRandom.uuid}",
@@ -27,7 +27,7 @@ RSpec.shared_examples "an Execution repository" do
   end
 
   before do
-    persistence.agents.create(execution_agent_root)
+    stores.agent.agents.create(execution_agent_root)
   end
 
   it "creates and loads an active execution" do
@@ -68,7 +68,7 @@ RSpec.shared_examples "an Execution repository" do
       agent_definition_id: "contract-agent",
       agent_definition_version: 1
     )
-    persistence.agents.create(other_root)
+    stores.agent.agents.create(other_root)
 
     expect do
       execution_repository.create_active(build_contract_execution(execution_agent_root))
@@ -118,7 +118,7 @@ RSpec.shared_examples "an Execution repository" do
       agent_definition_id: "contract-agent",
       agent_definition_version: 1
     )
-    persistence.agents.create(other_root)
+    stores.agent.agents.create(other_root)
     other = build_contract_execution(other_root).with(
       execution_revision: 1,
       status: :active,
@@ -188,7 +188,7 @@ RSpec.shared_examples "an Execution repository" do
       agent_definition_id: "contract-agent",
       agent_definition_version: 1
     )
-    persistence.agents.create(other_root)
+    stores.agent.agents.create(other_root)
     own = build_contract_execution(execution_agent_root)
     other = build_contract_execution(other_root)
     execution_repository.create_active(own)

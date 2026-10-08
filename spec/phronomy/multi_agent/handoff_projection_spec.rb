@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::HandoffProjection do
-  def build_agent(definition_id, persistence: Phronomy::Persistence.in_memory)
+RSpec.describe Phronomy::Agent::TransferProjection do
+  def build_agent(definition_id, persistence: Phronomy::PersistenceComposition.in_memory.agent)
     klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: definition_id, version: 1
       model "stub-model"
@@ -12,7 +12,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   def policy
-    Phronomy::Agent::HandoffPolicy.define do
+    Phronomy::MultiAgent::HandoffPolicy.define do
       required :current_request
       selectable :history, default: :include
       selectable :knowledge, default: :exclude
@@ -21,15 +21,14 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   def request(handoff, responsibility: "Continue", selection_intent: {})
-    Phronomy::Agent::HandoffRequest.new(
-      handoff: handoff,
-      responsibility: responsibility,
-      selection_intent: selection_intent
+    Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).request(
+      arguments: {responsibility: responsibility}.merge(selection_intent.to_h { |key, value| ["include_#{key}", value] }),
+      llm_call_id: nil, tool_call_id: nil
     )
   end
 
   def manifest(persistence, segments)
-    Phronomy::Agent::LLMInputManifest.new(
+    Phronomy::Context::LLMInputManifest.new(
       call_sequence: 1,
       call_mode: :complete,
       segments: segments,
@@ -39,7 +38,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   def segment(position:, category:, content_ref:, role: :user, tool_call_id: nil, metadata: {})
-    Phronomy::Agent::LLMInputManifest::Segment.new(
+    Phronomy::Context::LLMInputManifest::Segment.new(
       position: position,
       category: category,
       role: role,
@@ -51,11 +50,11 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   it "materializes selected Context across different Persistence adapters without adopting it into Target Journal" do
-    source_persistence = Phronomy::Persistence.in_memory
-    target_persistence = Phronomy::Persistence.in_memory
+    source_persistence = Phronomy::PersistenceComposition.in_memory.agent
+    target_persistence = Phronomy::PersistenceComposition.in_memory.agent
     source = build_agent("projection-source", persistence: source_persistence)
     target = build_agent("projection-target", persistence: target_persistence)
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy
@@ -100,13 +99,13 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   it "cannot transfer a forbidden category through Source selection intent" do
     source = build_agent("projection-forbidden-source")
     target = build_agent("projection-forbidden-target")
-    forbidden_policy = Phronomy::Agent::HandoffPolicy.define do
+    forbidden_policy = Phronomy::MultiAgent::HandoffPolicy.define do
       required :current_request
       selectable :history, default: :include
       forbidden :knowledge
       selectable :tool_exchanges, default: :include
     end
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: forbidden_policy
@@ -114,13 +113,13 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
 
     expect do
       request(handoff, selection_intent: {knowledge: true})
-    end.to raise_error(ArgumentError, /non-selectable categories/)
+    end.to raise_error(ArgumentError, /Unknown Handoff argument/)
   end
 
   it "always transfers a required category even though it is not Source-selectable" do
     source = build_agent("projection-required-source")
     target = build_agent("projection-required-target")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy
@@ -154,8 +153,8 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
     a = build_agent("projection-a")
     b = build_agent("projection-b")
     c = build_agent("projection-c")
-    a_to_b = Phronomy::Agent::Handoff.new(source_agent: a, target_agent: b, policy: policy)
-    b_to_c = Phronomy::Agent::Handoff.new(source_agent: b, target_agent: c, policy: policy)
+    a_to_b = Phronomy::MultiAgent::Handoff.new(source_agent: a, target_agent: b, policy: policy)
+    b_to_c = Phronomy::MultiAgent::Handoff.new(source_agent: b, target_agent: c, policy: policy)
 
     a_ref = a.persistence.contents.put_text("knowledge-from-a")
     first_manifest = manifest(a.persistence, [
@@ -208,7 +207,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
 
   it "injects inbound Handoff Context as selectable Target candidates before Context Policy" do
     target = build_agent("projection-target-policy")
-    provenance = Phronomy::Agent::HandoffContext::Provenance.new(
+    provenance = Phronomy::Agent::TransferContext::Provenance.new(
       origin_agent_id: "source-agent",
       origin_record_id: "source-record",
       origin_execution_id: "source-execution",
@@ -216,7 +215,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
       origin_tool_call_id: nil,
       transfer_path: ["source-agent", target.agent_id]
     )
-    item = Phronomy::Agent::HandoffContext::Item.new(
+    item = Phronomy::Agent::TransferContext::Item.new(
       candidate_category: :knowledge,
       policy_category: :knowledge,
       role: :user,
@@ -226,12 +225,12 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
       provenance: provenance,
       metadata: {}
     )
-    context = Phronomy::Agent::HandoffContext.new(
+    context = Phronomy::Agent::TransferContext.new(
       responsibility: "Continue",
       items: [item]
     )
     execution = Struct.new(:execution_id).new("target-execution")
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextPreparation.new(
       agent: target,
       persistence: target.persistence
     )
@@ -256,7 +255,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   it "keeps all members of one Tool exchange selection unit together" do
     source = build_agent("projection-tool-source")
     target = build_agent("projection-tool-target")
-    handoff = Phronomy::Agent::Handoff.new(source_agent: source, target_agent: target, policy: policy)
+    handoff = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target, policy: policy)
     assistant_ref = source.persistence.contents.put_json(
       "role" => "assistant",
       "content" => nil,
@@ -307,7 +306,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   end
 
   it "groups current-format Context conversation segments without Selection::Unit" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     first_ref = persistence.contents.put_text("first")
     second_ref = persistence.contents.put_text("second")
     group_metadata = {
@@ -337,7 +336,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   it "classifies current-format semantic Conversation as Handoff history independently of kind" do
     source = build_agent("projection-semantic-conversation-source")
     target = build_agent("projection-semantic-conversation-target")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy
@@ -372,7 +371,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   it "preserves current-format JSON content for an Application-specific kind" do
     source = build_agent("projection-json-format-source")
     target = build_agent("projection-json-format-target")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy
@@ -411,7 +410,7 @@ RSpec.describe Phronomy::Agent::HandoffProjection do
   it "falls back to legacy kind-based content format when metadata is absent" do
     source = build_agent("projection-legacy-format-source")
     target = build_agent("projection-legacy-format-target")
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy

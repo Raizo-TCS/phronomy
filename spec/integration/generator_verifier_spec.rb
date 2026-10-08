@@ -16,6 +16,62 @@ require_relative "support/llm_stub"
 # HTTP responses, exercising the actual LLM call path through Agent::Base.
 
 RSpec.describe "Group 33: GeneratorVerifier", :integration do
+  %i[draft review].each do |phase|
+    it "fails the pipeline when the real #{phase} Agent suspends for approval" do
+      tool = IntegrationFactors.approval_tool
+      waiting = IntegrationFactors.approval_resume_agent(tool)
+      normal = IntegrationFactors.gv_agent_class
+      responses = [LLMStub.tool_call_response("approval_required_tool", {query: "request"})]
+      responses.unshift(IntegrationFactors.gv_draft_response) if phase == :review
+      @llm = LLMStub.activate(responses: responses)
+      pipeline = Phronomy::GeneratorVerifier.new(
+        draft_agent: (phase == :draft) ? waiting : normal,
+        review_agent: (phase == :review) ? waiting : normal,
+        draft_prompt_builder: ->(input, _feedback) { input },
+        review_prompt_builder: ->(input, _draft, _citations) { input }
+      )
+
+      expect { Timeout.timeout(5) { pipeline.invoke("request") } }
+        .to raise_error(Phronomy::Error, "GeneratorVerifier #{phase} Agent suspended for approval")
+      expect(@llm.calls.length).to eq((phase == :draft) ? 1 : 2)
+    end
+  end
+
+  it "reuses both real Agent conversations across pipeline invocations" do
+    @llm = LLMStub.activate(responses: [
+      IntegrationFactors.gv_draft_response, IntegrationFactors.gv_review_response,
+      IntegrationFactors.gv_draft_response, IntegrationFactors.gv_review_response
+    ])
+    pipeline = IntegrationFactors.gv_pipeline(approval_outcome: :approved, iteration_limit: :one, raise_policy: :no_raise)
+    expect(pipeline.invoke("first request")).to be_trusted
+    expect(pipeline.invoke("second request")).to be_trusted
+    expect(@llm.messages_for(2)).to include(hash_including("content" => "Draft question: first request"))
+    expect(@llm.messages_for(3)).to include(hash_including("content" => "Review draft for: first request"))
+  end
+
+  it "keeps an overlapping busy failure out of the active pipeline invocation" do
+    @llm = LLMStub.activate(responses: [IntegrationFactors.gv_draft_response, IntegrationFactors.gv_review_response])
+    entered = Queue.new
+    release = Queue.new
+    allow(@llm).to receive(:handle).and_wrap_original do |original, request|
+      if @llm.calls.empty?
+        entered << true
+        release.pop
+      end
+      original.call(request)
+    end
+    pipeline = IntegrationFactors.gv_pipeline(approval_outcome: :approved, iteration_limit: :one, raise_policy: :no_raise)
+    pipeline.send(:compiled_workflow)
+    first = Thread.new { pipeline.invoke("first") }
+    Timeout.timeout(5) { entered.pop }
+    expect { Timeout.timeout(5) { pipeline.invoke("overlap") } }.to raise_error(Phronomy::AgentBusyError)
+    release << true
+    expect(Timeout.timeout(5) { first.value }).to be_trusted
+  ensure
+    release << true if release
+    first&.join(5)
+  end
+
   # ---------------------------------------------------------------------------
   # Shared helpers
   # ---------------------------------------------------------------------------

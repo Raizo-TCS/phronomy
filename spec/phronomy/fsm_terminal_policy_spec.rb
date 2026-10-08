@@ -35,7 +35,7 @@ RSpec.describe "FSMSession terminal policy contract" do
   def decide(session, action, error: nil)
     session.handle(Phronomy::Event.new(
       type: :domain_decision, target_id: session.id,
-      payload: Phronomy::FSMProtocol::TerminalDecision.new(action: action, error: error)
+      payload: Phronomy::TerminalDecision.new(action: action, error: error)
     ))
   end
 

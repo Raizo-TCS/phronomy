@@ -20,7 +20,7 @@ module Phronomy
       alias_method :trusted?, :trusted
     end
 
-    private_constant :PipelineState, :WorkflowBuilder, :AgentResultReceiver
+    private_constant :PipelineState, :WorkflowBuilder, :AgentResultReceiver, :AgentOperation
 
     def initialize(
       draft_agent:,
@@ -80,8 +80,8 @@ module Phronomy
 
     def build_workflow
       WorkflowBuilder.new(
-        draft_agent: @draft_agent_class.new,
-        review_agent: @review_agent_class.new,
+        draft_agent: AgentOperation.new(@draft_agent_class),
+        review_agent: AgentOperation.new(@review_agent_class),
         draft_prompt_builder: @draft_prompt_builder,
         review_prompt_builder: @review_prompt_builder,
         draft_result_parser: @draft_result_parser,
@@ -92,7 +92,7 @@ module Phronomy
     end
 
     def default_parse_draft(text)
-      json_parser.parse(text)
+      default_parser.parse(text)
     rescue Phronomy::ParseError
       {
         answer: text.to_s,
@@ -102,7 +102,7 @@ module Phronomy
     end
 
     def default_parse_review(text)
-      json_parser.parse(text)
+      default_parser.parse(text)
     rescue Phronomy::ParseError
       {
         approved: false,
@@ -111,8 +111,8 @@ module Phronomy
       }
     end
 
-    def json_parser
-      @json_parser ||= Phronomy::OutputParser::JsonParser.new
+    def default_parser
+      @default_parser ||= DefaultParser.build
     end
   end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
 require "time"
@@ -97,7 +97,7 @@ module Phronomy
           filtered_input: nil,
           config: operation.config,
           appended_records: [].freeze,
-          error: translated(error),
+          error: error,
           admission_outcome: outcome
         )
       end
@@ -114,7 +114,7 @@ module Phronomy
           # Advance the failure base only after the commit response is known.
           # F1 response loss must not be reported as a confirmed terminal result.
           current_execution = active_execution
-          projection = RubyLLMMaterializer.new(
+          projection = RuntimeInput.new(
             agent: @agent, persistence: @persistence
           ).materialize(manifest: manifest, manifest_ref: manifest_ref)
           Result.new(
@@ -166,7 +166,7 @@ module Phronomy
       end
 
       def prepare_context(staged, root, input, config, journal_records)
-        assembler = ContextAssembler.new(
+        assembler = ContextPreparation.new(
           agent: @agent, persistence: @persistence, journal_records: journal_records
         )
         prepared = assembler.prepare_initial(
@@ -184,7 +184,7 @@ module Phronomy
         active = manifest = manifest_ref = nil
         @persistence.transaction do |tx|
           assert_local_durable_base!(tx, root)
-          manifest, manifest_ref = assembler.finalize(prepared, persistence: tx)
+          manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
           active = execution_with_initial_manifest(staged, manifest_ref)
           tx.executions.save(
             staged.execution_id,
@@ -208,26 +208,15 @@ module Phronomy
       end
 
       def admit_execution(raw_message, root:, mode: :invoke, config: {}, preparation_replayable: false)
-        if root.lifecycle_status == :closed
-          raise Phronomy::Error, "agent is closed: #{@agent.agent_id}"
+        admission = Admission.new(persistence: @persistence, root: root,
+          input: raw_message, config: config,
+          preparation_metadata: initial_preparation_metadata(mode.to_sym, preparation_replayable))
+        participant = config[:phronomy_admission]
+        if admission.correlation && !participant
+          raise Phronomy::ConfigurationError, "Coordinated admission requires its current owner"
         end
-
-        execution = next_root = nil
-        preparation_metadata = initial_preparation_metadata(mode.to_sym, preparation_replayable)
-        @persistence.transaction do |tx|
-          execution = build_admitted_execution(
-            tx, raw_message, root: root, config: config,
-            preparation_metadata: preparation_metadata
-          )
-          validate_coordination_admission!(tx, execution)
-          tx.executions.create_active(execution)
-          next_root = root.with(
-            agent_revision: root.agent_revision + 1,
-            lifecycle_status: :active
-          )
-          tx.agents.save(root.agent_id, expected_revision: root.agent_revision, root: next_root)
-        end
-        [execution, next_root]
+        participant ? participant.admit(admission) : admission.accept
+        admission.result
       end
 
       def initial_preparation_metadata(mode, replayable)
@@ -240,92 +229,9 @@ module Phronomy
         }
       end
 
-      def build_admitted_execution(tx, raw_message, root:, config:, preparation_metadata:)
-        input_ref = tx.contents.put_text(raw_message)
-        durable_context_ref = if config.key?(:durable_context)
-          tx.contents.put_json(config.fetch(:durable_context))
-        end
-        input_record = JournalRecord.new(
-          agent_id: @agent.agent_id,
-          kind: :input_received,
-          channel: :external,
-          role: :user,
-          content_ref: input_ref,
-          context_generation: root.transcript_generation,
-          context_candidate: false
-        )
-        execution = AgentExecution.start(
-          agent_root: root,
-          input_record: input_record,
-          execution_id: config[:phronomy_reserved_execution_id] || SecureRandom.uuid,
-          metadata: {
-            "coordination" => config[:phronomy_coordination],
-            "current_input_ref" => input_ref,
-            "durable_context_ref" => durable_context_ref
-          }.merge(preparation_metadata).compact
-        )
-        input_record = JournalRecord.from_h(input_record.to_h.merge("execution_id" => execution.execution_id))
-        execution.with(execution_revision: 0, working_records: [input_record])
-      end
-
-      def validate_coordination_admission!(tx, execution)
-        owner = execution.metadata["coordination"]
-        return unless owner
-
-        case owner.fetch("kind")
-        when "team" then validate_team_admission!(tx, execution, owner)
-        when "subagent" then validate_subagent_admission!(tx, execution, owner)
-        when "handoff" then validate_handoff_admission!(tx, execution, owner)
-        else
-          raise Phronomy::ConfigurationError, "Unknown coordination owner kind"
-        end
-      end
-
-      def validate_team_admission!(tx, execution, owner)
-        team = tx.team_executions.load(owner.fetch("team_execution_id"))
-        unless team.team_id == owner.fetch("team_id") && team.active? && !team.metadata["cancel_requested"]
-          raise Phronomy::CancellationError, "Team run is no longer dispatchable"
-        end
-        slot = if owner.fetch("slot") == "coordinator"
-          team.coordinator
-        else
-          assignment = team.assignments.find { |entry| entry.fetch("task_id") == owner.fetch("slot") }
-          worker = assignment && team.workers.fetch(assignment.fetch("worker"))
-          worker&.merge("execution_id" => assignment.fetch("execution_id"))
-        end
-        unless slot && slot.fetch("execution_id") == execution.execution_id && slot.fetch("agent_id") == execution.agent_id
-          raise Phronomy::Persistence::StateConflictError, "Team reserved child identity mismatch"
-        end
-      end
-
-      def validate_subagent_admission!(tx, execution, owner)
-        parent = tx.executions.load(owner.fetch("parent_execution_id"))
-        unless parent.agent_id == owner.fetch("parent_agent_id") && parent.active? && !parent.metadata["coordination_cancel_requested"]
-          raise Phronomy::CancellationError, "Parent run is no longer dispatchable"
-        end
-        snapshot = tx.contents.fetch_json(parent.metadata.fetch("multi_agent_coordination_ref"))
-        slot = snapshot.fetch("children").find { |entry| entry.fetch("slot") == owner.fetch("slot") }
-        unless slot && slot.fetch("agent_id") == execution.agent_id && slot.fetch("execution_id") == execution.execution_id
-          raise Phronomy::Persistence::StateConflictError, "Parent reserved child identity mismatch"
-        end
-      end
-
-      def validate_handoff_admission!(tx, execution, owner)
-        routing = tx.handoff_states.load(owner.fetch("main_agent_id"))
-        unless routing && routing.active_agent_id == execution.agent_id
-          raise Phronomy::Persistence::StateConflictError, "Handoff responsibility changed before admission"
-        end
-        if Array(routing.metadata["cancelled_execution_ids"]).include?(execution.execution_id)
-          raise Phronomy::CancellationError, "Handoff reservation was cancelled"
-        end
-        if routing.phase != "stable" && routing.pending_target_execution_id != execution.execution_id
-          raise Phronomy::Persistence::StateConflictError, "Handoff reserved Target identity mismatch"
-        end
-      end
-
       def recovered_config(execution)
         mode = (execution.metadata[ExecutionMetadata::INVOCATION_MODE_KEY] || "invoke").to_sym
-        config = {phronomy_recovery_mode: mode}.merge(@agent.__coordination_config)
+        config = {phronomy_recovery_mode: mode}.merge(@agent.__execution_wiring)
         if execution.metadata.key?("durable_context_ref")
           context = @persistence.contents.fetch_json(execution.metadata.fetch("durable_context_ref"))
           unless context.is_a?(Hash)
@@ -353,7 +259,7 @@ module Phronomy
       end
 
       def commit_preparation_failure(execution, root, error)
-        translated_error = translated(error)
+        translated_error = error
         failed = next_root = appended = nil
         @persistence.transaction do |tx|
           error_ref = tx.contents.put_json(
@@ -411,10 +317,6 @@ module Phronomy
           agent_revision: root.agent_revision,
           journal_position: root.journal_position
         )
-      end
-
-      def translated(error)
-        @agent.send(:_translated_error, error)
       end
     end
   end

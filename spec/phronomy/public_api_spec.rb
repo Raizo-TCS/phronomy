@@ -43,8 +43,8 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
   end
 
-  describe "Phronomy::Agent::Context::Capability::Base" do
-    subject { Phronomy::Agent::Context::Capability::Base }
+  describe "Phronomy::Tool::Base" do
+    subject { Phronomy::Tool::Base }
 
     it "exposes DSL class methods: description, param, on_error" do
       expect(subject).to respond_to(:description, :param, :on_error)
@@ -95,9 +95,9 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
   end
 
-  describe "Phronomy::Agent::Context::Capability::Base — execution_mode" do
+  describe "Phronomy::Tool::Base — execution_mode" do
     it "defaults to :offloaded when not declared" do
-      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      klass = Class.new(Phronomy::Tool::Base) do
         description "no-op"
         def execute
         end
@@ -106,10 +106,10 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
 
     it "accepts :cooperative and :offloaded" do
-      cooperative = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      cooperative = Class.new(Phronomy::Tool::Base) do
         execution_mode :cooperative
       end
-      offloaded = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      offloaded = Class.new(Phronomy::Tool::Base) do
         execution_mode :offloaded
       end
       expect(cooperative.execution_mode).to eq(:cooperative)
@@ -119,7 +119,7 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     it "rejects removed workload-specific execution modes" do
       %i[blocking_io cpu_bound external_process].each do |mode|
         expect {
-          Class.new(Phronomy::Agent::Context::Capability::Base) { execution_mode mode }
+          Class.new(Phronomy::Tool::Base) { execution_mode mode }
         }.to raise_error(ArgumentError, /execution_mode/)
       end
     end

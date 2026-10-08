@@ -83,14 +83,15 @@ class ProjectTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.work.cleanup()
 
-    def test_all_four_clients_reference_contracts_and_engine_without_contract_reverse_edges(self):
+    def test_all_four_clients_reference_contracts_and_services_without_contract_reverse_edges(self):
         pairs = {(p['from'], p['to']): p for p in self.audit['module_pairs']}
-        for feature in ['llm_adapter', 'vector_store', 'vector_store/embeddings', 'storage']:
+        for feature in ['llm_adapter', 'vector_store', 'embeddings', 'storage']:
             base = 'lib/phronomy/' + feature
             with self.subTest(feature=feature):
                 pair = pairs[base + '/async', base]
                 self.assertTrue(pair['rbs_references'])
-                self.assertIn((base + '/async', 'lib/phronomy/engine'), pairs)
+                self.assertIn((base + '/async', 'lib/phronomy/execution'), set(pairs))
+                self.assertNotIn((base + '/async', 'lib/phronomy/engine'), set(pairs))
                 self.assertNotIn((base, base + '/async'), pairs)
                 self.assertNotIn((base, 'lib/phronomy/engine'), pairs)
         self.assertEqual(len(pairs), len(self.audit['module_pairs']))
@@ -110,18 +111,18 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual('lib/phronomy/runtime_composition', configuration['from'])
         self.assertEqual('lib/phronomy/runtime_composition/global_configuration.rb', configuration['source_definition']['file'])
         # Namespace-only reopenings must not take ownership of Persistence's API.
-        repository = next(r for r in refs if r['owner'] == 'Phronomy::Persistence' and r['member'] == 'agents')
-        self.assertEqual('lib/phronomy/persistence/api', repository['from'])
-        self.assertEqual('lib/phronomy/persistence/api/persistence.rb', repository['source_definition']['file'])
+        repository = next(r for r in refs if r['owner'] == 'Phronomy::Persistence' and r['member'] == 'backend')
+        self.assertEqual('lib/phronomy/persistence', repository['from'])
+        self.assertEqual('lib/phronomy/persistence/persistence.rb', repository['source_definition']['file'])
         identity = self.audit['rbs']['ownership']['Phronomy::Persistence']
-        self.assertEqual('lib/phronomy/persistence/api/persistence.rb', identity['file'])
+        self.assertEqual('lib/phronomy/persistence/persistence.rb', identity['file'])
 
     def test_complete_type_graph_passes_without_a_baseline_and_rejects_reverse_references(self):
         result = refresh.check_boundaries(self.audit, 'storage', REPO)
         self.assertTrue(result['passed'], result)
         self.assertEqual([], result['violations'])
         self.assertFalse((HERE / 'config/rbs_boundary_baseline.json').exists())
-        for target in ['lib/phronomy/agent/context_contract', 'lib/phronomy/llm_adapter',
+        for target in ['lib/phronomy/context', 'lib/phronomy/llm_adapter',
                        'lib/phronomy/runtime_composition']:
             changed = deepcopy(self.audit)
             changed['module_pairs'].append({'from': 'lib/phronomy/configuration', 'to': target,
@@ -132,20 +133,25 @@ class ProjectTests(unittest.TestCase):
 
     def test_persistence_contracts_and_domain_consumers_reject_raw_storage_coupling(self):
         pairs = {(p['from'], p['to']) for p in self.audit['module_pairs']}
-        contract = 'lib/phronomy/persistence/contract'
-        self.assertEqual({'lib/phronomy/common'}, {t for s, t in pairs if s == contract})
+        contract = 'lib/phronomy/persistence'
+        self.assertEqual({'lib/phronomy/common', 'lib/phronomy/storage', 'lib/phronomy/content_store'}, {t for s, t in pairs if s == contract})
         for consumer in ['agent', 'agent/execution', 'agent/handoff', 'agent/lifecycle',
                          'agent/recovery', 'agent/recovery/recovery_coordinator',
                          'multi_agent', 'workflow/execution']:
             source = 'lib/phronomy/' + consumer
             self.assertNotIn((source, 'lib/phronomy/storage'), pairs)
-            self.assertIn((source, contract), pairs)
+            if consumer != "agent/handoff":
+                self.assertIn((source, contract), pairs)
+            else:
+                self.assertNotIn((source, contract), pairs)
             changed = deepcopy(self.audit)
             changed['module_pairs'].append({'from': source, 'to': 'lib/phronomy/storage',
                                            'references': [], 'requires': [],
                                            'rbs_references': [{'origin': 'rbs'}]})
             self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
-        for source, target in [(contract, 'lib/phronomy/storage'),
+        for source, target in [(contract, 'lib/phronomy/agent'),
+                               (contract, 'lib/phronomy/persistence_composition'),
+                               (contract, 'lib/phronomy/workflow/persistence'),
                                ('lib/phronomy/storage', contract),
                                ('lib/phronomy/storage/backends', contract)]:
             changed = deepcopy(self.audit)
@@ -157,7 +163,8 @@ class ProjectTests(unittest.TestCase):
         root = ET.fromstring(svg)
         meta = json.loads(root.find(S + 'metadata').text)
         edge = next(e for e in meta['edges'] if (e['from'], e['to']) == ('M66', 'M15'))
-        self.assertEqual(1, edge['t'])
+        pair = next(p for p in self.audit['module_pairs'] if (p['from'], p['to']) == ('lib/phronomy/llm_adapter/async', 'lib/phronomy/llm_adapter'))
+        self.assertEqual(len(pair['rbs_references']), edge['t'])
         self.assertEqual(0, edge['c'] + edge['l'])
         self.assertEqual('rbs', edge['evidence'][0]['origin'])
         matrix = next(n for n in root.iter() if n.get('id') == 'matrix_M66_M15')
@@ -178,7 +185,7 @@ class ProjectTests(unittest.TestCase):
                                ('lib/phronomy/llm_adapter', content),
                                (content, storage + '/backends'), (content, storage + '/async'),
                                (content, 'lib/phronomy/engine'),
-                               (content, 'lib/phronomy/persistence/api')]:
+                               (content, 'lib/phronomy/persistence')]:
             with self.subTest(source=source, target=target):
                 changed = deepcopy(self.audit)
                 changed['module_pairs'].append({'from': source, 'to': target,
@@ -191,28 +198,40 @@ class ProjectTests(unittest.TestCase):
         self.assertTrue(any(v['kind'] == 'content-service-reaches-unrelated-responsibility'
                             for v in result['violations']))
 
+    def test_vector_contracts_and_document_helpers_have_no_hidden_domain_path(self):
+        self.assertTrue(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
+        for source, target in [('vector_store', 'embeddings'), ('embeddings', 'vector_store'),
+                               ('vector_store', 'storage'), ('embeddings', 'llm_adapter'),
+                               ('documents/loader', 'vector_store'), ('documents/splitter', 'agent')]:
+            with self.subTest(source=source, target=target):
+                changed = deepcopy(self.audit)
+                changed['module_pairs'].append({'from': 'lib/phronomy/' + source,
+                                               'to': 'lib/phronomy/' + target,
+                                               'references': [], 'requires': [],
+                                               'rbs_references': [{'origin': 'rbs'}]})
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
+
     def test_source_fingerprint_covers_private_and_public_signatures(self):
         hashes = fingerprint(REPO)
         self.assertEqual({str(p.relative_to(REPO)) for p in REPO.glob('sig/**/*.rbs')}, {p for p in hashes if p.startswith('sig/')})
 
     def test_execution_contracts_follow_ruby_owners_and_reject_indirect_implementation_dependencies(self):
-        contract = 'lib/phronomy/execution_contract'
+        contract = 'lib/phronomy/execution'
         token = contract + '/concurrency'
-        services = 'lib/phronomy/execution_services'
         pairs = {(p['from'], p['to']) for p in self.audit['module_pairs']}
-        for source in ['lib/phronomy/agent/context/instruction', 'lib/phronomy/output_parser']:
+        for source in ['lib/phronomy/context', 'lib/phronomy/output_parser']:
             self.assertIn((source, contract), pairs)
             self.assertNotIn((source, 'lib/phronomy/engine'), pairs)
         for source in ['lib/phronomy/tool', 'lib/phronomy/storage/async',
-                       'lib/phronomy/vector_store/async', 'lib/phronomy/vector_store/embeddings/async']:
+                       'lib/phronomy/vector_store/async', 'lib/phronomy/embeddings/async']:
             self.assertIn((source, token), pairs)
-            self.assertIn((source, services), pairs)
+            self.assertIn((source, 'lib/phronomy/execution'), pairs)
             self.assertNotIn((source, 'lib/phronomy/engine/concurrency'), pairs)
-        for source, target in [(contract, services), (token, 'lib/phronomy/engine'),
+        for source, target in [(contract, 'lib/phronomy/engine'), (token, 'lib/phronomy/engine'),
                                ('lib/phronomy/common', 'lib/phronomy/engine'),
-                               (services, 'lib/phronomy/agent'),
-                               ('lib/phronomy/storage', services),
-                               ('lib/phronomy/storage/backends', services),
+                               (contract, 'lib/phronomy/agent'),
+                               ('lib/phronomy/storage', contract),
+                               ('lib/phronomy/storage/backends', contract),
                                ('lib/phronomy/configuration', contract)]:
             with self.subTest(source=source, target=target):
                 changed = deepcopy(self.audit)
@@ -223,10 +242,53 @@ class ProjectTests(unittest.TestCase):
         rbs = self.audit['rbs']['references']
         result = next(r for r in rbs if r['owner'] == 'Phronomy::Storage::AsyncClient'
                       and r['name'] == 'Phronomy::TaskResult')
-        self.assertEqual(services, result['to'])
+        self.assertEqual('lib/phronomy/execution', result['to'])
         cancellation = next(r for r in rbs if r['owner'] == 'Phronomy::Storage::AsyncClient'
                             and r['name'] == 'Phronomy::Concurrency::CancellationToken')
         self.assertEqual(token, cancellation['to'])
+
+    def test_revision_label_does_not_disable_synchronous_backend_boundary(self):
+        changed = deepcopy(self.audit)
+        changed['module_pairs'].append({'from': 'lib/phronomy/storage/backends',
+                                       'to': 'lib/phronomy/execution'})
+        architecture = refresh.read_architecture('storage')
+        architecture['annotation_source_revision'] = 'future-display-label'
+        self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO, architecture)['passed'])
+
+    def test_neutral_results_and_worker_mechanisms_reject_upward_paths(self):
+        self.assertTrue(refresh.check_boundaries(self.audit, 'storage', REPO)['passed'])
+        prefix = 'lib/phronomy/'
+        for source, target in [
+            ('execution', 'engine'),
+            ('execution', 'tracing'),
+            ('execution/concurrency', 'engine'),
+            ('execution/concurrency', 'tracing'),
+            ('engine/concurrency', 'engine'),
+            ('common', 'execution'),
+            ('context', 'agent'),
+            ('context', 'engine'),
+            ('tool', 'agent'),
+            ('tool', 'engine'),
+        ]:
+            with self.subTest(source=source, target=target):
+                changed = deepcopy(self.audit)
+                changed['module_pairs'].append({'from': prefix + source, 'to': prefix + target})
+                self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO)['passed'])
+
+    def test_scope_and_mechanism_interfaces_follow_actual_owners(self):
+        refs = self.audit['rbs']['references']
+        owners = {
+            '_ExecutionScope': 'execution',
+            '_TimerQueue': 'engine/concurrency',
+            '_ExecutionReceiver': 'execution',
+            '_ExecutionChannel': 'execution',
+            '_FSMEventSink': 'engine',
+            '_TerminalPolicy': 'engine',
+        }
+        for name, owner in owners.items():
+            selected = [r for r in refs if r['name'] == 'Phronomy::' + name]
+            self.assertTrue(selected, name)
+            self.assertTrue(all(r['to'] == 'lib/phronomy/' + owner for r in selected), name)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ require "json"
 
 RSpec.describe "CG-01 canonical Workflow instance identity" do
   let(:root) { File.expand_path("../..", __dir__) }
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.workflow }
 
   let(:context_class) do
     Class.new do
@@ -53,13 +53,13 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
     )
 
     expect(result.workflow_instance_id).to eq("workflow-1")
-    record = persistence.workflow_states.load("workflow-1")
+    record = persistence.load("workflow-1")
     expect(record[:snapshot]["fields"]["counter"]).to eq(1)
     expect(record[:revision]).to eq(1)
   end
 
   it "keeps an existing durable key value unchanged across the rename" do
-    persistence.workflow_states.save(
+    persistence.save(
       "existing-key",
       expected_revision: nil,
       snapshot: {
@@ -75,7 +75,7 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
 
     expect(result.workflow_instance_id).to eq("existing-key")
     expect(result.counter).to eq(5)
-    expect(persistence.workflow_states.load("existing-key")[:revision]).to eq(2)
+    expect(persistence.load("existing-key")[:revision]).to eq(2)
   end
 
   it "rejects legacy Workflow config thread_id instead of silently branching identity" do
@@ -86,7 +86,7 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
       /thread_id.*workflow_instance_id/
     )
 
-    expect(persistence.workflow_states.load("legacy-workflow")).to be_nil
+    expect(persistence.load("legacy-workflow")).to be_nil
   end
 
   it "does not derive Workflow identity from InvocationContext attributes" do
@@ -103,7 +103,7 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
   end
 
   it "renames the Workflow Persistence SPI parameter without creating a new durable key format" do
-    repository = persistence.workflow_states
+    repository = persistence
 
     expect(repository.method(:load).parameters).to eq(
       [[:req, :workflow_instance_id]]
@@ -160,7 +160,7 @@ RSpec.describe "CG-01 canonical Workflow instance identity" do
 
   it "keeps RBS and the API snapshot on the canonical Workflow identity" do
     workflow_rbs = File.read(File.join(root, "sig/phronomy/workflow.rbs"))
-    persistence_rbs = File.read(File.join(root, "sig/phronomy/persistence.rbs"))
+    persistence_rbs = File.read(File.join(root, "sig/phronomy/workflow/store.rbs"))
     snapshot = JSON.parse(
       File.read(File.join(root, "spec/fixtures/api_snapshot.json"))
     )

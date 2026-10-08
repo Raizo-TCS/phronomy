@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "securerandom"
 require "time"
@@ -33,7 +33,8 @@ module Phronomy
       end
 
       attr_accessor :input,
-        :chat,
+        :messages,
+        :tools,
         :output,
         :usage,
         :input_blocked,
@@ -85,7 +86,8 @@ module Phronomy
         @event_sink = nil
         @mode = (mode || :invoke).to_sym
 
-        @chat = nil
+        @messages = []
+        @tools = {}.freeze
         @output = nil
         @usage = nil
         @input_blocked = false
@@ -139,17 +141,6 @@ module Phronomy
         end
 
         durable_id = llm_call_id
-        if durable_id.nil? &&
-            Phronomy::Runtime.in_event_loop_context?
-          state =
-            Phronomy::Agent::ExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).agent_execution_state(
-              execution_id
-            )
-          durable_id = state&.execution&.metadata&.fetch(
-            ExecutionMetadata::PENDING_LLM_ID_KEY,
-            nil
-          )
-        end
         unless durable_id
           raise Phronomy::ExecutionRehydrationRequiredError,
             "Provider Call semantic identity was not durably established before dispatch"
@@ -279,7 +270,7 @@ module Phronomy
 
         @user_message_sent = true
         @output = response.content
-        @usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+        @usage = response.usage
         @pending_tool_calls = []
         self
       end
@@ -321,7 +312,7 @@ module Phronomy
       def record_tool_results!
         @tool_invocations.each do |invocation|
           tool_content = invocation.result.to_s
-          @chat.add_message(
+          @messages << Phronomy::LLMAdapter::Message.new(
             role: :tool,
             content: tool_content,
             tool_call_id: invocation.tool_call_id
@@ -430,7 +421,7 @@ module Phronomy
       private
 
       def handoff_matches_for(calls)
-        bindings = Array(@config[:phronomy_handoff_bindings])
+        bindings = Array(@config[:phronomy_control_bindings])
         return [] if bindings.empty?
 
         by_name = bindings.to_h { |binding| [binding.tool_name.to_s, binding] }
@@ -441,25 +432,15 @@ module Phronomy
       end
 
       def build_handoff_request(tool_call, binding, llm_call_id:)
-        handoff = binding.handoff
-        unless handoff.source_agent.equal?(@agent)
-          raise Phronomy::HandoffError,
-            "Handoff capability is not bound to the active Source Agent"
+        unless binding.source_agent_id == @agent.agent_id
+          raise Phronomy::HandoffError, "Control capability is not bound to the active Source Agent"
         end
-
-        args = tool_call.respond_to?(:arguments) ? tool_call.arguments : {}
-        args = (args || {}).to_h.transform_keys(&:to_sym)
-        selection = handoff.policy.selectable_categories.each_with_object({}) do |category, result|
-          key = :"include_#{category}"
-          result[category] = args[key] if args.key?(key)
+        request = binding.request(arguments: tool_call.arguments || {}, llm_call_id: llm_call_id,
+          tool_call_id: tool_call.respond_to?(:id) ? tool_call.id : nil)
+        unless request.is_a?(ControlRequest)
+          raise ArgumentError, "Control capability must return Agent::ControlRequest"
         end
-        Phronomy::Agent::HandoffRequest.new(
-          handoff: handoff,
-          responsibility: args.fetch(:responsibility),
-          selection_intent: selection,
-          llm_call_id: llm_call_id,
-          tool_call_id: tool_call.respond_to?(:id) ? tool_call.id : nil
-        )
+        request
       end
 
       def apply_llm_event(event)
@@ -476,7 +457,7 @@ module Phronomy
         call = @current_llm_call
         @llm_results << {
           llm_call_id: call.fetch(:llm_call_id),
-          response: canonical_response_for_llm_result(result),
+          response: result.response,
           error: result.error,
           streaming: result.streaming,
           manifest_ref: call.fetch(:manifest_ref),
@@ -490,16 +471,17 @@ module Phronomy
         end
 
         if result.error
-          if result.error.is_a?(ToolCallIntercepted)
-            accept_tool_calls!(
-              result.error.tool_calls,
-              llm_call_id: result.llm_call_id
-            )
+          @error = result.error
+        elsif result.response.is_a?(Phronomy::LLMAdapter::Response)
+          @messages << result.response
+          if result.response.tool_call?
+            @usage = result.response.usage
+            accept_tool_calls!(result.response.tool_calls, llm_call_id: result.llm_call_id)
           else
-            @error = result.error
+            apply_llm_response!(result.response)
           end
         else
-          apply_llm_response!(result.response)
+          @error = Phronomy::LLMAdapter::InvalidResultError.new("LLM operation completed without a Response")
         end
         true
       end
@@ -510,21 +492,13 @@ module Phronomy
       end
 
       def warn_stale_llm_result(llm_call_id)
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Dropped stale Provider result: " \
           "execution_id=#{@execution_id} expected_llm_call_id=#{current_llm_call_id.inspect} " \
           "actual_llm_call_id=#{llm_call_id.inspect}"
         )
       rescue
         nil
-      end
-
-      def canonical_response_for_llm_result(result)
-        if result.error.is_a?(ToolCallIntercepted)
-          result.error.assistant_outcome || ProviderCallOutcome.capture(result.response)
-        else
-          ProviderCallOutcome.capture(result.response)
-        end
       end
 
       # Canonical runtime recording is independent of Application callback health.
@@ -555,13 +529,13 @@ module Phronomy
         if @event_sink
           accepted = @event_sink.post(:application_callback_failed, {failure: failure})
           unless accepted
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] Callback failure recorded but could not notify " \
               "FSMSession #{@event_sink.fsm_session_id}: execution_id=#{@execution_id}"
             )
           end
         end
-        Phronomy.configuration.logger&.warn(
+        Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Application event listener failed: " \
           "#{failure.error.class}: #{failure.error.message}"
         )

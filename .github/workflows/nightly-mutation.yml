@@ -22,22 +22,26 @@ jobs:
           - subject: Phronomy::WorkflowRunner
             label: WorkflowRunner
             timeout_minutes: 60
-          - subject: Phronomy::Agent::Context::Capability::Base
+          - subject: Phronomy::Tool::Base
             label: Tool::Base
+          - subject: Phronomy::Tool::Schema
+            label: Tool::Schema
           - subject: Phronomy::LlmContextWindow::TokenBudget
             label: LlmContextWindow::TokenBudget
-          - subject: Phronomy::Agent::ContextAssembler
-            label: Agent::ContextAssembler
-          - subject: Phronomy::Agent::ContextPolicies::Default
-            label: ContextPolicies::Default
-          - subject: Phronomy::Agent::ContextPolicyInputBuilder
+          - subject: Phronomy::Context::Assembly
+            label: Context::Assembly
+          - subject: Phronomy::Agent::ContextPreparation
+            label: Agent::ContextPreparation
+          - subject: Phronomy::Context::DefaultPolicy
+            label: Context::DefaultPolicy
+          - subject: Phronomy::Context::ContextPolicyInputBuilder
             label: ContextPolicyInputBuilder
-          - subject: Phronomy::Agent::ContextPlanValidator
+          - subject: Phronomy::Context::ContextPlanValidator
             label: ContextPlanValidator
-          - subject: Phronomy::Agent::HandoffPolicy
-            label: Agent::HandoffPolicy
-          - subject: Phronomy::Agent::HandoffProjection
-            label: Agent::HandoffProjection
+          - subject: Phronomy::MultiAgent::HandoffPolicy
+            label: MultiAgent::HandoffPolicy
+          - subject: Phronomy::Agent::TransferProjection
+            label: Agent::TransferProjection
           - subject: Phronomy::VectorStore::InMemory
             label: VectorStore::InMemory
 

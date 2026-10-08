@@ -1,0 +1,20 @@
+module Phronomy
+  module Agent
+    # Private composition port; serial ownership and routing are process-local.
+    class ExecutionEnvironment
+      def self.install_provider: (^() -> ExecutionEnvironment provider) -> untyped
+      def self.current: () -> ExecutionEnvironment
+      def registry: () -> untyped
+      def existing_registry: () -> untyped
+      def ownership: () -> untyped
+      def existing_ownership: () -> untyped
+      def executing?: () -> bool
+      def session_phase: (String id) -> Symbol?
+      def submit: [V] (**untyped options) { () -> V } -> TaskResult[V]
+      def submit_authorization: [V] (timeout: Numeric?, cancellation_token: Concurrency::CancellationToken?) { () -> V } -> TaskResult[V]
+      def build_agent_session: (invocation: untyped, ?resume_event: Symbol?, ?resume_phase: Symbol?) -> untyped
+      def build_tool_session: (invocation: untyped, parent_sink: untyped, ?resume_event: Symbol?, ?resume_phase: Symbol?) -> untyped
+      def register_session: (untyped session, completion: TaskResult[untyped]) -> untyped
+    end
+  end
+end

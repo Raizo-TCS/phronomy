@@ -3,8 +3,8 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Tools::Mcp do
-  it "is a subclass of Phronomy::Agent::Context::Capability::Base" do
-    expect(described_class).to be < Phronomy::Agent::Context::Capability::Base
+  it "is a subclass of Phronomy::Tool::Base" do
+    expect(described_class).to be < Phronomy::Tool::Base
   end
 
   # Build a MCP::Client::Tool double.
@@ -297,16 +297,16 @@ RSpec.describe Phronomy::Tools::Mcp do
       )
     end
 
-    it "cancels the MCP::Cancellation when cancel! is called on the CancellationToken" do
+    it "cancels the MCP::Cancellation while the SDK call is in progress" do
+      ct = Phronomy::Concurrency::CancellationToken.new
       received_cancellation = nil
       allow(instance_client).to receive(:call_tool) do |**kwargs|
         received_cancellation = kwargs[:cancellation]
+        ct.cancel!
         {"result" => {"content" => [{"type" => "text", "text" => "ok"}]}}
       end
-      ct = Phronomy::Concurrency::CancellationToken.new
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
       tool.execute(cancellation_token: ct, query: "test")
-      ct.cancel!
       expect(received_cancellation).to be_cancelled
     end
 
@@ -363,7 +363,7 @@ RSpec.describe Phronomy::Tools::Mcp do
 
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "toggle")
       expect(tool.params_schema.dig("properties", "enabled", "enum"))
-        .to eq([true, false])
+        .to eq([true, false, nil])
     end
 
     it "rejects unknown root schema keywords" do

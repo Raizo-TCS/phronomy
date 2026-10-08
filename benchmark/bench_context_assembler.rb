@@ -14,7 +14,7 @@ module BenchContextAssembler
   module_function
 
   def provenance
-    Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal)
+    Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :journal)
   end
 
   def policy_input(item_count)
@@ -22,13 +22,13 @@ module BenchContextAssembler
     conversation = []
     item_count.times do |index|
       if (index % 10).zero?
-        knowledge << Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+        knowledge << Phronomy::Context::ContextPolicyInput::KnowledgeItem.new(
           id: "knowledge-#{index}", kind: :knowledge, role: :user,
           content: "knowledge #{index}", content_format: :text,
           estimated_tokens: 8, required: false, provenance: provenance, metadata: {}
         )
       else
-        conversation << [Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+        conversation << [Phronomy::Context::ContextPolicyInput::ConversationItem.new(
           id: "message-#{index}", kind: :external_message, role: :user,
           content: "message #{index}", content_format: :text,
           sequence: index, estimated_tokens: 8, required: false,
@@ -38,7 +38,7 @@ module BenchContextAssembler
       end
     end
 
-    Phronomy::Agent::ContextPolicyInput.new(
+    Phronomy::Context::ContextPolicyInput.new(
       agent_id: "bench-agent", execution_id: "bench-execution",
       call_sequence: 2, call_mode: :complete,
       instruction: [], knowledge: knowledge, tools: [], conversation: conversation,
@@ -50,7 +50,7 @@ module BenchContextAssembler
   end
 
   def assembler_fixture
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
     agent_class = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "bench-manifest-context-assembler", version: 1
       # Resolve capabilities from RubyLLM's bundled registry; no provider call.
@@ -86,9 +86,10 @@ module BenchContextAssembler
     )
 
     [
-      Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence),
+      Phronomy::Agent::ContextPreparation.new(agent: agent, persistence: persistence),
       root,
-      execution
+      execution,
+      persistence
     ]
   end
 end
@@ -97,7 +98,7 @@ puts "Typed Context Policy benchmark"
 puts "Ruby #{RUBY_VERSION} on #{RUBY_PLATFORM}"
 puts "=" * 72
 
-policy = Phronomy::Agent::ContextPolicies::Default.instance
+policy = Phronomy::Context::DefaultPolicy.instance
 policy_inputs = [10, 100, 1_000].to_h do |count|
   [count, BenchContextAssembler.policy_input(count)]
 end
@@ -110,15 +111,17 @@ Benchmark.bm(46) do |x|
     end
   end
 
-  assembler, root, execution = BenchContextAssembler.assembler_fixture
-  x.report("ContextAssembler prepare/finalize x500") do
+  assembler, root, execution, persistence = BenchContextAssembler.assembler_fixture
+  x.report("Context prepare/store x500") do
     500.times do
       prepared = assembler.prepare_initial(
         input: "benchmark input",
         agent_root: root,
         execution: execution
       )
-      assembler.finalize(prepared)
+      persistence.transaction do |tx|
+        Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
+      end
     end
   end
 end

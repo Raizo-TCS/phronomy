@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 module Phronomy
   # Module for defining Workflow context data.
@@ -138,7 +138,7 @@ module Phronomy
     # dispatch thread. All Workflow execution APIs now use that same path; there
     # is no caller-thread synchronous exception.
     def _assert_write_permitted!
-      return if Phronomy::Runtime.in_event_loop_context?
+      return if Phronomy::WaitPolicy.blocking_forbidden?
 
       raise Phronomy::WorkflowContextOwnershipError,
         "WorkflowContext fields may only be mutated from the EventLoop dispatch " \

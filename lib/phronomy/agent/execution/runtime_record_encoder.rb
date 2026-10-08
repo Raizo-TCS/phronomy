@@ -24,8 +24,8 @@ module Phronomy
           outcome = item[:response]
           error = item[:error]
           llm_call_id = item.fetch(:llm_call_id).to_s
-          intercepted = error.is_a?(ToolCallIntercepted)
-          call_error = intercepted ? nil : error
+          tools_requested = outcome&.tool_call? || false
+          call_error = error
           output_ref = assistant_output_ref(tx, outcome)
           assistant_ref = assistant_message_ref(tx, outcome)
           error_ref = if call_error
@@ -34,8 +34,8 @@ module Phronomy
               "message" => call_error.message
             )
           end
-          usage_ref = if outcome && !outcome.usage.empty?
-            tx.contents.put_json(json_value(outcome.usage))
+          usage_ref = if outcome && outcome.usage.to_h.values.any? { |value| !value.nil? }
+            tx.contents.put_json(json_value(outcome.usage.to_h))
           end
           call = LLMCallRecord.new(
             llm_call_id: llm_call_id,
@@ -50,7 +50,7 @@ module Phronomy
             completed_at: Time.now.utc.iso8601(6),
             metadata: {
               "streaming" => item[:streaming],
-              "tool_call_intercepted" => intercepted,
+              "tools_requested" => tools_requested,
               "assistant_outcome_captured" => !outcome.nil?,
               "tool_call_count" => outcome ? outcome.tool_calls.length : 0
             }
@@ -180,8 +180,8 @@ module Phronomy
       def assistant_message_metadata(outcome)
         calls = Array(outcome&.tool_calls)
         {
-          "tool_call_ids" => calls.map { |call| call.fetch("id").to_s },
-          "tool_names" => calls.map { |call| call.fetch("name").to_s }
+          "tool_call_ids" => calls.map(&:id),
+          "tool_names" => calls.map(&:name)
         }
       end
 

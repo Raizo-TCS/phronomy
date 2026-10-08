@@ -24,7 +24,7 @@ module Phronomy
     end
 
     def self.assert_not_in_event_loop!
-      return unless Phronomy::Runtime.in_event_loop_context?
+      return unless Phronomy::WaitPolicy.blocking_forbidden?
 
       raise Phronomy::EventLoopReentrancyError,
         "Blocking invoke called from inside an EventLoop action. Use invoke_async instead."

@@ -164,7 +164,7 @@ redefine the behavior of Application code that directly calls the public
 
 ## 10. TokenUsage
 
-`Phronomy::TokenUsage` has four fields:
+`Phronomy::LLMAdapter::TokenUsage` has four fields:
 
 ```text
 input

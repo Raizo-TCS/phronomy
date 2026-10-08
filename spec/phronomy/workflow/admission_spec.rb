@@ -90,8 +90,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "acquires admission before durable Workflow load" do
-    persistence = Phronomy::Persistence.in_memory
-    repository = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repository = persistence
     load_entered = Queue.new
     allow_load = Queue.new
     load_calls = Queue.new
@@ -115,9 +115,8 @@ RSpec.describe "Workflow durable admission" do
     blocking_repository.define_singleton_method(:delete) do |workflow_instance_id, expected_revision:|
       repository.delete(workflow_instance_id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(blocking_repository)
 
-    workflow = waiting_workflow(persistence: persistence)
+    workflow = waiting_workflow(persistence: blocking_repository)
     first = workflow.invoke_async({}, config: {workflow_instance_id: "shared"})
     load_entered.pop
 
@@ -139,8 +138,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "keeps the FSMSession nonterminal until terminal save succeeds" do
-    persistence = Phronomy::Persistence.in_memory
-    repository = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repository = persistence
     save_entered = Queue.new
     allow_save = Queue.new
 
@@ -160,9 +159,8 @@ RSpec.describe "Workflow durable admission" do
     blocking_repository.define_singleton_method(:delete) do |workflow_instance_id, expected_revision:|
       repository.delete(workflow_instance_id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(blocking_repository)
 
-    workflow = finishing_workflow(persistence: persistence)
+    workflow = finishing_workflow(persistence: blocking_repository)
     task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "barrier"})
     save_entered.pop
 
@@ -189,8 +187,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "does not publish a halted stream state before its durable save succeeds" do
-    persistence = Phronomy::Persistence.in_memory
-    repository = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repository = persistence
     save_entered = Queue.new
     allow_save = Queue.new
     observed = Queue.new
@@ -205,11 +203,10 @@ RSpec.describe "Workflow durable admission" do
     blocking_repository.define_singleton_method(:delete) do |id, expected_revision:|
       repository.delete(id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(blocking_repository)
 
     workflow = Phronomy::Workflow.define(
       WorkflowAdmissionContext,
-      persistence: persistence
+      persistence: blocking_repository
     ) do
       initial :awaiting
       wait_state :awaiting
@@ -232,8 +229,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "treats a portable compare-and-swap failure as a known terminal failure" do
-    persistence = Phronomy::Persistence.in_memory
-    repository = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repository = persistence
 
     failing_repository = Object.new
     failing_repository.define_singleton_method(:load) { |id| repository.load(id) }
@@ -244,9 +241,8 @@ RSpec.describe "Workflow durable admission" do
     failing_repository.define_singleton_method(:delete) do |id, expected_revision:|
       repository.delete(id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(failing_repository)
 
-    workflow = finishing_workflow(persistence: persistence)
+    workflow = finishing_workflow(persistence: failing_repository)
     task = workflow.invoke_async({}, config: {workflow_instance_id: "known-failure"})
 
     expect { task.wait_result }
@@ -256,8 +252,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "reconciles terminal save response loss when authoritative state is the intended post-state" do
-    persistence = Phronomy::Persistence.in_memory
-    repository = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repository = persistence
     save_returned = Queue.new
 
     uncertain_repository = Object.new
@@ -274,9 +270,8 @@ RSpec.describe "Workflow durable admission" do
     uncertain_repository.define_singleton_method(:delete) do |id, expected_revision:|
       repository.delete(id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(uncertain_repository)
 
-    workflow = finishing_workflow(persistence: persistence)
+    workflow = finishing_workflow(persistence: uncertain_repository)
     task = workflow.invoke_async({}, config: {workflow_instance_id: "uncertain"})
     expect(save_returned.pop).to eq(1)
 
@@ -314,8 +309,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "raises ConflictError when the durable snapshot has diverged since halt" do
-    persistence = Phronomy::Persistence.in_memory
-    repo = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    repo = persistence
     workflow = halting_workflow(persistence: persistence)
 
     halted = workflow.invoke({value: 0}, config: {workflow_instance_id: "diverged"})
@@ -329,18 +324,17 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "propagates a repository load error during durable Workflow start" do
-    persistence = Phronomy::Persistence.in_memory
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
     fail_repo = Object.new
     fail_repo.define_singleton_method(:load) { |_id| raise IOError, "load exploded on start" }
     fail_repo.define_singleton_method(:save) do |id, expected_revision:, snapshot:|
-      persistence.workflow_states.save(id, expected_revision: expected_revision, snapshot: snapshot)
+      persistence.save(id, expected_revision: expected_revision, snapshot: snapshot)
     end
     fail_repo.define_singleton_method(:delete) do |id, expected_revision:|
-      persistence.workflow_states.delete(id, expected_revision: expected_revision)
+      persistence.delete(id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(fail_repo)
 
-    workflow = finishing_workflow(persistence: persistence)
+    workflow = finishing_workflow(persistence: fail_repo)
     task = workflow.invoke_async({value: 0}, config: {workflow_instance_id: "start-load-err"})
     expect { task.wait_result }.to raise_error(IOError, /load exploded on start/)
     expect(Phronomy::WorkflowExecutionRegistry.for(Phronomy::Runtime.instance.event_loop).workflow_admission_owner("start-load-err"))
@@ -348,8 +342,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "propagates a repository load error during durable Workflow resume" do
-    persistence = Phronomy::Persistence.in_memory
-    real_repo = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    real_repo = persistence
     load_count = 0
     flaky_repo = Object.new
     flaky_repo.define_singleton_method(:load) do |id|
@@ -363,9 +357,8 @@ RSpec.describe "Workflow durable admission" do
     flaky_repo.define_singleton_method(:delete) do |id, expected_revision:|
       real_repo.delete(id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(flaky_repo)
 
-    workflow = halting_workflow(persistence: persistence)
+    workflow = halting_workflow(persistence: flaky_repo)
     halted = workflow.invoke({value: 0}, config: {workflow_instance_id: "resume-load-err"})
     expect(halted.halted?).to be(true)
 
@@ -390,8 +383,8 @@ RSpec.describe "Workflow durable admission" do
   end
 
   it "handles a durable repository that returns string-keyed snapshot records on resume" do
-    persistence = Phronomy::Persistence.in_memory
-    real_repo = persistence.workflow_states
+    persistence = Phronomy::PersistenceComposition.in_memory.workflow
+    real_repo = persistence
     # Wrap the repository so that returned records use string keys, exercising
     # record_value's string-key fallback and deep_immutable_copy's String-key branch.
     string_key_repo = Object.new
@@ -411,9 +404,8 @@ RSpec.describe "Workflow durable admission" do
     string_key_repo.define_singleton_method(:delete) do |id, expected_revision:|
       real_repo.delete(id, expected_revision: expected_revision)
     end
-    allow(persistence).to receive(:workflow_states).and_return(string_key_repo)
 
-    workflow = halting_workflow(persistence: persistence)
+    workflow = halting_workflow(persistence: string_key_repo)
     halted = workflow.invoke({value: 5}, config: {workflow_instance_id: "str-keys"})
     expect(halted.halted?).to be(true)
 

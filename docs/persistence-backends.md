@@ -2,8 +2,11 @@
 
 [ADR-058](decisions/058-neutral-storage-primitives.md) defines the current
 extension contract. This is an intentional breaking replacement of the old
-fixed-repository Backend SPI. Application code keeps `Persistence.new(backend:)`,
-`Persistence.in_memory`, its eight domain repositories and result queries.
+fixed-repository Backend SPI. Application construction now uses
+`PersistenceComposition.build(backend:)` or `.in_memory`; pass its `agent`, `team`,
+or `workflow` component to that domain. `Persistence.new(backend:)` provides only
+the neutral coordinator. The old eight-repository facade and its queries were
+removed; see [r8 unit 3](architecture/r8-unit3.md).
 
 ## Ownership and composition
 
@@ -13,9 +16,10 @@ record types, active-execution policy, content digest algorithm or watermark API
 
 Agent, Team, Workflow and ContentStore declare their own resource schemas.
 `PersistenceComposition::StorageSchema` gathers those declarations and
-`PersistenceComposition::Repositories` assembles domain wrappers over a View.
-The Team and Workflow schema files live beside their features in nested loader
-roots; loading metadata does not load their runtime implementations.
+`PersistenceComposition` binds domain record adapters to one coordinator.
+Team and Workflow schemas live in their existing `persistence/` implementation
+directories. An isolated Agent uses `PersistenceComposition.agent` and does not
+construct Team or Workflow stores.
 `ContentStore::StoredContents` owns SHA-256 identity and digest verification.
 The Agent-owned `Watermark` composes guarded revision and stream-head conditions.
 
@@ -41,11 +45,10 @@ view.check!(guards: guards, conditions: conditions)
 
 The backend declares `spi_version: 2` and true values for `atomic_resources`,
 `record_cas`, `stream_cas`, `conditional_unique`, `guarded_checks` and
-`nested_savepoints`. Persistence validates these capabilities and the required
-resource declarations before exposing repositories. Old duck-typed backends are
-rejected by `Persistence.new` with `Persistence::UnsupportedBackendError`; there is no eight-slot compatibility
-adapter. Public Persistence capabilities retain `atomic_all`, `atomic_admission`
-and `optimistic_revision`, derived by composition from these primitives.
+`nested_savepoints`. Persistence validates backend capabilities; composition
+validates the required domain resource declarations before binding adapters.
+Unsupported backends raise `Persistence::UnsupportedBackendError`. There is no
+eight-slot compatibility adapter or duplicated facade capability API.
 
 A root handle routes to the current transaction on the same backend/thread.
 A bound view and all its handles expire on commit or rollback and reject use from
@@ -139,7 +142,9 @@ stale revisions and ordinary constraint conflicts remain `ConflictError`.
 meanings; `TransactionError` identifies invalid scope use. The removed
 `ActiveExecutionConflictError` and `Storage::Repositories` have no aliases.
 
-The following sections describe the **domain Persistence** surface. Unqualified
+The following sections describe the **domain-owned record protocols**, used by
+domain implementations and backend conformance tests. They are not a shared
+application facade. Unqualified
 ConflictError, NotFoundError, SerializationError and UnsupportedBackendError in
 these domain sections refer to `Phronomy::Persistence` errors. Repository exits
 translate the four raw Storage categories, preserving `cause`, message and trace.
@@ -402,16 +407,17 @@ differs, raise `ConflictError`. On success return `true`.
 The operation must not return a replacement AgentRoot or Journal. A mismatch is a
 conflict, not a request to reload/merge mutable state.
 
-When used inside `Persistence#transaction`, a SQL backend should perform the
+When used inside `Agent::Store#transaction`, a SQL backend should perform the
 watermark check in the same database transaction as the subsequent durable
 write.
 
 ## Transaction contract
 
-A transaction block may combine operations across all repositories:
+A domain transaction combines its own record operations. Multiple domains join
+one coordinator scope explicitly; each receives only its own record protocol:
 
 ```ruby
-persistence.transaction do |tx|
+stores.agent.transaction do |tx|
   tx.assert_agent_watermark!(...)
   content_ref = tx.contents.put_text("...")
   tx.journals.append(...)
@@ -504,7 +510,7 @@ require "phronomy"
 require "phronomy/testing/persistence_contract"
 
 RSpec.describe MyPersistenceBackend do
-  let(:persistence) { Phronomy::Persistence.new(backend: described_class.new(...)) }
+  let(:stores) { Phronomy::PersistenceComposition.build(backend: described_class.new(...)) }
 
   it_behaves_like "a persistence content store"
   it_behaves_like "an Agent repository"
@@ -518,7 +524,7 @@ RSpec.describe MyPersistenceBackend do
 end
 ```
 
-`Persistence.in_memory` is run through the same shipped contract source in
+`PersistenceComposition.in_memory` is run through the same shipped contract source in
 Phronomy CI. The files under `spec/support/shared_examples/` are compatibility
 require wrappers only; the authoritative shared-example implementations live
 under `lib/phronomy/testing/persistence_contract/` so the core suite and external

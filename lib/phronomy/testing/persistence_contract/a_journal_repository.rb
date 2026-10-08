@@ -3,7 +3,7 @@
 require "securerandom"
 
 RSpec.shared_examples "a Journal repository" do
-  let(:journal_repository) { persistence.journals }
+  let(:journal_repository) { stores.agent.journals }
   let(:journal_agent_root) do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "journal-agent-#{SecureRandom.uuid}",
@@ -25,7 +25,7 @@ RSpec.shared_examples "a Journal repository" do
   end
 
   before do
-    persistence.agents.create(journal_agent_root)
+    stores.agent.agents.create(journal_agent_root)
   end
 
   it "appends records at the expected position and assigns durable sequences" do

@@ -117,7 +117,7 @@ RSpec.describe "Application TaskResult and synchronous-work APIs" do
 
   it "rejects waiting admission on EventLoop before setting up an operation" do
     pool = Phronomy::Runtime.instance.offload
-    allow(Phronomy::Runtime).to receive(:in_event_loop_context?).and_return(true)
+    allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_return(true)
     token = Phronomy::Concurrency::CancellationToken.new
     expect(token).not_to receive(:on_cancel)
     [:wait, :timeout].each do |policy|

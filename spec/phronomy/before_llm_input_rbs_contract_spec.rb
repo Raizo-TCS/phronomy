@@ -5,6 +5,7 @@ require "spec_helper"
 RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
   let(:root) { File.expand_path("../..", __dir__) }
   let(:agent_rbs) { File.read(File.join(root, "sig/phronomy/agent.rbs")) }
+  let(:context_rbs) { File.read(File.join(root, "sig/phronomy/context.rbs")) }
   let(:top_rbs) { File.read(File.join(root, "sig/phronomy/runtime_composition/configuration.rbs")) }
 
   it "keeps the three Stable registration tiers represented in runtime and RBS" do
@@ -30,28 +31,28 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
   end
 
   it "represents the current LLMInputPatch capability without inventing future fields" do
-    expect(Phronomy::Agent::LLMInputPatch.members).to eq(
+    expect(Phronomy::Context::LLMInputPatch.members).to eq(
       %i[model_config_patch segment_candidates]
     )
 
-    expect(agent_rbs).to include("class LLMInputPatch")
-    expect(agent_rbs).to match(
+    expect(context_rbs).to include("class LLMInputPatch")
+    expect(context_rbs).to match(
       /attr_reader\s+model_config_patch:\s+Hash\[untyped,\s*untyped\]\?/
     )
-    expect(agent_rbs).to match(
+    expect(context_rbs).to match(
       /attr_reader\s+segment_candidates:\s+Array\[untyped\]\?/
     )
-    expect(agent_rbs).to include("def self.empty: () -> LLMInputPatch")
+    expect(context_rbs).to include("def self.empty: () -> LLMInputPatch")
 
     # Baseline D02-18-6/D02-18-20: do not turn previously discussed future
     # shapes into a Stable contract merely by placing them in RBS.
-    expect(agent_rbs).not_to include("response_schema_candidate")
-    expect(agent_rbs).not_to include("selection_policy_override")
-    expect(agent_rbs).not_to include("LLMInputDraft")
+    expect(context_rbs).not_to include("response_schema_candidate")
+    expect(context_rbs).not_to include("selection_policy_override")
+    expect(context_rbs).not_to include("LLMInputDraft")
   end
 
   it "represents exactly the current immutable metadata-only build context" do
-    expect(Phronomy::Agent::LLMInputBuildContext.members).to eq(
+    expect(Phronomy::Context::LLMInputBuildContext.members).to eq(
       %i[
         agent_id
         agent_definition_id
@@ -64,7 +65,7 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
     # Scope RBS checks to LLMInputBuildContext itself. In particular,
     # Agent::Base also has an agent_id reader, so whole-file matching could
     # otherwise hide an accidental loss of LLMInputBuildContext#agent_id.
-    build_context_section = agent_rbs
+    build_context_section = context_rbs
       .split("class LLMInputBuildContext", 2)
       .fetch(1)
       .split(/^\s*end\b/, 2)
@@ -83,7 +84,7 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
     end
 
     # Baseline D02-18-4: live mutable/runtime objects are not the hook surface.
-    expect(Phronomy::Agent::LLMInputBuildContext.members).not_to include(
+    expect(Phronomy::Context::LLMInputBuildContext.members).not_to include(
       :agent,
       :chat,
       :persistence,
@@ -97,7 +98,7 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
 
   it "types hook results as LLMInputPatch or nil rather than broad untyped output" do
     expect(agent_rbs).to match(
-      /interface _BeforeLLMInputHook.*def call:\s+\(LLMInputBuildContext context\)\s+->\s+LLMInputPatch\?/m
+      /interface _BeforeLLMInputHook.*def call:\s+\(Phronomy::Context::LLMInputBuildContext context\)\s+->\s+Phronomy::Context::LLMInputPatch\?/m
     )
   end
 
@@ -105,7 +106,7 @@ RSpec.describe "before_llm_input Stable RBS contract (ACS-07)" do
     hook_contract = agent_rbs
       .split("interface _BeforeLLMInputHook", 2)
       .fetch(1)
-      .split("class LLMInputPatch", 2)
+      .split(/^\s*end\b/, 2)
       .first
 
     expect(hook_contract).not_to match(

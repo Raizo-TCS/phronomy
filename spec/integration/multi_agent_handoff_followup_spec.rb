@@ -6,8 +6,9 @@ require_relative "support/llm_stub"
 
 RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration do
   after { LLMStub.deactivate }
-  before { Phronomy.configure { |c| c.persistence = Phronomy::Persistence.in_memory } }
-  after { Phronomy.configure { |c| c.persistence = nil } }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  before { Phronomy.configure { |c| c.agent_store = stores.agent } }
+  after { Phronomy.configure { |c| c.agent_store = nil } }
 
   it "keeps the current user request in the current_request Handoff category" do
     lookup_tool = Class.new(Phronomy::Tool::Base) do
@@ -38,19 +39,19 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
 
     source = source_class.new
     target = target_class.new
-    policy = Phronomy::Agent::HandoffPolicy.define do
+    policy = Phronomy::MultiAgent::HandoffPolicy.define do
       required :current_request
       forbidden :history
       selectable :knowledge, default: :exclude
       selectable :tool_exchanges, default: :include
     end
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: policy,
       description: "Transfer the case after the lookup"
     )
-    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
 
     recorder = LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -64,10 +65,9 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::MultiAgent::HandoffRunner.new(
+    result = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: source,
-      handoffs: [handoff]
-    ).invoke("ORIGINAL_CURRENT_REQUEST_MARKER: investigate case-42")
+      handoffs: [handoff]).invoke("ORIGINAL_CURRENT_REQUEST_MARKER: investigate case-42")
 
     expect(result[:agent]).to equal(target)
     expect(result[:output]).to eq("Completed by target.")
@@ -81,7 +81,7 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
     expect(target_text).to include("lookup result for case-42")
   end
   it "transfers Policy-generated Conversation history with an Application-specific kind" do
-    generated_policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    generated_policy = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: "POLICY_GENERATED_HISTORY_MARKER",
@@ -113,19 +113,19 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
 
     source = source_class.new
     target = target_class.new
-    handoff_policy = Phronomy::Agent::HandoffPolicy.define do
+    handoff_policy = Phronomy::MultiAgent::HandoffPolicy.define do
       required :current_request
       selectable :history, default: :include
       selectable :knowledge, default: :exclude
       selectable :tool_exchanges, default: :exclude
     end
-    handoff = Phronomy::Agent::Handoff.new(
+    handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
       policy: handoff_policy,
       description: "Transfer to the target Agent"
     )
-    transport_name = Phronomy::Agent::HandoffCapabilityFactory.build(handoff).tool_name
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
 
     recorder = LLMStub.activate(responses: [
       LLMStub.tool_call_response(
@@ -135,10 +135,9 @@ RSpec.describe "Multi-Agent Handoff after ordinary Tool execution", :integration
       "Completed by target."
     ])
 
-    result = Phronomy::MultiAgent::HandoffRunner.new(
+    result = Phronomy::MultiAgent::HandoffRunner.new(persistence: stores.multi_agent,
       main_agent: source,
-      handoffs: [handoff]
-    ).invoke("Transfer this request")
+      handoffs: [handoff]).invoke("Transfer this request")
 
     expect(result[:agent]).to equal(target)
     expect(result[:output]).to eq("Completed by target.")

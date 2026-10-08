@@ -6,6 +6,10 @@ module Phronomy
     # The EventLoop remains the sole writer during execution.
     # @api private
     class ExecutionRegistry < Phronomy::ExecutionReceiver
+      def self.existing_current
+        ExecutionEnvironment.current.existing_registry
+      end
+
       # Immutable Agent-owned value. The map containing these records is the
       # mutable authority; records are replaced rather than mutated in place.
       AgentExecutionState = Data.define(
@@ -36,7 +40,7 @@ module Phronomy
       PhysicalCompletion = Data.define(:execution_id, :token)
       private_constant :UNSET, :PhysicalCompletion
 
-      def initialize(event_loop:)
+      def initialize(channel:)
         super
         @agent_admissions = {}
         @agent_executions = {}
@@ -364,7 +368,7 @@ module Phronomy
         callback = lambda do
           accepted = post_message(PhysicalCompletion.new(execution_id: key, token: token))
           unless accepted
-            Phronomy.configuration.logger&.warn(
+            Phronomy::RuntimeSettings.current.logger&.warn(
               "[Phronomy] EventLoop rejected physical-completion delivery for #{key}"
             )
           end

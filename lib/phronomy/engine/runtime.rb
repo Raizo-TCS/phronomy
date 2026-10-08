@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../execution_contract/concurrency/worker_input_restricted"
+require_relative "../execution/concurrency/worker_input_restricted"
 
 require_relative "runtime/timer_queue"
 require_relative "runtime/shutdown_result"
@@ -17,8 +17,14 @@ module Phronomy
         instance_mutex.synchronize { @instance ||= new }
       end
 
-      def default_if_initialized_for_test
+      # Lookup only: diagnostics must not initialize the default Runtime.
+      # @api private
+      def __default_if_initialized
         instance_mutex.synchronize { @instance }
+      end
+
+      def default_if_initialized_for_test
+        __default_if_initialized
       end
 
       def replace_default_for_test(runtime)
@@ -50,8 +56,7 @@ module Phronomy
       end
 
       def in_event_loop_context?
-        runtime = instance_mutex.synchronize { @instance }
-        runtime&.event_loop_current? || false
+        Phronomy::WaitPolicy.blocking_forbidden?
       end
 
       private
@@ -91,6 +96,12 @@ module Phronomy
     def pool(name, size: 10, queue_size: 100)
       ensure_accepting_work!
       @pool_registry.named_pool(name, size: size, queue_size: queue_size)
+    end
+
+    # Lookup only; retained pools remain observable during and after shutdown.
+    # @api private
+    def __offload_if_initialized
+      @pool_registry.default_pool_if_initialized
     end
 
     def timer_queue
@@ -212,13 +223,14 @@ module Phronomy
           :not_started
         end
 
-        subsystem_error = shutdown_pools_and_timer
+        pools_stopped, subsystem_error = shutdown_pools_and_timer(deadline: stop_deadline)
         participant_error = @lifecycle_mutex.synchronize { @shutdown_participant_error }
         cleanup_complete = participants_idle && participant_error.nil? &&
           loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           (!loop_instance || loop_instance.__receiver_cleanup_complete?) &&
+          pools_stopped &&
           subsystem_error.nil?
 
         cleanup_complete = finalize_participants(participants) if cleanup_complete
@@ -294,10 +306,11 @@ module Phronomy
         "Runtime is #{current_state}; new work is not accepted"
     end
 
-    def shutdown_pools_and_timer
+    def shutdown_pools_and_timer(deadline:)
       error = nil
+      pools_stopped = false
       begin
-        @pool_registry.shutdown
+        pools_stopped = @pool_registry.shutdown(deadline: deadline)
       rescue => caught
         error ||= caught
       ensure
@@ -307,7 +320,7 @@ module Phronomy
           error ||= caught
         end
       end
-      error
+      [pools_stopped, error]
     end
 
     def validate_timeout!(value, name)

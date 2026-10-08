@@ -69,7 +69,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       klass = IntegrationFactors.bli_agent_class("base")
       @bli_klass = klass
       klass.new.invoke("Say hello.")
-      expect(received_ctx).to be_a(Phronomy::Agent::LLMInputBuildContext)
+      expect(received_ctx).to be_a(Phronomy::Context::LLMInputBuildContext)
     end
 
     it "global hook returning nil does not mutate request params" do
@@ -119,7 +119,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   describe "TC-007: global hook merging temperature; Base.invoke — temperature sent to LLM" do
     it "hook is called and request body contains temperature" do
       Phronomy.configuration.before_llm_input = ->(_ctx) {
-        Phronomy::Agent::LLMInputPatch.new(
+        Phronomy::Context::LLMInputPatch.new(
           model_config_patch: {temperature: 0.1}
         )
       }
@@ -171,7 +171,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
     it "temperature from hook appears in LLM request" do
       klass = IntegrationFactors.bli_agent_class("base")
       @bli_klass = klass
-      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
+      klass.before_llm_input ->(_ctx) { Phronomy::Context::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass.new.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -188,7 +188,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       @bli_klass = klass
       klass.before_llm_input ->(_ctx) {
         hook_called = true
-        Phronomy::Agent::LLMInputPatch.new(
+        Phronomy::Context::LLMInputPatch.new(
           model_config_patch: {model: LM_MODEL_25}
         )
       }
@@ -233,7 +233,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       klass = IntegrationFactors.bli_agent_class("base")
       @bli_klass = klass
       agent = klass.new
-      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
+      agent.before_llm_input = ->(_ctx) { Phronomy::Context::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -251,7 +251,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       agent = klass.new
       agent.before_llm_input = ->(_ctx) {
         hook_called = true
-        Phronomy::Agent::LLMInputPatch.new(
+        Phronomy::Context::LLMInputPatch.new(
           model_config_patch: {model: LM_MODEL_25}
         )
       }
@@ -301,12 +301,12 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-019: all tiers return temperature; Base.invoke — temperature merged and sent" do
     it "temperature from merged hooks appears in LLM request" do
-      Phronomy.configuration.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
+      Phronomy.configuration.before_llm_input = ->(_ctx) { Phronomy::Context::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass = IntegrationFactors.bli_agent_class("base")
       @bli_klass = klass
-      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
+      klass.before_llm_input ->(_ctx) { Phronomy::Context::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent = klass.new
-      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
+      agent.before_llm_input = ->(_ctx) { Phronomy::Context::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end

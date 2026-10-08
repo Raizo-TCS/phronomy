@@ -19,7 +19,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
 
   describe "Agent-incarnation event binding" do
     it "binds on_event at create and returns the same live owner from load without rebinding" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       listener = ->(_event) {}
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-live-owner",
@@ -36,7 +36,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "rejects listener rebinding when load resolves an already-live Agent" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       listener = ->(_event) {}
       ACS15RecoveryAgent.create(
         agent_id: "acs15-no-rebind",
@@ -54,7 +54,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "rejects on_event and a construction block together" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
 
       expect {
         ACS15RecoveryAgent.create(
@@ -70,7 +70,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "rejects old per-invocation on_event without starting an execution" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-old-on-event",
-        persistence: Phronomy::Persistence.in_memory
+        persistence: Phronomy::PersistenceComposition.in_memory.agent
       )
 
       expect {
@@ -81,7 +81,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "rejects old per-invocation approval listener" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-old-approval-listener",
-        persistence: Phronomy::Persistence.in_memory
+        persistence: Phronomy::PersistenceComposition.in_memory.agent
       )
 
       expect {
@@ -95,7 +95,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "rejects old invocation event-listener blocks" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-old-block",
-        persistence: Phronomy::Persistence.in_memory
+        persistence: Phronomy::PersistenceComposition.in_memory.agent
       )
 
       expect {
@@ -106,7 +106,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     it "requires an Agent-incarnation listener for stream_async" do
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-stream-listener",
-        persistence: Phronomy::Persistence.in_memory
+        persistence: Phronomy::PersistenceComposition.in_memory.agent
       )
 
       expect {
@@ -115,7 +115,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
   end
 
-  describe Phronomy::Recovery do
+  describe Phronomy::Agent::RecoveryRules do
     it "normalizes purpose-specific Recovery subjects" do
       expect(
         described_class.normalize_subject(
@@ -164,34 +164,6 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
           error_present: false
         )
       }.to raise_error(ArgumentError, /neither result: nor error:/)
-    end
-
-    it "reconciles revisioned Workflow snapshots as post, pre, or conflict" do
-      intended = {fields: {count: 2}, phase: "done"}
-
-      expect(
-        described_class.compare_revisioned_snapshot(
-          record: {revision: 4, snapshot: intended},
-          expected_pre_revision: 3,
-          intended_snapshot: intended
-        )
-      ).to eq(:post_state)
-
-      expect(
-        described_class.compare_revisioned_snapshot(
-          record: {revision: 3, snapshot: {fields: {count: 1}}},
-          expected_pre_revision: 3,
-          intended_snapshot: intended
-        )
-      ).to eq(:pre_state)
-
-      expect(
-        described_class.compare_revisioned_snapshot(
-          record: {revision: 4, snapshot: {fields: {count: 99}}},
-          expected_pre_revision: 3,
-          intended_snapshot: intended
-        )
-      ).to eq(:conflict)
     end
   end
 
@@ -249,7 +221,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "publishes recovery_resolution_required with the same logical execution_id after Runtime restart" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-restart",
         persistence: persistence
@@ -283,7 +255,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     it "fails load and leaves no live owner when Application action is required but no listener is supplied" do
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       agent = ACS15RecoveryAgent.create(
         agent_id: "acs15-restart-no-listener",
         persistence: persistence
@@ -311,7 +283,7 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
 
   describe "Recovery resolution via resolve / resolve_async" do
     def setup_ambiguous_llm_execution(agent_id)
-      persistence = Phronomy::Persistence.in_memory
+      persistence = Phronomy::PersistenceComposition.in_memory.agent
       agent = ACS15RecoveryAgent.create(agent_id: agent_id, persistence: persistence)
       root = agent.agent_root
       active_execution = nil
@@ -462,8 +434,8 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
     end
 
     describe ".normalize_provider_outcome" do
-      it "returns a ProviderCallOutcome unchanged" do
-        outcome = Phronomy::Agent::ProviderCallOutcome.new(
+      it "returns an LLMAdapter::Response unchanged" do
+        outcome = Phronomy::LLMAdapter::Response.from_h(
           role: :assistant,
           content: "hello",
           tool_calls: [],
@@ -480,13 +452,13 @@ RSpec.describe "ACS-15 durable Agent recovery and CG-09 event API" do
           "tokens" => {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0}
         }
         result = described_class.normalize_provider_outcome(hash)
-        expect(result).to be_a(Phronomy::Agent::ProviderCallOutcome)
+        expect(result).to be_a(Phronomy::LLMAdapter::Response)
       end
 
       it "raises when value is nil (capture returns nil)" do
         expect {
           described_class.normalize_provider_outcome(nil)
-        }.to raise_error(ArgumentError, /ProviderCallOutcome-compatible Hash/)
+        }.to raise_error(ArgumentError, /LLMAdapter::Response or its canonical Hash/)
       end
     end
 

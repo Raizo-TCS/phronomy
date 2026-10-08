@@ -1,0 +1,13 @@
+# Internal lookup operations. None of these methods initializes a resource.
+module Phronomy
+  class Runtime
+    def self.__default_if_initialized: () -> Runtime?
+    def __offload_if_initialized: () -> Concurrency::OffloadPool?
+  end
+
+  module Concurrency
+    class PoolRegistry
+      def default_pool_if_initialized: () -> OffloadPool?
+    end
+  end
+end

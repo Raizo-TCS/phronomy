@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require "digest"
 require "securerandom"
@@ -196,11 +196,7 @@ module Phronomy
       def validate!
         return self if terminal?
 
-        validated, schema_error = if @tool.respond_to?(:validate_and_coerce, true)
-          @tool.send(:validate_and_coerce, @raw_arguments)
-        else
-          [@raw_arguments, nil]
-        end
+        validated, schema_error = @tool.validate_arguments(@raw_arguments)
 
         if schema_error
           if @tool.class.respond_to?(:on_schema_error) && @tool.class.on_schema_error == :raise
@@ -224,27 +220,21 @@ module Phronomy
         self
       end
 
-      def start_authorization(runtime: Phronomy::Runtime.instance, &callback)
+      def start_authorization(environment:, &callback)
         raise ArgumentError, "start_authorization requires a callback" unless callback
 
         command = authorization_command
         evaluator = self.class
         tool_invocation_id = @id.to_s.freeze
-        pool = runtime.pool(
-          :authorization,
-          size: Phronomy.configuration.authorization_pool_size,
-          queue_size: Phronomy.configuration.authorization_queue_size
-        )
         timeout = @config.fetch(
           :authorization_timeout,
-          Phronomy.configuration.authorization_timeout
+          Phronomy::Agent::Settings.current.authorization_timeout
         )
-        operation = pool.submit(
+        operation = environment.submit_authorization(
           timeout: timeout,
-          cancellation_token: @config[:cancellation_token],
-          on_full: :raise
+          cancellation_token: @config[:cancellation_token]
         ) { evaluator.send(:evaluate_authorization_command, command) }
-        Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop).supervise_agent_operation(@execution_id, operation)
+        environment.registry.supervise_agent_operation(@execution_id, operation)
         operation.on_complete do |outcome, error|
           callback.call(
             error ? evaluator.send(:authorization_failure_result, tool_invocation_id, error) : outcome
@@ -258,7 +248,7 @@ module Phronomy
         self
       end
 
-      def start_execution(runtime: Phronomy::Runtime.instance, &callback)
+      def start_execution(environment:, &callback)
         raise ArgumentError, "start_execution requires a callback" unless callback
         unless dispatchable?
           callback.call(ExecutionOutcome.new(
@@ -270,45 +260,24 @@ module Phronomy
           return self
         end
 
-        trace_handle = nil
-        case @tool.class.execution_mode
-        when :cooperative, :offloaded
-          trace_handle = Phronomy::Tracing::Automatic.start(
-            "tool.execute",
-            input: @arguments || @raw_arguments,
-            agent_id: @agent.agent_id,
-            execution_id: @execution_id,
-            tool_invocation_id: @id,
-            tool_call_id: @tool_call_id,
-            tool_name: @tool_name,
-            **@agent.send(:_build_caller_meta, @config)
-          )
-          operation = start_async_tool_operation(runtime)
-          unless operation.respond_to?(:on_complete)
-            raise Phronomy::ToolError,
-              "Tool #{@tool.class.name}#call_async must return a completion handle"
-          end
-          Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop).supervise_agent_operation(@execution_id, operation)
+        trace_handle = Phronomy::Tracing::Automatic.start(
+          "tool.execute",
+          input: @arguments || @raw_arguments,
+          agent_id: @agent.agent_id,
+          execution_id: @execution_id,
+          tool_invocation_id: @id,
+          tool_call_id: @tool_call_id,
+          tool_name: @tool_name,
+          **@agent.send(:_build_caller_meta, @config)
+        )
+        operation = start_async_tool_operation(environment)
+        environment.registry.supervise_agent_operation(@execution_id, operation)
 
-          evaluator = self.class
-          tool_invocation_id = @id.to_s.freeze
-          operation.on_complete do |result, error|
-            Phronomy::Tracing::Automatic.finish(
-              trace_handle,
-              output: result,
-              error: error
-            )
-            callback.call(
-              evaluator.send(:build_execution_outcome, tool_invocation_id, result, error)
-            )
-          end
-        else
-          callback.call(ExecutionOutcome.new(
-            tool_invocation_id: @id,
-            error: Phronomy::ConfigurationError.new(
-              "unknown Tool execution_mode: #{@tool.class.execution_mode.inspect}"
-            )
-          ))
+        evaluator = self.class
+        tool_invocation_id = @id.to_s.freeze
+        operation.on_complete do |result, error|
+          Phronomy::Tracing::Automatic.finish(trace_handle, output: result, error: error)
+          callback.call(evaluator.send(:build_execution_outcome, tool_invocation_id, result, error))
         end
         self
       rescue => error
@@ -417,28 +386,20 @@ module Phronomy
           agent_definition_version: Integer(definition.fetch(:version)),
           execution_id: @execution_id,
           tool_name: @tool_name.to_s.freeze,
-          tool_schema: self.class.send(:immutable_command_copy, tool_schema),
+          tool_schema: Phronomy::Tool::Authorization.snapshot(tool_schema),
           tool_invocation_id: @id.to_s.freeze,
           tool_call_id: @tool_call_id&.to_s&.freeze,
-          arguments: self.class.send(
-            :immutable_command_copy,
+          arguments: Phronomy::Tool::Authorization.snapshot(
             @arguments || {}
           ),
-          approval_policy: self.class.send(
-            :safe_behavior_handle, @approval_policy, "approval_policy"
-          ),
-          approval_facts_callable: self.class.send(
-            :safe_behavior_handle, authorization_facts_callable, "approval_facts"
-          ),
-          approval_requirement: self.class.send(
-            :safe_behavior_handle, authorization_requirement, "requires_approval"
-          ),
-          approval_context: self.class.send(
-            :immutable_command_copy,
+          approval_policy: Phronomy::Tool::Authorization.behavior(@approval_policy, "approval_policy"),
+          approval_facts_callable: Phronomy::Tool::Authorization.behavior(authorization_facts_callable, "approval_facts"),
+          approval_requirement: Phronomy::Tool::Authorization.behavior(authorization_requirement, "requires_approval"),
+          approval_context: Phronomy::Tool::Authorization.snapshot(
             @approval_context
           ),
           origin: @origin,
-          metadata: self.class.send(:immutable_command_copy, @metadata)
+          metadata: Phronomy::Tool::Authorization.snapshot(@metadata)
         )
       end
 
@@ -456,57 +417,17 @@ module Phronomy
 
       def self.evaluate_authorization_command(command)
         request = build_authorization_request(command, facts: {}, default_decision: nil)
-        facts = evaluate_authorization_facts(command)
-        request = request.with(facts: facts)
-        default_decision = evaluate_default_authorization_decision(command, request)
-        request = request.with(default_decision: default_decision)
-        decision = command.approval_policy ? command.approval_policy.call(request) : default_decision
-        decision = decision.to_sym if decision.respond_to?(:to_sym)
-
-        unless ApprovalEvaluationRequest::VALID_DECISIONS.include?(decision)
-          raise Phronomy::ConfigurationError,
-            "tool_approval_policy must return :allow, :require_approval, or :reject " \
-            "(got #{decision.inspect})"
-        end
-
-        reason = if decision == :require_approval
-          (command.origin == :mcp) ?
-            "MCP Tool execution requires approval" : "Tool execution requires approval"
-        end
+        decision = Phronomy::Tool::Authorization.call(
+          request: request, arguments: command.arguments, context: command.approval_context,
+          facts: command.approval_facts_callable, requirement: command.approval_requirement,
+          policy: command.approval_policy
+        )
         AuthorizationOutcome.new(
           tool_invocation_id: command.tool_invocation_id,
-          decision: decision,
-          facts: facts,
-          reason: reason
+          decision: decision.decision, facts: decision.facts, reason: decision.reason
         )
       end
       private_class_method :evaluate_authorization_command
-
-      def self.evaluate_authorization_facts(command)
-        callable = command.approval_facts_callable
-        return {} unless callable
-
-        value = callable.call(command.arguments, command.approval_context)
-        unless value.nil? || value.is_a?(Hash)
-          raise Phronomy::ConfigurationError,
-            "approval_facts must return a Hash or nil (got #{value.class})"
-        end
-        immutable_command_copy(value || {})
-      end
-      private_class_method :evaluate_authorization_facts
-
-      def self.evaluate_default_authorization_decision(command, request)
-        requirement = command.approval_requirement
-        requirement = requirement.call(request) if requirement.respond_to?(:call)
-        case requirement
-        when true then :require_approval
-        when false, nil then :allow
-        else
-          raise Phronomy::ConfigurationError,
-            "requires_approval callable must return true or false (got #{requirement.inspect})"
-        end
-      end
-      private_class_method :evaluate_default_authorization_decision
 
       def self.build_authorization_request(command, facts:, default_decision:)
         ApprovalEvaluationRequest.new(
@@ -528,97 +449,17 @@ module Phronomy
       end
       private_class_method :build_authorization_request
 
-      def self.immutable_command_copy(value)
-        if phronomy_managed_live_domain_object?(value)
-          raise Phronomy::ConfigurationError,
-            "authorization worker snapshot cannot contain Phronomy-managed live " \
-            "domain object #{value.class}"
-        end
-
-        case value
-        when Hash
-          value.each_with_object({}) do |(key, item), result|
-            result[immutable_command_copy(key)] = immutable_command_copy(item)
-          end.freeze
-        when Array
-          value.map { |item| immutable_command_copy(item) }.freeze
-        when String
-          value.dup.freeze
-        else
-          # Application-defined opaque objects are permitted by ACS-11 and remain
-          # Application-owned. A stricter general value-type protocol is deferred.
-          value
-        end
-      end
-      private_class_method :immutable_command_copy
-
-      def self.phronomy_managed_live_domain_object?(value)
-        value.is_a?(Phronomy::Concurrency::WorkerInputRestricted)
-      end
-      private_class_method :phronomy_managed_live_domain_object?
-
-      def self.safe_behavior_handle(value, name)
-        return value if value.nil? || value == true || value == false
-        if phronomy_managed_live_domain_object?(value)
-          raise Phronomy::ConfigurationError,
-            "#{name} must not be a Phronomy-managed live domain object (got #{value.class})"
-        end
-        value
-      end
-      private_class_method :safe_behavior_handle
-
-      # Compatibility helpers for the existing private behavioral specs. These
-      # evaluate a frozen operation command just like the worker path; they do not
-      # reintroduce worker-side access to live mutable ToolInvocation state.
-      def evaluate_authorization
-        self.class.send(:evaluate_authorization_command, authorization_command)
-      end
-
-      def evaluate_facts
-        self.class.send(:evaluate_authorization_facts, authorization_command)
-      end
-
-      def evaluate_default_decision(request)
-        self.class.send(
-          :evaluate_default_authorization_decision,
-          authorization_command,
-          request
+      def start_async_tool_operation(environment)
+        tool_config = @tool.class.respond_to?(:__framework_owned_operation?) ?
+          @config.merge(phronomy_tool_invocation_id: @id, execution_id: @execution_id).freeze : @config
+        Phronomy::Tool::Operation.call_async(
+          tool: @tool,
+          args: @arguments,
+          cancellation_token: @config[:cancellation_token],
+          config: tool_config,
+          submitter: environment,
+          on_full: :raise
         )
-      end
-
-      def build_request(facts:, default_decision:)
-        self.class.send(
-          :build_authorization_request,
-          authorization_command,
-          facts: facts,
-          default_decision: default_decision
-        )
-      end
-
-      def start_async_tool_operation(runtime)
-        if uses_default_call_async?
-          Phronomy::Agent::Context::Capability::ToolExecutor.call_async(
-            tool: @tool,
-            args: @arguments,
-            cancellation_token: @config[:cancellation_token],
-            config: @config,
-            runtime: runtime,
-            on_full: :raise
-          )
-        else
-          tool_config = @tool.class.respond_to?(:__framework_owned_operation?) ?
-            @config.merge(phronomy_tool_invocation_id: @id, execution_id: @execution_id).freeze : @config
-          @tool.call_async(
-            @arguments,
-            cancellation_token: @config[:cancellation_token],
-            config: tool_config
-          )
-        end
-      end
-
-      def uses_default_call_async?
-        @tool.method(:call_async).owner ==
-          Phronomy::Agent::Context::Capability::Base
       end
 
       def self.build_execution_outcome(tool_invocation_id, result, error)
@@ -636,7 +477,7 @@ module Phronomy
 
       def self.authorization_failure_result(tool_invocation_id, error)
         if error.is_a?(Phronomy::TimeoutError) ||
-            error.is_a?(Phronomy::TransportError) ||
+            error.is_a?(Phronomy::LLMAdapter::TransportError) ||
             error.is_a?(Phronomy::BackpressureError)
           AuthorizationOutcome.new(
             tool_invocation_id: tool_invocation_id,
@@ -653,16 +494,6 @@ module Phronomy
         end
       end
       private_class_method :authorization_failure_result
-
-      # Private compatibility helpers used by existing behavioral specs. Runtime
-      # callbacks use only the pure class helpers above and captured semantic IDs.
-      def execution_outcome(result, error)
-        self.class.send(:build_execution_outcome, @id, result, error)
-      end
-
-      def authorization_failure_outcome(error)
-        self.class.send(:authorization_failure_result, @id, error)
-      end
 
       def authoritative_tool_outcome?(outcome)
         outcome.respond_to?(:tool_invocation_id) &&

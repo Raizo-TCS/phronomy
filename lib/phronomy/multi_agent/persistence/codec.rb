@@ -10,6 +10,26 @@ module Phronomy
 
         module_function
 
+        def encode_handoff_state(value)
+          payload = value.to_h
+          Phronomy::MultiAgent::HandoffState.from_h(payload)
+          build_record("phronomy.handoff_state", "0.2", payload)
+        rescue Phronomy::Storage::SerializationError
+          raise
+        rescue => error
+          serialization_error("cannot encode HandoffState", error)
+        end
+
+        def decode_handoff_state(record)
+          payload = current_payload!(record, record_type: "phronomy.handoff_state",
+            format_version: "0.2", keys: Phronomy::MultiAgent::HandoffState::ATTRIBUTES, label: "HandoffState")
+          Phronomy::MultiAgent::HandoffState.from_h(payload)
+        rescue Phronomy::Storage::SerializationError
+          raise
+        rescue => error
+          serialization_error("cannot decode HandoffState", error)
+        end
+
         def encode_team_root(value)
           payload = value.to_h
           Phronomy::MultiAgent::TeamRoot.from_h(payload)

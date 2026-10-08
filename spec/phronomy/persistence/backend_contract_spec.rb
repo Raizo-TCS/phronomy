@@ -5,7 +5,7 @@ require "phronomy/testing/persistence_contract"
 
 RSpec.describe "Persistence backend contract" do
   context "with Persistence.in_memory" do
-    let(:persistence) { Phronomy::Persistence.in_memory }
+    let(:stores) { Phronomy::PersistenceComposition.in_memory }
 
     it_behaves_like "a persistence content store"
     it_behaves_like "an Agent repository"

@@ -3,7 +3,7 @@
 require "securerandom"
 
 RSpec.shared_examples "an Agent repository" do
-  let(:agent_repository) { persistence.agents }
+  let(:agent_repository) { stores.agent.agents }
   let(:agent_root) do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "contract-agent-#{SecureRandom.uuid}",

@@ -110,14 +110,14 @@ RSpec.describe "Runtime shutdown participants" do
     threads = Array.new(2) do
       Thread.new do
         start.pop(timeout: 2)
-        Phronomy::MultiAgent::AdmissionRegistry.for(runtime)
+        Phronomy::MultiAgent::EngineEnvironment.new(runtime: runtime).admissions
       end
     end
     2.times { start << true }
     threads.each { |thread| expect(thread.join(2)).not_to be_nil }
     expect(threads.first.value).to equal(threads.last.value)
     other = Phronomy::Runtime.new
-    expect(Phronomy::MultiAgent::AdmissionRegistry.for(other)).not_to equal(threads.first.value)
+    expect(Phronomy::MultiAgent::EngineEnvironment.new(runtime: other).admissions).not_to equal(threads.first.value)
   ensure
     threads&.each { |thread| thread.join(2) }
     other&.shutdown
@@ -176,7 +176,7 @@ RSpec.describe "Runtime shutdown participants" do
   end
 
   it "waits for an admitted call while rejecting later calls through a cached registry" do
-    registry = Phronomy::MultiAgent::AdmissionRegistry.for(runtime)
+    registry = Phronomy::MultiAgent::EngineEnvironment.new(runtime: runtime).admissions
     owner = Object.new
     registry.admit!(owner)
     waiting = Queue.new
@@ -198,13 +198,13 @@ RSpec.describe "Runtime shutdown participants" do
   end
 
   it "closes cached admission on EventLoop failure while allowing admitted calls to release" do
-    registry = Phronomy::MultiAgent::AdmissionRegistry.for(runtime)
+    registry = Phronomy::MultiAgent::EngineEnvironment.new(runtime: runtime).admissions
     owner = Object.new
     registry.admit!(owner)
     failure = RuntimeError.new("EventLoop failed")
     runtime.__event_loop_failed(failure)
     expect { registry.admit!(Object.new) }.to raise_error(Phronomy::RuntimeShutdownError)
-    expect { Phronomy::MultiAgent::AdmissionRegistry.for(runtime) }.to raise_error(Phronomy::RuntimeShutdownError)
+    expect { Phronomy::MultiAgent::EngineEnvironment.new(runtime: runtime).admissions }.to raise_error(Phronomy::RuntimeShutdownError)
     expect(registry.release!(owner)).to be(true)
     result = runtime.shutdown
     expect(result.error).to equal(failure)
@@ -216,7 +216,7 @@ RSpec.describe "Runtime shutdown participants" do
 
   it "keeps default Runtime when a participant misses the deadline" do
     previous = Phronomy::Runtime.replace_default_for_test(runtime)
-    registry = Phronomy::MultiAgent::AdmissionRegistry.for(runtime)
+    registry = Phronomy::MultiAgent::EngineEnvironment.new(runtime: runtime).admissions
     owner = Object.new
     registry.admit!(owner)
     expect { Phronomy::Runtime.reset_default!(timeout: 0) }
@@ -269,17 +269,18 @@ RSpec.describe "Runtime shutdown participants" do
 end
 
 RSpec.describe "Coordination admission ownership" do
-  let(:registry) { Phronomy::MultiAgent::AdmissionRegistry.for(Phronomy::Runtime.instance) }
-  let(:store) { Phronomy::Persistence.in_memory }
+  let(:registry) { Phronomy::MultiAgent::EngineEnvironment.new(runtime: Phronomy::Runtime.instance).admissions }
+  let(:stores) { Phronomy::PersistenceComposition.in_memory }
+  let(:store) { stores.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) { agent_definition id: "shutdown-participant-agent", version: 1 }
   end
   let(:agent) { agent_class.create(persistence: store) }
-  let(:runner) { Phronomy::MultiAgent::HandoffRunner.new(main_agent: agent) }
+  let(:runner) { Phronomy::MultiAgent::HandoffRunner.new(main_agent: agent, persistence: stores.multi_agent) }
   let(:team) do
     Class.new(Phronomy::MultiAgent::TeamCoordinator) do
       team_definition id: "shutdown-participant-team", version: 1
-    end.create(persistence: store)
+    end.create(persistence: stores.multi_agent)
   end
 
   it "releases Handoff admission after an exception so a later call can enter" do

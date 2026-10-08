@@ -63,7 +63,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
   # -------------------------------------------------------------------------
   describe "Tool execute fault isolation" do
     let(:raising_tool) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         description "A tool that always raises"
 
         def execute
@@ -73,7 +73,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
     end
 
     let(:suppressed_tool) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         description "A tool that suppresses errors"
         on_error :suppress
 
@@ -107,7 +107,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
   # -------------------------------------------------------------------------
   describe "Tool approval handler denial" do
     let(:approval_required_tool_class) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         description "A tool requiring approval"
         requires_approval true
 

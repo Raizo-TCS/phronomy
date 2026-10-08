@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "../../execution_contract/concurrency/worker_input_restricted"
+require_relative "../../execution/concurrency/worker_input_restricted"
 
 require_relative "workflow_runner"
-require_relative "../../execution_contract/runnable"
+require_relative "../../execution/runnable"
 
 module Phronomy
   # StateChart-style Workflow definition DSL.
@@ -67,7 +67,7 @@ module Phronomy
     def _apply_invocation_context(config, invocation_context)
       effective = config.merge(invocation_context: invocation_context)
       if effective[:cancellation_token].nil?
-        token = invocation_context.effective_timeout_token
+        token = Phronomy::InvocationControls.effective_timeout_token(invocation_context)
         effective = effective.merge(cancellation_token: token) if token
       end
       effective
@@ -121,7 +121,7 @@ module Phronomy
       # They may start asynchronous work and register listeners, but returning
       # Phronomy::TaskResult is an error; completion must arrive as a later event.
       def transition(from:, to:, guard: nil, on: nil, action: nil)
-        destination = (to == :__finish__) ? FSMProtocol::FINISH : to
+        destination = to
         @transitions << {
           from: from,
           to: destination,
@@ -186,7 +186,7 @@ module Phronomy
 
         undefined_targets = @transitions
           .map { |transition| transition[:to] }
-          .reject { |target| target == FSMProtocol::FINISH } - all_states
+          .reject { |target| target == Completion::FINISH } - all_states
         unless undefined_targets.empty?
           raise ArgumentError,
             "Workflow transition(s) reference undefined state(s): " \
@@ -207,7 +207,7 @@ module Phronomy
           current = queue.shift
           @transitions.each do |transition|
             next unless transition[:from] == current
-            next if transition[:to] == FSMProtocol::FINISH
+            next if transition[:to] == Completion::FINISH
             next if reachable.include?(transition[:to])
 
             reachable.add(transition[:to])
@@ -222,7 +222,7 @@ module Phronomy
           "[Phronomy] Workflow has unreachable state(s): " \
           "#{unreachable.sort.inspect}. These states can never be entered " \
           "from the initial state #{entry_point.inspect}."
-        logger = Phronomy.configuration.logger
+        logger = Phronomy::RuntimeSettings.current.logger
         logger ? logger.warn(message) : Kernel.warn(message)
       end
     end

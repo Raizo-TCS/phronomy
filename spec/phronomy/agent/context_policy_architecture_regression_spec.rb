@@ -29,8 +29,8 @@ RSpec.describe "ACS-04 Context Policy architecture regression guards" do
     expect(Phronomy::Agent.const_defined?(:ContextPolicyDescriptor, false)).to be(false)
     expect(Phronomy::Agent.const_defined?(:ContextPolicyRegistry, false)).to be(false)
     expect(Phronomy::Agent.const_defined?(:DerivedContentSpec, false)).to be(false)
-    expect(Phronomy::Agent::Selection.const_defined?(:Unit, false)).to be(false)
-    expect(Phronomy::Agent::Selection.const_defined?(:Validator, false)).to be(false)
+    expect(Phronomy::Context.const_defined?(:Unit, false)).to be(false)
+    expect(Phronomy::Context.const_defined?(:Validator, false)).to be(false)
   end
 
   it "keeps Policy binding on the Agent class rather than create/load/invoke/stream overrides" do
@@ -60,8 +60,8 @@ RSpec.describe "ACS-04 Context Policy architecture regression guards" do
     expect(preparation.index("prepare_context")).to be < preparation.index("commit_preparation")
     expect(context).to include("assembler.prepare_initial", "invocation cancelled after context policy")
     expect(context).not_to include(".transaction")
-    expect(commit.index("assert_local_durable_base!")).to be < commit.index("assembler.finalize")
-    expect(commit.index("assembler.finalize")).to be < commit.index("tx.executions.save")
+    expect(commit.index("assert_local_durable_base!")).to be < commit.index("Phronomy::Context::Assembly.new.store")
+    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("tx.executions.save")
   end
 
   it "runs follow-up Policy between snapshot encoding and the durable state commit" do

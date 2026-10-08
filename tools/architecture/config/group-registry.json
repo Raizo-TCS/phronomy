@@ -18,7 +18,7 @@
     },
     {
       "id": "G04",
-      "title": "AGENT FACADE / CONCERNS / LIFECYCLE CONTRACT",
+      "title": "AGENT FRAMEWORK / STATE",
       "kind": "domain"
     },
     {
@@ -28,7 +28,7 @@
     },
     {
       "id": "G06",
-      "title": "TOOL",
+      "title": "TOOL FRAMEWORK",
       "kind": "domain"
     },
     {
@@ -83,7 +83,7 @@
     },
     {
       "id": "G25",
-      "title": "CONTEXT CONTRACTS",
+      "title": "CONTEXT FRAMEWORK",
       "kind": "domain"
     },
     {
@@ -133,7 +133,7 @@
     },
     {
       "id": "G38",
-      "title": "CONFIGURATION",
+      "title": "RUNTIME SETTINGS",
       "kind": "common"
     },
     {
@@ -218,7 +218,7 @@
     },
     {
       "id": "G55",
-      "title": "PERSISTENCE STORAGE BOUNDARY",
+      "title": "PERSISTENCE / TRANSACTION",
       "kind": "domain"
     },
     {
@@ -233,21 +233,38 @@
     },
     {
       "id": "G58",
-      "title": "EXECUTION CONTRACTS",
+      "title": "EXECUTION FRAMEWORK",
       "kind": "execution_contracts"
     },
     {
       "id": "G59",
       "title": "EXECUTION SERVICES",
       "kind": "execution_services"
+    },
+    {
+      "id": "G61",
+      "title": "ENGINE CONCURRENCY",
+      "kind": "engine_concurrency"
+    },
+    {
+      "id": "G62",
+      "title": "AGENT ENGINE BINDING",
+      "kind": "domain_binding"
+    },
+    {
+      "id": "G63",
+      "title": "MULTIAGENT ENGINE BINDING",
+      "kind": "domain_binding"
     }
   ],
   "retired_groups": {
-    "G19": "Split into G47 contracts and G48 implementations"
+    "G19": "Split into G47 contracts and G48 implementations",
+    "G34": "r8 unit14: recovery semantics assigned to Agent and Persistence; never reuse"
   },
   "retired_module_reservations": {
     "M65": "Prior unimplemented single async directory; never reuse",
-    "M73": "ContentStore implementation merged into M10 content service; never reuse"
+    "M73": "ContentStore implementation merged into M10 content service; never reuse",
+    "M50": "r8 unit14: recovery/recovery.rb split into Agent recovery rules and Persistence snapshot comparison; never reuse"
   },
   "planned_modules": [
     {
@@ -300,7 +317,7 @@
     },
     {
       "id": "M77",
-      "directory": "lib/phronomy/execution_contract/concurrency",
+      "directory": "lib/phronomy/execution/concurrency",
       "group": "G58",
       "phase": "storage"
     },
@@ -309,6 +326,98 @@
       "directory": "lib/phronomy/execution_services",
       "group": "G59",
       "phase": "storage"
+    },
+    {
+      "id": "M83",
+      "directory": "lib/phronomy/embeddings",
+      "group": "G47",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M84",
+      "directory": "lib/phronomy/documents/loader",
+      "group": "G49",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M85",
+      "directory": "lib/phronomy/documents/splitter",
+      "group": "G49",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M86",
+      "directory": "lib/phronomy/embeddings/async",
+      "group": "G46",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M87",
+      "directory": "lib/phronomy/embeddings/backends",
+      "group": "G48",
+      "phase": "r8-unit5"
+    },
+    {
+      "id": "M88",
+      "directory": "lib/phronomy/agent/runtime_binding",
+      "group": "G62",
+      "phase": "r8-unit7"
+    },
+    {
+      "id": "M89",
+      "directory": "lib/phronomy/multi_agent/runtime_binding",
+      "group": "G63",
+      "phase": "r8-unit10"
     }
+  ],
+  "retired_ids": {
+    "groups": [
+      "G07",
+      "G08",
+      "G43",
+      "G59",
+      "G60",
+      "G34"
+    ],
+    "modules": [
+      "M03",
+      "M04",
+      "M05",
+      "M06",
+      "M07",
+      "M09",
+      "M29",
+      "M30",
+      "M31",
+      "M43",
+      "M45",
+      "M48",
+      "M52",
+      "M58",
+      "M68",
+      "M72",
+      "M78",
+      "M79",
+      "M80",
+      "M81",
+      "M82",
+      "M50"
+    ],
+    "reason": "Consolidated within the owning domain; old IDs retained only as migration evidence, never reused."
+  },
+  "r8_unit1_retired_modules": [
+    "M03",
+    "M04",
+    "M05",
+    "M06",
+    "M07",
+    "M09",
+    "M43",
+    "M45",
+    "M48",
+    "M52",
+    "M58",
+    "M78",
+    "M82"
   ]
 }

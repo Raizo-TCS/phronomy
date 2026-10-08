@@ -22,7 +22,7 @@ RSpec.describe "LLM transport policy delegation", :integration do
 
     agent = IntegrationFactors.agent_class("base").new
 
-    expect { agent.invoke("hello") }.to raise_error(Phronomy::RateLimitError)
+    expect { agent.invoke("hello") }.to raise_error(Phronomy::LLMAdapter::RateLimitError)
     expect(calls).to eq(1)
   end
 

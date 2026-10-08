@@ -19,7 +19,7 @@ module Phronomy
         end
 
         def total_usage
-          @results.map(&:usage).compact.reduce(Phronomy::TokenUsage.zero, :+)
+          @results.map(&:usage).compact.reduce(Phronomy::LLMAdapter::TokenUsage.zero, :+)
         end
 
         def average_latency_ms

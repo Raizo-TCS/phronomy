@@ -47,7 +47,7 @@ RSpec.describe "Group: Context Management", :integration do
   it "allows before_llm_input to add a per-call logical Context candidate" do
     klass = IntegrationFactors.context_agent
     klass.before_llm_input ->(_ctx) {
-      Phronomy::Agent::LLMInputPatch.new(
+      Phronomy::Context::LLMInputPatch.new(
         segment_candidates: [
           {
             content: "application supplied context",

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.shared_examples "an asynchronous backend client" do
+  let(:operation_result) { [] }
   let(:timer) { Phronomy::Testing::FakeClock.new }
   let(:pool) do
     Phronomy::Concurrency::OffloadPool.new(
@@ -15,7 +16,7 @@ RSpec.shared_examples "an asynchronous backend client" do
     expect(Phronomy::Runtime.default_if_initialized_for_test).to be_nil
     instance = client
     expect(Phronomy::Runtime.default_if_initialized_for_test).to be_nil
-    expect(invoke_async(instance).wait_result(timeout: 2)).to eq([])
+    expect(invoke_async(instance).wait_result(timeout: 2)).to eq(operation_result)
     expect(Phronomy::Runtime.default_if_initialized_for_test).to be_nil
   end
 
@@ -23,7 +24,7 @@ RSpec.shared_examples "an asynchronous backend client" do
     worker = nil
     allow(sync_backend).to receive(sync_operation) do
       worker = Thread.current
-      []
+      operation_result
     end
     submitted = nil
     expect(pool).to receive(:submit).once.and_wrap_original do |method, **options, &work|
@@ -32,7 +33,7 @@ RSpec.shared_examples "an asynchronous backend client" do
     end
     task = invoke_async(client)
     expect(task).to equal(submitted)
-    expect(task.wait_result(timeout: 2)).to eq([])
+    expect(task.wait_result(timeout: 2)).to eq(operation_result)
     expect(worker).not_to equal(Thread.current)
     expect(sync_backend).to have_received(sync_operation).once
   end
@@ -40,10 +41,10 @@ RSpec.shared_examples "an asynchronous backend client" do
   it "resolves a new default pool after Runtime reset" do
     instance = build_client
     expect(Phronomy::Runtime.default_if_initialized_for_test).to be_nil
-    expect(invoke_async(instance).wait_result(timeout: 2)).to eq([])
+    expect(invoke_async(instance).wait_result(timeout: 2)).to eq(operation_result)
     previous = Phronomy::Runtime.instance
     Phronomy.reset_runtime!
-    expect(invoke_async(instance).wait_result(timeout: 2)).to eq([])
+    expect(invoke_async(instance).wait_result(timeout: 2)).to eq(operation_result)
     expect(Phronomy::Runtime.instance).not_to equal(previous)
   end
 
@@ -51,7 +52,7 @@ RSpec.shared_examples "an asynchronous backend client" do
     instance = client
     Phronomy::Runtime.instance
     Phronomy.reset_runtime!
-    expect(invoke_async(instance).wait_result(timeout: 2)).to eq([])
+    expect(invoke_async(instance).wait_result(timeout: 2)).to eq(operation_result)
     expect(Phronomy::Runtime.default_if_initialized_for_test).to be_nil
   end
 
@@ -120,7 +121,7 @@ RSpec.shared_examples "an asynchronous backend client" do
         started << true
         release.pop
         finished << true
-        []
+        operation_result
       end
       token = Phronomy::Concurrency::CancellationToken.new
       task = invoke_async(client, token: token, timeout: (reason == :timeout) ? 5 : nil)

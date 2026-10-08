@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+require "spec_helper"
+
+RSpec.describe Phronomy::Agent::ToolInvocationActions do
+  let(:environment) { instance_double(Phronomy::Agent::ExecutionEnvironment) }
+
+  after do
+    Phronomy.reset_runtime!
+  rescue
+    nil
+  end
+
+  describe ".running_action" do
+    # Regression: mark_running! must not be called before start_execution
+    it "calls start_execution before mark_running! so dispatchable? still holds" do
+      invocation = double("invocation", tool_invocations: [])
+      call_order = []
+
+      allow(invocation).to receive(:start_execution).with(environment: environment) do |&blk|
+        call_order << :start_execution
+        blk&.call({status: :completed, result: "ok"})
+      end
+      allow(invocation).to receive(:mark_running!) do
+        call_order << :mark_running
+        invocation
+      end
+      event_sink = double("event-sink")
+      allow(event_sink).to receive(:post).and_return(true)
+
+      described_class.send(:running_action, environment, event_sink, invocation)
+
+      expect(call_order).to eq([:start_execution, :mark_running])
+    end
+  end
+end

@@ -4,8 +4,8 @@ require "spec_helper"
 require "timeout"
 
 RSpec.describe "Workflow terminal lifecycle through Runtime" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
-  let(:stored) { persistence.workflow_states }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.workflow }
+  let(:stored) { persistence }
   let(:runtime) { Phronomy::Runtime.instance }
   let(:registry) { Phronomy::WorkflowExecutionRegistry.for(runtime.event_loop) }
   let(:context_class) do

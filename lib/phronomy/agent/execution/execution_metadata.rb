@@ -27,6 +27,7 @@ module Phronomy
             "arguments" => serializable_value(child.raw_arguments || {}),
             "status" => child.status.to_s
           }
+          entry["validated_arguments"] = serializable_value(child.arguments) if child.arguments
           if child.execution_completed?
             entry["result"] = serializable_value(child.result)
           end

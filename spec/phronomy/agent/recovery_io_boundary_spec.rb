@@ -9,10 +9,10 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
   # Real Provider and recovery sessions produce the durable snapshots. The
   # fixture rejects EventLoop Persistence calls in all subsequent paths.
   def pending_provider
-    agent = worker.create(agent_id: "io-recovery", persistence: store)
+    agent = worker.create(agent_id: "io-recovery", persistence: store.agent)
     captured = nil
     store.after_commit = proc do |backend|
-      execution = backend.list_executions(agent.agent_id).first
+      execution = backend.agent.runs(agent.agent_id).first
       captured ||= backend.snapshot if execution&.phase == :calling_llm
     end
     LLMStub.activate(responses: ["original output"])
@@ -20,13 +20,13 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     expect(captured).not_to be_nil
     restored = reboot(captured)
     events = Queue.new
-    loaded = worker.load(agent.agent_id, persistence: restored,
+    loaded = worker.load(agent.agent_id, persistence: restored.agent,
       on_event: ->(event) { events << event.payload if event.type == :recovery_resolution_required })
     [restored, loaded, Timeout.timeout(3) { events.pop }]
   end
 
   def resolve_output(agent, event)
-    outcome = Phronomy::Agent::ProviderCallOutcome.new(role: :assistant, content: "saved output", tool_calls: [])
+    outcome = Phronomy::LLMAdapter::Response.from_h(role: :assistant, content: "saved output", tool_calls: [])
     agent.resolve_async(event.fetch(:execution_id), expected_execution_revision: event.fetch(:execution_revision),
       subject: event.fetch(:subject), outcome: :succeeded, result: outcome.to_h)
   end
@@ -34,7 +34,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
   def capture_resolution(backend, id, &after_capture)
     snapshots = Queue.new
     backend.after_commit = proc do |current|
-      execution = current.executions.load(id)
+      execution = current.agent.executions.load(id)
       if execution.phase == :recovery_provider_completed
         snapshots << current.snapshot
         after_capture&.call
@@ -65,7 +65,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored, loaded, event = pending_provider
     threads = Queue.new
     restored.before_io = ->(operation) { threads << Thread.current.name if operation == :fetch }
-    allow(Phronomy::Agent::InvocationRestorer).to receive(:build_chat_for_recovery).and_wrap_original do |method, *args, **kwargs|
+    allow(Phronomy::Agent::InvocationRestorer).to receive(:build_input_for_recovery).and_wrap_original do |method, *args, **kwargs|
       expect(Phronomy::Runtime.instance.event_loop.current?).to be(true)
       method.call(*args, **kwargs)
     end
@@ -85,20 +85,20 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     recovered = reboot(Timeout.timeout(3) { snapshots.pop })
     terminal = Queue.new
     recovered.after_commit = proc do |backend|
-      execution = backend.executions.load(event.fetch(:execution_id))
+      execution = backend.agent.executions.load(event.fetch(:execution_id))
       terminal << execution if execution.terminal?
     end
     llm = LLMStub.activate(responses: ["must not replay"])
-    worker.load(loaded.agent_id, persistence: recovered)
+    worker.load(loaded.agent_id, persistence: recovered.agent)
     expect(Timeout.timeout(3) { terminal.pop }.status).to eq(:completed)
-    expect(recovered.execution_result(event.fetch(:execution_id))[:result]).to eq("saved output")
+    expect(recovered.agent.result(event.fetch(:execution_id))[:result]).to eq("saved output")
     expect(llm.calls).to be_empty
   end
 
   [:materialization, :f1_readback].each do |boundary|
     it "lets an unrelated Agent finish while #{boundary} is blocked" do
       restored, loaded, event = pending_provider
-      independent = worker.create(agent_id: "independent", persistence: Phronomy::Persistence.in_memory)
+      independent = worker.create(agent_id: "independent", persistence: Phronomy::PersistenceComposition.in_memory.agent)
       if boundary == :f1_readback
         # Throw after commit; the next execution load is the authoritative F1 read.
         restored.after_commit = proc do |_backend|
@@ -126,7 +126,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored.before_io = proc { |operation| raise IOError, "content read unavailable" if operation == :fetch }
     llm = LLMStub.activate(responses: ["must not replay"])
     expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(IOError, /content read unavailable/)
-    saved = restored.executions.load(event.fetch(:execution_id))
+    saved = restored.agent.executions.load(event.fetch(:execution_id))
     expect(saved.phase).to eq(:recovery_provider_completed)
     expect(saved).not_to be_terminal
     expect(saved.execution_revision).to eq(event.fetch(:execution_revision) + 1)
@@ -134,10 +134,10 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     recovered = reboot(restored.snapshot)
     terminal = Queue.new
     recovered.after_commit = proc do |backend|
-      execution = backend.executions.load(saved.execution_id)
+      execution = backend.agent.executions.load(saved.execution_id)
       terminal << execution if execution.terminal?
     end
-    worker.load(loaded.agent_id, persistence: recovered)
+    worker.load(loaded.agent_id, persistence: recovered.agent)
     expect(Timeout.timeout(3) { terminal.pop }.status).to eq(:completed)
     expect(llm.calls).to be_empty
   end
@@ -153,7 +153,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
       llm = LLMStub.activate(responses: ["must not replay"])
       expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(failure, /readback unavailable/)
       restored.before_io = nil
-      saved = restored.executions.load(event.fetch(:execution_id))
+      saved = restored.agent.executions.load(event.fetch(:execution_id))
       expect(saved.phase).to eq(:recovery_provider_completed)
       expect(saved).not_to be_terminal
       expect(llm.calls).to be_empty
@@ -164,7 +164,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored, loaded, event = pending_provider
     restored.before_io = proc { |operation| raise IOError, "write unavailable" if operation == :transaction }
     expect { resolve_output(loaded, event).wait_result(timeout: 3) }.to raise_error(IOError, /write unavailable/)
-    expect(restored.executions.load(event.fetch(:execution_id)).execution_revision).to eq(event.fetch(:execution_revision))
+    expect(restored.agent.executions.load(event.fetch(:execution_id)).execution_revision).to eq(event.fetch(:execution_revision))
     restored.before_io = nil
     expect(resolve_output(loaded, event).wait_result(timeout: 3)[:output]).to eq("saved output")
   end
@@ -173,7 +173,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     restored, loaded, event = pending_provider
     restored.after_commit = proc do |backend|
       backend.after_commit = nil
-      backend.transaction do |tx|
+      backend.agent.transaction do |tx|
         current = tx.executions.load(event.fetch(:execution_id))
         tx.executions.save(current.execution_id, expected_revision: current.execution_revision,
           execution: current.with(metadata: current.metadata.merge("competing_write" => true)))
@@ -183,7 +183,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     llm = LLMStub.activate(responses: ["must not replay"])
     expect { resolve_output(loaded, event).wait_result(timeout: 3) }
       .to raise_error(Phronomy::Persistence::ConflictError, /conflicts with both/)
-    expect(restored.executions.load(event.fetch(:execution_id)).metadata["competing_write"]).to be(true)
+    expect(restored.agent.executions.load(event.fetch(:execution_id)).metadata["competing_write"]).to be(true)
     expect(llm.calls).to be_empty
   end
 
@@ -208,7 +208,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     release << true
     expect { resolution.wait_result(timeout: 3) }
       .to raise_error(Phronomy::Persistence::ConflictError, /changed before resolution apply/)
-    expect(restored.executions.load(event.fetch(:execution_id)).phase).to eq(:recovery_provider_completed)
+    expect(restored.agent.executions.load(event.fetch(:execution_id)).phase).to eq(:recovery_provider_completed)
   ensure
     release << true if release
   end
@@ -223,7 +223,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
     release << true
     expect { resolution.wait_result(timeout: 3) }
       .to raise_error(Phronomy::RuntimeShutdownError, /rejected Recovery resolution apply/)
-    expect(restored.executions.load(event.fetch(:execution_id)).phase).to eq(:recovery_provider_completed)
+    expect(restored.agent.executions.load(event.fetch(:execution_id)).phase).to eq(:recovery_provider_completed)
   ensure
     release << true if release
   end
@@ -231,7 +231,7 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
   [true, false].each do |approved|
     it "restores approval waiting off EventLoop and resumes with approved=#{approved}" do
       calls = 0
-      capability = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      capability = Class.new(Phronomy::Tool::Base) do
         tool_name "protected_operation"
         description "Requires approval"
         requires_approval true
@@ -243,13 +243,13 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
       worker.tools(capability => nil)
       approvals = Queue.new
       listener = ->(event) { approvals << event.payload.fetch(:request) if event.type == :approval_required }
-      original = worker.create(agent_id: "approval-recovery", persistence: store, on_event: listener)
+      original = worker.create(agent_id: "approval-recovery", persistence: store.agent, on_event: listener)
       LLMStub.activate(responses: [LLMStub.tool_call_response("protected_operation", {}), "done"])
       original.invoke_async("input")
       request = Timeout.timeout(3) { approvals.pop }
       recovered = reboot(store.snapshot)
       llm = LLMStub.activate(responses: ["approved output"])
-      loaded = worker.load(original.agent_id, persistence: recovered, on_event: listener)
+      loaded = worker.load(original.agent_id, persistence: recovered.agent, on_event: listener)
       restored_request = Timeout.timeout(3) { approvals.pop }
       expect(restored_request.id).to eq(request.id)
       expect(calls).to eq(0)

@@ -1,6 +1,25 @@
 module Phronomy
   module Tool
+    module Operation
+      def self.call_async: (tool: Base, args: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped], ?submitter: _ExecutionSubmitter, ?on_full: Symbol) -> _CompletionHandle[untyped]
+      def self.with_result_transform: (singleton(Base) tool_class) { (untyped, String, Hash[untyped, untyped]) -> untyped } -> singleton(Base)
+    end
+    class Schema
+      def initialize: (?untyped schema) ?{ () -> untyped } -> void
+      def json_schema: () -> Hash[String, untyped]
+      def validate: (Hash[String | Symbol, untyped] arguments, ?coerce: bool) -> [Hash[Symbol, untyped]?, String?]
+    end
+    class CallRequest
+      attr_reader id: String
+      attr_reader name: String
+      attr_reader arguments: Hash[String, json_value]
+      attr_reader metadata: Hash[String, json_value]
+      def initialize: (id: String, name: String, arguments: Hash[String | Symbol, untyped], ?metadata: Hash[String | Symbol, untyped]) -> void
+      def self.from_h: (Hash[String | Symbol, untyped] value) -> CallRequest
+      def to_h: () -> Hash[String, untyped]
+    end
     class Base
+      def self.parameter: (String | Symbol name, ?type: String | Symbol, ?description: String?, ?required: bool) -> untyped
       def self.tool_name: (?untyped value) -> String?
       def self.description: (?String text) -> String?
       def self.desc: (?String text) -> String?
@@ -23,26 +42,51 @@ module Phronomy
       def self.redact_params: (*untyped names) -> Array[Symbol]
       def self.max_result_size: (?untyped value) -> untyped
 
+      def description: () -> String?
       def name: () -> String
       def parameters_schema: () -> untyped
       def parameters: () -> Hash[untyped, untyped]
       def provider_options: () -> Hash[untyped, untyped]
       def provider_params: () -> Hash[untyped, untyped]
       def params_schema: () -> untyped
+      def validate_arguments: (Hash[String | Symbol, untyped]? args) -> [Hash[Symbol, untyped]?, String?]
       def call: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?) -> untyped
       def call_async: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped]) -> TaskResult[untyped]
       def requires_approval?: () -> untyped
       def tool_origin: () -> Symbol
       def approval_metadata: () -> Hash[untyped, untyped]
       def execute: (**untyped args) -> untyped
+
+      private
+
+      def call_async_operation: (Hash[untyped, untyped]? args, cancellation_token: Concurrency::CancellationToken?, operation_name: String) { (Hash[Symbol, untyped]) -> _CompletionHandle[untyped] } -> _CompletionHandle[untyped]
+      def async_error_value: (Exception error) -> untyped
     end
   end
 
-  module Agent
-    module Context
-      module Capability
-        class Base = ::Phronomy::Tool::Base
+end
+
+module Phronomy
+  module Tool
+    interface _AuthorizationRequest
+      def origin: () -> Symbol
+      def with: (?facts: Hash[untyped, untyped], ?default_decision: Symbol?) -> _AuthorizationRequest
+    end
+
+    module Authorization
+      class Decision
+        attr_reader decision: Symbol
+        attr_reader facts: Hash[untyped, untyped]
+        attr_reader reason: String?
       end
+      def self.call: (request: _AuthorizationRequest, arguments: Hash[untyped, untyped], context: Hash[untyped, untyped], ?facts: (^(Hash[untyped, untyped], Hash[untyped, untyped]) -> Hash[untyped, untyped]?)?, ?requirement: bool? | (^(_AuthorizationRequest) -> bool?), ?policy: (^(_AuthorizationRequest) -> Symbol)?) -> Decision
+    end
+
+    class DefinitionSet
+      attr_reader runtime_tools: Array[untyped]
+      attr_reader definitions: Array[Hash[String, untyped]]
+      def self.build: (tools: Array[untyped], ?runtime_tools: Array[untyped]) -> DefinitionSet
+      def select_definitions: (Array[Hash[String, untyped]] expected_definitions) -> DefinitionSet
     end
   end
 end

@@ -35,14 +35,14 @@ module Phronomy
         @dimension = dimension
       end
 
+      protected
+
       # @param id                 [String]
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @api public
-      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
-        cancellation_token&.raise_if_cancelled!
-        validate_embedding_dimension!(embedding, @dimension)
+      def perform_add(id:, embedding:, metadata: {}, cancellation_token: nil)
         @model_class.upsert(
           {id: id, embedding: safe_vector(embedding), metadata: metadata.to_json},
           unique_by: :id
@@ -55,10 +55,7 @@ module Phronomy
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
       # @api public
-      def search(query_embedding:, k: 5, cancellation_token: nil)
-        cancellation_token&.raise_if_cancelled!
-        k_safe = validate_k!(k)
-        validate_embedding_dimension!(query_embedding, @dimension)
+      def perform_search(query_embedding:, k: 5, cancellation_token: nil)
         vec = safe_vector_literal(query_embedding)
         conn = @model_class.connection
         quoted_vec = "#{conn.quote(vec)}::vector"
@@ -66,32 +63,54 @@ module Phronomy
         @model_class
           .select("id, metadata, 1 - (embedding <=> #{quoted_vec}) AS score")
           .order("embedding <=> #{quoted_vec}")
-          .limit(k_safe)
+          .limit(k)
           .map do |r|
             {
-              id: r.id.to_s,
-              score: r.score.to_f,
+              id: parse_id(r.id),
+              score: parse_score(r.score),
               metadata: parse_metadata(r.metadata)
             }
           end
       end
 
-      def remove(id:)
+      def perform_remove(id:)
         @model_class.where(id: id).delete_all
         self
       end
 
-      def clear
+      def perform_clear
         @model_class.delete_all
         self
       end
 
       # Returns the number of documents in the backing table.
-      def size
+      def perform_size
         @model_class.count
       end
 
+      # @api public
+      def embedding_dimension
+        @dimension
+      end
+
       private
+
+      def parse_id(raw)
+        unless raw.is_a?(String) || raw.is_a?(Integer)
+          raise InvalidResultError, "Pgvector returned an invalid document id"
+        end
+        raw.to_s
+      end
+
+      def parse_score(raw)
+        valid = (raw.is_a?(String) && raw.match?(/\A[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\z/)) ||
+          (raw.is_a?(Numeric) && raw.real?)
+        value = Float(raw, exception: false) if valid
+        unless value&.finite?
+          raise InvalidResultError, "Pgvector requires a finite numeric score"
+        end
+        value
+      end
 
       # Parses a metadata value returned by the pg driver.
       # Handles NULL (nil), already-parsed Hash, and JSON string forms.
@@ -99,15 +118,24 @@ module Phronomy
         return {} if raw.nil?
         return symbolize_hash_keys(raw) if raw.is_a?(Hash)
 
-        parsed = JSON.parse(raw.to_s, symbolize_names: true)
-        parsed.is_a?(Hash) ? parsed : {}
+        unless raw.is_a?(String)
+          raise InvalidResultError, "Pgvector metadata must contain a JSON object"
+        end
+        parsed = JSON.parse(raw, symbolize_names: true)
+        unless parsed.is_a?(Hash)
+          raise InvalidResultError, "Pgvector metadata must contain a JSON object"
+        end
+        parsed
       rescue JSON::ParserError
-        {}
+        raise InvalidResultError, "Pgvector metadata contains invalid JSON"
       end
 
       # Recursively symbolizes keys for an already-parsed Hash.
       def symbolize_hash_keys(hash)
         hash.each_with_object({}) do |(k, v), h|
+          unless k.is_a?(String) || k.is_a?(Symbol)
+            raise InvalidResultError, "Pgvector metadata contains an invalid object key"
+          end
           h[k.to_sym] = v.is_a?(Hash) ? symbolize_hash_keys(v) : v
         end
       end

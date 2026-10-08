@@ -71,7 +71,7 @@ module Phronomy
           workflow_instance_id: next_state.workflow_instance_id,
           request_id: request_id
         )
-        @draft_agent.send(:__invoke_async_with_event_sink, prompt, on_event: listener)
+        @draft_agent.start(prompt, listener: listener)
         next_state
       end
 
@@ -86,7 +86,7 @@ module Phronomy
           workflow_instance_id: next_state.workflow_instance_id,
           request_id: request_id
         )
-        @review_agent.send(:__invoke_async_with_event_sink, prompt, on_event: listener)
+        @review_agent.start(prompt, listener: listener)
         next_state
       end
 

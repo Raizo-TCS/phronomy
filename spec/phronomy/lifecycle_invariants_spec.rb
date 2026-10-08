@@ -62,7 +62,7 @@ RSpec.describe "Lifecycle invariants" do
   end
 
   # Yields a LifecycleFakeLoop and a fake_runtime duck-type object that returns
-  # it from #event_loop.  Pass fake_runtime as runtime: to build_session_for.
+  # it from #event_loop.  Bind fake_runtime through the private Workflow environment.
   def with_fake_loop
     fake = LifecycleFakeLoop.new
     fake_runtime = double("fake_runtime", event_loop: fake, timer_queue: nil)
@@ -87,7 +87,8 @@ RSpec.describe "Lifecycle invariants" do
 
   def build_session(runner, ctx, fake_runtime, recursion_limit: 25, resume_event: nil, resume_phase: nil)
     execution = build_test_execution(ctx, recursion_limit: recursion_limit)
-    runner.send(:build_session_for, execution: execution, runtime: fake_runtime,
+    runner.instance_variable_set(:@environment, Phronomy::WorkflowEngineEnvironment.new(runtime: fake_runtime))
+    runner.send(:build_session_for, execution: execution,
       resume_event: resume_event, resume_phase: resume_phase)
   end
 

@@ -1,5 +1,7 @@
 # HandoffRunner moves to MultiAgent
 
+> r8 unit 4 supersedes the Agent/Handoff ownership and storage portions below. See [the unit 4 migration](../migrations/r8-unit4.md). Earlier statements describe their original change only.
+
 This change applies to H1 on `refactor/architecture` after core commit
 `fe2ad7cea6945a240858b18645dc4ae285e8ce64`. The released 0.26.0 gem does not
 yet provide this new Runner name.

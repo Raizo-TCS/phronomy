@@ -4,11 +4,11 @@ require "spec_helper"
 
 RSpec.describe "Context Policy semantic API" do
   let(:provenance) do
-    Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :journal)
+    Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :journal)
   end
 
   def instruction(id: "i1", tokens: 5, required: true)
-    Phronomy::Agent::ContextPolicyInput::InstructionItem.new(
+    Phronomy::Context::ContextPolicyInput::InstructionItem.new(
       id: id, kind: :instruction, role: :system, content: "instruction",
       content_format: :text, estimated_tokens: tokens, required: required,
       provenance: provenance, metadata: {}
@@ -16,7 +16,7 @@ RSpec.describe "Context Policy semantic API" do
   end
 
   def knowledge(id:, tokens:, required: false)
-    Phronomy::Agent::ContextPolicyInput::KnowledgeItem.new(
+    Phronomy::Context::ContextPolicyInput::KnowledgeItem.new(
       id: id, kind: :knowledge, role: :user, content: id,
       content_format: :text, estimated_tokens: tokens, required: required,
       provenance: provenance, metadata: {}
@@ -24,7 +24,7 @@ RSpec.describe "Context Policy semantic API" do
   end
 
   def conversation(id:, sequence:, tokens:, required: false)
-    Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+    Phronomy::Context::ContextPolicyInput::ConversationItem.new(
       id: id, kind: :external_message, role: :user, content: id,
       content_format: :text, sequence: sequence, estimated_tokens: tokens,
       required: required, provenance: provenance, tool_call_id: nil,
@@ -39,7 +39,7 @@ RSpec.describe "Context Policy semantic API" do
     conversation_groups: [],
     context_window: 100
   )
-    Phronomy::Agent::ContextPolicyInput.new(
+    Phronomy::Context::ContextPolicyInput.new(
       agent_id: "agent-1",
       execution_id: "execution-1",
       call_sequence: 1,
@@ -58,9 +58,9 @@ RSpec.describe "Context Policy semantic API" do
   end
 
   it "binds one ContextPolicy instance on the Agent class and inherits it" do
-    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
-        Phronomy::Agent::ContextPlan.new(
+        Phronomy::Context::ContextPlan.new(
           instruction: input.instruction,
           knowledge: input.knowledge,
           tools: input.tools,
@@ -83,7 +83,7 @@ RSpec.describe "Context Policy semantic API" do
       agent_definition id: "context-policy-default-binding", version: 1
     end
 
-    expect(klass.context_policy).to equal(Phronomy::Agent::ContextPolicies::Default.instance)
+    expect(klass.context_policy).to equal(Phronomy::Context::DefaultPolicy.instance)
   end
 
   it "rejects a ContextPolicy class because the binding contract requires an instance" do
@@ -91,7 +91,7 @@ RSpec.describe "Context Policy semantic API" do
       agent_definition id: "context-policy-instance-only", version: 1
     end
 
-    expect { klass.context_policy(Phronomy::Agent::ContextPolicies::Default) }
+    expect { klass.context_policy(Phronomy::Context::DefaultPolicy) }
       .to raise_error(ArgumentError, /ContextPolicy instance/)
   end
 
@@ -99,31 +99,31 @@ RSpec.describe "Context Policy semantic API" do
     policy_input = input
 
     expect(policy_input.instruction.first)
-      .to be_a(Phronomy::Agent::ContextPolicyInput::InstructionItem)
+      .to be_a(Phronomy::Context::ContextPolicyInput::InstructionItem)
     expect(policy_input.knowledge).to eq([])
     expect(policy_input.tools).to eq([])
     expect(policy_input.conversation).to eq([])
     expect(policy_input).not_to respond_to(:parts)
     expect(policy_input).not_to respond_to(:candidates)
-    expect(Phronomy::Agent::ContextPolicies::Default.instance).not_to respond_to(:descriptor)
+    expect(Phronomy::Context::DefaultPolicy.instance).not_to respond_to(:descriptor)
   end
 
   it "keeps conversation groups indivisible" do
     first = conversation(id: "assistant", sequence: 1, tokens: 5)
     second = conversation(id: "tool", sequence: 2, tokens: 5)
     policy_input = input(conversation_groups: [[first, second]])
-    invalid = Phronomy::Agent::ContextPlan.new(
+    invalid = Phronomy::Context::ContextPlan.new(
       instruction: policy_input.instruction,
       knowledge: [], tools: [], conversation: [[first]]
     )
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
     }.to raise_error(ArgumentError, /split, merged, or reordered/)
   end
 
   it "permits Policy-generated Knowledge without Framework source-item provenance" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = knowledge_item(content: "derived summary", metadata: {"kind" => "summary"})
         plan(
@@ -139,32 +139,32 @@ RSpec.describe "Context Policy semantic API" do
 
     expect(plan.knowledge.first.provenance.origin).to eq(:policy_generated)
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: plan)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: plan)
     }.not_to raise_error
   end
 
   it "does not allow a Policy to invent a runtime Tool definition" do
-    generated_tool = Phronomy::Agent::ContextPolicyInput::ToolItem.new(
+    generated_tool = Phronomy::Context::ContextPolicyInput::ToolItem.new(
       id: "tool:invented",
       definition: {"name" => "invented"},
       estimated_tokens: 1,
       required: false,
-      provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(origin: :policy_generated),
+      provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(origin: :policy_generated),
       metadata: {}
     )
     policy_input = input
-    plan = Phronomy::Agent::ContextPlan.new(
+    plan = Phronomy::Context::ContextPlan.new(
       instruction: policy_input.instruction,
       tools: [generated_tool]
     )
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: plan)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: plan)
     }.to raise_error(ArgumentError, /unknown tools item/)
   end
 
   it "rejects malformed Tool protocol in a Policy-generated conversation group" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: {
@@ -183,12 +183,12 @@ RSpec.describe "Context Policy semantic API" do
     invalid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
     }.to raise_error(ArgumentError, /has no Tool message/)
   end
 
   it "rejects non-canonical Policy-generated assistant messages before Manifest commit" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: "not canonical JSON",
@@ -202,12 +202,12 @@ RSpec.describe "Context Policy semantic API" do
     invalid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
     }.to raise_error(ArgumentError, /canonical JSON message content/)
   end
 
   it "rejects a Policy-generated Tool message ordered before its assistant Tool Call" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         assistant = conversation_item(
           content: {
@@ -238,12 +238,12 @@ RSpec.describe "Context Policy semantic API" do
     invalid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
     }.to raise_error(ArgumentError, /must follow its assistant Tool Call/)
   end
 
   it "accepts a canonical Policy-generated Tool exchange in protocol order" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         assistant = conversation_item(
           content: {
@@ -274,12 +274,12 @@ RSpec.describe "Context Policy semantic API" do
     valid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: valid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: valid)
     }.not_to raise_error
   end
 
   it "rejects reserved kinds used through the wrong semantic item type" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = knowledge_item(
           content: {
@@ -295,12 +295,12 @@ RSpec.describe "Context Policy semantic API" do
     invalid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
     }.to raise_error(ArgumentError, /assistant_message.*conversation/)
   end
 
   it "allows Application-specific kinds inside their typed semantic category" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: "application-defined conversational material",
@@ -314,12 +314,12 @@ RSpec.describe "Context Policy semantic API" do
     valid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: valid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: valid)
     }.not_to raise_error
   end
 
   it "records semantic category metadata when a ContextPlan is finalized" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: "semantic-category-marker",
@@ -335,11 +335,12 @@ RSpec.describe "Context Policy semantic API" do
       agent_definition id: "context-policy-semantic-metadata", version: 1
     end
     agent = agent_class.new
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    Phronomy::Agent::ContextPreparation.new(
       agent: agent,
       persistence: agent.persistence
     )
-    prepared = Phronomy::Agent::ContextAssembler::Prepared.new(
+    prepared = Phronomy::Context::Assembly::Prepared.new(
+      adapter_identity: Phronomy.configuration.llm_adapter.identity,
       input: policy_input,
       plan: selected_plan,
       model_config: {},
@@ -347,7 +348,7 @@ RSpec.describe "Context Policy semantic API" do
       call_mode: :complete
     )
 
-    manifest, = assembler.finalize(prepared)
+    manifest, = Phronomy::Context::Assembly.new.store(prepared, contents: agent.persistence.contents)
     generated_segment = manifest.segments.find do |segment|
       segment.category.to_sym == :application_note
     end
@@ -369,9 +370,9 @@ RSpec.describe "Context Policy semantic API" do
     tracer.define_singleton_method(:finish_span) do |_span, **attributes|
       events << [:finish, attributes]
     end
-    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
-        Phronomy::Agent::ContextPlan.new(
+        Phronomy::Context::ContextPlan.new(
           instruction: input.instruction,
           knowledge: input.knowledge,
           tools: input.tools,
@@ -384,15 +385,13 @@ RSpec.describe "Context Policy semantic API" do
       context_policy policy
     end
     agent = agent_class.new
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    Phronomy::Agent::ContextPreparation.new(
       agent: agent,
       persistence: agent.persistence
     )
-    allow(Phronomy.configuration).to receive(:tracer).and_return(tracer)
+    result = Phronomy::Context::Assembly.new(tracer: tracer).prepare(input: input, policy: policy, adapter_identity: {}).plan
 
-    result = assembler.send(:invoke_policy, input)
-
-    expect(result).to be_a(Phronomy::Agent::ContextPlan)
+    expect(result).to be_a(Phronomy::Context::ContextPlan)
     expect(events.first[0, 2]).to eq([:start, "context_policy"])
     expect(events.first.fetch(2)).to include(
       agent_id: "agent-1", execution_id: "execution-1", call_sequence: 1
@@ -413,7 +412,7 @@ RSpec.describe "Context Policy semantic API" do
       context_window: 35
     )
 
-    plan = Phronomy::Agent::ContextPolicies::Default.instance.call(policy_input)
+    plan = Phronomy::Context::DefaultPolicy.instance.call(policy_input)
 
     expect(plan.instruction.map(&:id)).to eq(["i1"])
     expect(plan.conversation.flatten.map(&:id)).to eq(["recent"])
@@ -428,11 +427,11 @@ RSpec.describe "Context Policy semantic API" do
       context_window: 50
     )
 
-    expect { Phronomy::Agent::ContextPolicies::Default.instance.call(policy_input) }
-      .to raise_error(Phronomy::ContextBudgetExceededError, /Required Context/)
+    expect { Phronomy::Context::DefaultPolicy.instance.call(policy_input) }
+      .to raise_error(Phronomy::Context::BudgetExceededError, /Required Context/)
   end
   it "preserves JSON content format in Framework-owned Manifest metadata" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: {"type" => "application_note", "value" => 42},
@@ -448,11 +447,12 @@ RSpec.describe "Context Policy semantic API" do
       agent_definition id: "context-policy-content-format-metadata", version: 1
     end
     agent = agent_class.new
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    Phronomy::Agent::ContextPreparation.new(
       agent: agent,
       persistence: agent.persistence
     )
-    prepared = Phronomy::Agent::ContextAssembler::Prepared.new(
+    prepared = Phronomy::Context::Assembly::Prepared.new(
+      adapter_identity: Phronomy.configuration.llm_adapter.identity,
       input: policy_input,
       plan: selected_plan,
       model_config: {},
@@ -460,7 +460,7 @@ RSpec.describe "Context Policy semantic API" do
       call_mode: :complete
     )
 
-    manifest, = assembler.finalize(prepared)
+    manifest, = Phronomy::Context::Assembly.new.store(prepared, contents: agent.persistence.contents)
     generated_segment = manifest.segments.find do |segment|
       segment.category.to_sym == :application_note
     end
@@ -469,7 +469,7 @@ RSpec.describe "Context Policy semantic API" do
   end
 
   it "rejects Framework-reserved metadata on Policy-generated items" do
-    policy_class = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy_class = Class.new(Phronomy::Context::ContextPolicy) do
       def call(input)
         generated = conversation_item(
           content: "attempted metadata override",
@@ -484,7 +484,7 @@ RSpec.describe "Context Policy semantic API" do
     invalid = policy_class.new.call(policy_input)
 
     expect {
-      Phronomy::Agent::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
+      Phronomy::Context::ContextPlanValidator.new.validate!(input: policy_input, plan: invalid)
     }.to raise_error(ArgumentError, /Framework-reserved.*handoff_policy_category/)
   end
 
@@ -493,7 +493,7 @@ RSpec.describe "Context Policy semantic API" do
       agent_definition id: "context-policy-reserved-hook-metadata", version: 1
     end
     agent = agent_class.new
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    assembler = Phronomy::Agent::ContextPreparation.new(
       agent: agent,
       persistence: agent.persistence
     )
@@ -512,7 +512,7 @@ RSpec.describe "Context Policy semantic API" do
 
   it "restores JSON Application-specific kinds into the Target typed conversation category" do
     payload = {"type" => "application_note", "value" => 42}
-    candidate = Phronomy::Agent::Selection::Candidate.new(
+    candidate = Phronomy::Context::Candidate.new(
       candidate_id: "handoff-json-application-note",
       source_kind: :handoff,
       category: :application_note,
@@ -524,7 +524,7 @@ RSpec.describe "Context Policy semantic API" do
       llm_call_id: nil,
       tool_call_id: nil,
       sequence: 1,
-      constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :handoff_context),
+      constraint: Phronomy::Context::Constraint.selectable(origin: :handoff_context),
       priority: 50,
       metadata: {
         "context_policy_semantic_category" => "conversation",
@@ -532,7 +532,7 @@ RSpec.describe "Context Policy semantic API" do
         "estimated_tokens" => 1
       }
     )
-    builder = Phronomy::Agent::ContextPolicyInputBuilder.new(
+    builder = Phronomy::Context::ContextPolicyInputBuilder.new(
       content_loader: ->(_ref) { Phronomy::CanonicalJSON.dump(payload) }
     )
 
@@ -560,7 +560,7 @@ RSpec.describe "Context Policy semantic API" do
       agent_definition id: "context-policy-trusted-handoff-metadata", version: 1
     end
     agent = agent_class.new
-    assembler = Phronomy::Agent::ContextAssembler.new(
+    Phronomy::Agent::ContextPreparation.new(
       agent: agent,
       persistence: agent.persistence
     )
@@ -569,7 +569,7 @@ RSpec.describe "Context Policy semantic API" do
       "origin_agent_id" => "source-agent",
       "transfer_path" => ["source-agent", agent.agent_id]
     }
-    item = Phronomy::Agent::ContextPolicyInput::ConversationItem.new(
+    item = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
       id: "trusted-handoff-item",
       kind: :application_note,
       role: :user,
@@ -578,7 +578,7 @@ RSpec.describe "Context Policy semantic API" do
       sequence: 1,
       estimated_tokens: 1,
       required: false,
-      provenance: Phronomy::Agent::ContextPolicyInput::Provenance.new(
+      provenance: Phronomy::Context::ContextPolicyInput::Provenance.new(
         origin: :handoff,
         content_ref: content_ref,
         agent_id: "source-agent"
@@ -594,10 +594,10 @@ RSpec.describe "Context Policy semantic API" do
       }
     )
 
-    segment = assembler.send(
+    segment = Phronomy::Context::Assembly.new.send(
       :segment_from_content_item,
       item,
-      persistence: agent.persistence,
+      contents: agent.persistence.contents,
       additional_metadata: {"context_policy_semantic_category" => "conversation"}
     )
 

@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::LLMInputManifest do
-  let(:segment_class) { Phronomy::Agent::LLMInputManifest::Segment }
+RSpec.describe Phronomy::Context::LLMInputManifest do
+  let(:segment_class) { Phronomy::Context::LLMInputManifest::Segment }
 
   it "rejects an unknown delivery in the Segment constructor" do
     expect {
@@ -35,7 +35,7 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
 
     expect {
       segment_class.from_h(bad_hash)
-    }.to raise_error(Phronomy::Storage::SerializationError, /delivery must be one of/)
+    }.to raise_error(Phronomy::Context::ManifestError, /delivery must be one of/)
   end
 
   it "uses the pre-1.0 durable codec version convention" do
@@ -171,7 +171,7 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
 
     expect do
       described_class.from_h(manifest)
-    end.to raise_error(Phronomy::Storage::SerializationError, /unsupported.*version/)
+    end.to raise_error(Phronomy::Context::ManifestError, /unsupported.*version/)
   end
 
   it "rejects missing and unknown current-schema fields" do
@@ -186,9 +186,9 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
     unknown = current.merge("future_field" => true)
 
     expect { described_class.from_h(missing) }
-      .to raise_error(Phronomy::Storage::SerializationError, /missing=.*version/)
+      .to raise_error(Phronomy::Context::ManifestError, /missing=.*version/)
     expect { described_class.from_h(unknown) }
-      .to raise_error(Phronomy::Storage::SerializationError, /unknown=.*future_field/)
+      .to raise_error(Phronomy::Context::ManifestError, /unknown=.*future_field/)
   end
 
   it "requires String keys in the current durable decoder" do
@@ -203,7 +203,7 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
     expect do
       described_class.from_h(symbolized)
     end.to raise_error(
-      Phronomy::Storage::SerializationError,
+      Phronomy::Context::ManifestError,
       /keys must all be String/
     )
   end
@@ -222,13 +222,13 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
     expect do
       described_class.from_h(wrong_sequence)
     end.to raise_error(
-      Phronomy::Storage::SerializationError,
+      Phronomy::Context::ManifestError,
       /call_sequence must be a positive Integer/
     )
     expect do
       described_class.from_h(wrong_ref)
     end.to raise_error(
-      Phronomy::Storage::SerializationError,
+      Phronomy::Context::ManifestError,
       /model_config_ref must be a non-empty String/
     )
   end
@@ -260,13 +260,13 @@ RSpec.describe Phronomy::Agent::LLMInputManifest do
     expect do
       described_class.from_h(wrong_position)
     end.to raise_error(
-      Phronomy::Storage::SerializationError,
+      Phronomy::Context::ManifestError,
       /segment position must be a non-negative Integer/
     )
     expect do
       described_class.from_h(wrong_content_ref)
     end.to raise_error(
-      Phronomy::Storage::SerializationError,
+      Phronomy::Context::ManifestError,
       /segment content_ref must be a non-empty String/
     )
   end

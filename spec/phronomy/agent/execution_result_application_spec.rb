@@ -11,7 +11,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
   end
   let(:events) { [] }
   let(:agent) do
-    agent_class.new(agent_id: "result-owner", persistence: Phronomy::Persistence.in_memory,
+    agent_class.new(agent_id: "result-owner", persistence: Phronomy::PersistenceComposition.in_memory.agent,
       on_event: ->(event) { events << [event.type, event.payload, observation] })
   end
   let(:coordinator) { agent.send(:execution_coordinator) }
@@ -102,7 +102,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
         execution_id: execution.execution_id, fsm_session_id: "session-1",
         expected_execution_revision: execution.execution_revision, root: root,
         journal_records: [], execution: execution, runtime_snapshot: invocation.runtime_snapshot,
-        terminal_view: nil, state_required: true
+        terminal_view: nil, state_required: true, wiring: {}
       )
     end
     let(:handoff_request) { Object.new }
@@ -175,7 +175,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
       it "retains #{error_class} precedence when the listener also fails" do
         install
         error = error_class.new("execution stopped")
-        allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+        Phronomy.configuration.stream_callback_error_policy = :fail_task
         ready = terminal_ready(:failed, error: error,
           delivery: delivery.with(application_listener: ->(_) { raise "callback failed" }))
         expect(agent.persistence).not_to receive(:transaction)
@@ -187,7 +187,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
 
     it "retains suspension and pending execution tasks while failing exact observers" do
       install
-      allow(Phronomy.configuration).to receive(:stream_callback_error_policy).and_return(:fail_task)
+      Phronomy.configuration.stream_callback_error_policy = :fail_task
       listener = ->(event) {
         events << [event.type, event.payload, observation]
         raise "approval callback failed"
@@ -231,7 +231,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
       expect(on_loop { registry.take_agent_completion_waiters(execution.execution_id) }).to eq([result_task, other_task])
     end
 
-    ["coordination", "multi_agent_coordination_ref"].each do |key|
+    ["reservation", "execution_extension"].each do |key|
       it "releases a worker error carrying #{key} and fails all observers (F1)" do
         install
         error = IOError.new("coordination response lost")
@@ -327,7 +327,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
       install(fsm_session_id: nil)
       ready = recovery_ready(:active, error: nil)
       session = double("recovered session", id: "recovered-session", context: invocation)
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder).to receive(:build).and_return(session)
+      allow(agent.__execution_environment).to receive(:build_agent_session).and_return(session)
       runner = instance_double(Phronomy::Agent::ExecutionSessionRunner)
       registered = []
       allow(Phronomy::Agent::ExecutionSessionRunner).to receive(:new).and_return(runner)
@@ -346,7 +346,7 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
     it "terminalizes registration failure while completing the load observer" do
       install(fsm_session_id: nil)
       submitted = hold_terminal_worker
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder).to receive(:build).and_raise(IOError, "registration failed")
+      allow(agent.__execution_environment).to receive(:build_agent_session).and_raise(IOError, "registration failed")
       ready = recovery_ready(:active, error: nil)
       apply(ready)
       expect(load_task.wait_result).to equal(agent)

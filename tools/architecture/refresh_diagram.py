@@ -17,12 +17,17 @@ import tempfile
 
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE / "tools"))
+from check_abstractions import violations as abstraction_violations
+from find_dependency_triangles import analyze as triangles, write_report as write_triangles
+
 ENGINE = "lib/phronomy/engine"
 BASELINE_COMMIT = "84668606523e8b013ccb1cf1144694ecd28f24f8"
 FEATURES = ["llm_adapter", "vector_store", "vector_store/embeddings", "storage"]
-CLIENTS = {"lib/phronomy/" + f + "/async" for f in FEATURES}
-BASE_MODULES = {"lib/phronomy/" + f for f in [*FEATURES, "llm_contract", "llm_context_window", "vector_store/loader", "vector_store/splitter", "storage/backends"]}
+CLIENTS = {"lib/phronomy/" + f + "/async" for f in [*FEATURES, "embeddings"]}
+BASE_MODULES = {"lib/phronomy/" + f for f in [*FEATURES, "embeddings", "documents/loader", "documents/splitter", "llm_contract", "llm_context_window", "vector_store/loader", "vector_store/splitter", "storage/backends"]}
 IMPLEMENTATIONS = {
+    "lib/phronomy/embeddings/backends": "lib/phronomy/embeddings",
     "lib/phronomy/llm_adapter/backends": "lib/phronomy/llm_adapter",
     "lib/phronomy/vector_store/backends": "lib/phronomy/vector_store",
     "lib/phronomy/vector_store/embeddings/backends": "lib/phronomy/vector_store/embeddings",
@@ -92,9 +97,63 @@ def check_boundaries(audit, phase, repo, architecture=None):
     # Moving an API out of engine/ must not let a synchronous backend reach it.
     for role in ["backend_contracts", "backend_implementations", "document_processing", "token_budget"]:
         forbidden_roles[role].add("execution_services")
-    forbidden_roles["execution_services"] = forbidden_roles["engine"]
+    # In r8 the previously separate services and values share one framework.
+    # Synchronous backend extensions do not acquire that execution dependency.
+    if architecture.get("execution_framework_unified", False):
+        for role in ["backend_contracts", "backend_implementations", "document_processing", "token_budget"]:
+            forbidden_roles[role].add("execution_contracts")
+    forbidden_roles["execution_services"] = set(forbidden_roles["engine"])
+    forbidden_roles["engine"].add("execution_services")
+    forbidden_roles["engine_concurrency"] = forbidden_roles["engine"] | {"engine"}
+    for role in ["backend_contracts", "backend_implementations", "document_processing", "token_budget"]:
+        forbidden_roles[role].add("engine_concurrency")
+    # A domain binding joins its own framework to Engine; it is not the
+    # neutral Engine. Existing lower-level roles must not reach this binding.
+    for denied_roles in forbidden_roles.values():
+        if "domain" in denied_roles or "engine" in denied_roles:
+            denied_roles.add("domain_binding")
+    if architecture.get("r8_unit7_contracts"):
+        progress = {"lib/phronomy/agent/" + name for name in
+                    ("execution", "recovery", "recovery/recovery_coordinator", "lifecycle")}
+        for source, target in sorted(pairs):
+            if source in progress and (beneath(target, ENGINE) or roles.get(target) == "domain_binding"):
+                violations.append({"kind": "agent-progress-selects-engine", "pair": (source, target)})
+    if architecture.get("r8_unit10_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(source, "lib/phronomy/multi_agent") and roles.get(source) != "domain_binding"
+                    and (beneath(target, ENGINE) or roles.get(target) == "domain_binding")):
+                violations.append({"kind": "coordination-selects-engine", "pair": (source, target)})
+    if architecture.get("r8_unit13_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(source, "lib/phronomy/workflow") and roles.get(source) != "domain_binding"
+                    and (beneath(target, ENGINE) or roles.get(target) == "domain_binding")):
+                violations.append({"kind": "workflow-selects-engine", "pair": (source, target)})
+    if architecture.get("r8_unit14_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(target, "lib/phronomy/agent/recovery")
+                    and not beneath(source, "lib/phronomy/agent")):
+                violations.append({"kind": "agent-recovery-rules-owner-leak", "pair": (source, target)})
+    if architecture.get("r8_unit12_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(source, "lib/phronomy/multi_agent") and roles.get(source) != "domain_binding"
+                    and beneath(target, "lib/phronomy/tools")):
+                violations.append({"kind": "coordination-selects-concrete-tool", "pair": (source, target)})
+    if architecture.get("r8_unit11_contracts"):
+        for source, target in sorted(pairs):
+            if (beneath(source, "lib/phronomy/agent")
+                    and source not in {"lib/phronomy/agent/runtime_binding", "lib/phronomy/agent/composition"}
+                    and target == "lib/phronomy/llm_adapter/async"):
+                violations.append({"kind": "agent-selects-concrete-llm-client", "pair": (source, target)})
     for source in sorted(modules):
         denied = forbidden_roles.get(roles.get(source), set())
+        if architecture.get("r8_unit6_contracts") and source in {"lib/phronomy/llm_adapter", "lib/phronomy/llm_adapter/backends"}:
+            # C09 references C06 Schema/CallRequest only. Directory aggregation
+            # also exposes Tool::Base -> Execution; the AST gate below separately
+            # rejects C09 references to execution mechanisms or Tool::Base.
+            denied = denied - {"execution_contracts"}
+            for origin, target in pairs:
+                if origin == source and roles.get(target) == "execution_contracts":
+                    violations.append({"kind": "llm-direct-execution-dependency", "pair": (origin, target)})
         route = path_to(graph, source, lambda t: roles.get(t) in denied)
         if route:
             violations.append({"kind": "forbidden-responsibility-path", "source_role": roles.get(source), "path":route})
@@ -102,6 +161,15 @@ def check_boundaries(audit, phase, repo, architecture=None):
             route = path_to(graph, source, lambda t: t in CLIENTS)
             if route:
                 violations.append({"kind":"legacy-backend-reaches-client", "path":route})
+    if architecture.get("r8_unit5_contracts"):
+        for source in ["lib/phronomy/vector_store", "lib/phronomy/embeddings"]:
+            route = path_to(graph, source, lambda t: t != source and roles.get(t) != "common")
+            if route:
+                violations.append({"kind": "independent-vector-contract-reaches-other-owner", "path": route})
+        for source in ["lib/phronomy/documents/loader", "lib/phronomy/documents/splitter"]:
+            route = path_to(graph, source, lambda t: roles.get(t) not in {"document_processing", "common"})
+            if route:
+                violations.append({"kind": "document-helper-reaches-domain-or-mechanism", "path": route})
     for impl, contract in IMPLEMENTATIONS.items():
         if impl in modules and not path_to(graph, impl, lambda t: t == contract):
             violations.append({"kind":"implementation-missing-contract-dependency", "implementation":impl,"contract":contract})
@@ -112,6 +180,12 @@ def check_boundaries(audit, phase, repo, architecture=None):
             route = path_to(graph, source, lambda t: roles.get(t) not in {"common", "execution_contracts"})
             if route:
                 violations.append({"kind": "execution-contract-reaches-implementation", "path": route})
+        if roles.get(source) == "execution_results":
+            route = path_to(graph, source, lambda t: roles.get(t) not in {"common", "execution_contracts", "execution_results"})
+            if route:
+                violations.append({"kind": "execution-results-reaches-mechanism", "path": route})
+        if architecture.get("execution_abstraction_revision") and source in CLIENTS and any(beneath(target, ENGINE) for a, target in pairs if a == source):
+            violations.append({"kind": "async-client-directly-reaches-engine", "source": source})
         if roles.get(source) == "content_service":
             route = path_to(graph, source, lambda t: t != source and
                             t != "lib/phronomy/storage" and roles.get(t) != "common")
@@ -124,11 +198,23 @@ def check_boundaries(audit, phase, repo, architecture=None):
             if route:
                 violations.append({"kind": "runtime-settings-reaches-feature", "path": route})
     persistence_contract = "lib/phronomy/persistence/contract"
-    if persistence_contract in modules:
+    persistence = "lib/phronomy/persistence"
+    if architecture.get("persistence_framework_separated"):
+        allowed = {persistence, "lib/phronomy/storage", "lib/phronomy/content_store"}
+        route = path_to(graph, persistence, lambda t: t not in allowed and roles.get(t) != "common")
+        if route:
+            violations.append({"kind": "persistence-framework-reaches-domain-or-composition", "path": route})
+        for source in ["lib/phronomy/storage", "lib/phronomy/storage/backends"]:
+            route = path_to(graph, source, lambda t: beneath(t, persistence))
+            if route:
+                violations.append({"kind": "storage-reaches-persistence", "path": route})
+    elif persistence_contract in modules:
         route = path_to(graph, persistence_contract, lambda t: roles.get(t) != "common")
         if route:
             violations.append({"kind": "persistence-contract-reaches-implementation", "path": route})
-        # Runners consume persistence failures, not the raw Storage error SPI.
+    if persistence_contract in modules or architecture.get("persistence_framework_separated"):
+        # Domain operations consume their own record protocol and common
+        # Persistence failures, never the raw Storage view/error SPI.
         domain_consumers = ["agent", "agent/execution", "agent/handoff", "agent/lifecycle",
                             "agent/recovery", "agent/recovery/recovery_coordinator",
                             "multi_agent", "workflow/execution"]
@@ -136,19 +222,34 @@ def check_boundaries(audit, phase, repo, architecture=None):
             pair = ("lib/phronomy/" + consumer, "lib/phronomy/storage")
             if pair in pairs:
                 violations.append({"kind": "domain-consumer-reaches-raw-storage", "pair": pair})
+    for source, prohibited in {
+        "lib/phronomy/context": ("lib/phronomy/agent", "lib/phronomy/engine"),
+        "lib/phronomy/tool": ("lib/phronomy/agent", "lib/phronomy/engine", "lib/phronomy/llm_adapter", "lib/phronomy/multi_agent"),
+        "lib/phronomy/execution": ("lib/phronomy/engine", "lib/phronomy/tracing"),
+        "lib/phronomy/execution/concurrency": ("lib/phronomy/engine", "lib/phronomy/tracing"),
+    }.items():
+        if source not in modules:
+            continue
+        route = path_to(graph, source, lambda t: any(beneath(t, root) for root in prohibited))
+        if route:
+            violations.append({"kind": "r8-domain-backward-dependency", "path": route})
+    features = [f.replace("vector_store/embeddings", "embeddings") if architecture.get("r8_unit5_contracts") else f for f in policy["features"]]
     required=[]
-    for feature in policy["features"]:
+    for feature in features:
         required.append("lib/phronomy/"+feature+"/async/async_client.rb")
     files = {
         "llm_adapter": ["llm_adapter/backends/ruby_llm.rb"],
         "vector_store": ["vector_store/backends/in_memory.rb", "vector_store/backends/pgvector.rb", "vector_store/backends/redis_search.rb"],
         "vector_store/embeddings": ["vector_store/embeddings/backends/ruby_llm_embeddings.rb"],
         "storage": ["content_store/stored_contents.rb"],
+        "embeddings": ["embeddings/backends/ruby_llm_embeddings.rb"],
     }
-    required += ["lib/phronomy/"+f for feature in policy["features"] for f in files[feature]]
+    required += ["lib/phronomy/"+f for feature in features for f in files[feature]]
     for relative in required:
         if not (repo/relative).is_file():
             violations.append({"kind":"missing-phase-source","file":relative})
+    if architecture.get("execution_abstraction_revision", 0) >= 2:
+        violations.extend(abstraction_violations(repo))
     return {"phase":phase,"commit":audit["commit"],"passed":not violations,
             "remaining_legacy_pairs":sorted(actual),"rules_basis":"semantic responsibilities, independent of IDs and coordinates",
             "violations":violations,"limitations":["Static Ruby constants, literal requires and declared RBS type references", "Directory aggregation may overapproximate indirect paths; inspect member/file evidence", "Untyped injection, root-loader wiring and runtime/API compatibility require separate checks"]}
@@ -218,6 +319,7 @@ def main():
         baseline = json.loads((HERE / "evidence/baseline/module_audit_scoped.json").read_text())
         if baseline["commit"] != BASELINE_COMMIT:
             raise ValueError("Unexpected baseline evidence commit")
+        write_triangles(triangles(audit, architecture, json.loads(layout_path.read_text())), built)
         (built / "boundary_validation.json").write_text(json.dumps(report, indent=2) + "\n")
         (built / "graph_delta.json").write_text(json.dumps(graph_delta(baseline, audit), indent=2) + "\n")
         (built / "architecture.json").write_text(config.read_text())

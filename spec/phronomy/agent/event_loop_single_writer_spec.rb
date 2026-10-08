@@ -42,14 +42,12 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
     expect(registry).to include("assert_event_loop_thread!")
 
     worker_sections = source("lib/phronomy/agent/execution/execution_outcome_committer.rb") +
-      source("lib/phronomy/agent/handoff/handoff_outcome_committer.rb")
+      source("lib/phronomy/multi_agent/handoff_participant.rb")
     worker_sections += source("lib/phronomy/agent/execution/dispatch_preparation.rb")
     worker_sections += source("lib/phronomy/agent/execution/initial_preparation.rb")
     worker_sections += source("lib/phronomy/agent/execution/approval_resume_commit.rb")
     expect(worker_sections).not_to include("ExecutionRegistry", "TaskResult", "SessionRunner", "@coordinator")
     expect(Phronomy::Agent::ExecutionOutcomeCommitter.ancestors)
-      .to include(Phronomy::Concurrency::WorkerInputRestricted)
-    expect(Phronomy::Agent::HandoffOutcomeCommitter.ancestors)
       .to include(Phronomy::Concurrency::WorkerInputRestricted)
     expect(worker_sections).not_to include("__replace_root")
     expect(worker_sections).not_to include("_append_journal_records")
@@ -76,10 +74,9 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "keeps live Handoff Agent references outside the terminal worker snapshot" do
-    worker = source("lib/phronomy/agent/execution/execution_outcome_committer.rb")
-    multi = source("lib/phronomy/agent/handoff/handoff_outcome_committer.rb")
-    terminal_view = worker.split("HandoffTerminalView = Data.define", 2).fetch(1)
-      .split("TerminalView = Data.define", 2).first
+    source("lib/phronomy/agent/execution/execution_outcome_committer.rb")
+    multi = source("lib/phronomy/multi_agent/handoff_participant.rb")
+    terminal_view = source("lib/phronomy/agent/control_request.rb")
 
     expect(terminal_view).to include(":target_agent_id")
     expect(terminal_view).not_to match(/:target_agent(?!_id)/)
@@ -88,7 +85,7 @@ RSpec.describe "ACS-11 EventLoop single-writer Agent runtime" do
   end
 
   it "does not start a follow-up durable operation after an application callback has already failed" do
-    builder = source("lib/phronomy/agent/execution/agent_invocation_session_builder.rb")
+    builder = source("lib/phronomy/agent/execution/invocation_actions.rb")
     method_source = builder
       .split("def self.prepare_and_start_llm_call", 2).fetch(1)
       .split("private_class_method :prepare_and_start_llm_call", 2).first

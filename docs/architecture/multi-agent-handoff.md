@@ -24,14 +24,14 @@ Normative Handoff intent is
 with the Runner ownership amendment in
 [ADR-034](../decisions/034-handoff-runner-coordination-ownership.md).
 
-The Runner owns the cross-Agent turn. Handoff edges, Policy, Context and
-Agent terminal/persistence integration remain in Agent during this first
-migration step. See the [Runner migration](../migrations/handoff-runner-multi-agent.md).
+MultiAgent owns the cross-Agent turn, Handoff edges, Policy, routing and reservations.
+Agent owns generic control requests, finalized Context projection and its own
+execution commits. See [r8 unit 4](r8-unit4.md).
 
 ## 2. Public API
 
 ```ruby
-handoff = Phronomy::Agent::Handoff.new(
+handoff = Phronomy::MultiAgent::Handoff.new(
   source_agent: triage,
   target_agent: billing,
   description: "Transfer billing responsibility",
@@ -40,6 +40,7 @@ handoff = Phronomy::Agent::Handoff.new(
 
 runner = Phronomy::MultiAgent::HandoffRunner.new(
   main_agent: triage,
+  persistence: stores.multi_agent,
   handoffs: [handoff]
 )
 
@@ -56,7 +57,7 @@ schemas. The generated Tool name is private transport encoding, not Handoff
 identity or public semantic contract.
 
 Phronomy intercepts the Provider Tool Call into a typed private
-`HandoffRequest`. It does not execute an ordinary `ToolInvocation` or emit a
+`Agent::ControlRequest`. It does not execute an ordinary `ToolInvocation` or emit a
 sentinel Tool result.
 
 ## 4. Handoff Policy

@@ -1,0 +1,14 @@
+module Phronomy
+  # Private connection selected by composition, not a public application API.
+  class WorkflowExecutionEnvironment
+    def self.install_provider: (^() -> WorkflowExecutionEnvironment provider) -> untyped
+    def self.current: () -> WorkflowExecutionEnvironment
+    def registry: () -> untyped
+    def existing_registry: () -> untyped
+    def executing?: () -> bool
+    def submit: [V] (**untyped options) { () -> V } -> TaskResult[V]
+    def compile_transitions: (**untyped definition) -> untyped
+    def build_session: (**untyped options) -> untyped
+    def register_session: (untyped session, completion: TaskResult[untyped]) -> untyped
+  end
+end

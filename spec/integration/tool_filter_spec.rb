@@ -55,7 +55,7 @@ RSpec.describe "Group 2: Tool / Filter", :integration do
   # -------------------------------------------------------------------------
   describe "TC-002: base; single tool (suppress, requires_approval, explicit_name, valid_enum); input filter" do
     let(:tool_class) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+      Class.new(Phronomy::Tool::Base) do
         tool_name "city_info"
         description "Returns a short fact about a supported city"
         param :city, type: :string, desc: "One of: Tokyo, London, Paris",

@@ -3,7 +3,7 @@
 module Phronomy
   module Tools
     # A Capability::Base subclass that wraps a {Phronomy::VectorStore::Base} and
-    # a {Phronomy::VectorStore::Embeddings::Base} adapter so that an agent can
+    # a {Phronomy::Embeddings::Base} adapter so that an agent can
     # perform semantic search as a tool call.
     #
     # Do not instantiate this class directly.  Use the factory method
@@ -11,7 +11,7 @@ module Phronomy
     #
     # @example
     #   store = Phronomy::VectorStore::InMemory.new
-    #   emb   = Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings.new(model: "...")
+    #   emb   = Phronomy::Embeddings::RubyLLMEmbeddings.new(model: "...")
     #   tool  = Phronomy::Tools::VectorSearch.from_store(store, embeddings: emb,
     #             k: 3, tool_name: "search_docs",
     #             description: "Search the company knowledge base.")
@@ -19,7 +19,7 @@ module Phronomy
     #   agent.tools tool
     #
     # @api public
-    class VectorSearch < Phronomy::Agent::Context::Capability::Base
+    class VectorSearch < Phronomy::Tool::Base
       description "Search for relevant documents using semantic similarity."
       param :query, type: :string, desc: "The natural-language search query"
 
@@ -27,7 +27,7 @@ module Phronomy
         # Build a VectorSearch tool backed by the given store and embeddings adapter.
         #
         # @param store       [Phronomy::VectorStore::Base]
-        # @param embeddings  [Phronomy::VectorStore::Embeddings::Base]
+        # @param embeddings  [Phronomy::Embeddings::Base]
         # @param k           [Integer]       number of results to return (default 5)
         # @param tool_name   [String]        name exposed to the LLM
         # @param description [String, nil]   optional description override

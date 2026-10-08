@@ -11,7 +11,7 @@ module Phronomy
         AGENT_ROOT_RECORD_TYPE = "phronomy.agent_root"
         AGENT_ROOT_FORMAT_VERSION = "0.1"
         AGENT_EXECUTION_RECORD_TYPE = "phronomy.agent_execution"
-        AGENT_EXECUTION_FORMAT_VERSION = "0.1"
+        AGENT_EXECUTION_FORMAT_VERSION = "0.2"
         JOURNAL_RECORD_TYPE = "phronomy.journal_record"
         JOURNAL_FORMAT_VERSION = "0.1"
         AGENT_ROOT_KEYS = %w[
@@ -47,26 +47,6 @@ module Phronomy
         ].freeze
 
         module_function
-
-        def encode_handoff_state(value)
-          payload = value.to_h
-          Phronomy::Agent::HandoffState.from_h(payload)
-          build_record("phronomy.handoff_state", "0.1", payload)
-        rescue Phronomy::Storage::SerializationError
-          raise
-        rescue => error
-          serialization_error("cannot encode HandoffState", error)
-        end
-
-        def decode_handoff_state(record)
-          payload = current_payload!(record, record_type: "phronomy.handoff_state",
-            format_version: "0.1", keys: Phronomy::Agent::HandoffState::ATTRIBUTES, label: "HandoffState")
-          Phronomy::Agent::HandoffState.from_h(payload)
-        rescue Phronomy::Storage::SerializationError
-          raise
-        rescue => error
-          serialization_error("cannot decode HandoffState", error)
-        end
 
         def encode_agent_root(root)
           payload = top_level_string_keys(root.to_h, label: "AgentRoot payload")

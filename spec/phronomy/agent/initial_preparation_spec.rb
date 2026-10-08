@@ -9,7 +9,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
     def initialize(delegate)
       @delegate = delegate
-      super(backend: delegate.backend)
+      super(backend: delegate.coordinator.backend)
       arm(nil)
     end
 
@@ -18,9 +18,9 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       @lost_response_transaction = transaction
     end
 
-    def transaction
+    def atomic
       @transaction_count += 1
-      result = @delegate.transaction { |tx| yield tx }
+      result = super { |scope| yield scope }
       if @transaction_count == @lost_response_transaction
         raise IOError, "preparation response lost after commit"
       end
@@ -28,8 +28,9 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     end
   end
 
-  let(:store) { Phronomy::Persistence.in_memory }
-  let(:persistence) { PreparationResponseLoss.new(store) }
+  let(:store) { Phronomy::PersistenceComposition.in_memory.agent }
+  let(:faults) { PreparationResponseLoss.new(store) }
+  let(:persistence) { Phronomy::Agent::Store.new(coordinator: faults, records: Phronomy::Agent::Persistence::Records) }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "initial-preparation-#{SecureRandom.hex(6)}", version: 1
@@ -56,10 +57,10 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
   end
 
   def observe_policy(&observe)
-    policy = Class.new(Phronomy::Agent::ContextPolicy) do
+    policy = Class.new(Phronomy::Context::ContextPolicy) do
       define_method(:call) do |input|
         observe.call
-        Phronomy::Agent::ContextPolicies::Default.instance.call(input)
+        Phronomy::Context::DefaultPolicy.instance.call(input)
       end
     end.new
     agent.class.context_policy(policy)
@@ -84,7 +85,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       expect(transaction_open).to be(false)
       events << :policy
     end
-    allow(persistence).to receive(:transaction).and_wrap_original do |original, &action|
+    allow(faults).to receive(:atomic).and_wrap_original do |original, &action|
       transaction_open = true
       events << :transaction_started
       original.call(&action)
@@ -102,7 +103,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       events << :hook
       original.call(**kwargs)
     end
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **kwargs|
       materializer = original.call(**kwargs)
       allow(materializer).to receive(:materialize).and_wrap_original do |method, **args|
         expect(transaction_open).to be(false)
@@ -125,7 +126,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
   it "reports extraction failure before admission without claiming an uncertain save" do
     command = operation
-    persistence.arm(nil)
+    faults.arm(nil)
     error = IOError.new("input extraction failed")
     allow(agent).to receive(:extract_message).and_raise(error)
 
@@ -134,7 +135,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     expect(result.admission_outcome).to eq(:not_established)
     expect(result.error).to equal(error)
     expect(result.execution).to be_nil
-    expect(persistence.transaction_count).to eq(0)
+    expect(faults.transaction_count).to eq(0)
   end
 
   it "releases a known failed durable admission without running input filters" do
@@ -151,7 +152,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
   it "keeps Runtime admission closed after a lost durable admission response" do
     agent
-    persistence.arm(1)
+    faults.arm(1)
     expect(agent).not_to receive(:run_input_filters!)
 
     expect { agent.invoke_async("hello").wait_result(timeout: 2) }
@@ -159,7 +160,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     expect { agent.invoke_async("again").wait_result(timeout: 2) }
       .to raise_error(Phronomy::AgentBusyError)
 
-    expect(persistence.transaction_count).to eq(1)
+    expect(faults.transaction_count).to eq(1)
     stored = persistence.executions.list_active(agent.agent_id)
     expect(stored.length).to eq(1)
     expect(stored.first.status).to eq(:preparing)
@@ -167,8 +168,8 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
   it "does not advance its failure base after a lost active-commit response" do
     command = operation
-    persistence.arm(2)
-    expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
+    faults.arm(2)
+    expect(Phronomy::Agent::RuntimeInput).not_to receive(:new)
 
     expect { worker.prepare(command) }.to raise_error(Phronomy::Persistence::ConflictError)
 
@@ -186,7 +187,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
 
   it "propagates a lost failure-commit response without returning a confirmed terminal result" do
     command = operation
-    persistence.arm(2)
+    faults.arm(2)
     allow(agent).to receive(:run_input_filters!).and_raise(ArgumentError, "filter failed")
 
     expect { worker.prepare(command) }.to raise_error(IOError, /response lost/)
@@ -201,7 +202,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
   it "terminalizes a materialization failure from the confirmed active revision" do
     command = operation
     failure = ArgumentError.new("cannot materialize committed input")
-    allow(Phronomy::Agent::RubyLLMMaterializer).to receive(:new).and_wrap_original do |original, **kwargs|
+    allow(Phronomy::Agent::RuntimeInput).to receive(:new).and_wrap_original do |original, **kwargs|
       instance = original.call(**kwargs)
       allow(instance).to receive(:materialize).and_raise(failure)
       instance
@@ -224,7 +225,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     token = Phronomy::Concurrency::CancellationToken.new
     command = operation(cancellation_token: token)
     observe_policy { token.cancel! }
-    expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
+    expect(Phronomy::Agent::RuntimeInput).not_to receive(:new)
 
     result = worker.prepare(command)
 
@@ -255,7 +256,7 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
       advanced_root = stored.with(agent_revision: stored.agent_revision + 1)
       persistence.agents.save(agent.agent_id, expected_revision: stored.agent_revision, root: advanced_root)
     end
-    expect(Phronomy::Agent::RubyLLMMaterializer).not_to receive(:new)
+    expect(Phronomy::Agent::RuntimeInput).not_to receive(:new)
 
     expect { worker.prepare(command) }.to raise_error(Phronomy::Persistence::ConflictError)
 

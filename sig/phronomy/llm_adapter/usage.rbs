@@ -1,0 +1,14 @@
+module Phronomy
+  module LLMAdapter
+  class TokenUsage
+    attr_reader input: Integer?
+    attr_reader output: Integer?
+    attr_reader cached: Integer?
+    attr_reader cache_creation: Integer?
+    def initialize: (?input: Integer?, ?output: Integer?, ?cached: Integer?, ?cache_creation: Integer?) -> void
+    def self.zero: () -> TokenUsage
+    def +: (TokenUsage? other) -> TokenUsage
+    def to_h: () -> Hash[Symbol, Integer?]
+  end
+end
+end

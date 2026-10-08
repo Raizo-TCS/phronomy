@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::HandoffPolicy do
+RSpec.describe Phronomy::MultiAgent::HandoffPolicy do
   it "defines the four initial Handoff policy categories" do
     expect(described_class::CATEGORIES).to eq(
       %i[current_request history knowledge tool_exchanges]
@@ -70,7 +70,7 @@ RSpec.describe Phronomy::Agent::HandoffPolicy do
   end
 end
 
-RSpec.describe Phronomy::Agent::Handoff do
+RSpec.describe Phronomy::MultiAgent::Handoff do
   let(:source_klass) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "handoff-source", version: 1
@@ -99,7 +99,7 @@ RSpec.describe Phronomy::Agent::Handoff do
   it "represents one explicit Source to Target edge" do
     expect(handoff.source_agent).to equal(source)
     expect(handoff.target_agent).to equal(target)
-    expect(handoff.policy).to equal(Phronomy::Agent::HandoffPolicy.default)
+    expect(handoff.policy).to equal(Phronomy::MultiAgent::HandoffPolicy.default)
     expect(handoff.description).to eq("Transfer billing responsibility")
   end
 
@@ -117,7 +117,7 @@ RSpec.describe Phronomy::Agent::Handoff do
   end
 end
 
-RSpec.describe Phronomy::Agent::HandoffCapabilityFactory do
+RSpec.describe Phronomy::MultiAgent::HandoffCapabilityFactory do
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "handoff-capability-agent", version: 1
@@ -128,7 +128,7 @@ RSpec.describe Phronomy::Agent::HandoffCapabilityFactory do
   it "creates a cooperative private capability without making its Tool name the Handoff identity" do
     source = agent_class.new
     target = agent_class.new
-    edge = Phronomy::Agent::Handoff.new(
+    edge = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target
     )
@@ -152,17 +152,17 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   end
 
   def build_binding(source, target)
-    edge = Phronomy::Agent::Handoff.new(
+    edge = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
-      policy: Phronomy::Agent::HandoffPolicy.define do
+      policy: Phronomy::MultiAgent::HandoffPolicy.define do
         required :current_request
         selectable :history, default: :include
         selectable :knowledge, default: :exclude
         selectable :tool_exchanges, default: :include
       end
     )
-    Phronomy::Agent::HandoffCapabilityFactory.build(edge)
+    Phronomy::MultiAgent::HandoffCapabilityFactory.build(edge)
   end
 
   it "turns one intercepted Handoff capability into a typed HandoffRequest" do
@@ -172,7 +172,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     invocation = described_class.new(
       agent: source,
       input: "hello",
-      config: {phronomy_handoff_bindings: [binding]}
+      config: {phronomy_control_bindings: [binding]}
     )
 
     invocation.accept_tool_calls!([
@@ -185,9 +185,9 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
 
     expect(invocation.handoff_requested?).to be(true)
     expect(invocation.pending_tool_calls).to be_empty
-    expect(invocation.handoff_request.handoff).to equal(binding.handoff)
+    expect(invocation.handoff_request.target_agent_id).to eq(binding.handoff.target_agent.agent_id)
     expect(invocation.handoff_request.responsibility).to eq("Continue the billing investigation")
-    expect(invocation.handoff_request.selection_intent[:history]).to be(false)
+    expect(invocation.handoff_request.selection[:history]).to be(false)
   end
 
   it "rejects a Handoff mixed with an ordinary Tool Call" do
@@ -197,7 +197,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     invocation = described_class.new(
       agent: source,
       input: "hello",
-      config: {phronomy_handoff_bindings: [binding]}
+      config: {phronomy_control_bindings: [binding]}
     )
 
     invocation.accept_tool_calls!([
@@ -219,7 +219,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     invocation = described_class.new(
       agent: source,
       input: "hello",
-      config: {phronomy_handoff_bindings: [first, second]}
+      config: {phronomy_control_bindings: [first, second]}
     )
 
     invocation.accept_tool_calls!([

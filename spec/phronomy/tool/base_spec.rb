@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Context::Capability::Base do
+RSpec.describe Phronomy::Tool::Base do
   # A simple tool for testing
   let(:hello_tool_class) do
     Class.new(described_class) do
@@ -206,13 +206,13 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         suppress_class.new.call({})
         expect(logged.first).to include("boom")
       end
 
       it "writes to stderr when on_error :suppress and no logger is configured" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         expect { suppress_class.new.call({}) }.to output(/boom/).to_stderr
       end
 
@@ -220,24 +220,24 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         tool = suppress_class.new
         tool.call({})
-        expect(logged.first).to match(/Phronomy::Agent::Context::Capability::Base|Tool/)
+        expect(logged.first).to match(/Phronomy::Tool::Base|Tool/)
       end
 
       it "includes e.class and e.message in the suppression message" do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         suppress_class.new.call({})
         expect(logged.first).to include("RuntimeError")
         expect(logged.first).to include("boom")
       end
 
       it "includes e.message (not just e) in the return string" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         result = suppress_class.new.call({})
         expect(result).to eq("Tool error suppressed: boom")
       end
@@ -448,7 +448,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         tool.call({})
         logged.first
       end
@@ -587,7 +587,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
       it "includes enum in the schema for the constrained param" do
         properties = schema["properties"]
-        expect(properties["lang"]["enum"]).to eq(%w[en ja fr])
+        expect(properties["lang"]["enum"]).to eq(["en", "ja", "fr", nil])
       end
 
       it "does not add enum to params without enum:" do
@@ -761,7 +761,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       it "includes type and description for each nested field" do
         schema = nested_tool_class.new.params_schema
         timeout_schema = schema["properties"]["config"]["properties"]["timeout"]
-        expect(timeout_schema["type"]).to eq("integer")
+        expect(timeout_schema["type"]).to eq(["integer", "null"])
         expect(timeout_schema["description"]).to eq("Timeout in seconds")
       end
     end
@@ -824,8 +824,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   describe "RubyLLM::Tool compatibility" do
-    it "is a subclass of RubyLLM::Tool" do
-      expect(described_class.ancestors).to include(RubyLLM::Tool)
+    it "is independent of RubyLLM::Tool" do
+      expect(described_class.ancestors).not_to include(RubyLLM::Tool)
     end
 
     it "converts the class name to snake_case in the name method" do
@@ -1194,29 +1194,31 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   describe "#call_async — direct unit tests" do
-    it "passes cancellation_token to Phronomy::Agent::Context::Capability::ToolExecutor" do
+    it "passes cancellation_token to Phronomy::Tool::ToolExecutor" do
       ct = Phronomy::Concurrency::CancellationToken.new
-      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: ct,
-        config: {}
+        config: {},
+        synchronous_call: hello_tool.method(:call)
       )
       hello_tool.call_async({}, cancellation_token: ct)
     end
 
     it "passes nil cancellation_token by default" do
-      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: nil,
-        config: {}
+        config: {},
+        synchronous_call: hello_tool.method(:call)
       )
       hello_tool.call_async({})
     end
 
     it "delegates to the internal Tool executor and returns a TaskResult" do
-      expect(Phronomy::Agent::Context::Capability::ToolExecutor).to receive(:call_async).and_call_original
+      expect(Phronomy::Tool::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
       expect(result).to be_a(Phronomy::TaskResult)
     end
@@ -1245,367 +1247,6 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       allow(tool).to receive(:params_schema).and_call_original
       schema = tool.params_schema
       expect(schema).to satisfy { |s| s.nil? || (s.is_a?(Hash) && s["properties"].empty?) }
-    end
-  end
-
-  describe "#type_error" do
-    let(:tool) { hello_tool }
-
-    it "returns nil when value is nil regardless of type" do
-      expect(tool.send(:type_error, nil, :string)).to be_nil
-      expect(tool.send(:type_error, nil, :integer)).to be_nil
-      expect(tool.send(:type_error, nil, :boolean)).to be_nil
-    end
-
-    context "returns nil when type matches" do
-      it ":string accepts a String" do
-        expect(tool.send(:type_error, "hello", :string)).to be_nil
-      end
-
-      it ":integer accepts an Integer" do
-        expect(tool.send(:type_error, 42, :integer)).to be_nil
-      end
-
-      it ":number accepts a Numeric" do
-        expect(tool.send(:type_error, 3.14, :number)).to be_nil
-      end
-
-      it ":float accepts a Numeric" do
-        expect(tool.send(:type_error, 3.14, :float)).to be_nil
-      end
-
-      it ":boolean accepts true" do
-        expect(tool.send(:type_error, true, :boolean)).to be_nil
-      end
-
-      it ":boolean accepts false" do
-        expect(tool.send(:type_error, false, :boolean)).to be_nil
-      end
-
-      it ":array accepts an Array" do
-        expect(tool.send(:type_error, [1, 2], :array)).to be_nil
-      end
-
-      it ":object accepts a Hash" do
-        expect(tool.send(:type_error, {a: 1}, :object)).to be_nil
-      end
-
-      it "unknown type passes through" do
-        expect(tool.send(:type_error, "anything", :custom_type)).to be_nil
-      end
-    end
-
-    context "returns error String when type mismatches" do
-      it ":integer for a String value includes 'expected type integer'" do
-        result = tool.send(:type_error, "hello", :integer)
-        expect(result).to be_a(String)
-        expect(result).to include("expected type integer")
-      end
-
-      it ":string for an Integer value includes 'expected type string'" do
-        result = tool.send(:type_error, 42, :string)
-        expect(result).to include("expected type string")
-      end
-
-      it ":number for a String value includes 'expected type number'" do
-        expect(tool.send(:type_error, "hi", :number)).to include("expected type number")
-      end
-
-      it ":float for a String value includes 'expected type float'" do
-        expect(tool.send(:type_error, "hi", :float)).to include("expected type float")
-      end
-
-      it ":boolean for a String value includes 'expected type boolean'" do
-        expect(tool.send(:type_error, "true", :boolean)).to include("expected type boolean")
-      end
-
-      it ":array for a Hash value includes 'expected type array'" do
-        expect(tool.send(:type_error, {}, :array)).to include("expected type array")
-      end
-
-      it ":object for an Array value includes 'expected type object'" do
-        expect(tool.send(:type_error, [], :object)).to include("expected type object")
-      end
-
-      it "uses '(object)' placeholder for Hash values in the error message" do
-        result = tool.send(:type_error, {a: 1}, :string)
-        expect(result).to include("(object)")
-      end
-
-      it "does not use '(object)' for non-Hash values" do
-        result = tool.send(:type_error, 42, :string)
-        expect(result).not_to include("(object)")
-        expect(result).to include("42")
-      end
-
-      it "uses value.inspect for non-Hash values in the error message" do
-        result = tool.send(:type_error, "bad", :integer)
-        expect(result).to include('"bad"')
-      end
-
-      it ":integer rejects Float (not a subtype)" do
-        expect(tool.send(:type_error, 3.14, :integer)).to include("expected type integer")
-      end
-    end
-
-    context "declared_type as String (kills mutation [45]: removes .to_sym)" do
-      it "handles String declared_type 'integer' correctly" do
-        expect(tool.send(:type_error, "bad", "integer")).to include("expected type integer")
-      end
-
-      it "handles String declared_type 'string' correctly (no error for String value)" do
-        expect(tool.send(:type_error, "hello", "string")).to be_nil
-      end
-    end
-
-    context "accepts subclasses of declared type (kills [46], [48], [49])" do
-      it "returns nil for String subclass with :string type (is_a? not instance_of?)" do
-        sub_str = Class.new(String).new("hello")
-        expect(tool.send(:type_error, sub_str, :string)).to be_nil
-      end
-
-      it "returns nil for Array subclass with :array type" do
-        sub_arr = Class.new(Array).new
-        expect(tool.send(:type_error, sub_arr, :array)).to be_nil
-      end
-
-      it "returns nil for Hash subclass with :object type" do
-        sub_hash = Class.new(Hash).new
-        expect(tool.send(:type_error, sub_hash, :object)).to be_nil
-      end
-    end
-  end
-
-  describe "#coerce_value" do
-    let(:tool) { hello_tool }
-
-    it "returns [value, nil] (not [nil, nil]) for nil input" do
-      val, err = tool.send(:coerce_value, nil, :string)
-      expect(val).to be_nil
-      expect(err).to be_nil
-    end
-
-    it "returns the original nil object (identity) for nil" do
-      result = tool.send(:coerce_value, nil, :integer)
-      expect(result).to eq([nil, nil])
-    end
-
-    context ":string" do
-      it "returns string as-is" do
-        expect(tool.send(:coerce_value, "hello", :string)).to eq(["hello", nil])
-      end
-
-      it "coerces Integer to String" do
-        val, err = tool.send(:coerce_value, 42, :string)
-        expect(err).to be_nil
-        expect(val).to eq("42")
-      end
-
-      it "coerces Float to String" do
-        val, err = tool.send(:coerce_value, 3.14, :string)
-        expect(err).to be_nil
-        expect(val).to eq("3.14")
-      end
-    end
-
-    context ":integer" do
-      it "returns Integer as-is" do
-        expect(tool.send(:coerce_value, 42, :integer)).to eq([42, nil])
-      end
-
-      it "coerces numeric String to Integer" do
-        val, err = tool.send(:coerce_value, "42", :integer)
-        expect(err).to be_nil
-        expect(val).to eq(42)
-      end
-
-      it "returns [nil, error] for non-numeric String" do
-        val, err = tool.send(:coerce_value, "abc", :integer)
-        expect(val).to be_nil
-        expect(err).to include("integer")
-      end
-    end
-
-    context ":number" do
-      it "returns Float as-is" do
-        val, err = tool.send(:coerce_value, 3.14, :number)
-        expect(err).to be_nil
-        expect(val).to eq(3.14)
-      end
-
-      it "coerces numeric String to Float" do
-        val, err = tool.send(:coerce_value, "3.14", :number)
-        expect(err).to be_nil
-        expect(val).to eq(3.14)
-      end
-
-      it "returns [nil, error] for non-numeric String" do
-        val, err = tool.send(:coerce_value, "abc", :number)
-        expect(val).to be_nil
-        expect(err).to include("number")
-      end
-    end
-
-    context ":float" do
-      it "coerces numeric String to Float" do
-        val, err = tool.send(:coerce_value, "2.5", :float)
-        expect(err).to be_nil
-        expect(val).to eq(2.5)
-      end
-
-      it "returns [nil, error] for non-numeric String" do
-        val, err = tool.send(:coerce_value, "bad", :float)
-        expect(val).to be_nil
-        expect(err).to include("float")
-      end
-
-      it "returns a 2-element Array for :float type (kills mutation [8])" do
-        # Kills [8]: [coerced, nil] → [coerced] — size drops from 2 to 1
-        arr = tool.send(:coerce_value, "3.14", :float)
-        expect(arr).to be_an(Array)
-        expect(arr.size).to eq(2)
-        expect(arr.last).to be_nil
-      end
-
-      it "return value is an Array not a Float for :float type (kills mutation [9])" do
-        # Kills [9]: removes the [coerced, nil] line entirely — method returns Float not Array
-        result = tool.send(:coerce_value, "3.14", :float)
-        expect(result).to be_an(Array)
-      end
-    end
-
-    context ":boolean" do
-      it "coerces 'true' to true" do
-        expect(tool.send(:coerce_value, "true", :boolean)).to eq([true, nil])
-      end
-
-      it "coerces 'false' to false" do
-        expect(tool.send(:coerce_value, "false", :boolean)).to eq([false, nil])
-      end
-
-      it "coerces 'TRUE' (case-insensitive) to true" do
-        expect(tool.send(:coerce_value, "TRUE", :boolean)).to eq([true, nil])
-      end
-
-      it "coerces 'FALSE' (case-insensitive) to false" do
-        expect(tool.send(:coerce_value, "FALSE", :boolean)).to eq([false, nil])
-      end
-
-      it "returns [nil, error] for unrecognized boolean string" do
-        val, err = tool.send(:coerce_value, "yes", :boolean)
-        expect(val).to be_nil
-        expect(err).to include("boolean")
-      end
-
-      it "passes through true as-is" do
-        expect(tool.send(:coerce_value, true, :boolean)).to eq([true, nil])
-      end
-
-      it "passes through false as-is" do
-        expect(tool.send(:coerce_value, false, :boolean)).to eq([false, nil])
-      end
-    end
-
-    context "pass-through types" do
-      it "returns Array as-is for :array" do
-        arr = [1, 2, 3]
-        val, err = tool.send(:coerce_value, arr, :array)
-        expect(err).to be_nil
-        expect(val).to equal(arr)
-      end
-
-      it "returns Hash as-is for :object" do
-        hash = {a: 1}
-        val, err = tool.send(:coerce_value, hash, :object)
-        expect(err).to be_nil
-        expect(val).to equal(hash)
-      end
-
-      it "returns value as-is for unknown type" do
-        val, err = tool.send(:coerce_value, "anything", :custom)
-        expect(err).to be_nil
-        expect(val).to eq("anything")
-      end
-    end
-
-    context "return value is always a 2-element Array (kills [23], [24], [28])" do
-      it "coerce_value returns a 2-element Array for :integer coercion" do
-        # Kills [23] ([coerced] vs [coerced, nil]) and [24] (line deleted)
-        arr = tool.send(:coerce_value, "42", :integer)
-        expect(arr).to be_an(Array)
-        expect(arr.size).to eq(2)
-        expect(arr.last).to be_nil
-      end
-
-      it "coerce_value returns a 2-element Array for pass-through :array" do
-        # Kills [28]: [value] vs [value, nil] in else branch
-        arr = tool.send(:coerce_value, [1, 2, 3], :array)
-        expect(arr).to be_an(Array)
-        expect(arr.size).to eq(2)
-        expect(arr.last).to be_nil
-      end
-
-      it "coerce_value returns a 2-element Array for pass-through :object" do
-        arr = tool.send(:coerce_value, {a: 1}, :object)
-        expect(arr).to be_an(Array)
-        expect(arr.size).to eq(2)
-      end
-    end
-
-    context "declared_type as String (kills mutation [22]: removes .to_sym)" do
-      it "coerces correctly when declared_type is the String 'integer'" do
-        val, err = tool.send(:coerce_value, "42", "integer")
-        expect(err).to be_nil
-        expect(val).to eq(42)
-      end
-
-      it "coerces correctly when declared_type is the String 'boolean'" do
-        val, err = tool.send(:coerce_value, "true", "boolean")
-        expect(err).to be_nil
-        expect(val).to eq(true)
-      end
-    end
-
-    context "boolean coerce error message uses value.inspect (kills [25], [26], [27])" do
-      it "boolean error message includes the value with inspect formatting (quotes for String)" do
-        # Kills [26]: #{value} (no inspect) vs #{value.inspect}
-        _val, err = tool.send(:coerce_value, "maybe", :boolean)
-        expect(err).to include('"maybe"')
-      end
-
-      it "boolean error message is not nil for the value portion" do
-        # Kills [25]: #{nil} in place of #{value.inspect}
-        _val, err = tool.send(:coerce_value, "maybe", :boolean)
-        expect(err).to match(/maybe/)
-      end
-
-      it "boolean error message does not use self.inspect (tool instance repr)" do
-        # Kills [27]: #{self.inspect} in place of #{value.inspect}
-        _val, err = tool.send(:coerce_value, "maybe", :boolean)
-        expect(err).not_to include("#<")
-        expect(err).to include('"maybe"')
-      end
-    end
-
-    context "coerce error message (rescue path) uses value.inspect (kills [29], [30], [31])" do
-      it "coerce error message includes the value with inspect formatting" do
-        # Kills [29]: #{value} (no inspect) — String "bad" appears with quotes
-        _val, err = tool.send(:coerce_value, "bad", :integer)
-        expect(err).to include('"bad"')
-      end
-
-      it "coerce error message is not nil for the value portion" do
-        # Kills [30]: #{nil} in place of #{value.inspect}
-        _val, err = tool.send(:coerce_value, "bad", :integer)
-        expect(err).to match(/bad/)
-      end
-
-      it "coerce error message does not use self.inspect (tool instance repr)" do
-        # Kills [31]: #{self.inspect} in place of #{value.inspect}
-        _val, err = tool.send(:coerce_value, "bad", :integer)
-        expect(err).not_to include("#<")
-        expect(err).to include('"bad"')
-      end
     end
   end
 
@@ -1655,13 +1296,13 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         logged = []
         logger = double("Logger")
         allow(logger).to receive(:warn) { |msg| logged << msg }
-        allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+        Phronomy.configuration.logger = logger
         limited_tool.send(:truncate_result_if_needed, "a" * 20)
         expect(logged.first).to include("20 chars > 10 limit")
       end
 
       it "emits warning to stderr when no logger is configured" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         expect { limited_tool.send(:truncate_result_if_needed, "a" * 20) }
           .to output(/20 chars > 10 limit/).to_stderr
       end
@@ -1673,7 +1314,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
 
       it "truncates to exactly max characters (verifies result[0, max] not full string)" do
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.logger = nil
         result = limited_tool.send(:truncate_result_if_needed, "abcdefghijklmno")
         expect(result).to eq("abcdefghij...[truncated]")
       end
@@ -1681,8 +1322,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
     context "when global tool_result_max_size is set" do
       it "truncates using the global limit" do
-        allow(Phronomy.configuration).to receive(:tool_result_max_size).and_return(5)
-        allow(Phronomy.configuration).to receive(:logger).and_return(nil)
+        Phronomy.configuration.tool_result_max_size = 5
+        Phronomy.configuration.logger = nil
         result = tool.send(:truncate_result_if_needed, "abcdefghij")
         expect(result).to start_with("abcde")
         expect(result).to end_with("...[truncated]")
@@ -1735,7 +1376,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
   end
 
-  describe "#validate_and_coerce" do
+  describe "#validate_arguments" do
     let(:typed_tool) do
       Class.new(described_class) do
         description "t"
@@ -1753,43 +1394,46 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end.new
     end
 
-    it "returns [args, nil] immediately (no extra-key check) when tool has no parameters" do
-      args = {"any_key" => "value"}
-      result, err = no_params_tool.send(:validate_and_coerce, args)
-      expect(err).to be_nil
-      expect(result).to equal(args)
+    it "rejects undeclared keys when no parameters are declared" do
+      klass = Class.new(described_class)
+      validated, error = klass.new.validate_arguments({any_key: 1})
+      expect(validated).to be_nil
+      expect(error).to include("unknown parameter")
     end
 
-    it "returns the original args object when no parameters are declared" do
-      args = {"x" => 1, "y" => 2}
-      result, _err = no_params_tool.send(:validate_and_coerce, args)
-      expect(result).to equal(args)
+    it "validates an empty argument object without retaining mutable input" do
+      klass = Class.new(described_class)
+      input = {}
+      validated, error = klass.new.validate_arguments(input)
+      expect(error).to be_nil
+      expect(validated).to eq(input)
+      expect(validated).not_to equal(input)
     end
 
     it "returns [result_hash, nil] on success" do
-      result, err = typed_tool.send(:validate_and_coerce, {"name" => "Alice"})
+      result, err = typed_tool.validate_arguments({"name" => "Alice"})
       expect(err).to be_nil
       expect(result).to eq({name: "Alice"})
     end
 
     it "normalizes string keys to symbol keys in the result" do
-      result, err = typed_tool.send(:validate_and_coerce, {"name" => "Bob"})
+      result, err = typed_tool.validate_arguments({"name" => "Bob"})
       expect(err).to be_nil
       expect(result).to have_key(:name)
     end
 
     it "returns error for missing required parameter" do
-      _result, err = typed_tool.send(:validate_and_coerce, {})
+      _result, err = typed_tool.validate_arguments({})
       expect(err).to include("name")
     end
 
     it "handles nil args without raising" do
-      _result, err = typed_tool.send(:validate_and_coerce, nil)
+      _result, err = typed_tool.validate_arguments(nil)
       expect(err).to include("name")
     end
 
     it "returns error for extra (undeclared) keys" do
-      _result, err = typed_tool.send(:validate_and_coerce, {"name" => "Alice", "extra" => "x"})
+      _result, err = typed_tool.validate_arguments({"name" => "Alice", "extra" => "x"})
       expect(err).to include("extra")
     end
 
@@ -1832,72 +1476,72 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     end
 
     it "returns a type error in return_error mode when integer is given a string" do
-      result, err = int_return_error_tool.send(:validate_and_coerce, {"count" => "bad"})
+      result, err = int_return_error_tool.validate_arguments({"count" => "bad"})
       expect(result).to be_nil
       expect(err).to include("integer")
     end
 
     it "passes through correct integer type in return_error mode" do
-      result, err = int_return_error_tool.send(:validate_and_coerce, {"count" => 5})
+      result, err = int_return_error_tool.validate_arguments({"count" => 5})
       expect(err).to be_nil
       expect(result[:count]).to eq(5)
     end
 
     it "coerces string to integer in coerce mode" do
-      result, err = coerce_mode_tool.send(:validate_and_coerce, {"count" => "42"})
+      result, err = coerce_mode_tool.validate_arguments({"count" => "42"})
       expect(err).to be_nil
       expect(result[:count]).to eq(42)
     end
 
     it "returns error when coercion fails in coerce mode" do
-      result, err = coerce_mode_tool.send(:validate_and_coerce, {"count" => "bad"})
+      result, err = coerce_mode_tool.validate_arguments({"count" => "bad"})
       expect(result).to be_nil
       expect(err).to include("coerce")
     end
 
     it "accepts a value that is in the declared enum" do
-      result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "en"})
+      result, err = enum_param_tool.validate_arguments({"lang" => "en"})
       expect(err).to be_nil
       expect(result[:lang]).to eq("en")
     end
 
     it "rejects a value not in the declared enum" do
-      result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "de"})
+      result, err = enum_param_tool.validate_arguments({"lang" => "de"})
       expect(result).to be_nil
       expect(err).to include("must be one of")
     end
 
     it "includes the invalid value in the enum rejection message" do
-      result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "de"})
+      result, err = enum_param_tool.validate_arguments({"lang" => "de"})
       expect(result).to be_nil
       expect(err).to include("de")
     end
 
     it "includes allowed values in the enum rejection message" do
-      _result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "de"})
+      _result, err = enum_param_tool.validate_arguments({"lang" => "de"})
       expect(err).to include("en")
     end
 
     it "validates a nested object parameter successfully" do
-      result, err = nested_param_tool.send(:validate_and_coerce, {"opts" => {"name" => "Alice"}})
+      result, err = nested_param_tool.validate_arguments({"opts" => {"name" => "Alice"}})
       expect(err).to be_nil
       expect(result[:opts]).to eq({"name" => "Alice"})
     end
 
     it "returns error when nested object is not a Hash" do
-      result, err = nested_param_tool.send(:validate_and_coerce, {"opts" => "not-a-hash"})
+      result, err = nested_param_tool.validate_arguments({"opts" => "not-a-hash"})
       expect(result).to be_nil
       expect(err).to include("expected type object")
     end
 
     it "returns error when nested required field has wrong type" do
-      result, err = nested_param_tool.send(:validate_and_coerce, {"opts" => {"name" => 42}})
+      result, err = nested_param_tool.validate_arguments({"opts" => {"name" => 42}})
       expect(result).to be_nil
       expect(err).to include("nested field")
     end
 
     it "returns error when nested required field is missing" do
-      result, err = nested_param_tool.send(:validate_and_coerce, {"opts" => {}})
+      result, err = nested_param_tool.validate_arguments({"opts" => {}})
       expect(result).to be_nil
       expect(err).to include("missing")
     end
@@ -1914,7 +1558,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
         def execute(req:, opt: nil) = "#{opt}:#{req}"
       end.new
-      result, err = multi_tool.send(:validate_and_coerce, {"req" => 5})
+      result, err = multi_tool.validate_arguments({"req" => 5})
       expect(err).to be_nil
       expect(result[:req]).to eq(5)
     end
@@ -1927,7 +1571,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
         def execute(req:, opt: nil) = "#{opt}:#{req}"
       end.new
-      _result, err = multi_tool.send(:validate_and_coerce, {"req" => "bad"})
+      _result, err = multi_tool.validate_arguments({"req" => "bad"})
       expect(err).to include("integer")
     end
 
@@ -1938,30 +1582,30 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
         def execute(level:) = level
       end.new
-      _result, err = int_enum_tool.send(:validate_and_coerce, {"level" => 1})
+      _result, err = int_enum_tool.validate_arguments({"level" => 1})
       expect(err).to be_nil
     end
 
     it "enum error message separates allowed values with comma-space" do
-      _result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "de"})
+      _result, err = enum_param_tool.validate_arguments({"lang" => "de"})
       # Kills mutation [69]: enum_vals.to_s = '["en", "ja", "fr"]' does NOT contain "en, ja"
       expect(err).to include("en, ja")
     end
 
     it "enum error message includes value with inspect formatting (quotes)" do
-      _result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "de"})
+      _result, err = enum_param_tool.validate_arguments({"lang" => "de"})
       expect(err).to include('"de"')
     end
 
     it "unknown param error includes the key name" do
-      result, err = int_return_error_tool.send(:validate_and_coerce, {"count" => 1, "extra_key" => "x"})
+      result, err = int_return_error_tool.validate_arguments({"count" => 1, "extra_key" => "x"})
       expect(result).to be_nil
       expect(err).to include("extra_key")
     end
 
     it "does not apply nested object validation to non-object typed params" do
       # :integer type should not trigger nested_schema lookup even if a schema exists
-      result, err = int_return_error_tool.send(:validate_and_coerce, {"count" => 5})
+      result, err = int_return_error_tool.validate_arguments({"count" => 5})
       expect(err).to be_nil
       expect(result[:count]).to eq(5)
     end
@@ -1969,14 +1613,14 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     context "return value is always a 2-element Array (kills [52])" do
       it "early return for no-params tool is a 2-element Array" do
         # Kills [52]: return [args] vs return [args, nil] — size differs
-        arr = no_params_tool.send(:validate_and_coerce, {"x" => 1})
+        arr = no_params_tool.validate_arguments({"x" => 1})
         expect(arr).to be_an(Array)
         expect(arr.size).to eq(2)
       end
 
       it "successful validation returns a 2-element Array (kills [33]: [result] vs [result, nil])" do
         # Kills [33]: [result] vs [result, nil] at end of method — size drops from 2 to 1
-        arr = typed_tool.send(:validate_and_coerce, {"name" => "Alice"})
+        arr = typed_tool.validate_arguments({"name" => "Alice"})
         expect(arr).to be_an(Array)
         expect(arr.size).to eq(2)
         expect(arr.last).to be_nil
@@ -1996,7 +1640,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
       it "does not include absent optional param key in result hash" do
         # Kills [54],[55]: next replaced by nil causes result[:opt]=nil to be set
-        result, err = opt_req_tool.send(:validate_and_coerce, {"req" => "hello"})
+        result, err = opt_req_tool.validate_arguments({"req" => "hello"})
         expect(err).to be_nil
         expect(result).not_to have_key(:opt)
       end
@@ -2005,7 +1649,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     context "nested object error message includes the parameter name path (kills [64], [66], [67])" do
       it "nested validation error includes the object parameter name" do
         # Kills [64] (nil path), [66] (empty string path), [67] (self.to_s path)
-        result, err = nested_param_tool.send(:validate_and_coerce, {"opts" => {"name" => 42}})
+        result, err = nested_param_tool.validate_arguments({"opts" => {"name" => 42}})
         expect(result).to be_nil
         expect(err).to include("opts")
         expect(err).not_to include("#<")
@@ -2015,237 +1659,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     context "enum error message includes the parameter name (kills [68])" do
       it "enum rejection message includes the parameter name not nil" do
         # Kills [68]: "parameter '#{nil}'" vs "parameter '#{name}'"
-        _result, err = enum_param_tool.send(:validate_and_coerce, {"lang" => "de"})
+        _result, err = enum_param_tool.validate_arguments({"lang" => "de"})
         expect(err).to include("lang")
       end
-    end
-  end
-
-  describe "#validate_nested_object" do
-    let(:tool) { hello_tool }
-
-    it "returns an error string when value is not a Hash" do
-      result = tool.send(:validate_nested_object, "not-a-hash", {}, "field")
-      expect(result).to match(/must be an object \(Hash\)/)
-    end
-
-    it "returns nil when all fields pass validation" do
-      schema = {name: {type: :string, required: true}}
-      expect(tool.send(:validate_nested_object, {name: "Alice"}, schema, "field")).to be_nil
-    end
-
-    it "returns error string (not raises) for extra keys" do
-      schema = {name: {type: :string}}
-      result = tool.send(:validate_nested_object, {name: "Alice", extra: "bad"}, schema, "field")
-      expect(result).to be_a(String)
-      expect(result).to include("undeclared key")
-    end
-
-    it "returns error for missing required field" do
-      schema = {name: {type: :string, required: true}}
-      result = tool.send(:validate_nested_object, {}, schema, "field")
-      expect(result).to include("missing")
-    end
-
-    it "returns nil for missing optional field" do
-      schema = {name: {type: :string, required: false}}
-      expect(tool.send(:validate_nested_object, {}, schema, "field")).to be_nil
-    end
-
-    it "includes the field path in error for wrong type" do
-      schema = {count: {type: :integer, required: true}}
-      result = tool.send(:validate_nested_object, {count: "not-int"}, schema, "myfield")
-      expect(result).to include("myfield.count")
-    end
-
-    it "returns nil for correct nested field type" do
-      schema = {count: {type: :integer, required: true}}
-      expect(tool.send(:validate_nested_object, {count: 5}, schema, "field")).to be_nil
-    end
-
-    it "recursively validates nested objects and includes full path" do
-      schema = {
-        child: {
-          type: :object,
-          required: true,
-          properties: {leaf: {type: :string, required: true}}
-        }
-      }
-      result = tool.send(:validate_nested_object, {child: {leaf: 42}}, schema, "root")
-      expect(result).to include("root.child.leaf")
-    end
-
-    it "accepts valid recursive nesting" do
-      schema = {
-        child: {
-          type: :object,
-          required: true,
-          properties: {leaf: {type: :string, required: true}}
-        }
-      }
-      expect(tool.send(:validate_nested_object, {child: {leaf: "ok"}}, schema, "root")).to be_nil
-    end
-
-    it "error message path uses the provided path prefix" do
-      schema = {x: {type: :integer, required: true}}
-      result = tool.send(:validate_nested_object, {x: "bad"}, schema, "my.path")
-      expect(result).to include("my.path.x")
-    end
-
-    it "includes the path in the non-Hash error message" do
-      result = tool.send(:validate_nested_object, "bad", {}, "my_field")
-      expect(result).to include("my_field")
-    end
-
-    it "normalizes string keys to symbols before lookup (transform_keys)" do
-      schema = {name: {type: :string, required: true}}
-      result = tool.send(:validate_nested_object, {"name" => "Alice"}, schema, "field")
-      expect(result).to be_nil
-    end
-
-    it "includes the path in the undeclared key error message" do
-      schema = {name: {type: :string}}
-      result = tool.send(:validate_nested_object, {name: "x", extra: "bad"}, schema, "opts")
-      expect(result).to include("opts")
-    end
-
-    it "includes the extra keys in the undeclared key error message" do
-      schema = {name: {type: :string}}
-      result = tool.send(:validate_nested_object, {name: "x", foo: "bad"}, schema, "opts")
-      expect(result).to include("foo")
-    end
-
-    it "includes the field path in the required field missing error" do
-      schema = {title: {type: :string, required: true}}
-      result = tool.send(:validate_nested_object, {}, schema, "item")
-      expect(result).to include("item.title")
-    end
-
-    it "continues validation past an optional missing field to check subsequent fields" do
-      schema = {
-        opt: {type: :string, required: false},
-        req: {type: :integer, required: true}
-      }
-      result = tool.send(:validate_nested_object, {req: "not-int"}, schema, "f")
-      expect(result).to include("f.req")
-    end
-
-    it "does not recurse into nested object when field has no :properties declared" do
-      schema = {data: {type: :object, required: true}}
-      result = tool.send(:validate_nested_object, {data: {x: "y"}}, schema, "field")
-      expect(result).to be_nil
-    end
-
-    it "includes the nested field path in the type error message" do
-      schema = {count: {type: :integer, required: true}}
-      result = tool.send(:validate_nested_object, {count: "bad"}, schema, "parent")
-      expect(result).to include("parent.count")
-      expect(result).to be_a(String)
-    end
-
-    it "includes path info in recursive validation error" do
-      schema = {
-        child: {
-          type: :object,
-          required: true,
-          properties: {num: {type: :integer, required: true}}
-        }
-      }
-      result = tool.send(:validate_nested_object, {child: {num: "bad"}}, schema, "root")
-      expect(result).to be_a(String)
-      expect(result).to include("root.child.num")
-    end
-
-    it "returns nil after recursive validation passes (not always-error)" do
-      schema = {
-        child: {
-          type: :object,
-          required: true,
-          properties: {num: {type: :integer, required: true}}
-        }
-      }
-      expect(tool.send(:validate_nested_object, {child: {num: 5}}, schema, "root")).to be_nil
-    end
-
-    context "kills mutations [73], [76], [77], [79], [80], [81], [84], [86], [88]" do
-      it "accepts Hash subclass as a valid nested object (is_a? not instance_of?) [73]" do
-        sub_hash = Class.new(Hash).new
-        sub_hash[:name] = "Alice"
-        schema = {name: {type: :string, required: true}}
-        expect(tool.send(:validate_nested_object, sub_hash, schema, "field")).to be_nil
-      end
-
-      it "does not recurse for absent optional :object field (next not replaced by nil) [76,77]" do
-        # Kills [76],[77]: removing `next` causes nil value to enter recursion for :object field,
-        # calling validate_nested_object(nil, ...) which errors since nil is not a Hash.
-        schema = {
-          inner: {type: :object, required: false, properties: {x: {type: :string}}}
-        }
-        expect(tool.send(:validate_nested_object, {}, schema, "parent")).to be_nil
-      end
-
-      it "error message for wrong type includes the actual type mismatch detail [79]" do
-        # Kills [79]: "nested field '...': #{nil}" vs "nested field '...': #{error}"
-        schema = {count: {type: :integer, required: true}}
-        result = tool.send(:validate_nested_object, {count: "not-int"}, schema, "parent")
-        expect(result).to include("integer")
-      end
-
-      it "does not recurse into :object field when no :properties declared [80,81,84]" do
-        # Kills [80] (removes &&spec[:properties]), [81] (spec[:properties] -> true),
-        # [84] (spec[:properties] -> true): without this guard, recurse with nil properties
-        # which would crash (nil.keys). Test: :object field without properties -> no error.
-        schema = {data: {type: :object, required: true}}
-        expect(tool.send(:validate_nested_object, {data: {x: 1}}, schema, "field")).to be_nil
-      end
-
-      it "returns the recursive error (not nil) when nested validation fails [86,88]" do
-        # Kills [86]: break vs return — break exits loop but method returns nil; return propagates error
-        # Kills [88]: if true (always continue) vs if error (conditional)
-        schema = {
-          child: {
-            type: :object,
-            required: true,
-            properties: {num: {type: :integer, required: true}}
-          }
-        }
-        result = tool.send(:validate_nested_object, {child: {num: "bad"}}, schema, "root")
-        expect(result).not_to be_nil
-        expect(result).to include("root.child.num")
-      end
-    end
-
-    it "treats absent :required key as optional (kills [35]: spec.fetch vs spec[])" do
-      # Kills [35]: spec.fetch(:required) raises KeyError when :required key is absent from spec
-      schema = {x: {type: :string}}  # no :required key at all
-      expect(tool.send(:validate_nested_object, {}, schema, "f")).to be_nil
-    end
-
-    it "continues past a non-object field to validate subsequent fields (kills [43])" do
-      # Kills [43]: next→break in `unless spec[:type].to_sym == :object`
-      # With break: loop exits after processing first valid non-object field,
-      # skipping subsequent fields with errors.
-      schema = {
-        str: {type: :string, required: true},
-        num: {type: :integer, required: true}
-      }
-      result = tool.send(:validate_nested_object, {str: "hello", num: "bad"}, schema, "f")
-      expect(result).to include("f.num")
-    end
-
-    it "continues validating remaining fields after a successful nested object (kills [45], [46])" do
-      # Kills [45]: `return error if true` — always returns after recursion even when error is nil
-      # Kills [46]: `return error` — always returns (nil) when recursion succeeds, stopping the loop
-      schema = {
-        obj: {type: :object, required: true, properties: {x: {type: :string, required: true}}},
-        num: {type: :integer, required: true}
-      }
-      result = tool.send(
-        :validate_nested_object,
-        {obj: {x: "hello"}, num: "bad"},
-        schema, "f"
-      )
-      expect(result).to include("f.num")
     end
   end
 
@@ -2262,13 +1678,13 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     it "converts :type symbol to a String value" do
       schema = {name: {type: :string}}
       result = tool.send(:nested_schema_to_json_schema, schema)
-      expect(result["name"]["type"]).to eq("string")
+      expect(result["name"]["type"]).to eq(["string", "null"])
     end
 
     it "converts :integer type to 'integer' string" do
       schema = {count: {type: :integer}}
       result = tool.send(:nested_schema_to_json_schema, schema)
-      expect(result["count"]["type"]).to eq("integer")
+      expect(result["count"]["type"]).to eq(["integer", "null"])
     end
 
     it "includes 'description' when :desc is present" do
@@ -2286,7 +1702,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     it "includes 'enum' when :enum is present" do
       schema = {lang: {type: :string, enum: %w[en ja fr]}}
       result = tool.send(:nested_schema_to_json_schema, schema)
-      expect(result["lang"]["enum"]).to eq(%w[en ja fr])
+      expect(result["lang"]["enum"]).to eq(["en", "ja", "fr", nil])
     end
 
     it "omits 'enum' key when :enum is absent" do
@@ -2304,7 +1720,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       }
       result = tool.send(:nested_schema_to_json_schema, schema)
       expect(result["config"]["properties"]).to be_a(Hash)
-      expect(result["config"]["properties"]["timeout"]["type"]).to eq("integer")
+      expect(result["config"]["properties"]["timeout"]["type"]).to eq(["integer", "null"])
     end
 
     it "omits 'properties' key when :properties is absent" do
@@ -2481,7 +1897,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       logged = []
       logger = double("Logger")
       allow(logger).to receive(:warn) { |msg| logged << msg }
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
       expect { Class.new(described_class) { on_error :return_empty } }
         .to raise_error(ArgumentError)
     end
@@ -2507,7 +1923,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       logged = []
       logger = double("Logger")
       allow(logger).to receive(:warn) { |msg| logged << msg }
-      allow(Phronomy.configuration).to receive(:logger).and_return(logger)
+      Phronomy.configuration.logger = logger
       Class.new(described_class) { on_error :suppress }
       expect(logged).to be_empty
     end
@@ -2522,7 +1938,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       described_class.new.execute
     rescue NotImplementedError => e
       expect(e.message).to include("#execute is not implemented")
-      expect(e.message).to include("Phronomy::Agent::Context::Capability::Base")
+      expect(e.message).to include("Phronomy::Tool::Base")
     end
 
     it "error message mentions the class name" do
@@ -2538,12 +1954,12 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
 
     it "error message uses class name format not instance representation" do
       # Kills mutation [32]: "#{self}#execute..." vs "#{self.class}#execute..."
-      # self.to_s = "#<Phronomy::Agent::Context::Capability::Base:0x...>", self.class.to_s = "Phronomy::Agent::Context::Capability::Base"
+      # self.to_s = "#<Phronomy::Tool::Base:0x...>", self.class.to_s = "Phronomy::Tool::Base"
 
       described_class.new.execute
     rescue NotImplementedError => e
-      expect(e.message).to start_with("Phronomy::Agent::Context::Capability::Base#execute")
-      expect(e.message).not_to include("#<Phronomy::Agent::Context::Capability::Base:")
+      expect(e.message).to start_with("Phronomy::Tool::Base#execute")
+      expect(e.message).not_to include("#<Phronomy::Tool::Base:")
     end
   end
 

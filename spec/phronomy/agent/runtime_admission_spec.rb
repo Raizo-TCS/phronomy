@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent Runtime admission" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
 
   it "rejects a competing top-level invoke on EventLoop before Persistence admission" do
     entered = Queue.new
@@ -26,7 +26,7 @@ RSpec.describe "Agent Runtime admission" do
     end
 
     agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
-    allow(persistence.backend).to receive(:insert_record).and_call_original
+    allow(persistence.coordinator.backend).to receive(:insert_record).and_call_original
 
     first = agent.invoke_async("first")
     expect(entered.pop).to be true
@@ -38,13 +38,13 @@ RSpec.describe "Agent Runtime admission" do
 
     # The second request was rejected by process-local EventLoop admission, and
     # the first worker is still blocked before Persistence admission.
-    expect(persistence.backend).not_to have_received(:insert_record)
+    expect(persistence.coordinator.backend).not_to have_received(:insert_record)
 
     release << true
     expect {
       first.wait_result(timeout: 1)
     }.to raise_error(ArgumentError, /stop first request/)
-    expect(persistence.backend).not_to have_received(:insert_record)
+    expect(persistence.coordinator.backend).not_to have_received(:insert_record)
   ensure
     release << true if defined?(release) && release.empty?
   end
@@ -118,7 +118,7 @@ RSpec.describe "Agent Runtime admission" do
 
     admission_index = section.index("admit_agent_execution")
     post_admission_owner_check = section.index("__assert_live_agent!", admission_index)
-    submit_index = section.index("Phronomy::Storage::AsyncClient.submit(pool: runtime.offload)")
+    submit_index = section.index("environment.submit(on_full: :raise)")
 
     expect(admission_index).to be < post_admission_owner_check
     expect(post_admission_owner_check).to be < submit_index
@@ -126,10 +126,10 @@ RSpec.describe "Agent Runtime admission" do
 
   it "keeps Persistence create_active as the durable second line of defense" do
     source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution/initial_preparation.rb", __dir__)
+      File.expand_path("../../../lib/phronomy/agent/admission.rb", __dir__)
     )
 
-    expect(source).to include("tx.executions.create_active(execution)")
+    expect(source).to include("records.executions.create_active(execution)")
   end
 
   it "keeps Runtime shutdown waiting through Agent durability transitions" do
@@ -156,7 +156,7 @@ RSpec.describe "Agent Runtime admission" do
       .split("def capture_approval_resume", 2)
       .first
     expect(resume.index("state: :resuming")).to be <
-      resume.index("Phronomy::Storage::AsyncClient.submit(pool: runtime.offload)")
+      resume.index("environment.submit(on_full: :raise)")
 
     terminal = coordinator_source
       .split("def submit_terminal_operation", 2)
@@ -164,7 +164,7 @@ RSpec.describe "Agent Runtime admission" do
       .split("def terminal_view", 2)
       .first
     expect(terminal.index("state: :terminalizing")).to be <
-      terminal.index("Phronomy::Storage::AsyncClient.submit(pool: runtime.offload)")
+      terminal.index("environment.submit(on_full: :raise)")
   end
 
   it "returns false when agent_execution_admitted? is queried for an unknown agent" do

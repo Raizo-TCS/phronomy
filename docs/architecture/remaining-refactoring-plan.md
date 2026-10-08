@@ -372,3 +372,19 @@ and coordinated examples migration. The schema issue is addressed in this candid
 old empty-schema manifests require completion on the original version before upgrade.
 Local verification and the exact package trees are recorded in the distribution.
 User application verification remains outstanding; this is not a published release.
+
+
+## Execution abstraction review candidate (2026-09-29)
+
+The historical D02 decisions above describe their applied revisions. The current
+unapplied [execution abstraction candidate](execution-abstraction-review.md)
+places child control lifetime behind Execution.start_child and invocation checks
+behind InvocationControls, removing direct OperationBinding ownership from
+Orchestrator. Do not mark this candidate applied until main is verified.
+
+## r8 unit 7 scoped update
+
+Agent progress/entry operations and top-level execution/recovery connection are
+separated as described in [r8-unit7.md](r8-unit7.md). This supersedes earlier
+AgentInvocationSessionBuilder construction references. Tool child, MultiAgent
+and Workflow connections remain. Overall contract completion is not claimed.

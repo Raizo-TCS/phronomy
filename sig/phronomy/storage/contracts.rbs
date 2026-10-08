@@ -2,6 +2,7 @@ module Phronomy
   interface _StorageBackend
     def view: () -> Storage::View
     def capabilities: () -> Hash[Symbol, bool | Integer]
+    def transaction_open?: () -> bool
     def transaction: [T] () { (Storage::View) -> T } -> T
   end
 
@@ -152,6 +153,7 @@ module Phronomy
       def initialize: (resources: Array[Resource]) -> void
       def self.validate_capabilities!: (_StorageBackend backend) -> void
       def capabilities: () -> Hash[Symbol, bool | Integer]
+      def transaction_open?: () -> bool
       def transaction: [T] () { (View) -> T } -> T
     end
   end

@@ -19,8 +19,10 @@
 RSpec.describe "Backend failure scenarios (Issue #274)" do
   describe "Embeddings network timeout" do
     let(:embedder) do
-      Class.new(Phronomy::VectorStore::Embeddings::Base) do
-        def embed(text, _cancellation_token = nil)
+      Class.new(Phronomy::Embeddings::Base) do
+        protected
+
+        def perform_embed(text, _cancellation_token = nil)
           sleep(10)
           [0.1, 0.2]
         end
@@ -28,7 +30,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
     end
 
     it "raises TimeoutError via embed_async when backend hangs" do
-      op = Phronomy::VectorStore::Embeddings::AsyncClient.new(adapter: embedder).embed_async("hello", timeout: 0.1)
+      op = Phronomy::Embeddings::AsyncClient.new(adapter: embedder).embed_async("hello", timeout: 0.1)
       expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
     end
   end
@@ -36,7 +38,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
   describe "VectorStore network timeout" do
     let(:vs) do
       Class.new(Phronomy::VectorStore::Base) do
-        def search(query_embedding:, k: 5, cancellation_token: nil)
+        def perform_search(query_embedding:, k: 5, cancellation_token: nil)
           sleep(10)
           []
         end

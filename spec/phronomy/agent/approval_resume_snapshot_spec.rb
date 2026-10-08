@@ -9,7 +9,7 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
       model "local-model"
     end
   end
-  let(:agent) { agent_class.new(agent_id: "approval-owner", persistence: Phronomy::Persistence.in_memory) }
+  let(:agent) { agent_class.new(agent_id: "approval-owner", persistence: Phronomy::PersistenceComposition.in_memory.agent) }
   let(:coordinator) { agent.send(:execution_coordinator) }
   let(:runtime) { Phronomy::Runtime.instance }
   let(:registry) { Phronomy::Agent::ExecutionRegistry.for(runtime.event_loop) }
@@ -30,7 +30,7 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
   let(:saved_result) { {"items" => [+"saved"]} }
   let(:child) do
     double("tool invocation", id: +"child-1", tool_call_id: +"call-1",
-      tool_name: +"lookup", raw_arguments: arguments, status: :completed,
+      tool_name: +"lookup", raw_arguments: arguments, arguments: nil, status: :completed,
       execution_completed?: true, result: saved_result)
   end
   let(:invocation) { double("invocation", tool_invocations: [child], tool_batch_llm_call_id: +"llm-1") }

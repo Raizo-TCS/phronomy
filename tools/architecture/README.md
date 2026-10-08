@@ -1,3 +1,154 @@
+## r8 unit 21 update
+
+B10 assigns result-length settings to C06 Tool and tracer/recording settings to
+C15 Tracing. C05 obtains its default tracer through C15. Application composition
+supplies the values through the existing public Configuration facade; neutral
+RuntimeSettings retains only logger and execution resources. Read timing, span
+capture, scoped copies, reset, result transforms and privacy behavior are kept.
+
+AST gates reject Configuration access from Tool, Tracing and Context, domain
+fields in RuntimeSettings, and direct/literal-reflective reads through the old
+RuntimeSettings domain accessors. This complements the graph's structural checks
+with targeted field-ownership checks. There is no notification, cache, new
+Contract or feature addition. See `docs/architecture/r8-unit21.md`.
+
+## r8 unit 17 update
+
+B08 separates domain option values from application configuration. Agent and
+Workflow own narrow value containers; MultiAgent owns its optional Store access.
+Composition selects defaults and binds lazy readers. Logger access reuses neutral
+RuntimeSettings; authorization pool sizing belongs to the execution connection.
+There is no notification mechanism, settings snapshot cache, or change in read
+timing. AST gates reject domain-to-Configuration access and domain pool sizing.
+See `docs/architecture/r8-unit17.md`; earlier checkpoints are historical.
+
+## r8 unit 16 update
+
+C13 owns the explicit-cancellation registration/cleanup operation through the
+existing ResultSubscriptions collection. Team and OffloadPool retain their
+domain/execution decisions and no longer call CancellationToken's private
+removal method. The AST gate rejects direct and literal reflective removal
+calls outside Execution, including Engine. Deadline promotion, delivery races,
+and Tool dispatch modes retain their existing behavior. B08 remains separate.
+
+## r8 unit 15 update
+
+C03 Generation uses public Agent invocation, TaskResult completion and
+constructor-bound approval notifications. It no longer calls the private Agent
+event-sink entry point. Boot composition selects its default JsonParser;
+Generation owns parsing fallbacks and generation/review decisions. Targeted AST
+gates prevent both boundary leaks. See `docs/architecture/r8-unit15.md` for the
+preserved behavior and connection assumptions. Earlier checkpoints are historical.
+
+## r8 unit 14 update
+
+The former shared Recovery directory is retired (M50/G34). C04 owns Agent
+subjects, factual resolutions and resumption classifications; C07 owns generic
+revision/snapshot evidence comparison. C02 retains evidence selection and
+completion/admission decisions. No independent Recovery Contract is introduced.
+AST and Ruby/RBS graph gates guard this ownership without adding recovery
+behavior. F01 durable Workflow children are deferred feature work, outside this
+refactor. See `docs/architecture/r8-unit14.md`; earlier checkpoints are historical.
+
+## r8 unit 13 update
+
+C02 Workflow rules no longer select Runtime, FSMSession or Engine event
+envelopes. Its explicit runtime binding owns compilation and connections;
+admission, callback constraints and durable result classification remain C02.
+Ruby AST and Ruby/RBS graph gates reject concrete connection dependencies in
+Workflow domain files. Durable children and broader Recovery review remain.
+See `docs/architecture/r8-unit13.md`; earlier checkpoints below are historical.
+
+## r8 unit 12 update
+
+C01's generated subagent Tool derives directly from C06 Tool::Base, without
+depending on the concrete Tools::Agent implementation. C06 owns asynchronous
+Tool validation, errors and result limits; C01 retains child execution and
+durable reconciliation. Orchestrator remains an Agent::Base subclass. AST and
+Ruby/RBS graph gates prevent the concrete Tool dependency from returning.
+C02 Workflow connections/durable children and broader Recovery review remain.
+See `docs/architecture/r8-unit12.md`; earlier checkpoints below are historical.
+
+## r8 unit 11 update
+
+C04 no longer selects DefaultPolicy or constructs the concrete LLM AsyncClient.
+Boot composition installs the Policy through the existing DSL. M88 selects the
+LLM client and binds submission to the Agent's captured Runtime. No module or
+public API is added. AST and Ruby/RBS graph gates guard these connections while
+retaining lower-level restrictions. C01 Orchestrator inheritance, C02 Workflow
+connections/durable children and broader semantic review remain. See
+`docs/architecture/r8-unit11.md` for scope and acceptance evidence.
+
+## r8 unit 10 update
+
+C01 retains coordination admission and Team identity rules. Concrete Runtime
+registration, lookup, validity checks and cancellation submission now belong to
+M89/G63 multi_agent/runtime_binding through a private ExecutionEnvironment port.
+The existing Engine shutdown participant protocol is unchanged. AST and graph
+checks reject concrete Engine connections in MultiAgent domain files. Workflow
+connections and broader dependency review remain; see `docs/architecture/r8-unit10.md`.
+
+## r8 unit 9 update
+
+C06's result decorators preserve application-defined stage ordering and repeated
+registrations. Base's internal async-to-sync bridge passes an explicit bound
+callable to ToolExecutor, avoiding duplicate transformation under custom async
+super delegation. Explicit application calls keep their own transformations.
+No new cross-domain dependency is introduced. See `docs/architecture/r8-unit9.md`.
+
+## r8 unit 8 update
+
+C04 Tool child progress now owns a single ordered transition definition and
+entry operations. M88 also constructs Tool child sessions. M57 no longer
+selects concrete Engine/FSM classes or the private Tool executor. C06 Operation
+owns Tool dispatch/result adaptation and consumes C13's submitter protocol.
+The gate covers Tool child source as well as parent progress. Other domains and
+overall cycles remain; earlier checkpoints below are historical.
+
+## r8 unit 6 update
+
+C09 consolidates values, usage, failures and synchronous operation rules in
+LLMAdapter. M47 is retired into M15 without reusing its ID. C06 is independent of
+RubyLLM and owns Schema/CallRequest. AST rules reject SDK/Agent/Engine dependencies
+inside these contracts and SDK types inside Agent. The measured Ruby/RBS graph
+retains C09 -> C06 and the directory-level Tool -> Execution route; see
+`docs/architecture/r8-unit6.md` for the exact overapproximation and supporting
+standalone/value-only checks. FSM/Runtime connections remain unfinished.
+
+## r8 unit 5 update
+
+VectorStore and Embeddings own their common synchronous operations. Embeddings
+is independent of VectorStore; document loaders and splitters belong to
+Documents. The Ruby/RBS boundary gate rejects cross-contract and Engine paths
+from these two common bases, and rejects document helpers depending on vector
+storage or embeddings. Runtime submission remains in each AsyncClient.
+The source diagram keeps unresolved dependencies in other domains visible.
+See `docs/architecture/r8-unit5.md` for the implemented scope and remaining gates.
+
+## r8 unit 4 update
+
+Agent control/transfer and execution-change contracts no longer select MultiAgent
+policy or routing. MultiAgent uses typed Agent public operations and its own
+Handoff/subagent state; the AST guard rejects private Agent reads in those paths.
+The common JSON value alias belongs to Common, and Handoff repository types belong
+to MultiAgent. Actual source diagrams still display outstanding Runtime/Engine
+coordination dependencies. See `docs/architecture/r8-unit4.md`.
+
+## r8 unit 3 update
+
+The source diagram removes `persistence/api`, `persistence/contract`,
+`multi_agent/storage_contract`, and `workflow/storage_contract`. Common
+Persistence is defined in `persistence/persistence.rb`; failures are consolidated
+in `persistence/errors.rb`. Agent and Team store protocols are owned by their
+domains, including their RBS declarations. The full Ruby/RBS gate rejects common
+Persistence reaching domain implementations or composition. Targeted AST checks
+also reject fixed record adapter selection in the admission/store framework and
+Team access to Agent repositories, journal positions, and execution metadata.
+Subagent/Handoff internal coordination dependencies remain visible and unresolved.
+
+The sections below include earlier implementation checkpoints; their historical
+module counts and removed paths do not override the current source diagram.
+
 # Architecture evidence and responsibility groups
 
 The source graph is the union of Ruby AST dependencies and declared RBS type
@@ -74,6 +225,15 @@ individual module outlines retained.
 The same group ID keeps its colors across phases. G14 Engine Internals uses blue, G46
 Async Clients lavender, G47 Backend Contracts mint and G48 Implementations sand.
 G58 Execution Contracts uses mint and G59 Execution Services lavender.
+The refined candidate integrates neutral TaskResult and its implementation into
+the existing Execution Contracts group (G58). The extra errors and Results
+directories, M79/M80/M81 and G60 are retired. G61 Engine Concurrency remains
+blue. Invocation controls and completion adaptation belong to Services in B4.
+The boundary gate rejects Contracts reaching Services/Engine, Engine reaching
+Services, and Concurrency reaching parent Engine/Services, including indirect
+Ruby + RBS paths. A separate AST gate checks leaks of private scope and result
+settlement into domain consumers. Dependency triangles are investigation
+candidates, not automatically forbidden edges or layering rules.
 Color does not express a layer, dependency permission or a unique namespace.
 G57 Content Service uses teal and M10 moves to B3's persistence column. M73 is
 retired after merging its implementation into M10; it is removed from current
@@ -141,8 +301,9 @@ Display filters never alter the audit, matrix or SCC calculation.
 ## Strict configuration boundary
 
 Engine reads only the internal `RuntimeSettings` value object in
-`lib/phronomy/configuration/`. It contains no Agent, LLM adapter, persistence or
-concrete tracer class references. Application-facing `Configuration` and its
+`lib/phronomy/configuration/`. It contains logger and execution resource values,
+with no Agent, LLM adapter, persistence, Tool limit or Tracing option values.
+Application-facing `Configuration` and its
 global/scoped accessors belong to `runtime_composition/`; they compose these
 neutral settings with application options. Their public RBS signatures retain
 the same types and follow the Ruby declaration owner.
@@ -178,19 +339,65 @@ reopenings in storage_boundary.rb or contract files do not move that ownership.
 The analyzer regression checks the Ruby declaration owner, independent of RBS
 filename; no type reference or measured edge is suppressed by this correction.
 
-## Execution contracts, services and internals
+## r8 unit 1: Context, Tool and Execution
 
-G58 owns `execution_contract/` (M76) and its `concurrency/` directory (M77).
-G59 owns `execution_services/` (M78). Public RBS declarations formerly combined
-in `runtime.rbs` follow those source owners; the Engine receiver declaration is
-under `sig/phronomy/engine/`. Constant names and signature types are unchanged.
-The complete Ruby/RBS gate rejects direct or transitive dependencies from G58
-outside Execution Contracts/Common. Backend contracts and implementations may
-not reach Execution Services; Services and Engine may not reach feature-specific
-backends, clients or domain orchestration. Regression tests inject forbidden
-RBS-only edges as well as checking real ownership.
+This is the first implementation unit of r8, not completion of the whole specification.
+`phase.json` retains the older backend phase label `storage`; its P1-P5 numbers
+are unrelated to the r8 Persistence design items. The `r8_unit1` member records
+scope and remaining work. See [the implementation report](../../docs/architecture/r8-unit1.md).
 
-Services contain implementation. TaskResult uses result composition and wait
-guards in Engine; pools create TaskResult. This mutual dependency is measured,
-not exempted or drawn as an acyclic layer. B4/B5 placement is only presentation.
-See [ADR-063](../../docs/decisions/063-execution-contracts-and-services.md).
+G58 now owns `execution/` (M76) and `execution/concurrency/` (M77).
+The former `execution_contract/` and `execution_services/` directories are removed.
+TaskResult composition, controls and waiting use shared rules in this framework.
+Pool/runtime/timer access belongs to `engine/execution_binding.rb`, installed
+lazily by composition through the Execution backend protocol. Creating or
+observing a settled result does not instantiate Runtime. Runnable tracing is
+owned by `Tracing::Observation`; FSM-only values and receiver protocols belong
+to Engine. Engine depends on Execution; Execution has no source or type
+reference to Engine, Tracing or domain orchestration.
+
+G25/M40 owns `context/`: policy execution, canonical input, validation, budget
+and manifest handling. G06/M25 owns Tool definitions, authorization evaluation
+and calling. Their Agent lifecycle consumers remain separate. The complete
+Ruby/RBS gate checks direct and transitive reverse paths for these boundaries,
+as well as the existing backend restrictions. RBS-only edges are tested too.
+
+Agent, Workflow and MultiAgent still have mixed domain/mechanism and persistence
+responsibilities. Existing measured cycles remain visible; passing this scoped
+gate does not prove all domain contracts are acyclic or all triangle candidates
+are acceptable. B/G positions remain presentation, not dependency permissions.
+
+### Transitive dependency triangles (review aid)
+
+`refresh_diagram.py` also writes `dependency_triangles.json` and `.csv`.
+For every three distinct modules with M0→M1, M1→M2 and M0→M2, it preserves all
+three edges' source evidence. Adjacent descending display bands are listed first,
+then other descending bands, then other graph triangles. Sidebar modules and
+incoming arrows hidden in the SVG are still included. RBS-only direct references
+are marked separately; they are often legitimate return/input contracts.
+
+A triangle is an investigation candidate, **not a failure**. Inspect M0's direct
+use: an internal detail normally belongs behind M1, composition wiring may belong
+in a composition owner, and an intentionally shared public contract can stay.
+Absence of a triangle does not prove absence of leaks (dynamic dispatch and
+module aggregation limit this heuristic). The narrow Ruby AST gate independently
+protects already-corrected private scope access and result settlement in selected
+consumers; it is not a whole-program architecture proof.
+
+To inspect any existing audit without regenerating the SVG:
+
+```sh
+python3 tools/architecture/tools/find_dependency_triangles.py \
+  OUTPUT/module_audit_scoped.json OUTPUT/architecture.json \
+  tools/architecture/config/storage.layout.json OUTPUT
+```
+
+## r8 unit 2: parent reservation and Agent admission
+
+`Persistence::Transaction` owns synchronous participation and commit status;
+`Agent::Admission` owns acceptance; MultiAgent owns the reservation check.
+The gate now rejects parent repository access from Agent admission and domain
+selection inside the transaction framework. These targeted rules do not prove
+that the remaining legacy facade or all domain dependencies are correct.
+The existing display bands and hidden common arrows are preserved.
+See [the implementation boundaries](../../docs/architecture/r8-unit2.md).

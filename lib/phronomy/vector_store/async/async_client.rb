@@ -31,11 +31,10 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def add_async(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)
-        default_pool.submit(
+        Phronomy::Execution.submit(pool: default_pool,
           timeout: timeout,
           cancellation_token: cancellation_token,
-          on_full: :raise
-        ) do
+          on_full: :raise) do
           @backend.add(id: id, embedding: embedding, metadata: metadata, cancellation_token: cancellation_token)
         end
       end
@@ -49,11 +48,10 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
-        default_pool.submit(
+        Phronomy::Execution.submit(pool: default_pool,
           timeout: timeout,
           cancellation_token: cancellation_token,
-          on_full: :raise
-        ) do
+          on_full: :raise) do
           @backend.search(query_embedding: query_embedding, k: k, cancellation_token: cancellation_token)
         end
       end
@@ -66,11 +64,10 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def remove_async(id:, cancellation_token: nil, timeout: nil)
-        default_pool.submit(
+        Phronomy::Execution.submit(pool: default_pool,
           timeout: timeout,
           cancellation_token: cancellation_token,
-          on_full: :raise
-        ) do
+          on_full: :raise) do
           @backend.remove(id: id)
         end
       end
@@ -82,11 +79,10 @@ module Phronomy
       # @return [Phronomy::TaskResult]
       # @api public
       def clear_async(cancellation_token: nil, timeout: nil)
-        default_pool.submit(
+        Phronomy::Execution.submit(pool: default_pool,
           timeout: timeout,
           cancellation_token: cancellation_token,
-          on_full: :raise
-        ) do
+          on_full: :raise) do
           @backend.clear
         end
       end
@@ -94,7 +90,7 @@ module Phronomy
       private
 
       def default_pool
-        @pool || Phronomy::Runtime.instance.offload
+        @pool
       end
     end
   end

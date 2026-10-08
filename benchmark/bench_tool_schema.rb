@@ -7,7 +7,7 @@
 require "benchmark"
 require_relative "../lib/phronomy"
 
-class BenchTool10Params < Phronomy::Agent::Context::Capability::Base
+class BenchTool10Params < Phronomy::Tool::Base
   description "A tool with 10 parameters for benchmarking purposes"
   param :param1, type: :string, desc: "First parameter"
   param :param2, type: :integer, desc: "Second parameter"

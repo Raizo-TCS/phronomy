@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Agent logical-state ownership" do
-  let(:persistence) { Phronomy::Persistence.in_memory }
+  let(:persistence) { Phronomy::PersistenceComposition.in_memory.agent }
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "local-state-owner-test", version: 1
@@ -42,8 +42,8 @@ RSpec.describe "Agent logical-state ownership" do
     agent_id = agent.agent_id
     Phronomy.reset_runtime!
 
-    expect(persistence.backend).to receive(:read_record).with(anything, Phronomy::Agent::Persistence::StorageSchema::ROOTS, key: agent_id).once.and_call_original
-    expect(persistence.backend).to receive(:read_stream).once.and_call_original
+    expect(persistence.coordinator.backend).to receive(:read_record).with(anything, Phronomy::Agent::Persistence::StorageSchema::ROOTS, key: agent_id).once.and_call_original
+    expect(persistence.coordinator.backend).to receive(:read_stream).once.and_call_original
     loaded = agent_class.load(agent_id, persistence: persistence)
 
     expect(persistence.agents).not_to receive(:load)
@@ -60,20 +60,12 @@ RSpec.describe "Agent logical-state ownership" do
   it "keeps mutable Agent repository reload out of ExecutionCoordinator" do
     coordinator = File.read(File.join(root, "lib/phronomy/agent/execution/execution_coordinator.rb"))
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
-    reconciliation = worker.split("def reconcile_preparation", 2).fetch(1).split(/^      def /, 2).first
-    without_reconciliation = worker.sub(/^      def reconcile_preparation.*?(?=^      def )/m, "")
-    expect(reconciliation).to include("@persistence.executions.load")
+    change = File.read(File.join(root, "lib/phronomy/agent/execution_change.rb"))
+    expect(change).to include("records.executions.load", "records.agents.load", "records.journals.read", "SaveOutcome.compare")
     preparation = File.read(File.join(root, "lib/phronomy/agent/execution/initial_preparation.rb"))
-    parent_validation = preparation.split("def validate_subagent_admission!", 2).fetch(1).split(/^      def /, 2).first
-    expect(parent_validation).to include('tx.executions.load(owner.fetch("parent_execution_id"))')
-    without_parent_validation = preparation.sub(/^      def validate_subagent_admission!.*?(?=^      def )/m, "")
+    expect(preparation).not_to include("validate_subagent_admission!", "validate_team_admission!", "validate_handoff_admission!")
     outcomes = File.read(File.join(root, "lib/phronomy/agent/execution/execution_outcome_committer.rb"))
-    %w[reconcile_terminal_error commit_coordination_wait].each do |method_name|
-      body = outcomes.split("def #{method_name}", 2).fetch(1).split(/^      def /, 2).first
-      expect(body).to include("@persistence.executions.load")
-      outcomes = outcomes.sub(/^      def #{Regexp.escape(method_name)}(?=\(|\s).*?(?=^      def |\z)/m, "")
-    end
-    [coordinator, outcomes, without_reconciliation, without_parent_validation].each do |source|
+    [coordinator, outcomes, worker, preparation].each do |source|
       expect(source).not_to match(/(?:tx|persistence)\.agents\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.executions\.load/)
       expect(source).not_to match(/(?:tx|persistence)\.journals\.read/)
@@ -86,8 +78,8 @@ RSpec.describe "Agent logical-state ownership" do
     encoding = worker.split("def encode_provider_records", 2).fetch(1).split(/^      def /, 2).first
     commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first
     expect(encoding.index("assert_local_durable_base!")).to be < encoding.index("RuntimeRecordEncoder.encode")
-    expect(commit.index("assert_local_durable_base!")).to be < commit.index("assembler.finalize")
-    expect(commit.index("assembler.finalize")).to be < commit.index("tx.executions.save")
+    expect(commit.index("assert_local_durable_base!")).to be < commit.index("Phronomy::Context::Assembly.new.store")
+    expect(commit.index("Phronomy::Context::Assembly.new.store")).to be < commit.index("change.perform")
   end
 
   it "applies committed AgentRoot and Journal advances only through the EventLoop apply helper" do

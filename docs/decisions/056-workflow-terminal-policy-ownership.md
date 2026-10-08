@@ -30,7 +30,7 @@ The private session protocol is:
 - `handles?(event)` recognizes a policy event, including an early event that
   must be discarded by the session before any terminal request.
 - `decision_for(event)` interprets an accepted event and returns the immutable
-  `FSMProtocol::TerminalDecision(action:, error:)` value.
+  `Phronomy::TerminalDecision(action:, error:)` value.
 
 WorkflowTerminalPolicy maps success to `complete`, known failure to `fail` with
 its original error or the existing fallback error, and outcome unknown to

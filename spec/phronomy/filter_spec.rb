@@ -199,7 +199,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
 
   describe "#add_tool_result_filter (all-tools form)" do
     it "transforms every tool's return value" do
-      tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_class = Class.new(Phronomy::Tool::Base) do
         tool_name "my_tool"
         description "test tool"
         def execute = "raw_result"
@@ -221,12 +221,12 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
 
   describe "#add_tool_result_filter (scoped form)" do
     it "transforms only the specified tool's return value" do
-      tool_a = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_a = Class.new(Phronomy::Tool::Base) do
         tool_name "tool_a"
         description "a"
         def execute = "result_a"
       end
-      tool_b = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_b = Class.new(Phronomy::Tool::Base) do
         tool_name "tool_b"
         description "b"
         def execute = "result_b"
@@ -250,7 +250,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
 
   describe ".tool_result_filter (class DSL)" do
     it "applies to all tools for every instance" do
-      tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+      tool_class = Class.new(Phronomy::Tool::Base) do
         tool_name "my_tool"
         description "test tool"
         def execute = "raw"

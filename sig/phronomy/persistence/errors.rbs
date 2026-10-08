@@ -1,0 +1,18 @@
+module Phronomy
+  class Persistence
+    class TransactionError < Error
+    end
+    class Error < Phronomy::Error
+    end
+    class ConflictError < Error
+    end
+    class StateConflictError < ConflictError
+    end
+    class NotFoundError < Error
+    end
+    class SerializationError < Error
+    end
+    class UnsupportedBackendError < Error
+    end
+  end
+end

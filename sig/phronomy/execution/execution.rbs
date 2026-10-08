@@ -1,0 +1,41 @@
+module Phronomy
+  interface _ExecutionSubmitter
+    def submit: [V] (?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+  end
+
+  interface _ExecutionPool
+    def submit: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+  end
+
+  interface _ExecutionRuntime
+    def offload: () -> _ExecutionPool
+    def pool: (Symbol name, size: Integer, queue_size: Integer) -> _ExecutionPool
+  end
+
+  interface _ExecutionBackend
+    def submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+    def after: (Numeric seconds) { () -> void } -> ^() -> untyped
+  end
+  class Execution
+    def self.backend_provider=: (^() -> _ExecutionBackend provider) -> ^() -> _ExecutionBackend
+    def self.submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+    def self.after: (Numeric seconds) { () -> void } -> ^() -> untyped
+    attr_reader invocation_context: InvocationContext
+
+    def self.run_async: [I, V] (Array[I] inputs, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?, ?max_concurrency: Integer?) { (I, Execution) -> TaskResult[V] } -> TaskResult[Array[TaskResult::Outcome[V]]]
+    def self.run: [I, V] (Array[I] inputs, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?invocation_context: InvocationContext?, ?max_concurrency: Integer?) { (I, Execution) -> TaskResult[V] } -> Array[TaskResult::Outcome[V]]
+    def start_child: [V] (?invocation_context: InvocationContext?, ?cancellation_token: Concurrency::CancellationToken?, ?parent_task_id: String?) { (InvocationContext, Concurrency::CancellationToken) -> TaskResult[V] } -> TaskResult[V]
+    def observe: [V] (TaskResult[V] source_result) -> TaskResult[V]
+  end
+
+  class ExecutionTimeoutError < TimeoutError
+    attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+  end
+
+  class ExecutionCancellationError < CancellationError
+    attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+  end
+
+end

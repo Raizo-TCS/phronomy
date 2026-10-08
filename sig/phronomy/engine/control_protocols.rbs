@@ -1,0 +1,23 @@
+module Phronomy
+  interface _FSMEventSink
+    def post: (Symbol type, ?untyped payload) -> untyped
+  end
+
+  interface _TerminalPolicy
+    def start: (terminal_type: Symbol, context: untyped, event_sink: _FSMEventSink) -> untyped
+    def handles?: (Event event) -> bool
+    def decision_for: (Event event) -> TerminalDecision
+  end
+
+  class Event
+    attr_reader type: Symbol
+    attr_reader payload: untyped
+  end
+
+  class TerminalDecision < Data
+    attr_reader action: (:complete | :fail | :retire)
+    attr_reader error: Exception?
+    def self.new: (action: (:complete | :fail | :retire), error: Exception?) -> instance
+  end
+
+end

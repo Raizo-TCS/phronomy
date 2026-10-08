@@ -1,12 +1,23 @@
 module Phronomy
   module VectorStore
-    class Base
-      def add: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: _CancellationSignal?) -> untyped
-      def search: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: _CancellationSignal?) -> Array[Hash[Symbol, untyped]]
-      def remove: (id: String) -> untyped
-      def clear: () -> untyped
-      def size: () -> Integer
+    class InvalidResultError < Phronomy::Error
     end
 
+    class Base
+      def add: (id: String, embedding: Array[Numeric], ?metadata: Hash[untyped, untyped], ?cancellation_token: _CancellationSignal?) -> self
+      def search: (query_embedding: Array[Numeric], ?k: Integer | String, ?cancellation_token: _CancellationSignal?) -> Array[Hash[Symbol, untyped]]
+      def remove: (id: String) -> self
+      def clear: () -> self
+      def size: () -> Integer
+
+      # Protected extension SPI at runtime; RBS has no protected visibility.
+      private
+      def embedding_dimension: () -> Integer?
+      def perform_add: (id: String, embedding: Array[Float], metadata: Hash[untyped, untyped], cancellation_token: _CancellationSignal?) -> untyped
+      def perform_search: (query_embedding: Array[Float], k: Integer, cancellation_token: _CancellationSignal?) -> Array[Hash[Symbol, untyped]]
+      def perform_remove: (id: String) -> untyped
+      def perform_clear: () -> untyped
+      def perform_size: () -> Integer
+    end
   end
 end

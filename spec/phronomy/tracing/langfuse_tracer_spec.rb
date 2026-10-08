@@ -130,7 +130,7 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
         }
         .to_return(status: 200, body: "{}")
 
-      usage = Phronomy::TokenUsage.new(input: 20, output: 10, cached: 0, cache_creation: 0)
+      usage = Phronomy::LLMAdapter::TokenUsage.new(input: 20, output: 10, cached: 0, cache_creation: 0)
       span = tracer.start_span("usage_op")
       tracer.finish_span(span, usage: usage)
 

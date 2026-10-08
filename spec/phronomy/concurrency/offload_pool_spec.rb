@@ -355,6 +355,16 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       expect(token.instance_variable_get(:@cancel_callbacks)).to be_empty
     end
 
+    it "detaches the submit cancellation callback after worker failure" do
+      token = Phronomy::Concurrency::CancellationToken.new
+      error = RuntimeError.new("worker failed")
+      task = pool.submit(cancellation_token: token) { raise error }
+      expect { task.wait_result }.to raise_error { |e| expect(e).to equal(error) }
+      expect(token.instance_variable_get(:@cancel_callbacks)).to be_empty
+      token.cancel!
+      expect { task.wait_result }.to raise_error { |e| expect(e).to equal(error) }
+    end
+
     it "does not let late submit cancellation overwrite a completed result" do
       token = Phronomy::Concurrency::CancellationToken.new
       task = pool.submit(cancellation_token: token) { :done }

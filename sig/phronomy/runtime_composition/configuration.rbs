@@ -5,18 +5,6 @@ module Phronomy
   class HandoffError < Error
   end
 
-  class TransportError < Error
-  end
-
-  class RateLimitError < TransportError
-  end
-
-  class AuthenticationError < TransportError
-  end
-
-  class ContextLengthError < Error
-  end
-
   class CancellationError < Error
   end
 
@@ -36,6 +24,9 @@ module Phronomy
   end
 
   class Configuration
+    attr_accessor agent_store: Agent::Store?
+    attr_accessor multi_agent_store: MultiAgent::Store?
+    attr_accessor workflow_store: _WorkflowStateRepository?
     attr_accessor llm_adapter: LLMAdapter::Base
     attr_accessor before_llm_input: Agent::_BeforeLLMInputHook?
   end

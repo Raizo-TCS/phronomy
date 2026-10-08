@@ -1,0 +1,10 @@
+module Phronomy
+  module Concurrency
+    class Deadline
+      def self.in: (Numeric seconds) -> instance
+      def initialize: (Numeric monotonic_at) -> void
+      def expired?: () -> bool
+      def remaining_seconds: () -> Float
+    end
+  end
+end

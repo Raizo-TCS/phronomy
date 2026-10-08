@@ -12,6 +12,35 @@ module Phronomy
     # - approval notifications share the Agent listener as :approval_required;
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
+      def start_reserved_async(reservation:, input:, config: {})
+        unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
+          raise ArgumentError, "reservation must belong to this Agent"
+        end
+        config = __invocation_config(_prepare_invocation_config(config, nil))
+        ExactExecution.start(agent: self, execution_id: reservation.execution_id, input: input,
+          config: config.merge(phronomy_reservation: reservation.correlation))
+      end
+
+      def resume_async(execution_id, config: {})
+        config = __invocation_config(_prepare_invocation_config(config, nil))
+        ExactExecution.start(agent: self, execution_id: execution_id, input: nil, config: config, resume_only: true)
+      end
+
+      def resume(execution_id, config: {})
+        _check_event_loop_reentrancy(:resume, :resume_async)
+        resume_async(execution_id, config: config).wait_result
+      end
+
+      def cancel_async(execution_id)
+        __assert_live_agent!
+        environment = __execution_environment
+        environment.submit(on_full: :raise) do
+          requested = persistence.request_cancellation(agent_id: agent_id, execution_id: execution_id)
+          ExecutionCancellation.signal(execution_id, agent_id, environment: environment) if requested
+          persistence.observe_execution(agent_id: agent_id, execution_id: execution_id)
+        end
+      end
+
       def invoke(
         input,
         config: {},
@@ -96,7 +125,7 @@ module Phronomy
 
       def approve_async(execution_id, approval_request_id:, approved: true, config: {})
         _reject_removed_generic_identity_keys!(config)
-        owner = Phronomy::Agent::ExecutionRegistry.existing_for(Phronomy::Runtime.instance)&.agent_execution_owner(execution_id)
+        owner = Phronomy::Agent::ExecutionRegistry.existing_current&.agent_execution_owner(execution_id)
         coordinator = if owner&.agent&.equal?(self)
           owner.coordinator
         else
@@ -115,8 +144,8 @@ module Phronomy
         expected_execution_revision:,
         subject:,
         outcome:,
-        result: Phronomy::Recovery::MISSING,
-        error: Phronomy::Recovery::MISSING
+        result: Phronomy::Agent::RecoveryRules::MISSING,
+        error: Phronomy::Agent::RecoveryRules::MISSING
       )
         _check_event_loop_reentrancy(:resolve, :resolve_async)
         resolve_async(
@@ -134,8 +163,8 @@ module Phronomy
         expected_execution_revision:,
         subject:,
         outcome:,
-        result: Phronomy::Recovery::MISSING,
-        error: Phronomy::Recovery::MISSING
+        result: Phronomy::Agent::RecoveryRules::MISSING,
+        error: Phronomy::Agent::RecoveryRules::MISSING
       )
         Phronomy::Agent::RecoveryCoordinator.new(self).resolve(
           execution_id,
@@ -149,26 +178,9 @@ module Phronomy
 
       private
 
-      # Framework-private execution-local event routing. This is intentionally
-      # not a public compatibility path for invoke_async(..., on_event:).
-      def __invoke_async_with_event_sink(
-        input,
-        on_event:, config: {},
-        invocation_context: nil
-      )
-        raise ArgumentError, "on_event is required" unless on_event
-
-        config = _prepare_invocation_config(config, invocation_context)
-        _start_agent_operation(
-          input,
-          config: config,
-          mode: :invoke,
-          listener: on_event
-        )
-      end
-
       def _start_agent_operation(input, config:, mode:, listener:)
-        config = _snapshot_durable_context(config)
+        config = __invocation_config(_snapshot_durable_context(config))
+        @_phronomy_execution_wiring = config.dup.freeze
         approval = _approval_configuration_snapshot(nil)
         execution_coordinator_for(config).start(
           input,
@@ -220,14 +232,7 @@ module Phronomy
         @execution_coordinator ||= Agent::ExecutionCoordinator.new(self)
       end
 
-      def execution_coordinator_for(config)
-        multi_agent = config.key?(:phronomy_handoff_bindings) ||
-          config.key?(:phronomy_handoff_context)
-        return execution_coordinator unless multi_agent
-
-        @multi_agent_execution_coordinator ||=
-          Phronomy::Agent::HandoffExecutionCoordinator.new(self)
-      end
+      def execution_coordinator_for(_config) = execution_coordinator
     end
   end
 end

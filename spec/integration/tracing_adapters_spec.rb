@@ -25,8 +25,8 @@ RSpec.describe "Group 16: OpenTelemetry and Langfuse tracer adapters", :integrat
   # Langfuse host used throughout Langfuse test cases.
   let(:langfuse_host) { "https://cloud.langfuse.com" }
 
-  # Sample TokenUsage for "with_usage" cases.
-  let(:usage) { Phronomy::TokenUsage.new(input: 10, output: 5, cached: 0, cache_creation: 0) }
+  # Sample LLMAdapter::TokenUsage for "with_usage" cases.
+  let(:usage) { Phronomy::LLMAdapter::TokenUsage.new(input: 10, output: 5, cached: 0, cache_creation: 0) }
 
   after do
     # Reset OTel provider between examples so spans don't leak across tests.
@@ -56,10 +56,10 @@ RSpec.describe "Group 16: OpenTelemetry and Langfuse tracer adapters", :integrat
     tracer = IntegrationFactors.tracer("null_tracer")
     Phronomy.configure { |c| c.tracer = tracer }
 
-    runnable = Class.new { include Phronomy::Runnable }.new
+    Class.new { include Phronomy::Runnable }.new
 
     expect {
-      runnable.trace("failing_op") { raise "boom" }
+      Phronomy::Tracing::Observation.trace("failing_op") { raise "boom" }
     }.to raise_error("boom")
   end
 
@@ -86,10 +86,10 @@ RSpec.describe "Group 16: OpenTelemetry and Langfuse tracer adapters", :integrat
     tracer = IntegrationFactors.tracer("open_telemetry", exporter: otel_exporter)
     Phronomy.configure { |c| c.tracer = tracer }
 
-    runnable = Class.new { include Phronomy::Runnable }.new
+    Class.new { include Phronomy::Runnable }.new
 
     expect {
-      runnable.trace("ot_error_op") { raise "oops" }
+      Phronomy::Tracing::Observation.trace("ot_error_op") { raise "oops" }
     }.to raise_error("oops")
 
     finished = otel_exporter.finished_spans
@@ -112,8 +112,8 @@ RSpec.describe "Group 16: OpenTelemetry and Langfuse tracer adapters", :integrat
       c.trace_pii = true
     }
 
-    runnable = Class.new { include Phronomy::Runnable }.new
-    result = runnable.trace("lf_success_op", input: "query") { ["answer", usage] }
+    Class.new { include Phronomy::Runnable }.new
+    result = Phronomy::Tracing::Observation.trace("lf_success_op", input: "query") { ["answer", usage] }
 
     expect(result).to eq("answer")
     body = posted_bodies.first["batch"].first["body"]
