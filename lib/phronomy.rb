@@ -61,6 +61,7 @@ loader.ignore(
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/generation_defaults.rb",
+  "#{__dir__}/phronomy/runtime_composition/evaluation_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/workflow_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/multi_agent_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/configuration_defaults.rb",
@@ -110,6 +111,7 @@ require_relative "phronomy/runtime_composition/agent_defaults"
 require_relative "phronomy/runtime_composition/multi_agent_defaults"
 require_relative "phronomy/runtime_composition/workflow_defaults"
 require_relative "phronomy/runtime_composition/generation_defaults"
+require_relative "phronomy/runtime_composition/evaluation_defaults"
 require_relative "phronomy/agent/composition/run_once"
 
 # Preserve ordinary boot loading of the existing recovery rules and comparisons

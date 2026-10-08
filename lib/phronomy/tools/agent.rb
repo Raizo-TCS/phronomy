@@ -39,11 +39,16 @@ module Phronomy
             if cancellation_token
               invoke_options[:config] = {cancellation_token: cancellation_token}
             end
-            result = Phronomy::Agent.run_once(
-              definition: agent_class,
-              input: input,
-              **invoke_options
+            # Use the same supplied store factory as the asynchronous path.
+            # Preserve the creation arguments previously supplied by run_once.
+            persistence = Phronomy::Agent::DefaultPersistence.build
+            agent = agent_class.create(
+              context: nil,
+              knowledge: [],
+              persistence: persistence,
+              on_event: nil
             )
+            result = agent.invoke(input, **invoke_options)
             result[:output].to_s
           end
 

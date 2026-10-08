@@ -103,6 +103,29 @@ def violations(repository):
             coordination = relative.startswith('lib/phronomy/multi_agent/') and '/runtime_binding/' not in relative
             tracing = relative.startswith('lib/phronomy/tracing/')
             context = relative.startswith('lib/phronomy/context/')
+            agent_tool = relative == 'lib/phronomy/tools/agent.rb'
+            llm_judge = relative == 'lib/phronomy/testing/eval/scorer/llm_judge.rb'
+            # Concrete consumers use supplied defaults. Only composition picks
+            # the configured adapter/client or composes the run_once facade.
+            if agent_tool or llm_judge:
+                if node.type == 'call':
+                    method = text(node.child_by_field_name('method'))
+                    receiver = text(node.child_by_field_name('receiver')).lstrip(':')
+                    args = node.child_by_field_name('arguments')
+                    first = args.named_children[0] if args and args.named_children else None
+                    indirect = (text(first).lstrip(':').strip('\"\'')
+                                if method in {'send', '__send__', 'public_send'} else '')
+                    if ((receiver == 'Phronomy' and (method == 'configuration' or indirect == 'configuration'))
+                            or (agent_tool and receiver in {'Agent', 'Phronomy::Agent'}
+                                and (method == 'run_once' or indirect == 'run_once'))):
+                        findings.append({'kind': 'concrete-consumer-reaches-composition',
+                                         'file': relative, 'line': node.start_point.row + 1,
+                                         'call': text(node)})
+                if node.type == 'constant' and (text(node) in {'Configuration', 'PersistenceComposition'}
+                        or llm_judge and text(node) in {'AsyncClient', 'RubyLLM', 'Runtime', 'EventLoop'}):
+                    findings.append({'kind': 'concrete-consumer-selects-implementation',
+                                     'file': relative, 'line': node.start_point.row + 1,
+                                     'call': text(node)})
             if agent_domain or workflow_domain or coordination or tool_contract or tracing or context:
                 if node.type == 'call':
                     method = text(node.child_by_field_name('method'))

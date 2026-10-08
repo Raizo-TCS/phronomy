@@ -10,6 +10,47 @@ from find_dependency_triangles import analyze, write_report
 
 
 class AbstractionTests(unittest.TestCase):
+    def test_agent_tool_uses_supplied_defaults_instead_of_run_once_composition(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/tools/agent.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('''# Agent.run_once is only a comment
+Phronomy::Agent.run_once(definition: agent, input: input)
+::Phronomy::Agent.send(:run_once)
+Agent.public_send('run_once')
+Phronomy::PersistenceComposition.agent
+''')
+            found = violations(repo)
+            self.assertEqual([2, 3, 4, 5], [v['line'] for v in found])
+            self.assertEqual({'concrete-consumer-reaches-composition', 'concrete-consumer-selects-implementation'},
+                             {v['kind'] for v in found})
+            path.write_text('store = Phronomy::Agent::DefaultPersistence.build\nagent.create(persistence: store).invoke(input)\n')
+            composition = repo / 'lib/phronomy/agent/composition/run_once.rb'
+            composition.parent.mkdir(parents=True)
+            composition.write_text('Phronomy::PersistenceComposition.agent\n')
+            self.assertEqual([], violations(repo))
+
+    def test_llm_judge_does_not_select_global_configuration_or_execution_clients(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            path = repo / 'lib/phronomy/testing/eval/scorer/llm_judge.rb'
+            path.parent.mkdir(parents=True)
+            path.write_text('''# Phronomy.configuration is only a comment
+Phronomy.configuration.llm_adapter
+::Phronomy.send(:configuration)
+Phronomy::Configuration.new
+Phronomy::LLMAdapter::AsyncClient.new(adapter: adapter)
+Phronomy::LLMAdapter::RubyLLM.new
+''')
+            found = violations(repo)
+            self.assertEqual([2, 3, 4, 5, 6], [v['line'] for v in found])
+            path.write_text('Phronomy::LLMAdapter::Request.new(message: prompt)\nfactory.call.complete_async(request).wait_result\n')
+            composition = repo / 'lib/phronomy/runtime_composition/evaluation_defaults.rb'
+            composition.parent.mkdir(parents=True)
+            composition.write_text('Phronomy::LLMAdapter::AsyncClient.new(adapter: Phronomy.configuration.llm_adapter)\n')
+            self.assertEqual([], violations(repo))
+
     def test_tool_tracing_and_context_do_not_read_application_configuration(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
