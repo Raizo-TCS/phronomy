@@ -114,6 +114,78 @@ RSpec.describe Phronomy::Agent::Base do
       [original, approvals.pop]
     end
 
+    context "exact resume cancellation delivery" do
+      [:before_delivery, :during_delivery].each do |timing|
+        [false, true].each do |write_fails|
+          it "records #{timing} cancellation before signaling, write_fails=#{write_fails}" do
+            live_token = Phronomy::Concurrency::CancellationToken.new
+            agent.invoke_async("run tool", config: {cancellation_token: live_token})
+            request = approvals.pop(timeout: 5)
+            expect(request).not_to be_nil
+            id = request.execution_id
+            before = agent.persistence.executions.load(id)
+            incoming = Phronomy::Concurrency::CancellationToken.new
+            registry = agent.__execution_environment.registry
+            delivery_threads = Queue.new
+            record_threads = Queue.new
+            order = Queue.new
+            injected = false
+
+            # Change only the caller's token, at a legal point in delivery.
+            # The real registry, EventLoop, owner and durable records are used.
+            allow(Phronomy::Agent::ExactExecution).to receive(:new).and_wrap_original do |constructor, *args|
+              observer = constructor.call(*args)
+              allow(observer).to receive(:deliver_on_event_loop).and_wrap_original do |deliver, command|
+                previous = Thread.current[:exact_cancellation_test_delivery]
+                Thread.current[:exact_cancellation_test_delivery] = true
+                delivery_threads << Phronomy::Runtime.instance.event_loop.current?
+                begin
+                  if timing == :before_delivery && !injected
+                    injected = true
+                    incoming.cancel!
+                  end
+                  deliver.call(command)
+                ensure
+                  Thread.current[:exact_cancellation_test_delivery] = previous
+                end
+              end
+              observer
+            end
+            allow(registry).to receive(:agent_execution_state).and_wrap_original do |read, execution_id|
+              state = read.call(execution_id)
+              if timing == :during_delivery && Thread.current[:exact_cancellation_test_delivery] && execution_id == id && !injected
+                injected = true
+                incoming.cancel!
+              end
+              state
+            end
+            allow(agent.persistence).to receive(:request_cancellation).and_wrap_original do |record, **args|
+              record_threads << Phronomy::Runtime.instance.event_loop.current?
+              expect(live_token).not_to be_cancelled
+              raise IOError, "cancellation recording unavailable" if write_fails
+              record.call(**args).tap { order << :recorded }
+            end
+            allow(live_token).to receive(:cancel!).and_wrap_original do |cancel|
+              order << :signaled
+              cancel.call
+            end
+            expected = write_fails ? IOError : Phronomy::ExecutionRehydrationRequiredError
+            expect { agent.resume_async(id, config: {cancellation_token: incoming}).wait_result(timeout: 5) }
+              .to raise_error(expected)
+            expect(injected).to be(true)
+            expect(incoming).to be_cancelled
+            expect(delivery_threads.size).to be >= 1
+            expect(delivery_threads.size.times.map { delivery_threads.pop }).to all(be(true))
+            expect(record_threads.pop(timeout: 1)).to be(false)
+            expect(live_token.cancelled?).to eq(!write_fails)
+            expect(agent.persistence.cancellation_requested?(agent_id: agent.agent_id, execution_id: id)).to eq(!write_fails)
+            expect(order.size.times.map { order.pop }).to eq(write_fails ? [] : [:recorded, :signaled])
+            expect(agent.persistence.executions.load(id).to_h).to eq(before.to_h)
+          end
+        end
+      end
+    end
+
     it "invalidates suspended execution waiters through Agent cleanup after the loop joins" do
       original, request = invoke_and_suspend(agent, approvals)
       runtime = Phronomy::Runtime.instance

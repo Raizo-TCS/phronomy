@@ -71,10 +71,6 @@ module Phronomy
       end
 
       def deliver_on_event_loop(command)
-        # A token may change after preparation. Persist newly observed intent
-        # off EventLoop before propagating it to the current owner.
-        return start if @config[:cancellation_token]&.cancelled? && !@cancellation_recorded
-
         state = @environment.registry.agent_execution_state(command.execution_id)
         unless state
           # Ownership can be released between the durable read and this command.
@@ -89,6 +85,10 @@ module Phronomy
           raise Phronomy::Persistence::StateConflictError, "Exact execution #{@id} owner mismatch"
         end
         if @config[:cancellation_token]&.cancelled?
+          # One observation governs both recording and notification. A newly
+          # observed request must be persisted off EventLoop before signaling.
+          return start unless @cancellation_recorded
+
           state.invocation&.config&.fetch(:cancellation_token, nil)&.cancel!
         end
         if state.execution.status == :suspended || state.fsm_session_id.nil?

@@ -69,3 +69,24 @@ under one backend lock, preventing concurrent after-commit hooks from replacing 
 selected checkpoint. Its initial assertion uses the durable ledger because a
 request arriving after a saved waiting snapshot need not rewrite that snapshot.
 Separate deterministic tests assert the snapshot on each side of the commit.
+
+## Unit18 delivery correction
+
+The first unit18 version checked the incoming token twice inside delivery: once
+to decide whether to record, and again to decide whether to signal. Cancellation
+between those observations could skip recording but still signal the owner.
+A suspended approval execution then exited without a completion reconciliation,
+leaving the durable ledger empty.
+
+Delivery now uses one cancellation observation for both decisions. After finding
+and validating the current owner, an observed cancellation returns to off-loop
+preparation if unrecorded, or signals the owner if already recorded. The separate
+preparation and delivery observations remain intentional: scheduling between those
+stages can change the token. A notification is never authorized by a different
+observation from the one used to enforce its recording prerequisite.
+
+Regression tests use the real suspended owner, registry and EventLoop. They
+cancel the incoming token just before delivery or during the owner lookup, and
+cover both successful recording and recording failure. They assert recording
+before notification, no notification on write failure, off-loop persistence and
+unchanged suspended execution contents. No polling or new subscription is added.

@@ -19,3 +19,11 @@ Keep the existing stop/drain procedure when replacing running processes. This
 package does not establish new compatibility guarantees for workers already
 running code from another version. Reverting this source change needs no data
 rollback, but reintroduces the cancellation-loss race.
+
+## Delivery correction package
+
+The unit18 cancellation-delivery correction applies on top of
+`a89f42e3805fb548bf9587c49e1ab226efd174db`. It removes the gap between the
+recording and notification decisions in `ExactExecution` delivery. The existing
+preparation/delivery recheck, cancellation ledger and error behavior remain.
+There are no additional API, schema or examples changes.
