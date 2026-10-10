@@ -18,6 +18,7 @@ RSpec.describe "Team operation rejection after a committed finalize" do
 
     expect { team.invoke("plan") }.to raise_error(Phronomy::Error, /Cannot enqueue after finalize/) { |error|
       expect(error).not_to be_a(Phronomy::ExecutionRehydrationRequiredError)
+      expect(error.code).to eq("team.enqueue_after_finalize")
     }
 
     run = team.executions.first
@@ -28,12 +29,15 @@ RSpec.describe "Team operation rejection after a committed finalize" do
     coordinator = store.agent.executions.load(run.coordinator.fetch("execution_id"))
     expect(coordinator.status).to eq(:failed)
     expect(store.agent.contents.fetch_json(coordinator.error_ref)).to include(
-      "class" => "Phronomy::ConfigurationError", "message" => "Cannot enqueue after finalize"
+      "class" => "Phronomy::ConfigurationError", "message" => "Cannot enqueue after finalize",
+      "code" => "team.enqueue_after_finalize"
     )
+    expect(team.result(run.team_execution_id).dig(:error, "code")).to eq("team.enqueue_after_finalize")
     expect(llm.calls.size).to eq(3)
 
     expect { team.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /Cannot enqueue after finalize/) { |error|
       expect(error).not_to be_a(Phronomy::ExecutionRehydrationRequiredError)
+      expect(error.code).to eq("team.enqueue_after_finalize")
     }
     expect(team.executions.first.to_h).to eq(run.to_h)
     expect(llm.calls.size).to eq(3)
@@ -43,6 +47,7 @@ RSpec.describe "Team operation rejection after a committed finalize" do
     loaded = team_class.load(team.team_id, persistence: restored.multi_agent)
     expect { loaded.resume(run.team_execution_id) }.to raise_error(Phronomy::Error, /Cannot enqueue after finalize/) { |error|
       expect(error).not_to be_a(Phronomy::ExecutionRehydrationRequiredError)
+      expect(error.code).to eq("team.enqueue_after_finalize")
     }
     expect(loaded.executions.first.to_h).to eq(run.to_h)
     expect(llm.calls).to be_empty
@@ -77,7 +82,7 @@ RSpec.describe "Team operation rejection after a committed finalize" do
       LLMStub.activate(responses: late_enqueue_responses)
 
       expect { team.invoke("plan") }.to raise_error(Phronomy::ExecutionRehydrationRequiredError,
-        /rejection readback unavailable/)
+        /rejection readback unavailable/) { |error| expect(error.code).to be_nil }
       run = team.executions.first
       expect(run.status).to eq("active")
       expect(run.tasks.map { |task| task.fetch("description") }).to eq(["accepted task"])
@@ -87,11 +92,15 @@ RSpec.describe "Team operation rejection after a committed finalize" do
 
   it "does not classify an arbitrary ConfigurationError as a confirmed rejection" do
     team = team_class.create(persistence: store.multi_agent)
-    allow(team).to receive(:apply_operation).and_raise(Phronomy::ConfigurationError, "unconfirmed operation failure")
+    allow(team).to receive(:apply_operation).and_raise(
+      Phronomy::ConfigurationError.new("unconfirmed operation failure", code: "team.enqueue_after_finalize")
+    )
     tool = team.send(:build_operation_tool, "run", :enqueue_task).new
 
     expect do
       tool.call_async({description: "task"}, config: {phronomy_tool_invocation_id: "unconfirmed"}).wait_result(timeout: 2)
-    end.to raise_error(Phronomy::ExecutionRehydrationRequiredError, /unconfirmed operation failure/)
+    end.to raise_error(Phronomy::ExecutionRehydrationRequiredError, /unconfirmed operation failure/) { |error|
+      expect(error.code).to be_nil
+    }
   end
 end

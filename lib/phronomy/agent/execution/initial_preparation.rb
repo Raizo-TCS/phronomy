@@ -262,10 +262,7 @@ module Phronomy
         translated_error = error
         failed = next_root = appended = nil
         @persistence.transaction do |tx|
-          error_ref = tx.contents.put_json(
-            "class" => translated_error.class.name,
-            "message" => translated_error.message
-          )
+          error_ref = tx.contents.put_json(Phronomy::Error.diagnostic(translated_error))
           status = ExecutionFailure.status_for(translated_error)
           records = preparation_failure_records(execution, root, status, error_ref)
           appended = tx.journals.append(

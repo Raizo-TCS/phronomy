@@ -2,6 +2,9 @@ module Phronomy
   VERSION: String
 
   class Error < StandardError
+    attr_reader code: String?
+    def initialize: (?untyped message, ?code: String?) -> void
+    def self.diagnostic: (Exception) -> Hash[String, untyped]
   end
 
   class ParseError < Error

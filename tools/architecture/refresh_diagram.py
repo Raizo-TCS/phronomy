@@ -233,6 +233,14 @@ def check_boundaries(audit, phase, repo, architecture=None):
         route = path_to(graph, source, lambda t: any(beneath(t, root) for root in prohibited))
         if route:
             violations.append({"kind": "r8-domain-backward-dependency", "path": route})
+    # Integrations are consumers of public framework APIs, never a dependency
+    # acquired by Contract, Execution, Engine or another framework owner.
+    for source in modules:
+        if roles.get(source) == "application_integration":
+            continue
+        route = path_to(graph, source, lambda t: roles.get(t) == "application_integration")
+        if route:
+            violations.append({"kind": "framework-reaches-application-integration", "path": route})
     features = [f.replace("vector_store/embeddings", "embeddings") if architecture.get("r8_unit5_contracts") else f for f in policy["features"]]
     required=[]
     for feature in features:

@@ -35,6 +35,13 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
+The following application APIs are part of unreleased development:
+
+| API | Stability | Contract |
+|---|---|---|
+| `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
+| `Phronomy::Error#code` and `code:` | Beta | Optional reason codes retained in saved failure diagnostics; [meaning and compatibility](docs/failure-reason-codes.md) |
+
 ## Installation
 
 Add Phronomy to your Gemfile:

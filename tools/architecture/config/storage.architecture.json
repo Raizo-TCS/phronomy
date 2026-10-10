@@ -425,6 +425,13 @@
       "role": "Workflow phase compilation / terminal gate / owning Runtime connection",
       "mixed": false,
       "group": "G64"
+    },
+    {
+      "id": "M91",
+      "directory": "lib/phronomy/integrations",
+      "role": "Optional application event delivery over public execution APIs",
+      "mixed": false,
+      "group": "G65"
     }
   ],
   "groups": [
@@ -781,9 +788,18 @@
       "members": [
         "M90"
       ]
+    },
+    {
+      "id": "G65",
+      "title": "APPLICATION INTEGRATIONS",
+      "members": [
+        "M91"
+      ],
+      "kind": "application_integration"
     }
   ],
   "matrix_order": [
+    "M91",
     "M17",
     "M89",
     "M26",

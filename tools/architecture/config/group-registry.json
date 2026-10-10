@@ -255,6 +255,11 @@
       "id": "G63",
       "title": "MULTIAGENT ENGINE BINDING",
       "kind": "domain_binding"
+    },
+    {
+      "id": "G65",
+      "title": "APPLICATION INTEGRATIONS",
+      "kind": "application_integration"
     }
   ],
   "retired_groups": {
@@ -368,6 +373,12 @@
       "directory": "lib/phronomy/multi_agent/runtime_binding",
       "group": "G63",
       "phase": "r8-unit10"
+    },
+    {
+      "id": "M91",
+      "directory": "lib/phronomy/integrations",
+      "group": "G65",
+      "phase": "dx03-e"
     }
   ],
   "retired_ids": {

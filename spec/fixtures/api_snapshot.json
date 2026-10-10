@@ -1,5 +1,25 @@
 [
   {
+    "name": "Phronomy::Error",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "to_tty?"
+    ]
+  },
+  {
     "name": "Phronomy::Agent::Base",
     "type": "class",
     "public_instance_methods": [
@@ -516,6 +536,7 @@
     "public_instance_methods": [],
     "public_class_methods": [
       "call_async",
+      "synchronous_delegate",
       "with_result_transform"
     ]
   },

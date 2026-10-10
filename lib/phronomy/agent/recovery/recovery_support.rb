@@ -26,16 +26,14 @@ module Phronomy
       end
 
       def resolution_failure(error)
-        {
-          "class" => error.class.name.to_s,
-          "message" => error.message.to_s
-        }.freeze
+        Phronomy::Error.diagnostic(error).freeze
       end
 
       def error_from_failure(failure)
         hash = failure.to_h { |key, value| [key.to_s, value] }
         Phronomy::Error.new(
-          "#{hash.fetch("class", "Error")}: #{hash.fetch("message", "Recovery-resolved failure")}"
+          "#{hash.fetch("class", "Error")}: #{hash.fetch("message", "Recovery-resolved failure")}",
+          code: hash["code"]
         )
       end
 
