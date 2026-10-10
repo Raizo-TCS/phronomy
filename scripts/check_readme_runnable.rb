@@ -1,101 +1,112 @@
 # frozen_string_literal: true
 
-# scripts/check_readme_runnable.rb
-#
-# Extracts ```ruby runnable blocks from README.md and executes each in an
-# isolated subprocess with a fake LLM stub to catch API drift.
-#
-# Any block that raises NoMethodError / ArgumentError / NameError causes a
-# non-zero exit, failing the CI step.
-#
-# Usage (from the phronomy/ root):
-#   bundle exec ruby scripts/check_readme_runnable.rb
-
+# Runs annotated, self-contained examples through the real public API.
+# Only the external LLM adapter is replaced. Each block has its own process,
+# configuration and Runtime; an accidental network request fails immediately.
+# Usage: bundle exec ruby scripts/check_readme_runnable.rb [markdown paths...]
 require "tempfile"
 require "open3"
 
-REPO_ROOT = File.expand_path("..", __dir__)
-README_PATH = File.join(REPO_ROOT, "README.md")
+module RunnableDocumentation
+  ROOT = File.expand_path("..", __dir__)
+  PATHS = %w[README.md docs/getting-started.md docs/application-recipes.md].freeze
 
-# Injected before every runnable block.
-# Uses the Gemfile of this project so subprocesses can load phronomy.
-PREAMBLE = <<~RUBY
-  # frozen_string_literal: true
-  # --- CI preamble: stub LLM calls so no real network requests are made ---
-  ENV["BUNDLE_GEMFILE"] ||= "#{File.join(REPO_ROOT, "Gemfile")}"
-  require "bundler/setup"
-  require "phronomy"
+  PREAMBLE = <<~RUBY
+    require "bundler/setup"
+    require "phronomy"
+    require "webmock"
+    require "timeout"
+    WebMock.enable!
+    WebMock.disable_net_connect!
 
-  # Patch invoke methods to return canned responses instead of calling the LLM.
-  module Phronomy
-    module Agent
-      # Prepend overrides AsyncEventApi (which is also prepended) so invoke
-      # returns a canned response without triggering the EventLoop.
-      module CiInvokeStub
-        def invoke(input = nil, **)
-          {output: "ci-stub-output", messages: []}
+    class DocumentationLLM < Phronomy::LLMAdapter::Base
+      protected
+
+      def perform_complete(request, cancellation_token:)
+        previous = request.messages.last
+        if previous&.role == :tool
+          return Phronomy::LLMAdapter::Response.new(content: previous.content)
         end
+
+        search = request.tools.find do |tool|
+          tool.fetch("parameters_schema").fetch("properties", {}).key?("query")
+        end
+        if search
+          return Phronomy::LLMAdapter::Response.new(tool_calls: [
+            Phronomy::Tool::CallRequest.new(
+              id: SecureRandom.uuid, name: search.fetch("name"),
+              arguments: {"query" => "Ruby AI frameworks"}
+            )
+          ])
+        end
+
+        Phronomy::LLMAdapter::Response.new(content: "ci-stub-output")
       end
-      Base.prepend(CiInvokeStub)
 
-      class Runner
-        def invoke(input = nil, **)
-          {output: "ci-stub-output", agent: nil, messages: []}
-        end
+      def perform_stream(request, cancellation_token:)
+        response = perform_complete(request, cancellation_token: cancellation_token)
+        yield Phronomy::LLMAdapter::StreamChunk.new(content: response.content) if response.content
+        response
       end
     end
+  RUBY
 
-    module Chain
-      class LLMChain
-        def invoke(vars = {})
-          "ci-stub-chain"
-        end
-      end
-    end
-  end
-  # --- end CI preamble ---
-
-RUBY
-
-readme = File.read(README_PATH)
-
-# Match opening fence with 'runnable' annotation: ```ruby runnable
-blocks = readme.scan(/^```ruby runnable\n(.*?)^```/m).map.with_index(1) { |(code), i| [i, code] }
-
-if blocks.empty?
-  puts "No 'ruby runnable' blocks found in README.md."
-  exit 0
-end
-
-puts "Checking #{blocks.size} runnable Ruby block(s) in README.md..."
-
-failures = []
-
-blocks.each do |index, code|
-  Tempfile.create(["readme_runnable_#{index}", ".rb"]) do |f|
-    f.write(PREAMBLE)
-    f.write(code)
-    f.flush
-
-    out, err, status = Open3.capture3(RbConfig.ruby, f.path)
-    combined = (out + err).gsub(f.path, "block ##{index}")
-
-    if status.success?
-      puts "  OK   block ##{index}"
-    else
-      failures << index
-      puts "  FAIL block ##{index}"
-      # Print at most 15 lines of output to keep CI logs readable.
-      puts combined.lines.first(15).join
+  def self.blocks(path)
+    text = File.read(path)
+    text.to_enum(:scan, /^```ruby runnable\n(.*?)^```/m).map do
+      match = Regexp.last_match
+      [text[0...match.begin(1)].count("\n") + 1, match[1]]
     end
   end
+
+  def self.check(paths = PATHS, output: $stdout)
+    failures = []
+    count = 0
+    paths.each do |relative|
+      path = File.expand_path(relative, ROOT)
+      examples = blocks(path)
+      if examples.empty?
+        failures << relative
+        output.puts "FAIL #{relative}: no ruby runnable blocks"
+      end
+      examples.each do |line, code|
+        count += 1
+        label = "#{relative}:#{line}"
+        Tempfile.create(["phronomy_documentation", ".rb"]) do |file|
+          file.write(PREAMBLE)
+          file.write(<<~RUBY)
+            Phronomy.with_configuration do |configuration|
+              configuration.llm_adapter = DocumentationLLM.new
+              begin
+                Timeout.timeout(20) do
+                  eval(#{code.dump}, TOPLEVEL_BINDING, #{path.dump}, #{line})
+                end
+              ensure
+                Phronomy::Runtime.reset_default!(timeout: 5)
+              end
+            end
+          RUBY
+          file.flush
+          out, err, status = Open3.capture3(
+            {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile")},
+            RbConfig.ruby, file.path, chdir: ROOT
+          )
+          if status.success?
+            output.puts "OK   #{label}"
+          else
+            failures << label
+            output.puts "FAIL #{label}"
+            output.puts (out + err).gsub(file.path, label).lines.first(15).join
+          end
+        end
+      end
+    end
+    output.puts "#{count} runnable examples; #{failures.size} failures"
+    failures.empty?
+  end
 end
 
-puts
-if failures.empty?
-  puts "All #{blocks.size} runnable block(s) passed."
-  exit 0
-else
-  puts "#{failures.size} block(s) failed: #{failures.join(", ")}"
-  exit 1
+if $PROGRAM_NAME == __FILE__
+  paths = ARGV.empty? ? RunnableDocumentation::PATHS : ARGV
+  exit(RunnableDocumentation.check(paths) ? 0 : 1)
 end
