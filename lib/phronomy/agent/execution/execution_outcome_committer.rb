@@ -187,7 +187,7 @@ module Phronomy
       def encode_failure(tx, operation, error)
         current = operation.execution
         encoded_records, call_records = encode_runtime_records(tx, operation, context_candidate: false)
-        error_ref = tx.contents.put_json("class" => error.class.name, "message" => error.message)
+        error_ref = tx.contents.put_json(Phronomy::Error.diagnostic(error))
         terminal_status = ExecutionFailure.status_for(error)
         records = failure_records(operation, encoded_records, terminal_status, error_ref)
         failed = current.with(

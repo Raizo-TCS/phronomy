@@ -1,0 +1,14 @@
+module Phronomy
+  module Integrations
+    class OrderedEventDelivery
+      class ClosedError < StandardError
+      end
+      class OverflowError < StandardError
+      end
+      def self.open: [T] (?capacity: Integer, ?batch_size: Integer, ?flush_timeout: Numeric?, deliver: ^(untyped) -> untyped, ?prepare_batch: (^(Array[untyped]) -> Array[untyped])?) { (OrderedEventDelivery) -> T } -> T
+      def initialize: (?capacity: Integer, ?batch_size: Integer, ?prepare_batch: (^(Array[untyped]) -> Array[untyped])?) { (untyped) -> untyped } -> void
+      def publish: (untyped) -> self
+      def close_and_wait: (?timeout: Numeric?) -> self
+    end
+  end
+end

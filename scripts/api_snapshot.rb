@@ -18,6 +18,7 @@ require_relative "../lib/phronomy"
 
 PUBLIC_API_ENTRIES = [
   # Stable
+  Phronomy::Error,
   Phronomy::Agent::Base,
   Phronomy::Agent::ReservedExecution,
   Phronomy::Agent::ExecutionObservation,

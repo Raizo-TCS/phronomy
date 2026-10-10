@@ -29,10 +29,7 @@ module Phronomy
           output_ref = assistant_output_ref(tx, outcome)
           assistant_ref = assistant_message_ref(tx, outcome)
           error_ref = if call_error
-            tx.contents.put_json(
-              "class" => call_error.class.name,
-              "message" => call_error.message
-            )
+            tx.contents.put_json(Phronomy::Error.diagnostic(call_error))
           end
           usage_ref = if outcome && outcome.usage.to_h.values.any? { |value| !value.nil? }
             tx.contents.put_json(json_value(outcome.usage.to_h))

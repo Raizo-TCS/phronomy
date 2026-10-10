@@ -68,6 +68,8 @@ loader.ignore(
   "#{__dir__}/phronomy/runtime_composition/global_runtime.rb",
   "#{__dir__}/phronomy/runtime_composition/execution_defaults.rb"
 )
+# Optional application integrations are loaded explicitly by their consumers.
+loader.ignore("#{__dir__}/phronomy/integrations")
 # Persistence conformance support must never make production loading require RSpec.
 loader.ignore(
   "#{__dir__}/phronomy/testing/persistence_contract.rb",

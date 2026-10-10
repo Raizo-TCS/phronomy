@@ -55,6 +55,21 @@ class BoundaryTests(unittest.TestCase):
             changed['module_pairs'].append({'from': 'lib/phronomy/' + source, 'to': binding})
             self.assertFalse(refresh.check_boundaries(changed, 'storage', REPO, config)['passed'], source)
 
+    def test_application_integrations_remain_consumers_only(self):
+        config = refresh.read_architecture('storage')
+        modules = {m['directory'] for m in config['modules']}
+        integration = 'lib/phronomy/integrations'
+        audit = {'commit': 'fixture', 'modules': config['modules'], 'module_pairs': [
+            {'from': source, 'to': target} for source, target in
+            refresh.IMPLEMENTATIONS.items() if source in modules]}
+        audit['module_pairs'].append({'from': integration, 'to': 'lib/phronomy/execution'})
+        self.assertTrue(refresh.check_boundaries(audit, 'storage', REPO, config)['passed'])
+        for source in ['execution', 'engine', 'agent', 'tool', 'multi_agent', 'workflow/execution']:
+            changed = deepcopy(audit)
+            changed['module_pairs'].append({'from': 'lib/phronomy/' + source, 'to': integration})
+            result = refresh.check_boundaries(changed, 'storage', REPO, config)
+            self.assertIn('framework-reaches-application-integration', [v['kind'] for v in result['violations']])
+
     def test_accepts_implemented_llm_boundary_with_declared_vector_work_remaining(self):
         self.assertTrue(self.check_graph()['passed'])
 

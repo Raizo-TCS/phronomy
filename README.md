@@ -35,6 +35,13 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
+The following application APIs are part of unreleased development:
+
+| API | Stability | Contract |
+|---|---|---|
+| `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
+| `Phronomy::Error#code` and `code:` | Beta | Optional reason codes retained in saved failure diagnostics; [meaning and compatibility](docs/failure-reason-codes.md) |
+
 ## Installation
 
 Add Phronomy to your Gemfile:
@@ -49,7 +56,7 @@ Then run:
 bundle install
 ```
 
-This refactoring branch requires RubyLLM 2.0.x. See the
+Phronomy 0.28 requires RubyLLM 2.0.x. See the
 [RubyLLM 2 and token-ownership migration](docs/architecture/rubyllm-2-token-ownership.md)
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
 
@@ -91,9 +98,7 @@ result = ResearchAgent.new.invoke("What happened in AI research this week?")
 puts result[:output]
 ```
 
-`Phronomy::Tool::Base` is the public authoring name for the existing Tool base
-class. The legacy `Phronomy::Tool::Base` constant remains
-valid for compatibility.
+`Phronomy::Tool::Base` is the public base class for application-defined Tools.
 
 For non-blocking top-level use, call `invoke_async` and keep the returned
 `Phronomy::TaskResult`. Inside Phronomy lifecycle callbacks, do not block waiting for
@@ -152,6 +157,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 ## Documentation
 
 - [Getting started](docs/getting-started.md) — installation, RubyLLM setup, Agent/Workflow basics, persistence, streaming.
+- [Application recipes](docs/application-recipes.md) — complete persistence, streaming, and Workflow examples, including explicit failure handling.
 - [Features and API stability](docs/features.md) — public feature matrix and stability labels.
 - [Architecture](docs/architecture.md) — canonical current explanatory architecture entry and authority navigation.
 - [Runtime and concurrency](docs/runtime-and-concurrency.md) — EventLoop, FSMSession, TaskResult, OffloadPool, cancellation, observability.

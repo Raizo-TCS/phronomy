@@ -341,7 +341,7 @@ module Phronomy
               output = Phronomy::Values::Serializable.convert(aggregate ? aggregate.call(values) : values, unsupported_message: "Team result is not canonically serializable")
               Phronomy::CanonicalJSON.dump(output)
             rescue => error
-              return terminal_value(finish_error(id, {"class" => error.class.name.to_s, "message" => error.message.to_s}))
+              return terminal_value(finish_error(id, Phronomy::Error.diagnostic(error)))
             end
             # Aggregate may be replayed only until the canonical outcome commits.
             completed = update(id) do |fresh, tx, scope|
@@ -465,7 +465,7 @@ module Phronomy
         raise Phronomy::CancellationError, "Team run #{execution.team_execution_id} cancelled" if execution.status == "cancelled"
         if execution.error_ref
           failure = persistence.contents.fetch_json(execution.error_ref)
-          raise Phronomy::Error, "#{failure.fetch("class")}: #{failure.fetch("message")}"
+          raise Phronomy::Error.new("#{failure.fetch("class")}: #{failure.fetch("message")}", code: failure["code"])
         end
         persistence.contents.fetch_json(execution.result_ref)
       end
@@ -514,7 +514,7 @@ module Phronomy
             Phronomy::Execution.submit(on_full: :raise) do
               team.send(:apply_operation, run_id, key, operation, arguments)
             rescue OperationRejected => error
-              raise Phronomy::ConfigurationError, error.message
+              raise Phronomy::ConfigurationError.new(error.message, code: error.code)
             rescue Phronomy::CancellationError
               raise
             rescue => error
@@ -551,7 +551,9 @@ module Phronomy
             name = entry.name
             values = entry.arguments
             if name == "enqueue_task"
-              raise OperationRejected, "Cannot enqueue after finalize" if metadata["finalized"]
+              if metadata["finalized"]
+                raise OperationRejected.new("Cannot enqueue after finalize", code: "team.enqueue_after_finalize")
+              end
               task = {"id" => Digest::SHA256.hexdigest(entry_id)[0, 32], "description" => values.fetch("description"), "metadata" => values["metadata"]}
               tasks << task
               output = "Task ##{tasks.length} enqueued: #{task.fetch("description")}"
