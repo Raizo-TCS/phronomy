@@ -9,7 +9,7 @@ require "open3"
 
 module RunnableDocumentation
   ROOT = File.expand_path("..", __dir__)
-  PATHS = %w[README.md docs/getting-started.md docs/application-recipes.md].freeze
+  PATHS = %w[README.md docs/getting-started.md docs/application-recipes.md docs/workflow-completion.md].freeze
 
   PREAMBLE = <<~RUBY
     require "bundler/setup"

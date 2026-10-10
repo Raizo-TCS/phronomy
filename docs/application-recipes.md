@@ -185,3 +185,6 @@ Workflow TaskResult and the diagnostic channel at their external boundary.
 No generic Workflow forwarding helper is required by these recipes. A helper
 must first establish how an old result is prevented from reaching a new waiting
 stage; internal execution generations or automatic recovery are not implied.
+
+For an application-local extraction with the same limited lifetime, see the
+[bounded completion recipe](workflow-completion.md). It is not a new library API.
