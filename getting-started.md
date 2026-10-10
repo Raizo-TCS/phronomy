@@ -4,6 +4,11 @@ This guide contains the setup and introductory examples that were previously
 embedded in the repository README. The README remains the project entry point;
 this document carries the longer operational examples.
 
+Blocks marked `ruby runnable` are complete after `require "phronomy"` and provider
+configuration. Other blocks are setup or partial examples that reuse definitions
+from the surrounding section. See [application recipes](application-recipes.md)
+for independent examples and explicit failure handling.
+
 ## Install
 
 Add Phronomy to your Gemfile:
@@ -49,11 +54,9 @@ Install only the backend gems required by your application:
 
 ## Define a Tool and Agent
 
-Use `Phronomy::Tool::Base` as the application-facing authoring API. It is an
-exact alias of the existing `Phronomy::Tool::Base`, so
-existing Tool definitions using the longer namespace remain compatible.
+Use `Phronomy::Tool::Base` as the application-facing authoring API.
 
-```ruby
+```ruby runnable
 class WebSearch < Phronomy::Tool::Base
   description "Search the web"
   param :query, type: :string, desc: "Search query"
@@ -115,7 +118,7 @@ A Runtime has at most one mutable live Agent object for an `agent_id`. If the
 Agent is already live, repeated `load` returns that exact Ruby object and does
 not reload Persistence. If it is not live, `load` hydrates the durable Agent
 once. Loading an ID that does not exist durably raises
-`Storage::NotFoundError`.
+`Phronomy::Persistence::NotFoundError`.
 
 Use `get` when only a process-local lookup is wanted:
 
@@ -131,7 +134,7 @@ While the Agent is live, it owns its current AgentRoot/Journal view and
 Runtime/EventLoop owns process-local identity/admission/execution authority.
 Phronomy persists snapshots at defined durability boundaries but does not reload
 mutable Agent/Execution/Journal state before every LLM or Tool step. A conflicting
-external durable write is surfaced as `Storage::ConflictError` rather than
+external durable write is surfaced as `Phronomy::Persistence::StateConflictError` rather than
 silently merged into the live instance.
 
 The active transcript and Knowledge views can be advanced independently without
@@ -165,7 +168,7 @@ the listener when the Agent is materialized, not on each invocation:
 
 ```ruby
 agent = ResearchAgent.load(
-  "research-session-42",
+  "another-session-not-live-in-this-runtime",
   persistence: persistence,
   on_event: ->(event) {
     puts event.payload[:output] if event.type == :done
@@ -174,6 +177,10 @@ agent = ResearchAgent.load(
 
 task = agent.invoke_async("Hello")
 ```
+
+This load assumes that the other Agent exists in Persistence but has not been
+materialized in this Runtime. To listen to `research-session-42`, register its
+listener in the original `create` call.
 
 `new`, `create`, and `load` also accept an equivalent listener block.
 Supplying both `on_event:` and a construction block is an error. If `load`
@@ -304,7 +311,7 @@ callbacks. If a Workflow needs an Agent or another asynchronous lifecycle, start
 it asynchronously, return the Workflow context immediately, and deliver its
 completion later with `Workflow#signal`.
 
-```ruby
+```ruby runnable
 class AnswerContext
   include Phronomy::WorkflowContext
 
@@ -330,13 +337,13 @@ workflow = Phronomy::Workflow.define(AnswerContext) do
   entry :asking, ->(ctx) {
     workflow_instance_id = ctx.workflow_instance_id
 
-    my_agent.invoke_async(ctx.question) do |event|
-      next unless event.type == :done
+    my_agent.invoke_async(ctx.question).on_complete do |result, operation_error|
+      next if operation_error
 
       workflow.signal(
         workflow_instance_id: workflow_instance_id,
         event: :answer_ready,
-        payload: {answer: event.payload[:output]}
+        payload: {answer: result[:output]}
       )
     end
 
@@ -349,8 +356,22 @@ workflow = Phronomy::Workflow.define(AnswerContext) do
     to: :done,
     action: ->(ctx, event) { ctx.merge(answer: event.payload[:answer]) }
   )
+  transition from: :done, to: :__finish__
 end
+
+answer = workflow.invoke(
+  {question: "What is an asynchronous completion handle?"},
+  config: {workflow_instance_id: "answer-example"}
+)
+puts answer.answer
 ```
+
+This is the minimal success-only connection. It does not notify the Workflow
+when the Agent fails or is cancelled, and it does not inspect a rejected signal.
+It is limited to one live waiting stage with no restart or replacement while
+the answer is pending. Acceptance of a signal does not mean its transition has
+completed. For explicit operation and delivery failure handling, use the
+[complete Workflow recipe](application-recipes.md#workflow-completion-and-failures).
 
 Returning a `Phronomy::TaskResult` from a Workflow entry/transition action is not an
 implicit await mechanism and is rejected.
@@ -435,6 +456,7 @@ contracts.
 ## Next steps
 
 - [Features and API stability](features.md)
+- [Application recipes](application-recipes.md)
 - [Runtime and concurrency](runtime-and-concurrency.md)
 - [Architecture decisions](decisions/)
 - [Migration guides](migrations/)

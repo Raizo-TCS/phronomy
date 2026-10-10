@@ -30,6 +30,7 @@ for production deployments.
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Tracing** — Pluggable logical-operation span observability with bounded automatic coverage | Stable |
 | **Error Taxonomy** — Provider errors translated to Phronomy transport/authentication/rate-limit/context errors | Beta |
+| **Optional failure reason codes** — `Phronomy::Error#code` and `code:` retain domain-supplied reasons in saved Agent/Team diagnostics; [meaning and compatibility](failure-reason-codes.md) | Beta |
 
 Agent definition lineage is separate from Agent instance identity. A named
 concrete Agent may declare `agent_definition version: N`; when `id:` is omitted,
@@ -51,6 +52,7 @@ rather than implicitly inheriting the parent revision. The Stable
 | **VectorStore::Embeddings::AsyncClient** — `embed_async` offloads synchronous `embed` through Phronomy and returns `TaskResult` | Beta |
 | **Model Context Protocol (MCP) Tool** — `Phronomy::Tools::Mcp` integration through the official `mcp` gem | Beta |
 | **Agent Tool** — `Phronomy::Tools::Agent.from_agent` exposes a child Agent as a Tool without occupying a worker while waiting | Beta |
+| **Ordered event delivery** — Explicitly require `Phronomy::Integrations::OrderedEventDelivery` for bounded ordered delivery outside lifecycle callbacks; [lifetime and failure rules](ordered-event-delivery.md) | Beta |
 | **Vector Search Tool** — `Phronomy::Tools::VectorSearch` wraps VectorStore and Embeddings adapters | Beta |
 
 Applications previously calling async methods on backend objects must
