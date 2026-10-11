@@ -60,6 +60,35 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     expect { definition.load("missing", persistence: store) }.to raise_error(Phronomy::Persistence::NotFoundError)
   end
 
+  it "reports Team root absence with its identity while retaining the old rescue" do
+    expect { definition.load("missing-team", persistence: store) }.to raise_error(Phronomy::MultiAgent::TeamNotFoundError) { |error|
+      expect(error).to be_a(Phronomy::Persistence::NotFoundError)
+      expect(error.team_id).to eq("missing-team")
+      expect(error.code).to eq("team.not_found")
+      expect(error.cause).to be_a(Phronomy::Persistence::NotFoundError)
+    }
+  end
+
+  it "preserves an unknown create failure when readback also fails" do
+    original = IOError.new("commit response lost")
+    readback = Phronomy::Persistence::NotFoundError.new("readback unavailable")
+    allow(store).to receive(:transaction).and_raise(original)
+    allow(store.teams).to receive(:load).and_raise(readback)
+    expect { definition.create(team_id: "uncertain", persistence: store) }.to raise_error { |error|
+      expect(error).to equal(original)
+      expect(error.cause).to be_nil
+      expect(error).not_to be_a(Phronomy::MultiAgent::TeamNotFoundError)
+    }
+  end
+
+  it "keeps duplicate durable create a state conflict after releasing live ownership" do
+    definition.create(team_id: "durable", persistence: store)
+    Phronomy.reset_runtime!
+    expect { definition.create(team_id: "durable", persistence: store) }
+      .to raise_error(Phronomy::Persistence::ConflictError)
+    expect(definition.load("durable", persistence: store).team_id).to eq("durable")
+  end
+
   it "rejects a stale Team incarnation after Runtime shutdown" do
     team = definition.create(persistence: store)
     Phronomy.reset_runtime!
@@ -71,7 +100,11 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
   it "uses TeamExecution admission across different live wrappers" do
     team = definition.create(persistence: store)
     run = team.send(:admit, "one")
-    expect { team.invoke("two") }.to raise_error(Phronomy::AgentBusyError, /resume/)
+    expect { team.invoke("two") }.to raise_error(Phronomy::MultiAgent::TeamBusyError, /resume/) { |error|
+      expect(error).not_to be_a(Phronomy::AgentBusyError)
+      expect(error.team_id).to eq(team.team_id)
+      expect(error.code).to eq("team.busy")
+    }
     expect(team.executions.map(&:team_execution_id)).to eq([run.team_execution_id])
   end
 

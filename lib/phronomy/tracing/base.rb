@@ -34,14 +34,43 @@ module Phronomy
       # @return [Object] the block's return value
       # @api public
       def trace(name, input: nil, **meta)
-        span = start_span(name, input: input, **meta)
-        result, usage = yield span
-        finish_span(span, output: result, usage: usage)
-        result
-      rescue => e
-        finish_span(span, error: e)
-        raise
+        Base.trace_with(self, name, attributes: {input: input, **meta}) { |span| yield span }
       end
+
+      # Use the public start/finish SPI, including duck-typed tracers.
+      # Start failures do not finish; finish is attempted once after execution.
+      # A secondary finish/reporting failure cannot replace the block's error.
+      # Set record_output: false for metadata-only operations.
+      # @api public
+      def self.trace_with(tracer, name, record_output: true, attributes: {})
+        span = tracer.start_span(name, **attributes)
+        begin
+          result, usage = yield span
+        rescue => primary
+          begin
+            tracer.finish_span(span, error: primary)
+          rescue => secondary
+            report_secondary(secondary)
+          end
+          raise
+        end
+        if record_output
+          tracer.finish_span(span, output: result, usage: usage)
+        else
+          tracer.finish_span(span)
+        end
+        result
+      end
+
+      def self.report_secondary(error)
+        Phronomy::RuntimeSettings.current.logger&.warn(
+          "[Phronomy::Tracing] secondary finish failure: #{error.class}: #{error.message}"
+        )
+      rescue
+        # Diagnostics are best effort; preserve the primary business failure.
+        nil
+      end
+      private_class_method :report_secondary
 
       # Start a new span. Must return an object that will be passed to #finish_span.
       #

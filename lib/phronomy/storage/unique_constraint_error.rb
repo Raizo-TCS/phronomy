@@ -7,10 +7,10 @@ module Phronomy
     class UniqueConstraintError < ConflictError
       attr_reader :resource, :constraint
       # @api public
-      def initialize(resource:, constraint:)
+      def initialize(resource:, constraint:, code: nil)
         @resource = resource.id
         @constraint = constraint
-        super("unique constraint #{resource.id}.#{constraint} failed")
+        super("unique constraint #{resource.id}.#{constraint} failed", code: code)
       end
     end
   end

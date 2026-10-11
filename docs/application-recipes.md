@@ -38,7 +38,8 @@ raise "Unexpected load" unless ConversationAgent.load("recipe-session", persiste
 
 def load_existing_agent(agent_class:, agent_id:, persistence:)
   agent_class.load(agent_id, persistence: persistence)
-rescue Phronomy::Persistence::NotFoundError
+rescue Phronomy::AgentNotFoundError => error
+  raise unless error.agent_id == agent_id.to_s
   nil
 end
 

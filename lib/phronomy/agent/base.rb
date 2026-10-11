@@ -579,7 +579,12 @@ module Phronomy
         if load_existing
           root = records = nil
           @persistence.transaction do |tx|
-            root = tx.agents.load(@agent_id)
+            begin
+              root = tx.agents.load(@agent_id)
+            rescue Phronomy::Persistence::NotFoundError => error
+              raise if error.is_a?(Phronomy::AgentNotFoundError)
+              raise Phronomy::AgentNotFoundError.new(agent_id: @agent_id), cause: error
+            end
             records = tx.journals.read(
               @agent_id,
               limit: root.journal_position

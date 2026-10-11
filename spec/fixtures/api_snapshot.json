@@ -16,6 +16,115 @@
     "public_class_methods": [
       "diagnostic",
       "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::AgentNotFoundError",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::MultiAgent::TeamNotFoundError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace",
+      "team_id"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::MultiAgent::TeamBusyError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace",
+      "team_id"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Embeddings::AuthenticationError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Embeddings::RateLimitError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
       "to_tty?"
     ]
   },
@@ -856,7 +965,9 @@
       "start_span",
       "trace"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+      "trace_with"
+    ]
   },
   {
     "name": "Phronomy::Tracing::NullTracer",
@@ -866,7 +977,9 @@
       "start_span",
       "trace"
     ],
-    "public_class_methods": []
+    "public_class_methods": [
+      "trace_with"
+    ]
   },
   {
     "name": "Phronomy::Tools::Mcp",

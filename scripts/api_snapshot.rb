@@ -19,6 +19,11 @@ require_relative "../lib/phronomy"
 PUBLIC_API_ENTRIES = [
   # Stable
   Phronomy::Error,
+  Phronomy::AgentNotFoundError,
+  Phronomy::MultiAgent::TeamNotFoundError,
+  Phronomy::MultiAgent::TeamBusyError,
+  Phronomy::Embeddings::AuthenticationError,
+  Phronomy::Embeddings::RateLimitError,
   Phronomy::Agent::Base,
   Phronomy::Agent::ReservedExecution,
   Phronomy::Agent::ExecutionObservation,

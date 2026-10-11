@@ -97,24 +97,17 @@ module Phronomy
       private
 
       def invoke_policy(policy, policy_input)
-        tracer = @tracer
-        span = tracer.start_span(
-          "context_policy",
-          agent_id: policy_input.agent_id,
-          execution_id: policy_input.execution_id,
-          call_sequence: policy_input.call_sequence,
-          policy_class: policy.class.name || policy.class.to_s,
-          instruction_count: policy_input.instruction.length,
-          knowledge_count: policy_input.knowledge.length,
-          tool_count: policy_input.tools.length,
-          conversation_group_count: policy_input.conversation.length
-        )
-        result = policy.call(policy_input)
-        tracer.finish_span(span)
-        result
-      rescue => error
-        tracer&.finish_span(span, error: error) if defined?(span) && span
-        raise
+        Phronomy::Tracing::Base.trace_with(
+          @tracer, "context_policy", record_output: false,
+          attributes: {agent_id: policy_input.agent_id,
+                       execution_id: policy_input.execution_id,
+                       call_sequence: policy_input.call_sequence,
+                       policy_class: policy.class.name || policy.class.to_s,
+                       instruction_count: policy_input.instruction.length,
+                       knowledge_count: policy_input.knowledge.length,
+                       tool_count: policy_input.tools.length,
+                       conversation_group_count: policy_input.conversation.length}
+        ) { [policy.call(policy_input), nil] }
       end
 
       def store_manifest(

@@ -38,4 +38,14 @@ RSpec.describe Phronomy::Embeddings::AsyncClient do
     task = build_client.embed_async(text, token)
     expect(task.wait_result(timeout: 2)).to equal(vector)
   end
+  it "transports the provider category, reason and original cause after asynchronous execution" do
+    backend = Phronomy::Embeddings::RubyLLMEmbeddings.new
+    source = RubyLLM::RateLimitError.new("limited")
+    allow(RubyLLM).to receive(:embed).and_raise(source)
+    task = described_class.new(adapter: backend).embed_async("query")
+    expect { task.wait_result(timeout: 2) }.to raise_error(Phronomy::Embeddings::RateLimitError) { |error|
+      expect(error.code).to eq("embeddings.rate_limited")
+      expect(error.cause).to equal(source)
+    }
+  end
 end

@@ -40,8 +40,12 @@ module Phronomy
         opts[:provider] = @provider if @provider
         opts[:assume_model_exists] = true if @assume_model_exists
         ::RubyLLM.embed(text, **opts).vectors
+      rescue ::RubyLLM::UnauthorizedError, ::RubyLLM::ForbiddenError => error
+        raise AuthenticationError.new(error.message, code: "embeddings.authentication_failed"), cause: error
+      rescue ::RubyLLM::RateLimitError => error
+        raise RateLimitError.new(error.message, code: "embeddings.rate_limited"), cause: error
       rescue ::RubyLLM::Error => error
-        raise TransportError, error.message
+        raise TransportError.new(error.message), cause: error
       end
     end
   end

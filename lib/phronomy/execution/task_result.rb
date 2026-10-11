@@ -308,8 +308,13 @@ module Phronomy
     def deliver_completion_callback(callback, value, error)
       callback.call(value, error)
     rescue => callback_error
-      Phronomy::RuntimeSettings.current.logger&.error do
-        "[TaskResult] on_complete callback raised #{callback_error.class}: #{callback_error.message}"
+      begin
+        Phronomy::RuntimeSettings.current.logger&.error do
+          "[TaskResult] on_complete callback raised #{callback_error.class}: #{callback_error.message}"
+        end
+      rescue
+        # Reporting must not interrupt delivery to the remaining observers.
+        nil
       end
     end
 

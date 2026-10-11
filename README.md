@@ -40,7 +40,11 @@ The following application APIs are part of unreleased development:
 | API | Stability | Contract |
 |---|---|---|
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
-| `Phronomy::Error#code` and `code:` | Beta | Optional reason codes retained in saved failure diagnostics; [meaning and compatibility](docs/failure-reason-codes.md) |
+| `Phronomy::Error#code` and error constructor `code:` | Beta | Optional reason codes and bounded causes retained in saved failure diagnostics; [meaning and compatibility](docs/architecture/error-api-review.md) |
+| `Phronomy::AgentNotFoundError#agent_id` | Beta | Identifies absence of the requested Agent root; referenced history and Content failures retain their own errors; [migration](docs/architecture/error-api-review.md) |
+| `Phronomy::MultiAgent::TeamNotFoundError` and `TeamBusyError`, with `team_id` | Beta | Team-owned absence and busy errors; child Agent failures retain their Agent classification; [migration](docs/architecture/error-api-review.md) |
+| `Phronomy::Embeddings::AuthenticationError` and `RateLimitError` | Beta | Embeddings-owned transport error subclasses retaining the provider cause; [migration](docs/architecture/error-api-review.md) |
+| `Phronomy::Tracing::Base.trace_with` | Beta | Uses the tracer start/finish SPI, attempts finish once, and preserves a primary application error; [contract](docs/architecture/error-api-review.md) |
 
 ## Installation
 

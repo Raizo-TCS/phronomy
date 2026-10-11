@@ -124,4 +124,10 @@ RSpec.describe Phronomy::Tracing::OpenTelemetryTracer do
       expect(child_span.parent_span_id).to eq(parent_span.span_id)
     end
   end
+  it "uses the shared lifetime policy when business work and span finish both fail" do
+    primary = ArgumentError.new("business")
+    expect(tracer).to receive(:finish_span).once.and_raise(IOError.new("finish"))
+    expect { tracer.trace("failing") { raise primary } }
+      .to raise_error { |error| expect(error).to equal(primary) }
+  end
 end

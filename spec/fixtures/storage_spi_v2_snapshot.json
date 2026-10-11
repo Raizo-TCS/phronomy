@@ -456,6 +456,10 @@
         [
           "keyreq",
           "constraint"
+        ],
+        [
+          "key",
+          "code"
         ]
       ],
       "resource": []
@@ -466,6 +470,10 @@
         [
           "req",
           "condition"
+        ],
+        [
+          "key",
+          "code"
         ]
       ]
     }

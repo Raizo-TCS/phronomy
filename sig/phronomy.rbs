@@ -5,6 +5,7 @@ module Phronomy
     attr_reader code: String?
     def initialize: (?untyped message, ?code: String?) -> void
     def self.diagnostic: (Exception) -> Hash[String, untyped]
+    def self.from_diagnostic: (Hash[untyped, untyped], ?remaining: Integer) -> Error
   end
 
   class ParseError < Error

@@ -75,4 +75,9 @@ RSpec.describe Phronomy::Tracing::Base do
       tracer.trace("my_op") { |_span| [nil, nil] }
     end
   end
+  it "does not consume application metadata named record_output" do
+    expect(tracer).to receive(:start_span).with("op", input: nil, record_output: false).and_call_original
+    expect(tracer).to receive(:finish_span).with(anything, output: "result", usage: nil)
+    expect(tracer.trace("op", record_output: false) { ["result", nil] }).to eq("result")
+  end
 end

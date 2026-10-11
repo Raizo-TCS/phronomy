@@ -1,0 +1,8 @@
+module Phronomy
+  module MultiAgent
+    class TeamBusyError < Phronomy::Error
+      attr_reader team_id: String
+      def initialize: (?String? message, team_id: untyped) -> void
+    end
+  end
+end

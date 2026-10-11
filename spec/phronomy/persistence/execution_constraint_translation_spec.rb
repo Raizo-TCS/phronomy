@@ -56,7 +56,7 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no
               error = Phronomy::Storage::UniqueConstraintError.new(resource: resource, constraint: :one_active_owner)
               allow(raw).to receive((operation == :create_active) ? :insert : :replace).and_raise(error)
             end
-            expect(&invoke_operation).to raise_error(Phronomy::AgentBusyError) { |mapped|
+            expect(&invoke_operation).to raise_error((fixture == :agent_execution) ? Phronomy::AgentBusyError : Phronomy::MultiAgent::TeamBusyError) { |mapped|
               expect(mapped.cause).to equal(error)
             }
           end
@@ -104,7 +104,7 @@ RSpec.describe "Feature-owned storage constraint translation (ADR-058; F0/F2, no
           content_id = tx.contents.put_text("must roll back with mapped error")
           tx.public_send(kind).create_active(other)
         end
-      end.to raise_error(Phronomy::AgentBusyError) { |error|
+      end.to raise_error((kind == :executions) ? Phronomy::AgentBusyError : Phronomy::MultiAgent::TeamBusyError) { |error|
         expect(error.cause).to be_a(Phronomy::Storage::UniqueConstraintError)
       }
       expect(persistence.contents.exist?(content_id)).to be(false)

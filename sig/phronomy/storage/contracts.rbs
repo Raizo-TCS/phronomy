@@ -16,11 +16,11 @@ module Phronomy
     class UniqueConstraintError < ConflictError
       attr_reader resource: String
       attr_reader constraint: Symbol
-      def initialize: (resource: Resource, constraint: Symbol) -> void
+      def initialize: (resource: Resource, constraint: Symbol, ?code: String?) -> void
     end
     class ConditionFailedError < ConflictError
       attr_reader condition: condition
-      def initialize: (condition) -> void
+      def initialize: (condition, ?code: String?) -> void
     end
     class BlobConflictError < ConflictError
     end

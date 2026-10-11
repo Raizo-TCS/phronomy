@@ -75,6 +75,8 @@ RSpec.describe "Tool-owned asynchronous operation rules" do
     source.fail(error)
     expect { result.wait_result }.to raise_error(Phronomy::ToolError, /execution failed: failed/) { |wrapped|
       expect(wrapped.backtrace).to eq(error.backtrace)
+      expect(wrapped.cause).to equal(error)
+      expect(wrapped.code).to eq("tool.execution_failed")
     }
   end
 
@@ -94,5 +96,25 @@ RSpec.describe "Tool-owned asynchronous operation rules" do
       tool.source = Phronomy::TaskResult.failed(error)
       expect { tool.call_async({value: 1}).wait_result }.to raise_error { |actual| expect(actual).to equal(error) }
     end
+  end
+  it "uses the same execution code and cause for sync and delayed failures" do
+    error = IOError.new("transport")
+    allow(tool).to receive(:execute).and_raise(error)
+    expect { tool.call({value: 1}) }.to raise_error(Phronomy::ToolError) { |wrapped|
+      expect(wrapped.cause).to equal(error)
+      expect(wrapped.code).to eq("tool.execution_failed")
+    }
+  end
+
+  it "preserves suppression even if diagnostic logging also fails" do
+    tool_class.on_error :suppress
+    logger = double("logger")
+    allow(Phronomy::RuntimeSettings.current).to receive(:logger).and_return(logger)
+    allow(logger).to receive(:warn).and_raise(IOError.new("logger failed"))
+    allow(tool).to receive(:execute).and_raise(IOError.new("operation"))
+    expect(tool.call({value: 1})).to eq("Tool error suppressed: operation")
+    task = tool.call_async({value: 1})
+    source.fail(IOError.new("operation"))
+    expect(task.wait_result).to eq("Tool error suppressed: operation")
   end
 end
