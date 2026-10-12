@@ -1,4 +1,7 @@
 module Phronomy
+  class WorkflowTaskResumeError < Error
+    def initialize: (?String message, ?code: String?) -> void
+  end
   module WorkflowContext
     def phase: () -> Symbol
     def halted?: () -> bool
@@ -20,6 +23,7 @@ module Phronomy
     class Builder
       def initial: (Symbol state_name) -> untyped
       def state: (Symbol name, ?action: untyped) -> untyped
+      def task_state: (Symbol name, start: ^(untyped) -> TaskResult[untyped], apply: ^(untyped, untyped) -> untyped) -> void
       def entry: (Symbol name, untyped callable) -> untyped
       def exit: (Symbol name, untyped callable) -> untyped
       def wait_state: (Symbol name) -> untyped

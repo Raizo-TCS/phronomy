@@ -42,6 +42,8 @@ PUBLIC_API_ENTRIES = [
   Phronomy::InvocationContext,
   Phronomy::Tool::Base,
   Phronomy::Workflow,
+  Phronomy::Workflow::Builder,
+  Phronomy::WorkflowTaskResumeError,
   Phronomy::WorkflowContext,
   Phronomy::Runnable,
   Phronomy::Context::PromptTemplate,

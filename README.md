@@ -21,7 +21,7 @@ tracking `main` directly.
 
 - **Agent** — stateful, persistence-backed LLM agent with canonical execution history.
 - **Persistence** — shared atomic scopes with domain-owned Agent/Team stores and Workflow checkpoints.
-- **Workflow** — state-machine-driven application workflow with explicit events and wait states.
+- **Workflow** — state-machine-driven application workflow with task states, explicit events and wait states.
 - **Tool / Capability** — callable application capability exposed to an Agent; application-defined Tools subclass `Phronomy::Tool::Base`.
 - **Multi-Agent Handoff** — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
@@ -39,6 +39,7 @@ The following application APIs are part of unreleased development:
 
 | API | Stability | Contract |
 |---|---|---|
+| `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
 | `Phronomy::Error#code` and error constructor `code:` | Beta | Optional reason codes and bounded causes retained in saved failure diagnostics; [meaning and compatibility](docs/architecture/error-api-review.md) |
 | `Phronomy::AgentNotFoundError#agent_id` | Beta | Identifies absence of the requested Agent root; referenced history and Content failures retain their own errors; [migration](docs/architecture/error-api-review.md) |

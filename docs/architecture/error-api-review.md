@@ -5,12 +5,17 @@ knowing its backend or reconstructing it from an error message. The review uses
 core `5b9d1047cc1351a935a7871ae7705c65166ea971` and examples
 `5f4d58dc9432a84cb4421d3cc7dc2da92aee3c72` as its baseline.
 
-This change implements the error API part of the follow-up design. DX05-B
+The original DX05-A change implements the error API part of the follow-up design. DX05-B
 (notification wiring), C (review result collection), D (`task_state`) and E
 (Agent scope/unload) remain separate work. Their proposed APIs are not provided
 by this patch. EA06's integration with D/E cannot be accepted before those APIs
 exist. Live PostgreSQL, Redis, provider services and complete Rails execution
 are separate acceptance gates; see the delivery's verification record.
+
+The subsequent, unreleased DX05-D change now provides `task_state`; see
+[its design and acceptance boundary](dx05-workflow-task-state.md).
+Its error decision is included below. Agent scope/unload (DX05-E) remains
+separate work. This does not change the historical DX05-A baseline above.
 
 ## Rules and ownership
 
@@ -46,7 +51,7 @@ that every possible backend failure has been injected.
 | C01 | TeamCoordinator.create/load: root absence, duplicate identity, uncertain create; direct raise | Add TeamNotFoundError only around the requested root load. Duplicate create retains Persistence conflict: a separate AlreadyExists class adds no necessary recovery choice here. A failed create readback keeps the original failure. | team_coordinator_spec; durable_coordination_spec |
 | C01 | invoke/admission, TeamExecutionRepository.create_active/save/assert_idle!: active Team run | TeamBusyError with team_id and team.busy replaces AgentBusyError only for Team ownership. Child-Agent failures retain their own classes. No AgentBusy alias or inheritance. | execution_constraint_translation_spec; shared SQL coordination contract |
 | C01 | HandoffRunner.invoke/cancel, Orchestrator fan-out, operation rejection | Retain ConfigurationError, HandoffError, StateConflictError, recovery requirements and on_error policy. Missing retained children are not missing Teams. Readback reconciliation may itself fail and does not prove absence. OperationRejected stays private; public code team.enqueue_after_finalize is unchanged. | durable_coordination_spec; integration/team_coordinator_spec; SQL reason diagnostics |
-| C02 | Workflow definition/action, WorkflowContext writes, state CAS, waiting/resume | Retain ConfigurationError, WorkflowContextOwnershipError, WorkflowAsyncActionError and persistence conflict. Workflow has no equivalent target-root load API to justify another NotFound class. task_state/scope integration remains outside this patch. | workflow and execution unit/integration suites |
+| C02 | Workflow definition/action, WorkflowContext writes, state CAS, waiting/resume | Retain ConfigurationError, WorkflowContextOwnershipError, WorkflowAsyncActionError and persistence conflict. Workflow has no equivalent target-root load API to justify another NotFound class. DX05-D adds WorkflowTaskResumeError with workflow.task_resume_unsupported only for unsupported restoration of a task-state phase, before any start side effect. Start/source/apply failures keep their original errors, and task cancellation remains distinct from a failed CancellationError. Agent scope is separate. | workflow and execution unit/integration suites; task_state_spec; shared SQL task-state contract (live PostgreSQL acceptance pending) |
 | C03 | GeneratorVerifier.invoke; parse fallback and confidence decision | Preserve ParseError-only fallback and LowConfidenceError.result. Add optional constructor code; do not absorb provider/callback errors into a GenerationError. | generator_verifier specs; error_api_diagnostics_spec |
 | C04 | Base.load, create/get, invoke/resume/purge | Add AgentNotFoundError only at the requested root. Journal/content/execution absence remains persistence failure. Preserve foreign AgentNotFound identity. AlreadyExists/Busy/Purged, uncertain purge and recovery-required retain their meaning. | error_api_boundaries_spec; Agent lifecycle/recovery suites |
 | C04 | stream listener policy; result/failure persistence | StreamCallbackError keeps event_type/original_error/result, with optional code. Listener :fail_task versus :log_and_continue remains explicit; no unconditional callback swallowing. | stream_callback_error_policy_spec; error_api_diagnostics_spec |
@@ -237,3 +242,4 @@ Ripper inspected 339 Ruby files. The following 63 definitions include base, priv
 | `Phronomy::ToolError` | `Phronomy::Error` | `lib/phronomy/tool/tool_error.rb` |
 | `Phronomy::VectorStore::InvalidResultError` | `Phronomy::Error` | `lib/phronomy/vector_store/invalid_result_error.rb` |
 | `Phronomy::WorkflowContextOwnershipError` | `Phronomy::Error` | `lib/phronomy/workflow/execution/workflow_context_ownership_error.rb` |
+| `Phronomy::WorkflowTaskResumeError` (DX05-D) | `Phronomy::Error` | `lib/phronomy/workflow/execution/workflow_task_resume_error.rb` |

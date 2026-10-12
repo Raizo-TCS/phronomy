@@ -13,6 +13,7 @@ CI substitutes only the LLM adapter; Agent, Tool and Workflow operations are rea
 | Intermediate events | Construction-time `on_event:` | Keep the callback short |
 | Streamed tokens | `stream` / `stream_async` with a listener | Move network delivery out of the callback |
 | Durable approval | `approve_async` with the request IDs | Apply the application's authorization decision |
+| State-owned asynchronous result | `task_state(name, start:, apply:)` | Framework correlates completion to state entry |
 | Live Workflow notification | `workflow.signal(...)` | Check admission; correlate the waiting operation |
 
 `TaskResult#wait_result` waits at an external application boundary. Completion
@@ -82,12 +83,49 @@ arguments or blocks are rejected. Do not replace a listener by loading an
 already-live Agent. See [approval](getting-started.md#human-in-the-loop-approval)
 for the separate durable approval identifiers and application decision.
 
+## Workflow task states
+
+When a Workflow owns the start of an operation, use `task_state` to keep the
+application focused on its operation, result fields and routing decisions.
+The example below returns the original error to its caller if either invocation
+fails; it does not silently retry or convert a failed invocation into an answer.
+
+```ruby runnable
+class TwoAnswersState
+  include Phronomy::WorkflowContext
+  field :question, type: :replace
+  field :answers, type: :replace, default: -> { [] }
+end
+class TwoAnswersAgent < Phronomy::Agent::Base
+  agent_definition id: "recipe-two-answers", version: 1
+  model "gpt-4o-mini"
+  instructions "Answer briefly."
+end
+agent = TwoAnswersAgent.new
+workflow = Phronomy::Workflow.define(TwoAnswersState) do
+  initial :asking
+  task_state :asking,
+    start: ->(state) { agent.invoke_async(state.question) },
+    apply: ->(state, result) { state.merge(answers: state.answers + [result.fetch(:output)]) }
+  state :decide
+  transition from: :asking, to: :decide
+  transition from: :decide, to: :__finish__, guard: ->(state) { state.answers.length >= 2 }
+  transition from: :decide, to: :asking
+end
+puts workflow.invoke({question: "Explain completion handles"}).answers
+```
+
+Expected business failures can be converted into application values before
+returning the source Task, for example using `TaskResult.all_settled` and `map`.
+Phronomy does not select a fallback or retry policy. See the
+[full contract](architecture/dx05-workflow-task-state.md).
+
 ## Workflow completion and failures
 
-The [minimal connection](getting-started.md#workflow-basics) preserves the
-success-only purpose of the old event-block example. The following recipe adds
-operation failure/cancellation and delivery failure handling. Those are additional
-application behaviors, not extra arguments required for a successful call.
+The following **legacy low-level signal recipe** is retained for existing users
+and its compatibility tests. New state-owned asynchronous operations should use
+`task_state` above. The restrictions below apply to this manual recipe, not to
+the new task-state API.
 
 This recipe targets **one live waiting stage**. Do not restart, reenter or replace
 that stage while a result is pending. A logical `workflow_instance_id` alone does

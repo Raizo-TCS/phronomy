@@ -94,7 +94,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 
 | Feature | Stability |
 |---|---|
-| **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |
+| **Workflow asynchronous pattern** — `task_state` starts a `TaskResult`, applies its successful value once to the current state entry, and then evaluates ordinary transitions; `Workflow#signal` remains the application event API | Beta |
 | **Durable Handoff** — `MultiAgent::Handoff` and `MultiAgent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |

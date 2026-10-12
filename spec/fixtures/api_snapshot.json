@@ -575,6 +575,42 @@
     ]
   },
   {
+    "name": "Phronomy::Workflow::Builder",
+    "type": "class",
+    "public_instance_methods": [
+      "build",
+      "entry",
+      "exit",
+      "initial",
+      "state",
+      "task_state",
+      "transition",
+      "wait_state"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::WorkflowTaskResumeError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
     "name": "Phronomy::WorkflowContext",
     "type": "module",
     "public_instance_methods": [

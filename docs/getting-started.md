@@ -306,18 +306,16 @@ not inject an explicit `persistence:`. Workflow durability is fixed at the
 application/Workflow-definition boundary; there is no per-invocation backend
 switch.
 
-Workflow entry and transition actions are synchronous Run-to-Completion
-callbacks. If a Workflow needs an Agent or another asynchronous lifecycle, start
-it asynchronously, return the Workflow context immediately, and deliver its
-completion later with `Workflow#signal`.
+Use `task_state` when a state starts an asynchronous operation and needs its
+terminal result before proceeding. `start` returns the TaskResult immediately;
+`apply` updates the current Workflow context on EventLoop. Guards run after
+successful application. Ordinary entry and transition actions remain synchronous.
 
 ```ruby runnable
 class AnswerContext
   include Phronomy::WorkflowContext
-
   field :question, type: :replace, default: ""
-  field :answer,   type: :replace, default: nil
-  # workflow_instance_id is framework-owned metadata; do not declare it as a field.
+  field :answer, type: :replace, default: nil
 end
 
 class ResearchAgent < Phronomy::Agent::Base
@@ -327,36 +325,12 @@ class ResearchAgent < Phronomy::Agent::Base
 end
 
 my_agent = ResearchAgent.new
-workflow = nil
-
 workflow = Phronomy::Workflow.define(AnswerContext) do
   initial :asking
-  state :asking
-  state :done
-
-  entry :asking, ->(ctx) {
-    workflow_instance_id = ctx.workflow_instance_id
-
-    my_agent.invoke_async(ctx.question).on_complete do |result, operation_error|
-      next if operation_error
-
-      workflow.signal(
-        workflow_instance_id: workflow_instance_id,
-        event: :answer_ready,
-        payload: {answer: result[:output]}
-      )
-    end
-
-    ctx
-  }
-
-  transition(
-    from: :asking,
-    on: :answer_ready,
-    to: :done,
-    action: ->(ctx, event) { ctx.merge(answer: event.payload[:answer]) }
-  )
-  transition from: :done, to: :__finish__
+  task_state :asking,
+    start: ->(state) { my_agent.invoke_async(state.question) },
+    apply: ->(state, result) { state.merge(answer: result.fetch(:output)) }
+  transition from: :asking, to: :__finish__
 end
 
 answer = workflow.invoke(
@@ -366,15 +340,20 @@ answer = workflow.invoke(
 puts answer.answer
 ```
 
-This is the minimal success-only connection. It does not notify the Workflow
-when the Agent fails or is cancelled, and it does not inspect a rejected signal.
-It is limited to one live waiting stage with no restart or replacement while
-the answer is pending. Acceptance of a signal does not mean its transition has
-completed. For explicit operation and delivery failure handling, use the
-[complete Workflow recipe](application-recipes.md#workflow-completion-and-failures).
+Phronomy correlates completion to this execution and state entry, ignores stale
+results after exit or reentry, and propagates start/source/apply failures to the
+caller. A cancelled source cancels the Workflow observation; a failed source
+retains its failure classification. External business events still use
+`Workflow#signal` or `send_event`.
 
-Returning a `Phronomy::TaskResult` from a Workflow entry/transition action is not an
-implicit await mechanism and is rejected.
+`task_state` is a live wait, while `wait_state` halts the current execution segment.
+Pending Tasks are not persisted: attempting to restore a task-state snapshot
+raises `WorkflowTaskResumeError`. Normal wait-state halt/resume remains supported.
+Parent cancellation stops application of the result; cancelling the child itself
+requires explicit controls passed by the application. See the
+[task-state contract](architecture/dx05-workflow-task-state.md) for these boundaries.
+
+Returning a TaskResult from an ordinary entry/transition action remains an error.
 
 ## Agent as Tool
 

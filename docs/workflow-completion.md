@@ -1,10 +1,11 @@
 # A bounded Workflow completion recipe
 
-The proposed generic `Phronomy::Integrations::WorkflowCompletion.forward` API is
-not introduced. `Workflow#signal` addresses a logical Workflow ID, not a specific
-execution or entry into a waiting state. That proposed signature cannot by itself
-prevent an old completion from reaching a later waiting stage. No new execution
-generation, child registry or automatic recovery is added to solve this here.
+This is a **legacy manual-signal recipe**, retained for compatibility and its
+bounded-lifetime tests. New code should use
+[`task_state`](architecture/dx05-workflow-task-state.md), which owns completion
+correlation and failure propagation for operations started by a Workflow state.
+The helper below is application code and is not a Phronomy integration API.
+Its limitations do not describe the new task-state API.
 
 Use the application-local function below only for **one live waiting stage, with
 no restart, reentry or replacement while its operation is pending**. It separates

@@ -23,5 +23,6 @@ module Phronomy
     def compile_transitions(**definition) = raise(NotImplementedError)
     def build_session(**options) = raise(NotImplementedError)
     def register_session(session, completion:) = raise(NotImplementedError)
+    def subscribe_cancellation(token, &callback) = raise(NotImplementedError)
   end
 end
