@@ -12,7 +12,7 @@ module Phronomy
           Phronomy::Persistence::StorageBoundary.call do
             raise Phronomy::Storage::SerializationError, "create_active requires an active TeamExecution" unless execution.active?
             record = Codec.encode_team_execution(execution)
-            admission do
+            admission(execution.team_id) do
               @view.atomic do |bound|
                 entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).insert(key: execution.team_execution_id.to_s,
                   revision: Integer(execution.execution_revision), attributes: attributes(execution), record: record)
@@ -42,7 +42,7 @@ module Phronomy
               raise Phronomy::Storage::SerializationError, "Execution identity mismatch"
             end
             record = Codec.encode_team_execution(execution)
-            admission do
+            admission(execution.team_id) do
               @view.atomic do |bound|
                 entry = bound.records(Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS).replace(key: team_execution_id.to_s,
                   expected_revision: expected, next_revision: revision, attributes: attributes(execution),
@@ -92,7 +92,7 @@ module Phronomy
               conditions: [condition])
           rescue Phronomy::Storage::ConditionFailedError => error
             raise unless error.condition.equal?(condition)
-            raise Phronomy::AgentBusyError, error.message
+            raise Phronomy::MultiAgent::TeamBusyError.new(error.message, team_id: team_id), cause: error
           end
         end
 
@@ -100,11 +100,11 @@ module Phronomy
 
         def attributes(execution) = {owner: execution.team_id.to_s, active: execution.active?}
 
-        def admission
+        def admission(team_id)
           yield
         rescue Phronomy::Storage::UniqueConstraintError => error
           raise unless error.resource == Phronomy::MultiAgent::Persistence::StorageSchema::EXECUTIONS.id && error.constraint == :one_active_owner
-          raise Phronomy::AgentBusyError, error.message
+          raise Phronomy::MultiAgent::TeamBusyError.new(error.message, team_id: team_id), cause: error
         end
 
         def decode(entry, team_execution_id, owner: nil, revision: nil, active: nil)

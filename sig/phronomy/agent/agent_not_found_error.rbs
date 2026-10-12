@@ -1,0 +1,6 @@
+module Phronomy
+  class AgentNotFoundError < Phronomy::Persistence::NotFoundError
+    attr_reader agent_id: String
+    def initialize: (agent_id: untyped) -> void
+  end
+end

@@ -6,9 +6,9 @@ module Phronomy
   class ExecutionCancellationError < CancellationError
     attr_reader :outcomes
 
-    def initialize(message = "Execution cancelled", outcomes:)
+    def initialize(message = "Execution cancelled", outcomes:, code: nil)
       @outcomes = outcomes
-      super(message)
+      super(message, code: code)
     end
   end
 end

@@ -18,7 +18,7 @@ module Phronomy
         @agent, @id, @input, @config = agent, execution_id.to_s.freeze, input, config.freeze
         @resume_only = resume_only
         @environment = @agent.__execution_environment
-        @completion = Phronomy::TaskResult.deferred(name: "exact-execution:#{@id}")
+        @completion = OperationResult.new(agent: @agent, name: "exact-execution:#{@id}")
       end
 
       def start
@@ -43,13 +43,14 @@ module Phronomy
             [:absent, nil]
           end
         end
+        @completion.track(preparation)
         preparation.on_complete do |prepared, error|
           if error
-            @completion.fail(error)
+            @completion.settle(error: error)
           else
             disposition, result = prepared
             case disposition
-            when :terminal then @completion.complete(result)
+            when :terminal then @completion.settle(result)
             when :absent
               source = @agent.send(:_start_agent_operation, @input,
                 config: @config.merge(phronomy_reserved_execution_id: @id, phronomy_exact_observers: [@completion].freeze),
@@ -58,15 +59,15 @@ module Phronomy
             when :active
               command = Wait.new(coordinator: self, agent: @agent, execution_id: @id)
               posted = @environment.registry.post(command, completion: @completion)
-              @completion.fail(Phronomy::RuntimeShutdownError.new("Exact execution observer rejected")) unless posted
+              @completion.settle(error: Phronomy::RuntimeShutdownError.new("Exact execution observer rejected")) unless posted
             end
           end
         rescue => failure
-          @completion.fail(failure)
+          @completion.settle(error: failure)
         end
         @completion
       rescue => failure
-        @completion.fail(failure)
+        @completion.settle(error: failure)
         @completion
       end
 
@@ -101,7 +102,7 @@ module Phronomy
         waiter.on_complete { |_result, failure| reconcile(failure) }
         @environment.registry.register_agent_completion_waiter(@id, waiter)
       rescue => failure
-        @completion.fail(failure)
+        @completion.settle(error: failure)
       end
 
       private
@@ -157,11 +158,12 @@ module Phronomy
             ))
           end
         end
+        @completion.track(task)
         task.on_complete do |result, error|
-          error ? @completion.fail(error) : @completion.complete(result)
+          error ? @completion.settle(error: error) : @completion.settle(result)
         end
       rescue => error
-        @completion.fail(error)
+        @completion.settle(error: error)
       end
 
       def materialize(execution)

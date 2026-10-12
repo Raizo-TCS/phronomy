@@ -85,6 +85,7 @@ module Phronomy
         @exit_actions = {}
         @transitions = []
         @wait_state_names = []
+        @task_states = {}
       end
 
       def initial(state_name) # rubocop:disable Style/TrivialAccessors
@@ -94,9 +95,10 @@ module Phronomy
       # Declares a Workflow state.
       #
       # Entry actions are synchronous Run-to-Completion callbacks. To start
-      # asynchronous work, register its listener/callback inside the action and
-      # return the context or nil. Returning Phronomy::TaskResult is an error.
+      # asynchronous work owned by this state, use task_state. Ordinary actions
+      # return the context or nil; returning Phronomy::TaskResult is an error.
       def state(name, action: nil)
+        reject_task_state_overlap!(name)
         @declared_states << name
         entry(name, action) if action
       end
@@ -110,7 +112,28 @@ module Phronomy
       end
 
       def wait_state(name)
+        reject_task_state_overlap!(name)
         @wait_state_names << name
+      end
+
+      # Starts one asynchronous operation on state entry and advances only
+      # after its successful result has been applied on the execution owner.
+      # Task completion is correlated to this state entry, not a durable ID.
+      # @param name [Symbol] state name
+      # @param start [#call] short callback accepting a context snapshot and returning TaskResult
+      # @param apply [#call] short callback accepting current context and value; returns context or nil
+      # @return [void]
+      # @api public
+      def task_state(name, start:, apply:)
+        unless name.is_a?(Symbol) && start.respond_to?(:call) && apply.respond_to?(:call)
+          raise ArgumentError, "task_state requires a Symbol name and callable start/apply"
+        end
+        if @declared_states.include?(name) || @wait_state_names.include?(name)
+          raise ArgumentError, "Workflow state #{name.inspect} is already declared"
+        end
+        @declared_states << name
+        @task_states[name] = {start: start, apply: apply}.freeze
+        nil
       end
 
       # Declares a transition.
@@ -167,12 +190,17 @@ module Phronomy
           external_events: external_events,
           entry_point: @initial || @declared_states.first,
           wait_state_names: @wait_state_names.dup,
+          task_states: @task_states.dup.freeze,
           persistence: @persistence
         )
         Workflow.new(runner)
       end
 
       private
+
+      def reject_task_state_overlap!(name)
+        raise ArgumentError, "Workflow task_state #{name.inspect} is already declared" if @task_states.key?(name)
+      end
 
       def validate_graph!
         all_states = (@declared_states + @wait_state_names).uniq

@@ -1,0 +1,6 @@
+module Phronomy
+  class FilterBlockError < Error
+    attr_reader filter: untyped
+    def initialize: (String message, ?filter: untyped, ?code: String?) -> void
+  end
+end

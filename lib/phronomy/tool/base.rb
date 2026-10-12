@@ -383,8 +383,9 @@ module Phronomy
         if schema_error
           case self.class.on_schema_error
           when :raise
-            raise Phronomy::ToolError,
-              "#{self.class.name} schema error: #{schema_error}"
+            raise Phronomy::ToolError.new(
+              "#{self.class.name} schema error: #{schema_error}", code: "tool.invalid_arguments"
+            )
           else
             return "Schema validation failed: #{schema_error}"
           end
@@ -399,17 +400,12 @@ module Phronomy
         raise
       rescue => error
         if self.class.on_error == :suppress
-          msg = "[Phronomy] Tool #{self.class.name} suppressed error: " \
-            "#{error.class}: #{error.message}"
-          if Phronomy::RuntimeSettings.current.logger
-            Phronomy::RuntimeSettings.current.logger.warn(msg)
-          else
-            warn msg
-          end
+          report_suppressed_error(error)
           "Tool error suppressed: #{error.message}"
         else
-          raise Phronomy::ToolError,
-            "#{self.class.name} execution failed: #{error.message}"
+          raise Phronomy::ToolError.new(
+            "#{self.class.name} execution failed: #{error.message}", code: "tool.execution_failed"
+          ), cause: error
         end
       end
 
@@ -462,7 +458,9 @@ module Phronomy
         if schema_error
           return Phronomy::AsyncOperation.capture(name: "#{operation_name}-schema") do
             if self.class.on_schema_error == :raise
-              raise Phronomy::ToolError, "#{self.class.name} schema error: #{schema_error}"
+              raise Phronomy::ToolError.new(
+                "#{self.class.name} schema error: #{schema_error}", code: "tool.invalid_arguments"
+              )
             end
             "Schema validation failed: #{schema_error}"
           end
@@ -472,8 +470,9 @@ module Phronomy
           transform: method(:truncate_result_if_needed)) do
           source = yield(validated_args || {})
           unless source.respond_to?(:on_complete)
-            raise Phronomy::ToolError,
-              "#{self.class.name} asynchronous execution must return a completion handle"
+            raise Phronomy::ToolError.new(
+              "#{self.class.name} asynchronous execution must return a completion handle", code: "tool.invalid_async_result"
+            )
           end
           source
         end
@@ -488,21 +487,24 @@ module Phronomy
         end
 
         if self.class.on_error == :suppress
-          message = "[Phronomy] Tool #{self.class.name} suppressed error: " \
-            "#{error.class}: #{error.message}"
-          if Phronomy::RuntimeSettings.current.logger
-            Phronomy::RuntimeSettings.current.logger.warn(message)
-          else
-            warn message
-          end
+          report_suppressed_error(error)
           "Tool error suppressed: #{error.message}"
         else
           wrapped = Phronomy::ToolError.new(
-            "#{self.class.name} execution failed: #{error.message}"
+            "#{self.class.name} execution failed: #{error.message}", code: "tool.execution_failed"
           )
           wrapped.set_backtrace(error.backtrace)
-          raise wrapped
+          raise wrapped, cause: error
         end
+      end
+
+      def report_suppressed_error(error)
+        message = "[Phronomy] Tool #{self.class.name} suppressed error: #{error.class}: #{error.message}"
+        logger = Phronomy::RuntimeSettings.current.logger
+        logger ? logger.warn(message) : warn(message)
+      rescue
+        # A diagnostic failure must not change the selected suppression policy.
+        nil
       end
 
       def execute_accepts_cancellation_token?

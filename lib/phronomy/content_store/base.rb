@@ -28,13 +28,18 @@ module Phronomy
       def fetch_text(content_id)
         value = fetch(content_id).force_encoding(Encoding::UTF_8)
         unless value.valid_encoding?
-          raise IntegrityError, "content is not UTF-8: #{content_id}"
+          raise IntegrityError.new("content is not UTF-8: #{content_id}", code: "content.invalid_encoding")
         end
         value
       end
 
       def fetch_json(content_id)
-        Phronomy::CanonicalJSON.load(fetch(content_id))
+        bytes = fetch(content_id)
+        begin
+          Phronomy::CanonicalJSON.load(bytes)
+        rescue JSON::ParserError => error
+          raise IntegrityError.new("content is not JSON: #{content_id}", code: "content.invalid_json"), cause: error
+        end
       end
 
       def fetch_many(content_ids)

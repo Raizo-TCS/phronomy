@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
+require_relative "../common/error"
+
 module Phronomy
   module Integrations
     # Optional transport helper. Payload meaning and destinations belong to the app.
     # @api public
     class OrderedEventDelivery
-      class ClosedError < StandardError; end
-      class OverflowError < StandardError; end
+      class ClosedError < Phronomy::Error; end
+      class OverflowError < Phronomy::Error; end
 
       # Close and drain after the block, preserving its result or original failure.
       # A flush timeout limits waiting, not an in-flight network request.
@@ -46,8 +48,9 @@ module Phronomy
 
       def self.report_secondary(error)
         Phronomy.configuration.logger&.error("[OrderedEventDelivery] secondary delivery failure: #{error.class}: #{error.message}")
-      rescue => logging_error
-        warn "[OrderedEventDelivery] secondary failure: #{error.class}: #{error.message}; logger failed: #{logging_error.class}"
+      rescue
+        # Diagnostic reporting must not replace the primary application error.
+        nil
       end
       private_class_method :reject_event_loop!, :validate_timeout!, :report_secondary
 
@@ -76,8 +79,8 @@ module Phronomy
         value = immutable_copy(payload)
         ticket = @mutex.synchronize do
           raise @failure if @failure
-          raise ClosedError, "event delivery closed" unless @accepting
-          raise OverflowError, "event delivery queue full" if @queue.length >= @capacity
+          raise ClosedError.new("event delivery closed", code: "delivery.closed") unless @accepting
+          raise OverflowError.new("event delivery queue full", code: "delivery.capacity_exceeded") if @queue.length >= @capacity
           @queue << value
           next nil if @worker
           @worker = {started: false}

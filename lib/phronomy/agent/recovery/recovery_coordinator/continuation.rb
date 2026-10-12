@@ -52,9 +52,9 @@ module Phronomy
             environment.registry.mark_agent_execution_admission(agent.agent_id,
               execution_id: execution.execution_id, state: :recovery_required)
             deliver_resolution_required(execution, coordination_recovery_descriptor(execution))
-            completion.complete({execution_id: execution.execution_id,
-                                 execution_revision: execution.execution_revision,
-                                 recovery: :resolution_required}.freeze)
+            agent.send(:_complete_result_task, completion, {execution_id: execution.execution_id,
+                                                            execution_revision: execution.execution_revision,
+                                                            recovery: :resolution_required}.freeze)
             return
           end
 

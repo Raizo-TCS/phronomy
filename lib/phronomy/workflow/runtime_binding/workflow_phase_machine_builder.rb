@@ -47,7 +47,8 @@ module Phronomy
           :context,
           :current_event,
           :selected_transition_action,
-          :selected_transition_metadata
+          :selected_transition_metadata,
+          :workflow_task_execution
         )
 
         state_machine :phase, initial: entry do
@@ -85,6 +86,7 @@ module Phronomy
           # Both source exit callbacks and the transition action are
           # before_transition callbacks. Register exits first to preserve the
           # required exit -> transition action -> entry ordering.
+          before_transition { |machine| machine.workflow_task_execution&.leave }
           exit_actions.each do |state_name, callables|
             callables.each do |callable|
               before_transition(

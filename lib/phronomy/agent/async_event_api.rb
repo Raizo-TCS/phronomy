@@ -13,31 +13,39 @@ module Phronomy
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
       def start_reserved_async(reservation:, input:, config: {})
-        unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
-          raise ArgumentError, "reservation must belong to this Agent"
+        __with_operation(async: true) do
+          unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
+            raise ArgumentError, "reservation must belong to this Agent"
+          end
+          config = __invocation_config(_prepare_invocation_config(config, nil))
+          ExactExecution.start(agent: self, execution_id: reservation.execution_id, input: input,
+            config: config.merge(phronomy_reservation: reservation.correlation))
         end
-        config = __invocation_config(_prepare_invocation_config(config, nil))
-        ExactExecution.start(agent: self, execution_id: reservation.execution_id, input: input,
-          config: config.merge(phronomy_reservation: reservation.correlation))
       end
 
       def resume_async(execution_id, config: {})
-        config = __invocation_config(_prepare_invocation_config(config, nil))
-        ExactExecution.start(agent: self, execution_id: execution_id, input: nil, config: config, resume_only: true)
+        __with_operation(async: true) do
+          config = __invocation_config(_prepare_invocation_config(config, nil))
+          ExactExecution.start(agent: self, execution_id: execution_id, input: nil, config: config, resume_only: true)
+        end
       end
 
       def resume(execution_id, config: {})
-        _check_event_loop_reentrancy(:resume, :resume_async)
-        resume_async(execution_id, config: config).wait_result
+        __with_operation do
+          _check_event_loop_reentrancy(:resume, :resume_async)
+          resume_async(execution_id, config: config).wait_result
+        end
       end
 
       def cancel_async(execution_id)
-        __assert_live_agent!
-        environment = __execution_environment
-        environment.submit(on_full: :raise) do
-          requested = persistence.request_cancellation(agent_id: agent_id, execution_id: execution_id)
-          ExecutionCancellation.signal(execution_id, agent_id, environment: environment) if requested
-          persistence.observe_execution(agent_id: agent_id, execution_id: execution_id)
+        __with_operation(async: true) do
+          __assert_live_agent!
+          environment = __execution_environment
+          environment.submit(on_full: :raise) do
+            requested = persistence.request_cancellation(agent_id: agent_id, execution_id: execution_id)
+            ExecutionCancellation.signal(execution_id, agent_id, environment: environment) if requested
+            persistence.observe_execution(agent_id: agent_id, execution_id: execution_id)
+          end
         end
       end
 
@@ -48,15 +56,17 @@ module Phronomy
         **removed_options,
         &removed_block
       )
-        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-        config = _prepare_invocation_config(config, invocation_context)
-        _check_event_loop_reentrancy(:invoke, :invoke_async)
-        _start_agent_operation(
-          input,
-          config: config,
-          mode: :invoke,
-          listener: _phronomy_event_listener
-        ).wait_result
+        __with_operation do
+          _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
+          config = _prepare_invocation_config(config, invocation_context)
+          _check_event_loop_reentrancy(:invoke, :invoke_async)
+          _start_agent_operation(
+            input,
+            config: config,
+            mode: :invoke,
+            listener: _phronomy_event_listener
+          ).wait_result
+        end
       end
 
       def invoke_async(
@@ -66,14 +76,16 @@ module Phronomy
         **removed_options,
         &removed_block
       )
-        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-        config = _prepare_invocation_config(config, invocation_context)
-        _start_agent_operation(
-          input,
-          config: config,
-          mode: :invoke,
-          listener: _phronomy_event_listener
-        )
+        __with_operation(async: true) do
+          _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
+          config = _prepare_invocation_config(config, invocation_context)
+          _start_agent_operation(
+            input,
+            config: config,
+            mode: :invoke,
+            listener: _phronomy_event_listener
+          )
+        end
       end
 
       def stream(
@@ -83,16 +95,18 @@ module Phronomy
         **removed_options,
         &removed_block
       )
-        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-        listener = _required_stream_listener!(:stream)
-        config = _prepare_invocation_config(config, invocation_context)
-        _check_event_loop_reentrancy(:stream, :stream_async)
-        _start_agent_operation(
-          input,
-          config: config,
-          mode: :stream,
-          listener: listener
-        ).wait_result
+        __with_operation do
+          _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
+          listener = _required_stream_listener!(:stream)
+          config = _prepare_invocation_config(config, invocation_context)
+          _check_event_loop_reentrancy(:stream, :stream_async)
+          _start_agent_operation(
+            input,
+            config: config,
+            mode: :stream,
+            listener: listener
+          ).wait_result
+        end
       end
 
       def stream_async(
@@ -102,41 +116,47 @@ module Phronomy
         **removed_options,
         &removed_block
       )
-        _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-        listener = _required_stream_listener!(:stream_async)
-        config = _prepare_invocation_config(config, invocation_context)
-        _start_agent_operation(
-          input,
-          config: config,
-          mode: :stream,
-          listener: listener
-        )
+        __with_operation(async: true) do
+          _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
+          listener = _required_stream_listener!(:stream_async)
+          config = _prepare_invocation_config(config, invocation_context)
+          _start_agent_operation(
+            input,
+            config: config,
+            mode: :stream,
+            listener: listener
+          )
+        end
       end
 
       def approve(execution_id, approval_request_id:, approved: true, config: {})
-        _check_event_loop_reentrancy(:approve, :approve_async)
-        approve_async(
-          execution_id,
-          approval_request_id: approval_request_id,
-          approved: approved,
-          config: config
-        ).wait_result
+        __with_operation do
+          _check_event_loop_reentrancy(:approve, :approve_async)
+          approve_async(
+            execution_id,
+            approval_request_id: approval_request_id,
+            approved: approved,
+            config: config
+          ).wait_result
+        end
       end
 
       def approve_async(execution_id, approval_request_id:, approved: true, config: {})
-        _reject_removed_generic_identity_keys!(config)
-        owner = Phronomy::Agent::ExecutionRegistry.existing_current&.agent_execution_owner(execution_id)
-        coordinator = if owner&.agent&.equal?(self)
-          owner.coordinator
-        else
-          execution_coordinator_for(config)
+        __with_operation(async: true) do
+          _reject_removed_generic_identity_keys!(config)
+          owner = __execution_environment.existing_registry&.agent_execution_owner(execution_id)
+          coordinator = if owner&.agent&.equal?(self)
+            owner.coordinator
+          else
+            execution_coordinator_for(config)
+          end
+          coordinator.resume(
+            execution_id,
+            approval_request_id: approval_request_id,
+            approved: approved,
+            config: config
+          )
         end
-        coordinator.resume(
-          execution_id,
-          approval_request_id: approval_request_id,
-          approved: approved,
-          config: config
-        )
       end
 
       def resolve(
@@ -147,15 +167,17 @@ module Phronomy
         result: Phronomy::Agent::RecoveryRules::MISSING,
         error: Phronomy::Agent::RecoveryRules::MISSING
       )
-        _check_event_loop_reentrancy(:resolve, :resolve_async)
-        resolve_async(
-          execution_id,
-          expected_execution_revision: expected_execution_revision,
-          subject: subject,
-          outcome: outcome,
-          result: result,
-          error: error
-        ).wait_result
+        __with_operation do
+          _check_event_loop_reentrancy(:resolve, :resolve_async)
+          resolve_async(
+            execution_id,
+            expected_execution_revision: expected_execution_revision,
+            subject: subject,
+            outcome: outcome,
+            result: result,
+            error: error
+          ).wait_result
+        end
       end
 
       def resolve_async(
@@ -166,14 +188,16 @@ module Phronomy
         result: Phronomy::Agent::RecoveryRules::MISSING,
         error: Phronomy::Agent::RecoveryRules::MISSING
       )
-        Phronomy::Agent::RecoveryCoordinator.new(self).resolve(
-          execution_id,
-          expected_execution_revision: expected_execution_revision,
-          subject: subject,
-          outcome: outcome,
-          result: result,
-          error: error
-        )
+        __with_operation(async: true) do
+          Phronomy::Agent::RecoveryCoordinator.new(self).resolve(
+            execution_id,
+            expected_execution_revision: expected_execution_revision,
+            subject: subject,
+            outcome: outcome,
+            result: result,
+            error: error
+          )
+        end
       end
 
       private

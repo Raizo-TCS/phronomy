@@ -188,11 +188,22 @@ module Phronomy
           begin
             store.transaction { |tx| tx.teams.create(intended) }
           rescue => error
-            confirmed = store.teams.load(id)
+            begin
+              confirmed = store.teams.load(id)
+            rescue
+              # A failed readback cannot turn an unknown create outcome into
+              # a claim that the Team is absent or safe to create again.
+              raise error, cause: error.cause
+            end
             raise error unless confirmed.to_h == intended.to_h
           end
         end
-        root = store.teams.load(id)
+        begin
+          root = store.teams.load(id)
+        rescue Phronomy::Persistence::NotFoundError => error
+          raise if create || error.is_a?(TeamNotFoundError)
+          raise TeamNotFoundError.new(team_id: id), cause: error
+        end
         unless root.team_definition_id == definition.fetch(:id) && root.team_definition_version == definition.fetch(:version)
           raise Phronomy::ConfigurationError, "Team #{id} definition mismatch"
         end
@@ -238,7 +249,7 @@ module Phronomy
         begin
           persistence.transaction do |tx, scope|
             root = tx.teams.load(team_id)
-            raise Phronomy::AgentBusyError, "Team #{team_id} has an active run; use resume" unless tx.team_executions.list_active(team_id).empty?
+            raise TeamBusyError.new("Team #{team_id} has an active run; use resume", team_id: team_id) unless tx.team_executions.list_active(team_id).empty?
             intended = TeamExecution.new(team_execution_id: id, team_id: team_id,
               execution_revision: 0, status: "active", phase: "coordinator", input_ref: tx.contents.put_text(input),
               coordinator: {"agent_id" => SecureRandom.uuid, "execution_id" => SecureRandom.uuid, "state" => "reserved"},
@@ -465,7 +476,7 @@ module Phronomy
         raise Phronomy::CancellationError, "Team run #{execution.team_execution_id} cancelled" if execution.status == "cancelled"
         if execution.error_ref
           failure = persistence.contents.fetch_json(execution.error_ref)
-          raise Phronomy::Error.new("#{failure.fetch("class")}: #{failure.fetch("message")}", code: failure["code"])
+          raise Phronomy::Error.from_diagnostic(failure)
         end
         persistence.contents.fetch_json(execution.result_ref)
       end

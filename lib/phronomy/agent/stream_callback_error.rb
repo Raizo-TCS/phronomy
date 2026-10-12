@@ -22,14 +22,14 @@ module Phronomy
     # @return [Exception] original Application callback exception
     attr_reader :original_error
 
-    def initialize(event_type:, original_error:, result: nil)
+    def initialize(event_type:, original_error:, result: nil, code: nil)
       @event_type = event_type
       @original_error = original_error
       @result = result
 
       super(
         "Stream callback failed while handling #{event_type.inspect}: " \
-        "#{original_error.class}: #{original_error.message}"
+        "#{original_error.class}: #{original_error.message}", code: code
       )
       set_backtrace(original_error.backtrace)
     end

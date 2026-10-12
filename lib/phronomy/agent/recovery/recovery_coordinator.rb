@@ -147,9 +147,8 @@ module Phronomy
         failure = error_present ?
           RecoverySupport.resolution_failure(error) : nil
 
-        completion = Phronomy::TaskResult.deferred(
-          name: "agent-recovery-resolve:#{execution_id}"
-        )
+        completion = OperationResult.new(agent: agent,
+          name: "agent-recovery-resolve:#{execution_id}")
         command = ResolveCommand.new(
           coordinator: self,
           execution_id: execution_id.to_s.freeze,
@@ -162,18 +161,15 @@ module Phronomy
           completion: completion
         )
         unless post_control(command)
-          completion.fail(
-            Phronomy::RuntimeShutdownError.new(
-              "EventLoop rejected Agent Recovery resolution"
-            )
-          )
+          agent.send(:_fail_result_task, completion,
+            Phronomy::RuntimeShutdownError.new("EventLoop rejected Agent Recovery resolution"))
         end
         completion
       rescue => caught
         completion ||= Phronomy::TaskResult.deferred(
           name: "agent-recovery-resolve:#{execution_id}"
         )
-        completion.fail(caught)
+        agent.send(:_fail_result_task, completion, caught)
         completion
       end
 

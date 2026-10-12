@@ -6,6 +6,12 @@ module Phronomy
     class TransportError < Phronomy::Error
     end
 
+    class AuthenticationError < TransportError
+    end
+
+    class RateLimitError < TransportError
+    end
+
     class Base
       def embed: (String text, ?_CancellationSignal? cancellation_token) -> Array[Float]
 

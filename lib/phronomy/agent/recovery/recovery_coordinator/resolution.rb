@@ -14,24 +14,22 @@ module Phronomy
             request.execution_id
           )
           unless state && state.agent.equal?(agent)
-            request.completion.fail(
+            agent.send(:_fail_result_task, request.completion,
               Phronomy::ExecutionRehydrationRequiredError.new(
                 "no live recovered execution #{request.execution_id}"
-              )
-            )
+              ))
             return
           end
 
           current = state.execution
           unless current.execution_revision ==
               request.expected_execution_revision
-            request.completion.fail(
+            agent.send(:_fail_result_task, request.completion,
               Phronomy::Persistence::StateConflictError.new(
                 "Recovery resolution revision conflict: expected " \
                 "#{request.expected_execution_revision}, actual " \
                 "#{current.execution_revision}"
-              )
-            )
+              ))
             return
           end
 
@@ -42,28 +40,26 @@ module Phronomy
                 descriptor.fetch(:subject),
                 request.subject
               )
-            request.completion.fail(
+            agent.send(:_fail_result_task, request.completion,
               ArgumentError.new(
                 "Recovery subject is not current for execution #{request.execution_id}"
-              )
-            )
+              ))
             return
           end
 
           unless Array(
             descriptor.fetch(:allowed_outcomes)
           ).map(&:to_sym).include?(request.outcome)
-            request.completion.fail(
+            agent.send(:_fail_result_task, request.completion,
               ArgumentError.new(
                 "Recovery outcome #{request.outcome.inspect} is not allowed for the current subject"
-              )
-            )
+              ))
             return
           end
 
           operation = ResolutionOperation.new(
             execution: current,
-            root: agent.agent_root,
+            root: agent.send(:__root_for_operation),
             subject: request.subject,
             outcome: request.outcome,
             result: request.result,
@@ -77,6 +73,7 @@ module Phronomy
           task = @environment.submit(on_full: :raise) do
             prepare_resolution(operation)
           end
+          request.completion.track(task) if request.completion.respond_to?(:track)
           task.on_complete do |result, error|
             ready = ResolveReady.new(
               coordinator: self,
@@ -86,15 +83,14 @@ module Phronomy
               error: error
             )
             unless post_control(ready)
-              request.completion.fail(
+              agent.send(:_fail_result_task, request.completion,
                 Phronomy::RuntimeShutdownError.new(
                   "EventLoop rejected Recovery resolution apply"
-                )
-              )
+                ))
             end
           end
         rescue => caught
-          request.completion.fail(caught)
+          agent.send(:_fail_result_task, request.completion, caught)
         end
 
         def perform_resolution(operation)
@@ -498,7 +494,7 @@ module Phronomy
 
           continue_recovery_on_event_loop(result.execution, request.completion, material: result.material)
         rescue => caught
-          request.completion.fail(caught)
+          agent.send(:_fail_result_task, request.completion, caught)
         end
       end
     end

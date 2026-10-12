@@ -25,12 +25,14 @@ module Phronomy
         @mutex = Mutex.new
         @condition = ConditionVariable.new
         @entries = {}
+        @scope_owners = {}
+        @operations = {}
         @state = :running
       end
 
-      def create(agent_id, expected_class:)
+      def create(agent_id, expected_class:, scope_owner: nil)
         key = normalize_agent_id(agent_id)
-        token = reserve_create!(key)
+        token = reserve_create!(key, scope_owner: scope_owner)
 
         begin
           agent = yield(@environment)
@@ -59,7 +61,7 @@ module Phronomy
         )
       end
 
-      def load(agent_id, expected_class:)
+      def load(agent_id, expected_class:, scope_owner: nil)
         key = normalize_agent_id(agent_id)
         token = nil
 
@@ -67,9 +69,14 @@ module Phronomy
           existing = @mutex.synchronize do
             ensure_running!
             entry = @entries[key]
+            if scope_owner && entry && !@scope_owners[key].equal?(scope_owner)
+              raise Phronomy::AgentBusyError, "Agent #{key.inspect} belongs to another live owner"
+            end
             case entry&.state
             when :live
               entry.agent
+            when :unloading
+              raise Phronomy::AgentBusyError, "Agent #{key.inspect} is unloading"
             when :constructing, :purging
               @condition.wait(@mutex)
               :retry
@@ -78,6 +85,7 @@ module Phronomy
             when nil
               token = Object.new.freeze
               @entries[key] = Entry.new(state: :constructing, agent: nil, token: token)
+              @scope_owners[key] = scope_owner if scope_owner
               nil
             # :nocov:
             else
@@ -119,8 +127,8 @@ module Phronomy
           when :recovery_required
             raise ownership_recovery_error(key)
           # :nocov:
-          when :purging
-            raise Phronomy::Error, "Agent #{key.inspect} is being purged"
+          when :purging, :unloading
+            raise Phronomy::AgentBusyError, "Agent #{key.inspect} is #{entry.state}"
             # :cover:
           end
         end
@@ -129,13 +137,77 @@ module Phronomy
         validate_expected_class!(agent, expected_class, key)
       end
 
+      # Admission and lifetime transitions share this mutex. No Runtime or Store
+      # operation is called while it is held.
+      def acquire_operation(agent, read_only: false)
+        token = Object.new.freeze
+        @mutex.synchronize do
+          ensure_running! unless read_only && @state == :draining
+          entry = @entries[agent.agent_id]
+          if entry&.agent&.equal?(agent) && entry.state == :unloading
+            raise Phronomy::AgentBusyError, "Agent #{agent.agent_id.inspect} is unloading"
+          end
+          unless entry&.state == :live && entry.agent.equal?(agent)
+            raise Phronomy::RuntimeShutdownError, "Agent is no longer the live Runtime owner"
+          end
+          (@operations[agent] ||= {})[token] = true
+        end
+        OperationLease.new(self, agent, token)
+      end
+
+      def release_operation(agent, token)
+        @mutex.synchronize do
+          operations = @operations[agent]
+          operations&.delete(token)
+          @operations.delete(agent) if operations && operations.empty?
+          @condition.broadcast
+        end
+        true
+      end
+
+      # Returns the already accepted transition for duplicate callers.
+      def reserve_unload(agent)
+        @mutex.synchronize do
+          ensure_running!
+          entry = @entries[agent.agent_id]
+          if entry&.state == :unloading && entry.agent.equal?(agent)
+            return [entry.token, false]
+          end
+          unless entry&.state == :live && entry.agent.equal?(agent)
+            raise Phronomy::RuntimeShutdownError, "Agent is no longer the live Runtime owner"
+          end
+          assert_no_operations!(agent)
+          transition = UnloadTransition.new(agent: agent, environment: @environment, ownership: self)
+          @entries[agent.agent_id] = Entry.new(state: :unloading, agent: agent, token: transition)
+          [transition, true]
+        end
+      end
+
+      def finish_unload(agent, transition, success:)
+        @mutex.synchronize do
+          entry = @entries[agent.agent_id]
+          unless entry&.state == :unloading && entry.agent.equal?(agent) && entry.token.equal?(transition)
+            raise Phronomy::RuntimeShutdownError, "Agent unload reservation is no longer authoritative"
+          end
+          if success
+            agent.send(:__mark_unloaded!)
+            @entries.delete(agent.agent_id)
+            @scope_owners.delete(agent.agent_id)
+          else
+            @entries[agent.agent_id] = Entry.new(state: :live, agent: agent, token: nil)
+          end
+          @condition.broadcast
+        end
+        true
+      end
+
       def owned?(agent)
         return false unless agent
 
         key = normalize_agent_id(agent.agent_id)
         @mutex.synchronize do
           entry = @entries[key]
-          entry&.state == :live && entry.agent.equal?(agent)
+          %i[live unloading].include?(entry&.state) && entry.agent.equal?(agent)
         end
       rescue ArgumentError
         false
@@ -151,9 +223,13 @@ module Phronomy
           ensure_running!
           entry = @entries[key]
           unless entry&.state == :live && entry.agent.equal?(agent)
+            if entry&.state == :unloading && entry.agent.equal?(agent)
+              raise Phronomy::AgentBusyError, "Agent #{key.inspect} is unloading"
+            end
             raise Phronomy::RuntimeShutdownError,
               "Agent #{key.inspect} is not the live owner in this Runtime"
           end
+          assert_no_operations!(agent)
           @entries[key] = Entry.new(state: :purging, agent: agent, token: token)
         end
         agent.send(:__mark_purging!, @environment)
@@ -167,6 +243,7 @@ module Phronomy
           validate_purge_entry!(entry, agent, token, key)
           agent.send(:__mark_purged!, @environment)
           @entries.delete(key)
+          @scope_owners.delete(key)
           @condition.broadcast
         end
         true
@@ -215,7 +292,7 @@ module Phronomy
       # ownership transition that is still actively changing state must settle.
       def wait_until_idle(deadline)
         @mutex.synchronize do
-          while @entries.values.any? { |entry| %i[constructing purging].include?(entry.state) }
+          while @entries.values.any? { |entry| %i[constructing purging unloading].include?(entry.state) }
             remaining = deadline - monotonic_now
             # :nocov:
             return false if remaining <= 0
@@ -231,6 +308,8 @@ module Phronomy
           @state = :terminated
           owned = @entries.values.filter_map(&:agent).uniq
           @entries.clear
+          @scope_owners.clear
+          @operations.clear
           @condition.broadcast
           owned
         end
@@ -240,17 +319,22 @@ module Phronomy
 
       private
 
-      def reserve_create!(key)
+      def reserve_create!(key, scope_owner: nil)
         token = Object.new.freeze
         @mutex.synchronize do
           ensure_running!
           if (entry = @entries[key])
             raise ownership_recovery_error(key) if entry.state == :recovery_required
 
+            if scope_owner
+              raise Phronomy::AgentBusyError, "Agent #{key.inspect} already has a Runtime owner"
+            end
+
             raise Phronomy::AgentAlreadyExistsError,
               "Agent #{key.inspect} already exists in this Runtime (#{entry.state})"
           end
           @entries[key] = Entry.new(state: :constructing, agent: nil, token: token)
+          @scope_owners[key] = scope_owner if scope_owner
         end
         token
       end
@@ -291,6 +375,7 @@ module Phronomy
           # :nocov:
           if entry&.state == :constructing && entry.token.equal?(token)
             @entries.delete(key)
+            @scope_owners.delete(key)
             @condition.broadcast
           end
           # :cover:
@@ -351,6 +436,12 @@ module Phronomy
         raise Phronomy::RuntimeShutdownError,
           "Runtime is #{@state}; Agent ownership changes are not accepted"
         # :cover:
+      end
+
+      def assert_no_operations!(agent)
+        return unless @operations[agent]&.any?
+
+        raise Phronomy::AgentBusyError, "Agent #{agent.agent_id.inspect} still has accepted operations"
       end
 
       def monotonic_now

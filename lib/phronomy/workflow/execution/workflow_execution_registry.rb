@@ -12,10 +12,14 @@ module Phronomy
       :workflow_instance_id, :owner_token, :fsm_session_id, :state
     )
     private_constant :WorkflowAdmission
+    StopTaskExecutions = Data.define(:error)
+    private_constant :StopTaskExecutions
 
     def initialize(channel:)
       super
       @workflow_admissions = {}
+      @task_executions = {}
+      @draining = false
     end
 
     def post(command, admission: false, completion: nil)
@@ -24,7 +28,18 @@ module Phronomy
 
     def deliver(command)
       assert_event_loop_thread!
-      command.runner.deliver_on_event_loop(command)
+      case command
+      when WorkflowTaskReception::Notification
+        task_execution_for(command.reception)&.receive(command)
+      when WorkflowTaskReception::DeliveryFailure
+        task_execution_for(command.reception)&.delivery_failed(command.reception, command.error)
+      when WorkflowTaskReception::Cancellation
+        task_execution_for(command.reception)&.receive_cancellation(command.reception)
+      when StopTaskExecutions
+        synchronize { @task_executions.values.dup }.each { |execution| execution.stop(command.error) }
+      else
+        command.runner.deliver_on_event_loop(command)
+      end
     end
 
     def idle?
@@ -37,7 +52,49 @@ module Phronomy
     end
 
     def shutdown(error:)
-      synchronize { @workflow_admissions.clear }
+      executions = synchronize do
+        @workflow_admissions.clear
+        values = @task_executions.values
+        @task_executions.clear
+        values
+      end
+      failure = error || Phronomy::RuntimeShutdownError.new("Runtime stopped Workflow task execution")
+      executions.each { |execution| execution.retire(failure) }
+    end
+
+    # Called under Runtime's lifecycle lock. Only queue owner-side decisions;
+    # do not call application code or acquire Runtime again from here.
+    def begin_draining
+      first = synchronize do
+        next false if @draining
+        @draining = true
+      end
+      post(StopTaskExecutions.new(error: Phronomy::RuntimeShutdownError.new("Runtime stopped Workflow task execution"))) if first
+    end
+
+    def wait_until_idle(_deadline)
+      # EventLoop's existing admission/delivery accounting owns the drain wait.
+      true
+    end
+
+    def draining?
+      synchronize { @draining }
+    end
+
+    def bind_task_execution(execution)
+      assert_event_loop_thread!
+      synchronize { @task_executions[execution.owner_token] = execution }
+    end
+
+    def task_delivery_failed(reception, error)
+      return unless reception.active? && task_execution_for(reception)
+
+      failure = WorkflowTaskReception::DeliveryFailure.new(reception: reception, error: error)
+      return if post(failure)
+
+      fail_task_observer(reception, error)
+    rescue => delivery_error
+      fail_task_observer(reception, error || delivery_error)
     end
 
     # Reserves one logical Workflow execution segment before durable load or
@@ -121,13 +178,17 @@ module Phronomy
     def release_workflow(workflow_instance_id, owner_token:)
       assert_event_loop_thread!
       key = workflow_instance_id.to_s
-      synchronize do
+      execution = nil
+      released = synchronize do
         current = @workflow_admissions[key]
         next false unless current&.owner_token&.equal?(owner_token)
 
         @workflow_admissions.delete(key)
+        execution = @task_executions.delete(owner_token)
         true
       end
+      execution&.close
+      released
     end
 
     # Read-only diagnostics used by internal tests and routing assertions.
@@ -159,6 +220,16 @@ module Phronomy
     end
 
     private
+
+    def task_execution_for(reception)
+      synchronize { @task_executions[reception.owner_token] }
+    end
+
+    def fail_task_observer(reception, error)
+      # A fully unavailable owner cannot safely release admission or claim a
+      # durable terminal result. Settle observation only; shutdown owns cleanup.
+      task_execution_for(reception)&.result_task&.fail(error) if reception.active?
+    end
 
     def mark_workflow_recovery_required_for_session(fsm_session_id)
       synchronize do

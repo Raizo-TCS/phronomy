@@ -10,5 +10,6 @@ module Phronomy
     def compile_transitions: (**untyped definition) -> untyped
     def build_session: (**untyped options) -> untyped
     def register_session: (untyped session, completion: TaskResult[untyped]) -> untyped
+    def subscribe_cancellation: (Concurrency::CancellationToken token) { () -> void } -> untyped
   end
 end

@@ -6,8 +6,8 @@ module Phronomy
   class FilterBlockError < Error
     attr_reader :filter
 
-    def initialize(message, filter: nil)
-      super(message)
+    def initialize(message, filter: nil, code: nil)
+      super(message, code: code)
       @filter = filter
     end
   end

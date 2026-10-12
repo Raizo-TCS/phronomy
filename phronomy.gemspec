@@ -37,6 +37,7 @@ Gem::Specification.new do |spec|
 
   # Provider SDK and independent Tool schema construction/validation libraries.
   spec.add_dependency "ruby_llm", "~> 2.0.0"
+  spec.add_dependency "faraday", "~> 2.1"
   spec.add_dependency "schematist", "~> 1.1"
   spec.add_dependency "json_schemer", "~> 2.5"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"

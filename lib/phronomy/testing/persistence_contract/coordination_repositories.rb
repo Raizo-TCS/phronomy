@@ -84,7 +84,7 @@ RSpec.shared_examples "a Team execution repository" do
   it "atomically admits at most one active run per Team" do
     stores.multi_agent.team_executions.create_active(coordination_run)
     other = coordination_run.with(team_execution_id: SecureRandom.uuid, execution_revision: 0)
-    expect { stores.multi_agent.team_executions.create_active(other) }.to raise_error(Phronomy::AgentBusyError)
+    expect { stores.multi_agent.team_executions.create_active(other) }.to raise_error(Phronomy::MultiAgent::TeamBusyError)
     expect(stores.multi_agent.team_executions.list_active(coordination_team.team_id).map(&:team_execution_id)).to eq([coordination_run.team_execution_id])
   end
 

@@ -22,8 +22,9 @@ RSpec.describe "Agent Tool binding contract" do
 
   def agent_for(tool, alias_name: nil)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "tool-binding-contract", version: 1
       tools tool => alias_name
-    end.allocate
+    end.new
   end
 
   def filter(&block)

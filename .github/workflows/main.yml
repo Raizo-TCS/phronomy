@@ -35,8 +35,16 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-      - name: Install dependencies
-        run: bundle install --jobs 4
+      - name: Resolve dependencies without an existing lockfile
+        run: |
+          rm -f Gemfile.lock
+          bundle install --jobs 4
+      - name: Report HTTP dependency versions
+        run: >-
+          bundle exec ruby -e 'require "faraday"; require "mcp";
+          puts "Faraday #{Faraday::VERSION}";
+          puts "faraday-net_http #{Gem.loaded_specs.fetch("faraday-net_http").version}";
+          puts "MCP #{MCP::VERSION}"'
       - name: Run the default task
         run: bundle exec rake
       - name: Run all integration tests (stub-based, no LM Studio required)

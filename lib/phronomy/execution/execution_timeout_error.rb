@@ -6,9 +6,9 @@ module Phronomy
   class ExecutionTimeoutError < TimeoutError
     attr_reader :outcomes
 
-    def initialize(message = "Execution timed out", outcomes:)
+    def initialize(message = "Execution timed out", outcomes:, code: nil)
       @outcomes = outcomes
-      super(message)
+      super(message, code: code)
     end
   end
 end

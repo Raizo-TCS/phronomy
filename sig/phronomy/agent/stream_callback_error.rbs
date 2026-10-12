@@ -1,0 +1,8 @@
+module Phronomy
+  class StreamCallbackError < Error
+    attr_reader event_type: Symbol
+    attr_reader original_error: Exception
+    attr_reader result: untyped
+    def initialize: (event_type: Symbol, original_error: Exception, ?result: untyped, ?code: String?) -> void
+  end
+end

@@ -38,7 +38,7 @@ module Phronomy
         end
 
         def prepare_plan(execution)
-          root = agent.agent_root
+          root = agent.send(:__root_for_operation)
           manifest_ref = execution.metadata["manifest_ref"]
           base_ref = execution.metadata["base_manifest_ref"] ||
             manifest_ref
@@ -209,7 +209,7 @@ module Phronomy
                 }
               )
             end
-            command.completion.complete(agent)
+            agent.send(:_complete_result_task, command.completion, agent)
             return
           end
 
@@ -246,7 +246,7 @@ module Phronomy
                 result: payload
               )
             end
-            command.completion.complete(agent)
+            agent.send(:_complete_result_task, command.completion, agent)
           when Phronomy::Agent::RecoveryRules::RESUMABLE
             continue_resumable_on_event_loop(
               execution,
@@ -288,7 +288,7 @@ module Phronomy
               end
             end
           end
-          command.completion.fail(caught)
+          agent.send(:_fail_result_task, command.completion, caught)
           # simplecov:enable
         end
 
@@ -317,7 +317,7 @@ module Phronomy
           if framework_batch?(execution)
             internal = Phronomy::TaskResult.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
             continue_recovery_on_event_loop(execution, internal, material: material)
-            completion.complete(agent)
+            agent.send(:_complete_result_task, completion, agent)
             return
           end
 
@@ -359,11 +359,11 @@ module Phronomy
               result_task: internal_task,
               error: nil
             ))
-            completion.complete(agent)
+            agent.send(:_complete_result_task, completion, agent)
           when :recovery_tools_completed, :recovery_provider_completed, :recovery_resolved_failed
             internal_task = Phronomy::TaskResult.deferred(name: "agent-recovery-auto:#{execution.execution_id}")
             continue_recovery_on_event_loop(execution, internal_task, material: material)
-            completion.complete(agent)
+            agent.send(:_complete_result_task, completion, agent)
           else
             raise Phronomy::ExecutionRehydrationRequiredError,
               "no automatic continuation for #{execution.phase.inspect}"

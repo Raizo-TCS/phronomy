@@ -29,8 +29,13 @@ module Phronomy
       :recursion_limit,
       :repository,
       :persist,
-      :expected_revision
-    )
+      :expected_revision,
+      :cancellation_token
+    ) do
+      def initialize(cancellation_token: nil, **fields)
+        super(**fields, cancellation_token: cancellation_token)
+      end
+    end
 
     # API/callback -> EventLoop control messages.
     StartCommand = Data.define(
@@ -79,6 +84,7 @@ module Phronomy
       entry_point:,
       exit_actions: {},
       wait_state_names: [],
+      task_states: {},
       persistence: nil
     )
       @state_class = state_class
@@ -90,6 +96,7 @@ module Phronomy
       @external_events = external_events
       @entry_point = entry_point
       @wait_state_names = wait_state_names
+      @task_states = task_states
       @persistence = persistence
       @environment = WorkflowExecutionEnvironment.current
       @phase_machine_class = @environment.compile_transitions(
@@ -126,6 +133,7 @@ module Phronomy
     def send_event(state:, event:, input: nil)
       ensure_blocking_call_allowed!(:send_event, :signal)
       current_phase = state.phase.to_sym
+      reject_task_resume!(current_phase)
       event_name = resolve_resume_event(current_phase, event)
       workflow_instance_id = state.workflow_instance_id
       unless workflow_instance_id
@@ -300,7 +308,8 @@ module Phronomy
           repository: repository,
           persist: false,
           loaded_snapshot: nil,
-          expected_revision: nil
+          expected_revision: nil,
+          cancellation_token: request.config[:cancellation_token]
         )
         register_execution(
           execution,
@@ -344,7 +353,8 @@ module Phronomy
           recursion_limit: Phronomy::WorkflowSettings.current.recursion_limit,
           repository: nil,
           persist: false,
-          expected_revision: nil
+          expected_revision: nil,
+          cancellation_token: nil
         )
         register_execution(
           execution,
@@ -416,7 +426,8 @@ module Phronomy
         repository: ready.result.repository,
         persist: true,
         loaded_snapshot: ready.result.snapshot,
-        expected_revision: ready.result.revision
+        expected_revision: ready.result.revision,
+        cancellation_token: request.config[:cancellation_token]
       )
       register_execution(
         execution,
@@ -447,7 +458,8 @@ module Phronomy
         recursion_limit: Phronomy::WorkflowSettings.current.recursion_limit,
         repository: ready.result.repository,
         persist: true,
-        expected_revision: expected_revision
+        expected_revision: expected_revision,
+        cancellation_token: nil
       )
       register_execution(
         execution,
@@ -467,8 +479,11 @@ module Phronomy
       repository:,
       persist:,
       loaded_snapshot:,
-      expected_revision:
+      expected_revision:,
+      cancellation_token: nil
     )
+      stored_phase = loaded_snapshot && (loaded_snapshot[:phase] || loaded_snapshot["phase"])
+      reject_task_resume!(stored_phase&.to_sym)
       stored_fields = loaded_snapshot &&
         (loaded_snapshot[:fields] || loaded_snapshot["fields"])
       initial_fields = if stored_fields
@@ -489,7 +504,8 @@ module Phronomy
         recursion_limit: recursion_limit,
         repository: repository,
         persist: persist,
-        expected_revision: expected_revision
+        expected_revision: expected_revision,
+        cancellation_token: cancellation_token
       )
     end
 
@@ -563,12 +579,19 @@ module Phronomy
       stable_observer: nil
     )
       assert_execution_owner!
+      task_execution = unless @task_states.empty?
+        WorkflowTaskExecution.new(definitions: @task_states, registry: @environment.registry,
+          environment: @environment, owner_token: execution.owner_token, result_task: result_task,
+          cancellation_token: execution.cancellation_token)
+      end
       session = build_session_for(
         execution: execution,
         resume_event: resume_event,
         resume_phase: resume_phase,
-        stable_observer: stable_observer
+        stable_observer: stable_observer,
+        task_execution: task_execution
       )
+      @environment.registry.bind_task_execution(task_execution) if task_execution
       @environment.registry.bind_workflow_session(
         execution.workflow_instance_id,
         owner_token: execution.owner_token,
@@ -581,7 +604,8 @@ module Phronomy
           execution: execution,
           result_task: result_task,
           result: result,
-          error: error
+          error: error,
+          task_execution: task_execution
         )
       end
       @environment.register_session(session, completion: source_task)
@@ -598,13 +622,17 @@ module Phronomy
 
     # Called from source_task completion on EventLoop, after the FSMSession has
     # accepted the durable terminal result (when a durable barrier is required).
-    def finalize_execution(execution:, result_task:, result:, error:)
+    def finalize_execution(execution:, result_task:, result:, error:, task_execution: nil)
       assert_execution_owner!
       @environment.registry.release_workflow(
         execution.workflow_instance_id,
         owner_token: execution.owner_token
       )
-      error ? fail_task(result_task, error) : complete_task(result_task, result)
+      if error && task_execution&.cancelled_error&.equal?(error)
+        result_task.cancel!(error)
+      else
+        error ? fail_task(result_task, error) : complete_task(result_task, result)
+      end
     end
 
     def begin_terminal_persistence_on_event_loop(
@@ -741,7 +769,8 @@ module Phronomy
       execution:,
       resume_event: nil,
       resume_phase: nil,
-      stable_observer: nil
+      stable_observer: nil,
+      task_execution: nil
     )
       @environment.build_session(
         context: execution.context,
@@ -759,7 +788,8 @@ module Phronomy
         resume_event: resume_event,
         resume_phase: resume_phase,
         stable_observer: stable_observer,
-        persist: terminal_persistence_callback(execution)
+        persist: terminal_persistence_callback(execution),
+        task_execution: task_execution
       )
     end
 
@@ -796,6 +826,10 @@ module Phronomy
 
       raise ArgumentError,
         "No external event registered for state #{current_phase.inspect}"
+    end
+
+    def reject_task_resume!(phase)
+      raise Phronomy::WorkflowTaskResumeError if phase && @task_states.key?(phase)
     end
 
     def post_control(command)

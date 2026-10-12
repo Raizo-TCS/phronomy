@@ -1,0 +1,8 @@
+module Phronomy
+  module MultiAgent
+    class TeamNotFoundError < Phronomy::Persistence::NotFoundError
+      attr_reader team_id: String
+      def initialize: (?String? message, team_id: untyped) -> void
+    end
+  end
+end

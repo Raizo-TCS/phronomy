@@ -21,7 +21,7 @@ tracking `main` directly.
 
 - **Agent** — stateful, persistence-backed LLM agent with canonical execution history.
 - **Persistence** — shared atomic scopes with domain-owned Agent/Team stores and Workflow checkpoints.
-- **Workflow** — state-machine-driven application workflow with explicit events and wait states.
+- **Workflow** — state-machine-driven application workflow with task states, explicit events and wait states.
 - **Tool / Capability** — callable application capability exposed to an Agent; application-defined Tools subclass `Phronomy::Tool::Base`.
 - **Multi-Agent Handoff** — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
@@ -39,8 +39,14 @@ The following application APIs are part of unreleased development:
 
 | API | Stability | Contract |
 |---|---|---|
+| `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
+| `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
-| `Phronomy::Error#code` and `code:` | Beta | Optional reason codes retained in saved failure diagnostics; [meaning and compatibility](docs/failure-reason-codes.md) |
+| `Phronomy::Error#code` and error constructor `code:` | Beta | Optional reason codes and bounded causes retained in saved failure diagnostics; [meaning and compatibility](docs/architecture/error-api-review.md) |
+| `Phronomy::AgentNotFoundError#agent_id` | Beta | Identifies absence of the requested Agent root; referenced history and Content failures retain their own errors; [migration](docs/architecture/error-api-review.md) |
+| `Phronomy::MultiAgent::TeamNotFoundError` and `TeamBusyError`, with `team_id` | Beta | Team-owned absence and busy errors; child Agent failures retain their Agent classification; [migration](docs/architecture/error-api-review.md) |
+| `Phronomy::Embeddings::AuthenticationError` and `RateLimitError` | Beta | Embeddings-owned transport error subclasses retaining the provider cause; [migration](docs/architecture/error-api-review.md) |
+| `Phronomy::Tracing::Base.trace_with` | Beta | Uses the tracer start/finish SPI, attempts finish once, and preserves a primary application error; [contract](docs/architecture/error-api-review.md) |
 
 ## Installation
 
@@ -56,7 +62,10 @@ Then run:
 bundle install
 ```
 
-Phronomy 0.28 requires RubyLLM 2.0.x. See the
+Phronomy 0.28 requires RubyLLM 2.0.x. Faraday 2.1.0 is the tested minimum
+supported version; the `~> 2.1` requirement allows versions from 2.1 up to,
+but excluding, 3.0. CI checks fresh dependency resolution and the exact minimum
+with MCP 1.0.0. See the
 [RubyLLM 2 and token-ownership migration](docs/architecture/rubyllm-2-token-ownership.md)
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
 

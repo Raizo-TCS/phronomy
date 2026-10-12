@@ -30,12 +30,12 @@ module Phronomy
 
   class ExecutionTimeoutError < TimeoutError
     attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
-    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]], ?code: String?) -> void
   end
 
   class ExecutionCancellationError < CancellationError
     attr_reader outcomes: Array[TaskResult::Outcome[untyped]]
-    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]]) -> void
+    def initialize: (?String message, outcomes: Array[TaskResult::Outcome[untyped]], ?code: String?) -> void
   end
 
 end

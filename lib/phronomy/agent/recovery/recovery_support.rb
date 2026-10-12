@@ -30,11 +30,7 @@ module Phronomy
       end
 
       def error_from_failure(failure)
-        hash = failure.to_h { |key, value| [key.to_s, value] }
-        Phronomy::Error.new(
-          "#{hash.fetch("class", "Error")}: #{hash.fetch("message", "Recovery-resolved failure")}",
-          code: hash["code"]
-        )
+        Phronomy::Error.from_diagnostic(failure)
       end
 
       def event_payload(execution, descriptor)

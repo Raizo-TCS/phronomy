@@ -19,7 +19,13 @@ module Phronomy
         def _before_llm_input = @before_llm_input
       end
 
-      attr_accessor :before_llm_input
+      def before_llm_input
+        __with_operation(read_only: true) { @before_llm_input }
+      end
+
+      def before_llm_input=(value)
+        __with_operation { @before_llm_input = value }
+      end
 
       private
 

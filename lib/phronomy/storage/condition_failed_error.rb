@@ -7,9 +7,9 @@ module Phronomy
     class ConditionFailedError < ConflictError
       attr_reader :condition
       # @api public
-      def initialize(condition)
+      def initialize(condition, code: nil)
         @condition = condition
-        super("storage condition failed: #{condition.class.name}")
+        super("storage condition failed: #{condition.class.name}", code: code)
       end
     end
   end

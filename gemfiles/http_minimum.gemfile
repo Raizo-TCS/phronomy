@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+
+eval_gemfile "mcp_1_0.gemfile"
+gem "faraday", "= 2.1.0"
+gem "webmock", require: false

@@ -65,8 +65,13 @@ RSpec.describe "Output filtering across ordinary execution and Recovery" do
           end
           filtered = 0
           llm = LLMStub.activate(responses: ["must not replay"])
-          agent = worker.load(agent.agent_id, persistence: backend.agent)
+          delivered = Queue.new
+          agent = worker.load(agent.agent_id, persistence: backend.agent,
+            on_event: ->(event) { delivered << true if %i[done error].include?(event.type) })
           expect(Timeout.timeout(3) { terminal.pop }.status).to eq(expected)
+          # A durable commit precedes EventLoop application and admission release.
+          # Wait for the domain terminal boundary before starting another run.
+          expect(Timeout.timeout(3) { delivered.pop }).to be(true)
           expect(llm.calls).to be_empty
         end
       end

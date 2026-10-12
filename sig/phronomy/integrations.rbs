@@ -1,9 +1,9 @@
 module Phronomy
   module Integrations
     class OrderedEventDelivery
-      class ClosedError < StandardError
+      class ClosedError < Phronomy::Error
       end
-      class OverflowError < StandardError
+      class OverflowError < Phronomy::Error
       end
       def self.open: [T] (?capacity: Integer, ?batch_size: Integer, ?flush_timeout: Numeric?, deliver: ^(untyped) -> untyped, ?prepare_batch: (^(Array[untyped]) -> Array[untyped])?) { (OrderedEventDelivery) -> T } -> T
       def initialize: (?capacity: Integer, ?batch_size: Integer, ?prepare_batch: (^(Array[untyped]) -> Array[untyped])?) { (untyped) -> untyped } -> void
