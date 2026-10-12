@@ -361,7 +361,9 @@ cancel external work, or interpret application event payloads.</p>
 99
 100
 101
-102</pre>
+102
+103
+104</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_phase_machine_builder.rb', line 33</span>
@@ -383,7 +385,8 @@ cancel external work, or interpret application event payloads.</p>
       <span class='symbol'>:context</span><span class='comma'>,</span>
       <span class='symbol'>:current_event</span><span class='comma'>,</span>
       <span class='symbol'>:selected_transition_action</span><span class='comma'>,</span>
-      <span class='symbol'>:selected_transition_metadata</span>
+      <span class='symbol'>:selected_transition_metadata</span><span class='comma'>,</span>
+      <span class='symbol'>:workflow_task_execution</span>
     <span class='rparen'>)</span>
 
     <span class='id identifier rubyid_state_machine'>state_machine</span> <span class='symbol'>:phase</span><span class='comma'>,</span> <span class='label'>initial:</span> <span class='id identifier rubyid_entry'>entry</span> <span class='kw'>do</span>
@@ -421,7 +424,8 @@ cancel external work, or interpret application event payloads.</p>
       <span class='comment'># Both source exit callbacks and the transition action are
 </span>      <span class='comment'># before_transition callbacks. Register exits first to preserve the
 </span>      <span class='comment'># required exit -&gt; transition action -&gt; entry ordering.
-</span>      <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callables'>callables</span><span class='op'>|</span>
+</span>      <span class='id identifier rubyid_before_transition'>before_transition</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_machine'>machine</span><span class='op'>|</span> <span class='id identifier rubyid_machine'>machine</span><span class='period'>.</span><span class='id identifier rubyid_workflow_task_execution'>workflow_task_execution</span><span class='op'>&amp;.</span><span class='id identifier rubyid_leave'>leave</span> <span class='rbrace'>}</span>
+      <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callables'>callables</span><span class='op'>|</span>
         <span class='id identifier rubyid_callables'>callables</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_callable'>callable</span><span class='op'>|</span>
           <span class='id identifier rubyid_before_transition'>before_transition</span><span class='lparen'>(</span>
             <span class='label'>from:</span> <span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span>
@@ -446,7 +450,7 @@ cancel external work, or interpret application event payloads.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 10 11:17:25 2026 by
+  Generated on Mon Oct 12 17:24:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

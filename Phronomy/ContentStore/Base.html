@@ -433,13 +433,23 @@
 
 36
 37
-38</pre>
+38
+39
+40
+41
+42
+43</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/base.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CanonicalJSON.html" title="Phronomy::CanonicalJSON (class)">CanonicalJSON</a></span></span><span class='period'>.</span><span class='id identifier rubyid_load'><span class='object_link'><a href="../CanonicalJSON.html#load-class_method" title="Phronomy::CanonicalJSON.load (method)">load</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_bytes'>bytes</span> <span class='op'>=</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
+  <span class='kw'>begin</span>
+    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CanonicalJSON.html" title="Phronomy::CanonicalJSON (class)">CanonicalJSON</a></span></span><span class='period'>.</span><span class='id identifier rubyid_load'><span class='object_link'><a href="../CanonicalJSON.html#load-class_method" title="Phronomy::CanonicalJSON.load (method)">load</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='rparen'>)</span>
+  <span class='kw'>rescue</span> <span class='const'>JSON</span><span class='op'>::</span><span class='const'>ParserError</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="IntegrityError.html" title="Phronomy::ContentStore::IntegrityError (class)">IntegrityError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Error.html#initialize-instance_method" title="Phronomy::Error#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content is not JSON: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_content_id'>content_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>code:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content.invalid_json</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>cause:</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -461,12 +471,12 @@
       <pre class="lines">
 
 
-40
-41
-42</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/base.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/content_store/base.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_many'>fetch_many</span><span class='lparen'>(</span><span class='id identifier rubyid_content_ids'>content_ids</span><span class='rparen'>)</span>
   <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_content_ids'>content_ids</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_uniq'>uniq</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_content_id'>content_id</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_content_id'>content_id</span><span class='comma'>,</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -505,7 +515,7 @@
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_text'>fetch_text</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_force_encoding'>force_encoding</span><span class='lparen'>(</span><span class='const'>Encoding</span><span class='op'>::</span><span class='const'>UTF_8</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_valid_encoding?'>valid_encoding?</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="IntegrityError.html" title="Phronomy::ContentStore::IntegrityError (class)">IntegrityError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content is not UTF-8: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_content_id'>content_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="IntegrityError.html" title="Phronomy::ContentStore::IntegrityError (class)">IntegrityError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Error.html#initialize-instance_method" title="Phronomy::Error#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content is not UTF-8: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_content_id'>content_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>code:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content.invalid_encoding</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_value'>value</span>
 <span class='kw'>end</span></pre>
@@ -661,7 +671,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 10 11:17:20 2026 by
+  Generated on Mon Oct 12 17:24:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -256,6 +256,28 @@ create/load so concurrent callers cannot materialize independent objects.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#acquire_operation-instance_method" title="#acquire_operation (instance method)">#<strong>acquire_operation</strong>(agent, read_only: false)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Admission and lifetime transitions share this mutex.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#after_runtime_shutdown-instance_method" title="#after_runtime_shutdown (instance method)">#<strong>after_runtime_shutdown</strong>  &#x21d2; Object </a>
     
 
@@ -344,7 +366,29 @@ create/load so concurrent callers cannot materialize independent objects.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#create-instance_method" title="#create (instance method)">#<strong>create</strong>(agent_id, expected_class:)  &#x21d2; Object </a>
+      <a href="#create-instance_method" title="#create (instance method)">#<strong>create</strong>(agent_id, expected_class:, scope_owner: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#finish_unload-instance_method" title="#finish_unload (instance method)">#<strong>finish_unload</strong>(agent, transition, success:)  &#x21d2; Object </a>
     
 
     
@@ -434,7 +478,7 @@ create/load so concurrent callers cannot materialize independent objects.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#load-instance_method" title="#load (instance method)">#<strong>load</strong>(agent_id, expected_class:)  &#x21d2; Object </a>
+      <a href="#load-instance_method" title="#load (instance method)">#<strong>load</strong>(agent_id, expected_class:, scope_owner: nil)  &#x21d2; Object </a>
     
 
     
@@ -471,6 +515,50 @@ create/load so concurrent callers cannot materialize independent objects.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#release_operation-instance_method" title="#release_operation (instance method)">#<strong>release_operation</strong>(agent, token)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reserve_unload-instance_method" title="#reserve_unload (instance method)">#<strong>reserve_unload</strong>(agent)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the already accepted transition for duplicate callers.</p></div></span>
   
 </li>
 
@@ -538,7 +626,9 @@ create/load so concurrent callers cannot materialize independent objects.</p>
 26
 27
 28
-29</pre>
+29
+30
+31</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 23</span>
@@ -548,6 +638,8 @@ create/load so concurrent callers cannot materialize independent objects.</p>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@condition</span> <span class='op'>=</span> <span class='const'>ConditionVariable</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@entries</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@scope_owners</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@operations</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:running</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -754,20 +846,20 @@ after admission closes; their own gate rejects new ownership changes.</p>
       <pre class="lines">
 
 
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186</pre>
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 176</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 253</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abort_purge'>abort_purge</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
@@ -779,6 +871,74 @@ after admission closes; their own gate rejects new ownership changes.</p>
     <span class='ivar'>@condition</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
   <span class='kw'>end</span>
   <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="acquire_operation-instance_method">
+  
+    #<strong>acquire_operation</strong>(agent, read_only: false)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Admission and lifetime transitions share this mutex. No Runtime or Store
+operation is called while it is held.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 142</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_acquire_operation'>acquire_operation</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>read_only:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'>Object</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ensure_running!'>ensure_running!</span> <span class='kw'>unless</span> <span class='id identifier rubyid_read_only'>read_only</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@state</span> <span class='op'>==</span> <span class='symbol'>:draining</span>
+    <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rbracket'>]</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_agent'>agent</span><span class='op'>&amp;.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:unloading</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is unloading</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:live</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeShutdownError.html" title="Phronomy::RuntimeShutdownError (class)">RuntimeShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent is no longer the live Runtime owner</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='lparen'>(</span><span class='ivar'>@operations</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_token'>token</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='kw'>end</span>
+  <span class='const'><span class='object_link'><a href="OperationLease.html" title="Phronomy::Agent::OperationLease (class)">OperationLease</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="OperationLease.html#initialize-instance_method" title="Phronomy::Agent::OperationLease#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -813,26 +973,30 @@ after admission closes; their own gate rejects new ownership changes.</p>
       <pre class="lines">
 
 
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239</pre>
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 229</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 306</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_after_runtime_shutdown'>after_runtime_shutdown</span>
   <span class='id identifier rubyid_agents'>agents</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:terminated</span>
     <span class='id identifier rubyid_owned'>owned</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_filter_map'>filter_map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:agent</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_uniq'>uniq</span>
     <span class='ivar'>@entries</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+    <span class='ivar'>@scope_owners</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+    <span class='ivar'>@operations</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
     <span class='ivar'>@condition</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
     <span class='id identifier rubyid_owned'>owned</span>
   <span class='kw'>end</span>
@@ -872,16 +1036,16 @@ after admission closes; their own gate rejects new ownership changes.</p>
       <pre class="lines">
 
 
-206
-207
-208
-209
-210
-211
-212</pre>
+283
+284
+285
+286
+287
+288
+289</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 206</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 283</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_draining'>begin_draining</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -924,25 +1088,29 @@ The returned opaque token must be supplied to complete/abort.</p>
       <pre class="lines">
 
 
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161</pre>
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 146</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 218</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_purge'>begin_purge</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
@@ -952,9 +1120,13 @@ The returned opaque token must be supplied to complete/abort.</p>
     <span class='id identifier rubyid_ensure_running!'>ensure_running!</span>
     <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span>
     <span class='kw'>unless</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:live</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:unloading</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is unloading</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeShutdownError.html" title="Phronomy::RuntimeShutdownError (class)">RuntimeShutdownError</a></span></span><span class='comma'>,</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is not the live owner in this Runtime</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
+    <span class='id identifier rubyid_assert_no_operations!'>assert_no_operations!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
     <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Entry</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::OwnershipRegistry#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>state:</span> <span class='symbol'>:purging</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:__mark_purging!</span><span class='comma'>,</span> <span class='ivar'>@environment</span><span class='rparen'>)</span>
@@ -993,20 +1165,21 @@ The returned opaque token must be supplied to complete/abort.</p>
       <pre class="lines">
 
 
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173</pre>
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 163</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 239</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete_purge'>complete_purge</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
@@ -1015,6 +1188,7 @@ The returned opaque token must be supplied to complete/abort.</p>
     <span class='id identifier rubyid_validate_purge_entry!'>validate_purge_entry!</span><span class='lparen'>(</span><span class='id identifier rubyid_entry'>entry</span><span class='comma'>,</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:__mark_purged!</span><span class='comma'>,</span> <span class='ivar'>@environment</span><span class='rparen'>)</span>
     <span class='ivar'>@entries</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+    <span class='ivar'>@scope_owners</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
     <span class='ivar'>@condition</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
   <span class='kw'>end</span>
   <span class='kw'>true</span>
@@ -1027,7 +1201,7 @@ The returned opaque token must be supplied to complete/abort.</p>
       <div class="method_details ">
   <h3 class="signature " id="create-instance_method">
   
-    #<strong>create</strong>(agent_id, expected_class:)  &#x21d2; <tt>Object</tt> 
+    #<strong>create</strong>(agent_id, expected_class:, scope_owner: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1052,8 +1226,6 @@ The returned opaque token must be supplied to complete/abort.</p>
       <pre class="lines">
 
 
-31
-32
 33
 34
 35
@@ -1081,14 +1253,16 @@ The returned opaque token must be supplied to complete/abort.</p>
 57
 58
 59
-60</pre>
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 33</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_class:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_class:</span><span class='comma'>,</span> <span class='label'>scope_owner:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_reserve_create!'>reserve_create!</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_reserve_create!'>reserve_create!</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='label'>scope_owner:</span> <span class='id identifier rubyid_scope_owner'>scope_owner</span><span class='rparen'>)</span>
 
   <span class='kw'>begin</span>
     <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='kw'>yield</span><span class='lparen'>(</span><span class='ivar'>@environment</span><span class='rparen'>)</span>
@@ -1115,6 +1289,77 @@ The returned opaque token must be supplied to complete/abort.</p>
     <span class='id identifier rubyid_expected_class'>expected_class</span><span class='comma'>,</span>
     <span class='label'>fail_closed:</span> <span class='kw'>true</span>
   <span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="finish_unload-instance_method">
+  
+    #<strong>finish_unload</strong>(agent, transition, success:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 186</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_finish_unload'>finish_unload</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_transition'>transition</span><span class='comma'>,</span> <span class='label'>success:</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rbracket'>]</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:unloading</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_transition'>transition</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeShutdownError.html" title="Phronomy::RuntimeShutdownError (class)">RuntimeShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent unload reservation is no longer authoritative</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_success'>success</span>
+      <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:__mark_unloaded!</span><span class='rparen'>)</span>
+      <span class='ivar'>@entries</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+      <span class='ivar'>@scope_owners</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Entry</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::OwnershipRegistry#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>state:</span> <span class='symbol'>:live</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@condition</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1149,14 +1394,6 @@ The returned opaque token must be supplied to complete/abort.</p>
       <pre class="lines">
 
 
-112
-113
-114
-115
-116
-117
-118
-119
 120
 121
 122
@@ -1167,10 +1404,18 @@ The returned opaque token must be supplied to complete/abort.</p>
 127
 128
 129
-130</pre>
+130
+131
+132
+133
+134
+135
+136
+137
+138</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 120</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_get'>get</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_class:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
@@ -1182,8 +1427,8 @@ The returned opaque token must be supplied to complete/abort.</p>
     <span class='kw'>when</span> <span class='symbol'>:recovery_required</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='id identifier rubyid_ownership_recovery_error'>ownership_recovery_error</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='rparen'>)</span>
     <span class='comment'># :nocov:
-</span>    <span class='kw'>when</span> <span class='symbol'>:purging</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is being purged</span><span class='tstring_end'>&quot;</span></span>
+</span>    <span class='kw'>when</span> <span class='symbol'>:purging</span><span class='comma'>,</span> <span class='symbol'>:unloading</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
       <span class='comment'># :cover:
 </span>    <span class='kw'>end</span>
   <span class='kw'>end</span>
@@ -1226,23 +1471,23 @@ recovery-required state and wake all waiters.</p>
       <pre class="lines">
 
 
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204</pre>
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 191</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 268</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_leave_purge_uncertain'>leave_purge_uncertain</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
@@ -1266,7 +1511,7 @@ recovery-required state and wake all waiters.</p>
       <div class="method_details ">
   <h3 class="signature " id="load-instance_method">
   
-    #<strong>load</strong>(agent_id, expected_class:)  &#x21d2; <tt>Object</tt> 
+    #<strong>load</strong>(agent_id, expected_class:, scope_owner: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1291,8 +1536,6 @@ recovery-required state and wake all waiters.</p>
       <pre class="lines">
 
 
-62
-63
 64
 65
 66
@@ -1339,12 +1582,20 @@ recovery-required state and wake all waiters.</p>
 107
 108
 109
-110</pre>
+110
+111
+112
+113
+114
+115
+116
+117
+118</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 64</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_class:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_class:</span><span class='comma'>,</span> <span class='label'>scope_owner:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='kw'>nil</span>
 
@@ -1352,9 +1603,14 @@ recovery-required state and wake all waiters.</p>
     <span class='id identifier rubyid_existing'>existing</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
       <span class='id identifier rubyid_ensure_running!'>ensure_running!</span>
       <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_scope_owner'>scope_owner</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='ivar'>@scope_owners</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_scope_owner'>scope_owner</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> belongs to another live owner</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
       <span class='kw'>case</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span>
       <span class='kw'>when</span> <span class='symbol'>:live</span>
         <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span>
+      <span class='kw'>when</span> <span class='symbol'>:unloading</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AgentBusyError.html" title="Phronomy::AgentBusyError (class)">AgentBusyError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is unloading</span><span class='tstring_end'>&quot;</span></span>
       <span class='kw'>when</span> <span class='symbol'>:constructing</span><span class='comma'>,</span> <span class='symbol'>:purging</span>
         <span class='ivar'>@condition</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span><span class='lparen'>(</span><span class='ivar'>@mutex</span><span class='rparen'>)</span>
         <span class='symbol'>:retry</span>
@@ -1363,6 +1619,7 @@ recovery-required state and wake all waiters.</p>
       <span class='kw'>when</span> <span class='kw'>nil</span>
         <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'>Object</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
         <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Entry</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::OwnershipRegistry#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>state:</span> <span class='symbol'>:constructing</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
+        <span class='ivar'>@scope_owners</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_scope_owner'>scope_owner</span> <span class='kw'>if</span> <span class='id identifier rubyid_scope_owner'>scope_owner</span>
         <span class='kw'>nil</span>
       <span class='comment'># :nocov:
 </span>      <span class='kw'>else</span>
@@ -1439,20 +1696,20 @@ recovery-required state and wake all waiters.</p>
       <pre class="lines">
 
 
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142</pre>
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 132</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 204</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_owned?'>owned?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_agent'>agent</span>
@@ -1460,10 +1717,134 @@ recovery-required state and wake all waiters.</p>
   <span class='id identifier rubyid_key'>key</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_agent_id'>normalize_agent_id</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_key'>key</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:live</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+    <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>live</span><span class='words_sep'> </span><span class='tstring_content'>unloading</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>rescue</span> <span class='const'>ArgumentError</span>
   <span class='kw'>false</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="release_operation-instance_method">
+  
+    #<strong>release_operation</strong>(agent, token)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+158
+159
+160
+161
+162
+163
+164
+165
+166</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 158</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_release_operation'>release_operation</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_operations'>operations</span> <span class='op'>=</span> <span class='ivar'>@operations</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_operations'>operations</span><span class='op'>&amp;.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
+    <span class='ivar'>@operations</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_operations'>operations</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_operations'>operations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+    <span class='ivar'>@condition</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="reserve_unload-instance_method">
+  
+    #<strong>reserve_unload</strong>(agent)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the already accepted transition for duplicate callers.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 169</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_reserve_unload'>reserve_unload</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ensure_running!'>ensure_running!</span>
+    <span class='id identifier rubyid_entry'>entry</span> <span class='op'>=</span> <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rbracket'>]</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:unloading</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+      <span class='kw'>return</span> <span class='lbracket'>[</span><span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='kw'>false</span><span class='rbracket'>]</span>
+    <span class='kw'>end</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_entry'>entry</span><span class='op'>&amp;.</span><span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:live</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeShutdownError.html" title="Phronomy::RuntimeShutdownError (class)">RuntimeShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent is no longer the live Runtime owner</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_assert_no_operations!'>assert_no_operations!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_transition'>transition</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="UnloadTransition.html" title="Phronomy::Agent::UnloadTransition (class)">UnloadTransition</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="UnloadTransition.html#initialize-instance_method" title="Phronomy::Agent::UnloadTransition#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>environment:</span> <span class='ivar'>@environment</span><span class='comma'>,</span> <span class='label'>ownership:</span> <span class='kw'>self</span><span class='rparen'>)</span>
+    <span class='ivar'>@entries</span><span class='lbracket'>[</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Entry</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::OwnershipRegistry#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>state:</span> <span class='symbol'>:unloading</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>token:</span> <span class='id identifier rubyid_transition'>transition</span><span class='rparen'>)</span>
+    <span class='lbracket'>[</span><span class='id identifier rubyid_transition'>transition</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1499,25 +1880,25 @@ ownership transition that is still actively changing state must settle.</p>
       <pre class="lines">
 
 
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227</pre>
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 216</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/lifecycle/ownership_registry.rb', line 293</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='kw'>while</span> <span class='ivar'>@entries</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>constructing</span><span class='words_sep'> </span><span class='tstring_content'>purging</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='kw'>while</span> <span class='ivar'>@entries</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>constructing</span><span class='words_sep'> </span><span class='tstring_content'>purging</span><span class='words_sep'> </span><span class='tstring_content'>unloading</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_entry'>entry</span><span class='period'>.</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
       <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span>
       <span class='comment'># :nocov:
 </span>      <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
@@ -1537,7 +1918,7 @@ ownership transition that is still actively changing state must settle.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 10 11:17:23 2026 by
+  Generated on Mon Oct 12 17:24:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

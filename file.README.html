@@ -80,7 +80,7 @@ tracking <code>main</code> directly.</p>
 <ul>
 <li><strong>Agent</strong> — stateful, persistence-backed LLM agent with canonical execution history.</li>
 <li><strong>Persistence</strong> — shared atomic scopes with domain-owned Agent/Team stores and Workflow checkpoints.</li>
-<li><strong>Workflow</strong> — state-machine-driven application workflow with explicit events and wait states.</li>
+<li><strong>Workflow</strong> — state-machine-driven application workflow with task states, explicit events and wait states.</li>
 <li><strong>Tool / Capability</strong> — callable application capability exposed to an Agent; application-defined Tools subclass <code>Phronomy::Tool::Base</code>.</li>
 <li><strong>Multi-Agent Handoff</strong> — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and persisted active responsibility and exact Target recovery within one Persistence domain.</li>
 <li><strong>EventLoop + FSMSession</strong> — the framework control plane for logical lifecycle coordination.</li>
@@ -104,14 +104,44 @@ tracking <code>main</code> directly.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>Agent.open_scope</code>, <code>Agent::Scope</code>, <code>Agent::Base#unload_async / #unload!</code>, <code>AgentUnloadedError</code> and <code>Agent::ScopeCleanupError</code></td>
+<td>Beta</td>
+<td>Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; <a href="docs/architecture/dx05-agent-scope.md">contract</a></td>
+</tr>
+<tr>
+<td><code>Workflow::Builder#task_state</code> and <code>WorkflowTaskResumeError</code></td>
+<td>Beta</td>
+<td>State-entry-scoped Task completion, live cancellation and explicit restart rejection; <a href="docs/architecture/dx05-workflow-task-state.md">contract</a></td>
+</tr>
+<tr>
 <td><code>Phronomy::Integrations::OrderedEventDelivery</code></td>
 <td>Beta</td>
 <td>Optional ordered delivery with bounded admission and explicit drain lifetime; <a href="docs/ordered-event-delivery.md">usage</a></td>
 </tr>
 <tr>
-<td><code>Phronomy::Error#code</code> and <code>code:</code></td>
+<td><code>Phronomy::Error#code</code> and error constructor <code>code:</code></td>
 <td>Beta</td>
-<td>Optional reason codes retained in saved failure diagnostics; <a href="docs/failure-reason-codes.md">meaning and compatibility</a></td>
+<td>Optional reason codes and bounded causes retained in saved failure diagnostics; <a href="docs/architecture/error-api-review.md">meaning and compatibility</a></td>
+</tr>
+<tr>
+<td><code>Phronomy::AgentNotFoundError#agent_id</code></td>
+<td>Beta</td>
+<td>Identifies absence of the requested Agent root; referenced history and Content failures retain their own errors; <a href="docs/architecture/error-api-review.md">migration</a></td>
+</tr>
+<tr>
+<td><code>Phronomy::MultiAgent::TeamNotFoundError</code> and <code>TeamBusyError</code>, with <code>team_id</code></td>
+<td>Beta</td>
+<td>Team-owned absence and busy errors; child Agent failures retain their Agent classification; <a href="docs/architecture/error-api-review.md">migration</a></td>
+</tr>
+<tr>
+<td><code>Phronomy::Embeddings::AuthenticationError</code> and <code>RateLimitError</code></td>
+<td>Beta</td>
+<td>Embeddings-owned transport error subclasses retaining the provider cause; <a href="docs/architecture/error-api-review.md">migration</a></td>
+</tr>
+<tr>
+<td><code>Phronomy::Tracing::Base.trace_with</code></td>
+<td>Beta</td>
+<td>Uses the tracer start/finish SPI, attempts finish once, and preserves a primary application error; <a href="docs/architecture/error-api-review.md">contract</a></td>
 </tr>
 </tbody>
 </table>
@@ -122,7 +152,10 @@ tracking <code>main</code> directly.</p>
 <p>Then run:</p>
 <pre class="code bash"><code class="bash">bundle install
 </code></pre>
-<p>Phronomy 0.28 requires RubyLLM 2.0.x. See the
+<p>Phronomy 0.28 requires RubyLLM 2.0.x. Faraday 2.1.0 is the tested minimum
+supported version; the <code>~&gt; 2.1</code> requirement allows versions from 2.1 up to,
+but excluding, 3.0. CI checks fresh dependency resolution and the exact minimum
+with MCP 1.0.0. See the
 <a href="docs/architecture/rubyllm-2-token-ownership.md">RubyLLM 2 and token-ownership migration</a>
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.</p>
 <p>Configure RubyLLM with the provider credentials and transport policy required by
@@ -244,7 +277,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Oct 10 11:17:19 2026 by
+  Generated on Mon Oct 12 17:24:35 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

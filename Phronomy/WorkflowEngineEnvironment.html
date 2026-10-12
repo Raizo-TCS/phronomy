@@ -136,7 +136,7 @@ transition compilation do not start workers or register execution state.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#build_session-instance_method" title="#build_session (instance method)">#<strong>build_session</strong>(entry_actions:, persist: nil, **options)  &#x21d2; Object </a>
+      <a href="#build_session-instance_method" title="#build_session (instance method)">#<strong>build_session</strong>(entry_actions:, persist: nil, task_execution: nil, **options)  &#x21d2; Object </a>
     
 
     
@@ -311,6 +311,28 @@ transition compilation do not start workers or register execution state.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#subscribe_cancellation-instance_method" title="#subscribe_cancellation (instance method)">#<strong>subscribe_cancellation</strong>(token, &amp;callback)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -383,7 +405,7 @@ transition compilation do not start workers or register execution state.</p>
       <div class="method_details first">
   <h3 class="signature first" id="build_session-instance_method">
   
-    #<strong>build_session</strong>(entry_actions:, persist: nil, **options)  &#x21d2; <tt>Object</tt> 
+    #<strong>build_session</strong>(entry_actions:, persist: nil, task_execution: nil, **options)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -408,26 +430,30 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-24
-25
-26
-27
-28
-29
 30
 31
-32</pre>
+32
+33
+34
+35
+36
+37
+38
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 30</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span><span class='label'>entry_actions:</span><span class='comma'>,</span> <span class='label'>persist:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span><span class='label'>entry_actions:</span><span class='comma'>,</span> <span class='label'>persist:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>task_execution:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
   <span class='comment'># Preserve nil/scalar results: initial entry must not re-adopt metadata
 </span>  <span class='comment'># unless the application actually returns a context.
 </span>  <span class='id identifier rubyid_initial_actions'>initial_actions</span> <span class='op'>=</span> <span class='id identifier rubyid_entry_actions'>entry_actions</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callbacks'>callbacks</span><span class='op'>|</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callbacks'>callbacks</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_callback'>callback</span><span class='op'>|</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_context'>context</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='const'><span class='object_link'><a href="WorkflowActionRules.html" title="Phronomy::WorkflowActionRules (module)">WorkflowActionRules</a></span></span><span class='period'>.</span><span class='id identifier rubyid_entry'><span class='object_link'><a href="WorkflowActionRules.html#entry-class_method" title="Phronomy::WorkflowActionRules.entry (method)">entry</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='comma'>,</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='id identifier rubyid_state_name'>state_name</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
-  <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="FSMSession.html#initialize-instance_method" title="Phronomy::FSMSession#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='comma'>,</span> <span class='label'>entry_actions:</span> <span class='id identifier rubyid_initial_actions'>initial_actions</span><span class='comma'>,</span> <span class='label'>event_loop:</span> <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='comma'>,</span>
+  <span class='id identifier rubyid_klass'>klass</span> <span class='op'>=</span> <span class='id identifier rubyid_task_execution'>task_execution</span> <span class='op'>?</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowTaskSession.html" title="Phronomy::WorkflowTaskSession (class)">WorkflowTaskSession</a></span></span> <span class='op'>:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span></span>
+  <span class='id identifier rubyid_options'>options</span> <span class='op'>=</span> <span class='id identifier rubyid_options'>options</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>task_execution:</span> <span class='id identifier rubyid_task_execution'>task_execution</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_task_execution'>task_execution</span>
+  <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='comma'>,</span> <span class='label'>entry_actions:</span> <span class='id identifier rubyid_initial_actions'>initial_actions</span><span class='comma'>,</span> <span class='label'>event_loop:</span> <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='comma'>,</span>
     <span class='label'>terminal_policy:</span> <span class='id identifier rubyid_persist'>persist</span> <span class='op'>&amp;&amp;</span> <span class='const'><span class='object_link'><a href="WorkflowTerminalPolicy.html" title="Phronomy::WorkflowTerminalPolicy (class)">WorkflowTerminalPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="WorkflowTerminalPolicy.html#initialize-instance_method" title="Phronomy::WorkflowTerminalPolicy#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>persist:</span> <span class='id identifier rubyid_persist'>persist</span><span class='rparen'>)</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -463,12 +489,12 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-20
-21
-22</pre>
+26
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compile_transitions'>compile_transitions</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_definition'>definition</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="WorkflowPhaseMachineBuilder.html" title="Phronomy::WorkflowPhaseMachineBuilder (class)">WorkflowPhaseMachineBuilder</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="WorkflowPhaseMachineBuilder.html#initialize-instance_method" title="Phronomy::WorkflowPhaseMachineBuilder#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_definition'>definition</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="WorkflowPhaseMachineBuilder.html#build-instance_method" title="Phronomy::WorkflowPhaseMachineBuilder#build (method)">build</a></span></span>
@@ -519,10 +545,10 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-14</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_executing?'>executing?</span> <span class='op'>=</span> <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_current?'>current?</span></pre>
     </td>
@@ -558,10 +584,10 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-13</pre>
+19</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_existing_registry'>existing_registry</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="WorkflowExecutionRegistry.html" title="Phronomy::WorkflowExecutionRegistry (class)">WorkflowExecutionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_existing_for'>existing_for</span><span class='lparen'>(</span><span class='ivar'>@runtime</span><span class='rparen'>)</span></pre>
     </td>
@@ -597,12 +623,12 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register_session'>register_session</span><span class='lparen'>(</span><span class='id identifier rubyid_session'>session</span><span class='comma'>,</span> <span class='label'>completion:</span><span class='rparen'>)</span>
   <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_session'>session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='id identifier rubyid_completion'>completion</span><span class='comma'>,</span> <span class='label'>receiver:</span> <span class='id identifier rubyid_registry'>registry</span><span class='rparen'>)</span>
@@ -640,12 +666,22 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-12</pre>
+12
+13
+14
+15
+16
+17</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 12</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_registry'>registry</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="WorkflowExecutionRegistry.html" title="Phronomy::WorkflowExecutionRegistry (class)">WorkflowExecutionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'>for</span><span class='lparen'>(</span><span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_registry'>registry</span>
+  <span class='id identifier rubyid_receiver'>receiver</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="WorkflowExecutionRegistry.html" title="Phronomy::WorkflowExecutionRegistry (class)">WorkflowExecutionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'>for</span><span class='lparen'>(</span><span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='rparen'>)</span>
+  <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid___shutdown_participant'>__shutdown_participant</span><span class='lparen'>(</span><span class='label'>key:</span> <span class='const'><span class='object_link'><a href="WorkflowExecutionRegistry.html" title="Phronomy::WorkflowExecutionRegistry (class)">WorkflowExecutionRegistry</a></span></span><span class='rparen'>)</span> <span class='op'>||</span>
+    <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid___register_shutdown_participant'>__register_shutdown_participant</span><span class='lparen'>(</span><span class='label'>key:</span> <span class='const'><span class='object_link'><a href="WorkflowExecutionRegistry.html" title="Phronomy::WorkflowExecutionRegistry (class)">WorkflowExecutionRegistry</a></span></span><span class='comma'>,</span> <span class='label'>participant:</span> <span class='id identifier rubyid_receiver'>receiver</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_receiver'>receiver</span>
+<span class='kw'>end</span></pre>
     </td>
   </tr>
 </table>
@@ -679,15 +715,80 @@ transition compilation do not start workers or register execution state.</p>
       <pre class="lines">
 
 
-16
-17
-18</pre>
+22
+23
+24</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Execution.html" title="Phronomy::Execution (class)">Execution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'><span class='object_link'><a href="Execution.html#submit-class_method" title="Phronomy::Execution.submit (method)">submit</a></span></span><span class='lparen'>(</span><span class='label'>runtime:</span> <span class='ivar'>@runtime</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="subscribe_cancellation-instance_method">
+  
+    #<strong>subscribe_cancellation</strong>(token, &amp;callback)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/runtime_binding/workflow_engine_environment.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_subscribe_cancellation'>subscribe_cancellation</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_subscriptions'>subscriptions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/ResultSubscriptions.html" title="Phronomy::Concurrency::ResultSubscriptions (class)">ResultSubscriptions</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/ResultSubscriptions.html#initialize-instance_method" title="Phronomy::Concurrency::ResultSubscriptions#initialize (method)">new</a></span></span>
+  <span class='id identifier rubyid_subscriptions'>subscriptions</span><span class='period'>.</span><span class='id identifier rubyid_cancellation'>cancellation</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_remaining_monotonic_seconds'>remaining_monotonic_seconds</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+    <span class='id identifier rubyid_timer'>timer</span> <span class='op'>=</span> <span class='ivar'>@runtime</span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'>timer_queue</span>
+    <span class='id identifier rubyid_timer'>timer</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_subscriptions'>subscriptions</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_timer'>timer</span><span class='period'>.</span><span class='id identifier rubyid_cancel'>cancel</span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_subscriptions'>subscriptions</span>
+<span class='kw'>rescue</span>
+  <span class='id identifier rubyid_subscriptions'>subscriptions</span><span class='op'>&amp;.</span><span class='id identifier rubyid_close'>close</span>
+  <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -699,7 +800,7 @@ transition compilation do not start workers or register execution state.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 10 11:17:25 2026 by
+  Generated on Mon Oct 12 17:24:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
