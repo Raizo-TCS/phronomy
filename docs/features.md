@@ -65,6 +65,7 @@ Backend authors continue to implement the synchronous SPI only.
 |---|---|
 | **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions; single writer for Phronomy-managed live Agent execution state | Beta |
 | **Agent execution result authority** — Session-local routing plus current FSM state and purpose-specific semantic IDs (`llm_call_id`, `tool_invocation_id`) reject stale async results | Beta |
+| **Agent scope and unload** — `Agent.open_scope` owns newly acquired Agents; `unload_async` / `unload!` release idle incarnations without changing saved state, with typed invalidation and cleanup failures; [contract](architecture/dx05-agent-scope.md) | Beta |
 | **Agent live ownership/admission** — Runtime owns one mutable live Agent per `agent_id`; EventLoop rejects competing same-Agent top-level executions while suspension retains the logical execution slot; Persistence admission remains durable defense | Beta |
 | **Workflow durable admission** — Same-process admission is keyed by durable `workflow_instance_id` from pre-hydration admission through the durable terminal/halted save barrier; admission-owner representation is Runtime-internal | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |

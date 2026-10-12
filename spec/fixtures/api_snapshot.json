@@ -43,6 +43,71 @@
     ]
   },
   {
+    "name": "Phronomy::AgentUnloadedError",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent",
+    "type": "module",
+    "public_instance_methods": [],
+    "public_class_methods": [
+      "open_scope",
+      "run_once"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::Scope",
+    "type": "class",
+    "public_instance_methods": [
+      "create",
+      "create_async",
+      "load",
+      "load_async"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ScopeCleanupError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "failures",
+      "full_message",
+      "message",
+      "result",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
     "name": "Phronomy::MultiAgent::TeamNotFoundError",
     "type": "class",
     "public_instance_methods": [
@@ -169,7 +234,9 @@
       "stream",
       "stream_async",
       "tool_approval_policy",
-      "transcript"
+      "transcript",
+      "unload!",
+      "unload_async"
     ],
     "public_class_methods": [
       "_before_llm_input",
@@ -851,7 +918,9 @@
       "stream_async",
       "subagent",
       "tool_approval_policy",
-      "transcript"
+      "transcript",
+      "unload!",
+      "unload_async"
     ],
     "public_class_methods": [
       "_before_llm_input",

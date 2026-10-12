@@ -92,9 +92,11 @@ module Phronomy
       # @return [self]
       # @api public
       def add_input_filter(filter)
-        @_instance_input_filters ||= []
-        @_instance_input_filters << _resolve_filter(filter)
-        self
+        __with_operation do
+          @_instance_input_filters ||= []
+          @_instance_input_filters << _resolve_filter(filter)
+          self
+        end
       end
 
       # Registers an output filter on this instance.
@@ -105,9 +107,11 @@ module Phronomy
       # @return [self]
       # @api public
       def add_output_filter(filter)
-        @_instance_output_filters ||= []
-        @_instance_output_filters << _resolve_filter(filter)
-        self
+        __with_operation do
+          @_instance_output_filters ||= []
+          @_instance_output_filters << _resolve_filter(filter)
+          self
+        end
       end
 
       # Registers a tool result filter on this instance.
@@ -125,16 +129,18 @@ module Phronomy
       # @return [self]
       # @api public
       def add_tool_result_filter(tool_class_or_filter, filter = nil)
-        if filter.nil?
-          # Single-argument form: apply to all tools.
-          @_instance_tool_result_filters ||= []
-          @_instance_tool_result_filters << _resolve_filter(tool_class_or_filter)
-        else
-          # Two-argument form: scoped to one tool class.
-          @_scoped_tool_result_filters ||= {}
-          (@_scoped_tool_result_filters[tool_class_or_filter] ||= []) << _resolve_filter(filter)
+        __with_operation do
+          if filter.nil?
+            # Single-argument form: apply to all tools.
+            @_instance_tool_result_filters ||= []
+            @_instance_tool_result_filters << _resolve_filter(tool_class_or_filter)
+          else
+            # Two-argument form: scoped to one tool class.
+            @_scoped_tool_result_filters ||= {}
+            (@_scoped_tool_result_filters[tool_class_or_filter] ||= []) << _resolve_filter(filter)
+          end
+          self
         end
-        self
       end
 
       private

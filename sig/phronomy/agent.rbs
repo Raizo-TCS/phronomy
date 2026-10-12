@@ -1,5 +1,21 @@
 module Phronomy
   module Agent
+    # The block's TaskResult is awaited and unwrapped; Scope itself is process-local.
+    def self.open_scope: [R] () { (Scope) -> (R | Phronomy::TaskResult[R]) } -> R
+
+    class Scope
+      def create: (singleton(Base) agent_class, **untyped options) ?{ (untyped event) -> void } -> Base
+      def create_async: (singleton(Base) agent_class, **untyped options) ?{ (untyped event) -> void } -> Phronomy::TaskResult[Base]
+      def load: (singleton(Base) agent_class, String agent_id, persistence: Store, **untyped options) ?{ (untyped event) -> void } -> Base
+      def load_async: (singleton(Base) agent_class, String agent_id, persistence: Store, **untyped options) ?{ (untyped event) -> void } -> Phronomy::TaskResult[Base]
+    end
+
+    class ScopeCleanupError < Phronomy::Error
+      attr_reader failures: Array[{ agent_id: String, error: Exception }]
+      attr_reader result: untyped
+      def initialize: (failures: Array[{ agent_id: String, error: Exception }], result: untyped) -> void
+    end
+
     interface _BeforeLLMInputHook
       def call: (Phronomy::Context::LLMInputBuildContext context) -> Phronomy::Context::LLMInputPatch?
     end
@@ -108,6 +124,8 @@ module Phronomy
       def reset_context!: () -> untyped
       def close!: () -> untyped
       def purge!: () -> bool
+      def unload_async: () -> Phronomy::TaskResult[bool]
+      def unload!: (?timeout: Numeric?) -> bool
     end
   end
 end

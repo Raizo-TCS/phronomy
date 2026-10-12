@@ -93,7 +93,7 @@ module Phronomy
       )
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
-        result_task = Phronomy::TaskResult.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
+        result_task = OperationResult.new(agent: @agent, name: "agent-#{@agent.agent_id}-#{mode}")
         controls = Phronomy::InvocationControls.attach(result_task,
           invocation_context: config[:invocation_context],
           cancellation_token: config[:cancellation_token])
@@ -127,9 +127,8 @@ module Phronomy
       )
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
-        result_task = Phronomy::TaskResult.deferred(
-          name: "agent-approval-resume:#{execution_id}"
-        )
+        result_task = OperationResult.new(agent: @agent,
+          name: "agent-approval-resume:#{execution_id}")
         command = ResumeCommand.new(
           coordinator: self,
           execution_id: execution_id.to_s.freeze,
@@ -269,7 +268,7 @@ module Phronomy
       def begin_start_on_event_loop(request)
         environment = @agent.__execution_environment
         request.controls.check_start!
-        root = @agent.agent_root
+        root = @agent.send(:__root_for_operation)
         if root.lifecycle_status == :closed
           deliver_start_failure_on_event_loop(
             request,
@@ -298,6 +297,7 @@ module Phronomy
           @initial_preparation.prepare(operation)
         end
         submitted = true
+        request.result_task.track(task) if request.result_task.respond_to?(:track)
         task.on_complete do |result, error|
           ready = InitialPreparationReady.new(
             coordinator: self,
@@ -519,7 +519,7 @@ module Phronomy
 
         operation = InitialPreparation::RecoveryCommand.new(
           execution: execution,
-          root: @agent.agent_root,
+          root: @agent.send(:__root_for_operation),
           journal_records: @agent.send(:_journal_records_snapshot)
         )
         task = environment.submit(on_full: :raise) do
@@ -717,7 +717,7 @@ module Phronomy
           execution_id: state.execution_id,
           fsm_session_id: fsm_session_id.to_s.freeze,
           expected_execution_revision: state.execution.execution_revision,
-          root: @agent.agent_root,
+          root: @agent.send(:__root_for_operation),
           journal_records: @agent.send(:_journal_records_snapshot),
           execution: state.execution,
           base_manifest: state.base_manifest,
@@ -739,7 +739,7 @@ module Phronomy
           execution_id: state.execution_id,
           fsm_session_id: fsm_session_id.to_s.freeze,
           expected_execution_revision: state.execution.execution_revision,
-          root: @agent.agent_root,
+          root: @agent.send(:__root_for_operation),
           execution: state.execution,
           runtime_snapshot: invocation.runtime_snapshot,
           tool_batch_snapshot: tool_batch_snapshot,
@@ -921,6 +921,7 @@ module Phronomy
           @approval_resume_commit.commit(operation)
         end
         submitted = true
+        request.result_task.track(task) if request.result_task.respond_to?(:track)
         task.on_complete do |result, error|
           ready = ResumeCommitReady.new(
             coordinator: self,
@@ -953,7 +954,7 @@ module Phronomy
         ResumeCommitCommand.new(
           execution_id: state.execution_id,
           expected_execution_revision: state.execution.execution_revision,
-          root: @agent.agent_root,
+          root: @agent.send(:__root_for_operation),
           execution: state.execution,
           approval_request_id: request.approval_request_id,
           approved: request.approved,
@@ -1254,7 +1255,7 @@ module Phronomy
 
         operation = build_terminal_operation(
           execution: state.execution,
-          root: @agent.agent_root,
+          root: @agent.send(:__root_for_operation),
           journal_records: @agent.send(:_journal_records_snapshot),
           invocation: invocation,
           source_error: source_error,
@@ -1338,6 +1339,7 @@ module Phronomy
           # worker boundary. TaskResult/listener delivery state stays outside it.
           @outcome_committer.commit_outcome(operation)
         end
+        delivery.result_task.track(task) if delivery.result_task.respond_to?(:track)
         task.on_complete do |outcome, error|
           ready = TerminalCommitReady.new(
             coordinator: self,
@@ -1440,7 +1442,7 @@ module Phronomy
         if operation.execution.metadata["reservation"] || operation.execution.metadata["execution_extension"]
           release_terminal_ownership(environment, operation.execution_id, state)
           environment.registry.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each do |task|
-            task.fail(ready.error)
+            fail_task(task, ready.error)
           end
           return
         end
@@ -1477,7 +1479,7 @@ module Phronomy
         delivery = ready.delivery
         outcome = ready.outcome
         release_terminal_ownership(environment, operation.execution_id, state)
-        environment.registry.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| task.fail(outcome.error) }
+        environment.registry.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| fail_task(task, outcome.error) }
       end
 
       def suspend_execution_on_event_loop(ready, state, environment)
@@ -1501,7 +1503,7 @@ module Phronomy
           outcome.result
         )
         Array(state&.invocation&.config&.fetch(:phronomy_exact_observers, [])).each do |task|
-          task.fail(Phronomy::ExecutionRehydrationRequiredError.new("Execution #{operation.execution_id} requires approval"))
+          fail_task(task, Phronomy::ExecutionRehydrationRequiredError.new("Execution #{operation.execution_id} requires approval"))
         end
       end
 
@@ -1695,6 +1697,7 @@ module Phronomy
         end
         if execution_error
           if execution_error.is_a?(Phronomy::CancellationError)
+            result_task.finish_operation! if result_task.respond_to?(:finish_operation!)
             result_task.cancel!(execution_error)
           else
             fail_task(result_task, execution_error)

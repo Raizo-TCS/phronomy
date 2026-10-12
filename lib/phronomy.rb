@@ -88,6 +88,7 @@ loader.ignore("#{__dir__}/phronomy/agent/stream_callback_error.rb")
 loader.ignore("#{__dir__}/phronomy/agent/handoff_error.rb")
 loader.ignore("#{__dir__}/phronomy/agent/agent_already_exists_error.rb")
 loader.ignore("#{__dir__}/phronomy/agent/agent_not_found_error.rb")
+loader.ignore("#{__dir__}/phronomy/agent/agent_unloaded_error.rb")
 loader.setup
 require_relative "phronomy/persistence/transaction"
 require_relative "phronomy/persistence_composition/stores"
@@ -100,6 +101,7 @@ require_relative "phronomy/agent/stream_callback_error"
 require_relative "phronomy/agent/handoff_error"
 require_relative "phronomy/agent/agent_already_exists_error"
 require_relative "phronomy/agent/agent_not_found_error"
+require_relative "phronomy/agent/agent_unloaded_error"
 
 require_relative "phronomy/runtime_composition/configuration_defaults"
 require_relative "phronomy/llm_adapter/token_usage"

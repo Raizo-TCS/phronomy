@@ -292,10 +292,14 @@ module Phronomy
       # @api private
       def __invocation_config(config) = config
 
-      def knowledge_snapshot = persistence.knowledge_snapshot(agent_id: agent_id)
+      def knowledge_snapshot
+        __with_operation { persistence.knowledge_snapshot(agent_id: agent_id) }
+      end
 
       # Listener inheritance is an explicit orchestration choice, not a private getter.
-      def event_listener = _phronomy_event_listener
+      def event_listener
+        __with_operation(read_only: true) { _phronomy_event_listener }
+      end
 
       attr_reader :agent_id, :persistence
 
@@ -371,65 +375,81 @@ module Phronomy
       end
 
       def agent_root
-        __assert_agent_accessible!
-        @root
+        __with_operation(read_only: true) do
+          __assert_agent_accessible!
+          @root
+        end
       end
 
       def journal_projection
-        __assert_agent_accessible!
-        Agent::JournalProjection.new(
-          agent_root: @root,
-          records: _journal_records_snapshot
-        )
+        __with_operation(read_only: true) do
+          __assert_agent_accessible!
+          Agent::JournalProjection.new(
+            agent_root: @root,
+            records: _journal_records_snapshot
+          )
+        end
       end
 
       def transcript
-        journal_projection.transcript_records
+        __with_operation(read_only: true) do
+          journal_projection.transcript_records
+        end
       end
 
       def clear_transcript!
-        mutate_context!(:transcript_cleared) do |root|
-          root.with(
-            agent_revision: root.agent_revision + 1,
-            context_revision: root.context_revision + 1,
-            transcript_generation: root.transcript_generation + 1
-          )
+        __with_operation do
+          mutate_context!(:transcript_cleared) do |root|
+            root.with(
+              agent_revision: root.agent_revision + 1,
+              context_revision: root.context_revision + 1,
+              transcript_generation: root.transcript_generation + 1
+            )
+          end
         end
       end
 
       def clear_knowledge!
-        mutate_context!(:knowledge_cleared) do |root|
-          root.with(
-            agent_revision: root.agent_revision + 1,
-            context_revision: root.context_revision + 1
-          )
+        __with_operation do
+          mutate_context!(:knowledge_cleared) do |root|
+            root.with(
+              agent_revision: root.agent_revision + 1,
+              context_revision: root.context_revision + 1
+            )
+          end
         end
       end
 
       def add_knowledge(content, metadata: {})
-        __assert_live_agent!
-        current = agent_root
-        update = state_writer.add_knowledge(root: current, content: content, metadata: metadata)
-        apply_state_update(update)
-        self
+        __with_operation do
+          __assert_live_agent!
+          current = agent_root
+          update = state_writer.add_knowledge(root: current, content: content, metadata: metadata)
+          apply_state_update(update)
+          self
+        end
       end
 
       def reset_context!
-        mutate_context!(:context_reset) do |root|
-          root.with(
-            agent_revision: root.agent_revision + 1,
-            context_revision: root.context_revision + 1,
-            transcript_generation: root.transcript_generation + 1
-          )
+        __with_operation do
+          mutate_context!(:context_reset) do |root|
+            root.with(
+              agent_revision: root.agent_revision + 1,
+              context_revision: root.context_revision + 1,
+              transcript_generation: root.transcript_generation + 1
+            )
+          end
         end
       end
 
       def close!
-        mutate_context!(:agent_closed, context_affecting: false) do |root|
-          root.with(
-            agent_revision: root.agent_revision + 1,
-            lifecycle_status: :closed
-          )
+        __with_operation do
+          mutate_context!(:agent_closed, context_affecting: false) do |root|
+            root.with(
+              agent_revision: root.agent_revision + 1,
+              lifecycle_status: :closed
+            )
+          end
         end
       end
 
@@ -544,7 +564,7 @@ module Phronomy
 
       # @api private
       def __release_runtime_owner!(runtime)
-        return self if @_phronomy_runtime_owner_state == :purged
+        return self if %i[purged unloaded].include?(@_phronomy_runtime_owner_state)
         return self unless @_phronomy_runtime_owner.equal?(runtime)
 
         @_phronomy_runtime_owner_state = :released
@@ -661,11 +681,13 @@ module Phronomy
       public
 
       def tool_approval_policy(&block)
-        __assert_live_agent!
-        raise ArgumentError, "tool_approval_policy requires a block" unless block
+        __with_operation do
+          __assert_live_agent!
+          raise ArgumentError, "tool_approval_policy requires a block" unless block
 
-        _approval_configuration_mutex.synchronize { @tool_approval_policy = block }
-        self
+          _approval_configuration_mutex.synchronize { @tool_approval_policy = block }
+          self
+        end
       end
 
       private
@@ -676,6 +698,8 @@ module Phronomy
           true
         when :purged
           raise Phronomy::AgentPurgedError, "Agent #{agent_id.inspect} has been purged"
+        when :unloaded
+          raise Phronomy::AgentUnloadedError.new(agent_id: agent_id)
         when :purging
           raise Phronomy::Error, "Agent #{agent_id.inspect} is being purged"
         when :recovery_required
@@ -733,10 +757,12 @@ module Phronomy
       end
 
       def _complete_result_task(task, result)
+        task.finish_operation! if task.respond_to?(:finish_operation!)
         task.complete(result)
       end
 
       def _fail_result_task(task, error)
+        task.finish_operation! if task.respond_to?(:finish_operation!)
         task.fail(error)
       end
 

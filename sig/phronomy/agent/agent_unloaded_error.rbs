@@ -1,0 +1,6 @@
+module Phronomy
+  class AgentUnloadedError < Phronomy::Error
+    attr_reader agent_id: String
+    def initialize: (agent_id: String) -> void
+  end
+end

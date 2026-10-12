@@ -20,6 +20,10 @@ PUBLIC_API_ENTRIES = [
   # Stable
   Phronomy::Error,
   Phronomy::AgentNotFoundError,
+  Phronomy::AgentUnloadedError,
+  Phronomy::Agent,
+  Phronomy::Agent::Scope,
+  Phronomy::Agent::ScopeCleanupError,
   Phronomy::MultiAgent::TeamNotFoundError,
   Phronomy::MultiAgent::TeamBusyError,
   Phronomy::Embeddings::AuthenticationError,
