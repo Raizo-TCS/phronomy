@@ -61,7 +61,10 @@ Then run:
 bundle install
 ```
 
-Phronomy 0.28 requires RubyLLM 2.0.x. See the
+Phronomy 0.28 requires RubyLLM 2.0.x. Faraday 2.1.0 is the tested minimum
+supported version; the `~> 2.1` requirement allows versions from 2.1 up to,
+but excluding, 3.0. CI checks fresh dependency resolution and the exact minimum
+with MCP 1.0.0. See the
 [RubyLLM 2 and token-ownership migration](docs/architecture/rubyllm-2-token-ownership.md)
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
 

@@ -24,3 +24,31 @@ jobs:
         run: bundle exec rspec spec/phronomy/tools/mcp_spec.rb --format documentation
       - name: Run MCP integration tests
         run: bundle exec rspec spec/integration/mcp_http_spec.rb --tag integration --format documentation
+
+  http-minimum:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_GEMFILE: gemfiles/http_minimum.gemfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+      - name: Verify minimum HTTP dependencies
+        run: >-
+          bundle exec ruby -e 'require "faraday"; require "mcp";
+          abort "Expected Faraday 2.1.0, got #{Faraday::VERSION}" unless Faraday::VERSION == "2.1.0";
+          abort "Expected MCP 1.0.0, got #{MCP::VERSION}" unless MCP::VERSION == "1.0.0";
+          puts "Faraday #{Faraday::VERSION}";
+          puts "faraday-net_http #{Gem.loaded_specs.fetch("faraday-net_http").version}";
+          puts "MCP #{MCP::VERSION}"'
+      - name: Run Workflow, RubyLLM, and MCP unit contracts
+        run: >-
+          bundle exec rspec spec/phronomy/workflow/task_state_spec.rb
+          spec/phronomy/agent/recovery_io_boundary_spec.rb
+          spec/phronomy/agent/tool_batch_chat_spec.rb
+          spec/phronomy/agent/ruby_llm_2_responses_spec.rb
+          spec/phronomy/tools/mcp_spec.rb --format documentation
+      - name: Run MCP HTTP integration contracts
+        run: bundle exec rspec spec/integration/mcp_http_spec.rb --tag integration --format documentation
