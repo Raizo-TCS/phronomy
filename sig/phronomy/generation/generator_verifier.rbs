@@ -1,0 +1,69 @@
+module Phronomy
+  class GeneratorVerifier
+    DEFAULT_CONFIDENCE_THRESHOLD: Float
+    DEFAULT_MAX_ITERATIONS: Integer
+
+    interface _ApprovalListener
+      def call: (Approval approval) -> untyped
+    end
+
+    def self.open: [R] (**untyped options) { (GeneratorVerifier pipeline) -> R } -> R
+    def initialize: (draft_agent: singleton(Agent::Base), review_agent: singleton(Agent::Base),
+      draft_prompt_builder: untyped, review_prompt_builder: untyped,
+      ?draft_result_parser: untyped, ?review_result_parser: untyped,
+      ?confidence_threshold: Numeric, ?max_iterations: Integer,
+      ?raise_if_unaccepted: bool, ?on_approval: _ApprovalListener?) -> void
+    def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Result
+    def invoke_async: (untyped input, ?config: Hash[Symbol, untyped]) -> TaskResult[Result]
+    def approval_requests: () -> Array[Approval]
+    def cancel_async: () -> TaskResult[bool]
+    def release!: () -> bool
+
+    class Approval
+      attr_reader invocation_id: String
+      attr_reader phase: (:draft | :review)
+      attr_reader request: Agent::ToolApprovalRequest
+      def respond_async: (approved: bool) -> TaskResult[nil]
+      def to_h: () -> Hash[Symbol, untyped]
+    end
+
+    class Result
+      FIELDS: Array[Symbol]
+      attr_reader output: String?
+      attr_reader confidence: Float?
+      attr_reader citations: Array[Hash[String, untyped]]
+      attr_reader iterations: Integer
+      attr_reader review_notes: Array[String]
+      attr_reader confidence_threshold: Float
+      attr_reader review_approved: bool?
+      attr_reader termination_reason: String
+      attr_reader interrupted_phase: String?
+      def self.accepted?: (confidence: Numeric?, confidence_threshold: Numeric, review_approved: bool?) -> bool
+      def self.from_h: (Hash[untyped, untyped]) -> Result
+      def initialize: (output: String?, confidence: Numeric?,
+        citations: Array[Hash[untyped, untyped]], iterations: Integer, review_notes: Array[String],
+        confidence_threshold: Numeric, review_approved: bool?,
+        termination_reason: String | Symbol, ?interrupted_phase: String | Symbol | nil) -> void
+      def accepted?: () -> bool
+      def to_h: () -> Hash[Symbol, untyped]
+      def ==: (untyped other) -> bool
+      def eql?: (untyped other) -> bool
+      def hash: () -> Integer
+    end
+
+    class UnacceptedResultError < Phronomy::Error
+      attr_reader result: Result
+      def initialize: (Result result, ?code: String?) -> void
+    end
+
+    class CleanupError < Phronomy::Error
+      attr_reader pipeline: GeneratorVerifier
+      attr_reader failures: Array[{ phase: (:draft | :review | nil), error: Exception }]
+      attr_reader result: untyped
+      attr_reader primary_error: Exception?
+      def initialize: (pipeline: GeneratorVerifier,
+        failures: Array[{ phase: (:draft | :review | nil), error: Exception }],
+        ?result: untyped, ?primary_error: Exception?, ?code: String?) -> void
+    end
+  end
+end

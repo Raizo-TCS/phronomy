@@ -18,7 +18,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
         instances << self
       end
 
-      define_method(:invoke_async) do |input|
+      define_method(:invoke_async) do |input, config: {}|
         @inputs << input
         task = Phronomy::TaskResult.new(name: input)
         pending << task
@@ -54,7 +54,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
       def initialize(on_event:)
       end
 
-      def invoke_async(input)
+      def invoke_async(input, config: {})
         Phronomy::TaskResult.completed({output: input})
       end
     end
@@ -136,11 +136,12 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
     expect(received).to be_empty
   end
 
-  it "does not reinterpret a handoff as a generation completion" do
+  it "reports unsupported handoff instead of waiting forever" do
     received = []
     operation.start("request", listener: received.method(:<<))
     tasks.first.complete(handoff_request: :handoff)
-    expect(received).to be_empty
+    expect(received.first.type).to eq(:error)
+    expect(received.first.payload[:error].code).to eq("generation.unsupported_handoff")
   end
 
   it "leaves malformed result interpretation to the domain receiver" do

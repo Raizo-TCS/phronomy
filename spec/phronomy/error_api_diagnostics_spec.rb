@@ -49,12 +49,12 @@ RSpec.describe "Error API diagnostics" do
   end
 
   it "accepts codes without losing specialized attributes or existing constructors" do
-    result = Struct.new(:confidence).new(0.1)
+    result = Struct.new(:confidence, :termination_reason).new(0.1, "iteration_limit")
     condition = Object.new
     resource = Struct.new(:id).new(:items)
     constructors = [
       ->(**kw) { Phronomy::StreamCallbackError.new(event_type: :token, original_error: IOError.new, result: result, **kw) },
-      ->(**kw) { Phronomy::LowConfidenceError.new(result, **kw) },
+      ->(**kw) { Phronomy::GeneratorVerifier::UnacceptedResultError.new(result, code: nil, **kw) },
       ->(**kw) { Phronomy::FilterBlockError.new("blocked", filter: :policy, **kw) },
       ->(**kw) { Phronomy::Storage::ConditionFailedError.new(condition, **kw) },
       ->(**kw) { Phronomy::Storage::UniqueConstraintError.new(resource: resource, constraint: :id, **kw) },

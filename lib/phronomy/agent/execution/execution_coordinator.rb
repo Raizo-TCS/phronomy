@@ -74,6 +74,8 @@ module Phronomy
       TerminalCommitReady = Data.define(
         :coordinator, :operation, :delivery, :outcome, :error
       )
+      SuspensionCancelledCommand = Data.define(:coordinator, :execution_id)
+
       DeferredTerminalCommand = Data.define(
         :coordinator, :execution_id, :result_task, :invocation,
         :source_error, :fsm_session_id
@@ -254,6 +256,8 @@ module Phronomy
           apply_terminal_commit_on_event_loop(command)
         when DeferredTerminalCommand
           resume_deferred_terminal_on_event_loop(command)
+        when ExecutionCancellation::Command, SuspensionCancelledCommand
+          cancel_suspended_on_event_loop(command.execution_id)
         else
           raise Phronomy::Error, "unknown Agent control command: #{command.class}"
         end
@@ -911,11 +915,17 @@ module Phronomy
         operation = capture_approval_resume(state, request)
         resume_transition_started = false
         submitted = false
-        environment.registry.mark_agent_execution_admission(
-          @agent.agent_id,
-          execution_id: state.execution_id,
-          state: :resuming
-        )
+        begin
+          environment.registry.mark_agent_execution_admission(
+            @agent.agent_id,
+            execution_id: state.execution_id,
+            state: :resuming,
+            expected_state: :suspended
+          )
+        rescue Phronomy::AgentBusyError => error
+          return fail_task(request.result_task, error)
+        end
+        suspended_cancellation = clear_suspended_cancellation
         resume_transition_started = true
         task = environment.submit(on_full: :raise) do
           @approval_resume_commit.commit(operation)
@@ -940,6 +950,9 @@ module Phronomy
             execution_id: state.execution_id,
             state: submitted ? :recovery_required : :suspended
           )
+          if !submitted && suspended_cancellation
+            bind_suspended_cancellation(*suspended_cancellation.first(3))
+          end
         end
         fail_task(request.result_task, error)
         raise unless resume_transition_started
@@ -1491,6 +1504,7 @@ module Phronomy
           execution_id: operation.execution_id,
           state: :suspended
         )
+        bind_suspended_cancellation(operation.execution_id, state.invocation, delivery.result_task)
         dispatch_approval_listener(delivery.approval_listener, outcome.approval_request)
         callback_error = deliver_terminal(
           delivery.application_listener,
@@ -1505,6 +1519,46 @@ module Phronomy
         Array(state&.invocation&.config&.fetch(:phronomy_exact_observers, [])).each do |task|
           fail_task(task, Phronomy::ExecutionRehydrationRequiredError.new("Execution #{operation.execution_id} requires approval"))
         end
+      end
+
+      # Suspension closes the FSM session, but not the logical execution.
+      # Keep cancellation connected until approval resumes or the owner terminates.
+      def bind_suspended_cancellation(execution_id, invocation, result_task)
+        clear_suspended_cancellation
+        subscriptions = Phronomy::Concurrency::Subscriptions.new
+        @suspended_cancellation = [execution_id, invocation, result_task, subscriptions]
+        subscriptions.result(result_task) { subscriptions.close }
+        environment = @agent.__execution_environment
+        subscriptions.cancellation(invocation.config[:cancellation_token]) do
+          post_control(environment, SuspensionCancelledCommand.new(coordinator: self, execution_id: execution_id))
+        end
+      end
+
+      def clear_suspended_cancellation
+        record = @suspended_cancellation
+        @suspended_cancellation = nil
+        record&.last&.close
+        record
+      end
+
+      def cancel_suspended_on_event_loop(execution_id)
+        record = @suspended_cancellation
+        return unless record && record.first == execution_id
+        state = @agent.__execution_environment.registry.agent_execution_state(execution_id)
+        return unless state && state.execution.status == :suspended &&
+          state.invocation.equal?(record[1]) && state.fsm_session_id.nil?
+
+        @agent.__execution_environment.registry.mark_agent_execution_admission(
+          @agent.agent_id, execution_id: execution_id, state: :cancelling,
+          expected_state: :suspended
+        )
+        clear_suspended_cancellation
+        finish_on_event_loop(execution_id, record[2], state.invocation,
+          Phronomy::CancellationError.new("Agent execution cancelled during approval"),
+          fsm_session_id: nil)
+      rescue Phronomy::AgentBusyError
+        # A resume/terminal transition already owns this suspended boundary.
+        nil
       end
 
       def deliver_completed_execution_on_event_loop(ready, state, environment)
@@ -1554,6 +1608,7 @@ module Phronomy
 
       def release_terminal_ownership(environment, execution_id, state)
         registry = environment.registry
+        clear_suspended_cancellation if @suspended_cancellation&.first == execution_id
         registry.release_agent_execution(execution_id) if state
         registry.release_agent_execution_admission(@agent.agent_id, execution_id: execution_id)
       end

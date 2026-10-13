@@ -1,6 +1,0 @@
-module Phronomy
-  class LowConfidenceError < Error
-    attr_reader result: untyped
-    def initialize: (untyped result, ?code: String?) -> void
-  end
-end

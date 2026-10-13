@@ -145,7 +145,7 @@ module Phronomy
       end
 
       # @api private
-      def mark_agent_execution_admission(agent_id, execution_id:, state:)
+      def mark_agent_execution_admission(agent_id, execution_id:, state:, expected_state: nil)
         assert_event_loop_thread!
         key = agent_id.to_s
         execution_key = execution_id.to_s
@@ -160,6 +160,10 @@ module Phronomy
           end
           unless current.execution_id.to_s == execution_key
             raise Phronomy::Error, "stale Agent admission state update for #{key.inspect}"
+          end
+          if expected_state && current.state != expected_state
+            raise Phronomy::AgentBusyError,
+              "Agent #{key.inspect} is #{current.state}, expected #{expected_state}"
           end
           @agent_admissions[key] = AgentAdmission.new(
             agent_id: current.agent_id,

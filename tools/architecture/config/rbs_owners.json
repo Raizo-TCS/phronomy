@@ -33,5 +33,6 @@
   "Phronomy::Agent::execution_result": "lib/phronomy/agent",
   "Phronomy::Agent::execution_wiring": "lib/phronomy/agent",
   "Phronomy::_ExecutionChannel": "lib/phronomy/execution",
-  "Phronomy::_ExecutionSubmitter": "lib/phronomy/execution"
+  "Phronomy::_ExecutionSubmitter": "lib/phronomy/execution",
+  "Phronomy::GeneratorVerifier::_ApprovalListener": "lib/phronomy/generation"
 }

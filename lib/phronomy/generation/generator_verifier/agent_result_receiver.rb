@@ -47,6 +47,11 @@ module Phronomy
           case agent_event.type
           when :done
             begin
+              if agent_event.payload[:rejected]
+                workflow.signal(workflow_instance_id: workflow_instance_id,
+                  event: :"#{phase}_rejected", payload: {request_id: request_id})
+                next
+              end
               payload = completion.call(agent_event.payload[:output])
               workflow.signal(
                 workflow_instance_id: workflow_instance_id,
@@ -59,9 +64,6 @@ module Phronomy
           when :error, :timeout, :cancelled
             error = agent_event.payload[:error] ||
               Phronomy::Error.new("#{phase.to_s.capitalize} Agent ended with #{agent_event.type}")
-            signal_failure(workflow, workflow_instance_id, request_id, phase, error)
-          when :approval_required
-            error = Phronomy::Error.new("GeneratorVerifier #{phase} Agent suspended for approval")
             signal_failure(workflow, workflow_instance_id, request_id, phase, error)
           end
         }
@@ -76,7 +78,9 @@ module Phronomy
       end
 
       def clamp(value)
-        value.to_f.clamp(0.0, 1.0)
+        score = value.to_f
+        raise ArgumentError, "evaluation score must be finite" unless score.finite?
+        score.clamp(0.0, 1.0)
       end
 
       def normalize_citations(raw)

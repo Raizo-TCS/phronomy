@@ -222,3 +222,38 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     end
   end
 end
+
+RSpec.describe "Agent cancellation while suspended", :integration do
+  it "completes durable cancellation without an active FSM session" do
+    tool = IntegrationFactors.approval_tool
+    agent_class = IntegrationFactors.approval_resume_agent(tool)
+    queue = Queue.new
+    token = Phronomy::Concurrency::CancellationToken.new
+    agent = agent_class.new(on_event: ->(event) { queue << event.payload[:request] if event.type == :approval_required })
+    LLMStub.activate(responses: [LLMStub.tool_call_response("approval_required_tool", {query: "cancel"})])
+    task = agent.invoke_async("request", config: {cancellation_token: token})
+    request = Timeout.timeout(5) { queue.pop }
+    agent.cancel_async(request.execution_id).wait_result(timeout: 5)
+    expect { task.wait_result(timeout: 5) }.to raise_error(Phronomy::CancellationError)
+    expect(agent.persistence.executions.load(request.execution_id).status).to eq(:cancelled)
+    expect(agent.unload!).to be true
+  end
+  it "keeps cancellation connected after approval work cannot be submitted" do
+    agent_class = IntegrationFactors.approval_resume_agent(IntegrationFactors.approval_tool)
+    queue = Queue.new
+    token = Phronomy::Concurrency::CancellationToken.new
+    agent = agent_class.new(on_event: ->(event) { queue << event.payload[:request] if event.type == :approval_required })
+    LLMStub.activate(responses: [LLMStub.tool_call_response("approval_required_tool", {query: "cancel"})])
+    task = agent.invoke_async("request", config: {cancellation_token: token})
+    request = Timeout.timeout(5) { queue.pop }
+    environment = agent.__execution_environment
+    allow(environment).to receive(:submit).and_raise(Phronomy::Error, "queue full")
+    response = agent.approve_async(request.execution_id, approval_request_id: request.id, approved: true)
+    expect { response.wait_result(timeout: 5) }.to raise_error(Phronomy::Error, "queue full")
+    allow(environment).to receive(:submit).and_call_original
+    expect(task).not_to be_done
+    token.cancel!
+    expect { task.wait_result(timeout: 5) }.to raise_error(Phronomy::CancellationError)
+    expect(agent.unload!).to be true
+  end
+end

@@ -124,16 +124,15 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
     expect(arguments["nested"].first["query"]).not_to be_frozen
   end
 
-  it "keeps overlapping approvals independent even when workers execute in reverse order" do
+  it "rejects overlapping approval commits and preserves the first queued snapshot" do
     install
     submit
     arguments["nested"].first["query"].replace("second")
-    submit
-    second = submitted.last.first.call.tool_batch_snapshot
+    overlapping = submit
+    expect { overlapping.result_task.wait_result(timeout: 3) }.to raise_error(Phronomy::AgentBusyError)
+    expect(submitted.size).to eq(1)
     first = submitted.first.first.call.tool_batch_snapshot
     expect(first.first.fetch("arguments")["nested"].first["query"]).to eq("before")
-    expect(second.first.fetch("arguments")["nested"].first["query"]).to eq("second")
-    expect(first).not_to equal(second)
   end
 
   it "does not capture a stale request or replace an already queued snapshot" do
@@ -181,15 +180,15 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
       .to eq("retry")
   end
 
-  it "preserves the distinction between an absent invocation and an empty batch" do
-    install(invocation: nil)
-    submit
-    expect(submitted.first.first.call.tool_batch_snapshot).to be_nil
-    allow(invocation).to receive(:tool_invocations).and_return([])
-    on_loop { registry.replace_agent_execution(execution.execution_id, invocation: invocation) }
-    submit
-    expect(submitted.last.first.call.tool_batch_snapshot).to eq([])
-    expect(submitted.last.first.call.tool_batch_snapshot).to be_frozen
+  [false, true].each do |present|
+    it "preserves an #{present ? "empty batch" : "absent invocation"} in the snapshot" do
+      allow(invocation).to receive(:tool_invocations).and_return([])
+      install(invocation: present ? invocation : nil)
+      submit
+      snapshot = submitted.first.first.call.tool_batch_snapshot
+      expect(snapshot).to eq(present ? [] : nil)
+      expect(snapshot).to be_frozen if present
+    end
   end
 
   [:cancelled, :next_approval].each do |replacement|

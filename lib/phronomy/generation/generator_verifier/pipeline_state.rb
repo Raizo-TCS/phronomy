@@ -16,6 +16,7 @@ module Phronomy
       field :output, type: :replace, default: -> { {} }
       field :draft_request_id, type: :replace, default: nil
       field :review_request_id, type: :replace, default: nil
+      field :interrupted_phase, type: :replace, default: nil
       field :pipeline_error, type: :replace, default: nil
 
       # Application-level event interpretation. Correlation IDs belong to this
@@ -39,6 +40,14 @@ module Phronomy
           self.review_notes = review_notes + [event.payload[:feedback]]
           self.review_request_id = nil
           self.pipeline_error = nil
+        when :draft_rejected
+          return :consume unless event.payload[:request_id] == draft_request_id
+          self.interrupted_phase = :draft
+          self.draft_request_id = nil
+        when :review_rejected
+          return :consume unless event.payload[:request_id] == review_request_id
+          self.interrupted_phase = :review
+          self.review_request_id = nil
         when :draft_failed
           return :consume unless event.payload[:request_id] == draft_request_id
 

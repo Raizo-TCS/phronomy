@@ -4,6 +4,8 @@
 > This project is primarily developed and maintained by **AI coding agents**.
 > As a result, `main` receives frequent, large, and unannounced changes.
 > External contributors should expect significant churn and potential conflicts at any time.
+> Correct responsibility boundaries and behavior take priority over backward compatibility.
+> Obsolete APIs and compatibility-only paths are removed; update applications with the documented API changes.
 > We apologise for the instability this may cause.
 
 **Phronomy** is a Ruby AI agent framework for stateful Agents, Workflows, Tools,
@@ -39,6 +41,7 @@ The following application APIs are part of unreleased development:
 
 | API | Stability | Contract |
 |---|---|---|
+| `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` | Beta | [Generation contract and migration](docs/architecture/generator-verifier-lifecycle-result.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
 | `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |

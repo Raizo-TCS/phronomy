@@ -23,9 +23,13 @@ RSpec.describe Phronomy::GeneratorVerifier do
   def scripted_agent(&script)
     Class.new do
       define_method(:start) do |input, listener:, **keywords|
-        script.call(input, listener, keywords)
-        # Completion is driven by the event, not by observing this pending Task.
-        Phronomy::TaskResult.new(name: "generator-verifier-contract")
+        task = Phronomy::TaskResult.new(name: "generator-verifier-contract")
+        script.call(input, ->(event) {
+          value = listener.call(event)
+          task.complete(nil) if %i[done error timeout cancelled].include?(event.type)
+          value
+        }, keywords)
+        task
       end
     end
   end
@@ -62,8 +66,9 @@ RSpec.describe Phronomy::GeneratorVerifier do
     result = invoke_bounded(pipeline(draft_agent: draft))
 
     expect(result.to_h).to eq(
-      output: "answer", confidence: 0.8, citations: [{source: "ref"}],
-      iterations: 1, review_notes: ["accepted"], trusted: true
+      output: "answer", confidence: 0.8, citations: [{"source" => "ref"}],
+      iterations: 1, review_notes: ["accepted"], confidence_threshold: 0.7,
+      review_approved: true, termination_reason: "accepted", interrupted_phase: nil
     )
     expect(prompts).to eq([
       [:draft, "request", nil], [:review, "request", "answer", [{source: "ref"}]]
@@ -83,12 +88,6 @@ RSpec.describe Phronomy::GeneratorVerifier do
         expect { invoke_bounded(subject) }
           .to raise_error(Phronomy::Error, "#{phase.to_s.capitalize} Agent ended with #{type}")
       end
-    end
-
-    it "maps #{phase} approval suspension to the existing pipeline failure" do
-      subject = pipeline("#{phase}_agent": emitting_agent(:approval_required, {}))
-      expect { invoke_bounded(subject) }
-        .to raise_error(Phronomy::Error, "GeneratorVerifier #{phase} Agent suspended for approval")
     end
 
     it "preserves the #{phase} parser's exception identity" do
@@ -189,7 +188,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
 
     expect(result.iterations).to eq(2)
     expect(result.review_notes).to eq(["revise", "accepted"])
-    expect(result).to be_trusted
+    expect(result).to be_accepted
     expect(prompts.select { |entry| entry.first == :draft }.map(&:last)).to eq([nil, "revise"])
     expect([draft_listeners.length, review_listeners.length]).to eq([2, 2])
   end
@@ -204,8 +203,15 @@ RSpec.describe Phronomy::GeneratorVerifier do
       result = invoke_bounded(subject)
       expect(result.output).to eq("42")
       expect(result.confidence).to eq(expected)
-      expect(result.citations).to eq([{source: "ref"}])
+      expect(result.citations).to eq([{"source" => "ref"}])
       expect(result.review_notes).to eq([""])
+    end
+  end
+
+  [Float::INFINITY, Float::NAN].each do |score|
+    it "rejects non-finite evaluation score #{score.inspect}" do
+      subject = pipeline(review_result_parser: ->(_output) { {approved: true, score: score, feedback: ""} })
+      expect { invoke_bounded(subject) }.to raise_error(ArgumentError, /finite/)
     end
   end
 
@@ -219,16 +225,16 @@ RSpec.describe Phronomy::GeneratorVerifier do
     end
   end
 
-  it "preserves confidence-based trust even when a high-score rejection reaches the limit" do
+  it "rejects high-score reviewer denial under the requested raise policy" do
     subject = pipeline(
-      max_iterations: 1, raise_if_untrusted: true,
+      max_iterations: 1, raise_if_unaccepted: true,
       review_result_parser: ->(_output) { {approved: false, score: 0.9, feedback: "rejected"} }
     )
-    expect(invoke_bounded(subject)).to be_trusted
+    expect { invoke_bounded(subject) }.to raise_error(described_class::UnacceptedResultError)
   end
 
-  it "retains the first draft/review cycle even with a nonpositive iteration limit" do
-    expect(invoke_bounded(pipeline(max_iterations: 0)).iterations).to eq(1)
+  it "rejects a nonpositive iteration limit before acquiring Agents" do
+    expect { pipeline(max_iterations: 0) }.to raise_error(ArgumentError)
   end
 
   it "keeps bare citation hashes out of the normalized citation list" do
@@ -238,12 +244,10 @@ RSpec.describe Phronomy::GeneratorVerifier do
     expect(result.citations).to eq([])
   end
 
-  it "instantiates each Agent once lazily and starts each invoke with fresh state" do
+  it "reuses owned Agents and starts each invoke with fresh state" do
     subject = pipeline
-    draft = subject.instance_variable_get(:@draft_agent_class)
-    review = subject.instance_variable_get(:@review_agent_class)
-    expect(draft).to receive(:new).once.and_call_original
-    expect(review).to receive(:new).once.and_call_original
+    operation = described_class.const_get(:AgentOperation)
+    expect(operation).not_to receive(:new)
     first = invoke_bounded(subject, "first")
     second = invoke_bounded(subject, "second")
     expect([first.iterations, second.iterations]).to eq([1, 1])
@@ -253,12 +257,13 @@ RSpec.describe Phronomy::GeneratorVerifier do
     ])
   end
 
-  it "passes config unchanged to the cached Workflow" do
+  it "passes application config and a private cancellation token to Workflow" do
     subject = pipeline
     workflow = subject.send(:compiled_workflow)
     config = {user_id: "user", custom: "value"}
-    expect(workflow).to receive(:invoke).with({input: "request"}, config: config).and_call_original
-    expect(invoke_bounded(subject, config: config)).to be_trusted
+    expect(workflow).to receive(:invoke_async).with({input: "request"},
+      config: hash_including(config.merge(cancellation_token: kind_of(Phronomy::Concurrency::CancellationToken)))).and_call_original
+    expect(invoke_bounded(subject, config: config)).to be_accepted
   end
 
   %i[draft review].each do |phase|

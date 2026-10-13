@@ -3,9 +3,17 @@
 require "spec_helper"
 
 RSpec.describe "GeneratorVerifier default parser composition" do
+  let(:agent_class) do
+    Class.new do
+      def initialize(on_event:)
+      end
+
+      def unload! = true
+    end
+  end
   let(:pipeline) do
     Phronomy::GeneratorVerifier.new(
-      draft_agent: Class.new, review_agent: Class.new,
+      draft_agent: agent_class, review_agent: agent_class,
       draft_prompt_builder: ->(*) {}, review_prompt_builder: ->(*) {}
     )
   end
@@ -30,7 +38,7 @@ RSpec.describe "GeneratorVerifier default parser composition" do
   it "does not construct a default parser when both parser callables are supplied" do
     expect(Phronomy::GeneratorVerifier::DefaultParser).not_to receive(:build)
     subject = Phronomy::GeneratorVerifier.new(
-      draft_agent: Class.new, review_agent: Class.new,
+      draft_agent: agent_class, review_agent: agent_class,
       draft_prompt_builder: ->(*) {}, review_prompt_builder: ->(*) {},
       draft_result_parser: ->(text) { text }, review_result_parser: ->(text) { text }
     )
