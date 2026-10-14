@@ -7,18 +7,20 @@ RSpec.describe "RubyLLM native structured output transport" do
   let(:schema) { {"type" => "object", "properties" => {"score" => {"type" => "number", "minimum" => 0, "maximum" => 1}}, "required" => ["score"], "additionalProperties" => false} }
   let(:adapter) { Phronomy::LLMAdapter::RubyLLM.new }
   before do
-    @previous = [RubyLLM.config.openai_api_key, RubyLLM.config.openai_api_base, RubyLLM.config.openai_protocol]
+    @previous = [RubyLLM.config.openai_api_key, RubyLLM.config.openai_api_base, RubyLLM.config.openai_protocol, RubyLLM.config.max_retries]
     WebMock.enable!
     WebMock.disable_net_connect!
     RubyLLM.configure do |config|
       config.openai_api_key = "test-only"
       config.openai_api_base = "https://api.openai.com/v1"
       config.openai_protocol = :chat_completions
+      # Count adapter replays separately from the SDK's configurable retries.
+      config.max_retries = 0
     end
   end
   after do
     config = RubyLLM.config
-    config.openai_api_key, config.openai_api_base, config.openai_protocol = @previous
+    config.openai_api_key, config.openai_api_base, config.openai_protocol, config.max_retries = @previous
   end
   def request(model: "gpt-4o", **options)
     Phronomy::LLMAdapter::Request.new(model_config: {model: model, provider: "openai"},
@@ -56,6 +58,43 @@ RSpec.describe "RubyLLM native structured output transport" do
     }
     expect(endpoint).to have_been_requested.once
   end
+
+  [false, true].each do |streaming|
+    it "classifies LM Studio's string-only schema rejection with streaming=#{streaming}" do
+      endpoint = stub_request(:post, "https://api.openai.com/v1/chat/completions").to_return(status: 400,
+        headers: {"Content-Type" => "application/json"},
+        body: JSON.generate(error: "Cannot combine structured output constraints with lazy grammar"))
+      expect {
+        streaming ? adapter.stream(request) { |_chunk| } : adapter.complete(request)
+      }.to raise_error(Phronomy::LLMAdapter::StructuredOutputUnsupportedError) { |error|
+        expect(error.code).to eq("llm.structured_output_unsupported")
+        expect(error.cause).to be_a(RubyLLM::Error)
+        expect(error.cause.message).to eq("Cannot combine structured output constraints with lazy grammar")
+      }
+      expect(endpoint).to have_been_requested.once
+    end
+  end
+
+  [false, true].each do |streaming|
+    it "keeps an unrelated string-only bad request as a transport failure with streaming=#{streaming}" do
+      endpoint = stub_request(:post, "https://api.openai.com/v1/chat/completions").to_return(status: 400,
+        headers: {"Content-Type" => "application/json"}, body: JSON.generate(error: "Invalid conversation"))
+      expect { streaming ? adapter.stream(request) { |_chunk| } : adapter.complete(request) }.to raise_error(Phronomy::LLMAdapter::TransportError) { |error|
+        expect(error.cause).to be_a(RubyLLM::Error)
+      }
+      expect(endpoint).to have_been_requested.once
+    end
+
+    it "does not relabel a string-only error on an unstructured request with streaming=#{streaming}" do
+      endpoint = stub_request(:post, "https://api.openai.com/v1/chat/completions").to_return(status: 400,
+        headers: {"Content-Type" => "application/json"},
+        body: JSON.generate(error: "Cannot combine structured output constraints with lazy grammar"))
+      unstructured = Phronomy::LLMAdapter::Request.new(model_config: {model: "gpt-4o", provider: "openai"}, message: "score")
+      expect { streaming ? adapter.stream(unstructured) { |_chunk| } : adapter.complete(unstructured) }.to raise_error(Phronomy::LLMAdapter::TransportError)
+      expect(endpoint).to have_been_requested.once
+    end
+  end
+
   it "retains streamed refusal even when the SDK omits it from Chunk content" do
     registered = RubyLLM::Providers::OpenAI.protocols.dup
     body = [

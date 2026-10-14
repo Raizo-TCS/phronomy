@@ -61,6 +61,17 @@ transport has been verified. There is no downgrade to JSON mode or prompt-only
 instructions. Tool capability is checked too when the model catalog is available;
 remote schema/Tool combination rejection remains a provider failure.
 
+LM Studio's HTTP 400 string error `Cannot combine structured output constraints
+with lazy grammar` is a known native schema/Tool rejection. It is classified as
+`StructuredOutputUnsupportedError` with its original cause, for both complete and
+stream operations. Unrelated string errors and requests without a schema retain
+their ordinary transport-error behavior. The adapter neither downgrades schemas
+nor replays requests. RubyLLM's configured transport retry policy is independent.
+The minimum Faraday streaming callback omits the HTTP status, so RubyLLM may
+surface this same exact rejection as `ServerError`; its cause is preserved too.
+That synthetic server status can trigger SDK retries before the adapter receives
+the error. Adapter replay tests disable SDK retries to verify their own boundary.
+
 `Response` records finish_reason (stop, tool_calls, length, content_filter, refusal,
 unknown), refusal and raw_finish_reason metadata. Only normal final completion can
 be a structured success. Tool requests are intermediate; they retain existing
