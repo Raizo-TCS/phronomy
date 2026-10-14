@@ -134,8 +134,12 @@ module Phronomy
         body = response.respond_to?(:body) ? response.body : response
         body = JSON.parse(body) if body.is_a?(String)
         detail = body.is_a?(Hash) ? body["error"] : nil
-        detail.is_a?(Hash) && (detail["param"].to_s.match?(/response_format|schema|text\.format|output_config/) ||
-          %w[unsupported_response_format unsupported_schema invalid_json_schema].include?(detail["code"]))
+        return false unless detail.is_a?(Hash)
+        schema_field = /response_format|output_config\.format|responseJsonSchema|response_schema|text\.format/
+        message = detail["message"].to_s
+        detail["param"].to_s.match?(/response_format|schema|text\.format|output_config/) ||
+          %w[unsupported_response_format unsupported_schema invalid_json_schema].include?(detail["code"]) ||
+          (message.match?(schema_field) && message.match?(/unsupported|not supported|invalid|unknown/i))
       rescue JSON::ParserError
         false
       end

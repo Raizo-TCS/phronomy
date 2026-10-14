@@ -83,8 +83,9 @@ logs the Agent ID; it is never silently made creatable again.
 
 Scope does not cancel or wait for unjoined child execution as an implicit
 cleanup policy. An active Agent is retained and cleanup reports `AgentBusyError`.
-If the main operation failed, its same exception is preserved and secondary
-cleanup failures are logged with Agent IDs. Logger failure cannot replace it.
+If both the main operation and cleanup fail, ScopeCleanupError retains the original
+exception as primary_error/cause and every cleanup failure, plus the retryable scope.
+If cleanup succeeds, the original exception is re-raised with the same identity.
 If the main operation succeeded, failed cleanup raises `Agent::ScopeCleanupError`
 (`code: "agent.scope_cleanup_failed"`). `result` preserves the successful value;
 `failures` is an array of `{agent_id:, error:}` with the original exceptions.

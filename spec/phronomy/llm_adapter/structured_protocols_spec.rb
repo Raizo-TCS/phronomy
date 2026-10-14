@@ -52,6 +52,20 @@ RSpec.describe "Structured output native protocol contracts" do
     end
   end
 
+  {"anthropic" => "output_config.format is not supported", "gemini" => "Invalid responseJsonSchema for this model"}.each do |provider, message|
+    it "identifies #{provider} schema rejection without OpenAI error fields" do
+      request = stub_request(:post, %r{\Ahttps://structured.example.test/}).to_return(status: 400,
+        headers: {"Content-Type" => "application/json"}, body: JSON.generate(error: {type: "invalid_request_error", status: "INVALID_ARGUMENT", code: 400, message: message}))
+      expect {
+        adapter.complete(Phronomy::LLMAdapter::Request.new(message: "score", response_schema: schema,
+          model_config: {model: "local-schema-test", provider: provider}))
+      }.to raise_error(Phronomy::LLMAdapter::StructuredOutputUnsupportedError) { |error|
+             expect(error.cause).to be_a(RubyLLM::BadRequestError)
+           }
+      expect(request).to have_been_requested.once
+    end
+  end
+
   it "keeps an unknown SDK/internal failure intact" do
     failure = RuntimeError.new("SDK bug")
     allow(RubyLLM).to receive(:chat).and_raise(failure)
