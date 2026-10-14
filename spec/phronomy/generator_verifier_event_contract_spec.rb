@@ -13,10 +13,13 @@ RSpec.describe Phronomy::GeneratorVerifier do
 
   before do
     operation = described_class.const_get(:AgentOperation)
-    allow(operation).to receive(:new) { |agent_class| agent_class.new }
+    allow(operation).to receive(:new) { |agent_class, **_options| agent_class.new }
   end
 
   def event(type, payload = {})
+    if type == :done && payload[:output].is_a?(String)
+      payload = payload.merge(output: JSON.parse(payload[:output]))
+    end
     Phronomy::Agent::StreamEvent.new(type: type, payload: payload)
   end
 
@@ -68,10 +71,10 @@ RSpec.describe Phronomy::GeneratorVerifier do
     expect(result.to_h).to eq(
       output: "answer", confidence: 0.8, citations: [{"source" => "ref"}],
       iterations: 1, review_notes: ["accepted"], confidence_threshold: 0.7,
-      review_approved: true, termination_reason: "accepted", interrupted_phase: nil
+      review_approved: true, termination_reason: "accepted", interrupted_phase: nil, failure: nil
     )
     expect(prompts).to eq([
-      [:draft, "request", nil], [:review, "request", "answer", [{source: "ref"}]]
+      [:draft, "request", nil], [:review, "request", "answer", [{"source" => "ref"}]]
     ])
   end
 
@@ -87,26 +90,6 @@ RSpec.describe Phronomy::GeneratorVerifier do
         subject = pipeline("#{phase}_agent": emitting_agent(type, {}))
         expect { invoke_bounded(subject) }
           .to raise_error(Phronomy::Error, "#{phase.to_s.capitalize} Agent ended with #{type}")
-      end
-    end
-
-    it "preserves the #{phase} parser's exception identity" do
-      error = ArgumentError.new("parser failed")
-      subject = pipeline("#{phase}_result_parser": ->(_output) { raise error })
-      expect { invoke_bounded(subject) }.to raise_error { |raised| expect(raised).to equal(error) }
-    end
-
-    it "maps a malformed #{phase} parser result through the failure event" do
-      subject = pipeline("#{phase}_result_parser": ->(_output) {})
-      workflow = subject.send(:compiled_workflow)
-      failures = []
-      allow(workflow).to receive(:signal).and_wrap_original do |original, **values|
-        failures << values if values[:event] == :"#{phase}_failed"
-        original.call(**values)
-      end
-      expect { invoke_bounded(subject) }.to raise_error(NoMethodError) do |error|
-        expect(failures.length).to eq(1)
-        expect(failures.first[:payload][:error]).to equal(error)
       end
     end
 
@@ -193,55 +176,23 @@ RSpec.describe Phronomy::GeneratorVerifier do
     expect([draft_listeners.length, review_listeners.length]).to eq([2, 2])
   end
 
-  [[nil, "2", 0.0], ["1.2", "0.9", 0.9], ["-0.5", 0.8, 0.0]].each do |self_score, review_score, expected|
-    it "normalizes #{self_score.inspect}/#{review_score.inspect} and uses the lower score" do
-      subject = pipeline(
-        max_iterations: 1,
-        draft_result_parser: ->(_output) { {answer: 42, confidence: self_score, citations: [nil, "ignored", {"source" => "ref"}]} },
-        review_result_parser: ->(_output) { {approved: true, score: review_score, feedback: nil} }
-      )
-      result = invoke_bounded(subject)
-      expect(result.output).to eq("42")
-      expect(result.confidence).to eq(expected)
-      expect(result.citations).to eq([{"source" => "ref"}])
-      expect(result.review_notes).to eq([""])
-    end
-  end
-
-  [Float::INFINITY, Float::NAN].each do |score|
-    it "rejects non-finite evaluation score #{score.inspect}" do
-      subject = pipeline(review_result_parser: ->(_output) { {approved: true, score: score, feedback: ""} })
-      expect { invoke_bounded(subject) }.to raise_error(ArgumentError, /finite/)
-    end
-  end
-
-  [true, "true", 1].each do |approved|
-    it "requires literal true for early approval: #{approved.inspect}" do
-      subject = pipeline(
-        max_iterations: 2,
-        review_result_parser: ->(_output) { {approved: approved, score: 0.9, feedback: "review"} }
-      )
-      expect(invoke_bounded(subject).iterations).to eq((approved == true) ? 1 : 2)
+  [[0.2, 0.8, 0.2], [0.9, 0.8, 0.8], [0, 1, 0]].each do |self_score, review_score, expected|
+    it "uses the lower validated score #{self_score}/#{review_score}" do
+      subject = pipeline(max_iterations: 1,
+        draft_agent: emitting_agent(:done, {output: {"answer" => "answer", "confidence" => self_score, "citations" => []}}),
+        review_agent: emitting_agent(:done, {output: {"approved" => true, "score" => review_score, "feedback" => ""}}))
+      expect(invoke_bounded(subject).confidence).to eq(expected)
     end
   end
 
   it "rejects high-score reviewer denial under the requested raise policy" do
-    subject = pipeline(
-      max_iterations: 1, raise_if_unaccepted: true,
-      review_result_parser: ->(_output) { {approved: false, score: 0.9, feedback: "rejected"} }
-    )
+    subject = pipeline(max_iterations: 1, raise_if_unaccepted: true,
+      review_agent: emitting_agent(:done, {output: {"approved" => false, "score" => 0.9, "feedback" => "rejected"}}))
     expect { invoke_bounded(subject) }.to raise_error(described_class::UnacceptedResultError)
   end
 
   it "rejects a nonpositive iteration limit before acquiring Agents" do
     expect { pipeline(max_iterations: 0) }.to raise_error(ArgumentError)
-  end
-
-  it "keeps bare citation hashes out of the normalized citation list" do
-    subject = pipeline(draft_result_parser: ->(_output) { {answer: nil, confidence: 1, citations: {"source" => "ref"}} })
-    result = invoke_bounded(subject)
-    expect(result.output).to eq("")
-    expect(result.citations).to eq([])
   end
 
   it "reuses owned Agents and starts each invoke with fresh state" do

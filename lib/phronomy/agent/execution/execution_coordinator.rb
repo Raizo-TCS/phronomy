@@ -1386,6 +1386,7 @@ module Phronomy
         TerminalView.new(
           phase: invocation&.phase,
           output: invocation&.output,
+          response: invocation&.final_response,
           usage: invocation&.usage,
           approval_request: invocation&.approval_request,
           rejected: invocation ? !!invocation.rejected : false,

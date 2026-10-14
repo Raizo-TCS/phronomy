@@ -121,6 +121,12 @@ module Phronomy
         if expected && stored != expected
           raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} correlation mismatch"
         end
+        unless @resume_only
+          expected_digest = @config[:phronomy_output_contract]&.digest
+          if expected_digest != execution.metadata.dig("output_contract", "schema_digest")
+            raise Phronomy::Persistence::StateConflictError, "Reserved execution output schema mismatch"
+          end
+        end
         ref = execution.metadata["current_input_ref"]
         @input = @agent.persistence.contents.fetch_text(ref) if @resume_only && ref
         if ref && @agent.persistence.contents.fetch_text(ref) != @input
@@ -168,6 +174,9 @@ module Phronomy
 
       def materialize(execution)
         result = @agent.persistence.result(execution.execution_id)
+        if result[:error].is_a?(Hash) && result[:error]["class"] == "Phronomy::Agent::OutputError"
+          raise RecoverySupport.error_from_failure(result[:error])
+        end
         result.merge(output: result[:result]).freeze
       end
     end

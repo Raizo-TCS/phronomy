@@ -18,7 +18,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
         instances << self
       end
 
-      define_method(:invoke_async) do |input, config: {}|
+      define_method(:invoke_async) do |input, output_schema:, config: {}|
         @inputs << input
         task = Phronomy::TaskResult.new(name: input)
         pending << task
@@ -26,7 +26,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
       end
     end
   end
-  let(:operation) { operation_class.new(agent_class) }
+  let(:operation) { operation_class.new(agent_class, output_schema: {}) }
 
   def event(type, payload = {})
     Phronomy::Agent::StreamEvent.new(type: type, payload: payload)
@@ -54,12 +54,12 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
       def initialize(on_event:)
       end
 
-      def invoke_async(input, config: {})
+      def invoke_async(input, output_schema:, config: {})
         Phronomy::TaskResult.completed({output: input})
       end
     end
     received = []
-    operation_class.new(klass).start("inline", listener: received.method(:<<))
+    operation_class.new(klass, output_schema: {}).start("inline", listener: received.method(:<<))
     expect(received.map(&:payload)).to eq([{output: "inline"}])
   end
 
@@ -148,9 +148,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
     failures = []
     workflow = double("workflow")
     allow(workflow).to receive(:signal) { |**values| failures << values }
-    receiver = Phronomy::GeneratorVerifier.const_get(:AgentResultReceiver).new(
-      draft_result_parser: ->(text) { text }, review_result_parser: ->(text) { text }
-    )
+    receiver = Phronomy::GeneratorVerifier.const_get(:AgentResultReceiver).new
     listener = receiver.draft_listener(workflow: workflow, workflow_instance_id: "workflow", request_id: "request")
     operation.start("request", listener: listener)
     tasks.first.complete("malformed")

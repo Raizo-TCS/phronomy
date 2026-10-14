@@ -48,6 +48,13 @@ module Phronomy
           return :consume unless event.payload[:request_id] == review_request_id
           self.interrupted_phase = :review
           self.review_request_id = nil
+        when :draft_output_failed, :review_output_failed
+          phase = (event.type == :draft_output_failed) ? :draft : :review
+          expected = (phase == :draft) ? draft_request_id : review_request_id
+          return :consume unless event.payload[:request_id] == expected
+          self.pipeline_error = event.payload.fetch(:error)
+          self.interrupted_phase = phase
+          (phase == :draft) ? self.draft_request_id = nil : self.review_request_id = nil
         when :draft_failed
           return :consume unless event.payload[:request_id] == draft_request_id
 

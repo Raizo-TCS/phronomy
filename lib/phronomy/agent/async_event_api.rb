@@ -12,12 +12,12 @@ module Phronomy
     # - approval notifications share the Agent listener as :approval_required;
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
-      def start_reserved_async(reservation:, input:, config: {})
+      def start_reserved_async(reservation:, input:, config: {}, output_schema: nil)
         __with_operation(async: true) do
           unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
             raise ArgumentError, "reservation must belong to this Agent"
           end
-          config = __invocation_config(_prepare_invocation_config(config, nil))
+          config = __invocation_config(_prepare_output_config(config, nil, output_schema))
           ExactExecution.start(agent: self, execution_id: reservation.execution_id, input: input,
             config: config.merge(phronomy_reservation: reservation.correlation))
         end
@@ -53,12 +53,13 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
+        output_schema: nil,
         **removed_options,
         &removed_block
       )
         __with_operation do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-          config = _prepare_invocation_config(config, invocation_context)
+          config = _prepare_output_config(config, invocation_context, output_schema)
           _check_event_loop_reentrancy(:invoke, :invoke_async)
           _start_agent_operation(
             input,
@@ -73,12 +74,13 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
+        output_schema: nil,
         **removed_options,
         &removed_block
       )
         __with_operation(async: true) do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-          config = _prepare_invocation_config(config, invocation_context)
+          config = _prepare_output_config(config, invocation_context, output_schema)
           _start_agent_operation(
             input,
             config: config,
@@ -92,13 +94,14 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
+        output_schema: nil,
         **removed_options,
         &removed_block
       )
         __with_operation do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
           listener = _required_stream_listener!(:stream)
-          config = _prepare_invocation_config(config, invocation_context)
+          config = _prepare_output_config(config, invocation_context, output_schema)
           _check_event_loop_reentrancy(:stream, :stream_async)
           _start_agent_operation(
             input,
@@ -113,13 +116,14 @@ module Phronomy
         input,
         config: {},
         invocation_context: nil,
+        output_schema: nil,
         **removed_options,
         &removed_block
       )
         __with_operation(async: true) do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
           listener = _required_stream_listener!(:stream_async)
-          config = _prepare_invocation_config(config, invocation_context)
+          config = _prepare_output_config(config, invocation_context, output_schema)
           _start_agent_operation(
             input,
             config: config,
@@ -143,7 +147,7 @@ module Phronomy
 
       def approve_async(execution_id, approval_request_id:, approved: true, config: {})
         __with_operation(async: true) do
-          _reject_removed_generic_identity_keys!(config)
+          config = _prepare_invocation_config(config, nil)
           owner = __execution_environment.existing_registry&.agent_execution_owner(execution_id)
           coordinator = if owner&.agent&.equal?(self)
             owner.coordinator
@@ -201,6 +205,11 @@ module Phronomy
       end
 
       private
+
+      def _prepare_output_config(config, invocation_context, schema)
+        config = _prepare_invocation_config(config, invocation_context)
+        schema.nil? ? config : config.merge(phronomy_output_contract: OutputContract.new(schema))
+      end
 
       def _start_agent_operation(input, config:, mode:, listener:)
         config = __invocation_config(_snapshot_durable_context(config))

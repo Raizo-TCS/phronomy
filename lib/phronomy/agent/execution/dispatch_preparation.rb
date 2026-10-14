@@ -118,7 +118,8 @@ module Phronomy
       def commit_provider_preparation(operation, recorded, assembler, prepared)
         manifest, manifest_ref = @persistence.transaction do |tx|
           assert_local_durable_base!(tx, operation.root)
-          Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
+          Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents,
+            response_schema_ref: recorded.metadata.dig("output_contract", "schema_ref"))
         end
         updated = execution_with_provider_manifest(recorded, manifest_ref)
         change = ExecutionChange.new(agent: @agent, current: operation.execution,

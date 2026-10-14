@@ -6,11 +6,13 @@ module Phronomy
     # Original exceptions and the successful result remain available to the caller.
     # @api public
     class ScopeCleanupError < Phronomy::Error
-      attr_reader :failures, :result
+      attr_reader :failures, :result, :primary_error, :scope
 
-      def initialize(failures:, result:)
+      def initialize(scope:, failures:, result: nil, primary_error: nil)
         @failures = failures.map { |failure| failure.dup.freeze }.freeze
         @result = result
+        @primary_error = primary_error
+        @scope = scope
         super("Agent scope cleanup failed for: #{@failures.map { |f| f.fetch(:agent_id) }.join(", ")}",
           code: "agent.scope_cleanup_failed")
       end

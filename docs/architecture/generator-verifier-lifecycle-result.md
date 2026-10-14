@@ -16,8 +16,8 @@ Construct with new or open. Construction acquires both owned Agents, synchronous
 a failure acquiring the second releases the first. Prepare the pipeline before
 entering EventLoop. Both Agents and their conversations are reused between
 invocations. open requires a block, returns its value, and always attempts release!.
-Complete asynchronous invocations inside the block; arbitrary returned Tasks are
-not automatically awaited.
+A directly returned TaskResult is awaited once before release; arrays and nested
+Tasks are not recursively awaited. See [structured output and scope](structured-output-and-scope.md).
 
 invoke waits for the final Result. invoke_async returns TaskResult. A pipeline
 admits one invocation at a time; independent concurrent conversations need
@@ -74,15 +74,14 @@ at the suspension boundary must not create competing terminal/resume commits.
 
 Result is immutable, including nested data. It contains output, confidence,
 confidence_threshold, review_approved, citations, iterations, review_notes,
-termination_reason and interrupted_phase. accepted? describes satisfaction of the
+termination_reason, interrupted_phase and failure. accepted? describes satisfaction of the
 configured evaluation conditions, not an application's decision to publish.
 
 Confidence is the lower final draft/review score. A completed evaluation is accepted
 only when review_approved is true and confidence meets the threshold. At the
 iteration limit, acceptance wins if both conditions hold; otherwise the reason is
 iteration_limit. Scores and threshold are finite 0..1; max_iterations is a positive
-Integer. Output parser fallbacks and normalization are separate from configuration
-validation.
+Integer. Agent validates the fixed output schema without fallback or normalization.
 
 A Tool denial is a normal Agent rejected outcome, not a parser input or automatic
 retry. Result reports tool_rejected and the interrupted phase. Confidence and
@@ -98,12 +97,14 @@ choices and any intentional projection of these fields.
 
 raise_if_unaccepted defaults to false. When explicitly true, an unaccepted Result
 raises GeneratorVerifier::UnacceptedResultError with result and code. Provider,
-parser, cancellation and callback errors do not become evaluation failures.
+cancellation and callback errors do not become evaluation failures. An Agent
+OutputError becomes output_failed with its phase and diagnostic; there is no automatic
+retry. raise_if_unaccepted preserves that OutputError as the cause.
 
 ## Ownership boundaries
 
-C03 continues to depend on C04 Agent, C02 Workflow, C13 Execution and C17
-OutputParser. Cancellation subscriptions use the existing execution abstraction.
+C03 depends on C04 Agent, C02 Workflow and C13 Execution. C04 uses C17
+OutputParser to implement its output promise; C03 has no C17 dependency. Cancellation subscriptions use the existing execution abstraction.
 No Agent registry, private Scope construction, Storage operation or Engine
 implementation is accessed from Generation.
 

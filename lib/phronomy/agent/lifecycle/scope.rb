@@ -15,24 +15,20 @@ module Phronomy
 
         scope = new(environment: ExecutionEnvironment.current)
         result = nil
+        primary = nil
         begin
-          result = yield(scope)
-          result = result.wait_result if result.is_a?(Phronomy::TaskResult)
-        rescue Exception => primary # standard:disable Lint/RescueException
+          returned = yield(scope)
+          result = returned.is_a?(Phronomy::TaskResult) ? returned.wait_result : returned
+        rescue Exception => error # standard:disable Lint/RescueException
+          primary = error
           raise
         ensure
-          failures = scope.send(:__close)
-          if primary
-            failures.each do |failure|
-              error = failure.fetch(:error)
-              Phronomy::RuntimeSettings.current.logger&.warn(
-                "[Agent scope] cleanup failed agent_id=#{failure.fetch(:agent_id).inspect}: #{error.class}: #{error.message}"
-              )
-            rescue
-              nil
-            end
-          elsif failures.any?
-            raise ScopeCleanupError.new(failures: failures, result: result)
+          begin
+            scope.release!
+          rescue => cleanup
+            failures = cleanup.is_a?(ScopeCleanupError) ? cleanup.failures : [{agent_id: nil, error: cleanup}]
+            raise ScopeCleanupError.new(scope: scope, failures: failures, result: result,
+              primary_error: primary), cause: primary || failures.first.fetch(:error)
           end
         end
         result
@@ -83,27 +79,41 @@ module Phronomy
         Phronomy::TaskResult.failed(error)
       end
 
-      # @api private
-      def __close
+      # Release only safe owners; retain failed owners so the caller can retry.
+      # @api public
+      def release!
+        owns_release = false
+        check_blocking!
         agents = @mutex.synchronize do
-          @state = :closing
+          return false if @state == :released
+          raise Phronomy::Error.new("Agent scope is releasing", code: "agent.scope_busy") if @state == :releasing
+          @state = :releasing
+          owns_release = true
           @condition.wait(@mutex) until @receipts.empty?
           @agents.values.dup
         end
         failures = []
         agents.each do |agent|
           agent.unload!
+          @mutex.synchronize { @agents.delete(agent.object_id) }
         rescue => error
           failures << {agent_id: agent.agent_id, error: error}.freeze
         end
         @mutex.synchronize do
-          @agents.clear
-          @environment = @ownership = @owner_token = nil
-          @state = :closed
+          @state = failures.empty? ? :released : :release_failed
+          @environment = @ownership = @owner_token = nil if failures.empty?
         end
-        failures.freeze
+        unless failures.empty?
+          raise ScopeCleanupError.new(scope: self, failures: failures), cause: failures.first.fetch(:error)
+        end
+        true
+      ensure
+        # An interrupted waiter/unloader must remain retryable, without changing
+        # another thread's release state when this call was rejected as busy.
+        if owns_release
+          @mutex.synchronize { @state = :release_failed if @state == :releasing }
+        end
       end
-      private :__close
 
       private
 

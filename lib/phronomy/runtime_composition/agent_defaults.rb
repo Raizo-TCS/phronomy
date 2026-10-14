@@ -9,3 +9,7 @@ Phronomy::Agent::DefaultPersistence.install_factory(
 )
 
 Phronomy::Agent::ExecutionEnvironment.install_provider(-> { Phronomy::Agent::EngineEnvironment.new })
+
+Phronomy::Agent::OutputContract.install_factory(
+  ->(schema) { Phronomy::OutputParser::JsonSchemaParser.new(schema: schema) }
+)

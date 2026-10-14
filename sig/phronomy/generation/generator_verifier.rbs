@@ -7,10 +7,10 @@ module Phronomy
       def call: (Approval approval) -> untyped
     end
 
-    def self.open: [R] (**untyped options) { (GeneratorVerifier pipeline) -> R } -> R
+    def self.open: [R] (**untyped options) { (GeneratorVerifier pipeline) -> (R | TaskResult[R]) } -> R
     def initialize: (draft_agent: singleton(Agent::Base), review_agent: singleton(Agent::Base),
       draft_prompt_builder: untyped, review_prompt_builder: untyped,
-      ?draft_result_parser: untyped, ?review_result_parser: untyped,
+      ?citation_schema: Hash[String | Symbol, untyped],
       ?confidence_threshold: Numeric, ?max_iterations: Integer,
       ?raise_if_unaccepted: bool, ?on_approval: _ApprovalListener?) -> void
     def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Result
@@ -38,12 +38,13 @@ module Phronomy
       attr_reader review_approved: bool?
       attr_reader termination_reason: String
       attr_reader interrupted_phase: String?
+      attr_reader failure: Hash[String, untyped]?
       def self.accepted?: (confidence: Numeric?, confidence_threshold: Numeric, review_approved: bool?) -> bool
       def self.from_h: (Hash[untyped, untyped]) -> Result
       def initialize: (output: String?, confidence: Numeric?,
         citations: Array[Hash[untyped, untyped]], iterations: Integer, review_notes: Array[String],
         confidence_threshold: Numeric, review_approved: bool?,
-        termination_reason: String | Symbol, ?interrupted_phase: String | Symbol | nil) -> void
+        termination_reason: String | Symbol, ?interrupted_phase: String | Symbol | nil, ?failure: Hash[String | Symbol, untyped]?) -> void
       def accepted?: () -> bool
       def to_h: () -> Hash[Symbol, untyped]
       def ==: (untyped other) -> bool

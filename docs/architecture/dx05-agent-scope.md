@@ -117,3 +117,9 @@ calling it does not opt into scope cleanup.
 
 This is P5 (core). P6 migrates application examples and performs cross-repository
 acceptance against the published or pinned candidate core.
+
+## Structured-output lifetime update
+
+Scope now exposes `release!` and retains only failed owners for retry. CleanupError
+also carries scope, resolved result and primary_error. The exact Task/error/release
+rules are specified in [structured output and scope](structured-output-and-scope.md).

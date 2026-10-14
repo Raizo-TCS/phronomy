@@ -47,7 +47,7 @@ module Phronomy
               "reservation" => correlation, "current_input_ref" => input_ref,
               "durable_context_ref" => context_ref,
               "execution_extension" => @config[:phronomy_execution_participant]&.binding&.to_h
-            }.merge(@preparation_metadata).compact)
+            }.merge(@preparation_metadata).merge(@config[:phronomy_output_contract]&.metadata(records.contents) || {}).compact)
           input_record = JournalRecord.from_h(input_record.to_h.merge("execution_id" => execution_id))
           execution = execution.with(execution_revision: 0, working_records: [input_record])
           records.executions.create_active(execution)

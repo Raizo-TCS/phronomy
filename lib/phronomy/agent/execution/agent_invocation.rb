@@ -46,7 +46,8 @@ module Phronomy
         :rejected,
         :error
 
-      attr_reader :execution_id,
+      attr_reader :final_response,
+        :execution_id,
         :agent,
         :config,
         :approval_policy,
@@ -73,7 +74,9 @@ module Phronomy
         @agent = agent
         @input = input
         # The caller's Hash must not become a shared mutable Runtime object.
-        @config = config.dup
+        # OutputContract is admission-only; the durable Manifest owns subsequent
+        # schema projection. Never forward the parent promise to an Agent Tool.
+        @config = config.except(:phronomy_output_contract)
         resolved_execution_id = execution_id || @config[:execution_id]
         @execution_id = resolved_execution_id&.to_s&.freeze
         invocation_context = @config[:invocation_context]
@@ -269,6 +272,7 @@ module Phronomy
         raise Phronomy::Error, "LLM operation completed without a response" unless response
 
         @user_message_sent = true
+        @final_response = response
         @output = response.content
         @usage = response.usage
         @pending_tool_calls = []

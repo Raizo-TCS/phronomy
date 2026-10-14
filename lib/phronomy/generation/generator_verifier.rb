@@ -8,7 +8,7 @@ module Phronomy
     DEFAULT_MAX_ITERATIONS = 3
 
     private_constant :PipelineState, :WorkflowBuilder, :AgentResultReceiver,
-      :AgentOperation, :Invocation
+      :AgentOperation, :Invocation, :Protocol
 
     def self.open(**options)
       raise ArgumentError, "GeneratorVerifier.open requires a block" unless block_given?
@@ -16,7 +16,8 @@ module Phronomy
       value = nil
       primary = nil
       begin
-        value = yield pipeline
+        returned = yield pipeline
+        value = returned.is_a?(Phronomy::TaskResult) ? returned.wait_result : returned
       rescue Exception => error # rubocop:disable Lint/RescueException -- retain Interrupt during cleanup
         primary = error
         raise
@@ -26,14 +27,14 @@ module Phronomy
         rescue => cleanup
           failures = cleanup.is_a?(CleanupError) ? cleanup.failures : [{phase: nil, error: cleanup}]
           raise CleanupError.new(pipeline: pipeline, failures: failures,
-            result: value, primary_error: primary), cause: primary || cleanup
+            result: value, primary_error: primary), cause: primary || failures.first.fetch(:error)
         end
       end
       value
     end
 
     def initialize(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:,
-      draft_result_parser: nil, review_result_parser: nil,
+      citation_schema: Protocol::DEFAULT_CITATION,
       confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
       max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)
       ensure_blocking_allowed!(:new)
@@ -44,8 +45,8 @@ module Phronomy
       unless max_iterations.is_a?(Integer) && max_iterations.positive?
         raise ArgumentError, "max_iterations must be a positive Integer"
       end
-      [draft_prompt_builder, review_prompt_builder, draft_result_parser, review_result_parser, on_approval].compact.each do |callable|
-        raise ArgumentError, "builders, parsers and on_approval must be callable" unless callable.respond_to?(:call)
+      [draft_prompt_builder, review_prompt_builder, on_approval].compact.each do |callable|
+        raise ArgumentError, "builders and on_approval must be callable" unless callable.respond_to?(:call)
       end
       unless raise_if_unaccepted == true || raise_if_unaccepted == false
         raise ArgumentError, "raise_if_unaccepted must be true or false"
@@ -59,11 +60,10 @@ module Phronomy
       @raise_if_unaccepted = raise_if_unaccepted
       @on_approval = on_approval
       @draft_prompt_builder, @review_prompt_builder = draft_prompt_builder, review_prompt_builder
-      @draft_result_parser = draft_result_parser || method(:default_parse_draft)
-      @review_result_parser = review_result_parser || method(:default_parse_review)
+      draft_schema = Protocol.draft(citation_schema)
       begin
-        @operations[:draft] = AgentOperation.new(draft_agent)
-        @operations[:review] = AgentOperation.new(review_agent)
+        @operations[:draft] = AgentOperation.new(draft_agent, output_schema: draft_schema)
+        @operations[:review] = AgentOperation.new(review_agent, output_schema: Protocol::REVIEW)
       rescue Exception => primary # rubocop:disable Lint/RescueException -- release partially acquired resources
         begin
           release!
@@ -139,7 +139,7 @@ module Phronomy
       end
       @mutex.synchronize { @status = failures.empty? ? :released : :release_failed }
       unless failures.empty?
-        raise CleanupError.new(pipeline: self, failures: failures)
+        raise CleanupError.new(pipeline: self, failures: failures), cause: failures.first.fetch(:error)
       end
       @compiled_workflow = nil
       true
@@ -166,8 +166,6 @@ module Phronomy
         review_agent: @operations.fetch(:review),
         draft_prompt_builder: @draft_prompt_builder,
         review_prompt_builder: @review_prompt_builder,
-        draft_result_parser: @draft_result_parser,
-        review_result_parser: @review_result_parser,
         threshold: @threshold, max_iterations: @max_iterations,
         start_operation: ->(operation, phase, input, listener:) {
           @mutex.synchronize { @active }.start(operation, phase, input, listener: listener)
@@ -184,29 +182,22 @@ module Phronomy
         confidence_threshold: @threshold, review_approved: approved,
         citations: state.citations, iterations: state.iteration, review_notes: state.review_notes,
         termination_reason: if interrupted
-                              "tool_rejected"
+                              state.pipeline_error ? "output_failed" : "tool_rejected"
                             else
                               (accepted ? "accepted" : "iteration_limit")
                             end,
-        interrupted_phase: interrupted)
-      raise UnacceptedResultError.new(result) if @raise_if_unaccepted && !result.accepted?
+        interrupted_phase: interrupted,
+        failure: output_failure_diagnostic(state.pipeline_error))
+      if @raise_if_unaccepted && !result.accepted?
+        raise UnacceptedResultError.new(result), cause: state.pipeline_error
+      end
       result
     end
 
-    def default_parse_draft(text)
-      default_parser.parse(text)
-    rescue Phronomy::ParseError
-      {answer: text.to_s, confidence: 0.0, citations: []}
-    end
-
-    def default_parse_review(text)
-      default_parser.parse(text)
-    rescue Phronomy::ParseError
-      {approved: false, score: 0.0, feedback: "Review output could not be parsed: #{text}"}
-    end
-
-    def default_parser
-      @default_parser ||= DefaultParser.build
+    def output_failure_diagnostic(error)
+      return nil unless error
+      Phronomy::Error.diagnostic(error).merge("execution_id" => error.execution_id,
+        "schema_digest" => error.schema_digest, "reason" => error.reason, "violations" => error.violations)
     end
   end
 end

@@ -9,7 +9,6 @@ module Phronomy
       def initialize(
         draft_agent:, review_agent:,
         draft_prompt_builder:, review_prompt_builder:,
-        draft_result_parser:, review_result_parser:,
         threshold:, max_iterations:, start_operation:
       )
         @start_operation = start_operation
@@ -19,10 +18,7 @@ module Phronomy
         @review_prompt_builder = review_prompt_builder
         @threshold = threshold
         @max_iterations = max_iterations
-        @result_receiver = AgentResultReceiver.new(
-          draft_result_parser: draft_result_parser,
-          review_result_parser: review_result_parser
-        )
+        @result_receiver = AgentResultReceiver.new
       end
 
       def build
@@ -49,6 +45,8 @@ module Phronomy
 
           transition from: :draft, on: :draft_completed, to: :review
           transition from: :draft, on: :draft_failed, to: :failed
+          transition from: :draft, on: :draft_output_failed, to: :finalize
+          transition from: :review, on: :review_output_failed, to: :finalize
           transition from: :draft, on: :draft_rejected, to: :finalize
           transition from: :review, on: :review_rejected, to: :finalize
           transition from: :review,
@@ -94,13 +92,14 @@ module Phronomy
       end
 
       def ready_to_finalize?(state)
-        confidence = [state.self_score || 0.0, state.review_score || 0.0].min
+        confidence = [state.self_score, state.review_score].min
         Result.accepted?(confidence: confidence, confidence_threshold: @threshold, review_approved: state.approved) ||
           state.iteration >= @max_iterations
       end
 
       def finalize(state)
         state.output = (state.interrupted_phase == :draft) ? nil : state.draft
+        state.citations = [] if state.interrupted_phase == :draft
         state
       end
 

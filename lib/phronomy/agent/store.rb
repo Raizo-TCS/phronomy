@@ -79,7 +79,8 @@ module Phronomy
           execution_id: execution.execution_id, agent_id: execution.agent_id,
           status: execution.status, phase: execution.phase,
           result_ref: execution.result_ref, error_ref: execution.error_ref,
-          result: execution.result_ref && contents.fetch_text(execution.result_ref),
+          result: materialize_result(execution, contents),
+          raw_output: execution.metadata["raw_output_ref"] && contents.fetch_text(execution.metadata.fetch("raw_output_ref")),
           error: execution.error_ref && contents.fetch_json(execution.error_ref)
         }.then { |value| Phronomy::Values::Immutable.copy(value) }
       end
@@ -97,7 +98,8 @@ module Phronomy
           assert_execution_owner!(execution, agent_id)
           ExecutionObservation.new(agent_id: execution.agent_id, execution_id: execution.execution_id,
             status: execution.status,
-            result: execution.result_ref && records.contents.fetch_text(execution.result_ref),
+            result: materialize_result(execution, records.contents),
+            raw_output: execution.metadata["raw_output_ref"] && records.contents.fetch_text(execution.metadata.fetch("raw_output_ref")),
             error: execution.error_ref && Phronomy::Values::Immutable.copy(records.contents.fetch_json(execution.error_ref)),
             reservation: execution.metadata["reservation"] && ReservedExecution.new(agent_id: agent_id,
               execution_id: execution_id, correlation: execution.metadata["reservation"]),
@@ -225,6 +227,12 @@ module Phronomy
       end
 
       private
+
+      def materialize_result(execution, contents)
+        return nil unless execution.result_ref
+        (execution.metadata["result_format"] == "json") ?
+          Phronomy::Values::Immutable.json(contents.fetch_json(execution.result_ref)) : contents.fetch_text(execution.result_ref)
+      end
 
       def authorized_argument_values(entry)
         # Unit 6 persists the exact validated snapshot. Older records encoded

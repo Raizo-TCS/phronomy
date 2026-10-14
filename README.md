@@ -41,7 +41,8 @@ The following application APIs are part of unreleased development:
 
 | API | Stability | Contract |
 |---|---|---|
-| `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` | Beta | [Generation contract and migration](docs/architecture/generator-verifier-lifecycle-result.md) |
+| Agent `output_schema:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |
+| `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` with output-failure diagnostics | Beta | [Generation and structured-output contract](docs/architecture/structured-output-and-scope.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
 | `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |

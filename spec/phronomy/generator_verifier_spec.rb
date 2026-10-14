@@ -15,7 +15,13 @@ RSpec.describe Phronomy::GeneratorVerifier do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-114", version: 1
       define_method(:invoke) do |_input, config: {}, **_keywords|
-        {output: output, messages: []}
+        begin
+          parsed = JSON.parse(output)
+        rescue JSON::ParserError
+          raise Phronomy::Agent::OutputError.new(execution_id: "test", schema_digest: "test",
+            reason: "invalid_json", raw_output: output)
+        end
+        {output: parsed, messages: []}
       end
 
       define_method(:invoke_async) do |input, **_keywords|
@@ -191,30 +197,14 @@ RSpec.describe Phronomy::GeneratorVerifier do
     expect(feedbacks[1]).to include("Missing citation")
   end
 
-  it "uses custom result parsers in the Agent event listener" do
-    draft_parser_called = false
-    review_parser_called = false
-    pipeline = build_pipeline(
-      draft_agent: stub_agent("raw draft"),
-      review_agent: stub_agent("raw review"),
-      draft_result_parser: ->(text) {
-        draft_parser_called = true
-        {answer: "custom: #{text}", confidence: 0.95, citations: []}
-      },
-      review_result_parser: ->(_text) {
-        review_parser_called = true
-        {approved: true, score: 0.99, feedback: ""}
-      }
-    )
-
-    result = invoke_bounded(pipeline, "test")
-
-    expect(draft_parser_called).to be(true)
-    expect(review_parser_called).to be(true)
-    expect(result.output).to start_with("custom:")
+  it "rejects removed result parser options" do
+    expect {
+      build_pipeline(draft_agent: good_draft, review_agent: approve,
+        draft_result_parser: ->(text) { text })
+    }.to raise_error(ArgumentError)
   end
 
-  it "uses safe parser fallbacks for unparseable Agent output" do
+  it "returns output_failed for unavailable structured Agent output" do
     result = invoke_bounded(
       build_pipeline(
         draft_agent: unparseable,
@@ -224,8 +214,9 @@ RSpec.describe Phronomy::GeneratorVerifier do
       "test"
     )
 
-    expect(result.output).to eq("I think it looks fine!")
-    expect(result.confidence).to eq(0.0)
+    expect(result.output).to be_nil
+    expect(result.termination_reason).to eq("output_failed")
+    expect(result.confidence).to be_nil
     expect(result).not_to be_accepted
   end
 
