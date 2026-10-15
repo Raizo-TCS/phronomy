@@ -66,10 +66,13 @@ Then run:
 bundle install
 ```
 
-Phronomy 0.28 requires RubyLLM 2.0.x. Faraday 2.1.0 is the tested minimum
-supported version; the `~> 2.1` requirement allows versions from 2.1 up to,
-but excluding, 3.0. CI checks fresh dependency resolution and the exact minimum
-with MCP 1.0.0. See the
+Phronomy requires RubyLLM 2.0.x. The tested minimum HTTP stack is Faraday
+2.14.4 and faraday-net_http 3.4.4; newer versions within their respective major
+versions are allowed. Both floors are explicit: raising Faraday alone can still
+resolve an old Net::HTTP adapter that loses HTTP status during streaming.
+CI checks fresh resolution and this exact pair with MCP 1.0.0. These are verified
+support floors, not a claim about the first upstream release containing a fix.
+See the
 [RubyLLM 2 and token-ownership migration](docs/architecture/rubyllm-2-token-ownership.md)
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
 

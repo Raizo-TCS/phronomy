@@ -130,13 +130,13 @@ module Phronomy
       end
 
       def unsupported_schema_error?(error)
-        return false unless error.is_a?(::RubyLLM::BadRequestError) || error.is_a?(::RubyLLM::ServerError)
+        return false unless error.is_a?(::RubyLLM::BadRequestError)
         response = error.response if error.respond_to?(:response)
         body = response.respond_to?(:body) ? response.body : response
         body = JSON.parse(body) if body.is_a?(String)
         detail = body.is_a?(Hash) ? body["error"] : nil
         return true if detail == "Cannot combine structured output constraints with lazy grammar"
-        return false unless error.is_a?(::RubyLLM::BadRequestError) && detail.is_a?(Hash)
+        return false unless detail.is_a?(Hash)
         schema_field = /response_format|output_config\.format|responseJsonSchema|response_schema|text\.format/
         message = detail["message"].to_s
         detail["param"].to_s.match?(/response_format|schema|text\.format|output_config/) ||

@@ -22,7 +22,7 @@ RSpec.describe "RubyLLM HTTP failure boundaries", :integration do
 
   # Real loopback HTTP, with no provider/SDK stub. Test-only server threads stay
   # blocked on a Queue until teardown, so timeout behavior does not rely on sleeps.
-  def with_fault_server(mode)
+  def with_fault_server(mode, status: nil, body: nil)
     server = TCPServer.new("127.0.0.1", 0)
     gate = Queue.new
     requests = Queue.new
@@ -36,9 +36,11 @@ RSpec.describe "RubyLLM HTTP failure boundaries", :integration do
             headers << line
           end
           length = headers.find { |header| header.match?(/\AContent-Length:/i) }.to_s.split(":", 2).last.to_i
-          client.read(length)
-          requests << headers.first
-          unless mode == :disconnect
+          requests << JSON.parse(client.read(length))
+          if mode == :http_error
+            data = JSON.generate(body)
+            client.write("HTTP/1.1 #{status} Error\r\nContent-Type: application/json\r\nContent-Length: #{data.bytesize}\r\nConnection: close\r\n\r\n#{data}")
+          elsif mode != :disconnect
             if mode == :partial_stream
               data = {id: "chunk-1", model: "local-transport-test", choices: [{index: 0, delta: {content: "part"}, finish_reason: nil}]}
               client.write("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\ndata: #{JSON.generate(data)}\n\n")
@@ -66,6 +68,35 @@ RSpec.describe "RubyLLM HTTP failure boundaries", :integration do
     listener&.join
     workers&.each { gate << true }
     workers&.each(&:value)
+  end
+
+  %i[complete stream].each do |operation|
+    [
+      [400, "Cannot combine structured output constraints with lazy grammar", true, Phronomy::LLMAdapter::StructuredOutputUnsupportedError, RubyLLM::BadRequestError, 1],
+      [400, "Invalid conversation", true, Phronomy::LLMAdapter::TransportError, RubyLLM::BadRequestError, 1],
+      [400, "Cannot combine structured output constraints with lazy grammar", false, Phronomy::LLMAdapter::TransportError, RubyLLM::BadRequestError, 1],
+      [401, "Invalid credentials", true, Phronomy::LLMAdapter::AuthenticationError, RubyLLM::UnauthorizedError, 1],
+      [429, "Rate limit", true, Phronomy::LLMAdapter::RateLimitError, RubyLLM::RateLimitError, 4],
+      [500, "Cannot combine structured output constraints with lazy grammar", true, Phronomy::LLMAdapter::TransportError, RubyLLM::ServerError, 4]
+    ].each do |status, message, structured, owner, source, attempts|
+      it "preserves HTTP #{status} for #{operation} (schema=#{structured}, #{message}) with SDK retries enabled" do
+        with_fault_server(:http_error, status: status, body: {error: message}) do |requests|
+          RubyLLM.config.max_retries = 3
+          schema = structured ? {type: "object", properties: {answer: {type: "string"}}, required: ["answer"], additionalProperties: false} : nil
+          input = Phronomy::LLMAdapter::Request.new(message: "input", model_config: request.model_config,
+            response_schema: schema, tools: [{name: "lookup", description: "Declaration only",
+                                              parameters_schema: {"type" => "object", "properties" => {}}}])
+          expect { adapter.public_send(operation, input) { |_chunk| } }.to raise_error(owner) { |error|
+            expect(error.cause).to be_a(source)
+            expect(error.cause.response.status).to eq(status)
+          }
+          expect(requests.size).to eq(attempts)
+          payload = requests.pop
+          expect(payload.fetch("tools").length).to eq(1)
+          expect(payload.dig("response_format", "type")).to eq(structured ? "json_schema" : nil)
+        end
+      end
+    end
   end
 
   %i[complete stream embed].each do |operation|

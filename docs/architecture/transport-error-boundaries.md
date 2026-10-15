@@ -76,9 +76,14 @@ does not force worker threads to stop, alter cancellation, or make an active
 Agent safe to unload. Once an ordinary provider failure has settled and its
 physical work has finished, the existing lifetime APIs can release its owners.
 
-The minimum Faraday streaming path can still lose HTTP status and cause RubyLLM
-to retry a known schema/Tool rejection as a synthetic ServerError. That separate
-dependency/protocol issue is not fixed by this exception-classification change.
+The old Faraday 2.1.0 / faraday-net_http 2.1.0 streaming path lost HTTP status and
+caused RubyLLM to retry a schema/Tool rejection as a synthetic ServerError.
+The supported floors are now Faraday 2.14.4 / faraday-net_http 3.4.4. Real HTTP
+tests verify the original status and request count with SDK retries enabled.
+The obsolete ServerError-to-schema-rejection fallback is removed: an actual 500
+remains a server failure even when its text resembles a known 400 rejection.
+Configured SDK retries for 429/500 remain intact; no global retry switch or
+SDK monkey patch is introduced.
 
 ## Verification
 
