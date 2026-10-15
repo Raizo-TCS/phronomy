@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+require "faraday"
 
 module Phronomy
   module LLMAdapter
@@ -223,8 +224,9 @@ module Phronomy
         raise InvalidResultError, "malformed provider chunk: #{error.message}"
       end
 
-      # Translate SDK errors only. Cancellation and callback failures retain
-      # identity; raising here preserves the original provider exception cause.
+      # Translate identified SDK/HTTP failures only. Callback failures bypass
+      # this method even when their class is a transport error. Classification
+      # preserves cause; it does not promise that replay would be safe.
       def raise_provider_error(error)
         case error
         when ::RubyLLM::RateLimitError
@@ -233,8 +235,8 @@ module Phronomy
           raise Phronomy::LLMAdapter::AuthenticationError, error.message
         when ::RubyLLM::ContextLengthExceededError
           raise Phronomy::LLMAdapter::ContextLengthError, error.message
-        when ::RubyLLM::Error
-          raise Phronomy::LLMAdapter::TransportError, error.message
+        when ::RubyLLM::Error, ::Faraday::TimeoutError, ::Faraday::ConnectionFailed
+          raise Phronomy::LLMAdapter::TransportError.new(error.message), cause: error
         else
           raise error
         end

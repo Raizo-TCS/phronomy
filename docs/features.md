@@ -32,6 +32,13 @@ for production deployments.
 | **Error Taxonomy** — Provider errors translated to Phronomy transport/authentication/rate-limit/context errors | Beta |
 | **Optional failure reason codes** — `Phronomy::Error#code` and `code:` retain domain-supplied reasons in saved Agent/Team diagnostics; [meaning and compatibility](failure-reason-codes.md) | Beta |
 
+The RubyLLM backends also translate identified Faraday timeout and connection
+failures to the owning `LLMAdapter::TransportError` or
+`Embeddings::TransportError`, retaining the original cause chain. A stream may
+have delivered partial output before failure; this classification does not imply
+that retry is safe. Callback failures and execution cancellation/deadlines keep
+their identity. See [transport error boundaries](architecture/transport-error-boundaries.md).
+
 Agent definition lineage is separate from Agent instance identity. A named
 concrete Agent may declare `agent_definition version: N`; when `id:` is omitted,
 its fully-qualified Ruby class name is the stable `agent_definition_id`.

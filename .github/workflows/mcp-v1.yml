@@ -54,6 +54,9 @@ jobs:
           spec/phronomy/tools/mcp_spec.rb
           spec/phronomy/output_parser/json_schema_parser_spec.rb
           spec/phronomy/llm_adapter/structured_output_spec.rb
-          spec/phronomy/llm_adapter/structured_protocols_spec.rb --format documentation
+          spec/phronomy/llm_adapter/structured_protocols_spec.rb
+          spec/phronomy/llm_adapter/transport_error_spec.rb --format documentation
       - name: Run MCP HTTP integration contracts
         run: bundle exec rspec spec/integration/mcp_http_spec.rb --tag integration --format documentation
+      - name: Run real HTTP transport failure contracts
+        run: bundle exec rspec spec/integration/transport_error_spec.rb --tag integration --format documentation
