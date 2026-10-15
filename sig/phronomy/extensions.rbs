@@ -6,6 +6,11 @@ module Phronomy
   end
 
   module OutputParser
+    class JsonSchemaParser < Base
+      attr_reader json_schema: Hash[String, untyped]
+      def initialize: (schema: Hash[String | Symbol, untyped]) -> void
+      def parse: (String text) -> Hash[String, json_value]
+    end
     class Base
       def parse: (String text) -> untyped
       def invoke: (untyped input, ?config: Hash[untyped, untyped]) -> untyped

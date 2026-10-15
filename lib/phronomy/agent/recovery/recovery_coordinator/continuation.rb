@@ -39,9 +39,9 @@ module Phronomy
           materializer = RuntimeInput.new(agent: agent, persistence: agent.persistence)
           messages = records.map { |record| materializer.materialize_journal_record(record) }.freeze
           assistant = messages.reverse.find { |message| message.role.to_sym == :assistant }
-          output, usage = SavedContextReader.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
+          output, usage, response = SavedContextReader.provider_output_and_usage(agent, execution) if execution.phase.to_sym == :recovery_provider_completed
           RecoveryMaterial.new(projection: projection, messages: messages,
-            assistant_message: assistant, output: output, usage: usage,
+            assistant_message: assistant, output: output, usage: usage, response: response,
             cancellation_requested: agent.persistence.cancellation_requested?(agent_id: agent.agent_id, execution_id: execution.execution_id))
         end
 
@@ -73,7 +73,7 @@ module Phronomy
                 agent.send(:_phronomy_event_listener), messages: material.messages, cancellation_requested: material.cancellation_requested)
             end
             if execution.phase.to_sym == :recovery_provider_completed
-              invocation.output, invocation.usage = material.output, material.usage
+              invocation.apply_llm_response!(material.response)
             end
             prepare_saved_provider_calls(execution, invocation, material.assistant_message) if action == :framework_calls
           end

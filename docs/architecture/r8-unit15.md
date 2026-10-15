@@ -1,5 +1,8 @@
 # r8 unit15: Generation contract boundaries
 
+> Historical contract: parser injection/fallback is superseded by
+> [structured output and scope](../architecture/structured-output-and-scope.md).
+
 This responsibility refactor is based on applied unit14, commit
 `97c3d76b35594bb971a60a2932410ddf22e48d3a` (tree
 `c326196212a4ac369294a9ccb936619813e51250`).

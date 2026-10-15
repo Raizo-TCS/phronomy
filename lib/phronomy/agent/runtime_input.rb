@@ -5,8 +5,12 @@ module Phronomy
     class RuntimeInput
       RuntimeProjection = Data.define(
         :system, :messages, :tool_classes, :ask_message,
-        :model_config, :manifest, :manifest_ref
-      )
+        :model_config, :manifest, :manifest_ref, :response_schema
+      ) do
+        def initialize(response_schema: nil, **values)
+          super(**values, response_schema: response_schema)
+        end
+      end
 
       def initialize(agent:, persistence:, additional_tools: [])
         @agent = agent
@@ -45,7 +49,8 @@ module Phronomy
           ask_message: ask_message,
           model_config: Phronomy::Values::Immutable.copy(model_config),
           manifest: manifest,
-          manifest_ref: manifest_ref
+          manifest_ref: manifest_ref,
+          response_schema: manifest.response_schema_ref && Phronomy::Values::Immutable.json(fetch_json(manifest.response_schema_ref))
         )
       end
 

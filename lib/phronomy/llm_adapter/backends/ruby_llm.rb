@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+require "faraday"
 
 module Phronomy
   module LLMAdapter
@@ -53,6 +54,8 @@ module Phronomy
       def execute_request(request, token)
         callback_error = nil
         chat = build_chat(request)
+        capture = StructuredResponseCapture.new
+        capture.bind(chat) if request.response_schema && block_given?
         token&.raise_if_cancelled!
         chat.after_message do |message|
           raise ToolsRequested.new(message) if message.tool_call?
@@ -72,11 +75,14 @@ module Phronomy
         else
           request.message ? chat.ask(request.message) : chat.complete
         end
-        response_value(response)
+        response_value(response, capture: capture)
       rescue ToolsRequested => requested
-        response_value(requested.message_value)
+        response_value(requested.message_value, capture: capture)
       rescue => error
         raise error if error.equal?(callback_error)
+        if request.response_schema && unsupported_schema_error?(error)
+          raise StructuredOutputUnsupportedError, "Provider rejected native structured output"
+        end
         raise_provider_error(error)
       end
 
@@ -91,6 +97,10 @@ module Phronomy
           options[:assume_model_exists] = config["assume_model_exists"]
         end
         chat = ::RubyLLM.chat(**options)
+        if request.response_schema
+          validate_structured_support!(request, chat)
+          chat.with_schema(request.response_schema)
+        end
         chat.with_temperature(config["temperature"]) if config["temperature"]
         chat.with_max_output_tokens(config["max_output_tokens"]) if config["max_output_tokens"]
         if request.system
@@ -99,6 +109,41 @@ module Phronomy
         request.tools.each { |definition| chat.with_tools(tool_declaration(definition)) }
         request.messages.each { |value| chat.messages << sdk_message(value) }
         chat
+      end
+
+      def validate_structured_support!(request, chat)
+        provider = chat.model.provider.to_s
+        unless %w[openai azure anthropic gemini ollama].include?(provider)
+          raise StructuredOutputUnsupportedError, "Native schema transport has not been verified for #{provider}"
+        end
+        begin
+          known = ::RubyLLM.models.find(chat.model.id, provider: provider)
+        rescue ::RubyLLM::ModelNotFoundError
+          known = nil
+        end
+        if known && !known.supports?(:structured_output)
+          raise StructuredOutputUnsupportedError, "Selected model does not support structured output"
+        end
+        if known && !request.tools.empty? && !known.supports?(:function_calling)
+          raise StructuredOutputUnsupportedError, "Selected model cannot combine the requested schema and Tools"
+        end
+      end
+
+      def unsupported_schema_error?(error)
+        return false unless error.is_a?(::RubyLLM::BadRequestError)
+        response = error.response if error.respond_to?(:response)
+        body = response.respond_to?(:body) ? response.body : response
+        body = JSON.parse(body) if body.is_a?(String)
+        detail = body.is_a?(Hash) ? body["error"] : nil
+        return true if detail == "Cannot combine structured output constraints with lazy grammar"
+        return false unless detail.is_a?(Hash)
+        schema_field = /response_format|output_config\.format|responseJsonSchema|response_schema|text\.format/
+        message = detail["message"].to_s
+        detail["param"].to_s.match?(/response_format|schema|text\.format|output_config/) ||
+          %w[unsupported_response_format unsupported_schema invalid_json_schema].include?(detail["code"]) ||
+          (message.match?(schema_field) && message.match?(/unsupported|not supported|invalid|unknown/i))
+      rescue JSON::ParserError
+        false
       end
 
       def tool_declaration(definition)
@@ -128,7 +173,7 @@ module Phronomy
           model: value.metadata["model_id"])
       end
 
-      def response_value(message)
+      def response_value(message, capture: nil)
         unless message.respond_to?(:content) && message.respond_to?(:role) && message.role.to_sym == :assistant
           raise InvalidResultError, "provider returned an invalid assistant message"
         end
@@ -150,7 +195,24 @@ module Phronomy
         )
         metadata = {}
         metadata["model_id"] = message.model if message.respond_to?(:model) && message.model
-        Response.new(content: message.content, tool_calls: calls, usage: usage, metadata: metadata)
+        reason = message.finish_reason if message.respond_to?(:finish_reason)
+        raw = message.raw if message.respond_to?(:raw)
+        raw = raw.body if raw.respond_to?(:body)
+        raw = {} unless raw.is_a?(Hash)
+        raw_reason = capture&.raw_finish_reason || raw.dig("choices", 0, "finish_reason") || raw["stop_reason"] ||
+          raw.dig("candidates", 0, "finishReason") || reason&.to_s
+        refusal = capture&.refusal || raw.dig("choices", 0, "message", "refusal")
+        if raw["output"].is_a?(Array)
+          refusals = raw["output"].flat_map { |item| Array(item["content"]) }
+            .select { |item| item["type"] == "refusal" }.map { |item| item["refusal"] }
+          refusal ||= refusals.join("\n") unless refusals.empty?
+        end
+        refusal ||= message.content.to_s if raw_reason == "refusal"
+        normalized = refusal ? :refusal : {stop: :stop, tool_calls: :tool_calls,
+                                           max_tokens: :length, length: :length, content_filter: :content_filter, refusal: :refusal}.fetch(reason&.to_sym, :unknown)
+        metadata["raw_finish_reason"] = raw_reason if raw_reason
+        Response.new(content: message.content, tool_calls: calls, usage: usage, metadata: metadata,
+          finish_reason: normalized, refusal: refusal)
       rescue ArgumentError, TypeError, NoMethodError => error
         raise InvalidResultError, "malformed provider response: #{error.message}"
       end
@@ -162,8 +224,9 @@ module Phronomy
         raise InvalidResultError, "malformed provider chunk: #{error.message}"
       end
 
-      # Translate SDK errors only. Cancellation and callback failures retain
-      # identity; raising here preserves the original provider exception cause.
+      # Translate identified SDK/HTTP failures only. Callback failures bypass
+      # this method even when their class is a transport error. Classification
+      # preserves cause; it does not promise that replay would be safe.
       def raise_provider_error(error)
         case error
         when ::RubyLLM::RateLimitError
@@ -172,8 +235,8 @@ module Phronomy
           raise Phronomy::LLMAdapter::AuthenticationError, error.message
         when ::RubyLLM::ContextLengthExceededError
           raise Phronomy::LLMAdapter::ContextLengthError, error.message
-        when ::RubyLLM::Error
-          raise Phronomy::LLMAdapter::TransportError, error.message
+        when ::RubyLLM::Error, ::Faraday::TimeoutError, ::Faraday::ConnectionFailed
+          raise Phronomy::LLMAdapter::TransportError.new(error.message), cause: error
         else
           raise error
         end

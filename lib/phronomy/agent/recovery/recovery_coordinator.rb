@@ -39,7 +39,7 @@ module Phronomy
       )
       ResolutionResult = Data.define(:execution)
       ResolutionPreparation = Data.define(:execution, :material, :error)
-      RecoveryMaterial = Data.define(:projection, :messages, :assistant_message, :output, :usage, :cancellation_requested)
+      RecoveryMaterial = Data.define(:projection, :messages, :assistant_message, :output, :usage, :response, :cancellation_requested)
       RecoveryPlan = Data.define(
         :execution, :root, :manifest, :base_manifest,
         :projection, :classification, :material

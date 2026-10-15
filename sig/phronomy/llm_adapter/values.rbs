@@ -6,7 +6,8 @@ module Phronomy
       attr_reader messages: Array[Message]
       attr_reader tools: Array[Hash[String, untyped]]
       attr_reader message: String?
-      def initialize: (?model_config: Hash[String | Symbol, untyped], ?system: String?, ?messages: Array[Message], ?tools: Array[Hash[String, untyped]], ?message: String?) -> void
+      attr_reader response_schema: Hash[String, untyped]?
+      def initialize: (?model_config: Hash[String | Symbol, untyped], ?system: String?, ?messages: Array[Message], ?tools: Array[Hash[String, untyped]], ?message: String?, ?response_schema: Hash[String | Symbol, untyped]?) -> void
     end
     class Message
       attr_reader role: Symbol
@@ -21,13 +22,18 @@ module Phronomy
     end
     class Response < Message
       attr_reader usage: TokenUsage
-      def initialize: (?content: json_value, ?tool_calls: Array[Tool::CallRequest], ?usage: TokenUsage, ?metadata: Hash[String, json_value], ?role: String | Symbol) -> void
+      attr_reader finish_reason: Symbol
+      attr_reader refusal: String?
+      def initialize: (?content: json_value, ?tool_calls: Array[Tool::CallRequest], ?usage: TokenUsage, ?metadata: Hash[String, json_value], ?role: String | Symbol, ?finish_reason: String | Symbol, ?refusal: String?) -> void
       def self.from_h: (Hash[String | Symbol, untyped] value) -> Response
       def to_h: () -> Hash[String, untyped]
     end
     class StreamChunk
       attr_reader content: String?
       def initialize: (content: String?) -> void
+    end
+    class StructuredOutputUnsupportedError < Error
+      def initialize: (?String message) -> void
     end
     class InvalidResultError < Error
     end

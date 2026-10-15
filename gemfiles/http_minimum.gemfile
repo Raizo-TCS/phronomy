@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
 eval_gemfile "mcp_1_0.gemfile"
-gem "faraday", "= 2.1.0"
+gem "faraday", "= 2.14.4"
+gem "faraday-net_http", "= 3.4.4"
 gem "webmock", require: false
+
+# Strict JSON decoding and schema transport use these verified minimum versions.
+gem "json", "= 2.21.2"
+gem "ruby_llm", "= 2.0.0"

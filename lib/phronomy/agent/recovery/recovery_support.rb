@@ -30,7 +30,11 @@ module Phronomy
       end
 
       def error_from_failure(failure)
-        Phronomy::Error.from_diagnostic(failure)
+        if failure["class"] == "Phronomy::Agent::OutputError"
+          OutputError.restore(failure)
+        else
+          Phronomy::Error.from_diagnostic(failure)
+        end
       end
 
       def event_payload(execution, descriptor)

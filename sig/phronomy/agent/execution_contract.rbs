@@ -2,7 +2,7 @@ module Phronomy
 
   module Agent
     type execution_wiring = { ?phronomy_execution_participant: _ExecutionParticipant, ?phronomy_control_bindings: Array[_ControlCapability], ?phronomy_transfer_context: TransferContext, ?phronomy_admission: _AdmissionOwner, ?phronomy_reservation: Hash[String, json_value] }
-    type execution_result = { agent_id: String, execution_id: String, status: Symbol, result: String?, output: String?, error: Hash[String, json_value]? }
+    type execution_result = { agent_id: String, execution_id: String, status: Symbol, result: json_value, output: json_value, ?raw_output: String?, error: Hash[String, json_value]? }
 
     class ReservedExecution < Data
       attr_reader agent_id: String
@@ -15,12 +15,13 @@ module Phronomy
       attr_reader agent_id: String
       attr_reader execution_id: String
       attr_reader status: Symbol
-      attr_reader result: String?
+      attr_reader result: json_value
+      attr_reader raw_output: String?
       attr_reader error: Hash[String, json_value]?
       attr_reader reservation: ReservedExecution?
       attr_reader transfer_receipt: Hash[String, json_value]?
       attr_reader cancellation_requested: bool
-      def self.new: (agent_id: String, execution_id: String, status: Symbol, result: String?, error: Hash[String, json_value]?, reservation: ReservedExecution?, transfer_receipt: Hash[String, json_value]?, cancellation_requested: bool) -> instance
+      def self.new: (agent_id: String, execution_id: String, status: Symbol, result: json_value, ?raw_output: String?, error: Hash[String, json_value]?, reservation: ReservedExecution?, transfer_receipt: Hash[String, json_value]?, cancellation_requested: bool) -> instance
       def self.from_result: (execution_result) -> instance
       def absent?: () -> bool
       def terminal?: () -> bool

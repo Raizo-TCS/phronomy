@@ -299,58 +299,62 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     expect(tool_class.new.name).to eq("my_translator")
   end
 
-  it "TC-010: Base delegates to a wrapped sub-agent" do
-    sub_agent_class = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-16", version: 1
-      model LM_STUDIO_MODEL
-      provider :openai
-      instructions(
-        "You are a math agent. Answer with only the numeric result."
+  [false, true].each do |structured|
+    it "TC-010: Base delegates to a wrapped sub-agent with structured=#{structured}" do
+      sub_agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-16", version: 1
+        model LM_STUDIO_MODEL
+        provider :openai
+        instructions(
+          "You are a math agent. Answer with only the numeric result."
+        )
+      end
+      sub_agent_class.define_singleton_method(:name) { "MathAgent" }
+
+      math_tool = Phronomy::Tools::Agent.from_agent(
+        sub_agent_class,
+        tool_name: "math_solver",
+        description:
+          "Solves arithmetic questions. Pass the full question as input."
       )
-    end
-    sub_agent_class.define_singleton_method(:name) { "MathAgent" }
 
-    math_tool = Phronomy::Tools::Agent.from_agent(
-      sub_agent_class,
-      tool_name: "math_solver",
-      description:
-        "Solves arithmetic questions. Pass the full question as input."
-    )
+      parent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-17", version: 1
+        model LM_STUDIO_MODEL
+        provider :openai
+        instructions(
+          "Use the math_solver tool for math questions. " \
+          "Do not answer directly."
+        )
+        tools(math_tool => nil)
+      end
 
-    parent_class = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-17", version: 1
-      model LM_STUDIO_MODEL
-      provider :openai
-      instructions(
-        "Use the math_solver tool for math questions. " \
-        "Do not answer directly."
+      tool_response = LLMStub.tool_call_response(
+        "math_solver",
+        {
+          input:
+            "What is 12 multiplied by 9? Use the math_solver tool."
+        }
       )
-      tools(math_tool => nil)
+      llm = LLMStub.activate(
+        responses: [
+          tool_response,
+          "108",
+          structured ? '{"answer":"108"}' : "The answer is 108."
+        ]
+      )
+
+      result = parent_class.new.invoke(
+        "What is 12 multiplied by 9? Use the math_solver tool.",
+        output_schema: structured ? {type: "object", properties: {answer: {type: "string"}}, required: ["answer"]} : nil
+      )
+
+      expect(result[:output]).to eq(structured ? {"answer" => "108"} : "The answer is 108.")
+      expect(llm.calls[1]).not_to have_key("response_format")
+      expect(llm.calls[0].key?("response_format")).to eq(structured)
+      expect(llm.calls[2].key?("response_format")).to eq(structured)
+    ensure
+      LLMStub.deactivate
     end
-
-    tool_response = LLMStub.tool_call_response(
-      "math_solver",
-      {
-        input:
-          "What is 12 multiplied by 9? Use the math_solver tool."
-      }
-    )
-    LLMStub.activate(
-      responses: [
-        tool_response,
-        "108",
-        "The answer is 108."
-      ]
-    )
-
-    result = parent_class.new.invoke(
-      "What is 12 multiplied by 9? Use the math_solver tool."
-    )
-
-    expect(result[:output]).to be_a(String)
-    expect(result[:output]).not_to be_empty
-    expect(result[:output]).to include("108")
-  ensure
-    LLMStub.deactivate
   end
 end

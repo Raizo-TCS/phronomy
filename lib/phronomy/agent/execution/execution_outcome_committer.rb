@@ -13,8 +13,12 @@ module Phronomy
       TerminalView = Data.define(
         :phase, :output, :usage, :approval_request, :rejected,
         :input_blocked, :output_blocked, :block_error,
-        :invocation_error, :handoff, :callback_failure, :source_error, :cancel_requested
-      )
+        :invocation_error, :handoff, :callback_failure, :source_error, :cancel_requested, :response
+      ) do
+        def initialize(response: nil, **values)
+          super(**values, response: response)
+        end
+      end
       Command = Data.define(
         :execution_id, :fsm_session_id, :expected_execution_revision,
         :root, :journal_records, :execution, :runtime_snapshot,
@@ -36,6 +40,18 @@ module Phronomy
         view = operation.terminal_view
         error = view.callback_failure&.to_stream_callback_error || view.source_error ||
           view.block_error || view.invocation_error
+        if !error && !view.rejected && !view.handoff && view.phase != :suspended
+          begin
+            contract = OutputContract.restore(operation.execution, @persistence.contents)
+            if contract
+              output = contract.validate(view.output, response: view.response, execution_id: operation.execution_id)
+              view = view.with(output: output)
+              operation = operation.with(terminal_view: view)
+            end
+          rescue => validation_error
+            error = validation_error
+          end
+        end
         change = ExecutionChange.new(agent: @agent, current: operation.execution,
           root: operation.root, kind: :terminal, terminal: view, config: operation.wiring) do |tx, state, receipt, pending|
           if pending
@@ -147,7 +163,9 @@ module Phronomy
         current = operation.execution
         view = operation.terminal_view
         encoded_records, call_records = encode_runtime_records(tx, operation, context_candidate: true)
-        output_ref = tx.contents.put_text(view.output.to_s)
+        structured = current.metadata.key?("output_contract") && !view.rejected
+        output_ref = tx.contents.put_text(structured ? JSON.generate(view.output) : view.output.to_s)
+        output_metadata = structured ? {"result_format" => "json", "raw_output_ref" => tx.contents.put_text(view.response.content)} : {}
         records = current.working_records + encoded_records + completion_records(operation, output_ref)
         completed = current.with(
           status: view.rejected ? :rejected : :completed,
@@ -156,6 +174,7 @@ module Phronomy
           llm_calls: current.llm_calls + call_records,
           approval_request: nil,
           result_ref: output_ref,
+          metadata: current.metadata.merge(output_metadata),
           terminal_reason: view.rejected ? "rejected" : "completed"
         )
         [records, completed]
@@ -187,7 +206,7 @@ module Phronomy
       def encode_failure(tx, operation, error)
         current = operation.execution
         encoded_records, call_records = encode_runtime_records(tx, operation, context_candidate: false)
-        error_ref = tx.contents.put_json(Phronomy::Error.diagnostic(error))
+        error_ref = tx.contents.put_json(error.is_a?(OutputError) ? error.diagnostic : Phronomy::Error.diagnostic(error))
         terminal_status = ExecutionFailure.status_for(error)
         records = failure_records(operation, encoded_records, terminal_status, error_ref)
         failed = current.with(
@@ -252,6 +271,7 @@ module Phronomy
       def completed_outcome(view, execution, root, appended, messages)
         result = result_base(execution, root).merge(
           output: view.output,
+          raw_output: (execution.metadata["result_format"] == "json") ? view.response.content : nil,
           rejected: view.rejected || nil,
           usage: view.usage,
           messages: messages

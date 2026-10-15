@@ -9,6 +9,8 @@ module Phronomy
   end
 
   class ParseError < Error
+    attr_reader details: Array[Hash[String, untyped]]
+    def initialize: (?untyped message, ?code: String?, ?details: Array[Hash[String, untyped]]) -> void
   end
 
   class ToolError < Error

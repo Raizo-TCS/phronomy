@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "faraday"
+
 module Phronomy
   module Embeddings
     # Embeddings adapter backed by RubyLLM.
@@ -44,7 +46,7 @@ module Phronomy
         raise AuthenticationError.new(error.message, code: "embeddings.authentication_failed"), cause: error
       rescue ::RubyLLM::RateLimitError => error
         raise RateLimitError.new(error.message, code: "embeddings.rate_limited"), cause: error
-      rescue ::RubyLLM::Error => error
+      rescue ::RubyLLM::Error, ::Faraday::TimeoutError, ::Faraday::ConnectionFailed => error
         raise TransportError.new(error.message), cause: error
       end
     end

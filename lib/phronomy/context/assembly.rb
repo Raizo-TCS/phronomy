@@ -34,7 +34,7 @@ module Phronomy
         )
       end
 
-      def store(prepared, contents:)
+      def store(prepared, contents:, response_schema_ref: nil)
         unless prepared.is_a?(Prepared)
           raise ArgumentError, "Context::Assembly#store expected Context::Assembly::Prepared"
         end
@@ -80,7 +80,7 @@ module Phronomy
         ).validate!(
           token_budget: prepared.input.token_budget,
           segments: segments,
-          extra_values: [selected_tool_definitions]
+          extra_values: [selected_tool_definitions, response_schema_ref && contents.fetch_json(response_schema_ref)].compact
         )
 
         store_manifest(
@@ -90,7 +90,8 @@ module Phronomy
           segments: segments,
           model_config_ref: contents.put_json(prepared.model_config),
           tool_definitions_ref: contents.put_json(selected_tool_definitions),
-          adapter_identity: prepared.adapter_identity
+          adapter_identity: prepared.adapter_identity,
+          response_schema_ref: response_schema_ref
         )
       end
 
@@ -117,7 +118,8 @@ module Phronomy
         segments:,
         model_config_ref:,
         tool_definitions_ref:,
-        adapter_identity:
+        adapter_identity:,
+        response_schema_ref:
       )
         positioned = segments.each_with_index.map do |value, position|
           Phronomy::Context::LLMInputManifest::Segment.new(**value.merge(position: position))
@@ -128,6 +130,7 @@ module Phronomy
           segments: positioned,
           model_config_ref: model_config_ref,
           tool_definitions_ref: tool_definitions_ref,
+          response_schema_ref: response_schema_ref,
           assembly_policy_version: ASSEMBLY_POLICY_VERSION,
           ruby_llm_version: adapter_identity["sdk_version"],
           adapter_name: adapter_identity["adapter_name"]

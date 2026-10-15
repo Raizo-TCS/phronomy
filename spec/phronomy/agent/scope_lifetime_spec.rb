@@ -340,7 +340,12 @@ RSpec.describe "DX05-E Agent scope and incarnation lifetime" do
         invocation.cancel!(cancellation)
         invocation
       end
-    }.to raise_error { |error| expect(error).to equal(cancellation) }
+    }.to raise_error(Phronomy::Agent::ScopeCleanupError) { |error|
+      expect(error.primary_error).to equal(cancellation)
+      expect(error.cause).to equal(cancellation)
+      expect(error.result).to be_nil
+      @failed_scope = error.scope
+    }
     expect(agent_class.get(owned.agent_id)).to equal(owned)
     physically_done = Queue.new
     invocation.on_physical_complete { physically_done << true }
@@ -427,17 +432,21 @@ RSpec.describe "DX05-E Agent scope and incarnation lifetime" do
         retain(scope.create(agent_class, persistence: store))
         raise primary
       end
-    }.to raise_error { |error| expect(error).to equal(primary) }
+    }.to raise_error(Phronomy::Agent::ScopeCleanupError) { |error|
+      expect(error.primary_error).to equal(primary)
+      expect(error.cause).to equal(primary)
+      expect(error.failures.length).to eq(1)
+    }
   end
 
-  it "rejects new acquisition after the scope has closed" do
+  it "rejects new acquisition after the scope has released" do
     saved = nil
     Phronomy::Agent.open_scope { |scope|
       saved = scope
       nil
     }
-    expect { saved.create(agent_class, persistence: store) }.to raise_error(Phronomy::Error, /closed/)
-    expect { saved.create_async(agent_class, persistence: store).wait_result }.to raise_error(Phronomy::Error, /closed/)
+    expect { saved.create(agent_class, persistence: store) }.to raise_error(Phronomy::Error, /released/)
+    expect { saved.create_async(agent_class, persistence: store).wait_result }.to raise_error(Phronomy::Error, /released/)
   end
 
   it "accepts asynchronous materialization on EventLoop and rejects synchronous calls" do
