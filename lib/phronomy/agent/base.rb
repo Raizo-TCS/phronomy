@@ -101,6 +101,9 @@ module Phronomy
           end
         end
 
+        # Maximum logical LLM calls per execution, including the first call.
+        # Tool calls and SDK transport retries do not consume extra iterations.
+        # The limit is captured at admission; zero admits no LLM call.
         def max_iterations(val = nil)
           if val
             @max_iterations = val

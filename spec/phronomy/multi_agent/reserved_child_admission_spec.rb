@@ -92,7 +92,9 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
   end
 
   it "fails closed when a coordinated invocation lacks its live reservation owner" do
-    fake_agent = Struct.new(:agent_id).new("child")
+    fake_agent = Struct.new(:agent_id) {
+      def self.max_iterations = 10
+    }.new("child")
     prepare = Phronomy::Agent::InitialPreparation.new(agent: fake_agent, persistence: store)
     expect do
       prepare.send(:admit_execution, "input", root: root, config: {phronomy_reservation: owner})
