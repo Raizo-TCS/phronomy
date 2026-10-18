@@ -25,6 +25,10 @@ module Phronomy
         recording_tool_results suspended output_filtering handed_off completed blocked failed
       ].freeze
 
+      # An automatic chain cannot visit more phases than an acyclic traversal.
+      # Logical LLM turns are bounded independently by IterationBudget.
+      AUTOMATIC_RECURSION_LIMIT = DECLARED_STATES.length
+
       WAIT_STATES = %i[suspended].freeze
 
       TOOL_EVENTS = %i[
@@ -114,10 +118,6 @@ module Phronomy
       def self.allowed?(definition, context)
         guard = definition[:guard]
         !guard || !!(context && guard.call(context))
-      end
-
-      def self.recursion_limit(max_iterations)
-        12 + ((max_iterations || 10) * 8)
       end
     end
   end

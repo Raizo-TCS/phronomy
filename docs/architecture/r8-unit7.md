@@ -6,7 +6,8 @@ all of C04, C06 or the overall target complete.
 
 | Owner | Responsibility after this change |
 | --- | --- |
-| Agent InvocationTransitions | Phase vocabulary, ordered automatic/external transitions, guard evaluation, iteration bound |
+| Agent IterationBudget | Logical LLM-call limit over durable AgentExecution records; see [iteration budget](agent-iteration-budget.md) |
+| Agent InvocationTransitions | Phase vocabulary, ordered automatic/external transitions, guard evaluation, automatic-chain safety bound |
 | Agent InvocationActions | Prepared input, LLM dispatch, Tool batch orchestration and result/event interpretation |
 | Agent ExecutionCoordinator / RecoveryCoordinator | Admission, durable preparation, approval, terminal outcome, recovery and causal revision checks |
 | Agent ExecutionEnvironment | Private process-local connection required by the Agent framework; session construction/registration, serial owner and operation submission |
