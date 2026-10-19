@@ -116,6 +116,10 @@ module Phronomy
             "content" => normalize(content),
             "tool_calls" => calls
           }
+          metadata = read_optional(message, :metadata) || {}
+          raise ArgumentError, "imported assistant metadata must be a Hash" unless metadata.is_a?(Hash)
+          Phronomy::Values::Immutable.validate_canonical_json!(metadata, label: "imported assistant metadata")
+          payload["metadata"] = Phronomy::Values::Immutable.copy(metadata) unless metadata.empty?
           model_id = read_optional(message, :model_id)
           payload["model_id"] = model_id.to_s if model_id
 
