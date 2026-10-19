@@ -2,6 +2,7 @@
 
 require "ruby_llm"
 require "faraday"
+require "digest"
 
 module Phronomy
   module LLMAdapter
@@ -75,9 +76,9 @@ module Phronomy
         else
           request.message ? chat.ask(request.message) : chat.complete
         end
-        response_value(response, capture: capture)
+        response_value(response, capture: capture, chat: chat)
       rescue ToolsRequested => requested
-        response_value(requested.message_value, capture: capture)
+        response_value(requested.message_value, capture: capture, chat: chat)
       rescue => error
         raise error if error.equal?(callback_error)
         if request.response_schema && unsupported_schema_error?(error)
@@ -107,7 +108,7 @@ module Phronomy
           chat.with_instructions(request.system, cache_until_here: config["cache_instructions"])
         end
         request.tools.each { |definition| chat.with_tools(tool_declaration(definition)) }
-        request.messages.each { |value| chat.messages << sdk_message(value) }
+        request.messages.each { |value| chat.messages << sdk_message(value, chat: chat) }
         chat
       end
 
@@ -160,7 +161,7 @@ module Phronomy
         klass
       end
 
-      def sdk_message(value)
+      def sdk_message(value, chat:)
         calls = value.tool_calls.to_h do |call|
           [call.id, ::RubyLLM::ToolCall.new(id: call.id, name: call.name,
             arguments: call.arguments, thought_signature: call.metadata["thought_signature"])]
@@ -170,10 +171,10 @@ module Phronomy
         content = "" if value.role == :assistant && content.nil? && !calls.empty?
         ::RubyLLM::Message.new(role: value.role, content: content,
           tool_calls: calls.empty? ? nil : calls, tool_call_id: value.tool_call_id,
-          model: value.metadata["model_id"])
+          model: value.metadata["model_id"], **sdk_continuation(value, chat))
       end
 
-      def response_value(message, capture: nil)
+      def response_value(message, chat:, capture: nil)
         unless message.respond_to?(:content) && message.respond_to?(:role) && message.role.to_sym == :assistant
           raise InvalidResultError, "provider returned an invalid assistant message"
         end
@@ -195,6 +196,8 @@ module Phronomy
         )
         metadata = {}
         metadata["model_id"] = message.model if message.respond_to?(:model) && message.model
+        continuation = continuation_metadata(message, chat)
+        metadata["ruby_llm_continuation"] = continuation if continuation
         reason = message.finish_reason if message.respond_to?(:finish_reason)
         raw = message.raw if message.respond_to?(:raw)
         raw = raw.body if raw.respond_to?(:body)
@@ -215,6 +218,55 @@ module Phronomy
           finish_reason: normalized, refusal: refusal)
       rescue ArgumentError, TypeError, NoMethodError => error
         raise InvalidResultError, "malformed provider response: #{error.message}"
+      end
+
+      # Only this concrete backend interprets the envelope. Agent persists and
+      # materializes Message metadata as immutable JSON, without SDK knowledge.
+      def continuation_metadata(message, chat)
+        thinking = message.thinking if message.respond_to?(:thinking)
+        raw = message.raw_reasoning if message.respond_to?(:raw_reasoning)
+        return unless thinking || raw
+
+        {
+          "version" => 1,
+          "scope" => continuation_scope(chat),
+          "thinking" => thinking && {"text" => thinking.text, "signature" => thinking.signature}.compact,
+          "raw_reasoning" => raw
+        }.compact
+      end
+
+      def sdk_continuation(value, chat)
+        return {} unless value.metadata.key?("ruby_llm_continuation")
+
+        state = value.metadata["ruby_llm_continuation"]
+        unless state.is_a?(Hash) && state["version"] == 1 && state["scope"] == continuation_scope(chat)
+          raise Phronomy::ConfigurationError,
+            "RubyLLM continuation metadata is incompatible with the selected model, provider, endpoint, protocol or format version"
+        end
+        thinking = state["thinking"]
+        valid_thinking = thinking.nil? || (thinking.is_a?(Hash) && (thinking.keys - %w[text signature]).empty? &&
+          (thinking["text"].nil? || thinking["text"].is_a?(String)))
+        unless value.role == :assistant && valid_thinking &&
+            (state.keys - %w[version scope thinking raw_reasoning]).empty?
+          raise InvalidResultError, "malformed RubyLLM continuation metadata"
+        end
+        # Reconstitute SDK-owned values only at the backend boundary. Do not
+        # promote arbitrary Message metadata to SDK options or provider params.
+        {thinking: thinking, raw_reasoning: state["raw_reasoning"]}
+      end
+
+      def continuation_scope(chat)
+        provider = chat.provider
+        protocol = provider.protocols.key(provider.protocol_for(chat.model))
+        unless protocol
+          raise Phronomy::ConfigurationError, "RubyLLM continuation requires an identifiable protocol"
+        end
+        {
+          "provider" => chat.model.provider.to_s,
+          "model" => chat.model.id,
+          "protocol" => protocol.to_s,
+          "endpoint_sha256" => Digest::SHA256.hexdigest(provider.api_base.to_s)
+        }
       end
 
       def stream_value(chunk)

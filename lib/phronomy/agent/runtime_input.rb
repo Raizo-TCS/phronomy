@@ -153,12 +153,18 @@ module Phronomy
         end
 
         tool_calls = materialize_tool_calls(payload["tool_calls"])
+        metadata = payload.fetch("metadata", {})
+        raise ArgumentError, "canonical message metadata must be a Hash" unless metadata.is_a?(Hash)
+        metadata = metadata.dup
+        # Preserve backend-owned values without interpreting them. Old records
+        # stored model_id only at the top level; retain that read compatibility.
+        metadata["model_id"] = payload["model_id"] if !metadata.key?("model_id") && payload["model_id"]
         Phronomy::LLMAdapter::Message.new(
           role: role,
           content: payload.fetch("content", nil),
           tool_calls: tool_calls,
           tool_call_id: payload["tool_call_id"],
-          metadata: {"model_id" => payload["model_id"]}.compact
+          metadata: metadata
         )
       end
 
