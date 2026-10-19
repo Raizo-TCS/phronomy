@@ -12,6 +12,36 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve each SharedState member's explicitly configured model when creating
+  its internal instrumented Agent. Keep ordinary Agent inheritance and the
+  global fallback for members without an explicit model unchanged.
+- Preserve canonical assistant-message metadata through Agent Tool rounds,
+  imports, persistence and recovery. The RubyLLM backend retains supported
+  thinking text/signatures and raw reasoning, including final streaming
+  responses, and delegates wire rendering to the existing SDK. Incompatible
+  continuation scope/version is rejected before inference; legacy messages
+  without this metadata remain usable. No database migration is required. See
+  [continuation compatibility](docs/architecture/llm-continuation-metadata.md).
+- Enforce `Agent.max_iterations = N` as at most N logical LLM calls per
+  execution, including the first and final response. Remove the premature FSM
+  cutoff that stopped the ninth single-Tool round before call ten. Tool count,
+  approval/resume, streaming chunks and SDK HTTP retries do not consume extra
+  logical calls; this limit does not bound physical HTTP attempts or Tool count.
+  Preserve the admitted limit and consumed-call records across approval,
+  recovery and a fresh Runtime/database pool. Legacy executions without the
+  saved limit use the current class setting. A final response on call N succeeds;
+  Tools requested on call N retain their results, and call N+1 raises the existing
+  `RecursionLimitError`. Zero permits no call; invalid limits fail before inference.
+  Generic Engine transition protection remains in place. This correction can
+  allow work previously stopped too early and stop runs previously able to reset
+  their budget on approval. Deploy at a quiescent Runtime boundary; see
+  [iteration budget migration](docs/architecture/agent-iteration-budget.md).
+
+These fixes do not establish a resolution for LM Studio's `peg-native` HTTP 400
+or completion of the remaining live examples acceptance.
+
 ### r8 first implementation unit (breaking, unreleased)
 
 - Move Context policy/plan/manifest/budget/prompt operations into `Phronomy::Context`.
