@@ -179,6 +179,7 @@ module Phronomy
         # instrumentation.
         instrumented_def = instrumented_definition_for(researcher_class)
         Class.new(researcher_class) do
+          model researcher_class.model
           agent_definition(
             id: instrumented_def.fetch(:id),
             version: instrumented_def.fetch(:version)
