@@ -197,7 +197,7 @@ module Phronomy
 
       def self.finish_provider_trace(trace_handle, response, error)
         Phronomy::Tracing::Automatic.finish(trace_handle,
-          output: response, usage: response&.usage, error: error)
+          output: response, usage: response&.usage&.to_h&.freeze, error: error)
       end
       private_class_method :finish_provider_trace
 

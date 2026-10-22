@@ -71,9 +71,9 @@ module Phronomy
         body[:statusMessage] = error.message if error
         if usage
           body[:usage] = {
-            input: usage.input,
-            output: usage.output,
-            total: (usage.input || 0) + (usage.output || 0)
+            input: usage[:input],
+            output: usage[:output],
+            total: (usage[:input] || 0) + (usage[:output] || 0)
           }
         end
         ingest([{type: "span-create", body: body}])

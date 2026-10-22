@@ -62,7 +62,7 @@ RSpec.describe Phronomy::Tracing::OpenTelemetryTracer do
     end
 
     it "records token usage attributes when usage is present" do
-      usage = Phronomy::LLMAdapter::TokenUsage.new(input: 10, output: 5, cached: 0, cache_creation: 0)
+      usage = {input: 10, output: 5, cached: 0, cache_creation: 0}.freeze
       span = tracer.start_span("op")
       tracer.finish_span(span, usage: usage)
 

@@ -10,6 +10,13 @@ module Phronomy
     # the backend boundary; a Tool definition never contains executable work.
     # @api public
     class RubyLLM < Base
+      # An optional RubyLLM context keeps endpoint/transport settings local to
+      # this concrete backend. The default still reads the SDK global settings.
+      # @api public
+      def initialize(context: nil)
+        @sdk_context = context || ::RubyLLM
+      end
+
       ToolsRequested = Class.new(StandardError) do
         attr_reader :message_value
         def initialize(message_value)
@@ -97,7 +104,7 @@ module Phronomy
         elsif config.key?("assume_model_exists")
           options[:assume_model_exists] = config["assume_model_exists"]
         end
-        chat = ::RubyLLM.chat(**options)
+        chat = @sdk_context.chat(**options)
         if request.response_schema
           validate_structured_support!(request, chat)
           chat.with_schema(request.response_schema)

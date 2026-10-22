@@ -5,7 +5,8 @@ module Phronomy
     module Observation
       # Convenience wrapper that delegates to the global tracer.
       # Yields a span; the block must return [result, usage] where usage is a
-      # Phronomy::LLMAdapter::TokenUsage or nil. Returns only the result value.
+      # Hash of observed token counts or nil. Returns only the result value.
+      # Domain objects must be projected by the caller before entering Tracing.
       #
       # When +trace_pii+ is disabled, both the input and the output (LLM response,
       # tool result) are replaced with the literal string "[REDACTED]" before being

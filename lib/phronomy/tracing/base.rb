@@ -86,7 +86,8 @@ module Phronomy
       #
       # @param span [Object] the span returned by #start_span
       # @param output [Object, nil] successful output value
-      # @param usage [Phronomy::LLMAdapter::TokenUsage, nil] token usage for this span
+      # @param usage [Hash{Symbol => Integer, nil}, nil] observed token counts;
+      #   :input, :output, :cached, :cache_creation. The caller projects its domain value.
       # @param error [Exception, nil] exception if the block raised
       # @api public
       def finish_span(span, output: nil, usage: nil, error: nil)
