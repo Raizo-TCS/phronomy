@@ -6,6 +6,11 @@ module Phronomy
   end
 
   module OutputParser
+    class JsonSchemaParser < Base
+      attr_reader json_schema: Hash[String, untyped]
+      def initialize: (schema: Hash[String | Symbol, untyped]) -> void
+      def parse: (String text) -> Hash[String, json_value]
+    end
     class Base
       def parse: (String text) -> untyped
       def invoke: (untyped input, ?config: Hash[untyped, untyped]) -> untyped
@@ -14,10 +19,10 @@ module Phronomy
 
   module Tracing
     class Base
-      def self.trace_with: [A] (untyped tracer, String name, ?record_output: bool, ?attributes: Hash[Symbol, untyped]) { (untyped span) -> [A, untyped] } -> A
+      def self.trace_with: [A] (untyped tracer, String name, ?record_output: bool, ?attributes: Hash[Symbol, untyped]) { (untyped span) -> [A, Hash[Symbol, Integer?]?] } -> A
       def start_span: (String name, **untyped attributes) -> untyped
-      def finish_span: (untyped span, ?output: untyped, ?usage: untyped, ?error: Exception?) -> untyped
-      def trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, untyped] } -> A
+      def finish_span: (untyped span, ?output: untyped, ?usage: Hash[Symbol, Integer?]?, ?error: Exception?) -> untyped
+      def trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, Hash[Symbol, Integer?]?] } -> A
     end
   end
 

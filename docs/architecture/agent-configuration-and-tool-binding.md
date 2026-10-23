@@ -137,3 +137,11 @@ The published SVG is applied43-01. See the [naming boundary](entry-action-and-te
 and the separate [open Tool schema finding](tool-schema-recording-gap.md).
 
 Refactor 45 changes the token declarations as described in [the migration](rubyllm-2-token-ownership.md). Other Agent inheritance rules above remain unchanged. Tool schema/provider configuration follows the RubyLLM 2 inherited configuration contract.
+
+## Agent iteration budget correction
+
+`Agent.max_iterations` now bounds logical LLM calls per Agent execution, including
+its first call and its final response. The nonnegative Integer limit is captured
+at admission; zero permits no call. Tool count, approval/resume and backend HTTP
+retries do not consume additional iterations. Declaration inheritance is unchanged.
+See [the iteration-budget boundary and migration](agent-iteration-budget.md).

@@ -93,6 +93,7 @@ module Phronomy
       phase_machine_class:,
       recursion_limit:,
       event_loop:,
+      recursion_limit_scope: :session,
       resume_event: nil,
       resume_phase: nil,
       stable_observer: nil,
@@ -123,6 +124,11 @@ module Phronomy
       @external_events = external_events
       @phase_machine_class = phase_machine_class
       @recursion_limit = recursion_limit
+      unless %i[session automatic_chain].include?(recursion_limit_scope)
+        raise ArgumentError, "unknown recursion_limit_scope: #{recursion_limit_scope.inspect}"
+      end
+      @recursion_limit_scope = recursion_limit_scope
+      @automatic_steps = 0
       @event_loop = event_loop
       @resume_event = resume_event
       @resume_phase = resume_phase
@@ -230,7 +236,13 @@ module Phronomy
     end
 
     def fire_and_advance!(event)
-      if @step >= @recursion_limit
+      automatic = event.type == :state_completed
+      exhausted = if @recursion_limit_scope == :automatic_chain
+        automatic && @automatic_steps >= @recursion_limit
+      else
+        @step >= @recursion_limit
+      end
+      if exhausted
         raise Phronomy::RecursionLimitError,
           "Recursion limit (#{@recursion_limit}) exceeded"
       end
@@ -246,6 +258,9 @@ module Phronomy
       apply_context_metadata!
       @current_state = @tracker.phase.to_sym
       @step += 1
+      # Only an accepted external transition starts a fresh automatic chain.
+      # Consumed/stale events and events with no transition cannot reset it.
+      @automatic_steps = automatic ? @automatic_steps + 1 : 0
       advance_or_halt
     ensure
       @tracker.current_event = nil if @tracker&.respond_to?(:current_event=)

@@ -37,13 +37,14 @@ Gem::Specification.new do |spec|
 
   # Provider SDK and independent Tool schema construction/validation libraries.
   spec.add_dependency "ruby_llm", "~> 2.0.0"
-  spec.add_dependency "faraday", "~> 2.1"
+  spec.add_dependency "faraday", "~> 2.14", ">= 2.14.4"
+  spec.add_dependency "faraday-net_http", "~> 3.4", ">= 3.4.4"
   spec.add_dependency "schematist", "~> 1.1"
   spec.add_dependency "json_schemer", "~> 2.5"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"
-  spec.add_dependency "json", "< 3"
+  spec.add_dependency "json", ">= 2.21.2", "< 3"
 
   # For more information and examples on how to make a new gem, check out our
   # guide at: https://guides.rubygems.org/specification-reference/

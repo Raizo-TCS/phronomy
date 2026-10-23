@@ -5,11 +5,6 @@ module Phronomy
     # Converts Agent events to correlated Workflow events. PipelineState owns
     # stale-result rejection and all Workflow state mutation.
     class AgentResultReceiver
-      def initialize(draft_result_parser:, review_result_parser:)
-        @draft_result_parser = draft_result_parser
-        @review_result_parser = review_result_parser
-      end
-
       def draft_listener(workflow:, workflow_instance_id:, request_id:)
         agent_listener(:draft, workflow, workflow_instance_id, request_id) do |output|
           draft_payload(output)
@@ -25,20 +20,20 @@ module Phronomy
       private
 
       def draft_payload(output)
-        parsed = @draft_result_parser.call(output)
+        parsed = output
         {
-          draft: parsed[:answer].to_s,
-          self_score: clamp(parsed[:confidence]),
-          citations: normalize_citations(parsed[:citations])
+          draft: parsed.fetch("answer"),
+          self_score: parsed.fetch("confidence"),
+          citations: parsed.fetch("citations")
         }
       end
 
       def review_payload(output)
-        parsed = @review_result_parser.call(output)
+        parsed = output
         {
-          review_score: clamp(parsed[:score]),
-          approved: parsed[:approved] == true,
-          feedback: parsed[:feedback].to_s
+          review_score: parsed.fetch("score"),
+          approved: parsed.fetch("approved"),
+          feedback: parsed.fetch("feedback")
         }
       end
 
@@ -47,6 +42,11 @@ module Phronomy
           case agent_event.type
           when :done
             begin
+              if agent_event.payload[:rejected]
+                workflow.signal(workflow_instance_id: workflow_instance_id,
+                  event: :"#{phase}_rejected", payload: {request_id: request_id})
+                next
+              end
               payload = completion.call(agent_event.payload[:output])
               workflow.signal(
                 workflow_instance_id: workflow_instance_id,
@@ -60,9 +60,6 @@ module Phronomy
             error = agent_event.payload[:error] ||
               Phronomy::Error.new("#{phase.to_s.capitalize} Agent ended with #{agent_event.type}")
             signal_failure(workflow, workflow_instance_id, request_id, phase, error)
-          when :approval_required
-            error = Phronomy::Error.new("GeneratorVerifier #{phase} Agent suspended for approval")
-            signal_failure(workflow, workflow_instance_id, request_id, phase, error)
           end
         }
       end
@@ -70,19 +67,9 @@ module Phronomy
       def signal_failure(workflow, workflow_instance_id, request_id, phase, error)
         workflow.signal(
           workflow_instance_id: workflow_instance_id,
-          event: :"#{phase}_failed",
+          event: error.is_a?(Phronomy::Agent::OutputError) ? :"#{phase}_output_failed" : :"#{phase}_failed",
           payload: {request_id: request_id, error: error}
         )
-      end
-
-      def clamp(value)
-        value.to_f.clamp(0.0, 1.0)
-      end
-
-      def normalize_citations(raw)
-        Array(raw).filter_map do |citation|
-          citation.is_a?(Hash) ? citation.transform_keys(&:to_sym) : nil
-        end
       end
     end
   end

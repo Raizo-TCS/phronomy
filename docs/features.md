@@ -32,6 +32,13 @@ for production deployments.
 | **Error Taxonomy** — Provider errors translated to Phronomy transport/authentication/rate-limit/context errors | Beta |
 | **Optional failure reason codes** — `Phronomy::Error#code` and `code:` retain domain-supplied reasons in saved Agent/Team diagnostics; [meaning and compatibility](failure-reason-codes.md) | Beta |
 
+The RubyLLM backends also translate identified Faraday timeout and connection
+failures to the owning `LLMAdapter::TransportError` or
+`Embeddings::TransportError`, retaining the original cause chain. A stream may
+have delivered partial output before failure; this classification does not imply
+that retry is safe. Callback failures and execution cancellation/deadlines keep
+their identity. See [transport error boundaries](architecture/transport-error-boundaries.md).
+
 Agent definition lineage is separate from Agent instance identity. A named
 concrete Agent may declare `agent_definition version: N`; when `id:` is omitted,
 its fully-qualified Ruby class name is the stable `agent_definition_id`.
@@ -97,7 +104,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 |---|---|
 | **Workflow asynchronous pattern** — `task_state` starts a `TaskResult`, applies its successful value once to the current state entry, and then evaluates ordinary transitions; `Workflow#signal` remains the application event API | Beta |
 | **Durable Handoff** — `MultiAgent::Handoff` and `MultiAgent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
-| **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
+| **GeneratorVerifier** — Generator-Verifier loop with application prompts, Agent-validated output schemas and explicit output failures | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; see the [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
@@ -193,3 +200,5 @@ claim. See [the migration](migrations/durable-semantic-coordination-v2.md).
 turn read-only, including a current absent-but-reserved Target, without graph or
 Agent hydration. Purging an idle main Agent removes its Handoff anchor; pending
 coordination rejects purge rather than discarding its reservation.
+
+Structured output and symmetric lifetime details: [contract and migration](architecture/structured-output-and-scope.md).

@@ -37,9 +37,12 @@ jobs:
           bundler-cache: true
       - name: Verify minimum HTTP dependencies
         run: >-
-          bundle exec ruby -e 'require "faraday"; require "mcp";
-          abort "Expected Faraday 2.1.0, got #{Faraday::VERSION}" unless Faraday::VERSION == "2.1.0";
+          bundle exec ruby -e 'require "faraday"; require "mcp"; require "json"; require "ruby_llm";
+          abort "Expected Faraday 2.14.4, got #{Faraday::VERSION}" unless Faraday::VERSION == "2.14.4";
+          abort "Expected faraday-net_http 3.4.4" unless Gem.loaded_specs.fetch("faraday-net_http").version.to_s == "3.4.4";
           abort "Expected MCP 1.0.0, got #{MCP::VERSION}" unless MCP::VERSION == "1.0.0";
+          abort "Expected JSON 2.21.2" unless JSON::VERSION == "2.21.2";
+          abort "Expected RubyLLM 2.0.0" unless RubyLLM::VERSION == "2.0.0";
           puts "Faraday #{Faraday::VERSION}";
           puts "faraday-net_http #{Gem.loaded_specs.fetch("faraday-net_http").version}";
           puts "MCP #{MCP::VERSION}"'
@@ -49,6 +52,12 @@ jobs:
           spec/phronomy/agent/recovery_io_boundary_spec.rb
           spec/phronomy/agent/tool_batch_chat_spec.rb
           spec/phronomy/agent/ruby_llm_2_responses_spec.rb
-          spec/phronomy/tools/mcp_spec.rb --format documentation
+          spec/phronomy/tools/mcp_spec.rb
+          spec/phronomy/output_parser/json_schema_parser_spec.rb
+          spec/phronomy/llm_adapter/structured_output_spec.rb
+          spec/phronomy/llm_adapter/structured_protocols_spec.rb
+          spec/phronomy/llm_adapter/transport_error_spec.rb --format documentation
       - name: Run MCP HTTP integration contracts
         run: bundle exec rspec spec/integration/mcp_http_spec.rb --tag integration --format documentation
+      - name: Run real HTTP transport failure contracts
+        run: bundle exec rspec spec/integration/transport_error_spec.rb spec/integration/lm_studio_parse_failure_spec.rb --tag integration --format documentation

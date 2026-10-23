@@ -116,7 +116,8 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
       input: "secret input",
       agent_id: "agent-3",
       execution_id: "execution-3",
-      mode: :invoke
+      mode: :invoke,
+      usage: ->(value) { value[:usage]&.to_h&.freeze }
     )
 
     result = {output: "secret output", usage: usage}.freeze
@@ -126,7 +127,8 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     span = recorded_spans.fetch(0)
     expect(span[:name]).to eq("agent.execution")
     expect(span[:output]).to eq("[REDACTED]")
-    expect(span[:usage]).to equal(usage)
+    expect(span[:usage]).to eq(usage.to_h)
+    expect(span[:usage]).not_to equal(usage)
   end
 
   it "does not change an operation result when automatic tracing start fails" do

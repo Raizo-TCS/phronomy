@@ -7,6 +7,10 @@ require_relative "../tool/call_request"
 module Phronomy
   module LLMAdapter
     # Provider-independent conversation value, with no executable capabilities.
+    # Metadata is immutable JSON. Backend-owned continuation values travel with
+    # the message through Agent persistence/import; only their owning backend
+    # interprets their format and replay compatibility. They grant no authority
+    # and are not answer content or arbitrary provider request options.
     # @api public
     class Message
       attr_reader :role, :content, :tool_calls, :tool_call_id, :metadata

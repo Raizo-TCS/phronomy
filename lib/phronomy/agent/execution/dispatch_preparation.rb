@@ -34,6 +34,7 @@ module Phronomy
       def prepare_provider(operation)
         staged = stage_provider_call(operation)
         recorded = encode_provider_records(operation, staged)
+        IterationBudget.check!(recorded, default: @agent.class.max_iterations)
         assembler, prepared = prepare_provider_context(operation, recorded)
         committed, manifest, manifest_ref = commit_provider_preparation(
           operation, recorded, assembler, prepared
@@ -56,6 +57,9 @@ module Phronomy
 
       def stage_provider_call(operation)
         metadata = operation.execution.metadata.dup
+        metadata[IterationBudget::LIMIT_KEY] = IterationBudget.limit_for(
+          operation.execution, default: @agent.class.max_iterations
+        )
         metadata.delete(ExecutionMetadata::TOOL_BATCH_METADATA_KEY)
         metadata.delete(ExecutionMetadata::RECOVERY_METADATA_KEY)
         metadata[ExecutionMetadata::PENDING_LLM_ID_KEY] = operation.pending_llm_call_id
@@ -118,7 +122,8 @@ module Phronomy
       def commit_provider_preparation(operation, recorded, assembler, prepared)
         manifest, manifest_ref = @persistence.transaction do |tx|
           assert_local_durable_base!(tx, operation.root)
-          Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
+          Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents,
+            response_schema_ref: recorded.metadata.dig("output_contract", "schema_ref"))
         end
         updated = execution_with_provider_manifest(recorded, manifest_ref)
         change = ExecutionChange.new(agent: @agent, current: operation.execution,

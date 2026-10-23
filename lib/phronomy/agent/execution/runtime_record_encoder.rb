@@ -169,6 +169,9 @@ module Phronomy
           "role" => "assistant",
           "content" => json_value(outcome.content),
           "tool_calls" => json_value(Array(outcome.tool_calls)),
+          "finish_reason" => outcome.finish_reason.to_s,
+          "refusal" => outcome.refusal,
+          "metadata" => outcome.metadata,
           "model_id" => outcome.metadata["model_id"]
         }.compact
         tx.contents.put_json(payload)

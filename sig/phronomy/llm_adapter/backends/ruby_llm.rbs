@@ -1,6 +1,7 @@
 module Phronomy
   module LLMAdapter
     class RubyLLM < Base
+      def initialize: (?context: untyped) -> void
     end
   end
 end

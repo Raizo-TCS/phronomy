@@ -65,7 +65,9 @@ RSpec.describe "Agent-owned execution boundary" do
     registry = double("origin registry")
     environment = double("origin environment", registry: registry)
     token = Phronomy::Concurrency::CancellationToken.new
-    state = double("state", agent: double("agent", agent_id: "agent-1"), invocation: double("invocation", config: {cancellation_token: token}))
+    coordinator = double("coordinator")
+    expect(coordinator).to receive(:deliver_on_event_loop).with(an_instance_of(Phronomy::Agent::ExecutionCancellation::Command))
+    state = double("state", coordinator: coordinator, agent: double("agent", agent_id: "agent-1"), invocation: double("invocation", config: {cancellation_token: token}))
     allow(registry).to receive(:agent_execution_state).with("execution-1").and_return(state)
     allow(registry).to receive(:post) { |command| command.coordinator.deliver_on_event_loop(command) }
     expect(Phronomy::Agent::ExecutionEnvironment).not_to receive(:current)

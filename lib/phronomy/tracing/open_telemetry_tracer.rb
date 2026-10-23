@@ -44,9 +44,9 @@ module Phronomy
         else
           span.set_attribute("phronomy.output", output.to_s) if output
           if usage
-            span.set_attribute("llm.usage.input_tokens", usage.input)
-            span.set_attribute("llm.usage.output_tokens", usage.output)
-            total = (usage.input || 0) + (usage.output || 0)
+            span.set_attribute("llm.usage.input_tokens", usage[:input])
+            span.set_attribute("llm.usage.output_tokens", usage[:output])
+            total = (usage[:input] || 0) + (usage[:output] || 0)
             span.set_attribute("llm.usage.total_tokens", total)
           end
         end

@@ -12,7 +12,102 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
-### r8 first implementation unit (breaking, unreleased)
+## [0.30.0] - 2026-10-24
+
+### Added
+
+- Agent `output_schema:` and `OutputParser::JsonSchemaParser` provide strict,
+  immutable JSON results. Refused, incomplete and invalid output raises
+  `Agent::OutputError`; native schema delivery is preserved through Tool rounds,
+  approval and recovery without output repair or replaying confirmed Tool work.
+- Explicit `LLMAdapter::LMStudio` selection identifies the known generated-format
+  rejection as `llm.provider_output_parse_failed`, retaining the actual HTTP
+  status and original SDK cause. Opt-in retry resends the same eligible,
+  non-streaming gpt-oss-20b request at most once, without replaying Agent,
+  Workflow or Tool work. Ordinary SDK retries are disabled in this backend's
+  private snapshot; the default backend and global SDK settings are unchanged.
+
+### Changed
+
+- GeneratorVerifier owns immutable evaluation Results, explicit approval routing
+  and Agent lifetime. Use `accepted?`, `termination_reason` and
+  `raise_if_unaccepted`; `output_failed` distinguishes invalid output from a
+  completed evaluation that reaches `iteration_limit`. Acceptance reports the
+  configured conditions, not the truth of generated content.
+- Agent scopes and GeneratorVerifier scopes await a directly returned TaskResult
+  before releasing their owned Agents. Cleanup preserves the primary failure,
+  successful value and handles needed to retry release.
+- Tracing usage is a plain token-count Hash. Custom tracer/exporter callers must
+  project LLM-domain TokenUsage values before crossing the tracing boundary.
+- Require Faraday 2.14.4 and faraday-net_http 3.4.4 as the tested HTTP support
+  floors. Concrete LLM/Embeddings adapters translate recognized network failures
+  into their public TransportError types while preserving causes and callback
+  exceptions; cancellation and unknown internal failures are not broadly mapped.
+  Strict JSON decoding requires JSON >= 2.21.2 and < 3.
+
+### Removed
+
+- GeneratorVerifier parser fallback/repair hooks, `trusted`/`trusted?`,
+  `raise_if_untrusted` and `LowConfidenceError`. Migrate saved Result data with
+  `scripts/migrate_generator_verifier_result.rb`; no compatibility aliases are
+  provided. See the [Result and lifetime contract](docs/architecture/generator-verifier-lifecycle-result.md).
+
+### Fixed
+
+- Preserve each SharedState member's explicitly configured model when creating
+  its internal instrumented Agent. Keep ordinary Agent inheritance and the
+  global fallback for members without an explicit model unchanged.
+- Preserve canonical assistant-message metadata through Agent Tool rounds,
+  imports, persistence and recovery. The RubyLLM backend retains supported
+  thinking text/signatures and raw reasoning, including final streaming
+  responses, and delegates wire rendering to the existing SDK. Incompatible
+  continuation scope/version is rejected before inference; legacy messages
+  without this metadata remain usable. No database migration is required. See
+  [continuation compatibility](docs/architecture/llm-continuation-metadata.md).
+- Enforce `Agent.max_iterations = N` as at most N logical LLM calls per
+  execution, including the first and final response. Remove the premature FSM
+  cutoff that stopped the ninth single-Tool round before call ten. Tool count,
+  approval/resume, streaming chunks and SDK HTTP retries do not consume extra
+  logical calls; this limit does not bound physical HTTP attempts or Tool count.
+  Preserve the admitted limit and consumed-call records across approval,
+  recovery and a fresh Runtime/database pool. Legacy executions without the
+  saved limit use the current class setting. A final response on call N succeeds;
+  Tools requested on call N retain their results, and call N+1 raises the existing
+  `RecursionLimitError`. Zero permits no call; invalid limits fail before inference.
+  Generic Engine transition protection remains in place. This correction can
+  allow work previously stopped too early and stop runs previously able to reset
+  their budget on approval. Deploy at a quiescent Runtime boundary; see
+  [iteration budget migration](docs/architecture/agent-iteration-budget.md).
+
+### Verification and migration
+
+- Real LM Studio acceptance identified HTTP 400 PEG failures, performed one
+  identical-request retry, and returned the final error at the adapter's own
+  limit after the second failure. A separate application invocation succeeded
+  initially with HTTP 200: two application invocations, three generation POSTs.
+  This is not recovery by retry within one invocation. Recovery by retry,
+  recovery rate, the PEG root cause and recurrence resolution remain unverified.
+- Review the [structured-output migration](docs/architecture/structured-output-and-scope.md),
+  [continuation compatibility](docs/architecture/llm-continuation-metadata.md),
+  [iteration budget migration](docs/architecture/agent-iteration-budget.md) and
+  [LM Studio retry policy](docs/architecture/lm-studio-output-failures.md) before
+  upgrading persistent or in-flight applications.
+
+---
+
+## [0.29.0] - 2026-10-13
+
+See the [0.29.0 release record](https://github.com/Raizo-TCS/phronomy/releases/tag/v0.29.0).
+
+---
+
+## [0.28.0] - 2026-10-09
+
+The architecture notes below were already included in this release and carried
+unchanged in the 0.29.0 changelog. They are retained from the former Unreleased
+section and are not new 0.30.0 changes.
+
+### r8 first implementation unit (breaking)
 
 - Move Context policy/plan/manifest/budget/prompt operations into `Phronomy::Context`.
   Agent retains snapshot, journal and lifecycle ownership. Manifest and execution

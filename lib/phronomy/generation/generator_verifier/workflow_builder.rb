@@ -9,19 +9,16 @@ module Phronomy
       def initialize(
         draft_agent:, review_agent:,
         draft_prompt_builder:, review_prompt_builder:,
-        draft_result_parser:, review_result_parser:,
-        threshold:, max_iterations:
+        threshold:, max_iterations:, start_operation:
       )
+        @start_operation = start_operation
         @draft_agent = draft_agent
         @review_agent = review_agent
         @draft_prompt_builder = draft_prompt_builder
         @review_prompt_builder = review_prompt_builder
         @threshold = threshold
         @max_iterations = max_iterations
-        @result_receiver = AgentResultReceiver.new(
-          draft_result_parser: draft_result_parser,
-          review_result_parser: review_result_parser
-        )
+        @result_receiver = AgentResultReceiver.new
       end
 
       def build
@@ -48,6 +45,10 @@ module Phronomy
 
           transition from: :draft, on: :draft_completed, to: :review
           transition from: :draft, on: :draft_failed, to: :failed
+          transition from: :draft, on: :draft_output_failed, to: :finalize
+          transition from: :review, on: :review_output_failed, to: :finalize
+          transition from: :draft, on: :draft_rejected, to: :finalize
+          transition from: :review, on: :review_rejected, to: :finalize
           transition from: :review,
             on: :review_completed,
             guard: ready_to_finalize,
@@ -71,7 +72,7 @@ module Phronomy
           workflow_instance_id: next_state.workflow_instance_id,
           request_id: request_id
         )
-        @draft_agent.start(prompt, listener: listener)
+        @start_operation.call(@draft_agent, :draft, prompt, listener: listener)
         next_state
       end
 
@@ -86,18 +87,19 @@ module Phronomy
           workflow_instance_id: next_state.workflow_instance_id,
           request_id: request_id
         )
-        @review_agent.start(prompt, listener: listener)
+        @start_operation.call(@review_agent, :review, prompt, listener: listener)
         next_state
       end
 
       def ready_to_finalize?(state)
-        confidence = [state.self_score || 0.0, state.review_score || 0.0].min
-        (confidence >= @threshold && state.approved) ||
+        confidence = [state.self_score, state.review_score].min
+        Result.accepted?(confidence: confidence, confidence_threshold: @threshold, review_approved: state.approved) ||
           state.iteration >= @max_iterations
       end
 
       def finalize(state)
-        state.output = state.draft
+        state.output = (state.interrupted_phase == :draft) ? nil : state.draft
+        state.citations = [] if state.interrupted_phase == :draft
         state
       end
 

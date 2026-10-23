@@ -7,10 +7,10 @@ module Phronomy
     # Immutable input for one model turn, including inert Tool definitions.
     # @api public
     class Request
-      attr_reader :model_config, :system, :messages, :tools, :message
+      attr_reader :model_config, :system, :messages, :tools, :message, :response_schema
 
       # @api public
-      def initialize(model_config: {}, system: nil, messages: [], tools: [], message: nil)
+      def initialize(model_config: {}, system: nil, messages: [], tools: [], message: nil, response_schema: nil)
         if !(model_config.is_a?(Hash) && (system.nil? || system.is_a?(String)) && (message.nil? || message.is_a?(String)))
           raise ArgumentError, "invalid LLM request configuration or text"
         end
@@ -36,6 +36,11 @@ module Phronomy
         names = normalized_tools.map { |tool| tool.fetch("name") }
         raise ArgumentError, "duplicate Tool definition name" unless names.uniq == names
         config = normalize_keys(model_config)
+        @response_schema = response_schema.nil? ? nil : Phronomy::Values::Immutable.json(response_schema)
+        if @response_schema && !@response_schema.is_a?(Hash)
+          raise ArgumentError, "response_schema must be a JSON object or nil"
+        end
+        reject_schema_options!(config) if @response_schema
         Phronomy::Values::Immutable.validate_canonical_json!(config, label: "LLM model configuration")
         max = config["max_output_tokens"]
         if !max.nil? && (!max.is_a?(Integer) || max <= 0)
@@ -63,6 +68,16 @@ module Phronomy
       end
 
       private
+
+      def reject_schema_options!(value)
+        return unless value.is_a?(Hash)
+        value.each do |key, child|
+          if %w[schema output_schema response_schema response_format responseJsonSchema responseSchema].include?(key.to_s)
+            raise ArgumentError, "model configuration cannot override response_schema"
+          end
+          reject_schema_options!(child)
+        end
+      end
 
       def normalize_keys(value)
         value.each_with_object({}) do |(key, child), result|

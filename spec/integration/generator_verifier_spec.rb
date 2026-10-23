@@ -16,35 +16,14 @@ require_relative "support/llm_stub"
 # HTTP responses, exercising the actual LLM call path through Agent::Base.
 
 RSpec.describe "Group 33: GeneratorVerifier", :integration do
-  %i[draft review].each do |phase|
-    it "fails the pipeline when the real #{phase} Agent suspends for approval" do
-      tool = IntegrationFactors.approval_tool
-      waiting = IntegrationFactors.approval_resume_agent(tool)
-      normal = IntegrationFactors.gv_agent_class
-      responses = [LLMStub.tool_call_response("approval_required_tool", {query: "request"})]
-      responses.unshift(IntegrationFactors.gv_draft_response) if phase == :review
-      @llm = LLMStub.activate(responses: responses)
-      pipeline = Phronomy::GeneratorVerifier.new(
-        draft_agent: (phase == :draft) ? waiting : normal,
-        review_agent: (phase == :review) ? waiting : normal,
-        draft_prompt_builder: ->(input, _feedback) { input },
-        review_prompt_builder: ->(input, _draft, _citations) { input }
-      )
-
-      expect { Timeout.timeout(5) { pipeline.invoke("request") } }
-        .to raise_error(Phronomy::Error, "GeneratorVerifier #{phase} Agent suspended for approval")
-      expect(@llm.calls.length).to eq((phase == :draft) ? 1 : 2)
-    end
-  end
-
   it "reuses both real Agent conversations across pipeline invocations" do
     @llm = LLMStub.activate(responses: [
       IntegrationFactors.gv_draft_response, IntegrationFactors.gv_review_response,
       IntegrationFactors.gv_draft_response, IntegrationFactors.gv_review_response
     ])
     pipeline = IntegrationFactors.gv_pipeline(approval_outcome: :approved, iteration_limit: :one, raise_policy: :no_raise)
-    expect(pipeline.invoke("first request")).to be_trusted
-    expect(pipeline.invoke("second request")).to be_trusted
+    expect(pipeline.invoke("first request")).to be_accepted
+    expect(pipeline.invoke("second request")).to be_accepted
     expect(@llm.messages_for(2)).to include(hash_including("content" => "Draft question: first request"))
     expect(@llm.messages_for(3)).to include(hash_including("content" => "Review draft for: first request"))
   end
@@ -64,9 +43,9 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
     pipeline.send(:compiled_workflow)
     first = Thread.new { pipeline.invoke("first") }
     Timeout.timeout(5) { entered.pop }
-    expect { Timeout.timeout(5) { pipeline.invoke("overlap") } }.to raise_error(Phronomy::AgentBusyError)
+    expect { Timeout.timeout(5) { pipeline.invoke("overlap") } }.to raise_error(Phronomy::Error) { |error| expect(error.code).to eq("generation.busy") }
     release << true
-    expect(Timeout.timeout(5) { first.value }).to be_trusted
+    expect(Timeout.timeout(5) { first.value }).to be_accepted
   ensure
     release << true if release
     first&.join(5)
@@ -87,10 +66,10 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-001: approved / max_iterations=1 / raise_if_untrusted=true
+  # TC-001: approved / max_iterations=1 / raise_if_unaccepted=true
   #
   # When the verifier approves the first draft, the pipeline converges in 1
-  # iteration. Even with raise_if_untrusted enabled, no error is raised because
+  # iteration. Even with raise_if_unaccepted enabled, no error is raised because
   # the result is trusted.
   # ---------------------------------------------------------------------------
   describe "TC-001: approved / one / raise" do
@@ -108,7 +87,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
 
     it "returns a trusted result" do
       result = pipeline.invoke("What is the refund policy?")
-      expect(result).to be_trusted
+      expect(result).to be_accepted
     end
 
     it "completes in exactly 1 iteration" do
@@ -116,7 +95,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
       expect(result.iterations).to eq(1)
     end
 
-    it "does not raise LowConfidenceError even when raise_if_untrusted is true" do
+    it "does not raise UnacceptedResultError even when raise_if_unaccepted is true" do
       expect { pipeline.invoke("What is the refund policy?") }.not_to raise_error
     end
 
@@ -127,7 +106,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-002: approved / max_iterations=3 / raise_if_untrusted=false
+  # TC-002: approved / max_iterations=3 / raise_if_unaccepted=false
   #
   # Approval on the first of three allowed iterations: early exit before the
   # iteration limit is reached.
@@ -148,7 +127,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
 
     it "returns a trusted result" do
       result = pipeline.invoke("test")
-      expect(result).to be_trusted
+      expect(result).to be_accepted
     end
 
     it "exits after the first iteration despite max_iterations=3" do
@@ -163,7 +142,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-003: rejected / max_iterations=1 / raise_if_untrusted=false
+  # TC-003: rejected / max_iterations=1 / raise_if_unaccepted=false
   #
   # Verifier rejects the only allowed draft. Result is untrusted; no error raised.
   # ---------------------------------------------------------------------------
@@ -182,7 +161,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
 
     it "returns an untrusted result" do
       result = pipeline.invoke("test")
-      expect(result).not_to be_trusted
+      expect(result).not_to be_accepted
     end
 
     it "stops after 1 iteration" do
@@ -202,10 +181,10 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-004: rejected / max_iterations=3 / raise_if_untrusted=true
+  # TC-004: rejected / max_iterations=3 / raise_if_unaccepted=true
   #
   # Pattern 1 core requirement: feedback is routed back to the generator on each
-  # rejected cycle. After exhausting max_iterations=3, LowConfidenceError is
+  # rejected cycle. After exhausting max_iterations=3, UnacceptedResultError is
   # raised and carries the Result with accumulated review_notes.
   #
   # This test verifies the feedback loop at the LLM call layer:
@@ -231,13 +210,13 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
       )
     end
 
-    it "raises LowConfidenceError after exhausting max_iterations" do
-      expect { pipeline.invoke("test") }.to raise_error(Phronomy::LowConfidenceError)
+    it "raises UnacceptedResultError after exhausting max_iterations" do
+      expect { pipeline.invoke("test") }.to raise_error(Phronomy::GeneratorVerifier::UnacceptedResultError)
     end
 
     it "attaches the Result to the error with review_notes from all cycles" do
       pipeline.invoke("test")
-    rescue Phronomy::LowConfidenceError => e
+    rescue Phronomy::GeneratorVerifier::UnacceptedResultError => e
       expect(e.result.iterations).to eq(3)
       expect(e.result.review_notes.size).to eq(3)
       expect(e.result.review_notes).to all(include("Missing citation"))
@@ -245,7 +224,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
 
     it "makes 6 LLM calls (3 drafts + 3 reviews)" do
       pipeline.invoke("test")
-    rescue Phronomy::LowConfidenceError
+    rescue Phronomy::GeneratorVerifier::UnacceptedResultError
       expect(@llm.calls.size).to eq(6)
     end
 
@@ -253,7 +232,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
     # contains the reviewer's feedback from the previous cycle.
     it "draft prompt on iteration 2 contains reviewer feedback from iteration 1" do
       pipeline.invoke("test")
-    rescue Phronomy::LowConfidenceError
+    rescue Phronomy::GeneratorVerifier::UnacceptedResultError
       # LLM call index 2 is the second draft agent call.
       # Use last user message: prior history may precede the current input.
       second_draft_user_msg = @llm.messages_for(2).reverse.find { |m| m["role"] == "user" }
@@ -302,7 +281,7 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
 
     it "the final result is trusted" do
       result = pipeline.invoke("What is the warranty period?")
-      expect(result).to be_trusted
+      expect(result).to be_accepted
     end
   end
 end

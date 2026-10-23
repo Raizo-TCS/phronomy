@@ -4,6 +4,8 @@
 > This project is primarily developed and maintained by **AI coding agents**.
 > As a result, `main` receives frequent, large, and unannounced changes.
 > External contributors should expect significant churn and potential conflicts at any time.
+> Correct responsibility boundaries and behavior take priority over backward compatibility.
+> Obsolete APIs and compatibility-only paths are removed; update applications with the documented API changes.
 > We apologise for the instability this may cause.
 
 **Phronomy** is a Ruby AI agent framework for stateful Agents, Workflows, Tools,
@@ -35,10 +37,13 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following application APIs are part of unreleased development:
+The following application APIs are available as Beta in v0.30.0:
 
 | API | Stability | Contract |
 |---|---|---|
+| `Phronomy::LLMAdapter::LMStudio` | Beta | Explicit known-output-error identification and bounded opt-in retry; [policy and evidence limits](docs/architecture/lm-studio-output-failures.md) |
+| Agent `output_schema:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |
+| `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` with output-failure diagnostics | Beta | [Generation and structured-output contract](docs/architecture/structured-output-and-scope.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
 | `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
@@ -62,15 +67,21 @@ Then run:
 bundle install
 ```
 
-Phronomy 0.28 requires RubyLLM 2.0.x. Faraday 2.1.0 is the tested minimum
-supported version; the `~> 2.1` requirement allows versions from 2.1 up to,
-but excluding, 3.0. CI checks fresh dependency resolution and the exact minimum
-with MCP 1.0.0. See the
+Phronomy requires RubyLLM 2.0.x. The tested minimum HTTP stack is Faraday
+2.14.4 and faraday-net_http 3.4.4; newer versions within their respective major
+versions are allowed. Both floors are explicit: raising Faraday alone can still
+resolve an old Net::HTTP adapter that loses HTTP status during streaming.
+CI checks fresh resolution and this exact pair with MCP 1.0.0. These are verified
+support floors, not a claim about the first upstream release containing a fix.
+See the
 [RubyLLM 2 and token-ownership migration](docs/architecture/rubyllm-2-token-ownership.md)
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
 
 Configure RubyLLM with the provider credentials and transport policy required by
-your application. Phronomy does not add another LLM transport retry/timeout layer.
+your application. The default adapter delegates transport retry and timeout policy
+to RubyLLM. The explicitly selected LMStudio backend instead disables SDK retries
+and can retry one narrowly recognized generated-format failure at most once;
+see its [policy](docs/architecture/lm-studio-output-failures.md).
 
 ```ruby
 RubyLLM.configure do |c|

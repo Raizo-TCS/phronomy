@@ -105,6 +105,13 @@ module Phronomy
       def prepare_admitted(input:, config:, execution:, active_root:, journal_records:)
         current_execution = execution
         begin
+          # Legacy executions acquire a limit at their first resumed preparation.
+          current_execution = execution.with(
+            execution_revision: execution.execution_revision,
+            metadata: execution.metadata.merge(IterationBudget::LIMIT_KEY =>
+              IterationBudget.limit_for(execution, default: @agent.class.max_iterations))
+          )
+          IterationBudget.check!(current_execution, default: @agent.class.max_iterations)
           filtered_input = filter_input(input, config)
           staged = stage_filtered_input(current_execution, active_root, filtered_input)
           assembler, prepared = prepare_context(staged, active_root, filtered_input, config, journal_records)
@@ -184,7 +191,8 @@ module Phronomy
         active = manifest = manifest_ref = nil
         @persistence.transaction do |tx|
           assert_local_durable_base!(tx, root)
-          manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents)
+          manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents,
+            response_schema_ref: staged.metadata.dig("output_contract", "schema_ref"))
           active = execution_with_initial_manifest(staged, manifest_ref)
           tx.executions.save(
             staged.execution_id,
@@ -222,6 +230,7 @@ module Phronomy
       def initial_preparation_metadata(mode, replayable)
         {
           "preparation_replayable" => !!replayable,
+          IterationBudget::LIMIT_KEY => IterationBudget.validate_limit(@agent.class.max_iterations),
           ExecutionMetadata::CONTRACT_VERSION_KEY => ExecutionMetadata::CONTRACT_VERSION,
           ExecutionMetadata::INVOCATION_MODE_KEY => mode.to_s,
           ExecutionMetadata::PENDING_LLM_ID_KEY => SecureRandom.uuid.to_s.freeze,

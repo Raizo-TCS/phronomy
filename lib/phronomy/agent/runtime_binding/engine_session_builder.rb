@@ -23,7 +23,8 @@ module Phronomy
           declared_states: InvocationTransitions::DECLARED_STATES,
           wait_state_names: InvocationTransitions::WAIT_STATES,
           external_events: InvocationTransitions::EXTERNAL_EVENTS,
-          recursion_limit: InvocationTransitions.recursion_limit(invocation.agent.class.max_iterations),
+          recursion_limit: InvocationTransitions::AUTOMATIC_RECURSION_LIMIT,
+          recursion_limit_scope: :automatic_chain,
           event_loop: event_loop,
           resume_event: resume_event,
           resume_phase: resume_phase

@@ -713,7 +713,7 @@ module IntegrationFactors
       review_prompt_builder: ->(input, _draft, _citations) { "Review draft for: #{input}" },
       confidence_threshold: 0.7,
       max_iterations: max_iter,
-      raise_if_untrusted: raise_flag
+      raise_if_unaccepted: raise_flag
     )
   end
 

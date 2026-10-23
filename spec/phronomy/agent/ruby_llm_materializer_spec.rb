@@ -125,4 +125,16 @@ RSpec.describe Phronomy::Agent::RuntimeInput do
     message = materializer.materialize_journal_record(record)
     expect(message.content).to eq("answer" => 42)
   end
+
+  it "reads historical top-level model_id while preserving new canonical metadata" do
+    [
+      [{"model_id" => "legacy-model"}, {"model_id" => "legacy-model"}],
+      [{"model_id" => "legacy-model", "metadata" => {"model_id" => "current-model", "opaque" => [1]}}, {"model_id" => "current-model", "opaque" => [1]}]
+    ].each do |extra, expected|
+      ref = persistence.contents.put_json({"role" => "assistant", "content" => "answer"}.merge(extra))
+      record = Phronomy::Agent::JournalRecord.new(agent_id: "compatibility", kind: :assistant_message,
+        channel: :llm, role: :assistant, content_ref: ref)
+      expect(materializer.materialize_journal_record(record).metadata).to eq(expected)
+    end
+  end
 end

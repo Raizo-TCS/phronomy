@@ -119,7 +119,7 @@ RSpec.describe Phronomy::Agent::Base do
         [false, true].each do |write_fails|
           it "records #{timing} cancellation before signaling, write_fails=#{write_fails}" do
             live_token = Phronomy::Concurrency::CancellationToken.new
-            agent.invoke_async("run tool", config: {cancellation_token: live_token})
+            original = agent.invoke_async("run tool", config: {cancellation_token: live_token})
             request = approvals.pop(timeout: 5)
             expect(request).not_to be_nil
             id = request.execution_id
@@ -180,7 +180,12 @@ RSpec.describe Phronomy::Agent::Base do
             expect(live_token.cancelled?).to eq(!write_fails)
             expect(agent.persistence.cancellation_requested?(agent_id: agent.agent_id, execution_id: id)).to eq(!write_fails)
             expect(order.size.times.map { order.pop }).to eq(write_fails ? [] : [:recorded, :signaled])
-            expect(agent.persistence.executions.load(id).to_h).to eq(before.to_h)
+            if write_fails
+              expect(agent.persistence.executions.load(id).to_h).to eq(before.to_h)
+            else
+              expect { original.wait_result(timeout: 5) }.to raise_error(Phronomy::CancellationError)
+              expect(agent.persistence.executions.load(id).status).to eq(:cancelled)
+            end
           end
         end
       end

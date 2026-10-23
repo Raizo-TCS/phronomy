@@ -48,7 +48,8 @@ module Phronomy
           cached: usage_hash["cached"] || usage_hash[:cached] || usage_hash["cache_read_tokens"] || usage_hash[:cache_read_tokens] || usage_hash["cached_tokens"] || usage_hash[:cached_tokens],
           cache_creation: usage_hash["cache_creation"] || usage_hash[:cache_creation] || usage_hash["cache_write_tokens"] || usage_hash[:cache_write_tokens] || usage_hash["cache_creation_tokens"] || usage_hash[:cache_creation_tokens]
         )
-        [output, usage]
+        response = Phronomy::LLMAdapter::Response.from_h(payload.merge("usage" => usage.to_h))
+        [output, usage, response]
       end
     end
   end

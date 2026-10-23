@@ -80,9 +80,38 @@
       "create",
       "create_async",
       "load",
-      "load_async"
+      "load_async",
+      "release!"
     ],
     "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::OutputError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "diagnostic",
+      "exception",
+      "execution_id",
+      "full_message",
+      "message",
+      "raw_output",
+      "reason",
+      "schema_digest",
+      "set_backtrace",
+      "violations"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "restore",
+      "to_tty?"
+    ]
   },
   {
     "name": "Phronomy::Agent::ScopeCleanupError",
@@ -97,7 +126,9 @@
       "failures",
       "full_message",
       "message",
+      "primary_error",
       "result",
+      "scope",
       "set_backtrace"
     ],
     "public_class_methods": [
@@ -296,6 +327,7 @@
       "error",
       "execution_id",
       "members",
+      "raw_output",
       "reservation",
       "result",
       "status",
@@ -770,8 +802,42 @@
       "message",
       "messages",
       "model_config",
+      "response_schema",
       "system",
       "tools"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::LLMAdapter::StructuredOutputUnsupportedError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::OutputParser::JsonSchemaParser",
+    "type": "class",
+    "public_instance_methods": [
+      "batch",
+      "invoke",
+      "json_schema",
+      "parse",
+      "stream"
     ],
     "public_class_methods": []
   },
@@ -796,7 +862,9 @@
     "public_instance_methods": [
       "content",
       "content_present?",
+      "finish_reason",
       "metadata",
+      "refusal",
       "role",
       "to_h",
       "tool_call?",

@@ -12,6 +12,7 @@ loader.inflector.inflect("fsm_protocol" => "FSMProtocol")
 loader.inflector.inflect("llm_adapter" => "LLMAdapter")
 loader.inflector.inflect("llm_operation_result" => "LLMOperationResult")
 loader.inflector.inflect("ruby_llm" => "RubyLLM")
+loader.inflector.inflect("lm_studio" => "LMStudio")
 loader.inflector.inflect("canonical_json" => "CanonicalJSON")
 loader.inflector.inflect("llm_call_record" => "LLMCallRecord")
 loader.inflector.inflect("llm_input_manifest" => "LLMInputManifest")
@@ -60,7 +61,6 @@ loader.ignore(
   "#{__dir__}/phronomy/runtime_composition/global_configuration.rb",
   "#{__dir__}/phronomy/agent/composition",
   "#{__dir__}/phronomy/runtime_composition/agent_defaults.rb",
-  "#{__dir__}/phronomy/runtime_composition/generation_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/evaluation_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/workflow_defaults.rb",
   "#{__dir__}/phronomy/runtime_composition/multi_agent_defaults.rb",
@@ -116,7 +116,6 @@ require_relative "phronomy/agent/api/agent"
 require_relative "phronomy/runtime_composition/agent_defaults"
 require_relative "phronomy/runtime_composition/multi_agent_defaults"
 require_relative "phronomy/runtime_composition/workflow_defaults"
-require_relative "phronomy/runtime_composition/generation_defaults"
 require_relative "phronomy/runtime_composition/evaluation_defaults"
 require_relative "phronomy/agent/composition/run_once"
 

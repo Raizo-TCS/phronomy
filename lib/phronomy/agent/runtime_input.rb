@@ -5,8 +5,12 @@ module Phronomy
     class RuntimeInput
       RuntimeProjection = Data.define(
         :system, :messages, :tool_classes, :ask_message,
-        :model_config, :manifest, :manifest_ref
-      )
+        :model_config, :manifest, :manifest_ref, :response_schema
+      ) do
+        def initialize(response_schema: nil, **values)
+          super(**values, response_schema: response_schema)
+        end
+      end
 
       def initialize(agent:, persistence:, additional_tools: [])
         @agent = agent
@@ -45,7 +49,8 @@ module Phronomy
           ask_message: ask_message,
           model_config: Phronomy::Values::Immutable.copy(model_config),
           manifest: manifest,
-          manifest_ref: manifest_ref
+          manifest_ref: manifest_ref,
+          response_schema: manifest.response_schema_ref && Phronomy::Values::Immutable.json(fetch_json(manifest.response_schema_ref))
         )
       end
 
@@ -148,12 +153,18 @@ module Phronomy
         end
 
         tool_calls = materialize_tool_calls(payload["tool_calls"])
+        metadata = payload.fetch("metadata", {})
+        raise ArgumentError, "canonical message metadata must be a Hash" unless metadata.is_a?(Hash)
+        metadata = metadata.dup
+        # Preserve backend-owned values without interpreting them. Old records
+        # stored model_id only at the top level; retain that read compatibility.
+        metadata["model_id"] = payload["model_id"] if !metadata.key?("model_id") && payload["model_id"]
         Phronomy::LLMAdapter::Message.new(
           role: role,
           content: payload.fetch("content", nil),
           tool_calls: tool_calls,
           tool_call_id: payload["tool_call_id"],
-          metadata: {"model_id" => payload["model_id"]}.compact
+          metadata: metadata
         )
       end
 

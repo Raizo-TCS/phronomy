@@ -15,7 +15,13 @@ RSpec.describe Phronomy::GeneratorVerifier do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-114", version: 1
       define_method(:invoke) do |_input, config: {}, **_keywords|
-        {output: output, messages: []}
+        begin
+          parsed = JSON.parse(output)
+        rescue JSON::ParserError
+          raise Phronomy::Agent::OutputError.new(execution_id: "test", schema_digest: "test",
+            reason: "invalid_json", raw_output: output)
+        end
+        {output: parsed, messages: []}
       end
 
       define_method(:invoke_async) do |input, **_keywords|
@@ -129,7 +135,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
     result = invoke_bounded(pipeline, "What is the refund policy?")
 
     expect(observed_listeners).to all(respond_to(:call))
-    expect(result).to be_trusted
+    expect(result).to be_accepted
     expect(result.output).to include("30 days")
     expect(result.iterations).to eq(1)
   end
@@ -149,8 +155,8 @@ RSpec.describe Phronomy::GeneratorVerifier do
       "test"
     )
 
-    expect(result.citations.first[:source]).to eq("refund_policy.md")
-    expect(result.citations.first[:excerpt]).to include("30-day")
+    expect(result.citations.first["source"]).to eq("refund_policy.md")
+    expect(result.citations.first["excerpt"]).to include("30-day")
     expect(result.confidence).to be_within(0.01).of(0.85)
   end
 
@@ -165,7 +171,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
       "test"
     )
 
-    expect(result).not_to be_trusted
+    expect(result).not_to be_accepted
     expect(result.iterations).to eq(2)
     expect(result.review_notes.length).to eq(2)
     expect(result.review_notes.first).to include("Missing citation")
@@ -191,30 +197,14 @@ RSpec.describe Phronomy::GeneratorVerifier do
     expect(feedbacks[1]).to include("Missing citation")
   end
 
-  it "uses custom result parsers in the Agent event listener" do
-    draft_parser_called = false
-    review_parser_called = false
-    pipeline = build_pipeline(
-      draft_agent: stub_agent("raw draft"),
-      review_agent: stub_agent("raw review"),
-      draft_result_parser: ->(text) {
-        draft_parser_called = true
-        {answer: "custom: #{text}", confidence: 0.95, citations: []}
-      },
-      review_result_parser: ->(_text) {
-        review_parser_called = true
-        {approved: true, score: 0.99, feedback: ""}
-      }
-    )
-
-    result = invoke_bounded(pipeline, "test")
-
-    expect(draft_parser_called).to be(true)
-    expect(review_parser_called).to be(true)
-    expect(result.output).to start_with("custom:")
+  it "rejects removed result parser options" do
+    expect {
+      build_pipeline(draft_agent: good_draft, review_agent: approve,
+        draft_result_parser: ->(text) { text })
+    }.to raise_error(ArgumentError)
   end
 
-  it "uses safe parser fallbacks for unparseable Agent output" do
+  it "returns output_failed for unavailable structured Agent output" do
     result = invoke_bounded(
       build_pipeline(
         draft_agent: unparseable,
@@ -224,9 +214,10 @@ RSpec.describe Phronomy::GeneratorVerifier do
       "test"
     )
 
-    expect(result.output).to eq("I think it looks fine!")
-    expect(result.confidence).to eq(0.0)
-    expect(result).not_to be_trusted
+    expect(result.output).to be_nil
+    expect(result.termination_reason).to eq("output_failed")
+    expect(result.confidence).to be_nil
+    expect(result).not_to be_accepted
   end
 
   it "propagates mapped Agent failure through the Workflow" do
@@ -239,7 +230,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
       .to raise_error(RuntimeError, "draft failed")
   end
 
-  describe "raise_if_untrusted:" do
+  describe "raise_if_unaccepted:" do
     it "does not raise by default" do
       pipeline = build_pipeline(
         draft_agent: low_draft,
@@ -253,23 +244,23 @@ RSpec.describe Phronomy::GeneratorVerifier do
       pipeline = build_pipeline(
         draft_agent: good_draft,
         review_agent: approve,
-        raise_if_untrusted: true
+        raise_if_unaccepted: true
       )
       expect { invoke_bounded(pipeline, "test") }.not_to raise_error
     end
 
-    it "raises LowConfidenceError with the result when untrusted" do
+    it "raises UnacceptedResultError with the result when untrusted" do
       pipeline = build_pipeline(
         draft_agent: low_draft,
         review_agent: reject,
         max_iterations: 1,
-        raise_if_untrusted: true
+        raise_if_unaccepted: true
       )
 
       expect { invoke_bounded(pipeline, "test") }
-        .to raise_error(Phronomy::LowConfidenceError) do |error|
+        .to raise_error(Phronomy::GeneratorVerifier::UnacceptedResultError) do |error|
           expect(error.result).to be_a(Phronomy::GeneratorVerifier::Result)
-          expect(error.result).not_to be_trusted
+          expect(error.result).not_to be_accepted
         end
     end
   end
@@ -288,15 +279,17 @@ RSpec.describe Phronomy::GeneratorVerifier do
     expect(second).to equal(first)
   end
 
-  it "exposes trusted? as an alias" do
+  it "exposes acceptance from complete evaluation facts" do
     result = described_class::Result.new(
       output: "ok",
       confidence: 0.8,
       citations: [],
       iterations: 1,
       review_notes: [],
-      trusted: true
+      review_approved: true,
+      confidence_threshold: 0.7,
+      termination_reason: "accepted"
     )
-    expect(result).to be_trusted
+    expect(result).to be_accepted
   end
 end

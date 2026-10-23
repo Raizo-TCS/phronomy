@@ -4,6 +4,7 @@ module Phronomy
     def self.open_scope: [R] () { (Scope) -> (R | Phronomy::TaskResult[R]) } -> R
 
     class Scope
+      def release!: () -> bool
       def create: (singleton(Base) agent_class, **untyped options) ?{ (untyped event) -> void } -> Base
       def create_async: (singleton(Base) agent_class, **untyped options) ?{ (untyped event) -> void } -> Phronomy::TaskResult[Base]
       def load: (singleton(Base) agent_class, String agent_id, persistence: Store, **untyped options) ?{ (untyped event) -> void } -> Base
@@ -11,9 +12,21 @@ module Phronomy
     end
 
     class ScopeCleanupError < Phronomy::Error
-      attr_reader failures: Array[{ agent_id: String, error: Exception }]
+      attr_reader failures: Array[{ agent_id: String?, error: Exception }]
       attr_reader result: untyped
-      def initialize: (failures: Array[{ agent_id: String, error: Exception }], result: untyped) -> void
+      attr_reader scope: Scope
+      attr_reader primary_error: Exception?
+      def initialize: (scope: Scope, failures: Array[{ agent_id: String?, error: Exception }], ?result: untyped, ?primary_error: Exception?) -> void
+    end
+
+    class OutputError < Phronomy::Error
+      attr_reader execution_id: String
+      attr_reader schema_digest: String
+      attr_reader reason: String
+      attr_reader violations: Array[Hash[String, untyped]]
+      attr_reader raw_output: untyped
+      def initialize: (execution_id: String, schema_digest: String, reason: String | Symbol,
+        ?violations: Array[Hash[String, untyped]], ?raw_output: untyped) -> void
     end
 
     interface _BeforeLLMInputHook
@@ -95,7 +108,7 @@ module Phronomy
       attr_reader persistence: Store
       def knowledge_snapshot: () -> Array[KnowledgeItem]
       def event_listener: () -> (^(Object) -> void)?
-      def start_reserved_async: (reservation: ReservedExecution, input: String, ?config: Hash[Symbol, Object]) -> TaskResult[execution_result]
+      def start_reserved_async: (reservation: ReservedExecution, input: String, ?config: Hash[Symbol, Object], ?output_schema: Hash[String | Symbol, untyped]?) -> TaskResult[execution_result]
       def resume_async: (String execution_id, ?config: Hash[Symbol, Object]) -> TaskResult[execution_result]
       def resume: (String execution_id, ?config: Hash[Symbol, Object]) -> execution_result
       def cancel_async: (String execution_id) -> TaskResult[ExecutionObservation]
@@ -103,10 +116,10 @@ module Phronomy
 
       # Public operation methods no longer accept per-invocation event listeners
       # or event-listener blocks.
-      def invoke: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Hash[Symbol, untyped]
-      def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> TaskResult[Hash[Symbol, untyped]]
-      def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Hash[Symbol, untyped]
-      def stream_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> TaskResult[Hash[Symbol, untyped]]
+      def invoke: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped, ?output_schema: Hash[String | Symbol, untyped]?) -> Hash[Symbol, untyped]
+      def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped, ?output_schema: Hash[String | Symbol, untyped]?) -> TaskResult[Hash[Symbol, untyped]]
+      def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped, ?output_schema: Hash[String | Symbol, untyped]?) -> Hash[Symbol, untyped]
+      def stream_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped, ?output_schema: Hash[String | Symbol, untyped]?) -> TaskResult[Hash[Symbol, untyped]]
 
       def approve: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> untyped
       def approve_async: (String execution_id, approval_request_id: String, ?approved: bool, ?config: Hash[untyped, untyped]) -> TaskResult[untyped]

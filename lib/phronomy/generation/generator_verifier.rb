@@ -1,118 +1,203 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Implements the Generator-Verifier multi-agent coordination pattern.
-  #
-  # Agent completion is integrated through application-defined Workflow events;
-  # Workflow entry actions do not return or await Agent Tasks.
+  # Application-facing draft/review/retry composition.
+  # Owns its Agent instances; Tool authorization remains an application decision.
   class GeneratorVerifier
     DEFAULT_CONFIDENCE_THRESHOLD = 0.7
     DEFAULT_MAX_ITERATIONS = 3
 
-    Result = Struct.new(
-      :output,
-      :confidence,
-      :citations,
-      :iterations,
-      :review_notes,
-      :trusted
-    ) do
-      alias_method :trusted?, :trusted
+    private_constant :PipelineState, :WorkflowBuilder, :AgentResultReceiver,
+      :AgentOperation, :Invocation, :Protocol
+
+    def self.open(**options)
+      raise ArgumentError, "GeneratorVerifier.open requires a block" unless block_given?
+      pipeline = new(**options)
+      value = nil
+      primary = nil
+      begin
+        returned = yield pipeline
+        value = returned.is_a?(Phronomy::TaskResult) ? returned.wait_result : returned
+      rescue Exception => error # rubocop:disable Lint/RescueException -- retain Interrupt during cleanup
+        primary = error
+        raise
+      ensure
+        begin
+          pipeline.release!
+        rescue => cleanup
+          failures = cleanup.is_a?(CleanupError) ? cleanup.failures : [{phase: nil, error: cleanup}]
+          raise CleanupError.new(pipeline: pipeline, failures: failures,
+            result: value, primary_error: primary), cause: primary || failures.first.fetch(:error)
+        end
+      end
+      value
     end
 
-    private_constant :PipelineState, :WorkflowBuilder, :AgentResultReceiver, :AgentOperation
-
-    def initialize(
-      draft_agent:,
-      review_agent:,
-      draft_prompt_builder:,
-      review_prompt_builder:,
-      draft_result_parser: nil,
-      review_result_parser: nil,
+    def initialize(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:,
+      citation_schema: Protocol::DEFAULT_CITATION,
       confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
-      max_iterations: DEFAULT_MAX_ITERATIONS,
-      raise_if_untrusted: false
-    )
-      @draft_agent_class = draft_agent
-      @review_agent_class = review_agent
-      @draft_prompt_builder = draft_prompt_builder
-      @review_prompt_builder = review_prompt_builder
-      @draft_result_parser =
-        draft_result_parser || method(:default_parse_draft)
-      @review_result_parser =
-        review_result_parser || method(:default_parse_review)
+      max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)
+      ensure_blocking_allowed!(:new)
+      unless confidence_threshold.is_a?(Numeric) && confidence_threshold.real? && confidence_threshold.to_f.finite? &&
+          (0.0..1.0).cover?(confidence_threshold)
+        raise ArgumentError, "confidence_threshold must be a finite number in 0..1"
+      end
+      unless max_iterations.is_a?(Integer) && max_iterations.positive?
+        raise ArgumentError, "max_iterations must be a positive Integer"
+      end
+      [draft_prompt_builder, review_prompt_builder, on_approval].compact.each do |callable|
+        raise ArgumentError, "builders and on_approval must be callable" unless callable.respond_to?(:call)
+      end
+      unless raise_if_unaccepted == true || raise_if_unaccepted == false
+        raise ArgumentError, "raise_if_unaccepted must be true or false"
+      end
+      @mutex = Mutex.new
+      @status = :idle
+      @operations = {}
+      @active = nil
       @threshold = confidence_threshold.to_f
-      @max_iterations = max_iterations.to_i
-      @raise_if_untrusted = raise_if_untrusted
-      @compiled_workflow = nil
+      @max_iterations = max_iterations
+      @raise_if_unaccepted = raise_if_unaccepted
+      @on_approval = on_approval
+      @draft_prompt_builder, @review_prompt_builder = draft_prompt_builder, review_prompt_builder
+      draft_schema = Protocol.draft(citation_schema)
+      begin
+        @operations[:draft] = AgentOperation.new(draft_agent, output_schema: draft_schema)
+        @operations[:review] = AgentOperation.new(review_agent, output_schema: Protocol::REVIEW)
+      rescue Exception => primary # rubocop:disable Lint/RescueException -- release partially acquired resources
+        begin
+          release!
+        rescue CleanupError => cleanup
+          raise CleanupError.new(pipeline: self, failures: cleanup.failures,
+            primary_error: primary), cause: primary
+        end
+        raise
+      end
     end
 
     def invoke(input, config: {})
-      state = compiled_workflow.invoke({input: input}, config: config)
-      confidence = combined_confidence(state)
-      trusted = confidence >= @threshold
-      result = Result.new(
-        output: state.output || state.draft.to_s,
-        confidence: confidence,
-        citations: state.citations,
-        iterations: state.iteration,
-        review_notes: state.review_notes,
-        trusted: trusted
-      )
-      if @raise_if_untrusted && !trusted
-        raise LowConfidenceError.new(result)
+      ensure_blocking_allowed!(:invoke)
+      invoke_async(input, config: config).wait_result
+    end
+
+    def invoke_async(input, config: {})
+      invocation = @mutex.synchronize do
+        assert_idle!
+        current = Invocation.new(config: config, on_approval: @on_approval,
+          on_finish: -> { @mutex.synchronize { @active = nil } })
+        @active = current
       end
-      result
+      invocation.follow(compiled_workflow.invoke_async({input: input}, config: invocation.config)) do |state|
+        build_result(state)
+      end
+    rescue => error
+      invocation ? invocation.fail_start(error) : Phronomy::TaskResult.failed(error)
+    end
+
+    # Notifications issued in the current invocation, including already-answered
+    # requests. This is not a replica of the Agent's durable approval state.
+    def approval_requests
+      @mutex.synchronize { @active }&.approvals || [].freeze
+    end
+
+    # Requests cancellation; this Task does not promise physical quiescence.
+    # Await the invocation separately, then use release! to check safe release.
+    def cancel_async
+      current, operations = @mutex.synchronize do
+        if @status == :releasing
+          raise Phronomy::Error.new("Generation is releasing", code: "generation.busy")
+        end
+        [@active, @operations.values.dup]
+      end
+      current&.cancel
+      tasks = operations.filter_map(&:cancel_async)
+      Phronomy::TaskResult.all_settled(tasks).map do |outcomes|
+        failure = outcomes.find(&:error)
+        raise failure.error if failure
+        !!current || !tasks.empty?
+      end
+    rescue => error
+      Phronomy::TaskResult.failed(error)
+    end
+
+    def release!
+      ensure_blocking_allowed!(:release!)
+      operations = @mutex.synchronize do
+        return false if @status == :released
+        if @active || @status == :releasing
+          raise Phronomy::Error.new("Generation is busy", code: "generation.busy")
+        end
+        @status = :releasing
+        @operations.dup
+      end
+      failures = []
+      operations.each do |phase, operation|
+        operation.unload!
+        @mutex.synchronize { @operations.delete(phase) }
+      rescue => error
+        failures << {phase: phase, error: error}
+      end
+      @mutex.synchronize { @status = failures.empty? ? :released : :release_failed }
+      unless failures.empty?
+        raise CleanupError.new(pipeline: self, failures: failures), cause: failures.first.fetch(:error)
+      end
+      @compiled_workflow = nil
+      true
     end
 
     private
 
-    def combined_confidence(state)
-      [
-        (state.self_score || 0.0).to_f,
-        (state.review_score || 0.0).to_f
-      ].min
+    def assert_idle!
+      if @status != :idle
+        raise Phronomy::Error.new("Generation is #{@status}", code: "generation.released")
+      end
+      raise Phronomy::Error.new("Generation is busy", code: "generation.busy") if @active
+    end
+
+    def ensure_blocking_allowed!(operation)
+      if Phronomy::WaitPolicy.blocking_forbidden?
+        raise Phronomy::EventLoopReentrancyError, "GeneratorVerifier##{operation} cannot run on EventLoop"
+      end
     end
 
     def compiled_workflow
-      @compiled_workflow ||= build_workflow
-    end
-
-    def build_workflow
-      WorkflowBuilder.new(
-        draft_agent: AgentOperation.new(@draft_agent_class),
-        review_agent: AgentOperation.new(@review_agent_class),
+      @compiled_workflow ||= WorkflowBuilder.new(
+        draft_agent: @operations.fetch(:draft),
+        review_agent: @operations.fetch(:review),
         draft_prompt_builder: @draft_prompt_builder,
         review_prompt_builder: @review_prompt_builder,
-        draft_result_parser: @draft_result_parser,
-        review_result_parser: @review_result_parser,
-        threshold: @threshold,
-        max_iterations: @max_iterations
+        threshold: @threshold, max_iterations: @max_iterations,
+        start_operation: ->(operation, phase, input, listener:) {
+          @mutex.synchronize { @active }.start(operation, phase, input, listener: listener)
+        }
       ).build
     end
 
-    def default_parse_draft(text)
-      default_parser.parse(text)
-    rescue Phronomy::ParseError
-      {
-        answer: text.to_s,
-        confidence: 0.0,
-        citations: []
-      }
+    def build_result(state)
+      interrupted = state.interrupted_phase
+      confidence = interrupted ? nil : [state.self_score, state.review_score].min
+      approved = interrupted ? nil : state.approved
+      accepted = Result.accepted?(confidence: confidence, confidence_threshold: @threshold, review_approved: approved)
+      result = Result.new(output: state.output, confidence: confidence,
+        confidence_threshold: @threshold, review_approved: approved,
+        citations: state.citations, iterations: state.iteration, review_notes: state.review_notes,
+        termination_reason: if interrupted
+                              state.pipeline_error ? "output_failed" : "tool_rejected"
+                            else
+                              (accepted ? "accepted" : "iteration_limit")
+                            end,
+        interrupted_phase: interrupted,
+        failure: output_failure_diagnostic(state.pipeline_error))
+      if @raise_if_unaccepted && !result.accepted?
+        raise UnacceptedResultError.new(result), cause: state.pipeline_error
+      end
+      result
     end
 
-    def default_parse_review(text)
-      default_parser.parse(text)
-    rescue Phronomy::ParseError
-      {
-        approved: false,
-        score: 0.0,
-        feedback: "Review output could not be parsed: #{text}"
-      }
-    end
-
-    def default_parser
-      @default_parser ||= DefaultParser.build
+    def output_failure_diagnostic(error)
+      return nil unless error
+      Phronomy::Error.diagnostic(error).merge("execution_id" => error.execution_id,
+        "schema_digest" => error.schema_digest, "reason" => error.reason, "violations" => error.violations)
     end
   end
 end

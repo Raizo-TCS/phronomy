@@ -101,6 +101,9 @@ module Phronomy
           end
         end
 
+        # Maximum logical LLM calls per execution, including the first call.
+        # Tool calls and SDK transport retries do not consume extra iterations.
+        # The limit is captured at admission; zero admits no LLM call.
         def max_iterations(val = nil)
           if val
             @max_iterations = val
@@ -727,6 +730,9 @@ module Phronomy
       def _prepare_invocation_config(config, invocation_context)
         __assert_live_agent!
         _reject_removed_generic_identity_keys!(config)
+        if config.keys.any? { |key| %w[output_schema response_schema phronomy_output_contract].include?(key.to_s) }
+          raise ArgumentError, "Use the output_schema keyword on a new Agent execution"
+        end
         invocation_context ?
           config.merge(invocation_context: invocation_context) : config
 
@@ -871,7 +877,8 @@ module Phronomy
         definitions = Phronomy::Tool::DefinitionSet.build(tools: invocation.tools.values).definitions
         Phronomy::LLMAdapter::Request.new(
           model_config: projection.model_config, system: projection.system,
-          messages: invocation.messages, tools: definitions, message: projection.ask_message
+          messages: invocation.messages, tools: definitions, message: projection.ask_message,
+          response_schema: projection.response_schema
         )
       end
 
