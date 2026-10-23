@@ -67,7 +67,95 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
-<h3 id="r8_first_implementation_unit__breaking__unreleased_">r8 first implementation unit (breaking, unreleased)</h3>
+<h2 id="_0_30_0____2026_10_24">[0.30.0] - 2026-10-24</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li>Agent <code>output_schema:</code> and <code>OutputParser::JsonSchemaParser</code> provide strict,
+immutable JSON results. Refused, incomplete and invalid output raises
+<code>Agent::OutputError</code>; native schema delivery is preserved through Tool rounds,
+approval and recovery without output repair or replaying confirmed Tool work.</li>
+<li>Explicit <code>LLMAdapter::LMStudio</code> selection identifies the known generated-format
+rejection as <code>llm.provider_output_parse_failed</code>, retaining the actual HTTP
+status and original SDK cause. Opt-in retry resends the same eligible,
+non-streaming gpt-oss-20b request at most once, without replaying Agent,
+Workflow or Tool work. Ordinary SDK retries are disabled in this backend's
+private snapshot; the default backend and global SDK settings are unchanged.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>GeneratorVerifier owns immutable evaluation Results, explicit approval routing
+and Agent lifetime. Use <code>accepted?</code>, <code>termination_reason</code> and
+<code>raise_if_unaccepted</code>; <code>output_failed</code> distinguishes invalid output from a
+completed evaluation that reaches <code>iteration_limit</code>. Acceptance reports the
+configured conditions, not the truth of generated content.</li>
+<li>Agent scopes and GeneratorVerifier scopes await a directly returned TaskResult
+before releasing their owned Agents. Cleanup preserves the primary failure,
+successful value and handles needed to retry release.</li>
+<li>Tracing usage is a plain token-count Hash. Custom tracer/exporter callers must
+project LLM-domain TokenUsage values before crossing the tracing boundary.</li>
+<li>Require Faraday 2.14.4 and faraday-net_http 3.4.4 as the tested HTTP support
+floors. Concrete LLM/Embeddings adapters translate recognized network failures
+into their public TransportError types while preserving causes and callback
+exceptions; cancellation and unknown internal failures are not broadly mapped.
+Strict JSON decoding requires JSON &gt;= 2.21.2 and &lt; 3.</li>
+</ul>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li>GeneratorVerifier parser fallback/repair hooks, <code>trusted</code>/<code>trusted?</code>,
+<code>raise_if_untrusted</code> and <code>LowConfidenceError</code>. Migrate saved Result data with
+<code>scripts/migrate_generator_verifier_result.rb</code>; no compatibility aliases are
+provided. See the <a href="docs/architecture/generator-verifier-lifecycle-result.md">Result and lifetime contract</a>.</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Preserve each SharedState member's explicitly configured model when creating
+its internal instrumented Agent. Keep ordinary Agent inheritance and the
+global fallback for members without an explicit model unchanged.</li>
+<li>Preserve canonical assistant-message metadata through Agent Tool rounds,
+imports, persistence and recovery. The RubyLLM backend retains supported
+thinking text/signatures and raw reasoning, including final streaming
+responses, and delegates wire rendering to the existing SDK. Incompatible
+continuation scope/version is rejected before inference; legacy messages
+without this metadata remain usable. No database migration is required. See
+<a href="docs/architecture/llm-continuation-metadata.md">continuation compatibility</a>.</li>
+<li>Enforce <code>Agent.max_iterations = N</code> as at most N logical LLM calls per
+execution, including the first and final response. Remove the premature FSM
+cutoff that stopped the ninth single-Tool round before call ten. Tool count,
+approval/resume, streaming chunks and SDK HTTP retries do not consume extra
+logical calls; this limit does not bound physical HTTP attempts or Tool count.
+Preserve the admitted limit and consumed-call records across approval,
+recovery and a fresh Runtime/database pool. Legacy executions without the
+saved limit use the current class setting. A final response on call N succeeds;
+Tools requested on call N retain their results, and call N+1 raises the existing
+<code>RecursionLimitError</code>. Zero permits no call; invalid limits fail before inference.
+Generic Engine transition protection remains in place. This correction can
+allow work previously stopped too early and stop runs previously able to reset
+their budget on approval. Deploy at a quiescent Runtime boundary; see
+<a href="docs/architecture/agent-iteration-budget.md">iteration budget migration</a>.</li>
+</ul>
+<h3 id="Verification_and_migration">Verification and migration</h3>
+<ul>
+<li>Real LM Studio acceptance identified HTTP 400 PEG failures, performed one
+identical-request retry, and returned the final error at the adapter's own
+limit after the second failure. A separate application invocation succeeded
+initially with HTTP 200: two application invocations, three generation POSTs.
+This is not recovery by retry within one invocation. Recovery by retry,
+recovery rate, the PEG root cause and recurrence resolution remain unverified.</li>
+<li>Review the <a href="docs/architecture/structured-output-and-scope.md">structured-output migration</a>,
+<a href="docs/architecture/llm-continuation-metadata.md">continuation compatibility</a>,
+<a href="docs/architecture/agent-iteration-budget.md">iteration budget migration</a> and
+<a href="docs/architecture/lm-studio-output-failures.md">LM Studio retry policy</a> before
+upgrading persistent or in-flight applications.</li>
+</ul>
+<hr />
+<h2 id="_0_29_0____2026_10_13">[0.29.0] - 2026-10-13</h2>
+<p>See the <a href="https://github.com/Raizo-TCS/phronomy/releases/tag/v0.29.0">0.29.0 release record</a>.</p>
+<hr />
+<h2 id="_0_28_0____2026_10_09">[0.28.0] - 2026-10-09</h2>
+<p>The architecture notes below were already included in this release and carried
+unchanged in the 0.29.0 changelog. They are retained from the former Unreleased
+section and are not new 0.30.0 changes.</p>
+<h3 id="r8_first_implementation_unit__breaking_">r8 first implementation unit (breaking)</h3>
 <ul>
 <li>Move Context policy/plan/manifest/budget/prompt operations into <code>Phronomy::Context</code>.
 Agent retains snapshot, journal and lifecycle ownership. Manifest and execution
@@ -849,9 +937,9 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:47:55 2026 by
+  Generated on Fri Oct 23 17:36:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

@@ -452,6 +452,33 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#final_response-instance_method" title="#final_response (instance method)">#<strong>final_response</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute final_response.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#handoff_request-instance_method" title="#handoff_request (instance method)">#<strong>handoff_request</strong>  &#x21d2; Object </a>
     
 
@@ -1611,7 +1638,6 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
       <pre class="lines">
 
 
-63
 64
 65
 66
@@ -1660,10 +1686,13 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
 109
 110
 111
-112</pre>
+112
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -1678,7 +1707,9 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@input</span> <span class='op'>=</span> <span class='id identifier rubyid_input'>input</span>
   <span class='comment'># The caller&#39;s Hash must not become a shared mutable Runtime object.
-</span>  <span class='ivar'>@config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+</span>  <span class='comment'># OutputContract is admission-only; the durable Manifest owns subsequent
+</span>  <span class='comment'># schema projection. Never forward the parent promise to an Agent Tool.
+</span>  <span class='ivar'>@config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_except'>except</span><span class='lparen'>(</span><span class='symbol'>:phronomy_output_contract</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_resolved_execution_id'>resolved_execution_id</span> <span class='op'>=</span> <span class='id identifier rubyid_execution_id'>execution_id</span> <span class='op'>||</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:execution_id</span><span class='rbracket'>]</span>
   <span class='ivar'>@execution_id</span> <span class='op'>=</span> <span class='id identifier rubyid_resolved_execution_id'>resolved_execution_id</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='op'>&amp;.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='id identifier rubyid_invocation_context'>invocation_context</span> <span class='op'>=</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:invocation_context</span><span class='rbracket'>]</span>
@@ -2170,6 +2201,47 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_id'>execution_id</span>
   <span class='ivar'>@execution_id</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="final_response-instance_method">
+  
+    #<strong>final_response</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute final_response.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+49
+50
+51</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 49</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_final_response'>final_response</span>
+  <span class='ivar'>@final_response</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2813,9 +2885,6 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
       <pre class="lines">
 
 
-212
-213
-214
 215
 216
 217
@@ -2859,10 +2928,13 @@ routing identity belongs only to the owning FSMSession incarnation.</p>
 255
 256
 257
-258</pre>
+258
+259
+260
+261</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 212</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 215</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_accept_tool_calls!'>accept_tool_calls!</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='comma'>,</span> <span class='label'>llm_call_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@user_message_sent</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -2941,17 +3013,17 @@ the snapshot was taken remain queued for the next barrier.</p>
       <pre class="lines">
 
 
-354
-355
-356
-357
 358
 359
 360
-361</pre>
+361
+362
+363
+364
+365</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 354</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 358</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_acknowledge_runtime_snapshot'>acknowledge_runtime_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='rparen'>)</span>
   <span class='ivar'>@llm_results</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:llm_results</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span><span class='rparen'>)</span>
@@ -3003,23 +3075,25 @@ the snapshot was taken remain queued for the next barrier.</p>
       <pre class="lines">
 
 
-268
-269
-270
 271
 272
 273
 274
 275
-276</pre>
+276
+277
+278
+279
+280</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 268</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 271</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_apply_llm_response!'>apply_llm_response!</span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLM operation completed without a response</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_response'>response</span>
 
   <span class='ivar'>@user_message_sent</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='ivar'>@final_response</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span>
   <span class='ivar'>@output</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span>
   <span class='ivar'>@usage</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_usage'>usage</span>
   <span class='ivar'>@pending_tool_calls</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -3045,19 +3119,19 @@ the snapshot was taken remain queued for the next barrier.</p>
       <pre class="lines">
 
 
-287
-288
-289
-290
 291
 292
 293
 294
 295
-296</pre>
+296
+297
+298
+299
+300</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 287</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 291</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_context'>approval_context</span>
   <span class='kw'>return</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:approval_context</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:approval_context</span><span class='rbracket'>]</span>
@@ -3111,15 +3185,15 @@ the snapshot was taken remain queued for the next barrier.</p>
       <pre class="lines">
 
 
-377
-378
-379
-380
 381
-382</pre>
+382
+383
+384
+385
+386</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 377</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 381</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_required?'>approval_required?</span>
   <span class='op'>!</span><span class='ivar'>@human_rejection</span> <span class='op'>&amp;&amp;</span>
@@ -3147,17 +3221,17 @@ the snapshot was taken remain queued for the next barrier.</p>
       <pre class="lines">
 
 
-298
-299
-300
-301
 302
 303
 304
-305</pre>
+305
+306
+307
+308
+309</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 298</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 302</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_approval_resume!'>begin_approval_resume!</span><span class='lparen'>(</span><span class='label'>approved:</span><span class='rparen'>)</span>
   <span class='ivar'>@human_rejection</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_approved'>approved</span>
@@ -3198,9 +3272,6 @@ runtime code leaves it nil and receives a fresh UUID.</p>
       <pre class="lines">
 
 
-137
-138
-139
 140
 141
 142
@@ -3215,10 +3286,13 @@ runtime code leaves it nil and receives a fresh UUID.</p>
 151
 152
 153
-154</pre>
+154
+155
+156
+157</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 137</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 140</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_llm_call!'>begin_llm_call!</span><span class='lparen'>(</span><span class='id identifier rubyid_projection'>projection</span><span class='comma'>,</span> <span class='label'>llm_call_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='ivar'>@current_llm_call</span>
@@ -3269,13 +3343,13 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-125
-126
-127
-128</pre>
+128
+129
+130
+131</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_bind_event_sink!'>bind_event_sink!</span><span class='lparen'>(</span><span class='id identifier rubyid_sink'>sink</span><span class='rparen'>)</span>
   <span class='ivar'>@event_sink</span> <span class='op'>=</span> <span class='id identifier rubyid_sink'>sink</span>
@@ -3323,12 +3397,12 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-363
-364
-365</pre>
+367
+368
+369</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 363</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 367</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_callback_failed?'>callback_failed?</span>
   <span class='op'>!</span><span class='ivar'>@callback_failure</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -3353,15 +3427,15 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-164
-165
-166
 167
 168
-169</pre>
+169
+170
+171
+172</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 164</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 167</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_tool_batch!'>clear_tool_batch!</span>
   <span class='ivar'>@pending_tool_calls</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -3389,12 +3463,12 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-130
-131
-132</pre>
+133
+134
+135</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 133</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current_llm_call_id'>current_llm_call_id</span>
   <span class='ivar'>@current_llm_call</span><span class='op'>&amp;.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:llm_call_id</span><span class='rparen'>)</span>
@@ -3419,9 +3493,6 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-171
-172
-173
 174
 175
 176
@@ -3458,10 +3529,13 @@ previous sink on EventLoop before any resumed work starts.</p>
 207
 208
 209
-210</pre>
+210
+211
+212
+213</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 171</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 174</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:llm_stream_chunk</span>
@@ -3545,12 +3619,12 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-264
-265
-266</pre>
+267
+268
+269</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 264</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 267</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handoff_failed?'>handoff_failed?</span>
   <span class='ivar'>@error</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../HandoffError.html" title="Phronomy::HandoffError (class)">HandoffError</a></span></span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_handoff_requested?'>handoff_requested?</span>
@@ -3597,12 +3671,12 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-260
-261
-262</pre>
+263
+264
+265</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 260</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 263</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handoff_requested?'>handoff_requested?</span>
   <span class='op'>!</span><span class='ivar'>@handoff_request</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -3649,10 +3723,10 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-368</pre>
+372</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 368</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 372</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_blocked?'>input_blocked?</span> <span class='op'>=</span> <span class='ivar'>@input_blocked</span></pre>
     </td>
@@ -3697,10 +3771,10 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-367</pre>
+371</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 367</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 371</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_passed?'>input_passed?</span> <span class='op'>=</span> <span class='op'>!</span><span class='ivar'>@input_blocked</span></pre>
     </td>
@@ -3723,13 +3797,13 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-282
-283
-284
-285</pre>
+286
+287
+288
+289</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 282</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 286</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge_config!'>merge_config!</span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span>
   <span class='ivar'>@config</span><span class='period'>.</span><span class='id identifier rubyid_merge!'>merge!</span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -3777,10 +3851,10 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-370</pre>
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 370</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 374</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_blocked?'>output_blocked?</span> <span class='op'>=</span> <span class='ivar'>@output_blocked</span></pre>
     </td>
@@ -3825,10 +3899,10 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-369</pre>
+373</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 369</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 373</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_passed?'>output_passed?</span> <span class='op'>=</span> <span class='op'>!</span><span class='ivar'>@output_blocked</span></pre>
     </td>
@@ -3873,12 +3947,12 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-373
-374
-375</pre>
+377
+378
+379</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 373</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 377</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_preflight_complete?'>preflight_complete?</span>
   <span class='op'>!</span><span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:preflight_settled?</span><span class='rparen'>)</span>
@@ -3903,13 +3977,13 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-307
-308
-309
-310</pre>
+311
+312
+313
+314</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 307</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 311</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_approval_request!'>prepare_approval_request!</span>
   <span class='ivar'>@approval_request</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolApprovalRequest.html" title="Phronomy::Agent::ToolApprovalRequest (class)">ToolApprovalRequest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="ToolApprovalRequest.html#build-class_method" title="Phronomy::Agent::ToolApprovalRequest.build (method)">build</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
@@ -3957,18 +4031,18 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-384
-385
-386
-387
 388
 389
 390
 391
-392</pre>
+392
+393
+394
+395
+396</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 384</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 388</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_ready_to_dispatch?'>ready_to_dispatch?</span>
   <span class='op'>!</span><span class='ivar'>@approval_resume_in_progress</span> <span class='op'>&amp;&amp;</span>
@@ -3999,10 +4073,6 @@ previous sink on EventLoop before any resumed work starts.</p>
       <pre class="lines">
 
 
-312
-313
-314
-315
 316
 317
 318
@@ -4026,10 +4096,14 @@ previous sink on EventLoop before any resumed work starts.</p>
 336
 337
 338
-339</pre>
+339
+340
+341
+342
+343</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 312</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 316</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_record_tool_results!'>record_tool_results!</span>
   <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span>
@@ -4090,16 +4164,16 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-344
-345
-346
-347
 348
 349
-350</pre>
+350
+351
+352
+353
+354</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 344</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 348</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_snapshot'>runtime_snapshot</span>
   <span class='lbrace'>{</span>
@@ -4128,12 +4202,12 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-118
-119
-120</pre>
+121
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 118</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='id identifier rubyid_phase'>phase</span>
@@ -4180,12 +4254,12 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-114
-115
-116</pre>
+117
+118
+119</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 114</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 117</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_streaming?'>streaming?</span>
   <span class='ivar'>@mode</span> <span class='op'>==</span> <span class='symbol'>:stream</span>
@@ -4232,12 +4306,12 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-417
-418
-419</pre>
+421
+422
+423</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 417</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 421</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_completed?'>tool_batch_completed?</span>
   <span class='id identifier rubyid_tool_batch_terminal?'>tool_batch_terminal?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:execution_completed?</span><span class='rparen'>)</span>
@@ -4284,10 +4358,6 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-398
-399
-400
-401
 402
 403
 404
@@ -4295,10 +4365,14 @@ copied/frozen so worker code cannot mutate the live queues.</p>
 406
 407
 408
-409</pre>
+409
+410
+411
+412
+413</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 398</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 402</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_failed?'>tool_batch_failed?</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='ivar'>@human_rejection</span> <span class='op'>||</span> <span class='ivar'>@approval_resume_in_progress</span>
@@ -4354,14 +4428,14 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-411
-412
-413
-414
-415</pre>
+415
+416
+417
+418
+419</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 411</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 415</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_rejected?'>tool_batch_rejected?</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:rejected?</span><span class='rparen'>)</span>
@@ -4410,12 +4484,12 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-394
-395
-396</pre>
+398
+399
+400</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 394</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 398</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_terminal?'>tool_batch_terminal?</span>
   <span class='op'>!</span><span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:terminal?</span><span class='rparen'>)</span>
@@ -4462,10 +4536,10 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-371</pre>
+375</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 371</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 375</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call_pending?'>tool_call_pending?</span> <span class='op'>=</span> <span class='op'>!</span><span class='ivar'>@pending_tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span></pre>
     </td>
@@ -4488,12 +4562,12 @@ copied/frozen so worker code cannot mutate the live queues.</p>
       <pre class="lines">
 
 
-278
-279
-280</pre>
+282
+283
+284</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 278</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/agent_invocation.rb', line 282</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
   <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span> <span class='op'>==</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span>
@@ -4508,9 +4582,9 @@ copied/frozen so worker code cannot mutate the live queues.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:48:00 2026 by
+  Generated on Fri Oct 23 17:36:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

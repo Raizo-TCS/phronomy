@@ -1,5 +1,8 @@
 # r8 unit15 migration
 
+> Historical contract: parser injection/fallback is superseded by
+> [structured output and scope](../architecture/structured-output-and-scope.md).
+
 ## Application impact
 
 No public API, data migration or configuration changes are required.

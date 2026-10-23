@@ -189,7 +189,7 @@ durable span state, or backend-native parent/child semantics.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#observe_task-class_method" title="observe_task (class method)">.<strong>observe_task</strong>(task, name, input: nil, **metadata)  &#x21d2; Object </a>
+      <a href="#observe_task-class_method" title="observe_task (class method)">.<strong>observe_task</strong>(task, name, input: nil, usage: nil, **metadata)  &#x21d2; Object </a>
     
 
     
@@ -233,7 +233,7 @@ durable span state, or backend-native parent/child semantics.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#trace-class_method" title="trace (class method)">.<strong>trace</strong>(name, input: nil, **metadata)  &#x21d2; Object </a>
+      <a href="#trace-class_method" title="trace (class method)">.<strong>trace</strong>(name, input: nil, usage: nil, **metadata)  &#x21d2; Object </a>
     
 
     
@@ -354,7 +354,7 @@ durable span state, or backend-native parent/child semantics.</p>
       <div class="method_details ">
   <h3 class="signature " id="observe_task-class_method">
   
-    .<strong>observe_task</strong>(task, name, input: nil, **metadata)  &#x21d2; <tt>Object</tt> 
+    .<strong>observe_task</strong>(task, name, input: nil, usage: nil, **metadata)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -395,13 +395,13 @@ durable span state, or backend-native parent/child semantics.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/automatic.rb', line 68</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_observe_task'>observe_task</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='comma'>,</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_observe_task'>observe_task</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='comma'>,</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_handle'>handle</span> <span class='op'>=</span> <span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
     <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span>
       <span class='id identifier rubyid_handle'>handle</span><span class='comma'>,</span>
       <span class='label'>output:</span> <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span>
-      <span class='label'>usage:</span> <span class='id identifier rubyid_task_usage'>task_usage</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='label'>usage:</span> <span class='id identifier rubyid_observed_usage'>observed_usage</span><span class='lparen'>(</span><span class='id identifier rubyid_usage'>usage</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_handle'>handle</span><span class='rparen'>)</span><span class='comma'>,</span>
       <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -492,7 +492,7 @@ durable span state, or backend-native parent/child semantics.</p>
       <div class="method_details ">
   <h3 class="signature " id="trace-class_method">
   
-    .<strong>trace</strong>(name, input: nil, **metadata)  &#x21d2; <tt>Object</tt> 
+    .<strong>trace</strong>(name, input: nil, usage: nil, **metadata)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -530,10 +530,10 @@ durable span state, or backend-native parent/child semantics.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/automatic.rb', line 81</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_handle'>handle</span> <span class='op'>=</span> <span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>yield</span>
-  <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='id identifier rubyid_handle'>handle</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='id identifier rubyid_task_usage'>task_usage</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='id identifier rubyid_handle'>handle</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='id identifier rubyid_observed_usage'>observed_usage</span><span class='lparen'>(</span><span class='id identifier rubyid_usage'>usage</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_handle'>handle</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_result'>result</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_operation_error'>operation_error</span>
   <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='id identifier rubyid_handle'>handle</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_operation_error'>operation_error</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='kw'>defined?</span><span class='lparen'>(</span><span class='id identifier rubyid_handle'>handle</span><span class='rparen'>)</span>
@@ -549,9 +549,9 @@ durable span state, or backend-native parent/child semantics.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:47:55 2026 by
+  Generated on Fri Oct 23 17:36:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

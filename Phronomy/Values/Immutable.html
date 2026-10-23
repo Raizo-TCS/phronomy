@@ -141,6 +141,28 @@ their identity. Canonical JSON validation is a separate operation.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#json-class_method" title="json (class method)">.<strong>json</strong>(value, ancestors: [])  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Normalize JSON object names without coercing values or losing duplicates.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#validate_canonical_json!-class_method" title="validate_canonical_json! (class method)">.<strong>validate_canonical_json!</strong>(value, label: &quot;value&quot;)  &#x21d2; Object </a>
     
 
@@ -198,23 +220,23 @@ their identity. Canonical JSON validation is a separate operation.</p>
       <pre class="lines">
 
 
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28</pre>
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/common/values/immutable.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/common/values/immutable.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_copy'>copy</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
@@ -229,6 +251,103 @@ their identity. Canonical JSON validation is a separate operation.</p>
   <span class='kw'>else</span>
     <span class='id identifier rubyid_value'>value</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="json-class_method">
+  
+    .<strong>json</strong>(value, ancestors: [])  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Normalize JSON object names without coercing values or losing duplicates.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/common/values/immutable.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_json'>json</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='label'>ancestors:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Array</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_ancestors'>ancestors</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cyclic JSON value</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_children'>children</span> <span class='op'>=</span> <span class='id identifier rubyid_ancestors'>ancestors</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_normalized'>normalized</span> <span class='op'>=</span> <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
+  <span class='kw'>when</span> <span class='const'>Hash</span>
+    <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='lparen'>(</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid_child'>child</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
+      <span class='kw'>unless</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>String</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Symbol</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>JSON object keys must be Strings or Symbols</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+      <span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>duplicate JSON object key: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_json'>json</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='comma'>,</span> <span class='label'>ancestors:</span> <span class='id identifier rubyid_children'>children</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>when</span> <span class='const'>Array</span> <span class='kw'>then</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_child'>child</span><span class='op'>|</span> <span class='id identifier rubyid_json'>json</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='comma'>,</span> <span class='label'>ancestors:</span> <span class='id identifier rubyid_children'>children</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='kw'>when</span> <span class='const'>String</span>
+    <span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_encode'>encode</span><span class='lparen'>(</span><span class='const'>Encoding</span><span class='op'>::</span><span class='const'>UTF_8</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invalid UTF-8 JSON string</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_valid_encoding?'>valid_encoding?</span>
+    <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='kw'>when</span> <span class='const'>Integer</span><span class='comma'>,</span> <span class='const'>TrueClass</span><span class='comma'>,</span> <span class='const'>FalseClass</span><span class='comma'>,</span> <span class='const'>NilClass</span> <span class='kw'>then</span> <span class='id identifier rubyid_value'>value</span>
+  <span class='kw'>when</span> <span class='const'>Float</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>JSON numbers must be finite</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_finite?'>finite?</span>
+    <span class='id identifier rubyid_value'>value</span>
+  <span class='kw'>else</span> <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unsupported JSON value: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_normalized'>normalized</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+<span class='kw'>rescue</span> <span class='const'>EncodingError</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invalid UTF-8 JSON string</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -263,15 +382,15 @@ their identity. Canonical JSON validation is a separate operation.</p>
       <pre class="lines">
 
 
-31
-32
-33
-34
-35
-36</pre>
+64
+65
+66
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/common/values/immutable.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/common/values/immutable.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate_canonical_json!'>validate_canonical_json!</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='label'>label:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>value</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CanonicalJSON.html" title="Phronomy::CanonicalJSON (class)">CanonicalJSON</a></span></span><span class='period'>.</span><span class='id identifier rubyid_dump'><span class='object_link'><a href="../CanonicalJSON.html#dump-class_method" title="Phronomy::CanonicalJSON.dump (method)">dump</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
@@ -289,9 +408,9 @@ their identity. Canonical JSON validation is a separate operation.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:47:55 2026 by
+  Generated on Fri Oct 23 17:36:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

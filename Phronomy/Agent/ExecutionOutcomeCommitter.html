@@ -234,13 +234,13 @@ Live state, admission and result delivery stay with ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-29
-30
-31
-32</pre>
+33
+34
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_outcome_committer.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_outcome_committer.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
@@ -286,10 +286,6 @@ Live state, admission and result delivery stay with ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-35
-36
-37
-38
 39
 40
 41
@@ -306,15 +302,43 @@ Live state, admission and result delivery stay with ExecutionCoordinator.</p>
 52
 53
 54
-55</pre>
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_outcome_committer.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/execution_outcome_committer.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_commit_outcome'>commit_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_view'>view</span> <span class='op'>=</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_terminal_view'>terminal_view</span>
   <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_callback_failure'>callback_failure</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_stream_callback_error'>to_stream_callback_error</span> <span class='op'>||</span> <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_source_error'>source_error</span> <span class='op'>||</span>
     <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_block_error'>block_error</span> <span class='op'>||</span> <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_invocation_error'>invocation_error</span>
+  <span class='kw'>if</span> <span class='op'>!</span><span class='id identifier rubyid_error'>error</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_rejected'>rejected</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_handoff'>handoff</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='symbol'>:suspended</span>
+    <span class='kw'>begin</span>
+      <span class='id identifier rubyid_contract'>contract</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="OutputContract.html" title="Phronomy::Agent::OutputContract (class)">OutputContract</a></span></span><span class='period'>.</span><span class='id identifier rubyid_restore'><span class='object_link'><a href="OutputContract.html#restore-class_method" title="Phronomy::Agent::OutputContract.restore (method)">restore</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='ivar'>@persistence</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_contract'>contract</span>
+        <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_contract'>contract</span><span class='period'>.</span><span class='id identifier rubyid_validate'>validate</span><span class='lparen'>(</span><span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_output'>output</span><span class='comma'>,</span> <span class='label'>response:</span> <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_response'>response</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_view'>view</span> <span class='op'>=</span> <span class='id identifier rubyid_view'>view</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span><span class='label'>output:</span> <span class='id identifier rubyid_output'>output</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span><span class='label'>terminal_view:</span> <span class='id identifier rubyid_view'>view</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+    <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_validation_error'>validation_error</span>
+      <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='id identifier rubyid_validation_error'>validation_error</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_change'>change</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ExecutionChange.html" title="Phronomy::Agent::ExecutionChange (class)">ExecutionChange</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ExecutionChange.html#initialize-instance_method" title="Phronomy::Agent::ExecutionChange#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span> <span class='label'>current:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span>
     <span class='label'>root:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_root'>root</span><span class='comma'>,</span> <span class='label'>kind:</span> <span class='symbol'>:terminal</span><span class='comma'>,</span> <span class='label'>terminal:</span> <span class='id identifier rubyid_view'>view</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_operation'>operation</span><span class='period'>.</span><span class='id identifier rubyid_wiring'>wiring</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='id identifier rubyid_receipt'>receipt</span><span class='comma'>,</span> <span class='id identifier rubyid_pending'>pending</span><span class='op'>|</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_pending'>pending</span>
@@ -342,9 +366,9 @@ Live state, admission and result delivery stay with ExecutionCoordinator.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:48:02 2026 by
+  Generated on Fri Oct 23 17:36:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

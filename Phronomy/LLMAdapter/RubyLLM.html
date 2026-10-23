@@ -114,7 +114,11 @@ the backend boundary; a Tool definition never contains executable work.</p>
 <div class="tags">
   
 
+</div><div id="subclasses">
+  <h2>Direct Known Subclasses</h2>
+  <p class="children"><span class='object_link'><a href="LMStudio.html" title="Phronomy::LLMAdapter::LMStudio (class)">LMStudio</a></span></p>
 </div>
+
 
 
 
@@ -147,6 +151,30 @@ the backend boundary; a Tool definition never contains executable work.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(context: nil)  &#x21d2; RubyLLM </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>An optional RubyLLM context keeps endpoint/transport settings local to this concrete backend.</p></div></span>
   
 </li>
 
@@ -189,6 +217,50 @@ the backend boundary; a Tool definition never contains executable work.</p>
   
   <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Base.html" title="Phronomy::LLMAdapter::Base (class)">Base</a></span></h3>
   <p class="inherited"><span class='object_link'><a href="Base.html#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">#complete</a></span>, <span class='object_link'><a href="Base.html#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">#stream</a></span></p>
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>(context: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::LLMAdapter::RubyLLM (class)">RubyLLM</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>An optional RubyLLM context keeps endpoint/transport settings local to
+this concrete backend. The default still reads the SDK global settings.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17
+18</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@sdk_context</span> <span class='op'>=</span> <span class='id identifier rubyid_context'>context</span> <span class='op'>||</span> <span class='op'>::</span><span class='const'>RubyLLM</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
 
 
   <div id="instance_method_details" class="method_details_list">
@@ -219,12 +291,12 @@ the backend boundary; a Tool definition never contains executable work.</p>
       <pre class="lines">
 
 
-21
-22
-23</pre>
+30
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_identity'>identity</span>
   <span class='kw'>super</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>sdk_version</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='op'>::</span><span class='const'>RubyLLM</span><span class='op'>::</span><span class='const'>VERSION</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -258,21 +330,21 @@ the backend boundary; a Tool definition never contains executable work.</p>
       <pre class="lines">
 
 
-26
-27
-28
-29
-30
-31
-32
-33
-34
 35
 36
-37</pre>
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/backends/ruby_llm.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_budget'>input_budget</span><span class='lparen'>(</span><span class='id identifier rubyid_model_config'>model_config</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid_model_config'>model_config</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_transform_keys'>transform_keys</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span>
@@ -296,9 +368,9 @@ the backend boundary; a Tool definition never contains executable work.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:47:59 2026 by
+  Generated on Fri Oct 23 17:36:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

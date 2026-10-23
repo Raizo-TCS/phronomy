@@ -162,9 +162,9 @@ This guarantee is specific to Framework automatic instrumentation. It does not
 redefine the behavior of Application code that directly calls the public
 `Tracing::Base#trace` template method.
 
-## 10. TokenUsage
+## 10. Observed token counts
 
-`Phronomy::LLMAdapter::TokenUsage` has four fields:
+Tracing receives a plain `Hash[Symbol, Integer?]` in `usage:`. Supported keys are:
 
 ```text
 input
@@ -173,8 +173,26 @@ cached
 cache_creation
 ```
 
-A backend may export the subset its telemetry schema supports. The TokenUsage
-value object and each backend's wire representation are separate contracts.
+A backend may export the subset its telemetry schema supports. Missing/unknown
+counts remain nil and zero remains a measurement. Tracing does not accept or
+interpret a domain-specific usage object. The LLM domain retains ownership of
+its immutable usage value and aggregation rules; its caller projects the value
+with `to_h` before sending it to Tracing. Agent owns that projection for both
+`llm.call` and `agent.execution`. Arbitrary Workflow/Tool results are not inspected
+for a `usage` field by Tracing.
+
+For manual tracing, change `[result, usage]` to `[result, usage&.to_h]` when the
+second value is a domain object. Custom exporters read `usage[:input]` and
+`usage[:output]` instead of calling methods on the domain object. No compatibility
+conversion inside Tracing is retained: it would preserve the dependency being
+removed. The `usage:` keyword, span lifecycle and external telemetry field names
+are unchanged.
+
+The internal automatic task observer accepts an owner-supplied projection. A
+failed projection is diagnostic-only: it records no usage and does not change
+the operation result or prevent the span from finishing. Tracing has no static
+dependency on LLMAdapter. This does not assign LLM retry policy to Tracing or to
+the common LLM contract.
 
 ## 11. Backend notes
 

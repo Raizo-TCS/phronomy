@@ -231,6 +231,33 @@
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#raw_output-instance_method" title="#raw_output (instance method)">#<strong>raw_output</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute raw_output.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#reservation-instance_method" title="#reservation (instance method)">#<strong>reservation</strong>  &#x21d2; Object </a>
     
 
@@ -450,7 +477,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(**values)  &#x21d2; ExecutionObservation </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(raw_output: nil, **values)  &#x21d2; ExecutionObservation </a>
     
 
     
@@ -548,7 +575,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(**values)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ExecutionObservation (class)">ExecutionObservation</a></span></tt> 
+    #<strong>initialize</strong>(raw_output: nil, **values)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ExecutionObservation (class)">ExecutionObservation</a></span></tt> 
   
 
   
@@ -576,8 +603,8 @@
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_observation.rb', line 9</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span>
-  <span class='kw'>super</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_transform_values'>transform_values</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>raw_output:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span>
+  <span class='kw'>super</span><span class='lparen'>(</span><span class='label'>raw_output:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_raw_output'>raw_output</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_transform_values'>transform_values</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -811,6 +838,63 @@
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_id'>execution_id</span>
   <span class='ivar'>@execution_id</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="raw_output-instance_method">
+  
+    #<strong>raw_output</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute raw_output</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current value of raw_output</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+7
+8
+9</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_observation.rb', line 7</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_raw_output'>raw_output</span>
+  <span class='ivar'>@raw_output</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1086,7 +1170,7 @@
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_result'>from_result</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:agent_id</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:execution_id</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>status:</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:status</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>result:</span> <span class='id identifier rubyid_value'>value</span><span class='lbracket'>[</span><span class='symbol'>:result</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_value'>value</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>reservation:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>transfer_receipt:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_requested:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+    <span class='label'>result:</span> <span class='id identifier rubyid_value'>value</span><span class='lbracket'>[</span><span class='symbol'>:result</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>raw_output:</span> <span class='id identifier rubyid_value'>value</span><span class='lbracket'>[</span><span class='symbol'>:raw_output</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_value'>value</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>reservation:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>transfer_receipt:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_requested:</span> <span class='kw'>false</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1325,7 +1409,7 @@
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_result'>to_result</span>
   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='label'>execution_id:</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
-    <span class='label'>status:</span> <span class='id identifier rubyid_status'>status</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+    <span class='label'>status:</span> <span class='id identifier rubyid_status'>status</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>raw_output:</span> <span class='id identifier rubyid_raw_output'>raw_output</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1393,9 +1477,9 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:47:58 2026 by
+  Generated on Fri Oct 23 17:36:22 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>

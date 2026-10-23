@@ -318,7 +318,8 @@ execution owner. No operation-local state is retained between calls.</p>
 39
 40
 41
-42</pre>
+42
+43</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 34</span>
@@ -326,6 +327,7 @@ execution owner. No operation-local state is retained between calls.</p>
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_provider'>prepare_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_staged'>staged</span> <span class='op'>=</span> <span class='id identifier rubyid_stage_provider_call'>stage_provider_call</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_recorded'>recorded</span> <span class='op'>=</span> <span class='id identifier rubyid_encode_provider_records'>encode_provider_records</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_staged'>staged</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="IterationBudget.html" title="Phronomy::Agent::IterationBudget (module)">IterationBudget</a></span></span><span class='period'>.</span><span class='id identifier rubyid_check!'><span class='object_link'><a href="IterationBudget.html#check!-class_method" title="Phronomy::Agent::IterationBudget.check! (method)">check!</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_recorded'>recorded</span><span class='comma'>,</span> <span class='label'>default:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assembler'>assembler</span><span class='comma'>,</span> <span class='id identifier rubyid_prepared'>prepared</span> <span class='op'>=</span> <span class='id identifier rubyid_prepare_provider_context'>prepare_provider_context</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_recorded'>recorded</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_committed'>committed</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_commit_provider_preparation'>commit_provider_preparation</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_operation'>operation</span><span class='comma'>,</span> <span class='id identifier rubyid_recorded'>recorded</span><span class='comma'>,</span> <span class='id identifier rubyid_assembler'>assembler</span><span class='comma'>,</span> <span class='id identifier rubyid_prepared'>prepared</span>
@@ -365,7 +367,6 @@ execution owner. No operation-local state is retained between calls.</p>
       <pre class="lines">
 
 
-45
 46
 47
 48
@@ -373,10 +374,11 @@ execution owner. No operation-local state is retained between calls.</p>
 50
 51
 52
-53</pre>
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution/dispatch_preparation.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_tools'>prepare_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_operation'>operation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='ivar'>@persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
@@ -397,9 +399,9 @@ execution owner. No operation-local state is retained between calls.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Oct 12 17:48:01 2026 by
+  Generated on Fri Oct 23 17:36:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.12).
+  0.9.45 (ruby-3.3.13).
 </div>
 
     </div>
