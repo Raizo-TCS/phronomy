@@ -1,0 +1,8 @@
+module Phronomy
+  module LLMAdapter
+    class LMStudio < RubyLLM
+      PARSE_FAILURE_CODE: String
+      def initialize: (context: untyped, ?max_parse_retries: Integer, ?on_attempt: (^(Hash[Symbol, untyped]) -> void)?) -> void
+    end
+  end
+end

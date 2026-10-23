@@ -296,6 +296,7 @@ module Phronomy
           Phronomy::Tracing::Automatic.observe_task(
             task,
             "agent.execution",
+            usage: ->(value) { value.is_a?(Hash) ? value[:usage]&.to_h&.freeze : nil },
             agent_id: agent.agent_id,
             execution_id: execution.execution_id,
             mode: (

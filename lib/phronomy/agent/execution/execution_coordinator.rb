@@ -432,6 +432,7 @@ module Phronomy
         Phronomy::Tracing::Automatic.observe_task(
           request.result_task,
           "agent.execution",
+          usage: ->(value) { value.is_a?(Hash) ? value[:usage]&.to_h&.freeze : nil },
           input: request.input,
           agent_id: @agent.agent_id,
           execution_id: prepared.execution.execution_id,
@@ -1056,6 +1057,7 @@ module Phronomy
         Phronomy::Tracing::Automatic.observe_task(
           request.result_task,
           "agent.execution",
+          usage: ->(value) { value.is_a?(Hash) ? value[:usage]&.to_h&.freeze : nil },
           agent_id: @agent.agent_id,
           execution_id: operation.execution_id,
           mode: trace_mode,

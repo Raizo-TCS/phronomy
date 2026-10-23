@@ -19,10 +19,10 @@ module Phronomy
 
   module Tracing
     class Base
-      def self.trace_with: [A] (untyped tracer, String name, ?record_output: bool, ?attributes: Hash[Symbol, untyped]) { (untyped span) -> [A, untyped] } -> A
+      def self.trace_with: [A] (untyped tracer, String name, ?record_output: bool, ?attributes: Hash[Symbol, untyped]) { (untyped span) -> [A, Hash[Symbol, Integer?]?] } -> A
       def start_span: (String name, **untyped attributes) -> untyped
-      def finish_span: (untyped span, ?output: untyped, ?usage: untyped, ?error: Exception?) -> untyped
-      def trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, untyped] } -> A
+      def finish_span: (untyped span, ?output: untyped, ?usage: Hash[Symbol, Integer?]?, ?error: Exception?) -> untyped
+      def trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, Hash[Symbol, Integer?]?] } -> A
     end
   end
 

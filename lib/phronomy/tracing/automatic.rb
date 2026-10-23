@@ -65,23 +65,23 @@ module Phronomy
         # simplecov:enable
       end
 
-      def observe_task(task, name, input: nil, **metadata)
+      def observe_task(task, name, input: nil, usage: nil, **metadata)
         handle = start(name, input: input, **metadata)
         task.on_complete do |value, error|
           finish(
             handle,
             output: value,
-            usage: task_usage(value),
+            usage: observed_usage(usage, value, handle),
             error: error
           )
         end
         task
       end
 
-      def trace(name, input: nil, **metadata)
+      def trace(name, input: nil, usage: nil, **metadata)
         handle = start(name, input: input, **metadata)
         result = yield
-        finish(handle, output: result, usage: task_usage(result))
+        finish(handle, output: result, usage: observed_usage(usage, result, handle))
         result
       rescue => operation_error
         finish(handle, error: operation_error) if defined?(handle)
@@ -122,12 +122,18 @@ module Phronomy
       end
       private_class_method :traced_error
 
-      def task_usage(value)
-        return nil unless value.is_a?(Hash)
+      # The owner of the observed result supplies its projection. Tracing never
+      # interprets Agent results or LLM value objects. Projection is diagnostic:
+      # its failure must not replace the completed operation's result/error.
+      def observed_usage(project, value, handle)
+        return nil unless handle && project
 
-        value[:usage] || value["usage"]
+        project.call(value)
+      rescue => error
+        report_failure(:usage, handle.name, error, include_message: handle.trace_pii)
+        nil
       end
-      private_class_method :task_usage
+      private_class_method :observed_usage
 
       def submit_finish(handle, attributes)
         Phronomy::Blocking.call_async do

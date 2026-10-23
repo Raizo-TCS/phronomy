@@ -26,6 +26,11 @@ The top-level mapped exception preserves the original message and its SDK/HTTP
 exception as `cause`. That exception's network cause is retained, for example:
 `LLMAdapter::TransportError -> Faraday::TimeoutError -> Net::ReadTimeout`.
 No classification is inferred from an exception's message or nested cause.
+The explicitly selected LM Studio backend additionally decodes the HTTP response
+body at the SDK boundary using a narrow provider-response mapping; see
+[LM Studio output failures](lm-studio-output-failures.md). This is not a generic
+exception-message or cause-chain heuristic, and the default RubyLLM mapping below
+is unchanged.
 Generic `Faraday::Error`, `Faraday::SSLError`, raw `IOError` and system errors are
 not added to this mapping. Future additions require evidence and an explicit
 category decision rather than a blanket rescue.

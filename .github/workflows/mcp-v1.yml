@@ -60,4 +60,4 @@ jobs:
       - name: Run MCP HTTP integration contracts
         run: bundle exec rspec spec/integration/mcp_http_spec.rb --tag integration --format documentation
       - name: Run real HTTP transport failure contracts
-        run: bundle exec rspec spec/integration/transport_error_spec.rb --tag integration --format documentation
+        run: bundle exec rspec spec/integration/transport_error_spec.rb spec/integration/lm_studio_parse_failure_spec.rb --tag integration --format documentation
