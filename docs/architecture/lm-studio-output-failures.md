@@ -30,12 +30,20 @@ response or different status/type/code/message remains an ordinary SDK failure.
 The original SDK exception remains `cause`; the original HTTP status and body
 are not rewritten. The engine's internal 500 is not treated as HTTP 500.
 
-The engine/SDK text was recorded for the earlier gpt-oss failure, but its raw
-failed HTTP response was not saved. The HTTP fixture envelopes are **synthetic**,
-not a reconstruction of that missing response. These tests establish behavior
-for the explicitly supported envelopes; live envelope recognition remains to be
-confirmed when a failure is captured. Unknown formats fail closed without retry.
-Neither the PEG root cause nor recurrence resolution is claimed.
+The offline HTTP fixture envelopes are synthetic. Follow-up real LM Studio
+acceptance on 2026-10-24 captured the actual HTTP 400 error body and confirmed
+classification as `llm.provider_output_parse_failed`. The eligible request was
+resent once with identical bytes. After the retry also failed, the adapter
+returned the final TransportError at its own limit; the measurement guard did
+not trigger, and Agent/Workflow work was not replayed. A separate application
+invocation completed initially with HTTP 200. Total: two application invocations
+and three generation POSTs; this is not recovery within the failed invocation.
+
+Live error identification and bounded retry are verified. Recovery by retry,
+recovery rate, the PEG root cause and recurrence resolution remain unverified.
+The unrecognized-envelope branch was not observed live. The failing host logs
+contain parser suffixes but do not establish the complete pre-parser token
+stream. Unknown formats fail closed without retry.
 
 ## Retry policy and configuration
 

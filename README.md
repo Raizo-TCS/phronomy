@@ -37,10 +37,11 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following application APIs are part of unreleased development:
+The following application APIs are available as Beta in v0.30.0:
 
 | API | Stability | Contract |
 |---|---|---|
+| `Phronomy::LLMAdapter::LMStudio` | Beta | Explicit known-output-error identification and bounded opt-in retry; [policy and evidence limits](docs/architecture/lm-studio-output-failures.md) |
 | Agent `output_schema:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |
 | `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` with output-failure diagnostics | Beta | [Generation and structured-output contract](docs/architecture/structured-output-and-scope.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
@@ -77,7 +78,10 @@ See the
 for removed input-budget overrides and the in-flight Tool-manifest upgrade boundary.
 
 Configure RubyLLM with the provider credentials and transport policy required by
-your application. Phronomy does not add another LLM transport retry/timeout layer.
+your application. The default adapter delegates transport retry and timeout policy
+to RubyLLM. The explicitly selected LMStudio backend instead disables SDK retries
+and can retry one narrowly recognized generated-format failure at most once;
+see its [policy](docs/architecture/lm-studio-output-failures.md).
 
 ```ruby
 RubyLLM.configure do |c|
