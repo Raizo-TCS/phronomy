@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# This convenience API composes a fresh ephemeral Persistence with an Agent.
+# This convenience API owns a fresh ephemeral Persistence and a scoped Agent.
 # The application entry loads the method definition; Agent execution does not
 # delegate to or require this higher-level composition implementation.
 module Phronomy
@@ -18,15 +18,16 @@ module Phronomy
         raise ArgumentError, "Provide either on_event: or a block, not both"
       end
 
-      persistence = Phronomy::PersistenceComposition.agent
-      agent = definition.create(
-        context: context,
-        knowledge: knowledge,
-        persistence: persistence,
-        on_event: on_event,
-        &event_block
-      )
-      agent.invoke(input, **invoke_options)
+      open_scope do |scope|
+        persistence = Phronomy::PersistenceComposition.agent
+        agent = scope.create(definition,
+          context: context,
+          knowledge: knowledge,
+          persistence: persistence,
+          on_event: on_event,
+          &event_block)
+        agent.invoke(input, **invoke_options)
+      end
     end
   end
 end

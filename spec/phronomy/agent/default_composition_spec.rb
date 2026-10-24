@@ -205,9 +205,14 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
     [:keyword, :block].each do |listener_form|
       it "preserves creation context, Knowledge and #{listener_form} event delivery through real Agent invocation" do
         allow(RubyLLM).to receive(:chat) { fake_chat }
-        created = nil
-        allow(agent_class).to receive(:create).and_wrap_original do |original, **options, &block|
-          created = original.call(**options, &block)
+        created = []
+        texts = []
+        agent_class.define_method(:invoke) do |*inputs, **options|
+          created << self
+          texts.concat(journal_projection.context_records.filter_map { |record|
+            persistence.contents.fetch_text(record.content_ref) if record.content_ref
+          })
+          super(*inputs, **options)
         end
         events = []
         listener = ->(event) { events << event }
@@ -220,15 +225,14 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
         end
         expect(result[:output]).to eq("answer")
         expect(events.map(&:type)).to include(:done)
-        records = created.journal_projection.context_records
-        texts = records.filter_map { |record| created.persistence.contents.fetch_text(record.content_ref) if record.content_ref }
         expect(texts).to include("prior context", "Policy: be concise.")
+        expect(agent_class.get(created.fetch(0).agent_id)).to be_nil
       end
     end
 
     it "rejects two listeners before creating any one-shot storage or Agent" do
-      expect(Phronomy::Persistence).not_to receive(:in_memory)
-      expect(agent_class).not_to receive(:create)
+      expect(Phronomy::PersistenceComposition).not_to receive(:agent)
+      expect(Phronomy::Agent).not_to receive(:open_scope)
       expect {
         Phronomy::Agent.run_once(definition: agent_class, input: "hello", on_event: ->(_) {}) { |_| }
       }.to raise_error(ArgumentError, "Provide either on_event: or a block, not both")
