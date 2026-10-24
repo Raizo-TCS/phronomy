@@ -10,7 +10,7 @@ module Phronomy
     def self.open: [R] (**untyped options) { (GeneratorVerifier pipeline) -> (R | TaskResult[R]) } -> R
     def initialize: (draft_agent: singleton(Agent::Base), review_agent: singleton(Agent::Base),
       draft_prompt_builder: untyped, review_prompt_builder: untyped,
-      ?citation_schema: Hash[String | Symbol, untyped],
+      ?citation_schema: Hash[String | Symbol, untyped], ?schema_delivery: (:native | :none),
       ?confidence_threshold: Numeric, ?max_iterations: Integer,
       ?raise_if_unaccepted: bool, ?on_approval: _ApprovalListener?) -> void
     def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Result

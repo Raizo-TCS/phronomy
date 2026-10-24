@@ -46,7 +46,7 @@ RSpec.describe "DX05-E Agent scope and incarnation lifetime" do
   def successful_chat(&ask)
     response = double("response", role: :assistant, content: "done", tool_calls: nil,
       tokens: Struct.new(:input, :output, :cache_read, :cache_write).new(4, 2, 0, 0), tool_call?: false)
-    chat = double("chat")
+    chat = double("chat", provider: double("Provider", protocols: {}))
     %i[with_instructions with_tools with_temperature].each { |method| allow(chat).to receive(method).and_return(chat) }
     %i[cancellation_token= on_tool_call after_message on_tool_result].each { |method| allow(chat).to receive(method) }
     allow(chat).to receive(:messages).and_return([response])

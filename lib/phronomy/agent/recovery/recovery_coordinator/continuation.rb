@@ -28,6 +28,7 @@ module Phronomy
         # operation-local projections transferred to the new invocation, never a
         # shared cache or a second source of continuation decisions.
         def prepare_recovery_material(execution, projection: nil)
+          OutputContract.restore(execution, agent.persistence.contents)
           action = recovery_action(execution)
           suspended = execution.status == :suspended || execution.phase.to_sym == :resuming
           return if !suspended && %i[resolution_required failed_terminal].include?(action)

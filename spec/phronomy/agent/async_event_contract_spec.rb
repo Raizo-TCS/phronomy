@@ -32,7 +32,7 @@ RSpec.describe "Agent async event contract" do
   end
 
   def build_chat(response)
-    chat = double("Chat")
+    chat = double("Chat", provider: double("Provider", protocols: {}))
     allow(chat).to receive(:with_instructions).and_return(chat)
     allow(chat).to receive(:with_tools).and_return(chat)
     allow(chat).to receive(:with_temperature).and_return(chat)
@@ -168,7 +168,7 @@ RSpec.describe "Agent async event contract" do
   it "delivers shared tool-result events independently of streaming mode" do
     [:invoke, :stream].each do |mode|
       event_types = []
-      chat = double("Chat", messages: [])
+      chat = double("Chat", provider: double("Provider", protocols: {}), messages: [])
       allow(chat).to receive(:add_message)
       invocation = Phronomy::Agent::AgentInvocation.new(
         agent: SymmetricAsyncEventAgent.new,

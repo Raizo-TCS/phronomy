@@ -192,7 +192,7 @@ module Phronomy
         @persistence.transaction do |tx|
           assert_local_durable_base!(tx, root)
           manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents,
-            response_schema_ref: staged.metadata.dig("output_contract", "schema_ref"))
+            response_schema_ref: OutputContract.response_schema_ref(staged.metadata))
           active = execution_with_initial_manifest(staged, manifest_ref)
           tx.executions.save(
             staged.execution_id,

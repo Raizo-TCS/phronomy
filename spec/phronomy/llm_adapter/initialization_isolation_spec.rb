@@ -6,7 +6,7 @@ RSpec.describe "LLM SDK initialization isolation" do
   [:cancel, :deadline].each do |control|
     it "keeps EventLoop responsive during initialization and prevents HTTP after #{control}" do
       started, release, loop_progress, worker_done = Queue.new, Queue.new, Queue.new, Queue.new
-      chat = double(:chat, after_message: nil)
+      chat = double(:chat, provider: double("Provider", protocols: {}), after_message: nil)
       expect(chat).not_to receive(:complete)
       expect(chat).not_to receive(:ask)
       allow(RubyLLM).to receive(:chat) do

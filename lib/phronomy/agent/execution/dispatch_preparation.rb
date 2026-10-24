@@ -123,7 +123,7 @@ module Phronomy
         manifest, manifest_ref = @persistence.transaction do |tx|
           assert_local_durable_base!(tx, operation.root)
           Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents,
-            response_schema_ref: recorded.metadata.dig("output_contract", "schema_ref"))
+            response_schema_ref: OutputContract.response_schema_ref(recorded.metadata))
         end
         updated = execution_with_provider_manifest(recorded, manifest_ref)
         change = ExecutionChange.new(agent: @agent, current: operation.execution,

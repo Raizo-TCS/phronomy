@@ -208,7 +208,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     let(:chunk3) { double("Chunk3", content: "!") }
 
     let(:streaming_chat) do
-      dbl = double("StreamingChat")
+      dbl = double("StreamingChat", provider: double("Provider", protocols: {}))
       allow(dbl).to receive(:with_instructions).and_return(dbl)
       allow(dbl).to receive(:with_tools).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)
@@ -267,7 +267,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         streaming_agent.stream("trigger streaming")
       }.to raise_error(Phronomy::StreamCallbackError)
 
-      calm_chat = double("CalmChat")
+      calm_chat = double("CalmChat", provider: double("Provider", protocols: {}))
       calm_tokens = double(
         "CalmTokens",
         input: 1,

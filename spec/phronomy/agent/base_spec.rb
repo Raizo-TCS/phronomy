@@ -199,7 +199,7 @@ RSpec.describe Phronomy::Agent::Base do
     let(:fake_response_el) { double("Resp", role: :assistant, content: "ok", tool_calls: nil, tokens: fake_tokens_el, tool_call?: false) }
 
     before do
-      dbl = double("Chat")
+      dbl = double("Chat", provider: double("Provider", protocols: {}))
       allow(dbl).to receive(:with_instructions).and_return(dbl)
       allow(dbl).to receive(:with_tools).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)

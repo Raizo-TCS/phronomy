@@ -47,7 +47,7 @@ def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
     tokens: FAKE_HITL_TOKENS,
     tool_call?: false
   )
-  dbl = double("HITLChat")
+  dbl = double("HITLChat", provider: double("Provider", protocols: {}))
   allow(dbl).to receive(:with_instructions).and_return(dbl)
   allow(dbl).to receive(:with_tools).and_return(dbl)
   allow(dbl).to receive(:with_temperature).and_return(dbl)

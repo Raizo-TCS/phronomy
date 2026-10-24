@@ -18,7 +18,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
         instances << self
       end
 
-      define_method(:invoke_async) do |input, output_schema:, config: {}|
+      define_method(:invoke_async) do |input, output_schema:, schema_delivery:, config: {}|
         @inputs << input
         task = Phronomy::TaskResult.new(name: input)
         pending << task
@@ -26,7 +26,7 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
       end
     end
   end
-  let(:operation) { operation_class.new(agent_class, output_schema: {}) }
+  let(:operation) { operation_class.new(agent_class, output_schema: {}, schema_delivery: :native) }
 
   def event(type, payload = {})
     Phronomy::Agent::StreamEvent.new(type: type, payload: payload)
@@ -54,12 +54,12 @@ RSpec.describe "GeneratorVerifier public Agent connection" do
       def initialize(on_event:)
       end
 
-      def invoke_async(input, output_schema:, config: {})
+      def invoke_async(input, output_schema:, schema_delivery:, config: {})
         Phronomy::TaskResult.completed({output: input})
       end
     end
     received = []
-    operation_class.new(klass, output_schema: {}).start("inline", listener: received.method(:<<))
+    operation_class.new(klass, output_schema: {}, schema_delivery: :native).start("inline", listener: received.method(:<<))
     expect(received.map(&:payload)).to eq([{output: "inline"}])
   end
 

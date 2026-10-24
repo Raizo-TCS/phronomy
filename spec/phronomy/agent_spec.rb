@@ -29,7 +29,7 @@ RSpec.describe Phronomy::Agent::Base do
   let(:fake_message) { double("Message", role: :assistant, content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
-    dbl = double("Chat")
+    dbl = double("Chat", provider: double("Provider", protocols: {}))
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
@@ -242,7 +242,7 @@ end
 RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
   let(:alias_tokens) { double("Tokens", input: 5, output: 2, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_chat) do
-    dbl = double("Chat")
+    dbl = double("Chat", provider: double("Provider", protocols: {}))
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
@@ -327,7 +327,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
   let(:fake_message) { double("Message", role: :assistant, content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
-    dbl = double("Chat")
+    dbl = double("Chat", provider: double("Provider", protocols: {}))
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)

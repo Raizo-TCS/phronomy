@@ -81,7 +81,7 @@ RSpec.describe "Agent terminal stream callback error policy" do
     end
 
     def build_streaming_chat_for_policy(response)
-      dbl = double("Chat")
+      dbl = double("Chat", provider: double("Provider", protocols: {}))
       allow(dbl).to receive(:with_instructions).and_return(dbl)
       allow(dbl).to receive(:with_tools).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)

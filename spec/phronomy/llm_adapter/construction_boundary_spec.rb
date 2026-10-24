@@ -10,7 +10,7 @@ RSpec.describe Phronomy::LLMAdapter::RubyLLM do
     error = RubyLLM::RateLimitError.new("provider unavailable")
     allow(RubyLLM).to receive(:chat).and_raise(error)
     expect { adapter.complete(request) }.to raise_error(Phronomy::LLMAdapter::RateLimitError) { |mapped| expect(mapped.cause).to equal(error) }
-    chat = double("chat")
+    chat = double("chat", provider: double("Provider", protocols: {}))
     allow(RubyLLM).to receive(:chat).and_return(chat)
     allow(chat).to receive(:with_instructions).and_raise(error)
     expect { adapter.complete(request) }.to raise_error(Phronomy::LLMAdapter::RateLimitError) { |mapped| expect(mapped.cause).to equal(error) }
@@ -18,7 +18,7 @@ RSpec.describe Phronomy::LLMAdapter::RubyLLM do
 
   it "preserves cancellation and application callback error identities through streaming" do
     [Phronomy::CancellationError.new("cancelled"), RuntimeError.new("callback"), RubyLLM::RateLimitError.new("callback")].each do |error|
-      chat = double("chat", with_instructions: nil, after_message: nil)
+      chat = double("chat", provider: double("Provider", protocols: {}), with_instructions: nil, after_message: nil)
       allow(RubyLLM).to receive(:chat).and_return(chat)
       allow(chat).to receive(:ask) { |_message, &block| block.call(Struct.new(:content).new("part")) }
       expect { adapter.stream(request) { raise error } }.to raise_error { |raised| expect(raised).to equal(error) }
@@ -28,7 +28,7 @@ RSpec.describe Phronomy::LLMAdapter::RubyLLM do
   [Object.new, Struct.new(:role, :content).new(:user, "bad"),
     Struct.new(:role, :content, :tool_calls).new(:assistant, nil, :bad)].each do |value|
     it "rejects malformed provider output #{value.class}" do
-      allow(RubyLLM).to receive(:chat).and_return(double(:chat, after_message: nil, complete: value))
+      allow(RubyLLM).to receive(:chat).and_return(double(:chat, provider: double("Provider", protocols: {}), after_message: nil, complete: value))
       expect { adapter.complete(Phronomy::LLMAdapter::Request.new) }.to raise_error(Phronomy::LLMAdapter::InvalidResultError)
     end
   end

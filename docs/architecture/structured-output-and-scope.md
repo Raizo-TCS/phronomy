@@ -8,7 +8,11 @@ authorization and any decision to start another attempt.
 ## Public behavior
 
 `Agent::Base#invoke`, `invoke_async`, `stream`, `stream_async` and
-`start_reserved_async` accept `output_schema: nil`. `run_once` forwards this option.
+`start_reserved_async` accept `output_schema: nil` and `schema_delivery: nil`.
+`run_once` forwards both options. With a schema, omitted/nil delivery means
+`:native`; explicit `:native` and `:none` are supported. A non-nil delivery without
+a schema, or any other value, raises ArgumentError before admission. The same
+keywords and final-output semantics apply to sync/async and invoke/stream.
 Without a schema the existing free-text behavior remains. With a schema, successful
 `output` and `result` are deeply frozen JSON objects with String keys; `raw_output`
 preserves the model text. Token events are provisional, not validated objects.
@@ -45,9 +49,21 @@ values and String/Symbol keys, snapshots recursively, and rejects duplicate norm
 keys, Ruby objects and cycles. Generic schema interpretation belongs to C17, not
 Tool::Schema, Agent's caller or Generation.
 
-## Native transport and completion facts
+## Schema delivery and completion facts
 
-C09 `LLMAdapter::Request#response_schema` carries the immutable schema; each model
+`:native` sends the declared schema to the provider. `:none` omits native schema
+configuration on every turn, including Tool follow-ups, but retains the same
+strict local validation, completion checks, output filters, frozen values and
+OutputError reasons. It does not send JSON mode, rewrite prompts, infer behavior
+from provider/model names, fall back after rejection or regenerate malformed
+output. Applications must already ask for the declared JSON shape in their
+instructions. Tools and their authorization rules remain unchanged.
+
+Use `schema_delivery: :none` explicitly where native schema delivery cannot be
+combined with the application's Tools. This does not repair LM Studio PEG errors:
+a provider failure before a usable response remains a provider failure.
+
+With `:native`, C09 `LLMAdapter::Request#response_schema` carries the immutable schema; each model
 turn retains it. RubyLLM `with_schema` sends native schema configuration. The
 transport tests cover RubyLLM 2.0.0 OpenAI/Azure Chat Completions and Responses,
 Anthropic, Gemini and Ollama's OpenAI-compatible endpoint. Constraints are compared
@@ -77,7 +93,7 @@ unknown), refusal and raw_finish_reason metadata. Only normal final completion c
 be a structured success. Tool requests are intermediate; they retain existing
 approval, denial, cancellation and recovery behavior. RubyLLM 2.0 loses streamed
 refusal fields in Chunk values; operation-local Protocol subclasses capture these
-raw facts. No SDK global class or shared protocol registry is patched. The SDK's
+raw facts on every stream, independently of native schema delivery. No SDK global class or shared protocol registry is patched. The SDK's
 raw finish information is retained through saved-response recovery.
 
 JSON 2.21.2 is the verified minimum for the strict decoding flags and deterministic
@@ -104,27 +120,39 @@ no arbitrary class name is constantized. Other transport, cancellation, Tool and
 internal failures keep their existing behavior. Output failure never triggers an
 automatic regeneration or replay of a completed Tool operation.
 
-Execution metadata stores `output_contract` version 1, schema_ref and schema_digest
-at admission. Digest is SHA-256 of UTF-8 JSON generated with recursively sorted keys
+New structured executions store `output_contract` version 2, schema_ref,
+schema_digest and schema_delivery (`"native"` or `"none"`) at admission. Digest is SHA-256 of UTF-8 JSON generated with recursively sorted keys
 (JSON 2.21.2 `sort_keys: true`); the exact same representation is saved in ContentStore.
 This format preserves arbitrary JSON integers and finite floats, including -0.0,
 without applying the narrower Common canonical-domain number rules. Each Context
-Manifest retains response_schema_ref, including budget projection and recovery.
-New executions may choose another schema; existing executions cannot replace their
-schema on resume/approval or by reusing a reserved ID with a different digest.
-Generic config/provider schema overrides are rejected.
+Manifest carries response_schema_ref only for native delivery. The output
+contract always keeps schema_ref, including with `:none`, so local validation
+survives recovery. The digest identifies the schema alone; exact execution identity
+also compares delivery. Resume/approval restore the saved choice, and a reserved
+ID cannot be reused with a different schema or delivery. Generic config/provider
+schema overrides are rejected.
 
 Structured success stores JSON result plus raw_output_ref and result_format=json.
 Old records without output_contract remain facts from a free-text execution; no
-schema is added retroactively. The execution codec stays at 0.2: its extensible
-metadata contains the explicitly versioned output contract. Unknown output-contract
-versions or digest mismatch fail closed. Saved LLM responses include finish_reason,
+schema is added retroactively. Existing output_contract version 1 is read as
+native delivery and is not rewritten merely by reading. Version-2 contracts use
+AgentExecution envelope 0.3; old/freeform executions retain envelope 0.2. New
+readers accept both explicitly. Older readers reject envelope 0.3, including for
+completed executions, instead of silently losing delivery policy. Deploy compatible
+readers before writing new structured executions; do not downgrade a store that
+contains 0.3 records to older readers. Unknown versions and digest mismatch fail
+closed. Saved LLM responses include finish_reason,
 refusal and metadata; missing finish evidence is unknown, never assumed normal.
 Fresh-runtime and new SQL connection-pool tests verify success, failure and approval
 continuation without replay of confirmed LLM/Tool work. This is a durable-facts
 claim, not an external side-effect exactly-once guarantee.
 
 ## Generation evaluation
+
+`GeneratorVerifier.new` and `.open` accept `schema_delivery: :native` (default) or
+`:none`. One choice applies to both draft and review operations. Their independent
+schemas and C03 evaluation policy remain unchanged; no role-specific flags or
+automatic fallback are introduced.
 
 C03 specifies the fixed protocol: draft answer/string, confidence/number in 0..1,
 citations/array; review approved/boolean, score/number in 0..1, feedback/string.

@@ -43,7 +43,7 @@ def build_acs16_terminal_chat
     tokens: ACS16_TOKENS,
     tool_call?: false
   )
-  chat = double("ACS16TerminalChat")
+  chat = double("ACS16TerminalChat", provider: double("Provider", protocols: {}))
   allow(chat).to receive(:with_instructions).and_return(chat)
   allow(chat).to receive(:with_tools).and_return(chat)
   allow(chat).to receive(:with_temperature).and_return(chat)
@@ -87,7 +87,7 @@ def build_acs16_cancellation_chat(tool_instance)
     tokens: ACS16_TOKENS,
     tool_call?: false
   )
-  chat = double("ACS16Chat")
+  chat = double("ACS16Chat", provider: double("Provider", protocols: {}))
   allow(chat).to receive(:with_instructions).and_return(chat)
   allow(chat).to receive(:with_tools).and_return(chat)
   allow(chat).to receive(:with_temperature).and_return(chat)
@@ -372,7 +372,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       assistant = double("Asst", role: :assistant, content: nil, tool_calls: [tc],
         tokens: ACS16_TOKENS, tool_call?: true)
       stored_hook = nil
-      chat = double("Chat")
+      chat = double("Chat", provider: double("Provider", protocols: {}))
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_temperature).and_return(chat)
@@ -440,7 +440,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       final = double("Final", role: :assistant, content: "coop done",
         tool_calls: nil, tokens: ACS16_TOKENS, tool_call?: false)
       stored_hook = nil
-      chat = double("CoopChat")
+      chat = double("CoopChat", provider: double("Provider", protocols: {}))
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_temperature).and_return(chat)
@@ -508,7 +508,7 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       final = double("Final", role: :assistant, content: "custom done",
         tool_calls: nil, tokens: ACS16_TOKENS, tool_call?: false)
       stored_hook = nil
-      chat = double("CustomHandleChat")
+      chat = double("CustomHandleChat", provider: double("Provider", protocols: {}))
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_temperature).and_return(chat)

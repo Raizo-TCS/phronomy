@@ -37,7 +37,7 @@ RSpec.describe "Agent streaming" do
   end
 
   def build_streaming_chat(response)
-    dbl = double("Chat")
+    dbl = double("Chat", provider: double("Provider", protocols: {}))
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tools).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
@@ -129,7 +129,7 @@ RSpec.describe "Agent streaming" do
 
     context "when an error occurs" do
       before do
-        bad_chat = double("Chat")
+        bad_chat = double("Chat", provider: double("Provider", protocols: {}))
         allow(bad_chat).to receive(:with_instructions).and_return(bad_chat)
         allow(bad_chat).to receive(:with_tools).and_return(bad_chat)
         allow(bad_chat).to receive(:with_temperature).and_return(bad_chat)

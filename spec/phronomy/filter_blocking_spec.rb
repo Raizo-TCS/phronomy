@@ -70,7 +70,7 @@ RSpec.describe "Agent::Base blocking filter integration" do
 
     it "does not raise when input passes the check" do
       agent.add_input_filter(no_bad_input)
-      chat_double = double("Chat")
+      chat_double = double("Chat", provider: double("Provider", protocols: {}))
       response = double("response", role: :assistant, content: "ok", tool_call?: false, tokens: double(input: 5, output: 2, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tools).and_return(chat_double)
@@ -89,7 +89,7 @@ RSpec.describe "Agent::Base blocking filter integration" do
   describe "#add_output_filter" do
     it "raises FilterBlockError when output fails the check" do
       agent.add_output_filter(no_secret_output)
-      chat_double = double("Chat")
+      chat_double = double("Chat", provider: double("Provider", protocols: {}))
       response = double("response", role: :assistant, content: "here is your SECRET key", tool_call?: false, tokens: double(input: 5, output: 10, cache_read: 0, cache_write: 0, to_h: {"input" => 5, "output" => 10, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tools).and_return(chat_double)

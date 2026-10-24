@@ -14,7 +14,7 @@ RSpec.describe "RubyLLM transport error ownership" do
 
   %i[complete stream embed].each do |operation|
     context operation.to_s do
-      let(:chat) { double("chat", after_message: nil) }
+      let(:chat) { double("chat", provider: double("Provider", protocols: {}), after_message: nil) }
       let(:request) { Phronomy::LLMAdapter::Request.new(message: "input") }
 
       before { allow(RubyLLM).to receive(:chat).and_return(chat) }

@@ -63,7 +63,7 @@ module Phronomy
         callback_error = nil
         chat = build_chat(request)
         capture = StructuredResponseCapture.new
-        capture.bind(chat) if request.response_schema && block_given?
+        capture.bind(chat) if block_given?
         token&.raise_if_cancelled!
         chat.after_message do |message|
           raise ToolsRequested.new(message) if message.tool_call?

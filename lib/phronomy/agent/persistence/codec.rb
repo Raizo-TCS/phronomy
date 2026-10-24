@@ -12,6 +12,7 @@ module Phronomy
         AGENT_ROOT_FORMAT_VERSION = "0.1"
         AGENT_EXECUTION_RECORD_TYPE = "phronomy.agent_execution"
         AGENT_EXECUTION_FORMAT_VERSION = "0.2"
+        OUTPUT_CONTRACT_FORMAT_VERSION = "0.3"
         JOURNAL_RECORD_TYPE = "phronomy.journal_record"
         JOURNAL_FORMAT_VERSION = "0.1"
         AGENT_ROOT_KEYS = %w[
@@ -88,7 +89,7 @@ module Phronomy
           validate_agent_execution_payload!(payload)
           build_record(
             AGENT_EXECUTION_RECORD_TYPE,
-            AGENT_EXECUTION_FORMAT_VERSION,
+            execution_format_version(payload),
             payload
           )
         rescue Phronomy::Storage::SerializationError
@@ -101,16 +102,29 @@ module Phronomy
           payload = current_payload!(
             record,
             record_type: AGENT_EXECUTION_RECORD_TYPE,
-            format_version: AGENT_EXECUTION_FORMAT_VERSION,
+            format_version: (record.respond_to?(:format_version) && record.format_version == OUTPUT_CONTRACT_FORMAT_VERSION) ?
+              OUTPUT_CONTRACT_FORMAT_VERSION : AGENT_EXECUTION_FORMAT_VERSION,
             keys: AGENT_EXECUTION_KEYS,
             label: "AgentExecution payload"
           )
           validate_agent_execution_payload!(payload)
+          unless record.format_version == execution_format_version(payload)
+            raise Phronomy::Storage::SerializationError, "Agent output contract does not match execution format version"
+          end
           Phronomy::Agent::AgentExecution.from_h(payload)
         rescue Phronomy::Storage::SerializationError
           raise
         rescue => error
           serialization_error("cannot decode AgentExecution", error)
+        end
+
+        # Old readers reject the new envelope before interpreting any execution.
+        # Freeform and version-one records retain their original envelope.
+        def execution_format_version(payload)
+          stored = payload.fetch("metadata")["output_contract"]
+          return AGENT_EXECUTION_FORMAT_VERSION unless stored
+          Phronomy::Agent::OutputContract.delivery(stored)
+          (stored.fetch("version") == 2) ? OUTPUT_CONTRACT_FORMAT_VERSION : AGENT_EXECUTION_FORMAT_VERSION
         end
 
         def encode_journal_record(journal_record)

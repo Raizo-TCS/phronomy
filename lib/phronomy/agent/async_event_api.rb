@@ -12,12 +12,12 @@ module Phronomy
     # - approval notifications share the Agent listener as :approval_required;
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
-      def start_reserved_async(reservation:, input:, config: {}, output_schema: nil)
+      def start_reserved_async(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
         __with_operation(async: true) do
           unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
             raise ArgumentError, "reservation must belong to this Agent"
           end
-          config = __invocation_config(_prepare_output_config(config, nil, output_schema))
+          config = __invocation_config(_prepare_output_config(config, nil, output_schema, schema_delivery))
           ExactExecution.start(agent: self, execution_id: reservation.execution_id, input: input,
             config: config.merge(phronomy_reservation: reservation.correlation))
         end
@@ -54,12 +54,13 @@ module Phronomy
         config: {},
         invocation_context: nil,
         output_schema: nil,
+        schema_delivery: nil,
         **removed_options,
         &removed_block
       )
         __with_operation do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-          config = _prepare_output_config(config, invocation_context, output_schema)
+          config = _prepare_output_config(config, invocation_context, output_schema, schema_delivery)
           _check_event_loop_reentrancy(:invoke, :invoke_async)
           _start_agent_operation(
             input,
@@ -75,12 +76,13 @@ module Phronomy
         config: {},
         invocation_context: nil,
         output_schema: nil,
+        schema_delivery: nil,
         **removed_options,
         &removed_block
       )
         __with_operation(async: true) do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
-          config = _prepare_output_config(config, invocation_context, output_schema)
+          config = _prepare_output_config(config, invocation_context, output_schema, schema_delivery)
           _start_agent_operation(
             input,
             config: config,
@@ -95,13 +97,14 @@ module Phronomy
         config: {},
         invocation_context: nil,
         output_schema: nil,
+        schema_delivery: nil,
         **removed_options,
         &removed_block
       )
         __with_operation do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
           listener = _required_stream_listener!(:stream)
-          config = _prepare_output_config(config, invocation_context, output_schema)
+          config = _prepare_output_config(config, invocation_context, output_schema, schema_delivery)
           _check_event_loop_reentrancy(:stream, :stream_async)
           _start_agent_operation(
             input,
@@ -117,13 +120,14 @@ module Phronomy
         config: {},
         invocation_context: nil,
         output_schema: nil,
+        schema_delivery: nil,
         **removed_options,
         &removed_block
       )
         __with_operation(async: true) do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
           listener = _required_stream_listener!(:stream_async)
-          config = _prepare_output_config(config, invocation_context, output_schema)
+          config = _prepare_output_config(config, invocation_context, output_schema, schema_delivery)
           _start_agent_operation(
             input,
             config: config,
@@ -206,9 +210,14 @@ module Phronomy
 
       private
 
-      def _prepare_output_config(config, invocation_context, schema)
+      def _prepare_output_config(config, invocation_context, schema, schema_delivery)
         config = _prepare_invocation_config(config, invocation_context)
-        schema.nil? ? config : config.merge(phronomy_output_contract: OutputContract.new(schema))
+        if schema.nil?
+          raise ArgumentError, "schema_delivery requires output_schema" unless schema_delivery.nil?
+          return config
+        end
+        contract = OutputContract.new(schema, schema_delivery: schema_delivery.nil? ? :native : schema_delivery)
+        config.merge(phronomy_output_contract: contract)
       end
 
       def _start_agent_operation(input, config:, mode:, listener:)

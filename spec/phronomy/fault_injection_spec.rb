@@ -45,7 +45,7 @@ RSpec.describe "Fault injection (Issue #213)" do
   describe "Error translation at retry boundary" do
     let(:translator) do
       lambda do |error|
-        chat = double("chat", after_message: nil)
+        chat = double("chat", provider: double("Provider", protocols: {}), after_message: nil)
         allow(chat).to receive(:ask).and_raise(error)
         allow(RubyLLM).to receive(:chat).and_return(chat)
         Phronomy::LLMAdapter::RubyLLM.new.complete(Phronomy::LLMAdapter::Request.new(message: "fault injection"))

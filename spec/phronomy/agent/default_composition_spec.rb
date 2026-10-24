@@ -166,7 +166,7 @@ RSpec.describe "Agent default and one-shot composition (ADR-044)" do
       tokens = double("Tokens", input: 1, output: 1, cache_read: 0, cache_write: 0,
         to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0})
       response = double("Response", role: :assistant, content: "answer", tool_calls: nil, tokens: tokens, tool_call?: false)
-      chat = double("Chat", messages: [], last_message: response)
+      chat = double("Chat", provider: double("Provider", protocols: {}), messages: [], last_message: response)
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:cancellation_token=)
