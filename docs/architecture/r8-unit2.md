@@ -1,55 +1,55 @@
-# r8 unit 2：親の予約確認とAgent受付
+# r8 unit 2: Parent reservation checks and Agent admission
 
-この単位はP02／P03の受付境界を実装する。基準はcore `16e6fcb2dd49836735598525114abfc256d0773e`。r8全体やPersistenceの全面整理の完了ではない。
+This unit implements the P02/P03 admission boundary. The core baseline is `16e6fcb2dd49836735598525114abfc256d0773e`. It does not complete all of r8 or the entire Persistence reorganization.
 
-## 責務と操作
+## Responsibilities and operations
 
-| 担当 | 公開操作・共通規則 | 依存と内部実装 |
+| Owner | Public operations and shared rules | Dependencies and internal implementation |
 |---|---|---|
-| 共通Persistence | `atomic`、`Transaction#participate`、`committed?`。同じPersistence、同期thread、有効scope、savepoint、commit応答を検証 | Storageの公開transaction・scope規則を利用。Agent／Team／Workflowや構成担当を選ばない |
-| Agent | `Admission#accept_in`。入力記録・実行ID・Agentの受付とrevision更新を同一scopeへ保存 | Agentの保存担当を使用。親のkind・Team割当・subagent snapshot・Handoff予約を解釈しない |
-| MultiAgent | `ReservedChildAdmission#admit`。親の取消・slot・子IDを検証し、Agent受付を同じscopeへ参加させる | 自分の保存担当が予約の根拠を読み、必要なguardを取得する |
-| 保存担当 | `Agent::Persistence::Admission`、`MultiAgent::Persistence::Reservation` | raw Storage viewはこの境界で使用。ドメイン操作へraw viewを渡さない |
+| Shared Persistence | `atomic`, `Transaction#participate`, and `committed?`; validates the same Persistence instance, synchronous thread, active scope, savepoints, and commit acknowledgements | Uses Storage's public transaction/scope rules; does not select Agent, Team, Workflow, or composition components |
+| Agent | `Admission#accept_in`; persists input records, execution identity, Agent admission, and revision updates in the same scope | Uses Agent's persistence component; does not interpret parent kind, Team assignments, subagent snapshots, or Handoff reservations |
+| MultiAgent | `ReservedChildAdmission#admit`; validates parent cancellation, slot, and child ID, and has Agent admission participate in the same scope | Its own persistence component reads the reservation evidence and acquires the required guards |
+| Persistence components | `Agent::Persistence::Admission`, `MultiAgent::Persistence::Reservation` | Uses raw Storage views at this boundary; does not pass raw views to domain operations |
 
-AgentのRuntime admission取得、FSM開始、live状態の反映は既存のExecutionCoordinatorが引き続き所有する。新しいAdmissionはその短い保存フェーズだけであり、Agent実行全体を親のDB transactionへ入れない。通常のアプリは新しい参加クラスを実装・生成する必要がない。
+The existing ExecutionCoordinator continues to own acquiring Agent Runtime admission, starting the FSM, and applying live state. The new Admission covers only the short persistence phase; it does not place the entire Agent execution inside the parent's database transaction. Ordinary applications do not need to implement or instantiate the new participation classes.
 
-`phronomy_admission` は内部の現在の配線であり、Procやオブジェクトを保存しない。永続化するのは従来の相関情報と親子IDだけ。Team／subagent／Handoffの開始・再開担当が現在の参加者を渡す。保存済み実行への再接続はExactExecutionの同一ID照合と復旧規則を維持する。
+`phronomy_admission` is current internal wiring; no Proc or object is persisted. Only the existing correlation information and parent/child IDs are stored. The Team/subagent/Handoff start and resume components supply the current participant. Reconnecting to a persisted execution preserves ExactExecution's same-ID matching and recovery rules.
 
-## 保存順序と失敗
+## Persistence ordering and failures
 
-1. Agentが既存のRuntime受付を取得し、同期workerで保存操作を開始する。
-2. MultiAgentが短い`atomic` scopeを開き、親のguardを取得してから予約を読み直す。
-3. 親の取消・割当・子の識別子を検証する。Agentは同じscopeで入力内容・AgentExecution・AgentRootを保存する。
-4. commit応答が成功した後に、Agent実行担当だけが受付結果を取得し、準備・FSM・live反映を進める。
+1. Agent acquires the existing Runtime admission and begins the persistence operation on a synchronous worker.
+2. MultiAgent opens a short `atomic` scope, acquires the parent guard, and then rereads the reservation.
+3. It validates parent cancellation, assignment, and child identity. Agent stores the input content, AgentExecution, and AgentRoot in the same scope.
+4. Only after a successful commit acknowledgement does the Agent execution component obtain the admission result and continue preparation, FSM execution, and live-state updates.
 
-参加操作の戻り値はcommit成功を意味しない。`accept_in`はnilを返し、Agent内部の`result`は外側のcommitまで利用できない。二重参加、別Persistence、別thread、終了後scopeは拒否する。同じbackendを包む別Persistenceも同一scopeと扱わない。raw backend transactionの中から新しくcommit所有者を名乗ることも拒否する。
+A participation operation's return value does not mean that commit succeeded. `accept_in` returns nil, and the Agent-internal `result` is unavailable until the outer commit. Duplicate participation, a different Persistence instance, a different thread, or an expired scope is rejected. Separate Persistence instances wrapping the same backend are not treated as the same scope. Code inside a raw backend transaction cannot claim to be a new commit owner.
 
-明示的な入れ子はsavepointとして動く。内側が成功しても外側がrollbackした場合は未成立。参加処理中の例外を内側で捕捉しても、失敗したscopeの先行変更をcommitできない。LLM、Tool、scheduler、外部callback、非同期待機を参加処理へ入れない。
+Explicit nesting uses savepoints. Inner success is not committed if the outer transaction rolls back. Even if an exception during participation is caught inside the scope, earlier changes in that failed scope cannot be committed. Do not perform LLM calls, Tool calls, scheduling, external callbacks, or asynchronous waits inside participation operations.
 
-Storageのscope違反は`Persistence::TransactionError`へcause・backtraceを保持して変換する。この名前の変更は、保存成否が既知であるとの宣言ではない。IOError等の成否不明な保存失敗は変換・自動retryせず、既存のAgent復旧規則へ渡す。今回、一般化した保存成否照合APIは追加していない。
+Storage scope violations are translated into `Persistence::TransactionError`, preserving cause and backtrace. This naming change does not assert that the persistence outcome is known. Persistence failures with unknown outcomes, such as IOError, are neither translated nor automatically retried; they pass to existing Agent recovery rules. This unit does not add a generalized persistence-outcome reconciliation API.
 
-## 取消との競合
+## Races with cancellation
 
-TeamはTeamRoot、subagentは親AgentRoot、Handoffはrouting recordをguardとする。PostgreSQLではそのguardの行ロックと既存の条件付き更新によって、取消・変更と子受付を順序付ける。子受付側の通常readだけでは、この保証は成立しなかった。
+Team uses TeamRoot as its guard, subagents use the parent AgentRoot, and Handoff uses the routing record. On PostgreSQL, row locks on the guard and existing conditional updates order cancellation/changes against child admission. Ordinary reads on the child admission path alone did not provide this guarantee.
 
-Handoff取消側は最初に子の状態を観測し、未完了／不在ならroutingをロックして**子の状態を再取得**する。待機中に子受付がcommitした場合、古い「不在」の判断を捨て、受付済みの子へ公開取消を送る。既に終端の実行への取消は従来どおり結果参照として扱う。
+The Handoff cancellation path first observes the child state. If the child is incomplete or absent, it locks routing and **reads the child state again**. If child admission committed while it was waiting, it discards the stale absence observation and sends public cancellation to the admitted child. Cancellation of an already terminal execution continues to act as result access.
 
-InMemoryは共有Monitor、SQLiteはtransactionと書込競合検出、PostgreSQLは行ロックを使用する。SQLiteで競合したtransactionは成功とみなさず、backendの失敗を扱う。分散leaseや外部副作用のexactly-onceは追加しない。実PostgreSQLでの待機順序はexamplesの新しい3件の並行テストで確認する対象であり、InMemory／SQLiteの成功から推定して済ませない。
+InMemory uses a shared Monitor, SQLite uses transactions and write-conflict detection, and PostgreSQL uses row locks. A conflicting SQLite transaction is not considered successful; its backend failure is handled. No distributed lease or exactly-once guarantee for external effects is added. Actual PostgreSQL waiting order is to be checked by the three new concurrency tests in examples; it must not be inferred from successful InMemory/SQLite tests.
 
-## API・ファイル変更
+## API and file changes
 
-- Agent::InitialPreparationの`build_admitted_execution`と3種の親検証・kind分岐を削除。Agent自身の受付共通処理とMultiAgentの予約判断へ分離した。
-- 共通の参加frameworkを`persistence/transaction.rb`、Agent受付を`agent/admission.rb`、保存接続を既存の各domainの`persistence/`へ置いた。新しいディレクトリや独立Contractは増やしていない。
-- Storage SPIに同期contextの`transaction_open?`を追加。Storage::Backendの継承実装には共通実装が提供される。継承しない独自SPI実装はこの操作も提供する必要がある。RBS・SPI snapshot・duck-typed backendの検証を更新した。
-- Persistenceの既知scope失敗の公開型を`Persistence::TransactionError`へ統一し、旧Storage例外のaliasは設けない。Storageを直接使う処理では従来のStorage例外を使用する。
-- RBSはsigに配置し、参加者factory、Agent受付、MultiAgentの依存を宣言する。動的な`phronomy_admission`注入も本書と利用箇所で追跡する。
-- 依存解析のExecution境界規則を図のrevision表示名から分離した。unit名の更新で同期backendからExecutionへの禁止規則が解除されないことを回帰テストする。
-- 保存recordの形式、ID、revision規則は変更していない。データ移行は不要。
+- Remove Agent::InitialPreparation's `build_admitted_execution`, its three kinds of parent validation, and its parent-kind branches. Separate shared Agent admission handling from MultiAgent reservation decisions.
+- Place the shared participation framework in `persistence/transaction.rb`, Agent admission in `agent/admission.rb`, and persistence bindings in each domain's existing `persistence/`. No new directory or independent Contract is added.
+- Add synchronous-context `transaction_open?` to the Storage SPI. Implementations inheriting Storage::Backend receive a shared implementation. Custom SPI implementations that do not inherit it must also provide this operation. Update RBS, the SPI snapshot, and duck-typed backend validation.
+- Unify the public type for known Persistence scope failures as `Persistence::TransactionError`; do not add an alias for the old Storage exception. Code using Storage directly continues to use the existing Storage exception.
+- Place RBS in sig and declare participant factories, Agent admission, and MultiAgent dependencies. Track dynamic `phronomy_admission` injection in this document and at its use sites.
+- Separate dependency analysis rules for the Execution boundary from the diagram's revision display name. Add a regression test ensuring that changing the unit name does not disable the prohibition on synchronous-backend dependencies on Execution.
+- Preserve persisted record formats, IDs, and revision rules. No data migration is required.
 
-## 残る課題
+## Outstanding work
 
-`Persistence#transaction`とdomain repositoryの一括窓口は現行利用箇所が残るため、この単位では全面削除していない。互換維持のために新しい旧名aliasを追加したものではないが、P01／DP04の完了条件は未達である。次にdomain照会・保存構成を移し、不要な窓口を利用側と同時に削除する。
+`Persistence#transaction` and the combined domain-repository facade still have callers and are not fully removed in this unit. This does not add new aliases for old names to preserve compatibility, but the P01/DP04 completion conditions remain unmet. Next, move domain queries and persistence composition, then remove unnecessary entry points together with their callers.
 
-MultiAgentの保存担当にはAgentのexecution／Handoff repositoryへの参照が残る。予約検証の所有者は整理したが、親子の公開投影・認可照会・結果取込まで隠蔽したとは扱わない。P04／F02／F03の残課題として、Agentが公開する操作と、MultiAgentが所有すべき保存形式を確定する。一般的なmetadata getterを足すだけの解決にはしない。
+MultiAgent's persistence component still references Agent execution/Handoff repositories. Ownership of reservation validation has been clarified, but this does not mean that public parent/child projections, authorization queries, and result incorporation have all been encapsulated. Under the remaining P04/F02/F03 work, establish the operations Agent should expose and the persistence formats MultiAgent should own. Adding a generic metadata getter alone is not a solution.
 
-Agent／TeamのFSM接続、Workflowのdurableな子連携（P05）、複数記録の保存成否照合（P06）、残りの配置整理、155組・393件の意味的再判定も残る。今回のSVGは実装候補を描き、全体の循環解消を示す構想図にはしない。
+Agent/Team FSM bindings, durable Workflow child coordination (P05), reconciliation of persistence outcomes across multiple records (P06), the remaining layout reorganization, and semantic reassessment of 155 pairs/393 cases also remain outstanding. The SVG for this unit depicts the implementation candidate, not a conceptual graph claiming that all cycles have been eliminated.
