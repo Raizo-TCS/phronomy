@@ -137,6 +137,26 @@ mutable Agent/Execution/Journal state before every LLM or Tool step. A conflicti
 external durable write is surfaced as `Phronomy::Persistence::StateConflictError` rather than
 silently merged into the live instance.
 
+Read persisted conversation values without interpreting Journal storage:
+
+```ruby
+messages = agent.transcript_messages
+messages.each { |message| puts "#{message.role}: #{message.content}" }
+```
+
+`transcript_messages_async` returns a TaskResult with the same frozen array of
+`LLMAdapter::Message` values. For the same durable root, these match
+`result[:messages]`, including Tool calls, Tool results, non-text content and
+opaque metadata. The operation selects root/generation and Journal records in one
+transaction, then restores immutable content off EventLoop. It holds Agent
+ownership until physical completion, including after logical cancellation.
+The synchronous method refuses to wait on EventLoop. Content and integrity
+failures propagate; an unreadable transcript is not an empty conversation.
+
+`agent.transcript` remains a JournalRecord view. Knowledge is excluded from the
+conversation. The application still owns authorization, role filtering and
+presentation; reading invokes no LLM or Tool and changes no durable state.
+
 The active transcript and Knowledge views can be advanced independently without
 deleting the append-only canonical Journal:
 

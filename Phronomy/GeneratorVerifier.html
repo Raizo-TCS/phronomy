@@ -239,7 +239,7 @@ Owns its Agent instances; Tool authorization remains an application decision.</p
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:, citation_schema: Protocol::DEFAULT_CITATION, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)  &#x21d2; GeneratorVerifier </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:, citation_schema: Protocol::DEFAULT_CITATION, schema_delivery: :native, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)  &#x21d2; GeneratorVerifier </a>
     
 
     
@@ -336,7 +336,7 @@ Owns its Agent instances; Tool authorization remains an application decision.</p
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:, citation_schema: Protocol::DEFAULT_CITATION, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span></tt> 
+    #<strong>initialize</strong>(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:, citation_schema: Protocol::DEFAULT_CITATION, schema_delivery: :native, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span></tt> 
   
 
   
@@ -397,16 +397,22 @@ Owns its Agent instances; Tool authorization remains an application decision.</p
 73
 74
 75
-76</pre>
+76
+77
+78
+79</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>draft_agent:</span><span class='comma'>,</span> <span class='label'>review_agent:</span><span class='comma'>,</span> <span class='label'>draft_prompt_builder:</span><span class='comma'>,</span> <span class='label'>review_prompt_builder:</span><span class='comma'>,</span>
-  <span class='label'>citation_schema:</span> <span class='const'>Protocol</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="GeneratorVerifier/Protocol.html#DEFAULT_CITATION-constant" title="Phronomy::GeneratorVerifier::Protocol::DEFAULT_CITATION (constant)">DEFAULT_CITATION</a></span></span><span class='comma'>,</span>
+  <span class='label'>citation_schema:</span> <span class='const'>Protocol</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="GeneratorVerifier/Protocol.html#DEFAULT_CITATION-constant" title="Phronomy::GeneratorVerifier::Protocol::DEFAULT_CITATION (constant)">DEFAULT_CITATION</a></span></span><span class='comma'>,</span> <span class='label'>schema_delivery:</span> <span class='symbol'>:native</span><span class='comma'>,</span>
   <span class='label'>confidence_threshold:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_CONFIDENCE_THRESHOLD-constant" title="Phronomy::GeneratorVerifier::DEFAULT_CONFIDENCE_THRESHOLD (constant)">DEFAULT_CONFIDENCE_THRESHOLD</a></span></span><span class='comma'>,</span>
   <span class='label'>max_iterations:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_MAX_ITERATIONS-constant" title="Phronomy::GeneratorVerifier::DEFAULT_MAX_ITERATIONS (constant)">DEFAULT_MAX_ITERATIONS</a></span></span><span class='comma'>,</span> <span class='label'>raise_if_unaccepted:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>on_approval:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_allowed!'>ensure_blocking_allowed!</span><span class='lparen'>(</span><span class='symbol'>:new</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>native</span><span class='words_sep'> </span><span class='tstring_content'>none</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_schema_delivery'>schema_delivery</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>schema_delivery must be :native or :none</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_real?'>real?</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='period'>.</span><span class='id identifier rubyid_finite?'>finite?</span> <span class='op'>&amp;&amp;</span>
       <span class='lparen'>(</span><span class='float'>0.0</span><span class='op'>..</span><span class='float'>1.0</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_cover?'>cover?</span><span class='lparen'>(</span><span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>confidence_threshold must be a finite number in 0..1</span><span class='tstring_end'>&quot;</span></span>
@@ -431,8 +437,8 @@ Owns its Agent instances; Tool authorization remains an application decision.</p
   <span class='ivar'>@draft_prompt_builder</span><span class='comma'>,</span> <span class='ivar'>@review_prompt_builder</span> <span class='op'>=</span> <span class='id identifier rubyid_draft_prompt_builder'>draft_prompt_builder</span><span class='comma'>,</span> <span class='id identifier rubyid_review_prompt_builder'>review_prompt_builder</span>
   <span class='id identifier rubyid_draft_schema'>draft_schema</span> <span class='op'>=</span> <span class='const'>Protocol</span><span class='period'>.</span><span class='id identifier rubyid_draft'>draft</span><span class='lparen'>(</span><span class='id identifier rubyid_citation_schema'>citation_schema</span><span class='rparen'>)</span>
   <span class='kw'>begin</span>
-    <span class='ivar'>@operations</span><span class='lbracket'>[</span><span class='symbol'>:draft</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentOperation</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_draft_agent'>draft_agent</span><span class='comma'>,</span> <span class='label'>output_schema:</span> <span class='id identifier rubyid_draft_schema'>draft_schema</span><span class='rparen'>)</span>
-    <span class='ivar'>@operations</span><span class='lbracket'>[</span><span class='symbol'>:review</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentOperation</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_review_agent'>review_agent</span><span class='comma'>,</span> <span class='label'>output_schema:</span> <span class='const'>Protocol</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="GeneratorVerifier/Protocol.html#REVIEW-constant" title="Phronomy::GeneratorVerifier::Protocol::REVIEW (constant)">REVIEW</a></span></span><span class='rparen'>)</span>
+    <span class='ivar'>@operations</span><span class='lbracket'>[</span><span class='symbol'>:draft</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentOperation</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_draft_agent'>draft_agent</span><span class='comma'>,</span> <span class='label'>output_schema:</span> <span class='id identifier rubyid_draft_schema'>draft_schema</span><span class='comma'>,</span> <span class='label'>schema_delivery:</span> <span class='id identifier rubyid_schema_delivery'>schema_delivery</span><span class='rparen'>)</span>
+    <span class='ivar'>@operations</span><span class='lbracket'>[</span><span class='symbol'>:review</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>AgentOperation</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_review_agent'>review_agent</span><span class='comma'>,</span> <span class='label'>output_schema:</span> <span class='const'>Protocol</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="GeneratorVerifier/Protocol.html#REVIEW-constant" title="Phronomy::GeneratorVerifier::Protocol::REVIEW (constant)">REVIEW</a></span></span><span class='comma'>,</span> <span class='label'>schema_delivery:</span> <span class='id identifier rubyid_schema_delivery'>schema_delivery</span><span class='rparen'>)</span>
   <span class='kw'>rescue</span> <span class='const'>Exception</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_primary'>primary</span> <span class='comment'># rubocop:disable Lint/RescueException -- release partially acquired resources
 </span>    <span class='kw'>begin</span>
       <span class='id identifier rubyid_release!'>release!</span>
@@ -576,12 +582,12 @@ requests. This is not a replica of the Agent's durable approval state.</p>
       <pre class="lines">
 
 
-99
-100
-101</pre>
+102
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 99</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_requests'>approval_requests</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active</span> <span class='rbrace'>}</span><span class='op'>&amp;.</span><span class='id identifier rubyid_approvals'>approvals</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -616,9 +622,6 @@ Await the invocation separately, then use release! to check safe release.</p>
       <pre class="lines">
 
 
-105
-106
-107
 108
 109
 110
@@ -632,10 +635,13 @@ Await the invocation separately, then use release! to check safe release.</p>
 118
 119
 120
-121</pre>
+121
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 105</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel_async'>cancel_async</span>
   <span class='id identifier rubyid_current'>current</span><span class='comma'>,</span> <span class='id identifier rubyid_operations'>operations</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -674,13 +680,13 @@ Await the invocation separately, then use release! to check safe release.</p>
       <pre class="lines">
 
 
-78
-79
-80
-81</pre>
+81
+82
+83
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_blocking_allowed!'>ensure_blocking_allowed!</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='rparen'>)</span>
@@ -706,9 +712,6 @@ Await the invocation separately, then use release! to check safe release.</p>
       <pre class="lines">
 
 
-83
-84
-85
 86
 87
 88
@@ -718,10 +721,13 @@ Await the invocation separately, then use release! to check safe release.</p>
 92
 93
 94
-95</pre>
+95
+96
+97
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 83</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 86</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_invocation'>invocation</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -756,9 +762,6 @@ Await the invocation separately, then use release! to check safe release.</p>
       <pre class="lines">
 
 
-123
-124
-125
 126
 127
 128
@@ -779,10 +782,13 @@ Await the invocation separately, then use release! to check safe release.</p>
 143
 144
 145
-146</pre>
+146
+147
+148
+149</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 123</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generation/generator_verifier.rb', line 126</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release!'>release!</span>
   <span class='id identifier rubyid_ensure_blocking_allowed!'>ensure_blocking_allowed!</span><span class='lparen'>(</span><span class='symbol'>:release!</span><span class='rparen'>)</span>
@@ -818,7 +824,7 @@ Await the invocation separately, then use release! to check safe release.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 24 06:41:13 2026 by
+  Generated on Sat Oct 24 15:58:47 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

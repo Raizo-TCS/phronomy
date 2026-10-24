@@ -111,9 +111,14 @@ tracking <code>main</code> directly.</p>
 <td>Explicit known-output-error identification and bounded opt-in retry; <a href="docs/architecture/lm-studio-output-failures.md">policy and evidence limits</a></td>
 </tr>
 <tr>
-<td>Agent <code>output_schema:</code>, <code>Agent::OutputError</code> and <code>OutputParser::JsonSchemaParser</code></td>
+<td>Agent <code>output_schema:</code>, <code>schema_delivery:</code>, <code>Agent::OutputError</code> and <code>OutputParser::JsonSchemaParser</code></td>
 <td>Beta</td>
 <td>Agent returns validated immutable JSON or an explicit output failure; <a href="docs/architecture/structured-output-and-scope.md">contract and migration</a></td>
+</tr>
+<tr>
+<td>Agent <code>transcript_messages</code> / <code>transcript_messages_async</code></td>
+<td>Beta</td>
+<td>Read immutable conversation Message values with the same restoration rules as execution results; <a href="docs/getting-started.md">reading conversation state</a></td>
 </tr>
 <tr>
 <td><code>Phronomy::GeneratorVerifier</code>, its approval/lifetime operations and immutable <code>Result</code> with output-failure diagnostics</td>
@@ -300,7 +305,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Oct 24 06:41:08 2026 by
+  Generated on Sat Oct 24 15:58:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

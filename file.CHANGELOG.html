@@ -67,6 +67,24 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li>Add explicit Agent <code>schema_delivery: :native | :none</code> across execution entry
+points and GeneratorVerifier. Local structured-output validation is identical
+in both modes; existing calls retain native delivery.</li>
+<li>Add <code>Agent#transcript_messages</code> and its async counterpart to read immutable
+Message values without application knowledge of Journal storage.</li>
+</ul>
+<h3 id="Persistence">Persistence</h3>
+<ul>
+<li>Save new output contracts as version 2 with the delivery choice and retain their
+schemas even when no schema is sent. These executions use envelope 0.3, rejected
+by older readers. Existing version-1 contracts remain native and readable.</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Preserve streamed refusal facts even when native schema delivery is omitted.</li>
+</ul>
 <h2 id="_0_30_1____2026_10_24">[0.30.1] - 2026-10-24</h2>
 <h3 id="Documentation">Documentation</h3>
 <ul>
@@ -92,21 +110,32 @@ private snapshot; the default backend and global SDK settings are unchanged.</li
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
-<li>GeneratorVerifier owns immutable evaluation Results, explicit approval routing
+<li>
+<p>Generate architecture SVG metadata in English, including repeated formatting.</p>
+</li>
+<li>
+<p>GeneratorVerifier owns immutable evaluation Results, explicit approval routing
 and Agent lifetime. Use <code>accepted?</code>, <code>termination_reason</code> and
 <code>raise_if_unaccepted</code>; <code>output_failed</code> distinguishes invalid output from a
 completed evaluation that reaches <code>iteration_limit</code>. Acceptance reports the
-configured conditions, not the truth of generated content.</li>
-<li>Agent scopes and GeneratorVerifier scopes await a directly returned TaskResult
+configured conditions, not the truth of generated content.</p>
+</li>
+<li>
+<p>Agent scopes and GeneratorVerifier scopes await a directly returned TaskResult
 before releasing their owned Agents. Cleanup preserves the primary failure,
-successful value and handles needed to retry release.</li>
-<li>Tracing usage is a plain token-count Hash. Custom tracer/exporter callers must
-project LLM-domain TokenUsage values before crossing the tracing boundary.</li>
-<li>Require Faraday 2.14.4 and faraday-net_http 3.4.4 as the tested HTTP support
+successful value and handles needed to retry release.</p>
+</li>
+<li>
+<p>Tracing usage is a plain token-count Hash. Custom tracer/exporter callers must
+project LLM-domain TokenUsage values before crossing the tracing boundary.</p>
+</li>
+<li>
+<p>Require Faraday 2.14.4 and faraday-net_http 3.4.4 as the tested HTTP support
 floors. Concrete LLM/Embeddings adapters translate recognized network failures
 into their public TransportError types while preserving causes and callback
 exceptions; cancellation and unknown internal failures are not broadly mapped.
-Strict JSON decoding requires JSON &gt;= 2.21.2 and &lt; 3.</li>
+Strict JSON decoding requires JSON &gt;= 2.21.2 and &lt; 3.</p>
+</li>
 </ul>
 <h3 id="Removed">Removed</h3>
 <ul>
@@ -946,7 +975,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Oct 24 06:41:08 2026 by
+  Generated on Sat Oct 24 15:58:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

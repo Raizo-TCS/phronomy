@@ -984,6 +984,50 @@ and execution hooks. Instance methods handle invocation.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#transcript_messages-instance_method" title="#transcript_messages (instance method)">#<strong>transcript_messages</strong>  &#x21d2; Array&lt;LLMAdapter::Message&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Materializes the current durable transcript as immutable Message values.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#transcript_messages_async-instance_method" title="#transcript_messages_async (instance method)">#<strong>transcript_messages_async</strong>  &#x21d2; TaskResult&lt;Array&lt;LLMAdapter::Message&gt;&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Holds Agent ownership until the submitted read physically completes.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -2445,12 +2489,12 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-581
-582
-583</pre>
+606
+607
+608</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 581</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 606</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___replace_root'>__replace_root</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='rparen'>)</span>
   <span class='ivar'>@root</span> <span class='op'>=</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span>
@@ -2475,18 +2519,18 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-426
-427
-428
-429
-430
-431
-432
-433
-434</pre>
+451
+452
+453
+454
+455
+456
+457
+458
+459</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 426</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 451</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='id identifier rubyid_content'>content</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span> <span class='kw'>do</span>
@@ -2553,19 +2597,19 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-415
-416
-417
-418
-419
-420
-421
-422
-423
-424</pre>
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 415</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 440</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_knowledge!'>clear_knowledge!</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span> <span class='kw'>do</span>
@@ -2597,20 +2641,20 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-403
-404
-405
-406
-407
-408
-409
-410
-411
-412
-413</pre>
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 403</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 428</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_transcript!'>clear_transcript!</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span> <span class='kw'>do</span>
@@ -2643,19 +2687,19 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-448
-449
-450
-451
-452
-453
-454
-455
-456
-457</pre>
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 448</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 473</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close!'>close!</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span> <span class='kw'>do</span>
@@ -2798,31 +2842,6 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-459
-460
-461
-462
-463
-464
-465
-466
-467
-468
-469
-470
-471
-472
-473
-474
-475
-476
-477
-478
-479
-480
-481
-482
-483
 484
 485
 486
@@ -2839,10 +2858,35 @@ operation result has been validated by ExecutionCoordinator.</p>
 497
 498
 499
-500</pre>
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 459</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 484</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_purge!'>purge!</span>
   <span class='kw'>return</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='ivar'>@_phronomy_runtime_owner_state</span> <span class='op'>==</span> <span class='symbol'>:purged</span>
@@ -2906,20 +2950,20 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-436
-437
-438
-439
-440
-441
-442
-443
-444
-445
-446</pre>
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 436</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 461</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_context!'>reset_context!</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span> <span class='kw'>do</span>
@@ -2952,18 +2996,18 @@ operation result has been validated by ExecutionCoordinator.</p>
       <pre class="lines">
 
 
-686
-687
-688
-689
-690
-691
-692
-693
-694</pre>
+711
+712
+713
+714
+715
+716
+717
+718
+719</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 686</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 711</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_approval_policy'>tool_approval_policy</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span> <span class='kw'>do</span>
@@ -3013,12 +3057,137 @@ operation result has been validated by ExecutionCoordinator.</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="transcript_messages-instance_method">
+  
+    #<strong>transcript_messages</strong>  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="../LLMAdapter/Message.html" title="Phronomy::LLMAdapter::Message (class)">LLMAdapter::Message</a></span>&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Materializes the current durable transcript as immutable Message values.
+Application authorization and presentation filtering remain caller-owned.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="../LLMAdapter/Message.html" title="Phronomy::LLMAdapter::Message (class)">LLMAdapter::Message</a></span>&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+407
+408
+409
+410</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 407</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_transcript_messages'>transcript_messages</span>
+  <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:transcript_messages</span><span class='comma'>,</span> <span class='symbol'>:transcript_messages_async</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_transcript_messages_async'>transcript_messages_async</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="transcript_messages_async-instance_method">
+  
+    #<strong>transcript_messages_async</strong>  &#x21d2; <tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="../LLMAdapter/Message.html" title="Phronomy::LLMAdapter::Message (class)">LLMAdapter::Message</a></span>&gt;&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Holds Agent ownership until the submitted read physically completes.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span>&lt;Array&lt;<span class='object_link'><a href="../LLMAdapter/Message.html" title="Phronomy::LLMAdapter::Message (class)">LLMAdapter::Message</a></span>&gt;&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 415</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_transcript_messages_async'>transcript_messages_async</span>
+  <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>async:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>read_only:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid___execution_environment'>__execution_environment</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span> <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
+        <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+        <span class='lbracket'>[</span><span class='id identifier rubyid_current'>current</span><span class='comma'>,</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_journals'>journals</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_journal_position'>journal_position</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+      <span class='kw'>end</span>
+      <span class='const'><span class='object_link'><a href="RuntimeInput.html" title="Phronomy::Agent::RuntimeInput (class)">RuntimeInput</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="RuntimeInput.html#initialize-instance_method" title="Phronomy::Agent::RuntimeInput#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='kw'>self</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+        <span class='period'>.</span><span class='id identifier rubyid_materialize_transcript'>materialize_transcript</span><span class='lparen'>(</span><span class='label'>root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span> <span class='label'>records:</span> <span class='id identifier rubyid_records'>records</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 24 06:41:09 2026 by
+  Generated on Sat Oct 24 15:58:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
