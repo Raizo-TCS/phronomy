@@ -7,38 +7,45 @@ RSpec.describe "Structured output saved continuation (F4; no replay of confirmed
   include_context "durable coordination runtime"
   let(:schema) { {type: "object", properties: {answer: {type: "string"}}, required: ["answer"], additionalProperties: false} }
 
-  it "pins the schema through approval, reconstruction and the final model turn" do
-    calls = 0
-    tool = Class.new(Phronomy::Tool::Base) do
-      tool_name "protected_operation"
-      description "Count approved execution"
-      requires_approval true
-      define_method(:execute) {
-        calls += 1
-        "done"
-      }
+  %i[native none].each do |delivery|
+    it "pins the schema and #{delivery} through approval, reconstruction and the final model turn" do
+      calls = 0
+      tool = Class.new(Phronomy::Tool::Base) do
+        tool_name "protected_operation"
+        description "Count approved execution"
+        requires_approval true
+        define_method(:execute) {
+          calls += 1
+          "done"
+        }
+      end
+      worker.tools tool => nil
+      approvals = Queue.new
+      listener = ->(event) { approvals << event.payload.fetch(:request) if event.type == :approval_required }
+      original = worker.create(agent_id: "structured-approval", persistence: store.agent, on_event: listener)
+      first = LLMStub.activate(responses: [LLMStub.tool_call_response("protected_operation", {})])
+      original.invoke_async("input", output_schema: schema, schema_delivery: delivery)
+      request = Timeout.timeout(3) { approvals.pop }
+      pinned = store.agent.executions.load(request.execution_id).metadata.fetch("output_contract")
+      schema[:properties][:answer][:type] = "number"
+      expect(calls).to eq(0)
+      recovered = reboot(store.snapshot)
+      llm = LLMStub.activate(responses: ['{"answer":"approved"}'])
+      loaded = worker.load(original.agent_id, persistence: recovered.agent, on_event: listener)
+      restored = Timeout.timeout(3) { approvals.pop }
+      result = loaded.approve(request.execution_id, approval_request_id: restored.id, approved: true)
+      expect(result[:output]).to eq("answer" => "approved")
+      expect(calls).to eq(1)
+      if delivery == :native
+        expect(llm.calls.first.dig("response_format", "json_schema", "schema", "properties", "answer", "type")).to eq("string")
+      else
+        expect(first.calls.first).not_to have_key("response_format")
+        expect(llm.calls.first).not_to have_key("response_format")
+      end
+      expect(recovered.agent.executions.load(request.execution_id).metadata.fetch("output_contract")).to eq(pinned)
+      expect(first.calls.length).to eq(1)
+      expect(llm.calls.length).to eq(1)
     end
-    worker.tools tool => nil
-    approvals = Queue.new
-    listener = ->(event) { approvals << event.payload.fetch(:request) if event.type == :approval_required }
-    original = worker.create(agent_id: "structured-approval", persistence: store.agent, on_event: listener)
-    first = LLMStub.activate(responses: [LLMStub.tool_call_response("protected_operation", {})])
-    original.invoke_async("input", output_schema: schema)
-    request = Timeout.timeout(3) { approvals.pop }
-    pinned = store.agent.executions.load(request.execution_id).metadata.fetch("output_contract")
-    schema[:properties][:answer][:type] = "number"
-    expect(calls).to eq(0)
-    recovered = reboot(store.snapshot)
-    llm = LLMStub.activate(responses: ['{"answer":"approved"}'])
-    loaded = worker.load(original.agent_id, persistence: recovered.agent, on_event: listener)
-    restored = Timeout.timeout(3) { approvals.pop }
-    result = loaded.approve(request.execution_id, approval_request_id: restored.id, approved: true)
-    expect(result[:output]).to eq("answer" => "approved")
-    expect(calls).to eq(1)
-    expect(llm.calls.first.dig("response_format", "json_schema", "schema", "properties", "answer", "type")).to eq("string")
-    expect(recovered.agent.executions.load(request.execution_id).metadata.fetch("output_contract")).to eq(pinned)
-    expect(first.calls.length).to eq(1)
-    expect(llm.calls.length).to eq(1)
   end
 
   [:stop, :length].each do |reason|

@@ -98,4 +98,33 @@ RSpec.describe "RubyLLM 2 Responses execution contract" do
     expect(tokens.join).to eq("Done")
     expect(result[:usage]).to have_attributes(input: 25, output: 7, cached: 5)
   end
+
+  %i[native none].each do |delivery|
+    %i[completed refusal incomplete].each do |outcome|
+      it "validates Responses stream facts with #{delivery} delivery and #{outcome}" do
+        schema = {type: "object", properties: {answer: {type: "string"}}, required: ["answer"]}
+        text = '{"answer":"Done"}'
+        final = response([{type: "message", role: "assistant", content: [{type: "output_text", text: text}]}])
+        events = [{type: "response.output_text.delta", output_index: 0, content_index: 0, delta: text}]
+        if outcome == :refusal
+          events << {type: "response.refusal.delta", output_index: 0, content_index: 0, delta: "Denied"}
+          final[:output].first[:content] << {type: "refusal", refusal: "Denied"}
+        elsif outcome == :incomplete
+          final[:status] = "incomplete"
+          final[:incomplete_details] = {reason: "max_output_tokens"}
+        end
+        events << {type: "response.#{final[:status]}", response: final}
+        endpoint = stub_request(:post, "https://responses.example.test/v1/responses")
+          .to_return(headers: {"Content-Type" => "text/event-stream"},
+            body: events.map { |event| "data: #{JSON.generate(event)}\n\n" }.join)
+        task = build_agent { |_event| }.stream_async("Return JSON", output_schema: schema, schema_delivery: delivery)
+        if outcome == :completed
+          expect(task.wait_result(timeout: 5)[:output]).to eq("answer" => "Done")
+        else
+          expect { task.wait_result(timeout: 5) }.to raise_error(Phronomy::Agent::OutputError)
+        end
+        expect(endpoint).to have_been_requested.once
+      end
+    end
+  end
 end

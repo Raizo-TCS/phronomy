@@ -286,12 +286,7 @@ module Phronomy
           agent: @agent,
           persistence: persistence
         )
-        materializer.materialize_journal_records(
-          JournalProjection.new(
-            agent_root: root,
-            records: journal_records
-          ).transcript_records
-        )
+        materializer.materialize_transcript(root: root, records: journal_records)
       end
 
       def result_base(execution, root)

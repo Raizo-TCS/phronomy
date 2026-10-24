@@ -9,7 +9,7 @@ RSpec.describe Phronomy::Testing::Eval::Scorer::LlmJudge do
 
   it "executes the provider on a worker and parses the result" do
     caller_thread = Thread.current
-    chat = double("chat", after_message: nil)
+    chat = double("chat", provider: double("Provider", protocols: {}), after_message: nil)
     allow(RubyLLM).to receive(:chat).with(model: "test", assume_model_exists: false).and_return(chat)
     allow(chat).to receive(:ask) do |prompt|
       expect(Thread.current).not_to equal(caller_thread)

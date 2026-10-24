@@ -54,6 +54,13 @@ module Phronomy
         )
       end
 
+      # One interpretation for execution results and public transcript reads.
+      def materialize_transcript(root:, records:)
+        materialize_journal_records(
+          JournalProjection.new(agent_root: root, records: records).transcript_records
+        )
+      end
+
       def materialize_journal_record(record)
         materialize_segment(segment_from_record(record))
       end

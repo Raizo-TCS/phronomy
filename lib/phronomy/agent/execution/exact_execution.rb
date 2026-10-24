@@ -122,9 +122,11 @@ module Phronomy
           raise Phronomy::Persistence::StateConflictError, "Reserved execution #{@id} correlation mismatch"
         end
         unless @resume_only
-          expected_digest = @config[:phronomy_output_contract]&.digest
-          if expected_digest != execution.metadata.dig("output_contract", "schema_digest")
-            raise Phronomy::Persistence::StateConflictError, "Reserved execution output schema mismatch"
+          expected_contract = @config[:phronomy_output_contract]
+          saved_contract = OutputContract.restore(execution, @agent.persistence.contents)
+          if expected_contract&.digest != saved_contract&.digest ||
+              expected_contract&.schema_delivery != saved_contract&.schema_delivery
+            raise Phronomy::Persistence::StateConflictError, "Reserved execution output contract mismatch"
           end
         end
         ref = execution.metadata["current_input_ref"]

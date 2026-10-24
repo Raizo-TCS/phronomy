@@ -8,8 +8,8 @@ module Phronomy
     # still pending. Generation owns the request-to-Workflow correlation.
     # @api private
     class AgentOperation
-      def initialize(agent_class, output_schema:)
-        @output_schema = output_schema
+      def initialize(agent_class, output_schema:, schema_delivery:)
+        @output_schema, @schema_delivery = output_schema, schema_delivery
         @mutex = Mutex.new
         @pending = []
         @agent = agent_class.new(on_event: method(:receive_event))
@@ -21,7 +21,7 @@ module Phronomy
         # own result settles: Agent admission itself may run after an earlier
         # request completes, so a pending submission is not necessarily busy.
         @mutex.synchronize { @pending << [request, listener] }
-        task = @agent.invoke_async(input, config: config, output_schema: @output_schema)
+        task = @agent.invoke_async(input, config: config, output_schema: @output_schema, schema_delivery: @schema_delivery)
         task.on_complete do |result, error|
           release(request)
           remember_execution(result[:execution_id]) if result.is_a?(Hash)

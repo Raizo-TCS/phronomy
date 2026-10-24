@@ -34,10 +34,13 @@ module Phronomy
     end
 
     def initialize(draft_agent:, review_agent:, draft_prompt_builder:, review_prompt_builder:,
-      citation_schema: Protocol::DEFAULT_CITATION,
+      citation_schema: Protocol::DEFAULT_CITATION, schema_delivery: :native,
       confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
       max_iterations: DEFAULT_MAX_ITERATIONS, raise_if_unaccepted: false, on_approval: nil)
       ensure_blocking_allowed!(:new)
+      unless %i[native none].include?(schema_delivery)
+        raise ArgumentError, "schema_delivery must be :native or :none"
+      end
       unless confidence_threshold.is_a?(Numeric) && confidence_threshold.real? && confidence_threshold.to_f.finite? &&
           (0.0..1.0).cover?(confidence_threshold)
         raise ArgumentError, "confidence_threshold must be a finite number in 0..1"
@@ -62,8 +65,8 @@ module Phronomy
       @draft_prompt_builder, @review_prompt_builder = draft_prompt_builder, review_prompt_builder
       draft_schema = Protocol.draft(citation_schema)
       begin
-        @operations[:draft] = AgentOperation.new(draft_agent, output_schema: draft_schema)
-        @operations[:review] = AgentOperation.new(review_agent, output_schema: Protocol::REVIEW)
+        @operations[:draft] = AgentOperation.new(draft_agent, output_schema: draft_schema, schema_delivery: schema_delivery)
+        @operations[:review] = AgentOperation.new(review_agent, output_schema: Protocol::REVIEW, schema_delivery: schema_delivery)
       rescue Exception => primary # rubocop:disable Lint/RescueException -- release partially acquired resources
         begin
           release!

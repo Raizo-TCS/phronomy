@@ -39,7 +39,7 @@ RSpec.describe "Agent structured output contract" do
     expect(result[:output]).to be_frozen
     expect(result[:raw_output]).to eq('{"answer":"ok","score":0.8}')
     saved = store.executions.load(result[:execution_id])
-    expect(saved.metadata.dig("output_contract", "version")).to eq(1)
+    expect(saved.metadata.dig("output_contract", "version")).to eq(2)
     manifest = store.contents.fetch_json(saved.llm_calls.first.manifest_ref)
     expect(manifest["response_schema_ref"]).to eq(saved.metadata.dig("output_contract", "schema_ref"))
     agent.unload!

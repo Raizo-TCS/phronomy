@@ -251,6 +251,7 @@ module Phronomy
         tools:,
         current_input:
       )
+        OutputContract.validate_model_config!(model_config) if execution.metadata.key?("output_contract")
         token_budget = Phronomy::Agent::Settings.current.llm_adapter.input_budget(model_config)
         policy_input = @input_builder.build(
           agent_id: agent_root.agent_id,

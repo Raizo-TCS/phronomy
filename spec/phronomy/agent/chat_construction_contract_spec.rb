@@ -6,7 +6,7 @@ RSpec.describe "LLM backend construction and projection" do
   let(:adapter) { Phronomy::LLMAdapter::RubyLLM.new }
   let(:messages) { [] }
   let(:response) { RubyLLM::Message.new(role: :assistant, content: "done") }
-  let(:chat) { double(:chat, messages: messages, after_message: nil, complete: response) }
+  let(:chat) { double(:chat, provider: double("Provider", protocols: {}), messages: messages, after_message: nil, complete: response) }
 
   it "renders only the saved request configuration and never consults Agent settings" do
     request = Phronomy::LLMAdapter::Request.new(model_config: {

@@ -15,7 +15,7 @@ RSpec.describe "Execution with real Agent admission and terminal persistence" do
       to_h: {input: 1, output: 1, cache_read: 0, cache_write: 0})
     response = double("Response", role: :assistant, content: "answer", tool_calls: nil,
       tokens: tokens, tool_call?: false)
-    chat = double("Chat")
+    chat = double("Chat", provider: double("Provider", protocols: {}))
     [:with_instructions, :with_tools, :with_temperature].each do |method|
       allow(chat).to receive(method).and_return(chat)
     end

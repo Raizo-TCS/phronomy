@@ -95,21 +95,23 @@ RSpec.describe "RubyLLM native structured output transport" do
     end
   end
 
-  it "retains streamed refusal even when the SDK omits it from Chunk content" do
-    registered = RubyLLM::Providers::OpenAI.protocols.dup
-    body = [
-      {delta: {refusal: "cannot "}, finish_reason: nil},
-      {delta: {refusal: "answer"}, finish_reason: nil},
-      {delta: {}, finish_reason: "stop"}
-    ].map { |choice| "data: #{JSON.generate(id: "stream-1", model: "gpt-4o", choices: [choice.merge(index: 0)])}\n\n" }.join + "data: [DONE]\n\n"
-    stub_request(:post, "https://api.openai.com/v1/chat/completions").to_return(status: 200,
-      headers: {"Content-Type" => "text/event-stream"}, body: body)
-    chunks = []
-    result = adapter.stream(request) { |chunk| chunks << chunk }
-    expect(result.finish_reason).to eq(:refusal)
-    expect(result.refusal).to eq("cannot answer")
-    expect(chunks).not_to be_empty
-    expect(RubyLLM::Providers::OpenAI.protocols).to eq(registered)
+  [true, false].each do |native|
+    it "retains streamed refusal with native schema #{native} even when the SDK omits it" do
+      registered = RubyLLM::Providers::OpenAI.protocols.dup
+      body = [
+        {delta: {refusal: "cannot "}, finish_reason: nil},
+        {delta: {refusal: "answer"}, finish_reason: nil},
+        {delta: {}, finish_reason: "stop"}
+      ].map { |choice| "data: #{JSON.generate(id: "stream-1", model: "gpt-4o", choices: [choice.merge(index: 0)])}\n\n" }.join + "data: [DONE]\n\n"
+      stub_request(:post, "https://api.openai.com/v1/chat/completions").to_return(status: 200,
+        headers: {"Content-Type" => "text/event-stream"}, body: body)
+      chunks = []
+      result = adapter.stream(request(response_schema: native ? schema : nil)) { |chunk| chunks << chunk }
+      expect(result.finish_reason).to eq(:refusal)
+      expect(result.refusal).to eq("cannot answer")
+      expect(chunks).not_to be_empty
+      expect(RubyLLM::Providers::OpenAI.protocols).to eq(registered)
+    end
   end
 
   it "rejects conflicting schema configuration instead of ignoring it" do

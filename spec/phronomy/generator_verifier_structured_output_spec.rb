@@ -26,6 +26,27 @@ RSpec.describe "GeneratorVerifier structured output" do
       review_prompt_builder: ->(_input, draft, _citations) { draft }, **options, &block)
   end
 
+  it "applies local validation to both draft and review without native schema delivery" do
+    responses.concat(['{"answer":"ok","confidence":0.9,"citations":[]}', '{"approved":true,"score":0.9,"feedback":""}'])
+    result = pipeline(schema_delivery: :none) { |p| p.invoke("question") }
+    expect(result).to be_accepted
+    expect(requests.map(&:response_schema)).to eq([nil, nil])
+  end
+
+  it "retains output failure semantics for an invalid review with local validation" do
+    responses.concat(['{"answer":"ok","confidence":0.9,"citations":[]}', "invalid"])
+    result = pipeline(schema_delivery: :none) { |p| p.invoke("question") }
+    expect(result.termination_reason).to eq("output_failed")
+    expect(result.interrupted_phase).to eq("review")
+    expect(result.failure["reason"]).to eq("invalid_json")
+    expect(requests.length).to eq(2)
+  end
+
+  it "rejects an invalid delivery before acquiring either Agent" do
+    expect(agent_class).not_to receive(:new)
+    expect { pipeline(schema_delivery: :auto) { |p| p.invoke("q") } }.to raise_error(ArgumentError)
+  end
+
   it "awaits its direct Task and accepts valid zero scores with a zero threshold" do
     responses.concat(['{"answer":"ok","confidence":0,"citations":[]}', '{"approved":true,"score":0,"feedback":""}'])
     result = pipeline(confidence_threshold: 0) { |p| p.invoke_async("question") }

@@ -24,7 +24,9 @@ module Phronomy
 
       def record(data)
         choice = data.dig("choices", 0) || {}
-        @raw_finish_reason = choice["finish_reason"] || data.dig("delta", "stop_reason") ||
+        provider_delta = data["delta"]
+        stop_reason = provider_delta["stop_reason"] if provider_delta.is_a?(Hash)
+        @raw_finish_reason = choice["finish_reason"] || stop_reason ||
           data.dig("candidates", 0, "finishReason") || @raw_finish_reason
         delta = choice.dig("delta", "refusal")
         delta ||= data["delta"] if data["type"] == "response.refusal.delta"

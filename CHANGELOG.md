@@ -12,6 +12,25 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Added
+
+- Add explicit Agent `schema_delivery: :native | :none` across execution entry
+  points and GeneratorVerifier. Local structured-output validation is identical
+  in both modes; existing calls retain native delivery.
+- Add `Agent#transcript_messages` and its async counterpart to read immutable
+  Message values without application knowledge of Journal storage.
+
+### Persistence
+
+- Save new output contracts as version 2 with the delivery choice and retain their
+  schemas even when no schema is sent. These executions use envelope 0.3, rejected
+  by older readers. Existing version-1 contracts remain native and readable.
+
+### Fixed
+
+- Preserve streamed refusal facts even when native schema delivery is omitted.
+
+
 ## [0.30.1] - 2026-10-24
 
 ### Documentation

@@ -400,6 +400,29 @@ module Phronomy
         end
       end
 
+      # Materializes the current durable transcript as immutable Message values.
+      # Application authorization and presentation filtering remain caller-owned.
+      # @return [Array<LLMAdapter::Message>]
+      def transcript_messages
+        _check_event_loop_reentrancy(:transcript_messages, :transcript_messages_async)
+        transcript_messages_async.wait_result
+      end
+
+      # Holds Agent ownership until the submitted read physically completes.
+      # @return [TaskResult<Array<LLMAdapter::Message>>]
+      def transcript_messages_async
+        __with_operation(async: true, read_only: true) do
+          __execution_environment.submit(on_full: :raise) do
+            root, records = persistence.transaction do |tx|
+              current = tx.agents.load(agent_id)
+              [current, tx.journals.read(agent_id, limit: current.journal_position)]
+            end
+            RuntimeInput.new(agent: self, persistence: persistence)
+              .materialize_transcript(root: root, records: records)
+          end
+        end
+      end
+
       def clear_transcript!
         __with_operation do
           mutate_context!(:transcript_cleared) do |root|
@@ -730,8 +753,8 @@ module Phronomy
       def _prepare_invocation_config(config, invocation_context)
         __assert_live_agent!
         _reject_removed_generic_identity_keys!(config)
-        if config.keys.any? { |key| %w[output_schema response_schema phronomy_output_contract].include?(key.to_s) }
-          raise ArgumentError, "Use the output_schema keyword on a new Agent execution"
+        if config.keys.any? { |key| %w[output_schema schema_delivery response_schema phronomy_output_contract].include?(key.to_s) }
+          raise ArgumentError, "Use the output_schema and schema_delivery keywords on a new Agent execution"
         end
         invocation_context ?
           config.merge(invocation_context: invocation_context) : config
