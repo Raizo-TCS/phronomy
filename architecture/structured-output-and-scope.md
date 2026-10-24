@@ -196,6 +196,38 @@ Neither API implicitly cancels work, answers approval, deletes saved data or
 closes the application Store. The application decides how unfinished work becomes
 safe before retrying through the cleanup error's scope/pipeline handle.
 
+## Single-invocation ownership
+
+`Agent.run_once(definition:, input:, context: nil, knowledge: [], on_event: nil,
+**invoke_options, &event_block)` creates a fresh ephemeral Store and owns one
+Agent through `Agent.open_scope`. The definition must be an `Agent::Base`
+subclass. It forwards the input and invocation options, including the output
+schema and delivery selection, and releases the live Agent before returning.
+The application-level Store configuration is not used or changed.
+
+Successful cleanup preserves the invocation value or the identical invocation
+exception. A cleanup failure raises `Agent::ScopeCleanupError`: `result` retains
+a successful value, `primary_error` retains an invocation failure, `failures`
+identifies unreleased owners, and `scope.release!` can retry release. It does not
+repeat the invocation, model request or Tool work. Release does not purge records,
+close shared storage or shut down Runtime. No keep-alive option or legacy path
+is provided; use `create`/`load` or an explicit scope for a reusable Agent.
+
+The synchronous call cannot run on EventLoop. It rejects that entry before
+creating its Store or Agent. Supplying both `on_event:` and a listener block is
+also rejected before acquisition. The existing listener-error policy is preserved.
+
+Approval waits are not completion. The Agent remains owned while the invocation
+waits; the application still decides approval through the existing API. Use
+`approve_async` when another operation is already waiting for the same execution.
+A concurrent synchronous approval or other accepted operation can still own a
+lease when the invocation returns. In that case cleanup reports the busy owner
+through `ScopeCleanupError`; finish the other operation before retrying release.
+Logical cancellation likewise cannot authorize release of physically active work.
+The convenience API neither answers approval nor cancels or waits for unrelated
+work to make cleanup succeed. Applications needing notifications or other work
+after the invocation should express that whole lifetime with `open_scope`.
+
 ## Dependencies and implementation units
 
 - Remove C03 Generation → C17 OutputParser; C03 continues to use public C04 Agent,

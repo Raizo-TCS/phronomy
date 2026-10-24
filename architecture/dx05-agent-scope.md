@@ -113,8 +113,10 @@ removal is performed.
   blocks release.
 
 For notifications, finish child processing, drain notifications, then exit the
-Agent scope. `run_once` retains its existing Store and lifetime behavior; merely
-calling it does not opt into scope cleanup.
+Agent scope. `run_once` owns a fresh ephemeral Store and an Agent scope. It releases
+the Agent before returning or propagating an invocation failure, using the same
+release and cleanup-error rules. Use an explicit scope when ownership must extend
+past the invocation, for example until final notification delivery has drained.
 
 This is P5 (core). P6 migrates application examples and performs cross-repository
 acceptance against the published or pinned candidate core.

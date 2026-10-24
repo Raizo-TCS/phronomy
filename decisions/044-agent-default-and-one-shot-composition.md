@@ -5,6 +5,11 @@
 **Refines**: [038-responsibility-based-source-layout](038-responsibility-based-source-layout.md)
 and [040-configuration-default-composition](040-configuration-default-composition.md)
 
+The original lifetime-preservation decision below is historical. The current
+`run_once` contract owns a scope and releases its Agent; see
+[single-invocation ownership](../architecture/structured-output-and-scope.md#single-invocation-ownership).
+The composition placement and default-factory boundary remain in force.
+
 ## Problem
 
 `Agent::Base` selected the concrete default with `Persistence.in_memory`.
