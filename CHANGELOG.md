@@ -12,6 +12,17 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-10-24
+
+### Documentation
+
+- Translate historical r8 unit 1/2 architecture notes and durable semantic
+  coordination records into English, preserving API names, executable commands,
+  requirement IDs, dates and the original validation limits.
+- Repair ADR-029's link to the recovery-contract document and its English heading.
+
+Runtime behavior, public APIs and dependency requirements match 0.30.0.
+
 ## [0.30.0] - 2026-10-24
 
 ### Added
