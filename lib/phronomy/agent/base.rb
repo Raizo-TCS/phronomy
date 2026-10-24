@@ -403,6 +403,7 @@ module Phronomy
       # Materializes the current durable transcript as immutable Message values.
       # Application authorization and presentation filtering remain caller-owned.
       # @return [Array<LLMAdapter::Message>]
+      # @api public
       def transcript_messages
         _check_event_loop_reentrancy(:transcript_messages, :transcript_messages_async)
         transcript_messages_async.wait_result
@@ -410,6 +411,7 @@ module Phronomy
 
       # Holds Agent ownership until the submitted read physically completes.
       # @return [TaskResult<Array<LLMAdapter::Message>>]
+      # @api public
       def transcript_messages_async
         __with_operation(async: true, read_only: true) do
           __execution_environment.submit(on_full: :raise) do
