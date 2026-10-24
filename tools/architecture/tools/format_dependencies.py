@@ -494,13 +494,14 @@ def format_svg(input_path, output_path, config_path, validation_path=None):
             **config["background"], "edge_count": len(back),
             "hidden_incoming_targets": sorted(hidden_targets), "hidden_edges": hidden_count,
             "visible_edges": len(visible_edges), "transparent_text_panels": transparent, "paint_order": ["common-background-edges", "primary-dependency-edges"], "matrix_unchanged": True})
-    meta["notes_ja"] = [
-        "B1〜B6 の横帯・分野別の列・右側の補助領域を復元。G 番号は責務を示し、境界検査は配置ではなく責務に基づく。",
-        "現状の混在ディレクトリを明示。構想図と実測図を区別し、分離前の依存もすべて残す。",
-        "全依存対・行列・根拠リンクを維持。Engine と Backend Contracts は独立した責務。"
+    meta.pop("notes_ja", None)
+    meta["notes_en"] = [
+        "Restore the B1-B6 horizontal bands, topic columns and right-hand support area. G IDs represent responsibilities; boundary checks use responsibilities, not layout.",
+        "Show the current mixed directories explicitly. Distinguish concept diagrams from measured diagrams and retain all dependencies that precede separation.",
+        "Preserve all dependency pairs, matrix cells and evidence links. Engine and Backend Contracts have independent responsibilities."
     ]
     if hidden_targets:
-        meta["notes_ja"].append("共通定義への指定矢印は表示のみ非表示。解析データ・全依存行列・根拠を保持。")
+        meta["notes_en"].append("Hide selected arrows to common definitions only in the presentation. Preserve analysis data, the full dependency matrix and evidence.")
     metadata_node.text = json.dumps(meta, ensure_ascii=False)
 
     # Verify the presentation change does not silently change the reviewed graph.

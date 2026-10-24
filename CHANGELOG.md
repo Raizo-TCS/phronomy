@@ -59,6 +59,8 @@ Runtime behavior, public APIs and dependency requirements match 0.30.0.
 
 ### Changed
 
+- Generate architecture SVG metadata in English, including repeated formatting.
+
 - GeneratorVerifier owns immutable evaluation Results, explicit approval routing
   and Agent lifetime. Use `accepted?`, `termination_reason` and
   `raise_if_unaccepted`; `output_failed` distinguishes invalid output from a
