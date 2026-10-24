@@ -1,33 +1,33 @@
-# V2 revision 2 — 改訂内容
+# V2 revision 2 - Changes
 
-更新日: 2026-09-06 / 状態: Accepted
+Updated: 2026-09-06 / Status: Accepted
 
-## 合意反映
+## Accepted decisions reflected in this revision
 
-| 項目 | 今回の修正 |
+| Item | Change in this revision |
 |---|---|
-| RC-01 結果参照 | exact実行IDで状態・結果を読み取る契約と、ID受領前の停止に備えたownerからの候補発見を追加 |
-| RC-02 保存成否不明 | 正常な不存在、read障害、CAS競合、commit成否不明を区別。同じ予約済みidentityで照合 |
-| RC-03 wiring互換性 | 定義id/version・slot・graph・Persistence境界の最低照合と、確定済みfactの優先を明記 |
-| RC-04 cancellation | 観測終了/shutdownとsemantic cancelを区別。子の状態別処理、競合、restart後の再発見を明記 |
-| RC-05 保証表現 | 確定outcome再利用・同一identity復旧・外部成否不明は既存Recovery、に統一 |
+| RC-01 Result access | Add contracts for reading status/results by exact execution ID and discovering candidates from the owner if execution is interrupted before the caller receives the ID |
+| RC-02 Unknown persistence outcomes | Distinguish confirmed absence, read failure, CAS conflict, and unknown commit outcome; reconcile using the same reserved identity |
+| RC-03 Wiring compatibility | Specify minimum checks for definition id/version, slot, graph, and Persistence boundary, and give precedence to committed facts |
+| RC-04 Cancellation | Distinguish ending observation/shutdown from semantic cancellation; specify handling by child state, races, and rediscovery after restart |
+| RC-05 Guarantee wording | Use consistent wording: reuse committed outcomes, recover with the same identity, and resolve uncertain external outcomes through existing Recovery |
 
-ADR-029/030/031、実装設計、責務境界レビュー、READMEへ対応する規範的記述を反映した。
-詳細契約と検証条件はRECOVERY_CONTRACT_CLARIFICATIONS.mdにまとめ、資料間で参照する。
-承認前のProposed表記をAcceptedへ更新した。新機能の再承認を要求しない。
+The corresponding normative statements have been incorporated into ADR-029/030/031, the implementation design, the responsibility boundary review, and the README.
+Detailed contracts and validation conditions are collected in RECOVERY_CONTRACT_CLARIFICATIONS.md and referenced across the documents.
+The pre-approval Proposed status has been changed to Accepted. This does not request renewed approval of the new functionality.
 
-## 実装状態の訂正
+## Correction of implementation status
 
-引き継ぎ文書の旧実装件数・静的検証成功は、前セッションの報告として残す。
-この分岐先で実装を再検証した事実にはしない。現在取得できたのは設計資料と引き継ぎ文書であり、
-旧overlay/apply.py/APPLY.sh/VERIFY.shは未取得。再開手順も実ファイルの回収から始める形に更新した。
+Earlier implementation counts and successful static checks in the handoff document remain reports from the previous session.
+They are not evidence that implementation was revalidated in this continuation. Only the design documents and handoff document are currently available;
+the old overlay/apply.py/APPLY.sh/VERIFY.sh have not been recovered. The resumption procedure has also been updated to begin by recovering the actual files.
 
-## 今回実施した確認
+## Checks performed for this revision
 
-- 対象資料の承認状態、baseline、相互参照の整合確認。
-- 旧い「未承認のため実装停止」表現と、外部効果のexactly-onceに読める保証表現の修正。
-- RC-01〜05のADR・実装設計・検証条件への対応確認。
-- ZIP構成、全文書のSHA256SUMS、ZIP/引き継ぎ文書の外部SHA256の検証。
+- Check consistency of approval status, baseline, and cross-references in the affected documents.
+- Correct obsolete statements that implementation was stopped pending approval and guarantee wording that could imply exactly-once external effects.
+- Check the mapping of RC-01 through RC-05 to ADRs, implementation design, and validation conditions.
+- Verify the ZIP layout, SHA256SUMS for all documents, and external SHA256 values for the ZIP and handoff document.
 
-対象repositoryのコード変更・RSpec実行は行っていない。
-API名や例外名は未確認のものを作らず、baselineへの対応付けを実装前の必須作業とした。
+No code changes or RSpec runs were performed in the target repository.
+Unverified API or exception names were not invented; mapping the requirements to the baseline was made mandatory before implementation.

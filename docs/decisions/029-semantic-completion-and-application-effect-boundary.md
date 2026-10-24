@@ -153,7 +153,7 @@ request deduplication or unambiguous correlation. Existing retention applies.
 
 Reuse existing APIs where they meet this contract; map missing capabilities only
 after baseline inspection. Do not invent a framework outbox or request registry.
-See [RC-01](RECOVERY_CONTRACT_CLARIFICATIONS.md#1-rc-01--確定結果の参照と実行の発見).
+See [RC-01](../design/durable-semantic-coordination/RECOVERY_CONTRACT_CLARIFICATIONS.md#1-rc-01-accessing-final-results-and-discovering-executions).
 
 ### 9. Unknown commit outcome and cancellation
 
