@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-25
+
 ### Added
 
 - Add explicit Agent `schema_delivery: :native | :none` across execution entry
@@ -19,6 +21,9 @@ Release history for 0.14.0 and earlier is archived in
   in both modes; existing calls retain native delivery.
 - Add `Agent#transcript_messages` and its async counterpart to read immutable
   Message values without application knowledge of Journal storage.
+- Add `Tools::Agent::CleanupError` (`tool.agent_cleanup_failed`) with the child
+  Agent, successful result and primary/cleanup failures needed to diagnose failed
+  release and retry `child_agent.unload_async` without repeating the invocation.
 
 ### Persistence
 
@@ -29,6 +34,45 @@ Release history for 0.14.0 and earlier is archived in
 ### Fixed
 
 - Preserve streamed refusal facts even when native schema delivery is omitted.
+- Release the one-shot Agent owned by `Agent.run_once` through `Agent.open_scope`.
+  Preserve the invocation value or original exception when release succeeds;
+  report unsafe or failed release through `Agent::ScopeCleanupError` with the
+  result, primary error and scope needed for a release-only retry.
+- Give each Agent-backed Tool call explicit ownership of its fresh child and
+  ephemeral Store. Complete release after logical and physical invocation
+  completion, without occupying a worker merely to wait. Preserve approval,
+  cancellation, independent leases, retention and recovery restrictions.
+- Acknowledge terminal execution waiters before publishing their result while
+  retaining each operation's physical lease until its work actually finishes.
+- Stop completed Agent Tool handles from retaining released children through
+  generated callback owners, temporary state-machine tracker context or completed
+  `ExecutionChange` wiring. Clear execution-only references after commit and any
+  ambiguous-outcome readback, including failure paths. Keep single-use guards,
+  saved results, session ownership and recovery behavior intact.
+
+### Changed
+
+- Both synchronous and asynchronous Agent Tool calls now use the child's
+  `invoke_async`. An override of only `invoke` no longer changes synchronous
+  Agent Tool execution; update custom child subclasses accordingly.
+- Agent Tool cleanup failures are surfaced and diagnosed, including after an
+  outer observer cancels. A general Tool error-suppression policy cannot hide
+  failed child release.
+
+### Verification and migration
+
+- Read the [0.31 migration notes](docs/migrations/0.31.md) before upgrading stored
+  executions or custom Agent Tool subclasses. Deploy readers that support
+  AgentExecution 0.3 before writing new structured executions; older readers
+  cannot read these records, including completed executions. Existing 0.2 records
+  and version-1 native output contracts remain readable without a read-time rewrite.
+- LM Studio/gpt-oss PEG output parsing remains an unresolved external limitation.
+  Existing known-error identification and bounded retry are not a root-cause fix.
+  The DX1/DX2 live normal path, streaming, Tool use and history restoration remain
+  unverified in that environment. This release relies on source review, offline
+  regressions and CI; it does not claim completion of live LLM acceptance.
+  Historical initial success and bounded retry/stop evidence retain their limited
+  scope; retry recovery and recurrence resolution remain unverified.
 
 
 ## [0.30.1] - 2026-10-24

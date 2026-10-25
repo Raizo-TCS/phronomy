@@ -37,9 +37,9 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following table describes the application APIs on the current development
-branch. Entries marked **Unreleased** are not included in the latest published
-release.
+The following table describes the application APIs available in v0.31.0.
+Review the [0.31 migration notes](docs/migrations/0.31.md) before upgrading
+persistent applications or custom Agent Tool subclasses.
 
 | API | Stability | Contract |
 |---|---|---|
@@ -48,7 +48,7 @@ release.
 | Agent `transcript_messages` / `transcript_messages_async` | Beta | Read immutable conversation Message values with the same restoration rules as execution results; [reading conversation state](docs/getting-started.md) |
 | `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` with output-failure diagnostics | Beta | [Generation and structured-output contract](docs/architecture/structured-output-and-scope.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
-| `Tools::Agent::CleanupError` | Beta | **Unreleased.** Preserves the child, result and failure causes when safe release fails; retry `child_agent.unload_async` for release only; [contract](docs/architecture/agent-tool-child-lifetime.md) |
+| `Tools::Agent::CleanupError` | Beta | Added in v0.31.0. Preserves the child, result and failure causes when safe release fails; retry `child_agent.unload_async` for release only; [contract](docs/architecture/agent-tool-child-lifetime.md) |
 | `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |
 | `Phronomy::Integrations::OrderedEventDelivery` | Beta | Optional ordered delivery with bounded admission and explicit drain lifetime; [usage](docs/ordered-event-delivery.md) |
 | `Phronomy::Error#code` and error constructor `code:` | Beta | Optional reason codes and bounded causes retained in saved failure diagnostics; [meaning and compatibility](docs/architecture/error-api-review.md) |
@@ -193,6 +193,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [Persistence failure contract migration](docs/migrations/persistence-failure-contracts.md) — domain rescue clauses and unchanged raw backend errors.
 - [0.19 unified Persistence migration](docs/migrations/0.19.md).
 - [0.22 semantic Multi-Agent Handoff migration](docs/migrations/0.22.md).
+- [0.31 persistence and Agent lifetime migration](docs/migrations/0.31.md).
 - [Architecture Decision Records](docs/decisions/) — design rationale and superseding decisions.
 - [CHANGELOG](CHANGELOG.md) — current development and recent release history.
 - [Changelog archive: 0.14.0 and earlier](docs/changelog/0.14-and-earlier.md).
