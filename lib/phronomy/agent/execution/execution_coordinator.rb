@@ -1703,6 +1703,12 @@ module Phronomy
           execution_id,
           fallback: fallback_task
         )
+        # All these waiters observe the same terminal execution. A synchronous
+        # completion callback may request unload immediately, so acknowledge
+        # every finished operation before publishing any logical result. Each
+        # OperationResult still retains its lease until tracked physical work
+        # ends; unrelated operations remain protected by their own leases.
+        waiters.each { |task| task.finish_operation! if task.respond_to?(:finish_operation!) }
         waiters.each do |task|
           settle_after_terminal(
             task, callback_error, event_type, result, execution_error

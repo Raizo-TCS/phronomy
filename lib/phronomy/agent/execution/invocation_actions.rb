@@ -6,46 +6,48 @@ module Phronomy
     # Session construction and resource selection are supplied by the environment.
     # @api private
     class InvocationActions
-      def self.build_entry_actions(agent, environment, mode:, event_sink:)
+      def self.build_entry_actions(environment, mode:, event_sink:)
+        # Generated machine callbacks can outlive a session through VM method
+        # caches. Resolve the Agent from the current invocation, never capture it.
         calling_action = if mode.to_sym == :stream
-          method(:calling_llm_stream_action).curry.call(agent, environment, event_sink)
+          method(:calling_llm_stream_action).curry.call(environment, event_sink)
         else
-          method(:calling_llm_action).curry.call(agent, environment, event_sink)
+          method(:calling_llm_action).curry.call(environment, event_sink)
         end
 
         {
-          filtering_input: [method(:apply_prepared_input_action).curry.call(agent)],
-          building_context: [method(:prepare_runtime_input_action).curry.call(agent)],
+          filtering_input: [method(:apply_prepared_input_action)],
+          building_context: [method(:prepare_runtime_input_action)],
           calling_llm: [calling_action],
           starting_tools: [method(:starting_tools_action).curry.call(environment, event_sink)],
           dispatching_tools: [method(:dispatching_tools_action).curry.call(environment, event_sink)],
           recording_tool_results: [method(:recording_tool_results_action)],
           suspended: [method(:suspended_action)],
-          output_filtering: [method(:output_filtering_action).curry.call(agent)],
+          output_filtering: [method(:output_filtering_action)],
           failed: [method(:failed_action)]
         }
       end
 
-      def self.apply_prepared_input_action(_agent, invocation)
+      def self.apply_prepared_input_action(invocation)
         invocation.input = invocation.config.fetch(:phronomy_filtered_input)
         invocation
       end
       private_class_method :apply_prepared_input_action
 
-      def self.prepare_runtime_input_action(agent, invocation)
+      def self.prepare_runtime_input_action(invocation)
         projection = invocation.config.fetch(:phronomy_runtime_projection)
-        agent.send(:prepare_runtime_input, projection, invocation: invocation)
+        invocation.agent.send(:prepare_runtime_input, projection, invocation: invocation)
       end
       private_class_method :prepare_runtime_input_action
 
-      def self.calling_llm_action(agent, environment, event_sink, invocation)
-        prepare_and_start_llm_call(agent, environment, event_sink, invocation, streaming: false)
+      def self.calling_llm_action(environment, event_sink, invocation)
+        prepare_and_start_llm_call(invocation.agent, environment, event_sink, invocation, streaming: false)
         invocation
       end
       private_class_method :calling_llm_action
 
-      def self.calling_llm_stream_action(agent, environment, event_sink, invocation)
-        prepare_and_start_llm_call(agent, environment, event_sink, invocation, streaming: true)
+      def self.calling_llm_stream_action(environment, event_sink, invocation)
+        prepare_and_start_llm_call(invocation.agent, environment, event_sink, invocation, streaming: true)
         invocation
       end
       private_class_method :calling_llm_stream_action
@@ -354,8 +356,8 @@ module Phronomy
       end
       private_class_method :failed_action
 
-      def self.output_filtering_action(agent, invocation)
-        invocation.output = agent.send(:run_output_filters!, invocation.output)
+      def self.output_filtering_action(invocation)
+        invocation.output = invocation.agent.send(:run_output_filters!, invocation.output)
         invocation
       rescue Phronomy::FilterBlockError => error
         invocation.output_blocked = true

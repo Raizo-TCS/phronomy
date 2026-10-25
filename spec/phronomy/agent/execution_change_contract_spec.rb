@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "weakref"
 
 RSpec.describe Phronomy::Agent::ExecutionChange do
   let(:stores) { Phronomy::PersistenceComposition.in_memory }
@@ -91,5 +92,68 @@ RSpec.describe Phronomy::Agent::ExecutionChange do
         updated: value.with(status: :active), config: {phronomy_execution_participant: participant})
     end.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     expect(stores.agent.executions.load(value.execution_id).to_h).to eq(value.to_h)
+  end
+
+  [nil, :before_commit, :after_commit].each do |failure_point|
+    it "releases completed change wiring while preserving its result, failure=#{failure_point.inspect}" do
+      execution, root, persistence = current, agent.agent_root, stores.agent
+      change_type = described_class
+      retained, references, result, error, calls = Thread.new do
+        owner = Struct.new(:agent_id, :persistence).new(execution.agent_id, persistence)
+        writer_owner = Object.new
+        participant = Class.new do
+          attr_reader :commits, :readbacks
+
+          def initialize(failure_point)
+            @failure_point = failure_point
+            @commits = @readbacks = 0
+          end
+
+          def commit(change)
+            @commits += 1
+            change.coordinator.atomic do |scope|
+              change.prepare_in(scope)
+              raise IOError, "before commit" if @failure_point == :before_commit
+              change.commit_in(scope)
+            end
+            raise IOError, "lost commit response" if @failure_point == :after_commit
+          end
+
+          def guard_change(_change, _scope)
+            @readbacks += 1
+          end
+
+          def change_evidence(_change, _scope) = "participant evidence"
+        end.new(failure_point)
+        item = change_type.new(agent: owner, current: execution, root: root,
+          kind: :dispatch, updated: execution.with(status: :active),
+          config: {phronomy_execution_participant: participant}, &writer_owner.method(:to_s))
+        refs = [owner, writer_owner, participant].map { |value| WeakRef.new(value) }
+        value = failure = nil
+        begin
+          value = item.perform
+        rescue => caught
+          failure = caught
+        end
+        [item, refs, value, failure, [participant.commits, participant.readbacks]]
+      end.value
+
+      3.times { GC.start }
+      expect(references.none?(&:weakref_alive?)).to be(true)
+      expect(retained.agent_id).to eq(execution.agent_id)
+      expect(retained.kind).to eq(:dispatch)
+      expect(calls).to eq([1, (failure_point == :after_commit) ? 1 : 0])
+      if failure_point == :before_commit
+        expect(error).to be_a(IOError)
+        expect(error.message).to eq("before commit")
+        expect(result).to be_nil
+        expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
+      else
+        expect(error).to be_nil
+        expect(result.execution_revision).to eq(execution.execution_revision + 1)
+        expect(persistence.executions.load(execution.execution_id).to_h).to eq(result.to_h)
+      end
+      expect { retained.perform }.to raise_error(Phronomy::ConfigurationError, /single-use/)
+    end
   end
 end

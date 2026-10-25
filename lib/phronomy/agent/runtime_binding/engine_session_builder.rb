@@ -9,8 +9,8 @@ module Phronomy
       def self.build(invocation:, environment:, event_loop:, resume_event: nil, resume_phase: nil)
         event_sink = Phronomy::FSMSession::EventSink.new(event_loop: event_loop)
         invocation.bind_event_sink!(event_sink)
-        actions = InvocationActions.build_entry_actions(invocation.agent,
-          environment, mode: invocation.mode, event_sink: event_sink)
+        actions = InvocationActions.build_entry_actions(environment,
+          mode: invocation.mode, event_sink: event_sink)
         phase_machine = PhaseMachineBuilder.new(entry_actions: actions).build
 
         Phronomy::FSMSession.new(

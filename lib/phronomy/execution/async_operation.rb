@@ -25,6 +25,22 @@ module Phronomy
       map(source, name: name, on_error: on_error, &transform)
     end
 
+    # Finalize owned work after its logical and physical boundaries. Cleanup is
+    # asynchronous too. The owner supplies cleanup and combined-error meaning;
+    # neither observer cancellation nor an Execution scope can skip cleanup.
+    # @api private
+    def self.finalize(name:, cleanup:, on_cleanup_error:)
+      source = begin
+        value = yield
+        raise TypeError, "finalized operation must return a TaskResult" unless value.is_a?(TaskResult)
+        value
+      rescue => error
+        TaskResult.failed(error, name: name)
+      end
+      Concurrency::ResultFinalization.new(source, name: name,
+        cleanup: cleanup, on_cleanup_error: on_cleanup_error).start
+    end
+
     # Short synchronous fallback/validation only; never offloads or awaits work.
     def self.capture(name:, on_error: nil)
       value = yield
