@@ -1,0 +1,14 @@
+module Phronomy
+  module Tools
+    class Agent < Phronomy::Tool::Base
+      class CleanupError < Phronomy::ToolError
+        attr_reader child_agent: Phronomy::Agent::Base
+        attr_reader agent_id: String
+        attr_reader result: untyped
+        attr_reader primary_error: Exception?
+        attr_reader cleanup_error: Exception
+        def initialize: (child_agent: Phronomy::Agent::Base, result: untyped, primary_error: Exception?, cleanup_error: Exception) -> void
+      end
+    end
+  end
+end

@@ -165,6 +165,10 @@ module Phronomy
       end
     rescue => error
       finish_with_error(error)
+    ensure
+      # The session owns its context between events. A tracker retained by the
+      # state-machine library or VM must not retain that live context as well.
+      @tracker.context = nil if @tracker
     end
 
     def handle(event)
@@ -190,6 +194,9 @@ module Phronomy
       fire_and_advance!(event)
     rescue => error
       finish_with_error(error)
+    ensure
+      # fire_and_advance! rebinds the context for the next accepted transition.
+      @tracker.context = nil if @tracker
     end
 
     private

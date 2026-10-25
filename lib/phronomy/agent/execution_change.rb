@@ -75,6 +75,10 @@ module Phronomy
         return @result if outcome.disposition == :committed
         raise error if outcome.disposition == :not_committed
         raise Phronomy::ExecutionRehydrationRequiredError, "Execution change outcome is unknown: #{(outcome.read_error || error).message}"
+      ensure
+        # A completed synchronous change may remain on a worker's native stack.
+        # Release live execution wiring only after commit/readback has finished.
+        @agent = @write = @participant = nil
       end
 
       private :perform_once

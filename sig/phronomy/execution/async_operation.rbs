@@ -3,5 +3,6 @@ module Phronomy
     def self.map: [A, B] (_CompletionHandle[A] source, name: String, ?on_error: (^(Exception) -> B)?) { (A) -> B } -> TaskResult[B]
     def self.call: [A, B] (name: String, ?on_error: (^(Exception) -> B)?, ?transform: ^(A) -> B) { () -> _CompletionHandle[A] } -> TaskResult[B]
     def self.capture: [V] (name: String, ?on_error: (^(Exception) -> V)?) { () -> V } -> TaskResult[V]
+    def self.finalize: [V] (name: String, cleanup: ^() -> TaskResult[untyped], on_cleanup_error: ^(V?, Exception?, Exception) -> Exception) { () -> TaskResult[V] } -> TaskResult[V]
   end
 end

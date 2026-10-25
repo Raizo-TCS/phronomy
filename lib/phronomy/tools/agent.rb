@@ -7,12 +7,29 @@ module Phronomy
     # Agent-backed Tools are logically asynchronous rather than offloaded
     # synchronous operations. Their ToolInvocation starts the child Agent and then
     # returns to EventLoop immediately; the Tool completion handle settles when the
-    # child Agent FSMSession finishes. An OffloadPool worker is therefore never
-    # consumed merely to wait for another Agent.
+    # child Agent's physical work and release finish. An OffloadPool worker is
+    # therefore never consumed merely to wait for another Agent.
     class Agent < Phronomy::Tool::Base
       execution_mode :cooperative
       description "Wraps a Phronomy::Agent as a Tool"
       param :input, type: :string, desc: "The input to forward to the wrapped Agent"
+
+      # A private child's operation ended, but its safe release failed. The live
+      # reference supports retrying unload_async without repeating business work.
+      # This error and its child reference are process-local, not durable state.
+      # @api public
+      class CleanupError < Phronomy::ToolError
+        attr_reader :child_agent, :agent_id, :result, :primary_error, :cleanup_error
+
+        def initialize(child_agent:, result:, primary_error:, cleanup_error:)
+          @child_agent = child_agent
+          @agent_id = child_agent.agent_id
+          @result = result
+          @primary_error = primary_error
+          @cleanup_error = cleanup_error
+          super("Agent Tool cleanup failed for #{@agent_id.inspect}", code: "tool.agent_cleanup_failed")
+        end
+      end
 
       class << self
         def from_agent(agent_class, tool_name: nil, description: nil)
@@ -35,36 +52,34 @@ module Phronomy
           # Preserve the synchronous Tool API for top-level callers. ToolInvocation
           # never uses this path for Agent-backed Tools; it calls #call_async.
           klass.define_method(:execute) do |input:, cancellation_token: nil|
-            invoke_options = {}
-            if cancellation_token
-              invoke_options[:config] = {cancellation_token: cancellation_token}
+            if Phronomy::WaitPolicy.blocking_forbidden?
+              raise Phronomy::EventLoopReentrancyError,
+                "Agent Tool execute cannot block EventLoop; use call_async"
             end
-            # Use the same supplied store factory as the asynchronous path.
-            # Preserve the creation arguments previously supplied by run_once.
-            persistence = Phronomy::Agent::DefaultPersistence.build
-            agent = agent_class.create(
-              context: nil,
-              knowledge: [],
-              persistence: persistence,
-              on_event: nil
-            )
-            result = agent.invoke(input, **invoke_options)
-            result[:output].to_s
+            execute_async(input: input, cancellation_token: cancellation_token).wait_result
           end
 
           # Internal asynchronous execution protocol used by Agent#call_async.
-          # The child Agent owns its own FSMSession/EventLoop lifecycle; this
-          # method only returns its completion handle and performs a short map.
+          # C04 decides whether release is safe; C13 composes completion. The
+          # concrete Tool supplies only creation, output and cleanup policies.
           klass.define_method(:execute_async) do |input:, cancellation_token: nil, config: {}|
-            persistence = Phronomy::Agent::DefaultPersistence.build
-            agent = agent_class.create(persistence: persistence)
+            unless config.nil? || config.is_a?(Hash)
+              raise ArgumentError, "Agent Tool config must be a Hash"
+            end
             task_config = (config || {}).dup
             if cancellation_token && !task_config[:cancellation_token]
               task_config[:cancellation_token] = cancellation_token
             end
 
-            agent.invoke_async(input, config: task_config).map do |result|
-              result[:output].to_s
+            persistence = Phronomy::Agent::DefaultPersistence.build
+            agent = agent_class.create(persistence: persistence)
+            Phronomy::AsyncOperation.finalize(name: "agent-tool-#{name}-release",
+              cleanup: -> { agent.unload_async },
+              on_cleanup_error: ->(value, primary, cleanup) { child_cleanup_failed(agent, value, primary, cleanup) }) do
+              Phronomy::AsyncOperation.call(name: "agent-tool-#{name}-invoke",
+                transform: ->(result) { result[:output].to_s }) do
+                agent.invoke_async(input, config: task_config)
+              end
             end
           end
           klass.send(:private, :execute_async)
@@ -101,6 +116,27 @@ module Phronomy
       end
 
       private
+
+      def child_cleanup_failed(agent, result, primary_error, cleanup_error)
+        failure = CleanupError.new(child_agent: agent, result: result,
+          primary_error: primary_error, cleanup_error: cleanup_error)
+        # Always report cleanup failures: an outer observer may already have
+        # cancelled its handle, so returning an error alone is not sufficient.
+        report_child_cleanup_failure(failure)
+        raise failure, cause: primary_error || cleanup_error
+      end
+
+      def report_child_cleanup_failure(failure)
+        details = {"agent_id" => failure.agent_id, "code" => failure.code,
+                   "cleanup_error" => Phronomy::Error.diagnostic(failure.cleanup_error)}
+        details["primary_error"] = Phronomy::Error.diagnostic(failure.primary_error) if failure.primary_error
+        message = "[Phronomy] Agent Tool cleanup failed: #{details.inspect}"
+        logger = Phronomy::RuntimeSettings.current.logger
+        logger ? logger.error(message) : warn(message)
+      rescue
+        # Diagnostics cannot change the combined error or repeat the operation.
+        nil
+      end
 
       # Subclasses created by .from_agent override this method.
       # It deliberately remains private so it is not part of the public Tool API.

@@ -26,11 +26,13 @@ RSpec.describe Phronomy::Tools::Agent, "default composition" do
     second = double("second agent")
     expect(Phronomy::Agent).not_to receive(:run_once)
     expect(Phronomy::Agent::DefaultPersistence).to receive(:build).ordered.and_return(stores[0])
-    expect(definition).to receive(:create).with(context: nil, knowledge: [], persistence: stores[0], on_event: nil).ordered.and_return(first)
-    expect(first).to receive(:invoke).with("first", config: {cancellation_token: token}).ordered.and_return({output: 42})
+    expect(definition).to receive(:create).with(persistence: stores[0]).ordered.and_return(first)
+    expect(first).to receive(:invoke_async).with("first", config: {cancellation_token: token}).ordered.and_return(Phronomy::TaskResult.completed({output: 42}))
+    expect(first).to receive(:unload_async).ordered.and_return(Phronomy::TaskResult.completed(true))
     expect(Phronomy::Agent::DefaultPersistence).to receive(:build).ordered.and_return(stores[1])
-    expect(definition).to receive(:create).with(context: nil, knowledge: [], persistence: stores[1], on_event: nil).ordered.and_return(second)
-    expect(second).to receive(:invoke).with("second").ordered.and_return({output: nil})
+    expect(definition).to receive(:create).with(persistence: stores[1]).ordered.and_return(second)
+    expect(second).to receive(:invoke_async).with("second", config: {}).ordered.and_return(Phronomy::TaskResult.completed({output: nil}))
+    expect(second).to receive(:unload_async).ordered.and_return(Phronomy::TaskResult.completed(true))
 
     tool = tool_for(definition)
     expect(tool.execute(input: "first", cancellation_token: token)).to eq("42")
@@ -48,6 +50,7 @@ RSpec.describe Phronomy::Tools::Agent, "default composition" do
     expect(Phronomy::Agent::DefaultPersistence).to receive(:build).and_return(store)
     expect(definition).to receive(:create).with(persistence: store).and_return(agent)
     expect(agent).to receive(:invoke_async).with("async", config: {cancellation_token: explicit}).and_return(task)
+    expect(agent).to receive(:unload_async).and_return(Phronomy::TaskResult.completed(true))
 
     result = tool_for(definition).call_async({"input" => "async"}, cancellation_token: fallback, config: config)
     task.complete({output: 21})
@@ -73,6 +76,7 @@ RSpec.describe Phronomy::Tools::Agent, "default composition" do
     expect(seen.map { |agent, _| agent.object_id }.uniq.size).to eq(3)
     expect(seen.map { |_, store| store.object_id }.uniq.size).to eq(3)
     expect(seen.map(&:last)).not_to include(configured)
+    expect(seen.all? { |agent, _| definition.get(agent.agent_id).nil? }).to be(true)
   ensure
     Phronomy.reset_configuration!
   end
@@ -81,7 +85,8 @@ RSpec.describe Phronomy::Tools::Agent, "default composition" do
     error = Phronomy::ExecutionRehydrationRequiredError.new("recover")
     agent = double("agent")
     allow(definition).to receive(:create).and_return(agent)
-    expect(agent).to receive(:invoke).once.and_raise(error)
+    expect(agent).to receive(:invoke_async).once.and_raise(error)
+    expect(agent).to receive(:unload_async).and_return(Phronomy::TaskResult.completed(true))
     expect { tool_for(definition).execute(input: "input") }.to raise_error { |raised| expect(raised).to equal(error) }
   end
 

@@ -399,6 +399,12 @@ Agent-backed Tools return control to EventLoop while the child lifecycle is
 waiting. They do not occupy an OffloadPool worker merely to wait for a child
 Agent result.
 
+Each call owns and releases its fresh child Agent after physical work finishes.
+Normal completion includes that release; a failed release preserves the result,
+original error and child in `Tools::Agent::CleanupError`. See
+[child lifetime and cleanup](architecture/agent-tool-child-lifetime.md) for
+cancellation, approval and release-only retry rules.
+
 ## Filters
 
 Filters can transform or reject values at Agent boundaries:
