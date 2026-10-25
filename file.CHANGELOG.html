@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_31_0____2026_10_25">[0.31.0] - 2026-10-25</h2>
 <h3 id="Added">Added</h3>
 <ul>
 <li>Add explicit Agent <code>schema_delivery: :native | :none</code> across execution entry
@@ -74,6 +75,9 @@ points and GeneratorVerifier. Local structured-output validation is identical
 in both modes; existing calls retain native delivery.</li>
 <li>Add <code>Agent#transcript_messages</code> and its async counterpart to read immutable
 Message values without application knowledge of Journal storage.</li>
+<li>Add <code>Tools::Agent::CleanupError</code> (<code>tool.agent_cleanup_failed</code>) with the child
+Agent, successful result and primary/cleanup failures needed to diagnose failed
+release and retry <code>child_agent.unload_async</code> without repeating the invocation.</li>
 </ul>
 <h3 id="Persistence">Persistence</h3>
 <ul>
@@ -84,6 +88,45 @@ by older readers. Existing version-1 contracts remain native and readable.</li>
 <h3 id="Fixed">Fixed</h3>
 <ul>
 <li>Preserve streamed refusal facts even when native schema delivery is omitted.</li>
+<li>Release the one-shot Agent owned by <code>Agent.run_once</code> through <code>Agent.open_scope</code>.
+Preserve the invocation value or original exception when release succeeds;
+report unsafe or failed release through <code>Agent::ScopeCleanupError</code> with the
+result, primary error and scope needed for a release-only retry.</li>
+<li>Give each Agent-backed Tool call explicit ownership of its fresh child and
+ephemeral Store. Complete release after logical and physical invocation
+completion, without occupying a worker merely to wait. Preserve approval,
+cancellation, independent leases, retention and recovery restrictions.</li>
+<li>Acknowledge terminal execution waiters before publishing their result while
+retaining each operation's physical lease until its work actually finishes.</li>
+<li>Stop completed Agent Tool handles from retaining released children through
+generated callback owners, temporary state-machine tracker context or completed
+<code>ExecutionChange</code> wiring. Clear execution-only references after commit and any
+ambiguous-outcome readback, including failure paths. Keep single-use guards,
+saved results, session ownership and recovery behavior intact.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>Both synchronous and asynchronous Agent Tool calls now use the child's
+<code>invoke_async</code>. An override of only <code>invoke</code> no longer changes synchronous
+Agent Tool execution; update custom child subclasses accordingly.</li>
+<li>Agent Tool cleanup failures are surfaced and diagnosed, including after an
+outer observer cancels. A general Tool error-suppression policy cannot hide
+failed child release.</li>
+</ul>
+<h3 id="Verification_and_migration">Verification and migration</h3>
+<ul>
+<li>Read the <a href="docs/migrations/0.31.md">0.31 migration notes</a> before upgrading stored
+executions or custom Agent Tool subclasses. Deploy readers that support
+AgentExecution 0.3 before writing new structured executions; older readers
+cannot read these records, including completed executions. Existing 0.2 records
+and version-1 native output contracts remain readable without a read-time rewrite.</li>
+<li>LM Studio/gpt-oss PEG output parsing remains an unresolved external limitation.
+Existing known-error identification and bounded retry are not a root-cause fix.
+The DX1/DX2 live normal path, streaming, Tool use and history restoration remain
+unverified in that environment. This release relies on source review, offline
+regressions and CI; it does not claim completion of live LLM acceptance.
+Historical initial success and bounded retry/stop evidence retain their limited
+scope; retry recovery and recurrence resolution remain unverified.</li>
 </ul>
 <h2 id="_0_30_1____2026_10_24">[0.30.1] - 2026-10-24</h2>
 <h3 id="Documentation">Documentation</h3>
@@ -975,7 +1018,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Oct 25 07:08:49 2026 by
+  Generated on Sun Oct 25 07:29:59 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

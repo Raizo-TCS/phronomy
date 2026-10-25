@@ -95,9 +95,9 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following table describes the application APIs on the current development
-branch. Entries marked <strong>Unreleased</strong> are not included in the latest published
-release.</p>
+<p>The following table describes the application APIs available in v0.31.0.
+Review the <a href="docs/migrations/0.31.md">0.31 migration notes</a> before upgrading
+persistent applications or custom Agent Tool subclasses.</p>
 <table>
 <thead>
 <tr>
@@ -135,7 +135,7 @@ release.</p>
 <tr>
 <td><code>Tools::Agent::CleanupError</code></td>
 <td>Beta</td>
-<td><strong>Unreleased.</strong> Preserves the child, result and failure causes when safe release fails; retry <code>child_agent.unload_async</code> for release only; <a href="docs/architecture/agent-tool-child-lifetime.md">contract</a></td>
+<td>Added in v0.31.0. Preserves the child, result and failure causes when safe release fails; retry <code>child_agent.unload_async</code> for release only; <a href="docs/architecture/agent-tool-child-lifetime.md">contract</a></td>
 </tr>
 <tr>
 <td><code>Workflow::Builder#task_state</code> and <code>WorkflowTaskResumeError</code></td>
@@ -282,6 +282,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <li><a href="docs/migrations/persistence-failure-contracts.md">Persistence failure contract migration</a> — domain rescue clauses and unchanged raw backend errors.</li>
 <li><a href="docs/migrations/0.19.md">0.19 unified Persistence migration</a>.</li>
 <li><a href="docs/migrations/0.22.md">0.22 semantic Multi-Agent Handoff migration</a>.</li>
+<li><a href="docs/migrations/0.31.md">0.31 persistence and Agent lifetime migration</a>.</li>
 <li><a href="docs/decisions/">Architecture Decision Records</a> — design rationale and superseding decisions.</li>
 <li><a href="CHANGELOG.md">CHANGELOG</a> — current development and recent release history.</li>
 <li><a href="docs/changelog/0.14-and-earlier.md">Changelog archive: 0.14.0 and earlier</a>.</li>
@@ -312,7 +313,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Oct 25 07:08:49 2026 by
+  Generated on Sun Oct 25 07:29:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
