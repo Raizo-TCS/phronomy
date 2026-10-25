@@ -1157,10 +1157,6 @@ No arbitrary execution setter or callback is exposed to the participant.</p>
       <pre class="lines">
 
 
-96
-97
-98
-99
 100
 101
 102
@@ -1183,10 +1179,14 @@ No arbitrary execution setter or callback is exposed to the participant.</p>
 119
 120
 121
-122</pre>
+122
+123
+124
+125
+126</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_change.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_change.rb', line 100</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_commit_in'>commit_in</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='comma'>,</span> <span class='label'>state:</span> <span class='id identifier rubyid_extension'>extension</span><span class='comma'>,</span> <span class='label'>transfer_receipt:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>pending:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence/TransactionError.html" title="Phronomy::Persistence::TransactionError (class)">TransactionError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution change belongs to another thread</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span>
@@ -1367,18 +1367,18 @@ ordered guards, before it changes its own records.</p>
       <pre class="lines">
 
 
-84
-85
-86
-87
 88
 89
 90
 91
-92</pre>
+92
+93
+94
+95
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_change.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_change.rb', line 88</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_in'>prepare_in</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence/TransactionError.html" title="Phronomy::Persistence::TransactionError (class)">TransactionError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Execution change belongs to another thread</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='rparen'>)</span>
@@ -1431,16 +1431,16 @@ ordered guards, before it changes its own records.</p>
       <pre class="lines">
 
 
-125
-126
-127
-128
 129
 130
-131</pre>
+131
+132
+133
+134
+135</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_change.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_change.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transfer_context'>transfer_context</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>there is no control request</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_control_request'>control_request</span>
@@ -1459,7 +1459,7 @@ ordered guards, before it changes its own records.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 24 18:51:37 2026 by
+  Generated on Sun Oct 25 07:08:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

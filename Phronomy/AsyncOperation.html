@@ -163,6 +163,28 @@ Callers supply domain transformations, never completion setters or callbacks.</p
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#finalize-class_method" title="finalize (class method)">.<strong>finalize</strong>(name:, cleanup:, on_cleanup_error:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Finalize owned work after its logical and physical boundaries.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#map-class_method" title="map (class method)">.<strong>map</strong>(source, name:, on_error: nil, &amp;transform)  &#x21d2; Object </a>
     
 
@@ -273,20 +295,20 @@ Callers supply domain transformations, never completion setters or callbacks.</p
       <pre class="lines">
 
 
-29
-30
-31
-32
-33
-34
-35
-36
-37
-38
-39</pre>
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/async_operation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/async_operation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_capture'>capture</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>yield</span>
@@ -298,6 +320,67 @@ Callers supply domain transformations, never completion setters or callbacks.</p
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_failure'>failure</span>
     <span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_failed'><span class='object_link'><a href="TaskResult.html#failed-class_method" title="Phronomy::TaskResult.failed (method)">failed</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_failure'>failure</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="finalize-class_method">
+  
+    .<strong>finalize</strong>(name:, cleanup:, on_cleanup_error:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Finalize owned work after its logical and physical boundaries. Cleanup is
+asynchronous too. The owner supplies cleanup and combined-error meaning;
+neither observer cancellation nor an Execution scope can skip cleanup.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/async_operation.rb', line 32</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_finalize'>finalize</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>cleanup:</span><span class='comma'>,</span> <span class='label'>on_cleanup_error:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='kw'>begin</span>
+    <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>yield</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>TypeError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>finalized operation must return a TaskResult</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_value'>value</span>
+  <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+    <span class='const'><span class='object_link'><a href="TaskResult.html" title="Phronomy::TaskResult (class)">TaskResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_failed'><span class='object_link'><a href="TaskResult.html#failed-class_method" title="Phronomy::TaskResult.failed (method)">failed</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/ResultFinalization.html" title="Phronomy::Concurrency::ResultFinalization (class)">ResultFinalization</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/ResultFinalization.html#initialize-instance_method" title="Phronomy::Concurrency::ResultFinalization#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span>
+    <span class='label'>cleanup:</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='comma'>,</span> <span class='label'>on_cleanup_error:</span> <span class='id identifier rubyid_on_cleanup_error'>on_cleanup_error</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="Concurrency/ResultFinalization.html#start-instance_method" title="Phronomy::Concurrency::ResultFinalization#start (method)">start</a></span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -375,7 +458,7 @@ Callers supply domain transformations, never completion setters or callbacks.</p
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 24 18:51:34 2026 by
+  Generated on Sun Oct 25 07:08:49 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

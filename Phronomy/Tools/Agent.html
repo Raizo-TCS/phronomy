@@ -110,15 +110,25 @@
 <p>Agent-backed Tools are logically asynchronous rather than offloaded
 synchronous operations. Their ToolInvocation starts the child Agent and then
 returns to EventLoop immediately; the Tool completion handle settles when the
-child Agent FSMSession finishes. An OffloadPool worker is therefore never
-consumed merely to wait for another Agent.</p>
+child Agent's physical work and release finish. An OffloadPool worker is
+therefore never consumed merely to wait for another Agent.</p>
 
   </div>
 </div>
 <div class="tags">
   
 
-</div>
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Agent/CleanupError.html" title="Phronomy::Tools::Agent::CleanupError (class)">CleanupError</a></span>
+    
+  
+</p>
+
 
 
 
@@ -253,23 +263,6 @@ consumed merely to wait for another Agent.</p>
       <pre class="lines">
 
 
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
 35
 36
 37
@@ -307,10 +300,25 @@ consumed merely to wait for another Agent.</p>
 69
 70
 71
-72</pre>
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 18</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_agent'>from_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>tool_name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>description:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent_class must be a Class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Class</span><span class='rparen'>)</span>
@@ -332,36 +340,34 @@ consumed merely to wait for another Agent.</p>
   <span class='comment'># Preserve the synchronous Tool API for top-level callers. ToolInvocation
 </span>  <span class='comment'># never uses this path for Agent-backed Tools; it calls #call_async.
 </span>  <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='op'>|</span>
-    <span class='id identifier rubyid_invoke_options'>invoke_options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
-      <span class='id identifier rubyid_invoke_options'>invoke_options</span><span class='lbracket'>[</span><span class='symbol'>:config</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rbrace'>}</span>
+    <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../WaitPolicy.html" title="Phronomy::WaitPolicy (module)">WaitPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_forbidden?'><span class='object_link'><a href="../WaitPolicy.html#blocking_forbidden%3F-class_method" title="Phronomy::WaitPolicy.blocking_forbidden? (method)">blocking_forbidden?</a></span></span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent Tool execute cannot block EventLoop; use call_async</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
-    <span class='comment'># Use the same supplied store factory as the asynchronous path.
-</span>    <span class='comment'># Preserve the creation arguments previously supplied by run_once.
-</span>    <span class='id identifier rubyid_persistence'>persistence</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/DefaultPersistence.html" title="Phronomy::Agent::DefaultPersistence (module)">DefaultPersistence</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="../Agent/DefaultPersistence.html#build-class_method" title="Phronomy::Agent::DefaultPersistence.build (method)">build</a></span></span>
-    <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span>
-      <span class='label'>context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-      <span class='label'>knowledge:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
-      <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span>
-      <span class='label'>on_event:</span> <span class='kw'>nil</span>
-    <span class='rparen'>)</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_invoke_options'>invoke_options</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='id identifier rubyid_execute_async'>execute_async</span><span class='lparen'>(</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
   <span class='kw'>end</span>
 
   <span class='comment'># Internal asynchronous execution protocol used by Agent#call_async.
-</span>  <span class='comment'># The child Agent owns its own FSMSession/EventLoop lifecycle; this
-</span>  <span class='comment'># method only returns its completion handle and performs a short map.
+</span>  <span class='comment'># C04 decides whether release is safe; C13 composes completion. The
+</span>  <span class='comment'># concrete Tool supplies only creation, output and cleanup policies.
 </span>  <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute_async</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='op'>|</span>
-    <span class='id identifier rubyid_persistence'>persistence</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/DefaultPersistence.html" title="Phronomy::Agent::DefaultPersistence (module)">DefaultPersistence</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="../Agent/DefaultPersistence.html#build-class_method" title="Phronomy::Agent::DefaultPersistence.build (method)">build</a></span></span>
-    <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>||</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent Tool config must be a Hash</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
     <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
       <span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
     <span class='kw'>end</span>
 
-    <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
-      <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+    <span class='id identifier rubyid_persistence'>persistence</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/DefaultPersistence.html" title="Phronomy::Agent::DefaultPersistence (module)">DefaultPersistence</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="../Agent/DefaultPersistence.html#build-class_method" title="Phronomy::Agent::DefaultPersistence.build (method)">build</a></span></span>
+    <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AsyncOperation.html" title="Phronomy::AsyncOperation (module)">AsyncOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_finalize'><span class='object_link'><a href="../AsyncOperation.html#finalize-class_method" title="Phronomy::AsyncOperation.finalize (method)">finalize</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>-release</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+      <span class='label'>cleanup:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_unload_async'>unload_async</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+      <span class='label'>on_cleanup_error:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_primary'>primary</span><span class='comma'>,</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_child_cleanup_failed'>child_cleanup_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_primary'>primary</span><span class='comma'>,</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AsyncOperation.html" title="Phronomy::AsyncOperation (module)">AsyncOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../AsyncOperation.html#call-class_method" title="Phronomy::AsyncOperation.call (method)">call</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>-invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+        <span class='label'>transform:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span>
+        <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:private</span><span class='comma'>,</span> <span class='symbol'>:execute_async</span><span class='rparen'>)</span>
@@ -404,19 +410,19 @@ Tool::Base#call.</p>
       <pre class="lines">
 
 
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101</pre>
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_args'>args</span><span class='comma'>,</span>
@@ -438,7 +444,7 @@ Tool::Base#call.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 24 18:51:35 2026 by
+  Generated on Sun Oct 25 07:08:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

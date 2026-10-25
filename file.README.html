@@ -95,7 +95,9 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following application APIs are available as Beta in v0.30.0:</p>
+<p>The following table describes the application APIs on the current development
+branch. Entries marked <strong>Unreleased</strong> are not included in the latest published
+release.</p>
 <table>
 <thead>
 <tr>
@@ -129,6 +131,11 @@ tracking <code>main</code> directly.</p>
 <td><code>Agent.open_scope</code>, <code>Agent::Scope</code>, <code>Agent::Base#unload_async / #unload!</code>, <code>AgentUnloadedError</code> and <code>Agent::ScopeCleanupError</code></td>
 <td>Beta</td>
 <td>Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; <a href="docs/architecture/dx05-agent-scope.md">contract</a></td>
+</tr>
+<tr>
+<td><code>Tools::Agent::CleanupError</code></td>
+<td>Beta</td>
+<td><strong>Unreleased.</strong> Preserves the child, result and failure causes when safe release fails; retry <code>child_agent.unload_async</code> for release only; <a href="docs/architecture/agent-tool-child-lifetime.md">contract</a></td>
 </tr>
 <tr>
 <td><code>Workflow::Builder#task_state</code> and <code>WorkflowTaskResumeError</code></td>
@@ -305,7 +312,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Oct 24 18:51:33 2026 by
+  Generated on Sun Oct 25 07:08:49 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

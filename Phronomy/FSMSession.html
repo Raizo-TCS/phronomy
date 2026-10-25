@@ -766,10 +766,6 @@ separate from this logical Workflow phase.</p>
       <pre class="lines">
 
 
-170
-171
-172
-173
 174
 175
 176
@@ -789,10 +785,17 @@ separate from this logical Workflow phase.</p>
 190
 191
 192
-193</pre>
+193
+194
+195
+196
+197
+198
+199
+200</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 170</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 174</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
@@ -817,6 +820,9 @@ separate from this logical Workflow phase.</p>
   <span class='id identifier rubyid_fire_and_advance!'>fire_and_advance!</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_finish_with_error'>finish_with_error</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>ensure</span>
+  <span class='comment'># fire_and_advance! rebinds the context for the next accepted transition.
+</span>  <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@tracker</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -860,7 +866,11 @@ separate from this logical Workflow phase.</p>
 165
 166
 167
-168</pre>
+168
+169
+170
+171
+172</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 146</span>
@@ -887,6 +897,10 @@ separate from this logical Workflow phase.</p>
   <span class='kw'>end</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_finish_with_error'>finish_with_error</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+<span class='kw'>ensure</span>
+  <span class='comment'># The session owns its context between events. A tracker retained by the
+</span>  <span class='comment'># state-machine library or VM must not retain that live context as well.
+</span>  <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@tracker</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -898,7 +912,7 @@ separate from this logical Workflow phase.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Oct 24 18:51:36 2026 by
+  Generated on Sun Oct 25 07:08:52 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
