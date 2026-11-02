@@ -497,7 +497,7 @@ module Phronomy
         raise ArgumentError, "No saved wait at #{phase.inspect} accepting #{request.event_name.inspect}"
       end
       fields = record_value(loaded.snapshot, :fields)
-      @state_class.new(**fields.transform_keys(&:to_sym)).set_graph_metadata(
+      @state_class.new(**restore_context_fields(fields)).set_graph_metadata(
         workflow_instance_id: request.workflow_instance_id, phase: phase
       )
     end
@@ -518,9 +518,7 @@ module Phronomy
       stored_fields = loaded_snapshot &&
         (loaded_snapshot[:fields] || loaded_snapshot["fields"])
       initial_fields = if stored_fields
-        stored_fields
-          .transform_keys(&:to_sym)
-          .merge(input.transform_keys(&:to_sym))
+        restore_context_fields(stored_fields).merge(input.transform_keys(&:to_sym))
       else
         input
       end
@@ -538,6 +536,21 @@ module Phronomy
         expected_revision: expected_revision,
         cancellation_token: cancellation_token
       )
+    end
+
+    # The repository and the load message own immutable snapshots. Actions receive
+    # their own mutable field values, including strings nested in arrays or hashes.
+    def restore_context_fields(fields)
+      fields.to_h { |name, value| [name.to_sym, mutable_field_value(value)] }
+    end
+
+    def mutable_field_value(value)
+      case value
+      when Hash then value.transform_values { |child| mutable_field_value(child) }
+      when Array then value.map { |child| mutable_field_value(child) }
+      when String then value.dup
+      else value
+      end
     end
 
     def validate_resume_snapshot!(state, durable_snapshot, durable_revision)

@@ -56,6 +56,55 @@ RSpec.describe "Workflow saved events" do
     expect(guard_inputs).to eq(["approved"])
   end
 
+  [{}, {input: {}}].each do |options|
+    it "restores mutable fields without changing the saved snapshot (#{options.inspect})" do
+      app = Phronomy::Workflow.define(context_class, persistence: store) do
+        initial :waiting
+        wait_state :waiting
+        state :complete, action: ->(ctx) {
+          items = ctx.result.fetch("items")
+          items.first << "!"
+          items << "extra"
+          ctx.result["count"] = items.size
+          ctx
+        }
+        transition from: :waiting, on: :finish, to: :complete
+        transition from: :complete, to: :__finish__
+      end
+      app.invoke({result: {"items" => ["seed"]}}, config: {workflow_instance_id: "parent"})
+      saved = store.load("parent")
+      revision = saved.fetch(:revision)
+
+      done = app.send_saved_event(workflow_instance_id: "parent", expected_revision: revision, event: :finish, **options)
+
+      expect(done.result).to eq("items" => ["seed!", "extra"], "count" => 2)
+      expect(saved.fetch(:snapshot).fetch("fields").fetch("result")).to eq("items" => ["seed"])
+      updated = store.load("parent")
+      expect(updated.fetch(:snapshot).fetch("fields").fetch("result")).to eq(done.result)
+      expect(updated.fetch(:revision)).to eq(revision + 1)
+    end
+  end
+
+  it "starts a new invocation with mutable fields from a previous checkpoint of the same instance" do
+    app = Phronomy::Workflow.define(context_class, persistence: store) do
+      initial :append
+      state :append, action: ->(ctx) {
+        ctx.result.fetch("items").first << "!"
+        ctx
+      }
+      transition from: :append, to: :__finish__
+    end
+    config = {workflow_instance_id: "parent"}
+    app.invoke({result: {"items" => [+"seed"]}}, config: config)
+    saved = store.load("parent")
+
+    done = app.invoke({}, config: config)
+
+    expect(done.result).to eq("items" => ["seed!!"])
+    expect(saved.fetch(:snapshot).fetch("fields").fetch("result")).to eq("items" => ["seed!"])
+    expect(store.load("parent").fetch(:revision)).to eq(saved.fetch(:revision) + 1)
+  end
+
   it "rejects a stale wakeup even after returning to identical fields and phase" do
     app = definition
     app.invoke({}, config: {workflow_instance_id: "parent"})

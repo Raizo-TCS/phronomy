@@ -30,6 +30,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Restore mutable Workflow context fields from durable checkpoints when
+  delivering a saved event or starting another invocation of the same instance.
+  Actions can update nested strings, arrays and hashes without changing the
+  original checkpoint.
 - Continue using an Agent after a human rejects a Tool call. Model input for the
   next turn omits the rejected, incomplete Tool exchange. The original journal
   and public conversation history remain available for inspection.
