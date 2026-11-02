@@ -24,6 +24,16 @@ Release history for 0.14.0 and earlier is archived in
   contract excludes parent Workflow/shared-child transfer, multi-host fencing,
   supervisor restart and recovery of uncertain external Tool effects.
 
+- Add `Workflow#send_saved_event` to restore a declared wait by Workflow instance
+  ID and expected revision before applying an event. The host can reject a
+  delayed delivery even when the same Workflow later returns to an identical wait.
+
+### Fixed
+
+- Continue using an Agent after a human rejects a Tool call. Model input for the
+  next turn omits the rejected, incomplete Tool exchange. The original journal
+  and public conversation history remain available for inspection.
+
 ## [0.31.0] - 2026-10-25
 
 ### Added

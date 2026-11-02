@@ -96,6 +96,7 @@ module Phronomy
       recursion_limit_scope: :session,
       resume_event: nil,
       resume_phase: nil,
+      require_resume_transition: false,
       stable_observer: nil,
       context_metadata: {},
       event_sink: nil,
@@ -132,6 +133,7 @@ module Phronomy
       @event_loop = event_loop
       @resume_event = resume_event
       @resume_phase = resume_phase
+      @require_resume_transition = require_resume_transition
       @stable_observer = stable_observer
       @terminal_policy = terminal_policy
       @terminal_lifecycle_state = :running
@@ -153,7 +155,8 @@ module Phronomy
             type: @resume_event,
             target_id: @id,
             payload: nil
-          )
+          ),
+          require_transition: @require_resume_transition
         )
       else
         @current_state = @entry_point
@@ -242,7 +245,7 @@ module Phronomy
       end
     end
 
-    def fire_and_advance!(event)
+    def fire_and_advance!(event, require_transition: false)
       automatic = event.type == :state_completed
       exhausted = if @recursion_limit_scope == :automatic_chain
         automatic && @automatic_steps >= @recursion_limit
@@ -258,7 +261,10 @@ module Phronomy
       clear_selected_transition!
       @tracker.current_event = event if @tracker.respond_to?(:current_event=)
       transitioned = fire_event!(@tracker, event.type, @current_state)
-      return unless transitioned
+      unless transitioned
+        raise ArgumentError, "Event #{event.type.inspect} was rejected at #{@current_state.inspect}" if require_transition
+        return
+      end
 
       @ctx = @tracker.context
       @context = @ctx

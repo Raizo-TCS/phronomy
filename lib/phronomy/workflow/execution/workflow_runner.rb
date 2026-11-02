@@ -54,6 +54,7 @@ module Phronomy
       :input,
       :event_name,
       :current_phase,
+      :expected_revision,
       :result_task,
       :workflow_instance_id,
       :owner_token
@@ -141,11 +142,26 @@ module Phronomy
       end
 
       start_resume_execution(
-        state,
+        workflow_instance_id,
+        state: state,
         input: input,
         event_name: event_name,
         current_phase: current_phase
       ).wait_result
+    end
+
+    def send_saved_event(workflow_instance_id:, expected_revision:, event:, input: nil)
+      if Phronomy::WaitPolicy.blocking_forbidden?
+        raise Phronomy::EventLoopReentrancyError, "send_saved_event requires a host thread"
+      end
+      unless workflow_instance_id.is_a?(String) && !workflow_instance_id.empty?
+        raise ArgumentError, "workflow_instance_id must be a nonempty String"
+      end
+      unless expected_revision.is_a?(Integer) && expected_revision.positive?
+        raise ArgumentError, "expected_revision must be a positive Integer"
+      end
+      start_resume_execution(workflow_instance_id.dup, expected_revision: expected_revision,
+        input: input, event_name: event).wait_result
     end
 
     # Posts an application-defined event to the currently live Workflow owner.
@@ -256,8 +272,8 @@ module Phronomy
       result_task || failed_task("workflow:preparation", error)
     end
 
-    def start_resume_execution(state, input:, event_name:, current_phase:)
-      workflow_instance_id = state.workflow_instance_id.to_s.freeze
+    def start_resume_execution(workflow_instance_id, input:, event_name:, state: nil, current_phase: nil, expected_revision: nil)
+      workflow_instance_id = workflow_instance_id.to_s.freeze
       result_task = Phronomy::TaskResult.deferred(name: "workflow-resume:#{workflow_instance_id}")
       Phronomy::Tracing::Automatic.observe_task(
         result_task,
@@ -272,7 +288,8 @@ module Phronomy
         state: state,
         input: input,
         event_name: event_name.to_sym,
-        current_phase: current_phase.to_sym,
+        current_phase: current_phase,
+        expected_revision: expected_revision,
         result_task: result_task,
         workflow_instance_id: workflow_instance_id,
         owner_token: Object.new.freeze
@@ -345,6 +362,7 @@ module Phronomy
 
       repository = configured_repository
       unless repository
+        raise Phronomy::ConfigurationError, "send_saved_event requires Workflow persistence" if request.expected_revision
         context = request.input ? request.state.merge(request.input) : request.state
         execution = Execution.new(
           context: context,
@@ -445,12 +463,9 @@ module Phronomy
         return
       end
 
-      expected_revision = validate_resume_snapshot!(
-        request.state,
-        ready.result.snapshot,
-        ready.result.revision
-      )
-      context = request.input ? request.state.merge(request.input) : request.state
+      state = request.state || restore_saved_wait!(request, ready.result)
+      expected_revision = validate_resume_snapshot!(state, ready.result.snapshot, ready.result.revision)
+      context = request.input ? state.merge(request.input) : state
       execution = Execution.new(
         context: context,
         workflow_instance_id: request.workflow_instance_id,
@@ -465,10 +480,26 @@ module Phronomy
         execution,
         request.result_task,
         resume_event: request.event_name,
-        resume_phase: request.current_phase
+        resume_phase: request.current_phase || state.phase,
+        require_resume_transition: !request.expected_revision.nil?
       )
     rescue => error
       release_and_fail(request, error)
+    end
+
+    def restore_saved_wait!(request, loaded)
+      unless loaded.snapshot && loaded.revision == request.expected_revision
+        raise Phronomy::Persistence::StateConflictError,
+          "No saved Workflow at revision #{request.expected_revision} for #{request.workflow_instance_id.inspect}"
+      end
+      phase = record_value(loaded.snapshot, :phase)&.to_sym
+      unless @wait_state_names.include?(phase) && @external_events.fetch(request.event_name, []).any? { |edge| edge[:from] == phase }
+        raise ArgumentError, "No saved wait at #{phase.inspect} accepting #{request.event_name.inspect}"
+      end
+      fields = record_value(loaded.snapshot, :fields)
+      @state_class.new(**fields.transform_keys(&:to_sym)).set_graph_metadata(
+        workflow_instance_id: request.workflow_instance_id, phase: phase
+      )
     end
 
     def build_new_execution(
@@ -576,6 +607,7 @@ module Phronomy
       result_task,
       resume_event: nil,
       resume_phase: nil,
+      require_resume_transition: false,
       stable_observer: nil
     )
       assert_execution_owner!
@@ -588,6 +620,7 @@ module Phronomy
         execution: execution,
         resume_event: resume_event,
         resume_phase: resume_phase,
+        require_resume_transition: require_resume_transition,
         stable_observer: stable_observer,
         task_execution: task_execution
       )
@@ -769,6 +802,7 @@ module Phronomy
       execution:,
       resume_event: nil,
       resume_phase: nil,
+      require_resume_transition: false,
       stable_observer: nil,
       task_execution: nil
     )
@@ -787,6 +821,7 @@ module Phronomy
         recursion_limit: execution.recursion_limit,
         resume_event: resume_event,
         resume_phase: resume_phase,
+        require_resume_transition: require_resume_transition,
         stable_observer: stable_observer,
         persist: terminal_persistence_callback(execution),
         task_execution: task_execution

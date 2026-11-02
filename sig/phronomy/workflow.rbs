@@ -18,6 +18,7 @@ module Phronomy
     def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) { (untyped) -> void } -> untyped
     def resume: (state: untyped, ?input: untyped) -> untyped
     def send_event: (state: untyped, event: Symbol, ?input: untyped) -> untyped
+    def send_saved_event: (workflow_instance_id: String, expected_revision: Integer, event: Symbol, ?input: untyped) -> untyped
     def signal: (workflow_instance_id: String, event: Symbol, ?payload: untyped) -> bool
 
     class Builder

@@ -678,6 +678,38 @@ An incorrect or stale approval, outstanding physical work, concurrent operation,
 
 Worker B loads the Agent with an `on_event:` listener, checks the restored request against the accepted answer and calls `approve` with the execution and approval request IDs. The host owns input deduplication and result acknowledgement. This first transfer contract covers a standalone invocation up to its first approval. Coordinated children, multi-host fencing and uncertain external Tool effects require separate recovery decisions.
 
+## Delivering an event to a saved Workflow wait
+
+A worker can restore a particular visit to a declared Workflow wait. The host holds
+one claim for the Workflow instance, selects the matching Workflow definition,
+and identifies the saved revision that should receive the event.
+
+For example, a parent waiting for a review stores the child's Agent and execution
+IDs in its context. A worker verifies the completed child result against those IDs.
+While it owns the parent claim, it calls the following method with the revision
+recorded for that wait:
+
+```ruby
+workflow.send_saved_event(workflow_instance_id: parent_id,
+  expected_revision: wait_revision, event: :review_ready, input: {answer: answer})
+```
+
+A later visit can have the same phase and fields but a different revision. The
+earlier delivery raises `Persistence::StateConflictError` before its transition
+executes. A transition whose guard rejects the input raises `ArgumentError` and
+leaves the checkpoint available for a corrected event. After an
+acknowledgement is lost, the host checks the durable parent state for evidence
+of this child's result before acknowledging or retrying the message. It must
+retain the original wait revision throughout retries.
+
+The host keeps its claim from reading the parent through committing the transition.
+Two workers could otherwise both run application actions before storage detects a
+conflict. The application must also restore the same Workflow definition and
+configuration. A revision identifies a stored state for one durable instance;
+do not delete and reuse its ID while old deliveries might still arrive. The
+revision does not identify deployed code or make an external Tool effect repeatable.
+A pending in-process `task_state` cannot be restored with this operation.
+
 ## Further design records
 
 The `docs/decisions/` directory contains the historical and current Architecture

@@ -267,6 +267,8 @@
       "stream_async",
       "tool_approval_policy",
       "transcript",
+      "transcript_messages",
+      "transcript_messages_async",
       "unload!",
       "unload_async"
     ],
@@ -695,6 +697,7 @@
       "invoke_async",
       "resume",
       "send_event",
+      "send_saved_event",
       "signal",
       "stream"
     ],
@@ -1017,6 +1020,8 @@
       "subagent",
       "tool_approval_policy",
       "transcript",
+      "transcript_messages",
+      "transcript_messages_async",
       "unload!",
       "unload_async"
     ],
