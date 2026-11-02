@@ -4,6 +4,19 @@ module Phronomy
     type execution_wiring = { ?phronomy_execution_participant: _ExecutionParticipant, ?phronomy_control_bindings: Array[_ControlCapability], ?phronomy_transfer_context: TransferContext, ?phronomy_admission: _AdmissionOwner, ?phronomy_reservation: Hash[String, json_value] }
     type execution_result = { agent_id: String, execution_id: String, status: Symbol, result: json_value, output: json_value, ?raw_output: String?, error: Hash[String, json_value]? }
 
+    class ApprovalWait < Data
+      attr_reader execution_id: String
+      attr_reader approval_request_id: String
+      attr_reader execution_revision: Integer
+      def self.new: (execution_id: String, approval_request_id: String, execution_revision: Integer) -> instance
+    end
+
+    class HostedInvocation
+      def on_complete: () { (untyped, StandardError?) -> untyped } -> self
+      def detach!: (approval_request_id: String) -> ApprovalWait
+      def wait_result: (?timeout: Numeric?) -> (execution_result | ApprovalWait)
+    end
+
     class ReservedExecution < Data
       attr_reader agent_id: String
       attr_reader execution_id: String

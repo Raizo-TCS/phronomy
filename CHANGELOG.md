@@ -12,6 +12,18 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Added
+
+- Add `Agent#start_hosted`, `Agent::HostedInvocation` and immutable
+  `Agent::ApprovalWait` for safely detaching an exclusively owned standalone Agent
+  at its first committed Tool approval wait. A new incarnation can use the
+  existing `load` and `approve` operations to continue the same execution.
+- Add `Agent::Store#standalone_approval_wait` to query the committed approval fact without
+  transferring a live worker claim. Delivery deduplication, exclusive claims and
+  verified worker termination remain application responsibilities. This initial
+  contract excludes parent Workflow/shared-child transfer, multi-host fencing,
+  supervisor restart and recovery of uncertain external Tool effects.
+
 ## [0.31.0] - 2026-10-25
 
 ### Added

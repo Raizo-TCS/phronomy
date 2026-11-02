@@ -30,6 +30,8 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Embeddings::AuthenticationError,
   Phronomy::Embeddings::RateLimitError,
   Phronomy::Agent::Base,
+  Phronomy::Agent::HostedInvocation,
+  Phronomy::Agent::ApprovalWait,
   Phronomy::Agent::ReservedExecution,
   Phronomy::Agent::ExecutionObservation,
   Phronomy::Agent::KnowledgeItem,

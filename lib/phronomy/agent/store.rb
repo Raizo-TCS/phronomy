@@ -108,6 +108,25 @@ module Phronomy
         end
       end
 
+      # Read without loading a live Agent. Missing or ineligible waits return nil.
+      def standalone_approval_wait(agent_id:, execution_id:, scope: nil)
+        with_scope(scope) do |records|
+          begin
+            execution = records.executions.load(execution_id)
+          rescue Phronomy::Persistence::NotFoundError
+            next
+          end
+          assert_execution_owner!(execution, agent_id)
+          next unless execution.status == :suspended && (id = execution.approval_request&.fetch("id", nil))
+          next if execution.metadata["reservation"] || execution.metadata["execution_extension"]
+          next if execution.metadata["cancellation_requested"] || records.cancellations.requested?(agent_id, execution_id)
+          next unless records.retentions.list(agent_id).empty?
+
+          ApprovalWait.new(execution_id: execution.execution_id.dup.freeze, approval_request_id: id.dup.freeze,
+            execution_revision: execution.execution_revision)
+        end
+      end
+
       def active_executions(agent_id:, scope: nil)
         with_scope(scope) do |records|
           records.executions.list_active(agent_id).map do |execution|

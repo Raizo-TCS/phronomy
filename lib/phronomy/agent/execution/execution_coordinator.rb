@@ -74,6 +74,7 @@ module Phronomy
       TerminalCommitReady = Data.define(
         :coordinator, :operation, :delivery, :outcome, :error
       )
+      DetachHostedWait = Data.define(:coordinator, :wait, :task, :completion)
       SuspensionCancelledCommand = Data.define(:coordinator, :execution_id)
 
       DeferredTerminalCommand = Data.define(
@@ -248,6 +249,8 @@ module Phronomy
           apply_provider_dispatch_preparation_on_event_loop(command)
         when ToolDispatchPreparationReady
           apply_tool_dispatch_preparation_on_event_loop(command)
+        when DetachHostedWait
+          detach_hosted_wait(command, environment)
         when ResumeCommand
           begin_resume_on_event_loop(command)
         when ResumeCommitReady
@@ -264,6 +267,40 @@ module Phronomy
       end
 
       private
+
+      # Called on EventLoop after the host has read the committed wait outside it.
+      def detach_hosted_wait(command, environment)
+        wait = command.wait
+        task = command.task
+        registry = environment.registry
+        state = registry.agent_execution_state(wait.execution_id)
+        binding = @suspended_cancellation
+        unless state && state.agent.equal?(@agent) && state.execution.status == :suspended &&
+            state.execution.execution_revision == wait.execution_revision && state.fsm_session_id.nil? &&
+            state.execution.approval_request&.fetch("id", nil) == wait.approval_request_id &&
+            binding && binding[1].equal?(state.invocation) && binding[2].equal?(task) &&
+            !state.invocation.config[:cancellation_token]&.cancelled? && registry.agent_execution_quiescent?(wait.execution_id)
+          raise Phronomy::AgentBusyError, "Hosted operation no longer owns this approval wait"
+        end
+        registry.mark_agent_execution_admission(@agent.agent_id, execution_id: wait.execution_id,
+          state: :suspended, expected_state: :suspended)
+        task.reserve_approval_detach!(command)
+        begin
+          # release_agent_execution validates all remaining physical work before mutation.
+          registry.release_agent_execution(wait.execution_id)
+        rescue
+          environment.ownership.finish_unload(@agent, command, success: false)
+          raise
+        end
+        clear_suspended_cancellation
+        registry.release_agent_execution_admission(@agent.agent_id, execution_id: wait.execution_id)
+        waiters = registry.take_agent_completion_waiters(wait.execution_id, fallback: task)
+        environment.ownership.finish_unload(@agent, command, success: true)
+        waiters.each { |waiter| @agent.send(:_complete_result_task, waiter, wait) }
+        command.completion.complete(wait)
+      rescue => error
+        command.completion.fail(error)
+      end
 
       # ----------------------------------------------------------------------
       # Initial preparation

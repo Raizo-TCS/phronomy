@@ -108,6 +108,7 @@ module Phronomy
       attr_reader persistence: Store
       def knowledge_snapshot: () -> Array[KnowledgeItem]
       def event_listener: () -> (^(Object) -> void)?
+      def start_hosted: (reservation: ReservedExecution, input: String, ?config: Hash[Symbol, Object], ?output_schema: Hash[String | Symbol, untyped]?, ?schema_delivery: (:native | :none)?) -> HostedInvocation
       def start_reserved_async: (reservation: ReservedExecution, input: String, ?config: Hash[Symbol, Object], ?output_schema: Hash[String | Symbol, untyped]?, ?schema_delivery: (:native | :none)?) -> TaskResult[execution_result]
       def resume_async: (String execution_id, ?config: Hash[Symbol, Object]) -> TaskResult[execution_result]
       def resume: (String execution_id, ?config: Hash[Symbol, Object]) -> execution_result

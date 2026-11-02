@@ -12,6 +12,27 @@ module Phronomy
     # - approval notifications share the Agent listener as :approval_required;
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
+      # Starts a fresh, standalone execution. Only this handle can detach its wait.
+      # The caller holds the external exclusive claim for this Agent.
+      def start_hosted(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
+        __with_operation do
+          if Phronomy::WaitPolicy.blocking_forbidden?
+            raise Phronomy::EventLoopReentrancyError, "start_hosted requires a host thread"
+          end
+          unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id && reservation.correlation.nil?
+            raise ArgumentError, "expected a standalone reservation for this Agent"
+          end
+          id = reservation.execution_id
+          unless persistence.observe_execution(agent_id: agent_id, execution_id: id).absent?
+            raise Phronomy::Persistence::StateConflictError, "Hosted execution #{id} already exists"
+          end
+          config = _prepare_output_config(config, nil, output_schema, schema_delivery)
+          task = _start_agent_operation(input, config: config.merge(phronomy_reserved_execution_id: id),
+            mode: :invoke, listener: _phronomy_event_listener)
+          HostedInvocation.new(self, id, task)
+        end
+      end
+
       def start_reserved_async(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
         __with_operation(async: true) do
           unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id

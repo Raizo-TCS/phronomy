@@ -165,12 +165,30 @@ module Phronomy
         true
       end
 
+      # Transfer only the single outstanding hosting operation, atomically with
+      # the same admission gate used by all other Agent operations.
+      def reserve_approval_detach!(agent, operation_token, transition)
+        @mutex.synchronize do
+          ensure_running!
+          entry = @entries[agent.agent_id]
+          operations = @operations[agent]
+          unless entry&.state == :live && entry.agent.equal?(agent) && !@scope_owners[agent.agent_id] &&
+              operations&.size == 1 && operations.key?(operation_token)
+            raise Phronomy::AgentBusyError, "Agent has another owner or accepted operation"
+          end
+          @entries[agent.agent_id] = Entry.new(state: :unloading, agent: agent, token: transition)
+        end
+      end
+
       # Returns the already accepted transition for duplicate callers.
       def reserve_unload(agent)
         @mutex.synchronize do
           ensure_running!
           entry = @entries[agent.agent_id]
           if entry&.state == :unloading && entry.agent.equal?(agent)
+            unless entry.token.is_a?(UnloadTransition)
+              raise Phronomy::AgentBusyError, "Agent is detaching an approval wait"
+            end
             return [entry.token, false]
           end
           unless entry&.state == :live && entry.agent.equal?(agent)

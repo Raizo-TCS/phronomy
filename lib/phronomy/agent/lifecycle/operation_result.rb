@@ -20,6 +20,15 @@ module Phronomy
         release_if_quiet
       end
 
+      def reserve_approval_detach!(transition)
+        @lifetime_mutex.synchronize do
+          if @finished || @released || !@work.zero?
+            raise Phronomy::AgentBusyError, "Hosted operation is still busy or has finished"
+          end
+          @operation_lease.reserve_approval_detach!(transition)
+        end
+      end
+
       def track(task)
         @lifetime_mutex.synchronize { @work += 1 }
         task.on_physical_complete do

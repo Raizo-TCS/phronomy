@@ -668,6 +668,16 @@ imply durable Agent continuation reconstruction.
 `Phronomy.reset_runtime!` exists primarily for test isolation and performs a real
 Runtime shutdown before resetting configuration.
 
+## Hosting a standalone Agent through approval
+
+A host can release one suspended Agent and continue using its Ruby process for other Agents. Hold one external claim per mutable Agent while loading, executing, detaching and recording delivery. Persist a new request's reserved execution ID before dispatch. A host uses the existing incarnation-level listener to receive the approval request.
+
+For example, worker A starts a fresh reservation with `agent.start_hosted(reservation:, input:)`. If the run finishes directly, `handle.wait_result` returns the ordinary execution result. On an approval notification, call `handle.detach!(approval_request_id: request.id)` outside EventLoop. Success returns an immutable `ApprovalWait` with the execution ID, approval request ID and committed revision. The same handle then returns that wait. The released Agent object cannot be reused. Existing `invoke_async` handles keep their terminal-result contract.
+
+An incorrect or stale approval, outstanding physical work, concurrent operation, live scope or durable retention prevents transfer. A busy response leaves the host responsible for the claim. A spent reservation is rejected. After a verified worker exit, a host can query `store.standalone_approval_wait(agent_id:, execution_id:)` without loading the Agent. A missing or ineligible wait returns nil. Store errors and owner mismatches propagate. Only reclaim a delivery if the original worker is known to have stopped and its claim still matches.
+
+Worker B loads the Agent with an `on_event:` listener, checks the restored request against the accepted answer and calls `approve` with the execution and approval request IDs. The host owns input deduplication and result acknowledgement. This first transfer contract covers a standalone invocation up to its first approval. Coordinated children, multi-host fencing and uncertain external Tool effects require separate recovery decisions.
+
 ## Further design records
 
 The `docs/decisions/` directory contains the historical and current Architecture

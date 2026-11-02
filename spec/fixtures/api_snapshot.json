@@ -261,6 +261,7 @@
       "resolve_async",
       "resume",
       "resume_async",
+      "start_hosted",
       "start_reserved_async",
       "stream",
       "stream_async",
@@ -293,6 +294,34 @@
       "tool_aliases",
       "tool_result_filter",
       "tools"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::HostedInvocation",
+    "type": "class",
+    "public_instance_methods": [
+      "detach!",
+      "on_complete",
+      "wait_result"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ApprovalWait",
+    "type": "class",
+    "public_instance_methods": [
+      "approval_request_id",
+      "deconstruct",
+      "deconstruct_keys",
+      "execution_id",
+      "execution_revision",
+      "members",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
     ]
   },
   {
@@ -981,6 +1010,7 @@
       "resolve_async",
       "resume",
       "resume_async",
+      "start_hosted",
       "start_reserved_async",
       "stream",
       "stream_async",
