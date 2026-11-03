@@ -31,6 +31,10 @@ Release history for 0.14.0 and earlier is archived in
   child together at a saved child Tool approval. The host supplies the child's
   execution and approval request IDs and retains the parent's execution ID for
   resumption on another worker. Both workers can remain alive.
+- Add `MultiAgent::Orchestrator#approve_hosted_child` to answer a restored
+  direct child's approval with a hosted handle. If the same execution asks for
+  another approval, the worker can release the pair at the new wait. A third
+  worker can restore that wait without replaying the earlier Tool call.
 
 ### Fixed
 

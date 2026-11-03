@@ -7,7 +7,8 @@ require "timeout"
 
 RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integration do
   let(:stores) { Phronomy::PersistenceComposition.in_memory }
-  let(:child_class) { IntegrationFactors.approval_resume_agent(IntegrationFactors.approval_tool) }
+  let(:approval_tool) { IntegrationFactors.approval_tool }
+  let(:child_class) { IntegrationFactors.approval_resume_agent(approval_tool) }
   let(:parent_class) do
     worker = child_class
     Class.new(Phronomy::MultiAgent::Orchestrator) do
@@ -80,6 +81,137 @@ RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integratio
     expect(replacement.approve(restored.execution_id, approval_request_id: restored.id)).to include(output: "child completed")
     expect(loaded.resume_async(root_id).wait_result(timeout: 8)).to include(execution_id: root_id, output: "parent completed")
     expect(recorder.calls.size).to eq(4)
+  end
+
+  context "when a restored child requests approval again" do
+    let(:effects) { [] }
+
+    def restore_pair(request)
+      restored = parent_class.load(parent.agent_id, **options)
+      recovering = restored.resume_async(root_id)
+      observed = Timeout.timeout(8) { events.pop }
+      expect([observed.execution_id, observed.id]).to eq([request.execution_id, request.id])
+      expect { recovering.wait_result(timeout: 8) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+      restored
+    end
+
+    def answer(restored, request, approved: true)
+      restored.approve_hosted_child(root_id, execution_id: request.execution_id,
+        approval_request_id: request.id, approved: approved)
+    end
+
+    before do
+      allow_any_instance_of(approval_tool).to receive(:execute).and_wrap_original do |original, query:|
+        effects << query
+        original.call(query: query)
+      end
+    end
+
+    it "requires a new parent coordination commit before answering a restored child's saved wait" do
+      LLMStub.activate(responses: [dispatch, protected_call])
+      original, first, child = start
+      detach(original, first)
+      allow_any_instance_of(Phronomy::MultiAgent::DurableSubagentCoordinator).to receive(:commit).and_wrap_original do |commit, change|
+        raise Phronomy::ExecutionRehydrationRequiredError, "failed recovered parent commit" if change.kind == :terminal
+        commit.call(change)
+      end
+
+      middle = restore_pair(first)
+      participant = Phronomy::MultiAgent::DurableSubagentCoordinator.new(agent_class: parent_class, persistence: stores.multi_agent)
+      wait = participant.child_approval_wait(middle.agent_id, root_id, first.execution_id, first.id)
+      expect(wait.approval_request_id).to eq(first.id)
+      saved = saved_state(first.execution_id)
+      expect { answer(middle, first) }.to raise_error(Phronomy::AgentBusyError)
+      expect(saved_state(first.execution_id)).to eq(saved)
+      expect_live(middle)
+      expect(child_class.get(child.agent_id)).not_to be_nil
+      expect(effects).to be_empty
+    end
+
+    [:revised, :same].each do |definition_change|
+      it "refuses a preloaded child after registering an incompatible class with the #{definition_change} definition" do
+        LLMStub.activate(responses: [dispatch, protected_call, "child completed"])
+        original, first, child = start
+        detach(original, first)
+        preloaded = child_class.load(child.agent_id, persistence: stores.agent, on_event: options.fetch(:on_event),
+          execution_wiring: {cancellation_token: Phronomy::Concurrency::CancellationToken.new})
+        expect(Timeout.timeout(8) { events.pop }.id).to eq(first.id)
+        definition = (definition_change == :same) ? child_class.agent_definition : {id: "revised-worker", version: 2}
+        replacement = Class.new(child_class) { agent_definition(**definition) }
+        registration = parent_class.registered_subagents.fetch(:worker)
+        parent_class.registered_subagents[:worker] = registration.merge(agent_class: replacement)
+
+        middle = parent_class.load(parent.agent_id, **options)
+        expect { middle.resume_async(root_id).wait_result(timeout: 8) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+        saved = stores.agent.executions.load(first.execution_id)
+        expect(saved.approval_request.fetch("id")).to eq(first.id)
+        expect { answer(middle, first) }.to raise_error(Phronomy::AgentBusyError)
+        expect(stores.agent.executions.load(first.execution_id).to_h).to eq(saved.to_h)
+        expect_live(preloaded)
+        expect(effects).to be_empty
+      end
+    end
+
+    it "refuses a hosted answer if the parent revision changed after recovery" do
+      LLMStub.activate(responses: [dispatch, protected_call])
+      original, first, child = start
+      detach(original, first)
+      middle = restore_pair(first)
+      current = stores.agent.executions.load(root_id)
+      stores.agent.executions.save(root_id, expected_revision: current.execution_revision,
+        execution: current.with(status: current.status))
+
+      saved = saved_state(first.execution_id)
+      expect { answer(middle, first) }.to raise_error(Phronomy::AgentBusyError)
+      expect(saved_state(first.execution_id)).to eq(saved)
+      expect_live(middle)
+      expect(child_class.get(child.agent_id)).not_to be_nil
+      expect(effects).to be_empty
+    end
+
+    [true, false].each do |approve_second|
+      it "releases both restored owners and #{approve_second ? "approves" : "rejects"} the second request on the next owner" do
+        next_tool = LLMStub.tool_call_response("approval_required_tool", {query: "again"})
+        responses = [dispatch, protected_call, next_tool]
+        responses << "child completed" if approve_second
+        recorder = LLMStub.activate(responses: responses + ["parent completed"])
+
+        original, first, child = start
+        detach(original, first)
+        middle = restore_pair(first)
+        middle_child = child_class.get(child.agent_id)
+        decision = answer(middle, first)
+        second = Timeout.timeout(8) { events.pop }
+        expect(second.execution_id).to eq(first.execution_id)
+        expect(second.id).not_to eq(first.id)
+        expect(effects).to eq(["check"])
+
+        saved = saved_state(second.execution_id)
+        expect { detach(original, second) }.to raise_error(Phronomy::AgentBusyError)
+        expect { detach(decision, first) }.to raise_error(Phronomy::AgentBusyError)
+        expect { answer(middle, first) }.to raise_error(Phronomy::AgentBusyError)
+        expect_live(middle)
+        expect_live(middle_child)
+        wait = detach(decision, second)
+        expect([wait.execution_id, wait.approval_request_id]).to eq([second.execution_id, second.id])
+        expect(decision.wait_result(timeout: 8)).to eq(wait)
+        [middle, middle_child].each do |agent|
+          expect(agent.class.get(agent.agent_id)).to be_nil
+          expect { agent.transcript }.to raise_error(Phronomy::AgentUnloadedError)
+        end
+        expect(saved_state(second.execution_id)).to eq(saved)
+
+        last = restore_pair(second)
+        expect { answer(middle, second) }.to raise_error(Phronomy::AgentUnloadedError)
+        expect { detach(decision, second) }.to raise_error(Phronomy::AgentBusyError)
+        outcome = answer(last, second, approved: approve_second).wait_result(timeout: 8)
+        expect(outcome).to include(execution_id: second.execution_id)
+        expect(outcome).to include(approve_second ? {output: "child completed"} : {rejected: true})
+        expect(last.resume(root_id)).to include(execution_id: root_id, output: "parent completed")
+        expect(effects).to eq(approve_second ? ["check", "again"] : ["check"])
+        expect(recorder.calls.size).to eq(approve_second ? 5 : 4)
+      end
+    end
   end
 
   it "rejects a different root's actual child and a mismatched approval without releasing either root" do

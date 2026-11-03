@@ -106,6 +106,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 | **Durable Handoff** — `MultiAgent::Handoff` and `MultiAgent::HandoffRunner` persist responsibility, immutable Context and exact Target reservation in one Persistence domain; current graph wiring is required for continuation | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with application prompts, Agent-validated output schemas and explicit output failures | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
+| **Hosted child approvals** — An Orchestrator can release a single direct child and its parent at successive Tool approvals within the same child execution. The host transfers exclusive ownership between workers. [Contract](runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval) | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; see the [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
 | **Human-in-the-loop approval** — durable suspension publishes `:approval_required` through the Agent listener; `approve` / `approve_async` resumes the same logical `execution_id` with a fresh FSMSession incarnation | Beta |

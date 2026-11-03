@@ -991,6 +991,7 @@
       "agent_root",
       "approve",
       "approve_async",
+      "approve_hosted_child",
       "batch",
       "before_llm_input",
       "before_llm_input=",

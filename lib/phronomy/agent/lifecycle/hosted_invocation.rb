@@ -3,11 +3,12 @@
 module Phronomy
   module Agent
     # An opt-in host handle. wait_result yields the ordinary terminal result or
-    # a detached standalone ApprovalWait. A child's wait is returned by detach!.
+    # an ApprovalWait when the hosted operation itself is detached.
     class HostedInvocation
-      def initialize(agent, execution_id, task, &child_approval_wait)
+      def initialize(agent, execution_id, task, resumed_from: nil, &child_approval_wait)
         @agent, @execution_id, @task = agent, execution_id, task
         @environment = agent.__execution_environment
+        @resumed_from = resumed_from
         @child_approval_wait = child_approval_wait
       end
 
@@ -19,12 +20,16 @@ module Phronomy
         self
       end
 
-      def detach!(approval_request_id:, execution_id: @execution_id)
+      def detach!(approval_request_id:, execution_id: @resumed_from&.execution_id || @execution_id)
         if Phronomy::WaitPolicy.blocking_forbidden?
           raise Phronomy::EventLoopReentrancyError, "detach! requires a host thread"
         end
         child = execution_id != @execution_id
-        wait = if child
+        wait = if @resumed_from
+          if execution_id == @resumed_from.execution_id && approval_request_id != @resumed_from.approval_request_id
+            @child_approval_wait.call(execution_id, approval_request_id)
+          end
+        elsif child
           matching_child_wait(execution_id, approval_request_id)
         else
           @agent.persistence.standalone_approval_wait(agent_id: @agent.agent_id, execution_id: @execution_id)
@@ -38,7 +43,7 @@ module Phronomy
           raise Phronomy::AgentBusyError, "Hosted execution has no matching local owner"
         end
         command = ExecutionCoordinator::DetachHostedWait.new(coordinator: owner.coordinator, wait: wait,
-          task: child ? nil : @task, parent: child ? @agent : nil, completion: completion)
+          task: (child && !@resumed_from) ? nil : @task, parent: child ? @agent : nil, completion: completion)
         accepted = @environment.registry.post(command, completion: completion)
         raise Phronomy::RuntimeShutdownError, "EventLoop rejected hosted detach" unless accepted
         completion.wait_result

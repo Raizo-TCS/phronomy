@@ -710,9 +710,40 @@ restored child from its registered class by child Agent ID, call
 `child.approve(child_execution_id, approval_request_id:, approved:)`, then
 `parent.resume(parent_execution_id)` to import the result. A rejection is a
 child outcome. The parent continues according to its own dispatch and Agent
-logic. Resuming in B uses the existing Agent APIs. It does not create another
-hosted handle for transferring this same execution again.
-A later user request can start a new hosted execution on the same parent
+logic.
+
+If the child may need another handoff, the host answers the current approval
+through the restored parent on a host thread outside EventLoop. This returns a
+hosted handle for the child's operation. If the child finishes, the handle
+yields the child result and the parent can import it. If the child requests
+another approval, the host can use the handle to release the same pair.
+
+For example, B approves the child's `apply_request` and the same child execution
+then asks to call `publish_request`. B uses the first approval's ID to answer and
+the second approval's ID to detach. The queue below receives the child approval
+events from the listener installed when B loaded the parent. This fixture
+requests a second approval within its test timeout.
+
+```ruby
+require "timeout"
+
+answer = parent.approve_hosted_child(parent_execution_id,
+  execution_id: first.execution_id, approval_request_id: first.id, approved: true)
+second = Timeout.timeout(12) { approval_events.pop }
+wait = answer.detach!(execution_id: second.execution_id, approval_request_id: second.id)
+```
+
+After release, `answer.wait_result` returns the same child `ApprovalWait`.
+B sends the existing parent and child execution IDs and the **new** approval
+request ID to C. C restores the pair as B did and answers the new request.
+The completed first Tool stays recorded in the child execution. While the hosted
+answer is pending, read the saved execution to report progress. Calling
+`parent.resume` again can advance the parent revision and invalidate the
+handoff. Resume the parent after the child finishes. A host handling
+arbitrary conversations must observe both approval events and handle completion
+(`on_complete`), since the child can finish without requesting another Tool.
+
+A later user request can also start a new hosted execution on the same parent
 Agent. Its own child wait can be detached while the earlier terminal
 execution's native slot history is still retained.
 

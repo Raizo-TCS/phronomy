@@ -85,7 +85,7 @@ module Phronomy
 
       # Validate both ends of the reservation in one durable snapshot. Only
       # one direct, unfinished child belongs to this hosted handoff.
-      def child_approval_wait(parent_id, parent_execution_id, execution_id, approval_id)
+      def child_approval_wait(parent_id, parent_execution_id, execution_id, approval_id, parent_revision: nil, live_child: nil)
         store = persistence.agent_store
         persistence.coordinator.atomic do |scope|
           extension = store.execution_extension(agent_id: parent_id, execution_id: parent_execution_id,
@@ -96,8 +96,14 @@ module Phronomy
           next unless !snapshot["cancel_requested"] && children.size == 1
           child = children.first
           next unless !child.fetch("imported") && child.fetch("execution_id") == execution_id
+          klass = self.class.registered_child_class(@agent_class, child)
+          next unless klass
+          if live_child
+            next unless live_child.agent_id == child.fetch("agent_id") && live_child.is_a?(klass) &&
+              live_child.class.agent_definition == klass.agent_definition && live_child.persistence.equal?(store)
+          end
           next unless store.single_dispatch_wait?(agent_id: parent_id, execution_id: parent_execution_id,
-            invocation_id: child.fetch("slot"), name: "dispatch_to_#{child.fetch("name")}", scope: scope)
+            invocation_id: child.fetch("slot"), name: "dispatch_to_#{child.fetch("name")}", expected_revision: parent_revision, scope: scope)
           next unless hosted_retentions?(parent_id, parent_execution_id, scope)
 
           child_id = child.fetch("agent_id")
@@ -123,6 +129,12 @@ module Phronomy
         end
       end
 
+      def self.registered_child_class(parent_class, child)
+        settings = parent_class.registered_subagents.find { |name, _| name.to_s == child.fetch("name") }&.last
+        klass = settings&.fetch(:agent_class)
+        klass if klass && klass.agent_definition.transform_keys(&:to_s) == child.fetch("definition")
+      end
+
       def self.start(parent:, tool_invocation_id:, parent_execution_id:, config:)
         completion = Phronomy::TaskResult.deferred(name: "durable-subagent:#{tool_invocation_id}")
         preparation = Phronomy::Execution.submit(on_full: :raise) do
@@ -132,11 +144,8 @@ module Phronomy
           snapshot = store.contents.fetch_json(extension.state_ref)
           child = snapshot.fetch("children").find { |entry| entry.fetch("slot") == tool_invocation_id }
           raise Phronomy::ExecutionRehydrationRequiredError, "Missing reserved child slot" unless child
-          settings = parent.class.registered_subagents.find { |name, _| name.to_s == child.fetch("name") }&.last
-          unless settings && settings.fetch(:agent_class).agent_definition.transform_keys(&:to_s) == child.fetch("definition")
-            raise Phronomy::ConfigurationError, "Registered child definition changed"
-          end
-          klass = settings.fetch(:agent_class)
+          klass = registered_child_class(parent.class, child)
+          raise Phronomy::ConfigurationError, "Registered child definition changed" unless klass
           id = child.fetch("agent_id")
           retention = Phronomy::Agent::Retention.new(agent_id: id, execution_id: child.fetch("execution_id"), owner_key: "subagent:#{parent_execution_id}")
           agent = klass.get(id)

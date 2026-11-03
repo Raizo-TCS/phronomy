@@ -38,6 +38,34 @@ module Phronomy
           phronomy_execution_participant: @participant).compact
       end
 
+      # Answers the current wait of a recovered direct child. If the same
+      # execution suspends again the host can release the pair with this handle.
+      # @api public
+      def approve_hosted_child(parent_execution_id, execution_id:, approval_request_id:, approved: true, config: {})
+        __with_operation do
+          if Phronomy::WaitPolicy.blocking_forbidden?
+            raise Phronomy::EventLoopReentrancyError, "approve_hosted_child requires a host thread"
+          end
+          parent_wait = execution_coordinator.recovered_coordination_wait
+          unless @participant && parent_wait && parent_wait.execution_id == parent_execution_id && parent_wait.current?
+            raise Phronomy::AgentBusyError, "Parent has no matching recovered coordination wait"
+          end
+          owner = __execution_environment.registry.agent_execution_owner(execution_id)
+          unless owner&.status == :suspended
+            raise Phronomy::AgentBusyError, "No matching local child approval wait"
+          end
+          lookup = lambda do |child_execution_id, approval_id|
+            @participant.child_approval_wait(agent_id, parent_wait.execution_id, child_execution_id, approval_id,
+              parent_revision: parent_wait.revision, live_child: owner.agent)
+          end
+          wait = lookup.call(execution_id, approval_request_id)
+          raise Phronomy::AgentBusyError, "No matching hosted child approval wait" unless wait
+          task = owner.coordinator.resume(wait.execution_id, approval_request_id: wait.approval_request_id, approved: approved,
+            config: owner.agent.send(:_prepare_invocation_config, config, nil), parent_wait: parent_wait)
+          Agent::HostedInvocation.new(self, parent_wait.execution_id, task, resumed_from: wait, &lookup)
+        end
+      end
+
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
         # A subagent Tool is logically asynchronous: ToolInvocation starts the
         # child Agent and resumes when its completion TaskResult settles. It must not
@@ -226,7 +254,8 @@ module Phronomy
 
       def build_hosted_invocation(id, task)
         super do |execution_id, approval_id|
-          @participant&.child_approval_wait(agent_id, id, execution_id, approval_id)
+          owner = __execution_environment.registry.agent_execution_owner(execution_id)
+          @participant&.child_approval_wait(agent_id, id, execution_id, approval_id, live_child: owner.agent) if owner
         end
       end
 

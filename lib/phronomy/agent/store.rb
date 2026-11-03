@@ -137,10 +137,11 @@ module Phronomy
       # A native participant can release a root only at a single replayable
       # Tool dispatch. A mixed batch may still require external Tool evidence.
       # @api private
-      def single_dispatch_wait?(agent_id:, execution_id:, invocation_id:, name:, scope:)
+      def single_dispatch_wait?(agent_id:, execution_id:, invocation_id:, name:, scope:, expected_revision: nil)
         with_scope(scope) do |records|
           execution = records.executions.load(execution_id)
           assert_execution_owner!(execution, agent_id)
+          next false if expected_revision && execution.execution_revision != expected_revision
           batch = Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
           execution.status == :active && execution.phase.to_sym == :dispatching_tools &&
             !execution.metadata["reservation"] && !execution.metadata["cancellation_requested"] &&

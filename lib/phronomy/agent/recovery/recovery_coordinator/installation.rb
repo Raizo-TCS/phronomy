@@ -316,7 +316,7 @@ module Phronomy
           main = agent.send(:execution_coordinator_for, agent.__execution_wiring)
 
           if framework_batch?(execution)
-            internal = Phronomy::TaskResult.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
+            internal = ExecutionCoordinator::FrameworkRecoveryTask.deferred(name: "framework-tool-recovery:#{execution.execution_id}")
             continue_recovery_on_event_loop(execution, internal, material: material)
             agent.send(:_complete_result_task, completion, agent)
             return

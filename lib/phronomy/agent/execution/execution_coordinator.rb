@@ -21,6 +21,36 @@ module Phronomy
         :approved, :config, :result_task
       )
 
+      # A resumed approval must never be adopted by the original start handle.
+      # Only a hosted decision owns the right to detach its next suspension.
+      class ApprovalOperation < OperationResult
+        attr_reader :parent_wait
+
+        def initialize(agent:, name:, parent_wait:)
+          super(agent: agent, name: name)
+          @parent_wait = parent_wait
+        end
+      end
+
+      # The recovery runner uses this task for replay of a framework Tool batch.
+      # @api private
+      class FrameworkRecoveryTask < Phronomy::TaskResult
+      end
+
+      # Recovery publishes a receipt only after its own coordination commit.
+      # The receipt belongs to this incarnation; a new local attempt invalidates it.
+      RecoveredCoordinationWait = Data.define(:coordinator, :execution_id, :revision) do
+        def current? = coordinator.current_coordination_wait?(self)
+      end
+      private_constant :ApprovalOperation, :RecoveredCoordinationWait
+      attr_reader :recovered_coordination_wait
+
+      def current_coordination_wait?(wait)
+        environment = @agent.__execution_environment
+        @recovered_coordination_wait.equal?(wait) && environment.ownership.owned?(@agent) &&
+          !environment.registry.agent_execution_admitted?(@agent.agent_id)
+      end
+
       # Recovery -> execution-owner commands. These stay on EventLoop and do
       # not carry persistence readers or arbitrary private method names.
       RecoverPreparationCommand = Data.define(
@@ -126,11 +156,11 @@ module Phronomy
         execution_id,
         approval_request_id:,
         approved:,
-        config: {}
+        config: {}, parent_wait: nil
       )
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
-        result_task = OperationResult.new(agent: @agent,
+        result_task = ApprovalOperation.new(agent: @agent, parent_wait: parent_wait,
           name: "agent-approval-resume:#{execution_id}")
         command = ResumeCommand.new(
           coordinator: self,
@@ -276,6 +306,9 @@ module Phronomy
         binding = @suspended_cancellation
         task = command.task || binding&.fetch(2)
         parent = command.parent
+        if task.is_a?(ApprovalOperation) && (!command.task.equal?(task) || !task.parent_wait&.current?)
+          raise Phronomy::AgentBusyError, "This handle does not own the resumed child wait"
+        end
         if parent && registry.agent_execution_admitted?(parent.agent_id)
           raise Phronomy::AgentBusyError, "Hosted parent has another local execution"
         end
@@ -337,6 +370,7 @@ module Phronomy
         # must abort instead of deleting the Agent underneath this start.
         @agent.send(:__assert_live_agent!)
 
+        @recovered_coordination_wait = nil
         operation = capture_initial_preparation(request, root)
         task = environment.submit(on_full: :raise) do
           @initial_preparation.prepare(operation)
@@ -942,6 +976,12 @@ module Phronomy
           return
         end
 
+        if request.result_task.is_a?(ApprovalOperation) && (parent_wait = request.result_task.parent_wait)
+          unless parent_wait.current? && !@suspended_cancellation
+            return fail_task(request.result_task, Phronomy::AgentBusyError.new("Hosted decision requires a restored child wait"))
+          end
+        end
+
         approval = state.execution.approval_request || {}
         current_request_id = approval["id"] || approval[:id]
         unless current_request_id.to_s == request.approval_request_id
@@ -1129,6 +1169,7 @@ module Phronomy
         environment = @agent.__execution_environment
         registry = environment.registry
         state = recovered_execution_state!(command)
+        @recovered_coordination_wait = nil
         validate_recovered_continuation!(state.execution, command.continuation)
         invocation = command.invocation
         unless invocation && invocation.agent.equal?(@agent) &&
@@ -1538,6 +1579,8 @@ module Phronomy
         release_terminal_ownership(environment, operation.execution_id, state)
         if delivery.result_task.is_a?(OperationResult)
           delivery.result_task.coordination_wait_execution_id = operation.execution_id
+        elsif delivery.result_task.is_a?(FrameworkRecoveryTask)
+          @recovered_coordination_wait = RecoveredCoordinationWait.new(self, operation.execution_id, outcome.execution.execution_revision)
         end
         environment.registry.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| fail_task(task, outcome.error) }
       end
