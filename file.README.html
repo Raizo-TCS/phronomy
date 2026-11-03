@@ -95,7 +95,8 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following table describes the application APIs available in v0.32.0.
+<p>The following table describes the application APIs. Entries marked Unreleased
+require a development build. The other entries are available in v0.32.0.
 Worker hosting and completed parent/child release require v0.32.0 or later.
 Review the <a href="docs/migrations/0.31.md">0.31 migration notes</a> before upgrading
 persistent applications or custom Agent Tool subclasses.</p>
@@ -108,6 +109,11 @@ persistent applications or custom Agent Tool subclasses.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>Tool::Base#approval_display(arguments:, facts:)</code></td>
+<td>Beta (Unreleased)</td>
+<td>The Tool selects the arguments and derived facts a person can see in an approval request. <a href="docs/runtime-and-concurrency.md#tool-approval-display">Approval display</a></td>
+</tr>
 <tr>
 <td><code>Phronomy::LLMAdapter::LMStudio</code></td>
 <td>Beta</td>
@@ -339,7 +345,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue Nov  3 14:17:20 2026 by
+  Generated on Tue Nov  3 14:23:48 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

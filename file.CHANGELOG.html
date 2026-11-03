@@ -72,6 +72,15 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Reuse the immutable argument schema prepared by an explicit <code>parameters</code>
 declaration. Each Tool instance compiles its own validator on first use.</li>
 </ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Build each human-facing Tool approval item from the Tool's public
+<code>approval_display(arguments:, facts:)</code> result. A Tool without this operation
+contributes empty argument and fact maps to new approval requests. Tool
+execution and policy evaluation still receive their original inputs.</li>
+<li>Apply the default approval display's sensitive-value check to values inside
+a Tool's redacted hash or array arguments, including copies used as fact keys.</li>
+</ul>
 <h2 id="_0_32_0____2026_11_03">[0.32.0] - 2026-11-03</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1097,7 +1106,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Tue Nov  3 14:17:20 2026 by
+  Generated on Tue Nov  3 14:23:48 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
