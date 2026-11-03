@@ -59,6 +59,7 @@ RSpec.describe "Subagent Tool contract" do
     end
   end
 
+  # Regression for Issue #440: cached Tool methods must not retain completed owners.
   it "does not retain the parent or invocation through cached dispatch Tool methods" do
     methods, references = Thread.new do
       parent = parent_class.new
