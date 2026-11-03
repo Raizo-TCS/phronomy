@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-03
+
 ### Added
 
 - Add `Agent#start_hosted`, `Agent::HostedInvocation` and immutable
@@ -20,9 +22,9 @@ Release history for 0.14.0 and earlier is archived in
   existing `load` and `approve` operations to continue the same execution.
 - Add `Agent::Store#standalone_approval_wait` to query the committed approval fact without
   transferring a live worker claim. Delivery deduplication, exclusive claims and
-  verified worker termination remain application responsibilities. This initial
-  contract excludes parent Workflow/shared-child transfer, multi-host fencing,
-  supervisor restart and recovery of uncertain external Tool effects.
+  verified worker termination remain application responsibilities. Standalone
+  detachment does not transfer parent Workflows or shared children; supported
+  direct-child handoff and saved Workflow events are separate APIs below.
 
 - Add `Workflow#send_saved_event` to restore a declared wait by Workflow instance
   ID and expected revision before applying an event. The host can reject a
@@ -42,7 +44,8 @@ Release history for 0.14.0 and earlier is archived in
 ### Fixed
 
 - Bind native subagent dispatch context to each prepared Tool instance so that
-  cached Tool methods do not keep completed Orchestrators alive after unload.
+  cached Tool methods do not keep completed Orchestrators alive after unload
+  (Issue #440). Saved SQLite execution and conversation history is preserved.
 - Keep distinct native Tool call/result pairs when a provider reuses its call ID
   in later responses on the same Agent. A subsequent request can use the saved
   conversation without executing either Tool again to rebuild context.
@@ -53,6 +56,25 @@ Release history for 0.14.0 and earlier is archived in
 - Continue using an Agent after a human rejects a Tool call. Model input for the
   next turn omits the rejected, incomplete Tool exchange. The original journal
   and public conversation history remain available for inspection.
+
+### Compatibility and verification
+
+- Worker APIs require 0.32.0 or later; applications using `start_hosted` cannot
+  run against 0.31.0. The existing [0.31 storage and Agent Tool migration
+  requirements](docs/migrations/0.31.md) still apply. This release does not add a
+  persistence mapping migration or change those stored execution formats.
+- Native handoff and completed-owner release cover one direct child in an
+  isolated dispatch batch. Delivery deduplication, exclusive claims, ACKs and
+  verified worker termination belong to the application. General graph transfer,
+  multi-host fencing, supervisor restart and recovery of unknown external Tool
+  effects are not established by these examples.
+- Worker acceptance uses fixed HTTP responses, actual Ruby processes and SQLite,
+  including Ubuntu 24.04 and 26.04. It does not establish live-model acceptance.
+- LM Studio/gpt-oss PEG parsing remains a known unresolved limitation. The latest
+  pre-release standard verifier reported 101 passed, 2 failed and 0 skipped;
+  Examples 01 and 22 received provider PEG errors, also reproduced before Worker
+  support. Known-error identification and bounded retry do not fix the provider's
+  root cause. These two failures are tracked separately from Worker acceptance.
 
 ## [0.31.0] - 2026-10-25
 
