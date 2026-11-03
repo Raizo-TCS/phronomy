@@ -676,7 +676,56 @@ For example, worker A starts a fresh reservation with `agent.start_hosted(reserv
 
 An incorrect or stale approval, outstanding physical work, concurrent operation, live scope or durable retention prevents transfer. A busy response leaves the host responsible for the claim. A spent reservation is rejected. After a verified worker exit, a host can query `store.standalone_approval_wait(agent_id:, execution_id:)` without loading the Agent. A missing or ineligible wait returns nil. Store errors and owner mismatches propagate. Only reclaim a delivery if the original worker is known to have stopped and its claim still matches.
 
-Worker B loads the Agent with an `on_event:` listener, checks the restored request against the accepted answer and calls `approve` with the execution and approval request IDs. The host owns input deduplication and result acknowledgement. This first transfer contract covers a standalone invocation up to its first approval. Coordinated children, multi-host fencing and uncertain external Tool effects require separate recovery decisions.
+Worker B loads the Agent with an `on_event:` listener, checks the restored request against the accepted answer and calls `approve` with the execution and approval request IDs. The host owns input deduplication and result acknowledgement. For a direct subagent, use the parent's hosted handle as described below.
+
+## Hosting an Orchestrator through a child approval
+
+A hosted Orchestrator can release its local Agent and one direct subagent when
+the subagent is waiting for Tool approval. The parent execution has one reserved
+child slot and its current Tool batch contains only the dispatch for that slot.
+The host holds exclusive access to both Agents throughout the handoff. It
+delivers work to the next worker only after release succeeds.
+
+For example, worker A starts a parent with `start_hosted`. Its listener receives
+the child's approval request. A host thread outside EventLoop passes the IDs
+from that request to the parent handle.
+
+```ruby
+wait = handle.detach!(execution_id: request.execution_id, approval_request_id: request.id)
+```
+
+The returned `Agent::ApprovalWait` identifies the child execution, its approval
+request and its saved revision. Keep the parent Agent and execution IDs with the
+accepted request. Both old Agent objects reject later execution operations.
+Worker A can keep unrelated Agent instances and process another request.
+The parent's original result handle retains its
+`ExecutionRehydrationRequiredError` outcome at this boundary.
+
+Worker B loads the same parent class with its Agent Store, coordination Store
+and listener. `parent.resume_async(parent_execution_id)` restores the pending
+child and emits the same approval request. Compare its execution and request
+IDs with the accepted request. The parent attempt reports
+`ExecutionRehydrationRequiredError` while the child is waiting. Obtain the
+restored child from its registered class by child Agent ID, call
+`child.approve(child_execution_id, approval_request_id:, approved:)`, then
+`parent.resume(parent_execution_id)` to import the result. A rejection is a
+child outcome. The parent continues according to its own dispatch and Agent
+logic. Resuming in B uses the existing Agent APIs. It does not create another
+hosted handle for transferring this same execution again.
+A later user request can start a new hosted execution on the same parent
+Agent. Its own child wait can be detached while the earlier terminal
+execution's native slot history is still retained.
+
+A wrong approval, another reserved child, overlapping local work, or a pending
+cancellation prevents transfer. On `AgentBusyError` the host keeps ownership.
+The child remains a coordinated execution in storage, including its original
+slot and retention. Once both executions complete in B, these retentions
+continue to guard ordinary `unload!`. This handoff preserves slot history.
+An application that has finished using that history can separately call
+`stores.multi_agent.forget_subagents(agent_id:, execution_id:)` to remove
+that execution's subagent extension and release its holds.
+The host serializes workers and owns request deduplication, claims, crash
+recovery and acknowledgement.
 
 ## Delivering an event to a saved Workflow wait
 

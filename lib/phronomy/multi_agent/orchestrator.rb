@@ -224,6 +224,12 @@ module Phronomy
 
       private
 
+      def build_hosted_invocation(id, task)
+        super do |execution_id, approval_id|
+          @participant&.child_approval_wait(agent_id, id, execution_id, approval_id)
+        end
+      end
+
       def prepare_tool_class(tool_class, invocation: nil)
         prepared = super
         return prepared unless self.class._subagent_tool_classes.include?(tool_class)

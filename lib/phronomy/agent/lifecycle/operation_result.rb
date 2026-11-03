@@ -6,6 +6,9 @@ module Phronomy
     # Only the domain runner acknowledges the end of its accepted operation.
     # @api private
     class OperationResult < Phronomy::Concurrency::PhysicalCompletionTask
+      # Published on the EventLoop before the task signals a committed coordination wait.
+      attr_accessor :coordination_wait_execution_id
+
       def initialize(agent:, name:)
         super(name: name)
         @operation_lease = agent.send(:__acquire_operation!)
@@ -20,12 +23,12 @@ module Phronomy
         release_if_quiet
       end
 
-      def reserve_approval_detach!(transition)
+      def reserve_approval_detach!(transition, parent: nil)
         @lifetime_mutex.synchronize do
           if @finished || @released || !@work.zero?
             raise Phronomy::AgentBusyError, "Hosted operation is still busy or has finished"
           end
-          @operation_lease.reserve_approval_detach!(transition)
+          @operation_lease.reserve_approval_detach!(transition, parent: parent)
         end
       end
 

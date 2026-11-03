@@ -156,6 +156,10 @@ module Phronomy
       end
 
       def reconcile(failure)
+        # A suspended exact observer may already have released its operation.
+        # A logically cancelled observer still needs physical acknowledgement.
+        return if @completion.physical_complete?
+
         task = @environment.submit(on_full: :raise) do
           execution = read_execution
           if execution&.terminal?

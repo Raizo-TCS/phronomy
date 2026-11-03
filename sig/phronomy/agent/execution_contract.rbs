@@ -13,7 +13,7 @@ module Phronomy
 
     class HostedInvocation
       def on_complete: () { (untyped, StandardError?) -> untyped } -> self
-      def detach!: (approval_request_id: String) -> ApprovalWait
+      def detach!: (approval_request_id: String, ?execution_id: String) -> ApprovalWait
       def wait_result: (?timeout: Numeric?) -> (execution_result | ApprovalWait)
     end
 

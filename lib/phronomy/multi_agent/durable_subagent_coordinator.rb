@@ -83,6 +83,46 @@ module Phronomy
         extension&.state_ref ? persistence.contents.fetch_json(extension.state_ref) : {"children" => [], "cancel_requested" => false}
       end
 
+      # Validate both ends of the reservation in one durable snapshot. Only
+      # one direct, unfinished child belongs to this hosted handoff.
+      def child_approval_wait(parent_id, parent_execution_id, execution_id, approval_id)
+        store = persistence.agent_store
+        persistence.coordinator.atomic do |scope|
+          extension = store.execution_extension(agent_id: parent_id, execution_id: parent_execution_id,
+            binding_key: BINDING_KEY, scope: scope)
+          next unless extension&.state_ref && extension.binding_version == 1
+          snapshot = state_for(extension)
+          children = snapshot.fetch("children")
+          next unless !snapshot["cancel_requested"] && children.size == 1
+          child = children.first
+          next unless !child.fetch("imported") && child.fetch("execution_id") == execution_id
+          next unless store.single_dispatch_wait?(agent_id: parent_id, execution_id: parent_execution_id,
+            invocation_id: child.fetch("slot"), name: "dispatch_to_#{child.fetch("name")}", scope: scope)
+          next unless hosted_retentions?(parent_id, parent_execution_id, scope)
+
+          child_id = child.fetch("agent_id")
+          owner = {"kind" => "subagent", "parent_execution_id" => parent_execution_id,
+                   "parent_agent_id" => parent_id, "slot" => child.fetch("slot")}
+          retention = Phronomy::Agent::Retention.new(agent_id: child_id, execution_id: execution_id,
+            owner_key: "subagent:#{parent_execution_id}")
+          wait = store.approval_wait_for(agent_id: child_id, execution_id: execution_id,
+            correlation: owner, retentions: [retention], scope: scope)
+          wait if wait&.approval_request_id == approval_id
+        end
+      end
+
+      # Retaining the history of an earlier completed native dispatch on this
+      # same Agent does not give anyone a live interest in the current run.
+      private def hosted_retentions?(agent_id, execution_id, scope)
+        store = persistence.agent_store
+        current = Phronomy::Agent::Retention.new(agent_id: agent_id, execution_id: execution_id, owner_key: "subagent:#{execution_id}")
+        retentions = store.retained_references(agent_id: agent_id, scope: scope)
+        retentions.include?(current) && (retentions - [current]).all? do |retention|
+          retention.execution_id && retention.owner_key == "subagent:#{retention.execution_id}" &&
+            store.terminal_execution?(agent_id: agent_id, execution_id: retention.execution_id, scope: scope)
+        end
+      end
+
       def self.start(parent:, tool_invocation_id:, parent_execution_id:, config:)
         completion = Phronomy::TaskResult.deferred(name: "durable-subagent:#{tool_invocation_id}")
         preparation = Phronomy::Execution.submit(on_full: :raise) do

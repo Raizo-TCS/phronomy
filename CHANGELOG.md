@@ -27,6 +27,10 @@ Release history for 0.14.0 and earlier is archived in
 - Add `Workflow#send_saved_event` to restore a declared wait by Workflow instance
   ID and expected revision before applying an event. The host can reject a
   delayed delivery even when the same Workflow later returns to an identical wait.
+- Allow an Orchestrator's hosted handle to detach its local parent and direct
+  child together at a saved child Tool approval. The host supplies the child's
+  execution and approval request IDs and retains the parent's execution ID for
+  resumption on another worker. Both workers can remain alive.
 
 ### Fixed
 

@@ -29,7 +29,7 @@ module Phronomy
           config = _prepare_output_config(config, nil, output_schema, schema_delivery)
           task = _start_agent_operation(input, config: config.merge(phronomy_reserved_execution_id: id),
             mode: :invoke, listener: _phronomy_event_listener)
-          HostedInvocation.new(self, id, task)
+          build_hosted_invocation(id, task)
         end
       end
 
@@ -230,6 +230,10 @@ module Phronomy
       end
 
       private
+
+      def build_hosted_invocation(id, task, &child_wait)
+        HostedInvocation.new(self, id, task, &child_wait)
+      end
 
       def _prepare_output_config(config, invocation_context, schema, schema_delivery)
         config = _prepare_invocation_config(config, invocation_context)

@@ -167,7 +167,7 @@ module Phronomy
 
       # Transfer only the single outstanding hosting operation, atomically with
       # the same admission gate used by all other Agent operations.
-      def reserve_approval_detach!(agent, operation_token, transition)
+      def reserve_approval_detach!(agent, operation_token, transition, parent: nil)
         @mutex.synchronize do
           ensure_running!
           entry = @entries[agent.agent_id]
@@ -175,6 +175,14 @@ module Phronomy
           unless entry&.state == :live && entry.agent.equal?(agent) && !@scope_owners[agent.agent_id] &&
               operations&.size == 1 && operations.key?(operation_token)
             raise Phronomy::AgentBusyError, "Agent has another owner or accepted operation"
+          end
+          if parent
+            entry = @entries[parent.agent_id]
+            unless entry&.state == :live && entry.agent.equal?(parent) && !@scope_owners[parent.agent_id]
+              raise Phronomy::AgentBusyError, "Hosted parent no longer owns the local Agent"
+            end
+            assert_no_operations!(parent)
+            @entries[parent.agent_id] = Entry.new(state: :unloading, agent: parent, token: transition)
           end
           @entries[agent.agent_id] = Entry.new(state: :unloading, agent: agent, token: transition)
         end
@@ -201,18 +209,23 @@ module Phronomy
         end
       end
 
-      def finish_unload(agent, transition, success:)
+      def finish_unload(agent, transition, success:, parent: nil)
+        agents = parent ? [parent, agent] : [agent]
         @mutex.synchronize do
-          entry = @entries[agent.agent_id]
-          unless entry&.state == :unloading && entry.agent.equal?(agent) && entry.token.equal?(transition)
-            raise Phronomy::RuntimeShutdownError, "Agent unload reservation is no longer authoritative"
+          agents.each do |owner|
+            entry = @entries[owner.agent_id]
+            unless entry&.state == :unloading && entry.agent.equal?(owner) && entry.token.equal?(transition)
+              raise Phronomy::RuntimeShutdownError, "Agent unload reservation is no longer authoritative"
+            end
           end
-          if success
-            agent.send(:__mark_unloaded!)
-            @entries.delete(agent.agent_id)
-            @scope_owners.delete(agent.agent_id)
-          else
-            @entries[agent.agent_id] = Entry.new(state: :live, agent: agent, token: nil)
+          agents.each do |owner|
+            if success
+              owner.send(:__mark_unloaded!)
+              @entries.delete(owner.agent_id)
+              @scope_owners.delete(owner.agent_id)
+            else
+              @entries[owner.agent_id] = Entry.new(state: :live, agent: owner, token: nil)
+            end
           end
           @condition.broadcast
         end

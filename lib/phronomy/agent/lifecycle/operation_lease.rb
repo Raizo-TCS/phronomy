@@ -20,10 +20,10 @@ module Phronomy
         ownership&.first&.release_operation(ownership[1], ownership[2])
       end
 
-      def reserve_approval_detach!(transition)
+      def reserve_approval_detach!(transition, parent: nil)
         @mutex.synchronize do
           raise Phronomy::AgentBusyError, "Hosted operation has ended" unless @registry
-          @registry.reserve_approval_detach!(@agent, @token, transition)
+          @registry.reserve_approval_detach!(@agent, @token, transition, parent: parent)
         end
       end
 
