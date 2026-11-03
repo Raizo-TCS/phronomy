@@ -285,6 +285,28 @@ not supported. Provider request rendering does not belong to this class.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#for_tool_instance-instance_method" title="#for_tool_instance (instance method)">#<strong>for_tool_instance</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Build an independent validator from this immutable Tool definition.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(schema = nil, &amp;block)  &#x21d2; Schema </a>
     
 
@@ -380,15 +402,7 @@ not supported. Provider request rendering does not belong to this class.</p>
 48
 49
 50
-51
-52
-53
-54
-55
-56
-57
-58
-59</pre>
+51</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 30</span>
@@ -409,19 +423,11 @@ not supported. Provider request rendering does not belong to this class.</p>
   <span class='kw'>unless</span> <span class='ivar'>@json_schema</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@json_schema</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>type</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>object</span><span class='tstring_end'>&quot;</span></span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Tool schema must declare an object</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
+  <span class='ivar'>@json_schema</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='ivar'>@json_schema</span><span class='rparen'>)</span>
   <span class='ivar'>@references</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='id identifier rubyid_validate_keywords!'>validate_keywords!</span><span class='lparen'>(</span><span class='ivar'>@json_schema</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>ref_resolver:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_uri'>uri</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>external Tool schema reference: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_uri'>uri</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='rbrace'>}</span>
-  <span class='kw'>unless</span> <span class='const'>JSONSchemer</span><span class='period'>.</span><span class='id identifier rubyid_valid_schema?'>valid_schema?</span><span class='lparen'>(</span><span class='ivar'>@json_schema</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invalid Tool JSON Schema</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-  <span class='ivar'>@json_schema</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values.html" title="Phronomy::Values (module)">Values</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Values/Immutable.html" title="Phronomy::Values::Immutable (module)">Immutable</a></span></span><span class='period'>.</span><span class='id identifier rubyid_copy'><span class='object_link'><a href="../Values/Immutable.html#copy-class_method" title="Phronomy::Values::Immutable.copy (method)">copy</a></span></span><span class='lparen'>(</span><span class='ivar'>@json_schema</span><span class='rparen'>)</span>
-  <span class='ivar'>@validator</span> <span class='op'>=</span> <span class='const'>JSONSchemer</span><span class='period'>.</span><span class='id identifier rubyid_schema'>schema</span><span class='lparen'>(</span><span class='ivar'>@json_schema</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
-  <span class='ivar'>@references</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_reference'>reference</span><span class='op'>|</span> <span class='ivar'>@validator</span><span class='period'>.</span><span class='id identifier rubyid_ref'>ref</span><span class='lparen'>(</span><span class='id identifier rubyid_reference'>reference</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-  <span class='ivar'>@references</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='id identifier rubyid_freeze'>freeze</span>
-<span class='kw'>rescue</span> <span class='const'>JSONSchemer</span><span class='op'>::</span><span class='const'>InvalidRefPointer</span><span class='comma'>,</span> <span class='const'>JSONSchemer</span><span class='op'>::</span><span class='const'>InvalidRefResolution</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invalid local Tool schema reference: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='ivar'>@references</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='id identifier rubyid_compile_validator!'>compile_validator!</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -459,12 +465,12 @@ not supported. Provider request rendering does not belong to this class.</p>
       <pre class="lines">
 
 
-62
-63
-64</pre>
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_json_schema'>json_schema</span>
   <span class='ivar'>@json_schema</span>
@@ -509,6 +515,8 @@ not supported. Provider request rendering does not belong to this class.</p>
       <pre class="lines">
 
 
+79
+80
 81
 82
 83
@@ -526,12 +534,10 @@ not supported. Provider request rendering does not belong to this class.</p>
 95
 96
 97
-98
-99
-100</pre>
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_json_value'>json_value</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_value'>value</span>
@@ -565,7 +571,50 @@ not supported. Provider request rendering does not belong to this class.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="validate-instance_method">
+  <h3 class="signature first" id="for_tool_instance-instance_method">
+  
+    #<strong>for_tool_instance</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Build an independent validator from this immutable Tool definition.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+55
+56
+57</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 55</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_for_tool_instance'>for_tool_instance</span>
+  <span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_compile_validator!'>compile_validator!</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="validate-instance_method">
   
     #<strong>validate</strong>(arguments, coerce: false)  &#x21d2; <tt>Object</tt> 
   
@@ -590,6 +639,8 @@ references are validated without guessing a branch or resolving a cast.</p>
       <pre class="lines">
 
 
+66
+67
 68
 69
 70
@@ -597,12 +648,10 @@ references are validated without guessing a branch or resolving a cast.</p>
 72
 73
 74
-75
-76
-77</pre>
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/schema.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate'>validate</span><span class='lparen'>(</span><span class='id identifier rubyid_arguments'>arguments</span><span class='comma'>,</span> <span class='label'>coerce:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='lbracket'>[</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>arguments must be an object (Hash)</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='kw'>unless</span> <span class='id identifier rubyid_arguments'>arguments</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
@@ -624,7 +673,7 @@ references are validated without guessing a branch or resolving a cast.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Nov  3 08:11:26 2026 by
+  Generated on Tue Nov  3 14:17:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

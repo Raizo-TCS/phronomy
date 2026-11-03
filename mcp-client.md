@@ -10,8 +10,10 @@ Phronomy supports the official `mcp` Ruby SDK **1.x**. MCP SDK 0.x is not suppor
 - `http://...`
 - `https://...`
 
-HTTP and SSE support are standard dependencies of Phronomy through `faraday` and
-`event_stream_parser`.
+For HTTP and HTTPS servers, Phronomy delegates to the MCP SDK's
+`MCP::Client::HTTP` transport. RubyLLM already brings in `event_stream_parser`
+for server-sent events. See the [HTTP dependency rationale](architecture/trust-acceptance-followup.md#http-dependency-correction)
+for Phronomy's Faraday and Net::HTTP adapter requirements.
 
 ## Input-schema subset
 
