@@ -12,6 +12,11 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Reuse the immutable argument schema prepared by an explicit `parameters`
+  declaration. Each Tool instance compiles its own validator on first use.
+
 ## [0.32.0] - 2026-11-03
 
 ### Added

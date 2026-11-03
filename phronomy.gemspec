@@ -35,8 +35,10 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # Provider SDK and independent Tool schema construction/validation libraries.
   spec.add_dependency "ruby_llm", "~> 2.0.0"
+  # Temporary workaround for RubyLLM retrying a streaming HTTP 400 as a 500.
+  # Remove both declarations once the supported RubyLLM range handles it.
+  # See docs/architecture/trust-acceptance-followup.md#http-dependency-correction.
   spec.add_dependency "faraday", "~> 2.14", ">= 2.14.4"
   spec.add_dependency "faraday-net_http", "~> 3.4", ">= 3.4.4"
   spec.add_dependency "schematist", "~> 1.1"

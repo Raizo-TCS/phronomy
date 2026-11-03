@@ -106,9 +106,12 @@ def snapshot_entry(klass)
       "public_class_methods" => (klass.public_methods(false) - BASELINE_CLASS_METHODS).sort
     }
   else
-    internal_context_methods = (klass == Phronomy::InvocationContext) ?
-      %i[__bind_execution __execution_scope] : []
-    instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS - internal_context_methods).sort
+    internal_methods = case klass.name
+    when "Phronomy::InvocationContext" then %i[__bind_execution __execution_scope]
+    when "Phronomy::Tool::Schema" then %i[for_tool_instance]
+    else []
+    end
+    instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS - internal_methods).sort
     internal_class_methods = (klass == Phronomy::Storage::AsyncClient) ? %i[submit] : []
     class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS - internal_class_methods).sort
     {
