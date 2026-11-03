@@ -211,6 +211,37 @@ Worker authorization/execution outcomes return as values carrying
 `tool_invocation_id`; the Tool FSMSession consumes a mismatched semantic result
 without advancing its current state.
 
+## Tool approval display
+
+A Tool chooses which arguments and derived facts a person may see. Agent asks
+the Tool for both when it builds a new `ToolApprovalRequest` item and takes a
+snapshot of the result. Approval policy and Tool execution use their own inputs.
+
+For example, a Tool can declare `redact_params :token`. The default
+`Tool::Base#approval_display(arguments:, facts:)` masks `token` in the
+argument display and masks string values in facts. A numeric fact such as
+`recipient_count: 3` can still be shown. Use fixed fact names and choose
+aggregates that are appropriate to disclose.
+
+If `redact_params :auth` covers `auth: {pin: 627018}`, the default also
+masks a fact such as `echo: 627018`. It checks JSON values copied from inside
+sensitive hashes and arrays. A matching fact key causes that entry to be
+omitted. The declared
+argument's own hash keys are treated as field names. If those names are
+themselves confidential, keep them out of fact keys. Equality also masks
+unrelated facts with the same value. The Tool author chooses which computed
+values may be shown. For example, an arithmetic transformation of a PIN can
+still disclose it even if the result differs from the original. Override
+`approval_display` to explicitly select safe fields when publishing such facts.
+
+To customize both fields, return a Hash with the symbol keys `:arguments` and
+`:facts`, each holding a displayable Hash. The hook runs on EventLoop while
+Agent prepares the approval. Build the result from the supplied values without
+blocking or performing I/O. A wrapper can forward the operation to its
+underlying Tool. If a Tool omits the operation, the item contains an
+empty Hash for each field. Existing saved approval items retain the display
+data recorded when they were created.
+
 ## Approval suspension and live owner lookup
 
 Approval suspension retains the same process-local Agent and AgentInvocation but
@@ -671,6 +702,11 @@ Runtime shutdown before resetting configuration.
 ## Hosting a standalone Agent through approval
 
 A host can release one suspended Agent and continue using its Ruby process for other Agents. Hold one external claim per mutable Agent while loading, executing, detaching and recording delivery. Persist a new request's reserved execution ID before dispatch. A host uses the existing incarnation-level listener to receive the approval request.
+
+The hosted handle matches the requested approval to its saved wait and local
+owner. That owner's execution coordinator submits the detach command to
+EventLoop, which rechecks ownership before releasing the Agent. The host waits
+for the result before handing the execution to another worker.
 
 For example, worker A starts a fresh reservation with `agent.start_hosted(reservation:, input:)`. If the run finishes directly, `handle.wait_result` returns the ordinary execution result. On an approval notification, call `handle.detach!(approval_request_id: request.id)` outside EventLoop. Success returns an immutable `ApprovalWait` with the execution ID, approval request ID and committed revision. The same handle then returns that wait. The released Agent object cannot be reused. Existing `invoke_async` handles keep their terminal-result contract.
 

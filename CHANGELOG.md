@@ -17,6 +17,15 @@ Release history for 0.14.0 and earlier is archived in
 - Reuse the immutable argument schema prepared by an explicit `parameters`
   declaration. Each Tool instance compiles its own validator on first use.
 
+### Fixed
+
+- Build each human-facing Tool approval item from the Tool's public
+  `approval_display(arguments:, facts:)` result. A Tool without this operation
+  contributes empty argument and fact maps to new approval requests. Tool
+  execution and policy evaluation still receive their original inputs.
+- Apply the default approval display's sensitive-value check to values inside
+  a Tool's redacted hash or array arguments, including copies used as fact keys.
+
 ## [0.32.0] - 2026-11-03
 
 ### Added

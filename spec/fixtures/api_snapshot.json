@@ -647,6 +647,7 @@
     "name": "Phronomy::Tool::Base",
     "type": "class",
     "public_instance_methods": [
+      "approval_display",
       "approval_metadata",
       "call",
       "call_async",
@@ -1195,6 +1196,7 @@
     "name": "Phronomy::Tools::Mcp",
     "type": "class",
     "public_instance_methods": [
+      "approval_display",
       "approval_metadata",
       "call",
       "call_async",
@@ -1242,6 +1244,7 @@
     "name": "Phronomy::Tools::Agent",
     "type": "class",
     "public_instance_methods": [
+      "approval_display",
       "approval_metadata",
       "call",
       "call_async",
@@ -1288,6 +1291,7 @@
     "name": "Phronomy::Tools::VectorSearch",
     "type": "class",
     "public_instance_methods": [
+      "approval_display",
       "approval_metadata",
       "call",
       "call_async",

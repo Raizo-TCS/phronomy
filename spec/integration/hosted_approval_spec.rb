@@ -64,6 +64,21 @@ RSpec.describe "Standalone hosted approval", :integration do
     expect(agent.persistence.standalone_approval_wait(agent_id: agent.agent_id, execution_id: request.execution_id)).to be_nil
   end
 
+  it "keeps the owner and its wait available when the EventLoop rejects detach" do
+    handle, request = start
+    registry = agent.__execution_environment.registry
+    RSpec::Mocks.with_temporary_scope do
+      allow(registry).to receive(:post).and_call_original
+      allow(registry).to receive(:post)
+        .with(anything, hash_including(completion: kind_of(Phronomy::TaskResult))).and_return(false)
+      expect { handle.detach!(approval_request_id: request.id) }
+        .to raise_error(Phronomy::RuntimeShutdownError, "EventLoop rejected hosted detach")
+    end
+    wait = handle.detach!(approval_request_id: request.id)
+    expect(wait.execution_id).to eq(request.execution_id)
+    expect(handle.wait_result(timeout: 2)).to eq(wait)
+  end
+
   it "can finish without a wait and rejects the reuse of a spent reservation" do
     LLMStub.activate(responses: ["done"])
     handle = agent.start_hosted(reservation: reservation, input: "run")

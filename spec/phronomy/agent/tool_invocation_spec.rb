@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "delegate"
 
 RSpec.describe Phronomy::Agent::ToolInvocation do
   describe ".semantic_id" do
@@ -117,6 +118,128 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     expect(invocation.display_arguments[:body]).to eq("[REDACTED]")
     expect(invocation.display_facts[:recipient_count]).to eq(11)
     expect(invocation.display_facts[:external_domain]).to eq("[REDACTED]")
+  end
+
+  describe "#approval_display" do
+    it "preserves a Base Tool's existing private redaction override" do
+      tool_class.class_eval do
+        private
+
+        def redacted_args(args)
+          {recipient_count: args.fetch("recipients").size}
+        end
+      end
+
+      expect(invocation.display_arguments).to eq(recipient_count: 11)
+      expect(invocation.raw_arguments.fetch("body")).to eq("secret")
+    end
+
+    it "builds an approval item from one public Tool projection and snapshots both fields" do
+      projection = {arguments: {audience: ["operator"]}, facts: {zone: ["public"]}}
+      allow(tool).to receive(:approval_display).and_return(projection)
+      invocation.validate!
+      invocation.mark_awaiting_approval!
+      batch = Struct.new(:execution_id, :tool_invocations).new("execution-1", [invocation])
+
+      item = Phronomy::Agent::ToolApprovalRequest.build(batch).items.first
+      expect(tool).to have_received(:approval_display).with(arguments: invocation.arguments, facts: {}).once
+      projection.fetch(:arguments).fetch(:audience).clear
+      projection.fetch(:facts).fetch(:zone).clear
+      expect(item.arguments).to eq(audience: ["operator"])
+      expect(item.facts).to eq(zone: ["public"])
+      expect(item.arguments.fetch(:audience)).to be_frozen
+      expect(invocation.arguments.fetch(:body)).to eq("secret")
+    end
+
+    it "rejects malformed projections without substituting raw policy data" do
+      [nil, {}, {arguments: [], facts: {}}, {arguments: {}, facts: "secret"}].each do |invalid|
+        allow(tool).to receive(:approval_display).and_return(invalid)
+        expect { invocation.approval_display }.to raise_error(Phronomy::ConfigurationError, /approval_display/)
+      end
+    end
+
+    context "with a Tool that supplies no public approval display operation" do
+      let(:tool) do
+        Class.new do
+          private
+
+          def redacted_args(_args)
+            raise "private Tool method called"
+          end
+        end.new
+      end
+
+      it "omits arguments and derived facts from the approval request while retaining policy data" do
+        facts = {"secret" => {count: 1234, external: false}}
+        invocation.send(:apply_authorization_outcome, described_class::AuthorizationOutcome.new(
+          decision: :require_approval, facts: facts
+        ))
+        batch = Struct.new(:execution_id, :tool_invocations).new("execution-1", [invocation])
+        request = Phronomy::Agent::ToolApprovalRequest.build(batch)
+
+        expect(request.to_h.fetch(:items).first).to include(arguments: {}, facts: {})
+        expect(invocation.facts).to eq(facts)
+        expect(invocation.raw_arguments.fetch("body")).to eq("secret")
+      end
+    end
+  end
+
+  describe "#display_facts" do
+    it "omits the entire facts Hash if it equals a sensitive argument" do
+      tool_class.redact_params :payload
+      [{}, {token: "secret"}].each do |sensitive|
+        expect(tool.approval_display(arguments: {payload: sensitive}, facts: sensitive)).to eq(
+          arguments: {payload: "[REDACTED]"}, facts: {}
+        )
+      end
+    end
+
+    it "masks declared sensitive values including false and omits matching Hash keys at any depth" do
+      tool_class.param :flag, type: :boolean, desc: "Flag"
+      tool_class.redact_params :flag
+      tool_call.arguments["flag"] = false
+      tool_class.approval_facts do |args, _context|
+        group = {
+          args.fetch(:body) => 1,
+          args.fetch(:body).to_sym => 2,
+          "[REDACTED]" => 3,
+          :recipients => args.fetch(:recipients).size
+        }
+        {flags: [args.fetch(:flag)], groups: [group]}
+      end
+      tool_class.requires_approval true
+      invocation.validate!
+      outcome = described_class.send(:evaluate_authorization_command, invocation.send(:authorization_command))
+      invocation.send(:apply_authorization_outcome, outcome)
+
+      expect(invocation.display_facts).to eq(flags: ["[REDACTED]"], groups: [{"[REDACTED]" => 3, :recipients => 11}])
+      expect(invocation.facts.fetch(:groups).first).to include("secret" => 1, :secret => 2)
+      expect(invocation.arguments.fetch(:flag)).to be(false)
+    end
+
+    context "when a wrapper delegates the Tool display operation" do
+      let(:tool) do
+        Class.new(SimpleDelegator) do
+          def self.approval_facts
+            ->(args, _context) { {copied_pin: args.fetch(:pin)} }
+          end
+        end.new(tool_class.new)
+      end
+
+      it "uses the wrapped Tool's sensitive declarations for both arguments and derived facts" do
+        tool_class.param :pin, type: :integer, desc: "PIN"
+        tool_class.redact_params :pin
+        tool_class.requires_approval true
+        tool_call.arguments["pin"] = 1234
+        invocation.validate!
+        outcome = described_class.send(:evaluate_authorization_command, invocation.send(:authorization_command))
+        invocation.send(:apply_authorization_outcome, outcome)
+
+        expect(invocation.display_arguments).to include(pin: "[REDACTED]")
+        expect(invocation.display_facts).to eq(copied_pin: "[REDACTED]")
+        expect(invocation.facts).to eq(copied_pin: 1234)
+      end
+    end
   end
 
   # ---------------------------------------------------------------------------

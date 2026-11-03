@@ -37,13 +37,15 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following table describes the application APIs available in v0.32.0.
+The following table describes the application APIs. Entries marked Unreleased
+require a development build. The other entries are available in v0.32.0.
 Worker hosting and completed parent/child release require v0.32.0 or later.
 Review the [0.31 migration notes](docs/migrations/0.31.md) before upgrading
 persistent applications or custom Agent Tool subclasses.
 
 | API | Stability | Contract |
 |---|---|---|
+| `Tool::Base#approval_display(arguments:, facts:)` | Beta (Unreleased) | The Tool selects the arguments and derived facts a person can see in an approval request. [Approval display](docs/runtime-and-concurrency.md#tool-approval-display) |
 | `Phronomy::LLMAdapter::LMStudio` | Beta | Explicit known-output-error identification and bounded opt-in retry; [policy and evidence limits](docs/architecture/lm-studio-output-failures.md) |
 | Agent `output_schema:`, `schema_delivery:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |
 | Agent `transcript_messages` / `transcript_messages_async` | Beta | Read immutable conversation Message values with the same restoration rules as execution results; [reading conversation state](docs/getting-started.md) |

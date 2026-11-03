@@ -333,13 +333,20 @@ module Phronomy
         @tool&.respond_to?(:parameters_schema) ? @tool.parameters_schema : {}
       end
 
-      def display_arguments
-        redact_for_display(@arguments || @raw_arguments)
+      # The approval Item snapshots these fields at its own construction boundary.
+      # @api private
+      def approval_display
+        return {arguments: {}.freeze, facts: {}.freeze}.freeze unless @tool&.respond_to?(:approval_display)
+
+        display = @tool.approval_display(arguments: @arguments || @raw_arguments, facts: @facts)
+        unless Hash === display && Hash === display.fetch(:arguments, nil) && Hash === display.fetch(:facts, nil)
+          raise Phronomy::ConfigurationError, "Tool approval_display must return :arguments and :facts Hashes"
+        end
+        display
       end
 
-      def display_facts
-        redact_value(@facts, sensitive_argument_values)
-      end
+      def display_arguments = immutable_copy(approval_display.fetch(:arguments))
+      def display_facts = immutable_copy(approval_display.fetch(:facts))
 
       private
 
@@ -543,37 +550,6 @@ module Phronomy
 
       def immutable_copy(value)
         Phronomy::Values::Immutable.copy(value)
-      end
-
-      def redact_for_display(value)
-        if @tool&.respond_to?(:redacted_args, true)
-          immutable_copy(@tool.send(:redacted_args, value || {}))
-        else
-          immutable_copy(value || {})
-        end
-      end
-
-      def sensitive_argument_values
-        return [] unless @tool&.class&.respond_to?(:redact_params)
-        normalized = (@arguments || @raw_arguments || {}).transform_keys(&:to_sym)
-        @tool.class.redact_params.filter_map { |name| normalized[name] }
-      end
-
-      def redact_value(value, sensitive_values)
-        return "[REDACTED]" if sensitive_values.any? { |sensitive| sensitive == value }
-
-        case value
-        when Hash
-          value.each_with_object({}) do |(key, item), result|
-            result[key] = redact_value(item, sensitive_values)
-          end.freeze
-        when Array
-          value.map { |item| redact_value(item, sensitive_values) }.freeze
-        when String
-          "[REDACTED]"
-        else
-          value
-        end
       end
     end
   end

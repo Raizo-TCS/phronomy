@@ -55,6 +55,7 @@ module Phronomy
       def requires_approval?: () -> untyped
       def tool_origin: () -> Symbol
       def approval_metadata: () -> Hash[untyped, untyped]
+      def approval_display: (arguments: Hash[String | Symbol, untyped], facts: Hash[untyped, untyped]) -> { arguments: Hash[String | Symbol, untyped], facts: Hash[untyped, untyped] }
       def execute: (**untyped args) -> untyped
 
       private

@@ -1331,6 +1331,42 @@ RSpec.describe Phronomy::Tool::Base do
     end
   end
 
+  describe "#approval_display" do
+    it "preserves Ruby value equality for application-owned facts matching a sensitive parameter" do
+      tool = Class.new(described_class) { redact_params :pin, :envelope }.new
+      equivalent = Rational(627018, 1)
+      display = tool.approval_display(
+        arguments: {pin: 627018, envelope: {codes: [19]}},
+        facts: {echo: equivalent, group: {codes: [Rational(19, 1)]}, count: 2}
+      )
+      expect(display.fetch(:facts)).to eq(echo: "[REDACTED]", group: "[REDACTED]", count: 2)
+    end
+
+    it "hides values copied from nested sensitive arguments without modifying policy data" do
+      tool = Class.new(described_class) { redact_params :auth }.new
+      auth = {"credentials" => [{pin: 627018, enabled: false, label: "account-code", optional: nil}]}
+      credential = auth.fetch("credentials").first
+      facts = {
+        echoed: [627018.0, false, :unrelated, nil],
+        credential: credential.dup,
+        labels: {"account-code" => 1, :"account-code" => 2, :count => 3},
+        count: 1
+      }
+      display = tool.approval_display(arguments: {"auth" => auth}, facts: facts)
+
+      expect(display).to eq(
+        arguments: {"auth" => "[REDACTED]"},
+        facts: {
+          echoed: ["[REDACTED]", "[REDACTED]", :unrelated, "[REDACTED]"],
+          credential: "[REDACTED]", labels: {count: 3}, count: 1
+        }
+      )
+      expect(facts.fetch(:credential).fetch(:pin)).to eq(627018)
+      expect(facts.fetch(:labels).size).to eq(3)
+      expect(auth.fetch("credentials").first.fetch(:pin)).to eq(627018)
+    end
+  end
+
   describe "#redacted_args" do
     let(:redacting_class) do
       Class.new(described_class) do
