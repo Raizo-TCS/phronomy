@@ -105,6 +105,7 @@ module Phronomy
         :coordinator, :operation, :delivery, :outcome, :error
       )
       DetachHostedWait = Data.define(:coordinator, :wait, :task, :parent, :completion)
+      private_constant :DetachHostedWait
       SuspensionCancelledCommand = Data.define(:coordinator, :execution_id)
 
       DeferredTerminalCommand = Data.define(
@@ -177,6 +178,16 @@ module Phronomy
       rescue => error
         fail_task(result_task, error) if defined?(result_task) && result_task
         result_task
+      end
+
+      # Submit the committed wait for final ownership checks on the EventLoop.
+      # @api private
+      def request_hosted_detach(wait, task:, parent:)
+        completion = Phronomy::TaskResult.deferred(name: "detach-hosted-approval")
+        command = DetachHostedWait.new(coordinator: self, wait: wait, task: task, parent: parent, completion: completion)
+        accepted = @agent.__execution_environment.registry.post(command, completion: completion)
+        raise Phronomy::RuntimeShutdownError, "EventLoop rejected hosted detach" unless accepted
+        completion
       end
 
       # Called only from an Agent FSMSession external-operation dispatch state on

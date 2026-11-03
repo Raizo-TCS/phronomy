@@ -449,6 +449,16 @@ module Phronomy
         {}
       end
 
+      # Selects the arguments and policy facts that may appear in a human approval
+      # request. Arguments may be raw or validated. This does not change either input.
+      # @api public
+      def approval_display(arguments:, facts:)
+        sensitive = arguments.transform_keys(&:to_sym).slice(*self.class.redact_params).values
+        display_facts = redact_approval_fact(facts, sensitive)
+        # If the entire facts Hash matches a sensitive argument, hide all of its keys.
+        {arguments: redacted_args(arguments), facts: display_facts.is_a?(Hash) ? display_facts : {}}
+      end
+
       # @api public
       def execute(**_args)
         raise NotImplementedError, "#{self.class}#execute is not implemented"
@@ -540,6 +550,33 @@ module Phronomy
 
         args.each_with_object({}) do |(key, value), result|
           result[key] = redacted.include?(key.to_sym) ? "[REDACTED]" : value
+        end
+      end
+
+      def sensitive_fact_value?(value, sensitive_values)
+        sensitive_values.any? do |sensitive|
+          sensitive == value ||
+            (value.is_a?(Symbol) && value.to_s == sensitive) ||
+            (sensitive.is_a?(Symbol) && sensitive.to_s == value)
+        end
+      end
+
+      def redact_approval_fact(value, sensitive_values)
+        return "[REDACTED]" if sensitive_fact_value?(value, sensitive_values)
+
+        case value
+        when Hash
+          value.each_with_object({}) do |(key, item), result|
+            next if sensitive_fact_value?(key, sensitive_values)
+
+            result[key] = redact_approval_fact(item, sensitive_values)
+          end.freeze
+        when Array
+          value.map { |item| redact_approval_fact(item, sensitive_values) }.freeze
+        when String
+          "[REDACTED]"
+        else
+          value
         end
       end
 

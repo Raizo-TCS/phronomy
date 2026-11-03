@@ -101,12 +101,13 @@ module Phronomy
       end
 
       def self.build_item(invocation)
+        display = invocation.approval_display
         Item.new(
           tool_invocation_id: invocation.id,
           tool_call_id: invocation.tool_call_id,
           tool_name: invocation.tool_name,
-          arguments: invocation.display_arguments,
-          facts: invocation.display_facts,
+          arguments: display.fetch(:arguments),
+          facts: display.fetch(:facts),
           reason: invocation.authorization_reason,
           origin: invocation.origin,
           metadata: invocation.metadata

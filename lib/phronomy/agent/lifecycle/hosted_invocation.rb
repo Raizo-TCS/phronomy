@@ -37,15 +37,12 @@ module Phronomy
         unless wait && wait.approval_request_id == approval_request_id
           raise Phronomy::AgentBusyError, "No matching hosted approval wait"
         end
-        completion = Phronomy::TaskResult.deferred(name: "detach-hosted-approval")
         owner = @environment.registry.agent_execution_owner(execution_id)
         unless owner && (child ? owner.agent.persistence.equal?(@agent.persistence) : owner.agent.equal?(@agent))
           raise Phronomy::AgentBusyError, "Hosted execution has no matching local owner"
         end
-        command = ExecutionCoordinator::DetachHostedWait.new(coordinator: owner.coordinator, wait: wait,
-          task: (child && !@resumed_from) ? nil : @task, parent: child ? @agent : nil, completion: completion)
-        accepted = @environment.registry.post(command, completion: completion)
-        raise Phronomy::RuntimeShutdownError, "EventLoop rejected hosted detach" unless accepted
+        completion = owner.coordinator.request_hosted_detach(wait,
+          task: (child && !@resumed_from) ? nil : @task, parent: child ? @agent : nil)
         completion.wait_result
       end
 
