@@ -36,6 +36,91 @@ RSpec.describe Phronomy::Tool::Schema do
     end
   end
 
+  it "prepares an explicit definition once and compiles independent validators on first use" do
+    parent = Class.new(Phronomy::Tool::Base)
+    parent.parameters(schema)
+    child = Class.new(parent)
+
+    expect(described_class).not_to receive(:new)
+    declaration = parent.parameters_schema_definition
+    allow(JSONSchemer).to receive(:schema).and_call_original
+    expect(JSONSchemer).to receive(:schema).with(declaration.json_schema, hash_including(:ref_resolver)).exactly(3).times.and_call_original
+    [parent.new, parent.new, child.new].each do |tool|
+      expect(tool.validate_arguments({n: 2})).to eq([{n: 2}, nil])
+      expect(tool.validate_arguments({n: 0}).last).to be_a(String)
+    end
+  end
+
+  it "honors an overridden parameters_schema and changes to the returned hash" do
+    parent = Class.new(Phronomy::Tool::Base)
+    parent.parameters(schema)
+    tool = Class.new(parent) do
+      attr_accessor :parameters_schema
+    end.new
+    tool.parameters_schema = {"type" => "object", "properties" => {"n" => {"type" => "string"}}}
+    expect(tool.validate_arguments({n: "two"})).to eq([{n: "two"}, nil])
+    expect(tool.validate_arguments({n: 2}).last).to be_a(String)
+
+    tool.parameters_schema["properties"]["n"]["type"] = "boolean"
+    expect(tool.validate_arguments({n: true})).to eq([{n: true}, nil])
+    expect(tool.validate_arguments({n: "two"}).last).to be_a(String)
+  end
+
+  it "validates a declaration that only exposes its JSON schema" do
+    declaration = Class.new(BasicObject) do
+      def initialize(schema)
+        @json_schema = schema
+      end
+
+      attr_reader :json_schema
+    end.new(schema)
+    klass = Class.new(Phronomy::Tool::Base)
+    allow(klass).to receive(:parameters_schema_definition).and_return(declaration)
+    expect(klass.new.validate_arguments({n: 2})).to eq([{n: 2}, nil])
+  end
+
+  it "validates local references concurrently across instances of one declaration" do
+    klass = Class.new(Phronomy::Tool::Base)
+    klass.parameters({"type" => "object", "$defs" => {"number" => {"type" => "integer"}},
+      "properties" => {"n" => {"$ref" => "#/$defs/number"}}})
+    gate = Queue.new
+    threads = Array.new(4) do
+      Thread.new do
+        tool = klass.new
+        gate.pop
+        [tool.validate_arguments({n: 2}), tool.validate_arguments({n: "two"}).last]
+      end
+    end
+    threads.size.times { gate << true }
+    threads.each do |thread|
+      valid, error = thread.value
+      expect(valid).to eq([{n: 2}, nil])
+      expect(error).to be_a(String)
+    end
+  end
+
+  it "uses the validator configuration at each instance's first validation" do
+    definition = {"type" => "object", "properties" => {"date" => {"type" => "string", "format" => "date"}}}
+    klass = Class.new(Phronomy::Tool::Base)
+    klass.parameters(definition)
+    input = {date: "invalid"}
+    first = klass.new
+    expect(first.validate_arguments(input).last).to be_a(String)
+
+    original = JSONSchemer.configuration
+    custom = original.dup
+    custom.format = false
+    allow(JSONSchemer).to receive(:configuration).and_return(custom)
+    second = klass.new
+    expect(second.validate_arguments(input)).to eq([input, nil])
+    expect(first.validate_arguments(input).last).to be_a(String)
+    klass.parameters(definition)
+
+    allow(JSONSchemer).to receive(:configuration).and_return(original)
+    expect(klass.new.validate_arguments(input).last).to be_a(String)
+    expect(second.validate_arguments(input)).to eq([input, nil])
+  end
+
   it "advertises legacy optional nil and coerces a non-null optional value" do
     tool = Class.new(Phronomy::Tool::Base) do
       param :n, type: :integer, required: false, enum: [1, 2]

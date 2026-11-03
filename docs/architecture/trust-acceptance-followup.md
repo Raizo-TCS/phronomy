@@ -37,6 +37,21 @@ retain the SDK server-error cause. Configured SDK retries for 429/500 remain;
 a 400 rejection is one HTTP attempt even with three retries configured.
 Partial-stream replay and callback identity regressions remain in place.
 
+RubyLLM owns HTTP transport selection for model calls. Phronomy's LLM and
+Embeddings adapters recognize Faraday exception classes at the SDK boundary.
+The two gemspec declarations are a temporary workaround for the streaming
+status bug. Remove both when all supported RubyLLM versions preserve the
+status or exclude the affected HTTP stack through their own dependencies.
+
+Verify removal with the two Phronomy declarations omitted. Resolve the minimum
+supported RubyLLM and its permitted HTTP dependencies without the existing CI
+pins. If the old pair still resolves, test it explicitly. If RubyLLM excludes
+it, confirm resolution rejects it and test the new minimum. In both cases run
+`spec/integration/transport_error_spec.rb` against the minimum and the normal
+bundle. With three retries configured, a streaming HTTP 400 with a string
+error body must retain its 400 cause and send one POST. An HTTP 500 with the
+same body must retain its 500 cause and send four POSTs.
+
 Before and after, application handling uses the same public API:
 
 ```ruby

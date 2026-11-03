@@ -43,19 +43,17 @@ module Phronomy
         unless @json_schema.is_a?(Hash) && @json_schema["type"] == "object"
           raise ArgumentError, "Tool schema must declare an object"
         end
+        @json_schema = Phronomy::Values::Immutable.copy(@json_schema)
         @references = []
         validate_keywords!(@json_schema)
-        options = {ref_resolver: ->(uri) { raise ArgumentError, "external Tool schema reference: #{uri}" }}
-        unless JSONSchemer.valid_schema?(@json_schema, **options)
-          raise ArgumentError, "invalid Tool JSON Schema"
-        end
-        @json_schema = Phronomy::Values::Immutable.copy(@json_schema)
-        @validator = JSONSchemer.schema(@json_schema, **options)
-        @references.each { |reference| @validator.ref(reference) }
-        @references = nil
-        freeze
-      rescue JSONSchemer::InvalidRefPointer, JSONSchemer::InvalidRefResolution => error
-        raise ArgumentError, "invalid local Tool schema reference: #{error.message}"
+        @references.freeze
+        compile_validator!
+      end
+
+      # Build an independent validator from this immutable Tool definition.
+      # @api private
+      def for_tool_instance
+        dup.compile_validator!
       end
 
       # @api public
@@ -97,6 +95,20 @@ module Phronomy
         else
           raise ArgumentError, "unsupported Tool value: #{value.class}"
         end
+      end
+
+      protected
+
+      def compile_validator!
+        options = {ref_resolver: ->(uri) { raise ArgumentError, "external Tool schema reference: #{uri}" }}
+        unless JSONSchemer.valid_schema?(@json_schema, **options)
+          raise ArgumentError, "invalid Tool JSON Schema"
+        end
+        @validator = JSONSchemer.schema(@json_schema, **options)
+        @references.each { |reference| @validator.ref(reference) }
+        freeze
+      rescue JSONSchemer::InvalidRefPointer, JSONSchemer::InvalidRefResolution => error
+        raise ArgumentError, "invalid local Tool schema reference: #{error.message}"
       end
 
       private

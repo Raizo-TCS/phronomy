@@ -363,10 +363,17 @@ module Phronomy
       # @api public
       def validate_arguments(args)
         schema = parameters_schema
-        if !@validation_schema || @validation_schema.json_schema != schema
-          @validation_schema = Schema.new(schema)
+        validator = @validation_schema
+        if !validator || validator.json_schema != schema
+          declaration = self.class.parameters_schema_definition
+          validator = if Schema === declaration && declaration.instance_of?(Schema) && declaration.json_schema.equal?(schema)
+            declaration.for_tool_instance
+          else
+            Schema.new(schema)
+          end
+          @validation_schema = validator
         end
-        values, error = @validation_schema.validate(args || {}, coerce: self.class.on_schema_error == :coerce)
+        values, error = validator.validate(args || {}, coerce: self.class.on_schema_error == :coerce)
         if values && !self.class.parameters_schema_definition
           # Legacy optional param nil means omission, preserving Ruby defaults.
           self.class.declared_parameters.each do |name, parameter|
