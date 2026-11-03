@@ -454,7 +454,15 @@ module Phronomy
       # @api public
       def approval_display(arguments:, facts:)
         sensitive = arguments.transform_keys(&:to_sym).slice(*self.class.redact_params).values
-        display_facts = redact_approval_fact(facts, sensitive)
+        indexed = {}
+        sensitive.each do |value|
+          if Hash === value || Array === value
+            approval_comparison_key(value) { |key| indexed[key] = true }
+          end
+        end
+        display_facts = redact_approval_fact(facts) do |value|
+          sensitive_fact_value?(value, sensitive) || (!indexed.empty? && indexed.key?(approval_comparison_key(value)))
+        end
         # If the entire facts Hash matches a sensitive argument, hide all of its keys.
         {arguments: redacted_args(arguments), facts: display_facts.is_a?(Hash) ? display_facts : {}}
       end
@@ -553,26 +561,40 @@ module Phronomy
         end
       end
 
+      # Index each sensitive subtree and scalar once. Object member names describe
+      # structure; its member values and array elements can be copied into facts.
+      def approval_comparison_key(value, &index)
+        key = case value
+        when Hash then value.transform_values { |item| approval_comparison_key(item, &index) }
+        when Array then value.map { |item| approval_comparison_key(item, &index) }
+        when Symbol then value.to_s
+        when Float then (value.finite? && value == value.to_i) ? value.to_i : value
+        else value
+        end
+        index&.call(key)
+        key
+      end
+
       def sensitive_fact_value?(value, sensitive_values)
         sensitive_values.any? do |sensitive|
           sensitive == value ||
-            (value.is_a?(Symbol) && value.to_s == sensitive) ||
-            (sensitive.is_a?(Symbol) && sensitive.to_s == value)
+            (Symbol === value && value.to_s == sensitive) ||
+            (Symbol === sensitive && sensitive.to_s == value)
         end
       end
 
-      def redact_approval_fact(value, sensitive_values)
-        return "[REDACTED]" if sensitive_fact_value?(value, sensitive_values)
+      def redact_approval_fact(value, &sensitive)
+        return "[REDACTED]" if sensitive.call(value)
 
         case value
         when Hash
           value.each_with_object({}) do |(key, item), result|
-            next if sensitive_fact_value?(key, sensitive_values)
+            next if sensitive.call(key)
 
-            result[key] = redact_approval_fact(item, sensitive_values)
+            result[key] = redact_approval_fact(item, &sensitive)
           end.freeze
         when Array
-          value.map { |item| redact_approval_fact(item, sensitive_values) }.freeze
+          value.map { |item| redact_approval_fact(item, &sensitive) }.freeze
         when String
           "[REDACTED]"
         else

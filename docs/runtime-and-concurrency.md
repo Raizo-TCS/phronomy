@@ -223,6 +223,17 @@ argument display and masks string values in facts. A numeric fact such as
 `recipient_count: 3` can still be shown. Use fixed fact names and choose
 aggregates that are appropriate to disclose.
 
+If `redact_params :auth` covers `auth: {pin: 627018}`, the default also
+masks a fact such as `echo: 627018`. It checks JSON values copied from inside
+sensitive hashes and arrays. A matching fact key causes that entry to be
+omitted. The declared
+argument's own hash keys are treated as field names. If those names are
+themselves confidential, keep them out of fact keys. Equality also masks
+unrelated facts with the same value. The Tool author chooses which computed
+values may be shown. For example, an arithmetic transformation of a PIN can
+still disclose it even if the result differs from the original. Override
+`approval_display` to explicitly select safe fields when publishing such facts.
+
 To customize both fields, return a Hash with the symbol keys `:arguments` and
 `:facts`, each holding a displayable Hash. The hook runs on EventLoop while
 Agent prepares the approval. Build the result from the supplied values without
