@@ -165,12 +165,38 @@ module Phronomy
         true
       end
 
+      # Transfer only the single outstanding hosting operation, atomically with
+      # the same admission gate used by all other Agent operations.
+      def reserve_approval_detach!(agent, operation_token, transition, parent: nil)
+        @mutex.synchronize do
+          ensure_running!
+          entry = @entries[agent.agent_id]
+          operations = @operations[agent]
+          unless entry&.state == :live && entry.agent.equal?(agent) && !@scope_owners[agent.agent_id] &&
+              operations&.size == 1 && operations.key?(operation_token)
+            raise Phronomy::AgentBusyError, "Agent has another owner or accepted operation"
+          end
+          if parent
+            entry = @entries[parent.agent_id]
+            unless entry&.state == :live && entry.agent.equal?(parent) && !@scope_owners[parent.agent_id]
+              raise Phronomy::AgentBusyError, "Hosted parent no longer owns the local Agent"
+            end
+            assert_no_operations!(parent)
+            @entries[parent.agent_id] = Entry.new(state: :unloading, agent: parent, token: transition)
+          end
+          @entries[agent.agent_id] = Entry.new(state: :unloading, agent: agent, token: transition)
+        end
+      end
+
       # Returns the already accepted transition for duplicate callers.
       def reserve_unload(agent)
         @mutex.synchronize do
           ensure_running!
           entry = @entries[agent.agent_id]
           if entry&.state == :unloading && entry.agent.equal?(agent)
+            unless entry.token.is_a?(UnloadTransition)
+              raise Phronomy::AgentBusyError, "Agent has a coordinated release in progress"
+            end
             return [entry.token, false]
           end
           unless entry&.state == :live && entry.agent.equal?(agent)
@@ -183,22 +209,28 @@ module Phronomy
         end
       end
 
-      def finish_unload(agent, transition, success:)
-        @mutex.synchronize do
-          entry = @entries[agent.agent_id]
-          unless entry&.state == :unloading && entry.agent.equal?(agent) && entry.token.equal?(transition)
-            raise Phronomy::RuntimeShutdownError, "Agent unload reservation is no longer authoritative"
+      def finish_unload(agent, transition, success:, parent: nil)
+        owners = {agent.agent_id => agent}
+        owners[parent.agent_id] = parent if parent
+        finish_unload_entries(owners, transition, success: success)
+      end
+
+      # Reserve the peer identity even when no instance is loaded. Its absence
+      # is then stable until the caller's durable checks commit or roll back.
+      def unload_idle_pair(parent, peer_id)
+        raise Phronomy::AgentBusyError, "Expected distinct Agent identities" if parent.agent_id == peer_id
+        transition = Object.new.freeze
+        # A host thread may exit during verification. Keep the short two-owner
+        # registry changes indivisible even in the presence of an async interrupt.
+        Thread.handle_interrupt(Object => :never) do
+          owners = reserve_idle_pair!(parent, peer_id, transition)
+          begin
+            Thread.handle_interrupt(Object => :immediate) { yield owners[peer_id] }
+            success = true
+          ensure
+            finish_unload_entries(owners, transition, success: success)
           end
-          if success
-            agent.send(:__mark_unloaded!)
-            @entries.delete(agent.agent_id)
-            @scope_owners.delete(agent.agent_id)
-          else
-            @entries[agent.agent_id] = Entry.new(state: :live, agent: agent, token: nil)
-          end
-          @condition.broadcast
         end
-        true
       end
 
       def owned?(agent)
@@ -318,6 +350,46 @@ module Phronomy
       end
 
       private
+
+      def reserve_idle_pair!(parent, peer_id, transition)
+        @mutex.synchronize do
+          ensure_running!
+          owners = {parent.agent_id => parent, peer_id => @entries[peer_id]&.agent}
+          owners.each do |id, agent|
+            entry = @entries[id]
+            raise Phronomy::AgentBusyError, "Agent belongs to a scope" if @scope_owners[id]
+            next if entry.nil? && agent.nil?
+            unless entry&.state == :live && entry.agent.equal?(agent)
+              raise Phronomy::AgentBusyError, "Local Agent owner changed"
+            end
+            assert_no_operations!(agent)
+          end
+          owners.each { |id, agent| @entries[id] = Entry.new(state: :unloading, agent: agent, token: transition) }
+          owners
+        end
+      end
+
+      def finish_unload_entries(owners, transition, success:)
+        @mutex.synchronize do
+          owners.each do |id, owner|
+            entry = @entries[id]
+            unless entry&.state == :unloading && entry.agent.equal?(owner) && entry.token.equal?(transition)
+              raise Phronomy::RuntimeShutdownError, "Agent unload reservation is no longer authoritative"
+            end
+          end
+          owners.each do |id, owner|
+            if success || owner.nil?
+              owner&.send(:__mark_unloaded!)
+              @entries.delete(id)
+              @scope_owners.delete(id)
+            else
+              @entries[id] = Entry.new(state: :live, agent: owner, token: nil)
+            end
+          end
+          @condition.broadcast
+        end
+        true
+      end
 
       def reserve_create!(key, scope_owner: nil)
         token = Object.new.freeze

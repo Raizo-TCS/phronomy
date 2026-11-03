@@ -304,6 +304,26 @@ RSpec.describe "DX05-E Agent scope and incarnation lifetime" do
     release&.push(true)
   end
 
+  it "releases a logically cancelled reserved observer when its source physically finishes" do
+    entered, release, done = Queue.new, Queue.new, Queue.new
+    successful_chat {
+      entered << true
+      release.pop(timeout: 3)
+    }
+    reservation = Phronomy::Agent::ReservedExecution.new(agent_id: agent.agent_id, execution_id: "reserved")
+    observer = agent.start_reserved_async(reservation: reservation, input: "running")
+    expect(entered.pop(timeout: 3)).to be(true)
+    observer.cancel!
+    observer.on_physical_complete { done << true }
+    expect { agent.unload! }.to raise_error(Phronomy::AgentBusyError)
+    release << true
+    expect(done.pop(timeout: 3)).to be(true)
+    expect(store.result("reserved")[:status]).to eq(:completed)
+    expect(agent.unload!).to be(true)
+  ensure
+    release&.push(true)
+  end
+
   it "keeps terminal listener dispatch inside the accepted operation" do
     successful_chat
     observed = Queue.new

@@ -54,6 +54,7 @@ module Phronomy
       def authorized_operations: (::Phronomy::Persistence::Transaction scope, agent_id: String, execution_id: String, invocation_id: String, name: String, arguments: Hash[String, untyped], names: Array[String]) -> Array[AuthorizedOperation]
       def result: (String execution_id) -> Hash[Symbol, untyped]
       def runs: (String owner_id, ?after: String?, ?limit: Integer) -> Array[untyped]
+      def standalone_approval_wait: (agent_id: String, execution_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> ApprovalWait?
       def observe_execution: (agent_id: String, execution_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> ExecutionObservation
       def active_executions: (agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> Array[ExecutionObservation]
       def definition: (agent_id: String, ?scope: ::Phronomy::Persistence::Transaction?) -> { id: String, version: Integer }

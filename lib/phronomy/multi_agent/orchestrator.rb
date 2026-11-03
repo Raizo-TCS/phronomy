@@ -29,6 +29,16 @@ module Phronomy
         @participant = @coordination_store && DurableSubagentCoordinator.new(agent_class: self.class, persistence: @coordination_store)
       end
 
+      # Release the local parent and its directly dispatched child after the
+      # child's outcome has been imported. The stored history remains intact.
+      # @api public
+      def unload_with_completed_child!(parent_execution_id, execution_id:)
+        owner = {"kind" => "subagent", "parent_agent_id" => agent_id, "parent_execution_id" => parent_execution_id}
+        __unload_with_peer_execution!(execution_id, reserved_by: owner) do |child, live_child, scope|
+          @participant&.completed_child_pair?(agent_id, parent_execution_id, child, live_child: live_child, scope: scope)
+        end
+      end
+
       # Current composition, never serialized in an execution record.
       def __invocation_config(config)
         if !self.class.registered_subagents.empty? && !@participant
@@ -36,6 +46,14 @@ module Phronomy
         end
         config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new,
           phronomy_execution_participant: @participant).compact
+      end
+
+      # Answers the current wait of a recovered direct child. If the same
+      # execution suspends again the host can release the pair with this handle.
+      # @api public
+      def approve_hosted_child(parent_execution_id, execution_id:, approval_request_id:, approved: true, config: {})
+        resume_hosted_child_approval(parent_execution_id, execution_id: execution_id,
+          approval_request_id: approval_request_id, approved: approved, config: config)
       end
 
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
@@ -224,6 +242,8 @@ module Phronomy
 
       private
 
+      def hosted_child_approval_reader = @participant&.method(:child_approval_wait)
+
       def prepare_tool_class(tool_class, invocation: nil)
         prepared = super
         return prepared unless self.class._subagent_tool_classes.include?(tool_class)
@@ -234,28 +254,20 @@ module Phronomy
         end&.last
         inherits_knowledge = registration ? registration.fetch(:inherit_knowledge, true) : true
 
-        captured_context = {parent: self}
+        context = {parent: self}
         # Invocation-owned Tools inherit the durable child slot's knowledge,
         # captured by the existing preparation transaction off EventLoop.
-        captured_context[:knowledge] = active_knowledge_snapshot if inherits_knowledge && !invocation
+        context[:knowledge] = active_knowledge_snapshot if inherits_knowledge && !invocation
         if invocation
-          captured_context[:config] = invocation.config
-          captured_context[:invocation_context] = invocation.config[:invocation_context]
+          context[:config] = invocation.config
+          context[:invocation_context] = invocation.config[:invocation_context]
         end
-        captured_context.freeze
 
-        effective_name = prepared.new.name
-        Class.new(prepared) do
-          tool_name effective_name
-          define_method(:call) do |args, **kwargs|
-            self._orchestrator_context = captured_context
-            super(args, **kwargs)
-          end
-          define_method(:call_async) do |args, **kwargs|
-            self._orchestrator_context = captured_context
-            super(args, **kwargs)
-          end
-        end
+        # Cached Tool methods can outlive an execution. Only the instance used
+        # for this dispatch should hold its parent and invocation configuration.
+        tool = prepared.new
+        tool._orchestrator_context = context.freeze
+        tool
       end
 
       def active_knowledge_snapshot = knowledge_snapshot

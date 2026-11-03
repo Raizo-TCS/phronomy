@@ -23,6 +23,8 @@ module Phronomy
       def self.create: (?coordination_store: Store?, **Object options) ?{ (Object) -> void } -> instance
       def self.load: (String agent_id, persistence: Agent::Store, coordination_store: Store, **Object options) ?{ (Object) -> void } -> instance
       def self.subagent: (Symbol | String name, singleton(::Phronomy::Agent::Base) agent_class, ?on_error: Symbol, ?inherit_knowledge: bool) -> untyped
+      def unload_with_completed_child!: (String parent_execution_id, execution_id: String) -> bool
+      def approve_hosted_child: (String parent_execution_id, execution_id: String, approval_request_id: String, ?approved: bool, ?config: Hash[Symbol, untyped]) -> ::Phronomy::Agent::HostedInvocation
       def self.registered_subagents: () -> Hash[Symbol | String, untyped]
       def resume: (String execution_id, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
       def dispatch_parallel: (*Hash[Symbol, untyped] tasks, ?max_concurrency: Integer?, ?on_error: Symbol, ?timeout: Numeric?, ?cancellation_token: untyped, ?invocation_context: untyped, ?inherit_knowledge: bool) -> Array[untyped]

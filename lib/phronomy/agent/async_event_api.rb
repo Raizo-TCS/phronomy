@@ -12,6 +12,27 @@ module Phronomy
     # - approval notifications share the Agent listener as :approval_required;
     # - Recovery resolution uses resolve/resolve_async.
     module AsyncEventApi
+      # Starts a fresh, standalone execution. Only this handle can detach its wait.
+      # The caller holds the external exclusive claim for this Agent.
+      def start_hosted(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
+        __with_operation do
+          if Phronomy::WaitPolicy.blocking_forbidden?
+            raise Phronomy::EventLoopReentrancyError, "start_hosted requires a host thread"
+          end
+          unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id && reservation.correlation.nil?
+            raise ArgumentError, "expected a standalone reservation for this Agent"
+          end
+          id = reservation.execution_id
+          unless persistence.observe_execution(agent_id: agent_id, execution_id: id).absent?
+            raise Phronomy::Persistence::StateConflictError, "Hosted execution #{id} already exists"
+          end
+          config = _prepare_output_config(config, nil, output_schema, schema_delivery)
+          task = _start_agent_operation(input, config: config.merge(phronomy_reserved_execution_id: id),
+            mode: :invoke, listener: _phronomy_event_listener)
+          build_hosted_invocation(id, task)
+        end
+      end
+
       def start_reserved_async(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
         __with_operation(async: true) do
           unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
@@ -209,6 +230,45 @@ module Phronomy
       end
 
       private
+
+      # An optional composition hook validates the durable parent/child relation.
+      def hosted_child_approval_reader = nil
+
+      def build_hosted_invocation(id, task)
+        reader = hosted_child_approval_reader
+        return HostedInvocation.new(self, id, task) unless reader
+
+        HostedInvocation.new(self, id, task) do |execution_id, approval_id|
+          owner = __execution_environment.registry.agent_execution_owner(execution_id)
+          reader.call(agent_id, id, execution_id, approval_id, live_child: owner.agent) if owner
+        end
+      end
+
+      def resume_hosted_child_approval(parent_execution_id, execution_id:, approval_request_id:, approved:, config:)
+        __with_operation do
+          if Phronomy::WaitPolicy.blocking_forbidden?
+            raise Phronomy::EventLoopReentrancyError, "approve_hosted_child requires a host thread"
+          end
+          reader = hosted_child_approval_reader
+          parent_wait = execution_coordinator.recovered_coordination_wait
+          unless reader && parent_wait && parent_wait.execution_id == parent_execution_id && parent_wait.current?
+            raise Phronomy::AgentBusyError, "Parent has no matching recovered coordination wait"
+          end
+          owner = __execution_environment.registry.agent_execution_owner(execution_id)
+          unless owner&.status == :suspended
+            raise Phronomy::AgentBusyError, "No matching local child approval wait"
+          end
+          lookup = lambda do |child_execution_id, approval_id|
+            reader.call(agent_id, parent_execution_id, child_execution_id, approval_id,
+              parent_revision: parent_wait.revision, live_child: owner.agent)
+          end
+          wait = lookup.call(execution_id, approval_request_id)
+          raise Phronomy::AgentBusyError, "No matching hosted child approval wait" unless wait
+          task = owner.coordinator.resume(wait.execution_id, approval_request_id: wait.approval_request_id, approved: approved,
+            config: owner.agent._prepare_invocation_config(config, nil), parent_wait: parent_wait)
+          HostedInvocation.new(self, parent_execution_id, task, resumed_from: wait, &lookup)
+        end
+      end
 
       def _prepare_output_config(config, invocation_context, schema, schema_delivery)
         config = _prepare_invocation_config(config, invocation_context)

@@ -12,6 +12,48 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Added
+
+- Add `Agent#start_hosted`, `Agent::HostedInvocation` and immutable
+  `Agent::ApprovalWait` for safely detaching an exclusively owned standalone Agent
+  at its first committed Tool approval wait. A new incarnation can use the
+  existing `load` and `approve` operations to continue the same execution.
+- Add `Agent::Store#standalone_approval_wait` to query the committed approval fact without
+  transferring a live worker claim. Delivery deduplication, exclusive claims and
+  verified worker termination remain application responsibilities. This initial
+  contract excludes parent Workflow/shared-child transfer, multi-host fencing,
+  supervisor restart and recovery of uncertain external Tool effects.
+
+- Add `Workflow#send_saved_event` to restore a declared wait by Workflow instance
+  ID and expected revision before applying an event. The host can reject a
+  delayed delivery even when the same Workflow later returns to an identical wait.
+- Allow an Orchestrator's hosted handle to detach its local parent and direct
+  child together at a saved child Tool approval. The host supplies the child's
+  execution and approval request IDs and retains the parent's execution ID for
+  resumption on another worker. Both workers can remain alive.
+- Add `MultiAgent::Orchestrator#approve_hosted_child` to answer a restored
+  direct child's approval with a hosted handle. If the same execution asks for
+  another approval, the worker can release the pair at the new wait. A third
+  worker can restore that wait without replaying the earlier Tool call.
+- Add `MultiAgent::Orchestrator#unload_with_completed_child!` for a worker
+  that has finished a direct child dispatch. It can release the local owners
+  while keeping the conversation, execution results and native slot history.
+
+### Fixed
+
+- Bind native subagent dispatch context to each prepared Tool instance so that
+  cached Tool methods do not keep completed Orchestrators alive after unload.
+- Keep distinct native Tool call/result pairs when a provider reuses its call ID
+  in later responses on the same Agent. A subsequent request can use the saved
+  conversation without executing either Tool again to rebuild context.
+- Restore mutable Workflow context fields from durable checkpoints when
+  delivering a saved event or starting another invocation of the same instance.
+  Actions can update nested strings, arrays and hashes without changing the
+  original checkpoint.
+- Continue using an Agent after a human rejects a Tool call. Model input for the
+  next turn omits the rejected, incomplete Tool exchange. The original journal
+  and public conversation history remain available for inspection.
+
 ## [0.31.0] - 2026-10-25
 
 ### Added

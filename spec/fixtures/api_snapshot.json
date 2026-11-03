@@ -261,11 +261,14 @@
       "resolve_async",
       "resume",
       "resume_async",
+      "start_hosted",
       "start_reserved_async",
       "stream",
       "stream_async",
       "tool_approval_policy",
       "transcript",
+      "transcript_messages",
+      "transcript_messages_async",
       "unload!",
       "unload_async"
     ],
@@ -293,6 +296,34 @@
       "tool_aliases",
       "tool_result_filter",
       "tools"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::HostedInvocation",
+    "type": "class",
+    "public_instance_methods": [
+      "detach!",
+      "on_complete",
+      "wait_result"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ApprovalWait",
+    "type": "class",
+    "public_instance_methods": [
+      "approval_request_id",
+      "deconstruct",
+      "deconstruct_keys",
+      "execution_id",
+      "execution_revision",
+      "members",
+      "to_h",
+      "with"
+    ],
+    "public_class_methods": [
+      "[]",
+      "members"
     ]
   },
   {
@@ -666,6 +697,7 @@
       "invoke_async",
       "resume",
       "send_event",
+      "send_saved_event",
       "signal",
       "stream"
     ],
@@ -959,6 +991,7 @@
       "agent_root",
       "approve",
       "approve_async",
+      "approve_hosted_child",
       "batch",
       "before_llm_input",
       "before_llm_input=",
@@ -981,14 +1014,18 @@
       "resolve_async",
       "resume",
       "resume_async",
+      "start_hosted",
       "start_reserved_async",
       "stream",
       "stream_async",
       "subagent",
       "tool_approval_policy",
       "transcript",
+      "transcript_messages",
+      "transcript_messages_async",
       "unload!",
-      "unload_async"
+      "unload_async",
+      "unload_with_completed_child!"
     ],
     "public_class_methods": [
       "_before_llm_input",

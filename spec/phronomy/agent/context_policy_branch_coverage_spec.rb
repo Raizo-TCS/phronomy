@@ -67,17 +67,48 @@ RSpec.describe "Context Policy branch coverage" do
   end
 
   describe Phronomy::Context::ContextPolicyInputBuilder do
-    def candidate(id:, category:, sequence:, tool_call_id: nil, tool_call_ids: [])
+    def candidate(id:, category:, sequence:, tool_call_id: nil, tool_call_ids: [], llm_call_id: "llm")
       Phronomy::Context::Candidate.new(
         candidate_id: id, source_kind: :working, category: category,
         role: ((category == :tool_message) ? :tool : :assistant),
         content_ref: "ref-#{id}", record_id: "record-#{id}", agent_id: "a",
-        execution_id: "e", llm_call_id: "llm", tool_call_id: tool_call_id,
+        execution_id: "e", llm_call_id: llm_call_id, tool_call_id: tool_call_id,
         sequence: sequence,
         constraint: Phronomy::Context::Constraint.selectable(origin: :context_policy),
         priority: 0,
         metadata: {"estimated_tokens" => 5, "tool_call_ids" => tool_call_ids}
       )
+    end
+
+    def conversation_for(*candidates)
+      described_class.new(content_loader: ->(_ref) { "{}" }).build(
+        agent_id: "a", execution_id: "e", call_sequence: 2, call_mode: :complete,
+        candidates: candidates, instruction: [], tools: [], token_budget: nil,
+        model_config: {}, previous_manifest: nil
+      ).conversation
+    end
+
+    it "rejects repeated assistant calls and repeated Tool results within the same response" do
+      assistant = candidate(id: "a1", category: :assistant_message, sequence: 1, tool_call_ids: ["tc"])
+      result = candidate(id: "r1", category: :tool_message, sequence: 2, tool_call_id: "tc")
+      expect {
+        conversation_for(assistant, assistant.with(candidate_id: "a2"), result)
+      }.to raise_error(ArgumentError, /duplicate assistant Tool Call id/)
+      expect {
+        conversation_for(assistant, result, result.with(candidate_id: "r2"))
+      }.to raise_error(ArgumentError, /duplicate Tool message/)
+    end
+
+    it "never borrows another response's Tool result, even when one record lacks a round ID" do
+      assistant = candidate(id: "a1", category: :assistant_message, sequence: 1, tool_call_ids: ["tc"])
+      old_result = candidate(id: "r1", category: :tool_message, sequence: 2, tool_call_id: "tc")
+      ["earlier-response", nil].each do |other_round|
+        expect {
+          conversation_for(assistant, old_result.with(llm_call_id: other_round))
+        }.to raise_error(ArgumentError, /has no Tool message/)
+      end
+      legacy_group = conversation_for(assistant.with(llm_call_id: nil), old_result.with(llm_call_id: nil))
+      expect(legacy_group.first.map(&:id)).to eq(%w[a1 r1])
     end
 
     it "groups an assistant Tool Call and Tool message atomically and marks latest current exchange required" do

@@ -208,7 +208,7 @@ RSpec.describe "Tool class configuration inheritance" do
     end
   end
 
-  describe "MultiAgent::Orchestrator Tool decorator" do
+  describe "MultiAgent::Orchestrator Tool preparation" do
     it "preserves generated subagent Tool description and input schema" do
       child_agent = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "tool-config-child-agent", version: 1
@@ -224,11 +224,11 @@ RSpec.describe "Tool class configuration inheritance" do
 
       prepared = orchestrator.send(:prepare_tool_class, original)
 
-      expect(prepared.new.name).to eq("dispatch_to_worker")
+      expect(prepared.name).to eq("dispatch_to_worker")
       expect(prepared.description).to include("Dispatch work to the worker subagent")
       expect(prepared.parameters.keys).to contain_exactly(:input)
 
-      schema = prepared.new.params_schema
+      schema = prepared.params_schema
       expect(schema.dig("properties", "input", "type")).to eq("string")
       expect(schema.fetch("required")).to include("input")
     end

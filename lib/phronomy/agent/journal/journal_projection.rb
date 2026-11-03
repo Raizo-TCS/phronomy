@@ -37,7 +37,12 @@ module Phronomy
       # clear_transcript! does not remove Knowledge, while knowledge_cleared and
       # context_reset invalidate earlier Knowledge records by Journal position.
       def context_records
-        (transcript_records + active_knowledge_records)
+        rejected_batches = rejected_tool_batches
+        messages = transcript_records.reject do |record|
+          %i[assistant_message tool_message].include?(record.kind) &&
+            record.llm_call_id && rejected_batches[record.execution_id] == record.llm_call_id
+        end
+        (messages + active_knowledge_records)
           .sort_by { |record| [record.sequence || 0, record.record_id] }
           .freeze
       end
@@ -51,6 +56,24 @@ module Phronomy
       end
 
       private
+
+      # Rejection ends the execution at its final provider Tool batch. That
+      # exchange has no complete set of Tool replies to send to a provider.
+      # Identify it from existing journal facts, including pre-upgrade histories.
+      def rejected_tool_batches
+        rejected = {}
+        batches = {}
+        records.reverse_each do |record|
+          if record.kind == :execution_rejected
+            rejected[record.execution_id] = true
+          elsif record.kind == :assistant_message && rejected.delete(record.execution_id)
+            if Array(record.metadata["tool_call_ids"]).any? && record.llm_call_id
+              batches[record.execution_id] = record.llm_call_id
+            end
+          end
+        end
+        batches
+      end
 
       def active_knowledge_records
         reset_sequence = records.filter_map do |record|

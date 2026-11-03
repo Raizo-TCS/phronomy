@@ -147,8 +147,9 @@ module Phronomy
         ordered = Array(items).sort_by { |item| [item.sequence || 0, item.id] }
         assistants = ordered.select { |item| item.kind == :assistant_message }
         tool_messages = ordered.select { |item| item.kind == :tool_message }
-        tool_messages_by_id = tool_messages.group_by(&:tool_call_id)
-        tool_messages_by_id.each do |tool_call_id, messages|
+        tool_messages_by_call = tool_messages.group_by { |item| tool_exchange_key(item, item.tool_call_id) }
+        tool_messages_by_call.each_value do |messages|
+          tool_call_id = messages.first.tool_call_id
           if tool_call_id.nil? || tool_call_id.empty?
             raise ArgumentError, "Tool message Context item requires tool_call_id"
           end
@@ -160,11 +161,12 @@ module Phronomy
         assistant_by_tool_call = {}
         assistants.each do |assistant|
           assistant.tool_call_ids.each do |tool_call_id|
-            if assistant_by_tool_call.key?(tool_call_id)
+            key = tool_exchange_key(assistant, tool_call_id)
+            if assistant_by_tool_call.key?(key)
               raise ArgumentError,
                 "duplicate assistant Tool Call id in Context Policy input: #{tool_call_id}"
             end
-            assistant_by_tool_call[tool_call_id] = assistant
+            assistant_by_tool_call[key] = assistant
           end
         end
 
@@ -173,26 +175,25 @@ module Phronomy
         ordered.each do |item|
           next if claimed[item.id]
 
-          if item.kind == :assistant_message && !item.tool_call_ids.empty?
-            messages = item.tool_call_ids.map do |tool_call_id|
-              tool_messages_by_id.fetch(tool_call_id) do
+          assistant = if item.kind == :assistant_message && !item.tool_call_ids.empty?
+            item
+          elsif item.kind == :tool_message
+            assistant_by_tool_call.fetch(tool_exchange_key(item, item.tool_call_id)) do
+              raise ArgumentError, "orphan Tool message in Context Policy input: #{item.tool_call_id}"
+            end
+          end
+
+          group = if assistant
+            messages = assistant.tool_call_ids.map do |tool_call_id|
+              key = tool_exchange_key(assistant, tool_call_id)
+              tool_messages_by_call.fetch(key) do
                 raise ArgumentError,
                   "assistant Tool Call has no Tool message in Context Policy input: #{tool_call_id}"
               end.first
             end
-            group = ([item] + messages).uniq.sort_by { |member| [member.sequence || 0, member.id] }
-          elsif item.kind == :tool_message
-            assistant = assistant_by_tool_call[item.tool_call_id]
-            unless assistant
-              raise ArgumentError,
-                "orphan Tool message in Context Policy input: #{item.tool_call_id}"
-            end
-            next if claimed[assistant.id]
-            group = ([assistant] + assistant.tool_call_ids.map do |tool_call_id|
-              tool_messages_by_id.fetch(tool_call_id).first
-            end).uniq.sort_by { |member| [member.sequence || 0, member.id] }
+            [assistant, *messages].sort_by { |member| [member.sequence || 0, member.id] }
           else
-            group = [item]
+            [item]
           end
 
           group.each { |member| claimed[member.id] = true }
@@ -200,6 +201,13 @@ module Phronomy
         end
 
         mark_framework_required(groups, execution_id: execution_id, call_mode: call_mode)
+      end
+
+      # Providers can number Tool calls afresh for each LLM response. Both native
+      # journal records carry the same durable LLM call ID, including after reload.
+      def tool_exchange_key(item, tool_call_id)
+        origin = item.provenance
+        [origin.agent_id, origin.execution_id, origin.llm_call_id, tool_call_id]
       end
 
       def mark_framework_required(groups, execution_id:, call_mode:)

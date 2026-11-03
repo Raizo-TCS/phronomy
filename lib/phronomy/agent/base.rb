@@ -752,7 +752,7 @@ module Phronomy
         true
       end
 
-      def _prepare_invocation_config(config, invocation_context)
+      protected def _prepare_invocation_config(config, invocation_context)
         __assert_live_agent!
         _reject_removed_generic_identity_keys!(config)
         if config.keys.any? { |key| %w[output_schema schema_delivery response_schema phronomy_output_contract].include?(key.to_s) }

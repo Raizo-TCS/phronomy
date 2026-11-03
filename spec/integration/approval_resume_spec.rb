@@ -112,6 +112,43 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       ])
     end
 
+    it "retains the raw rejected batch but sends only completed exchanges after reload" do
+      tool_names = %w[approval_required_tool second_approval_required_tool]
+      calls = tool_names.map do |name|
+        {"id" => "denied-#{name}", "type" => "function",
+         "function" => {"name" => name, "arguments" => '{"query":"deny"}'}}
+      end
+      batch = {"id" => "batch", "object" => "chat.completion", "model" => "stub-model", "choices" => [
+        {"index" => 0, "message" => {"role" => "assistant", "tool_calls" => calls}, "finish_reason" => "tool_calls"}
+      ]}
+      llm = LLMStub.activate(responses: [
+        LLMStub.tool_call_response("approval_required_tool", {query: "allow"}), batch, "next answer"
+      ])
+      original = agent.invoke_async("Run two batches")
+      first = approvals.pop
+      accepted = agent.approve_async(first.execution_id, approval_request_id: first.id)
+      second = approvals.pop
+      expect(second.items.map(&:tool_call_id)).to match_array(calls.map { |call| call.fetch("id") })
+      agent.approve(second.execution_id, approval_request_id: second.id, approved: false)
+      expect(original.wait_result[:rejected]).to be(true)
+      expect(accepted.wait_result[:rejected]).to be(true)
+
+      id, store = agent.agent_id, agent.persistence
+      agent.unload!
+      loaded = agent_class.load(id, persistence: store)
+      denied_ids = second.items.map(&:tool_call_id)
+      raw = loaded.transcript_messages
+      expect(raw.flat_map { |message| message.tool_calls.map(&:id) }).to include(*denied_ids)
+      expect(raw.filter_map(&:tool_call_id)).to contain_exactly(first.items.first.tool_call_id)
+      expect(loaded.invoke("Next request").fetch(:output)).to eq("next answer")
+
+      sent = llm.last_messages
+      tool_requests = sent.flat_map { |message| Array(message["tool_calls"]).map { |call| call.fetch("id") } }
+      expect(tool_requests).to contain_exactly(first.items.first.tool_call_id)
+      expect(sent.filter_map { |message| message["tool_call_id"] }).to eq(tool_requests)
+      expect(sent.filter_map { |message| message["content"] }).to include("Run two batches", "Next request")
+    end
+
     it "returns the same rejected terminal outcome to the original and approval Tasks" do
       original = agent.invoke_async("Try the protected tool")
       request = approvals.pop

@@ -108,6 +108,58 @@ module Phronomy
         end
       end
 
+      # Read without loading a live Agent. Missing or ineligible waits return nil.
+      def standalone_approval_wait(agent_id:, execution_id:, scope: nil)
+        approval_wait_for(agent_id: agent_id, execution_id: execution_id, correlation: nil, retentions: [], scope: scope)
+      end
+
+      # Participant observation. An active coordinated wait must match both its
+      # exact reservation and every durable retention owned by the participant.
+      # @api private
+      def approval_wait_for(agent_id:, execution_id:, correlation:, retentions:, scope:)
+        with_scope(scope) do |records|
+          begin
+            execution = records.executions.load(execution_id)
+          rescue Phronomy::Persistence::NotFoundError
+            next
+          end
+          assert_execution_owner!(execution, agent_id)
+          next unless execution.status == :suspended && (id = execution.approval_request&.fetch("id", nil))
+          next unless execution.metadata["reservation"] == correlation && !execution.metadata["execution_extension"]
+          next if execution.metadata["cancellation_requested"] || records.cancellations.requested?(agent_id, execution_id)
+          next unless records.retentions.list(agent_id) == retentions
+
+          ApprovalWait.new(execution_id: execution.execution_id.dup.freeze, approval_request_id: id.dup.freeze,
+            execution_revision: execution.execution_revision)
+        end
+      end
+
+      # A native participant can release a root only at a single replayable
+      # Tool dispatch. A mixed batch may still require external Tool evidence.
+      # @api private
+      def single_dispatch_wait?(agent_id:, execution_id:, invocation_id:, name:, scope:, expected_revision: nil)
+        with_scope(scope) do |records|
+          execution = records.executions.load(execution_id)
+          assert_execution_owner!(execution, agent_id)
+          next false if expected_revision && execution.execution_revision != expected_revision
+          batch = Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
+          execution.status == :active && execution.phase.to_sym == :dispatching_tools &&
+            !execution.metadata["reservation"] && !execution.metadata["cancellation_requested"] &&
+            !records.cancellations.requested?(agent_id, execution_id) &&
+            batch.size == 1 && batch.first.values_at("tool_invocation_id", "tool_name", "status") == [invocation_id, name, "authorized"]
+        end
+      end
+
+      # Check a historical reference without reading its output or error content.
+      # @api private
+      def terminal_execution?(agent_id:, execution_id:, scope:, reservation: nil)
+        with_scope(scope) do |records|
+          execution = records.executions.load(execution_id)
+          assert_execution_owner!(execution, agent_id)
+          execution.terminal? && (reservation.nil? || execution.metadata["reservation"] == reservation)
+        end
+      end
+
       def active_executions(agent_id:, scope: nil)
         with_scope(scope) do |records|
           records.executions.list_active(agent_id).map do |execution|

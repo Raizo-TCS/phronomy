@@ -39,10 +39,9 @@ RSpec.describe "Agent-as-Tool blocking-pool independence" do
     end
     orchestrator = orchestrator_class.new
     original_tool_class = orchestrator_class.tools.first
-    prepared_tool_class = orchestrator.send(:prepare_tool_class, original_tool_class)
-    tool = prepared_tool_class.new
+    tool = orchestrator.send(:prepare_tool_class, original_tool_class)
 
-    expect(prepared_tool_class.execution_mode).to eq(:cooperative)
+    expect(tool.class.execution_mode).to eq(:cooperative)
 
     result = tool.call_async({"input" => "x"}).wait_result(timeout: 2)
 

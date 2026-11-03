@@ -45,6 +45,15 @@ module Phronomy
       @runner.send_event(state: state, event: event, input: input)
     end
 
+    # Applies an explicitly named event to one revision of a saved wait.
+    # The host holds its exclusive claim for this Workflow across the call.
+    # @return [WorkflowContext] the next halted or completed context
+    # @api public
+    def send_saved_event(workflow_instance_id:, expected_revision:, event:, input: nil)
+      @runner.send_saved_event(workflow_instance_id: workflow_instance_id,
+        expected_revision: expected_revision, event: event, input: input)
+    end
+
     # Sends an event to an active Workflow execution without blocking.
     #
     # +workflow_instance_id+ is the logical/durable Workflow identity. EventLoop resolves it
