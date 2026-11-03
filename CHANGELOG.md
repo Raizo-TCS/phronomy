@@ -41,6 +41,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Bind native subagent dispatch context to each prepared Tool instance so that
+  cached Tool methods do not keep completed Orchestrators alive after unload.
 - Keep distinct native Tool call/result pairs when a provider reuses its call ID
   in later responses on the same Agent. A subsequent request can use the saved
   conversation without executing either Tool again to rebuild context.

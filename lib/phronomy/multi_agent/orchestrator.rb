@@ -254,28 +254,20 @@ module Phronomy
         end&.last
         inherits_knowledge = registration ? registration.fetch(:inherit_knowledge, true) : true
 
-        captured_context = {parent: self}
+        context = {parent: self}
         # Invocation-owned Tools inherit the durable child slot's knowledge,
         # captured by the existing preparation transaction off EventLoop.
-        captured_context[:knowledge] = active_knowledge_snapshot if inherits_knowledge && !invocation
+        context[:knowledge] = active_knowledge_snapshot if inherits_knowledge && !invocation
         if invocation
-          captured_context[:config] = invocation.config
-          captured_context[:invocation_context] = invocation.config[:invocation_context]
+          context[:config] = invocation.config
+          context[:invocation_context] = invocation.config[:invocation_context]
         end
-        captured_context.freeze
 
-        effective_name = prepared.new.name
-        Class.new(prepared) do
-          tool_name effective_name
-          define_method(:call) do |args, **kwargs|
-            self._orchestrator_context = captured_context
-            super(args, **kwargs)
-          end
-          define_method(:call_async) do |args, **kwargs|
-            self._orchestrator_context = captured_context
-            super(args, **kwargs)
-          end
-        end
+        # Cached Tool methods can outlive an execution. Only the instance used
+        # for this dispatch should hold its parent and invocation configuration.
+        tool = prepared.new
+        tool._orchestrator_context = context.freeze
+        tool
       end
 
       def active_knowledge_snapshot = knowledge_snapshot

@@ -217,7 +217,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       tool_class = orchestrator_class.tools.first
       prepared_tool = orchestrator.send(:prepare_tool_class, tool_class)
 
-      result = prepared_tool.new.call({input: "dsl task"})
+      result = prepared_tool.call({input: "dsl task"})
 
       expect(result).to eq("ok")
       expect(received).to eq(
@@ -236,7 +236,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       expect(orchestrator).not_to receive(:active_knowledge_snapshot)
       prepared_tool = orchestrator.send(:prepare_tool_class, tool_class)
 
-      prepared_tool.new.call({input: "dsl isolated"})
+      prepared_tool.call({input: "dsl isolated"})
 
       expect(received).to eq(
         [{input: "dsl isolated", knowledge: []}]

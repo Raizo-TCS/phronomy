@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "weakref"
 
 RSpec.describe "Subagent Tool contract" do
   let(:source) { Phronomy::Concurrency::PhysicalCompletionTask.deferred(name: "child") }
@@ -36,6 +37,41 @@ RSpec.describe "Subagent Tool contract" do
     expect(result.physical_complete?).to be(false)
     source.mark_physical_complete!
     expect(result.physical_complete?).to be(true)
+  end
+
+  def prepare_invocation(parent, config = {})
+    invocation = Phronomy::Agent::AgentInvocation.new(agent: parent, input: "work", config: config)
+    projection = Struct.new(:tool_classes, :messages).new([tool_class], [])
+    parent.send(:prepare_runtime_input, projection, invocation: invocation)
+  end
+
+  it "keeps concurrently prepared dispatch Tools bound to their own parents and configs" do
+    first, second = Array.new(2) { parent_class.new }
+    one = prepare_invocation(first, user_id: "one").tools.fetch(:dispatch_to_worker)
+    two = prepare_invocation(second, user_id: "two").tools.fetch(:dispatch_to_worker)
+    coordinator = Phronomy::MultiAgent.const_get(:DurableSubagentCoordinator, false)
+
+    [[two, second, "two"], [one, first, "one"]].each do |dispatch, owner, id|
+      options = {phronomy_tool_invocation_id: "slot", execution_id: id}
+      expect(coordinator).to receive(:start).with(parent: owner, parent_execution_id: id,
+        tool_invocation_id: "slot", config: options.merge(user_id: id)).and_return(source)
+      expect(dispatch.call_async({input: "work"}, config: options)).to equal(source)
+    end
+  end
+
+  it "does not retain the parent or invocation through cached dispatch Tool methods" do
+    methods, references = Thread.new do
+      parent = parent_class.new
+      invocation = prepare_invocation(parent)
+      dispatch = invocation.tools.fetch(:dispatch_to_worker)
+      parent.unload!
+      # Keep only method entries, as a VM method cache may do after dispatch.
+      [[:call, :call_async].map { |name| dispatch.method(name).unbind }, [WeakRef.new(parent), WeakRef.new(invocation)]]
+    end.value
+
+    3.times { GC.start }
+    expect(references.map { |ref| !!ref.weakref_alive? }).to eq([false, false])
+    expect(methods.map(&:name)).to eq([:call, :call_async])
   end
 
   it "preserves the Tool schema policy for ordinary calls" do
