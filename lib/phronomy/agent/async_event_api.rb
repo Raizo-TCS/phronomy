@@ -231,8 +231,43 @@ module Phronomy
 
       private
 
-      def build_hosted_invocation(id, task, &child_wait)
-        HostedInvocation.new(self, id, task, &child_wait)
+      # An optional composition hook validates the durable parent/child relation.
+      def hosted_child_approval_reader = nil
+
+      def build_hosted_invocation(id, task)
+        reader = hosted_child_approval_reader
+        return HostedInvocation.new(self, id, task) unless reader
+
+        HostedInvocation.new(self, id, task) do |execution_id, approval_id|
+          owner = __execution_environment.registry.agent_execution_owner(execution_id)
+          reader.call(agent_id, id, execution_id, approval_id, live_child: owner.agent) if owner
+        end
+      end
+
+      def resume_hosted_child_approval(parent_execution_id, execution_id:, approval_request_id:, approved:, config:)
+        __with_operation do
+          if Phronomy::WaitPolicy.blocking_forbidden?
+            raise Phronomy::EventLoopReentrancyError, "approve_hosted_child requires a host thread"
+          end
+          reader = hosted_child_approval_reader
+          parent_wait = execution_coordinator.recovered_coordination_wait
+          unless reader && parent_wait && parent_wait.execution_id == parent_execution_id && parent_wait.current?
+            raise Phronomy::AgentBusyError, "Parent has no matching recovered coordination wait"
+          end
+          owner = __execution_environment.registry.agent_execution_owner(execution_id)
+          unless owner&.status == :suspended
+            raise Phronomy::AgentBusyError, "No matching local child approval wait"
+          end
+          lookup = lambda do |child_execution_id, approval_id|
+            reader.call(agent_id, parent_execution_id, child_execution_id, approval_id,
+              parent_revision: parent_wait.revision, live_child: owner.agent)
+          end
+          wait = lookup.call(execution_id, approval_request_id)
+          raise Phronomy::AgentBusyError, "No matching hosted child approval wait" unless wait
+          task = owner.coordinator.resume(wait.execution_id, approval_request_id: wait.approval_request_id, approved: approved,
+            config: owner.agent._prepare_invocation_config(config, nil), parent_wait: parent_wait)
+          HostedInvocation.new(self, parent_execution_id, task, resumed_from: wait, &lookup)
+        end
       end
 
       def _prepare_output_config(config, invocation_context, schema, schema_delivery)

@@ -758,6 +758,43 @@ that execution's subagent extension and release its holds.
 The host serializes workers and owns request deduplication, claims, crash
 recovery and acknowledgement.
 
+## Releasing a completed Orchestrator and child
+
+A host can release the local owners once the parent has imported its direct
+child's outcome and both executions have finished. Phronomy keeps the durable
+reservation, execution results and both Agents' transcripts. A later worker
+can load the parent by its Agent ID and use that conversation for another turn.
+
+For example, after answering the last approval, the worker first lets the
+parent import the child's result. It then passes both execution IDs to the
+Orchestrator, on a host thread holding exclusive delivery for the pair. Call
+this outside an application persistence transaction so the ownership decision
+uses committed records.
+
+```ruby
+result = parent.resume(parent_execution_id)
+parent.unload_with_completed_child!(parent_execution_id,
+  execution_id: child_execution_id)
+```
+
+The method returns true on release. The parent and any matching resident child
+leave the local runtime registry together. Retrying on the released parent
+object returns false. A parent reloaded on its own can use the saved pair's IDs
+to unload without materializing the child. To display saved results without
+loading either Agent, use the Agent Store.
+
+A child may be complete while the parent is still waiting to import its result.
+In that case release is premature. Keep the host claim, finish the parent and
+then release. Active operations, a scoped owner or a conflicting retention can
+also prevent release. The method covers one imported, directly registered child
+of the specified execution. It does not sweep other child instances that the
+application previously left resident.
+
+Generic `unload!` and durable deletion continue to honor retention. Use
+`forget_subagents` only when the application intends to remove the stored
+coordination history. Once a host no longer needs an unloaded Agent, it can
+drop its own references to that instance and its operation handles.
+
 ## Delivering an event to a saved Workflow wait
 
 A worker can restore a particular visit to a declared Workflow wait. The host holds

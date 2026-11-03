@@ -1024,7 +1024,8 @@
       "transcript_messages",
       "transcript_messages_async",
       "unload!",
-      "unload_async"
+      "unload_async",
+      "unload_with_completed_child!"
     ],
     "public_class_methods": [
       "_before_llm_input",

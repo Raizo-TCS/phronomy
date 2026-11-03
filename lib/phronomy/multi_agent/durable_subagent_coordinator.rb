@@ -96,12 +96,7 @@ module Phronomy
           next unless !snapshot["cancel_requested"] && children.size == 1
           child = children.first
           next unless !child.fetch("imported") && child.fetch("execution_id") == execution_id
-          klass = self.class.registered_child_class(@agent_class, child)
-          next unless klass
-          if live_child
-            next unless live_child.agent_id == child.fetch("agent_id") && live_child.is_a?(klass) &&
-              live_child.class.agent_definition == klass.agent_definition && live_child.persistence.equal?(store)
-          end
+          next unless matching_child_class?(child, live_child)
           next unless store.single_dispatch_wait?(agent_id: parent_id, execution_id: parent_execution_id,
             invocation_id: child.fetch("slot"), name: "dispatch_to_#{child.fetch("name")}", expected_revision: parent_revision, scope: scope)
           next unless hosted_retentions?(parent_id, parent_execution_id, scope)
@@ -117,6 +112,43 @@ module Phronomy
         end
       end
 
+      # A terminal record alone does not show that its result reached the
+      # parent. Check the native slot, exact reservation and holds together.
+      def completed_child_pair?(parent_id, parent_execution_id, child, live_child:, scope:)
+        store = persistence.agent_store
+        return false unless store.terminal_execution?(agent_id: parent_id, execution_id: parent_execution_id, scope: scope)
+        children = stored_children(parent_id, parent_execution_id, scope)
+        return false unless children&.size == 1
+        slot = children.first
+        return false unless slot.fetch("imported") == true && slot.fetch("agent_id") == child.agent_id &&
+          slot.fetch("execution_id") == child.execution_id && matching_child_class?(slot, live_child)
+
+        owner = {"kind" => "subagent", "parent_agent_id" => parent_id, "parent_execution_id" => parent_execution_id,
+                 "slot" => slot.fetch("slot")}
+        return false unless store.terminal_execution?(agent_id: child.agent_id, execution_id: child.execution_id,
+          reservation: owner, scope: scope)
+        hold = Phronomy::Agent::Retention.new(agent_id: child.agent_id, execution_id: child.execution_id,
+          owner_key: "subagent:#{parent_execution_id}")
+        return false unless store.retained_references(agent_id: child.agent_id, scope: scope) == [hold]
+
+        hosted_retentions?(parent_id, parent_execution_id, scope) do |prior_id|
+          prior = stored_children(parent_id, prior_id, scope)
+          prior && !prior.empty? && prior.all? { |entry| entry.fetch("imported") == true }
+        end
+      end
+
+      private def stored_children(parent_id, execution_id, scope)
+        extension = persistence.agent_store.execution_extension(agent_id: parent_id, execution_id: execution_id,
+          binding_key: BINDING_KEY, scope: scope)
+        state_for(extension).fetch("children") if extension&.state_ref && extension.binding_version == 1
+      end
+
+      private def matching_child_class?(slot, live_child)
+        klass = self.class.registered_child_class(@agent_class, slot)
+        klass && (!live_child || (live_child.agent_id == slot.fetch("agent_id") && live_child.is_a?(klass) &&
+          live_child.class.agent_definition == klass.agent_definition && live_child.persistence.equal?(persistence.agent_store)))
+      end
+
       # Retaining the history of an earlier completed native dispatch on this
       # same Agent does not give anyone a live interest in the current run.
       private def hosted_retentions?(agent_id, execution_id, scope)
@@ -125,7 +157,8 @@ module Phronomy
         retentions = store.retained_references(agent_id: agent_id, scope: scope)
         retentions.include?(current) && (retentions - [current]).all? do |retention|
           retention.execution_id && retention.owner_key == "subagent:#{retention.execution_id}" &&
-            store.terminal_execution?(agent_id: agent_id, execution_id: retention.execution_id, scope: scope)
+            store.terminal_execution?(agent_id: agent_id, execution_id: retention.execution_id, scope: scope) &&
+            (!block_given? || yield(retention.execution_id))
         end
       end
 

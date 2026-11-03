@@ -29,6 +29,36 @@ module Phronomy
 
       private
 
+      # The participant proves which durable retentions are finished history;
+      # Agent controls admission, idleness and release of the local owners.
+      def __unload_with_peer_execution!(execution_id, reserved_by:)
+        if Phronomy::WaitPolicy.blocking_forbidden?
+          raise Phronomy::EventLoopReentrancyError, "Unloading coordinated Agents requires a host thread"
+        end
+        return false if @_phronomy_runtime_owner_state == :unloaded
+        __assert_live_agent!
+        peer = persistence.execution_identity(execution_id)
+        unless peer.correlation&.slice(*reserved_by.keys) == reserved_by
+          raise Phronomy::AgentBusyError, "Execution does not belong to this coordination owner"
+        end
+        environment = __execution_environment
+        environment.ownership.unload_idle_pair(self, peer.agent_id) do |live_peer|
+          ids = [agent_id, peer.agent_id].sort
+          if ids.any? { |id| environment.existing_registry&.agent_execution_admitted?(id) }
+            raise Phronomy::AgentBusyError, "A coordinated Agent has a local execution"
+          end
+          persistence.transaction do |records, scope|
+            unless scope.outermost?
+              raise Phronomy::Persistence::TransactionError, "Releasing local owners requires an outermost transaction"
+            end
+            ids.each { |id| records.executions.assert_idle!(id) }
+            unless yield(peer, live_peer, scope)
+              raise Phronomy::AgentBusyError, "No matching completed coordination history"
+            end
+          end
+        end
+      end
+
       def __with_operation(async: false, read_only: false)
         lease = __acquire_operation!(read_only: read_only)
         followed = false

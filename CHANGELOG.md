@@ -35,9 +35,15 @@ Release history for 0.14.0 and earlier is archived in
   direct child's approval with a hosted handle. If the same execution asks for
   another approval, the worker can release the pair at the new wait. A third
   worker can restore that wait without replaying the earlier Tool call.
+- Add `MultiAgent::Orchestrator#unload_with_completed_child!` for a worker
+  that has finished a direct child dispatch. It can release the local owners
+  while keeping the conversation, execution results and native slot history.
 
 ### Fixed
 
+- Keep distinct native Tool call/result pairs when a provider reuses its call ID
+  in later responses on the same Agent. A subsequent request can use the saved
+  conversation without executing either Tool again to rebuild context.
 - Restore mutable Workflow context fields from durable checkpoints when
   delivering a saved event or starting another invocation of the same instance.
   Actions can update nested strings, arrays and hashes without changing the

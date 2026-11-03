@@ -107,6 +107,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 | **GeneratorVerifier** — Generator-Verifier loop with application prompts, Agent-validated output schemas and explicit output failures | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **Hosted child approvals** — An Orchestrator can release a single direct child and its parent at successive Tool approvals within the same child execution. The host transfers exclusive ownership between workers. [Contract](runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval) | Beta |
+| **Completed native child release** — A host can unload the local Orchestrator and its finished direct child while preserving their saved results, conversation and coordination history. [Contract](runtime-and-concurrency.md#releasing-a-completed-orchestrator-and-child) | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; see the [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
 | **Human-in-the-loop approval** — durable suspension publishes `:approval_required` through the Agent listener; `approve` / `approve_async` resumes the same logical `execution_id` with a fresh FSMSession incarnation | Beta |

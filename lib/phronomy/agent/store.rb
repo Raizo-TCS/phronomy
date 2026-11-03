@@ -152,11 +152,11 @@ module Phronomy
 
       # Check a historical reference without reading its output or error content.
       # @api private
-      def terminal_execution?(agent_id:, execution_id:, scope:)
+      def terminal_execution?(agent_id:, execution_id:, scope:, reservation: nil)
         with_scope(scope) do |records|
           execution = records.executions.load(execution_id)
           assert_execution_owner!(execution, agent_id)
-          execution.terminal?
+          execution.terminal? && (reservation.nil? || execution.metadata["reservation"] == reservation)
         end
       end
 
