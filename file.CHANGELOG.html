@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_32_0____2026_11_03">[0.32.0] - 2026-11-03</h2>
 <h3 id="Added">Added</h3>
 <ul>
 <li>
@@ -78,9 +79,9 @@ existing <code>load</code> and <code>approve</code> operations to continue the s
 <li>
 <p>Add <code>Agent::Store#standalone_approval_wait</code> to query the committed approval fact without
 transferring a live worker claim. Delivery deduplication, exclusive claims and
-verified worker termination remain application responsibilities. This initial
-contract excludes parent Workflow/shared-child transfer, multi-host fencing,
-supervisor restart and recovery of uncertain external Tool effects.</p>
+verified worker termination remain application responsibilities. Standalone
+detachment does not transfer parent Workflows or shared children; supported
+direct-child handoff and saved Workflow events are separate APIs below.</p>
 </li>
 <li>
 <p>Add <code>Workflow#send_saved_event</code> to restore a declared wait by Workflow instance
@@ -108,7 +109,8 @@ while keeping the conversation, execution results and native slot history.</p>
 <h3 id="Fixed">Fixed</h3>
 <ul>
 <li>Bind native subagent dispatch context to each prepared Tool instance so that
-cached Tool methods do not keep completed Orchestrators alive after unload.</li>
+cached Tool methods do not keep completed Orchestrators alive after unload
+(Issue #440). Saved SQLite execution and conversation history is preserved.</li>
 <li>Keep distinct native Tool call/result pairs when a provider reuses its call ID
 in later responses on the same Agent. A subsequent request can use the saved
 conversation without executing either Tool again to rebuild context.</li>
@@ -119,6 +121,25 @@ original checkpoint.</li>
 <li>Continue using an Agent after a human rejects a Tool call. Model input for the
 next turn omits the rejected, incomplete Tool exchange. The original journal
 and public conversation history remain available for inspection.</li>
+</ul>
+<h3 id="Compatibility_and_verification">Compatibility and verification</h3>
+<ul>
+<li>Worker APIs require 0.32.0 or later; applications using <code>start_hosted</code> cannot
+run against 0.31.0. The existing <a href="docs/migrations/0.31.md">0.31 storage and Agent Tool migration
+requirements</a> still apply. This release does not add a
+persistence mapping migration or change those stored execution formats.</li>
+<li>Native handoff and completed-owner release cover one direct child in an
+isolated dispatch batch. Delivery deduplication, exclusive claims, ACKs and
+verified worker termination belong to the application. General graph transfer,
+multi-host fencing, supervisor restart and recovery of unknown external Tool
+effects are not established by these examples.</li>
+<li>Worker acceptance uses fixed HTTP responses, actual Ruby processes and SQLite,
+including Ubuntu 24.04 and 26.04. It does not establish live-model acceptance.</li>
+<li>LM Studio/gpt-oss PEG parsing remains a known unresolved limitation. The latest
+pre-release standard verifier reported 101 passed, 2 failed and 0 skipped;
+Examples 01 and 22 received provider PEG errors, also reproduced before Worker
+support. Known-error identification and bounded retry do not fix the provider's
+root cause. These two failures are tracked separately from Worker acceptance.</li>
 </ul>
 <h2 id="_0_31_0____2026_10_25">[0.31.0] - 2026-10-25</h2>
 <h3 id="Added">Added</h3>
@@ -1071,7 +1092,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Tue Nov  3 08:06:37 2026 by
+  Generated on Tue Nov  3 08:11:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

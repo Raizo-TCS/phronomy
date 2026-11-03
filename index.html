@@ -95,8 +95,8 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following table describes the application APIs on the current development
-branch. Entries marked Unreleased are not available in the published v0.31.0 gem.
+<p>The following table describes the application APIs available in v0.32.0.
+Worker hosting and completed parent/child release require v0.32.0 or later.
 Review the <a href="docs/migrations/0.31.md">0.31 migration notes</a> before upgrading
 persistent applications or custom Agent Tool subclasses.</p>
 <table>
@@ -136,22 +136,22 @@ persistent applications or custom Agent Tool subclasses.</p>
 <tr>
 <td><code>Agent::Base#start_hosted</code>, <code>Agent::HostedInvocation</code>, <code>Agent::ApprovalWait</code> and <code>Agent::Store#standalone_approval_wait</code></td>
 <td>Beta</td>
-<td>Unreleased. Detach an exclusively owned standalone Agent at its first committed approval wait, then restore the same execution in another process; delivery claims and worker fencing remain application responsibilities; <a href="docs/runtime-and-concurrency.md#hosting-a-standalone-agent-through-approval">contract</a></td>
+<td>Added in v0.32.0. Detach an exclusively owned standalone Agent at its first committed approval wait, then restore the same execution in another process; delivery claims and worker fencing remain application responsibilities; <a href="docs/runtime-and-concurrency.md#hosting-a-standalone-agent-through-approval">contract</a></td>
 </tr>
 <tr>
 <td><code>Agent::HostedInvocation#detach!(execution_id:, approval_request_id:)</code></td>
 <td>Beta</td>
-<td>Unreleased. Release an exclusively owned Orchestrator and its single direct subagent at the child's approval wait. A second worker can resume both saved executions while the first worker handles other requests. <a href="docs/runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval">Contract</a></td>
+<td>Added in v0.32.0. Release an exclusively owned Orchestrator and its single direct subagent at the child's approval wait. A second worker can resume both saved executions while the first worker handles other requests. <a href="docs/runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval">Contract</a></td>
 </tr>
 <tr>
 <td><code>MultiAgent::Orchestrator#approve_hosted_child</code></td>
 <td>Beta</td>
-<td>Unreleased. Answer the current approval on a restored direct child. The returned handle can release the pair again if that child requests another approval during the same execution. <a href="docs/runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval">Contract</a></td>
+<td>Added in v0.32.0. Answer the current approval on a restored direct child. The returned handle can release the pair again if that child requests another approval during the same execution. <a href="docs/runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval">Contract</a></td>
 </tr>
 <tr>
 <td><code>MultiAgent::Orchestrator#unload_with_completed_child!</code></td>
 <td>Beta</td>
-<td>Unreleased. Release local owners after a direct child result has been imported and the parent has finished. The saved executions, transcripts and coordination history remain available. <a href="docs/runtime-and-concurrency.md#releasing-a-completed-orchestrator-and-child">Contract</a></td>
+<td>Added in v0.32.0. Release local owners after a direct child result has been imported and the parent has finished. The saved executions, transcripts and coordination history remain available. <a href="docs/runtime-and-concurrency.md#releasing-a-completed-orchestrator-and-child">Contract</a></td>
 </tr>
 <tr>
 <td><code>Tools::Agent::CleanupError</code></td>
@@ -161,7 +161,7 @@ persistent applications or custom Agent Tool subclasses.</p>
 <tr>
 <td><code>Workflow#send_saved_event</code></td>
 <td>Beta</td>
-<td>Unreleased. Deliver an event to a specific revision of a persisted Workflow wait; <a href="docs/runtime-and-concurrency.md#delivering-an-event-to-a-saved-workflow-wait">contract</a></td>
+<td>Added in v0.32.0. Deliver an event to a specific revision of a persisted Workflow wait; <a href="docs/runtime-and-concurrency.md#delivering-an-event-to-a-saved-workflow-wait">contract</a></td>
 </tr>
 <tr>
 <td><code>Workflow::Builder#task_state</code> and <code>WorkflowTaskResumeError</code></td>
@@ -339,7 +339,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue Nov  3 08:06:36 2026 by
+  Generated on Tue Nov  3 08:11:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
