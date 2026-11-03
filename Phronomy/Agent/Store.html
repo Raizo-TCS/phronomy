@@ -329,6 +329,28 @@ adapter implements storage; this framework never selects a DB or codec.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#approval_wait_for-instance_method" title="#approval_wait_for (instance method)">#<strong>approval_wait_for</strong>(agent_id:, execution_id:, correlation:, retentions:, scope:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Participant observation.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#assert_agent_watermark!-instance_method" title="#assert_agent_watermark! (instance method)">#<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; Object </a>
     
 
@@ -749,6 +771,72 @@ adapter implements storage; this framework never selects a DB or codec.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#single_dispatch_wait%3F-instance_method" title="#single_dispatch_wait? (instance method)">#<strong>single_dispatch_wait?</strong>(agent_id:, execution_id:, invocation_id:, name:, scope:, expected_revision: nil)  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>A native participant can release a root only at a single replayable Tool dispatch.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#standalone_approval_wait-instance_method" title="#standalone_approval_wait (instance method)">#<strong>standalone_approval_wait</strong>(agent_id:, execution_id:, scope: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Read without loading a live Agent.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#terminal_execution%3F-instance_method" title="#terminal_execution? (instance method)">#<strong>terminal_execution?</strong>(agent_id:, execution_id:, scope:, reservation: nil)  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Check a historical reference without reading its output or error content.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#transaction-instance_method" title="#transaction (instance method)">#<strong>transaction</strong>  &#x21d2; Object </a>
     
 
@@ -1128,22 +1216,94 @@ adapter implements storage; this framework never selects a DB or codec.</p>
       <pre class="lines">
 
 
-111
-112
-113
-114
-115
-116
-117</pre>
+163
+164
+165
+166
+167
+168
+169</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 163</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_executions'>active_executions</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
     <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_list_active'>list_active</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_execution'>execution</span><span class='op'>|</span>
       <span class='id identifier rubyid_observe_execution'>observe_execution</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span>
     <span class='kw'>end</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="approval_wait_for-instance_method">
+  
+    #<strong>approval_wait_for</strong>(agent_id:, execution_id:, correlation:, retentions:, scope:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Participant observation. An active coordinated wait must match both its
+exact reservation and every durable retention owned by the participant.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 119</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_approval_wait_for'>approval_wait_for</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>correlation:</span><span class='comma'>,</span> <span class='label'>retentions:</span><span class='comma'>,</span> <span class='label'>scope:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
+    <span class='kw'>begin</span>
+      <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Persistence/NotFoundError.html" title="Phronomy::Persistence::NotFoundError (class)">NotFoundError</a></span></span>
+      <span class='kw'>next</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_assert_execution_owner!'>assert_execution_owner!</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+    <span class='kw'>next</span> <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span> <span class='op'>==</span> <span class='symbol'>:suspended</span> <span class='op'>&amp;&amp;</span> <span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_approval_request'>approval_request</span><span class='op'>&amp;.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>id</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>next</span> <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>reservation</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='id identifier rubyid_correlation'>correlation</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_extension</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancellation_requested</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_cancellations'>cancellations</span><span class='period'>.</span><span class='id identifier rubyid_requested?'>requested?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='kw'>next</span> <span class='kw'>unless</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_retentions'>retentions</span><span class='period'>.</span><span class='id identifier rubyid_list'>list</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span> <span class='op'>==</span> <span class='id identifier rubyid_retentions'>retentions</span>
+
+    <span class='const'><span class='object_link'><a href="ApprovalWait.html" title="Phronomy::Agent::ApprovalWait (class)">ApprovalWait</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span>
+      <span class='label'>execution_revision:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1175,12 +1335,12 @@ adapter implements storage; this framework never selects a DB or codec.</p>
       <pre class="lines">
 
 
-225
-226
-227</pre>
+277
+278
+279</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 225</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 277</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
   <span class='ivar'>@records</span><span class='period'>.</span><span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>agent_revision:</span> <span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='comma'>,</span> <span class='label'>journal_position:</span> <span class='id identifier rubyid_journal_position'>journal_position</span><span class='rparen'>)</span>
@@ -1306,12 +1466,12 @@ The receiving domain owns application and replay of these operations.</p>
       <pre class="lines">
 
 
-200
-201
-202</pre>
+252
+253
+254</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 200</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 252</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancellation_requested?'>cancellation_requested?</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_cancellations'>cancellations</span><span class='period'>.</span><span class='id identifier rubyid_requested?'>requested?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -1345,15 +1505,15 @@ The receiving domain owns application and replay of these operations.</p>
       <pre class="lines">
 
 
-119
-120
-121
-122
-123
-124</pre>
+171
+172
+173
+174
+175
+176</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 119</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 171</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_definition'>definition</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -1390,22 +1550,22 @@ The receiving domain owns application and replay of these operations.</p>
       <pre class="lines">
 
 
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150</pre>
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 190</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_extension'>execution_extension</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>binding_key:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -1449,16 +1609,16 @@ The receiving domain owns application and replay of these operations.</p>
       <pre class="lines">
 
 
-176
-177
-178
-179
-180
-181
-182</pre>
+228
+229
+230
+231
+232
+233
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 176</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 228</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_identity'>execution_identity</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -1557,13 +1717,13 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-154
-155
-156
-157</pre>
+206
+207
+208
+209</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 154</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 206</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_guard_agents'>guard_agents</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='comma'>,</span> <span class='label'>agent_ids:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_participate'>participate</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span> <span class='id identifier rubyid_agent_ids'>agent_ids</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_s</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_uniq'>uniq</span><span class='period'>.</span><span class='id identifier rubyid_sort'>sort</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='op'>|</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_guard_agent!'>guard_agent!</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
@@ -1598,19 +1758,19 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135</pre>
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 126</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 178</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_knowledge_snapshot'>knowledge_snapshot</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -1765,12 +1925,12 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-196
-197
-198</pre>
+248
+249
+250</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 196</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 248</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_release_retention'>release_retention</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>owner_key:</span><span class='comma'>,</span> <span class='label'>scope:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_participate'>participate</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_retentions'>retentions</span><span class='period'>.</span><span class='id identifier rubyid_release'>release</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>owner_key:</span> <span class='id identifier rubyid_owner_key'>owner_key</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -1804,24 +1964,24 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174</pre>
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 160</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 212</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove_execution_extension'>remove_execution_extension</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>binding_key:</span><span class='comma'>,</span> <span class='label'>scope:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_participate'>participate</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -1867,23 +2027,23 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217</pre>
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 204</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 256</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_request_cancellation'>request_cancellation</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -1985,16 +2145,16 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-188
-189
-190
-191
-192
-193
-194</pre>
+240
+241
+242
+243
+244
+245
+246</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 188</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 240</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retain'>retain</span><span class='lparen'>(</span><span class='id identifier rubyid_retention'>retention</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
@@ -2032,12 +2192,12 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-184
-185
-186</pre>
+236
+237
+238</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 184</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 236</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retained_references'>retained_references</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_retentions'>retentions</span><span class='period'>.</span><span class='id identifier rubyid_list'>list</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -2071,17 +2231,195 @@ roots then use the same lexical order, including admission and purge.</p>
       <pre class="lines">
 
 
-219
-220
-221
-222</pre>
+271
+272
+273
+274</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 219</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 271</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runs'>runs</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assert_observation_thread!'>assert_observation_thread!</span>
   <span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_list'>list</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>after:</span> <span class='id identifier rubyid_after'>after</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="single_dispatch_wait?-instance_method">
+  
+    #<strong>single_dispatch_wait?</strong>(agent_id:, execution_id:, invocation_id:, name:, scope:, expected_revision: nil)  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>A native participant can release a root only at a single replayable
+Tool dispatch. A mixed batch may still require external Tool evidence.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 140</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_single_dispatch_wait?'>single_dispatch_wait?</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>invocation_id:</span><span class='comma'>,</span> <span class='label'>name:</span><span class='comma'>,</span> <span class='label'>scope:</span><span class='comma'>,</span> <span class='label'>expected_revision:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
+    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_assert_execution_owner!'>assert_execution_owner!</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='id identifier rubyid_expected_revision'>expected_revision</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span> <span class='op'>!=</span> <span class='id identifier rubyid_expected_revision'>expected_revision</span>
+    <span class='id identifier rubyid_batch'>batch</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="ExecutionMetadata.html" title="Phronomy::Agent::ExecutionMetadata (module)">ExecutionMetadata</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ExecutionMetadata.html#TOOL_BATCH_METADATA_KEY-constant" title="Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY (constant)">TOOL_BATCH_METADATA_KEY</a></span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span> <span class='op'>==</span> <span class='symbol'>:active</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='op'>==</span> <span class='symbol'>:dispatching_tools</span> <span class='op'>&amp;&amp;</span>
+      <span class='op'>!</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>reservation</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancellation_requested</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span>
+      <span class='op'>!</span><span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_cancellations'>cancellations</span><span class='period'>.</span><span class='id identifier rubyid_requested?'>requested?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
+      <span class='id identifier rubyid_batch'>batch</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='op'>==</span> <span class='int'>1</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_batch'>batch</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span><span class='period'>.</span><span class='id identifier rubyid_values_at'>values_at</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_invocation_id</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_name</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>status</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='op'>==</span> <span class='lbracket'>[</span><span class='id identifier rubyid_invocation_id'>invocation_id</span><span class='comma'>,</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>authorized</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="standalone_approval_wait-instance_method">
+  
+    #<strong>standalone_approval_wait</strong>(agent_id:, execution_id:, scope: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Read without loading a live Agent. Missing or ineligible waits return nil.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+112
+113
+114</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 112</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_standalone_approval_wait'>standalone_approval_wait</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_approval_wait_for'>approval_wait_for</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>correlation:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>retentions:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="terminal_execution?-instance_method">
+  
+    #<strong>terminal_execution?</strong>(agent_id:, execution_id:, scope:, reservation: nil)  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Check a historical reference without reading its output or error content.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+155
+156
+157
+158
+159
+160
+161</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/store.rb', line 155</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_terminal_execution?'>terminal_execution?</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>scope:</span><span class='comma'>,</span> <span class='label'>reservation:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_with_scope'>with_scope</span><span class='lparen'>(</span><span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_records'>records</span><span class='op'>|</span>
+    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_assert_execution_owner!'>assert_execution_owner!</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_terminal?'>terminal?</span> <span class='op'>&amp;&amp;</span> <span class='lparen'>(</span><span class='id identifier rubyid_reservation'>reservation</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>||</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>reservation</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='id identifier rubyid_reservation'>reservation</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2137,7 +2475,7 @@ can instead call participate with its existing shared scope.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Oct 25 07:30:00 2026 by
+  Generated on Tue Nov  3 08:06:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

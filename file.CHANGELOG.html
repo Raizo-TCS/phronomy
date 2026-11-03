@@ -67,6 +67,59 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li>
+<p>Add <code>Agent#start_hosted</code>, <code>Agent::HostedInvocation</code> and immutable
+<code>Agent::ApprovalWait</code> for safely detaching an exclusively owned standalone Agent
+at its first committed Tool approval wait. A new incarnation can use the
+existing <code>load</code> and <code>approve</code> operations to continue the same execution.</p>
+</li>
+<li>
+<p>Add <code>Agent::Store#standalone_approval_wait</code> to query the committed approval fact without
+transferring a live worker claim. Delivery deduplication, exclusive claims and
+verified worker termination remain application responsibilities. This initial
+contract excludes parent Workflow/shared-child transfer, multi-host fencing,
+supervisor restart and recovery of uncertain external Tool effects.</p>
+</li>
+<li>
+<p>Add <code>Workflow#send_saved_event</code> to restore a declared wait by Workflow instance
+ID and expected revision before applying an event. The host can reject a
+delayed delivery even when the same Workflow later returns to an identical wait.</p>
+</li>
+<li>
+<p>Allow an Orchestrator's hosted handle to detach its local parent and direct
+child together at a saved child Tool approval. The host supplies the child's
+execution and approval request IDs and retains the parent's execution ID for
+resumption on another worker. Both workers can remain alive.</p>
+</li>
+<li>
+<p>Add <code>MultiAgent::Orchestrator#approve_hosted_child</code> to answer a restored
+direct child's approval with a hosted handle. If the same execution asks for
+another approval, the worker can release the pair at the new wait. A third
+worker can restore that wait without replaying the earlier Tool call.</p>
+</li>
+<li>
+<p>Add <code>MultiAgent::Orchestrator#unload_with_completed_child!</code> for a worker
+that has finished a direct child dispatch. It can release the local owners
+while keeping the conversation, execution results and native slot history.</p>
+</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Bind native subagent dispatch context to each prepared Tool instance so that
+cached Tool methods do not keep completed Orchestrators alive after unload.</li>
+<li>Keep distinct native Tool call/result pairs when a provider reuses its call ID
+in later responses on the same Agent. A subsequent request can use the saved
+conversation without executing either Tool again to rebuild context.</li>
+<li>Restore mutable Workflow context fields from durable checkpoints when
+delivering a saved event or starting another invocation of the same instance.
+Actions can update nested strings, arrays and hashes without changing the
+original checkpoint.</li>
+<li>Continue using an Agent after a human rejects a Tool call. Model input for the
+next turn omits the rejected, incomplete Tool exchange. The original journal
+and public conversation history remain available for inspection.</li>
+</ul>
 <h2 id="_0_31_0____2026_10_25">[0.31.0] - 2026-10-25</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1018,7 +1071,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Oct 25 07:29:59 2026 by
+  Generated on Tue Nov  3 08:06:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

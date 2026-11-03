@@ -332,6 +332,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#approve_hosted_child-instance_method" title="#approve_hosted_child (instance method)">#<strong>approve_hosted_child</strong>(parent_execution_id, execution_id:, approval_request_id:, approved: true, config: {})  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Answers the current wait of a recovered direct child.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#dispatch_parallel-instance_method" title="#dispatch_parallel (instance method)">#<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, invocation_context: nil, inherit_knowledge: true)  &#x21d2; Object </a>
     
 
@@ -419,6 +441,28 @@
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#unload_with_completed_child!-instance_method" title="#unload_with_completed_child! (instance method)">#<strong>unload_with_completed_child!</strong>(parent_execution_id, execution_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Release the local parent and its directly dispatched child after the child's outcome has been imported.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -489,7 +533,7 @@
   
   
   <h3 class="inherited">Methods included from <span class='object_link'><a href="../Agent/AsyncEventApi.html" title="Phronomy::Agent::AsyncEventApi (module)">Agent::AsyncEventApi</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../Agent/AsyncEventApi.html#approve-instance_method" title="Phronomy::Agent::AsyncEventApi#approve (method)">#approve</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#approve_async-instance_method" title="Phronomy::Agent::AsyncEventApi#approve_async (method)">#approve_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#cancel_async-instance_method" title="Phronomy::Agent::AsyncEventApi#cancel_async (method)">#cancel_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#invoke-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke (method)">#invoke</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#invoke_async-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke_async (method)">#invoke_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resolve-instance_method" title="Phronomy::Agent::AsyncEventApi#resolve (method)">#resolve</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resolve_async-instance_method" title="Phronomy::Agent::AsyncEventApi#resolve_async (method)">#resolve_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resume-instance_method" title="Phronomy::Agent::AsyncEventApi#resume (method)">#resume</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resume_async-instance_method" title="Phronomy::Agent::AsyncEventApi#resume_async (method)">#resume_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#start_reserved_async-instance_method" title="Phronomy::Agent::AsyncEventApi#start_reserved_async (method)">#start_reserved_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#stream-instance_method" title="Phronomy::Agent::AsyncEventApi#stream (method)">#stream</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#stream_async-instance_method" title="Phronomy::Agent::AsyncEventApi#stream_async (method)">#stream_async</a></span></p>
+  <p class="inherited"><span class='object_link'><a href="../Agent/AsyncEventApi.html#approve-instance_method" title="Phronomy::Agent::AsyncEventApi#approve (method)">#approve</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#approve_async-instance_method" title="Phronomy::Agent::AsyncEventApi#approve_async (method)">#approve_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#cancel_async-instance_method" title="Phronomy::Agent::AsyncEventApi#cancel_async (method)">#cancel_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#invoke-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke (method)">#invoke</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#invoke_async-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke_async (method)">#invoke_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resolve-instance_method" title="Phronomy::Agent::AsyncEventApi#resolve (method)">#resolve</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resolve_async-instance_method" title="Phronomy::Agent::AsyncEventApi#resolve_async (method)">#resolve_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resume-instance_method" title="Phronomy::Agent::AsyncEventApi#resume (method)">#resume</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#resume_async-instance_method" title="Phronomy::Agent::AsyncEventApi#resume_async (method)">#resume_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#start_hosted-instance_method" title="Phronomy::Agent::AsyncEventApi#start_hosted (method)">#start_hosted</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#start_reserved_async-instance_method" title="Phronomy::Agent::AsyncEventApi#start_reserved_async (method)">#start_reserved_async</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#stream-instance_method" title="Phronomy::Agent::AsyncEventApi#stream (method)">#stream</a></span>, <span class='object_link'><a href="../Agent/AsyncEventApi.html#stream_async-instance_method" title="Phronomy::Agent::AsyncEventApi#stream_async (method)">#stream_async</a></span></p>
 
   
   
@@ -622,12 +666,12 @@
       <pre class="lines">
 
 
-133
-134
-135</pre>
+151
+152
+153</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 133</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid__subagent_tool_classes'>_subagent_tool_classes</span>
   <span class='ivar'>@_subagent_tool_classes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -714,12 +758,12 @@
       <pre class="lines">
 
 
-137
-138
-139</pre>
+155
+156
+157</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 137</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 155</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span>
   <span class='ivar'>@registered_subagents</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -744,24 +788,6 @@
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
 59
 60
 61
@@ -834,10 +860,28 @@
 128
 129
 130
-131</pre>
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>inherit_knowledge:</span> <span class='kw'>true</span><span class='rparen'>)</span>
   <span class='comment'># A subagent Tool is logically asynchronous: ToolInvocation starts the
@@ -982,12 +1026,12 @@
       <pre class="lines">
 
 
-221
-222
-223</pre>
+239
+240
+241</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 221</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 239</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___framework_tool_replayable?'>__framework_tool_replayable?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_key'>key</span><span class='op'>|</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>dispatch_to_</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_key'>key</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='op'>==</span> <span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span>
@@ -1021,16 +1065,16 @@
       <pre class="lines">
 
 
-33
-34
-35
-36
-37
-38
-39</pre>
+43
+44
+45
+46
+47
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___invocation_config'>__invocation_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='op'>!</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='ivar'>@participant</span>
@@ -1038,6 +1082,48 @@
   <span class='kw'>end</span>
   <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span><span class='comma'>,</span>
     <span class='label'>phronomy_execution_participant:</span> <span class='ivar'>@participant</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="approve_hosted_child-instance_method">
+  
+    #<strong>approve_hosted_child</strong>(parent_execution_id, execution_id:, approval_request_id:, approved: true, config: {})  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Answers the current wait of a recovered direct child. If the same
+execution suspends again the host can release the pair with this handle.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+54
+55
+56
+57</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 54</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_approve_hosted_child'>approve_hosted_child</span><span class='lparen'>(</span><span class='id identifier rubyid_parent_execution_id'>parent_execution_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_resume_hosted_child_approval'>resume_hosted_child_approval</span><span class='lparen'>(</span><span class='id identifier rubyid_parent_execution_id'>parent_execution_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+    <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1059,32 +1145,32 @@
       <pre class="lines">
 
 
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
 159
 160
 161
 162
-163</pre>
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 141</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 159</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -1129,24 +1215,6 @@
       <pre class="lines">
 
 
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
 183
 184
 185
@@ -1163,10 +1231,28 @@
 196
 197
 198
-199</pre>
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 165</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 183</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel_async'>dispatch_parallel_async</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -1223,27 +1309,27 @@
       <pre class="lines">
 
 
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218</pre>
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 201</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 219</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span>
@@ -1268,12 +1354,58 @@
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="unload_with_completed_child!-instance_method">
+  
+    #<strong>unload_with_completed_child!</strong>(parent_execution_id, execution_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Release the local parent and its directly dispatched child after the
+child's outcome has been imported. The stored history remains intact.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+35
+36
+37
+38
+39
+40</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 35</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_unload_with_completed_child!'>unload_with_completed_child!</span><span class='lparen'>(</span><span class='id identifier rubyid_parent_execution_id'>parent_execution_id</span><span class='comma'>,</span> <span class='label'>execution_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_owner'>owner</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>kind</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>subagent</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>parent_agent_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>parent_execution_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_parent_execution_id'>parent_execution_id</span><span class='rbrace'>}</span>
+  <span class='id identifier rubyid___unload_with_peer_execution!'>__unload_with_peer_execution!</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>reserved_by:</span> <span class='id identifier rubyid_owner'>owner</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_child'>child</span><span class='comma'>,</span> <span class='id identifier rubyid_live_child'>live_child</span><span class='comma'>,</span> <span class='id identifier rubyid_scope'>scope</span><span class='op'>|</span>
+    <span class='ivar'>@participant</span><span class='op'>&amp;.</span><span class='id identifier rubyid_completed_child_pair?'>completed_child_pair?</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='id identifier rubyid_parent_execution_id'>parent_execution_id</span><span class='comma'>,</span> <span class='id identifier rubyid_child'>child</span><span class='comma'>,</span> <span class='label'>live_child:</span> <span class='id identifier rubyid_live_child'>live_child</span><span class='comma'>,</span> <span class='label'>scope:</span> <span class='id identifier rubyid_scope'>scope</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Sun Oct 25 07:30:02 2026 by
+  Generated on Tue Nov  3 08:06:41 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

@@ -668,6 +668,165 @@ imply durable Agent continuation reconstruction.
 `Phronomy.reset_runtime!` exists primarily for test isolation and performs a real
 Runtime shutdown before resetting configuration.
 
+## Hosting a standalone Agent through approval
+
+A host can release one suspended Agent and continue using its Ruby process for other Agents. Hold one external claim per mutable Agent while loading, executing, detaching and recording delivery. Persist a new request's reserved execution ID before dispatch. A host uses the existing incarnation-level listener to receive the approval request.
+
+For example, worker A starts a fresh reservation with `agent.start_hosted(reservation:, input:)`. If the run finishes directly, `handle.wait_result` returns the ordinary execution result. On an approval notification, call `handle.detach!(approval_request_id: request.id)` outside EventLoop. Success returns an immutable `ApprovalWait` with the execution ID, approval request ID and committed revision. The same handle then returns that wait. The released Agent object cannot be reused. Existing `invoke_async` handles keep their terminal-result contract.
+
+An incorrect or stale approval, outstanding physical work, concurrent operation, live scope or durable retention prevents transfer. A busy response leaves the host responsible for the claim. A spent reservation is rejected. After a verified worker exit, a host can query `store.standalone_approval_wait(agent_id:, execution_id:)` without loading the Agent. A missing or ineligible wait returns nil. Store errors and owner mismatches propagate. Only reclaim a delivery if the original worker is known to have stopped and its claim still matches.
+
+Worker B loads the Agent with an `on_event:` listener, checks the restored request against the accepted answer and calls `approve` with the execution and approval request IDs. The host owns input deduplication and result acknowledgement. For a direct subagent, use the parent's hosted handle as described below.
+
+## Hosting an Orchestrator through a child approval
+
+A hosted Orchestrator can release its local Agent and one direct subagent when
+the subagent is waiting for Tool approval. The parent execution has one reserved
+child slot and its current Tool batch contains only the dispatch for that slot.
+The host holds exclusive access to both Agents throughout the handoff. It
+delivers work to the next worker only after release succeeds.
+
+For example, worker A starts a parent with `start_hosted`. Its listener receives
+the child's approval request. A host thread outside EventLoop passes the IDs
+from that request to the parent handle.
+
+```ruby
+wait = handle.detach!(execution_id: request.execution_id, approval_request_id: request.id)
+```
+
+The returned `Agent::ApprovalWait` identifies the child execution, its approval
+request and its saved revision. Keep the parent Agent and execution IDs with the
+accepted request. Both old Agent objects reject later execution operations.
+Worker A can keep unrelated Agent instances and process another request.
+The parent's original result handle retains its
+`ExecutionRehydrationRequiredError` outcome at this boundary.
+
+Worker B loads the same parent class with its Agent Store, coordination Store
+and listener. `parent.resume_async(parent_execution_id)` restores the pending
+child and emits the same approval request. Compare its execution and request
+IDs with the accepted request. The parent attempt reports
+`ExecutionRehydrationRequiredError` while the child is waiting. Obtain the
+restored child from its registered class by child Agent ID, call
+`child.approve(child_execution_id, approval_request_id:, approved:)`, then
+`parent.resume(parent_execution_id)` to import the result. A rejection is a
+child outcome. The parent continues according to its own dispatch and Agent
+logic.
+
+If the child may need another handoff, the host answers the current approval
+through the restored parent on a host thread outside EventLoop. This returns a
+hosted handle for the child's operation. If the child finishes, the handle
+yields the child result and the parent can import it. If the child requests
+another approval, the host can use the handle to release the same pair.
+
+For example, B approves the child's `apply_request` and the same child execution
+then asks to call `publish_request`. B uses the first approval's ID to answer and
+the second approval's ID to detach. The queue below receives the child approval
+events from the listener installed when B loaded the parent. This fixture
+requests a second approval within its test timeout.
+
+```ruby
+require "timeout"
+
+answer = parent.approve_hosted_child(parent_execution_id,
+  execution_id: first.execution_id, approval_request_id: first.id, approved: true)
+second = Timeout.timeout(12) { approval_events.pop }
+wait = answer.detach!(execution_id: second.execution_id, approval_request_id: second.id)
+```
+
+After release, `answer.wait_result` returns the same child `ApprovalWait`.
+B sends the existing parent and child execution IDs and the **new** approval
+request ID to C. C restores the pair as B did and answers the new request.
+The completed first Tool stays recorded in the child execution. While the hosted
+answer is pending, read the saved execution to report progress. Calling
+`parent.resume` again can advance the parent revision and invalidate the
+handoff. Resume the parent after the child finishes. A host handling
+arbitrary conversations must observe both approval events and handle completion
+(`on_complete`), since the child can finish without requesting another Tool.
+
+A later user request can also start a new hosted execution on the same parent
+Agent. Its own child wait can be detached while the earlier terminal
+execution's native slot history is still retained.
+
+A wrong approval, another reserved child, overlapping local work, or a pending
+cancellation prevents transfer. On `AgentBusyError` the host keeps ownership.
+The child remains a coordinated execution in storage, including its original
+slot and retention. Once both executions complete in B, these retentions
+continue to guard ordinary `unload!`. This handoff preserves slot history.
+An application that has finished using that history can separately call
+`stores.multi_agent.forget_subagents(agent_id:, execution_id:)` to remove
+that execution's subagent extension and release its holds.
+The host serializes workers and owns request deduplication, claims, crash
+recovery and acknowledgement.
+
+## Releasing a completed Orchestrator and child
+
+A host can release the local owners once the parent has imported its direct
+child's outcome and both executions have finished. Phronomy keeps the durable
+reservation, execution results and both Agents' transcripts. A later worker
+can load the parent by its Agent ID and use that conversation for another turn.
+
+For example, after answering the last approval, the worker first lets the
+parent import the child's result. It then passes both execution IDs to the
+Orchestrator, on a host thread holding exclusive delivery for the pair. Call
+this outside an application persistence transaction so the ownership decision
+uses committed records.
+
+```ruby
+result = parent.resume(parent_execution_id)
+parent.unload_with_completed_child!(parent_execution_id,
+  execution_id: child_execution_id)
+```
+
+The method returns true on release. The parent and any matching resident child
+leave the local runtime registry together. Retrying on the released parent
+object returns false. A parent reloaded on its own can use the saved pair's IDs
+to unload without materializing the child. To display saved results without
+loading either Agent, use the Agent Store.
+
+A child may be complete while the parent is still waiting to import its result.
+In that case release is premature. Keep the host claim, finish the parent and
+then release. Active operations, a scoped owner or a conflicting retention can
+also prevent release. The method covers one imported, directly registered child
+of the specified execution. It does not sweep other child instances that the
+application previously left resident.
+
+Generic `unload!` and durable deletion continue to honor retention. Use
+`forget_subagents` only when the application intends to remove the stored
+coordination history. Once a host no longer needs an unloaded Agent, it can
+drop its own references to that instance and its operation handles.
+
+## Delivering an event to a saved Workflow wait
+
+A worker can restore a particular visit to a declared Workflow wait. The host holds
+one claim for the Workflow instance, selects the matching Workflow definition,
+and identifies the saved revision that should receive the event.
+
+For example, a parent waiting for a review stores the child's Agent and execution
+IDs in its context. A worker verifies the completed child result against those IDs.
+While it owns the parent claim, it calls the following method with the revision
+recorded for that wait:
+
+```ruby
+workflow.send_saved_event(workflow_instance_id: parent_id,
+  expected_revision: wait_revision, event: :review_ready, input: {answer: answer})
+```
+
+A later visit can have the same phase and fields but a different revision. The
+earlier delivery raises `Persistence::StateConflictError` before its transition
+executes. A transition whose guard rejects the input raises `ArgumentError` and
+leaves the checkpoint available for a corrected event. After an
+acknowledgement is lost, the host checks the durable parent state for evidence
+of this child's result before acknowledging or retrying the message. It must
+retain the original wait revision throughout retries.
+
+The host keeps its claim from reading the parent through committing the transition.
+Two workers could otherwise both run application actions before storage detects a
+conflict. The application must also restore the same Workflow definition and
+configuration. A revision identifies a stored state for one durable instance;
+do not delete and reuse its ID while old deliveries might still arrive. The
+revision does not identify deployed code or make an external Tool effect repeatable.
+A pending in-process `task_state` cannot be restored with this operation.
+
 ## Further design records
 
 The `docs/decisions/` directory contains the historical and current Architecture

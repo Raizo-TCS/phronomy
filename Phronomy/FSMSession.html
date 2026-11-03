@@ -313,7 +313,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, recursion_limit_scope: :session, resume_event: nil, resume_phase: nil, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_policy: nil)  &#x21d2; FSMSession </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, recursion_limit_scope: :session, resume_event: nil, resume_phase: nil, require_resume_transition: false, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_policy: nil)  &#x21d2; FSMSession </a>
     
 
     
@@ -373,7 +373,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, recursion_limit_scope: :session, resume_event: nil, resume_phase: nil, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_policy: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::FSMSession (class)">FSMSession</a></span></tt> 
+    #<strong>initialize</strong>(context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, recursion_limit_scope: :session, resume_event: nil, resume_phase: nil, require_resume_transition: false, stable_observer: nil, context_metadata: {}, event_sink: nil, identity_reservation: nil, terminal_policy: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::FSMSession (class)">FSMSession</a></span></tt> 
   
 
   
@@ -453,7 +453,9 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 141
 142
 143
-144</pre>
+144
+145
+146</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 85</span>
@@ -472,6 +474,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
   <span class='label'>recursion_limit_scope:</span> <span class='symbol'>:session</span><span class='comma'>,</span>
   <span class='label'>resume_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>resume_phase:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>require_resume_transition:</span> <span class='kw'>false</span><span class='comma'>,</span>
   <span class='label'>stable_observer:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>context_metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>event_sink:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -508,6 +511,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
   <span class='ivar'>@event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_event_loop'>event_loop</span>
   <span class='ivar'>@resume_event</span> <span class='op'>=</span> <span class='id identifier rubyid_resume_event'>resume_event</span>
   <span class='ivar'>@resume_phase</span> <span class='op'>=</span> <span class='id identifier rubyid_resume_phase'>resume_phase</span>
+  <span class='ivar'>@require_resume_transition</span> <span class='op'>=</span> <span class='id identifier rubyid_require_resume_transition'>require_resume_transition</span>
   <span class='ivar'>@stable_observer</span> <span class='op'>=</span> <span class='id identifier rubyid_stable_observer'>stable_observer</span>
   <span class='ivar'>@terminal_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_terminal_policy'>terminal_policy</span>
   <span class='ivar'>@terminal_lifecycle_state</span> <span class='op'>=</span> <span class='symbol'>:running</span>
@@ -766,9 +770,6 @@ separate from this logical Workflow phase.</p>
       <pre class="lines">
 
 
-174
-175
-176
 177
 178
 179
@@ -792,10 +793,13 @@ separate from this logical Workflow phase.</p>
 197
 198
 199
-200</pre>
+200
+201
+202
+203</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 174</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 177</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
@@ -844,8 +848,6 @@ separate from this logical Workflow phase.</p>
       <pre class="lines">
 
 
-146
-147
 148
 149
 150
@@ -870,10 +872,13 @@ separate from this logical Workflow phase.</p>
 169
 170
 171
-172</pre>
+172
+173
+174
+175</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 146</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>if</span> <span class='ivar'>@resume_event</span>
@@ -885,7 +890,8 @@ separate from this logical Workflow phase.</p>
         <span class='label'>type:</span> <span class='ivar'>@resume_event</span><span class='comma'>,</span>
         <span class='label'>target_id:</span> <span class='ivar'>@id</span><span class='comma'>,</span>
         <span class='label'>payload:</span> <span class='kw'>nil</span>
-      <span class='rparen'>)</span>
+      <span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='label'>require_transition:</span> <span class='ivar'>@require_resume_transition</span>
     <span class='rparen'>)</span>
   <span class='kw'>else</span>
     <span class='ivar'>@current_state</span> <span class='op'>=</span> <span class='ivar'>@entry_point</span>
@@ -912,7 +918,7 @@ separate from this logical Workflow phase.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Oct 25 07:30:01 2026 by
+  Generated on Tue Nov  3 08:06:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
