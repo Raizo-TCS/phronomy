@@ -3,7 +3,7 @@
 SharedState can coordinate member Agents while an application owns the shared
 data and the Tools that access it. The application provides one invocation-scoped
 binding; SharedState owns member order, cycles, stopping decisions and final
-aggregation. This Experimental extension is Unreleased.
+aggregation. This Experimental extension is available since v0.33.0.
 
 For example, an issue-review team can share records with `category` and `status`
 fields. Its search Tool accepts those fields as separate arguments instead of

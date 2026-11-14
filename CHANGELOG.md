@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-14
+
 ### Added
 
 - Add public `ContextPolicyInput#input_token_limit` and
@@ -59,6 +61,24 @@ Release history for 0.14.0 and earlier is archived in
   execution and policy evaluation still receive their original inputs.
 - Apply the default approval display's sensitive-value check to values inside
   a Tool's redacted hash or array arguments, including copies used as fact keys.
+
+### Compatibility and verification
+
+- The new SharedState sharing, Agent Tool composition and Context budgeting APIs
+  require 0.33.0 or later and remain Experimental. Default sharing and ordinary
+  Agent subclass inheritance retain their existing behavior. Custom sharing is
+  synchronous and invocation-scoped; it does not add durable sharing recovery.
+- Approval display is selected by each Tool. Custom Tool implementations without
+  `approval_display` expose empty display maps; execution and policy evaluation
+  still use the original arguments. Review custom display overrides for safe
+  human-facing fields when upgrading.
+- Observed LM Studio/gpt-oss PEG-format failures remain unresolved.
+  The existing adapter identifies known errors and bounds retries; this release
+  does not claim to fix their root cause or establish full real-LLM acceptance.
+  The latest full examples verification recorded 102 passed, 1 failed and no
+  skips (Example 22: HTTP 400). A separate Qwen Example 22 run completed all three
+  cycles, but took 2,220 seconds and does not replace the full verifier result
+  or satisfy its 240-second per-example limit.
 
 ## [0.32.0] - 2026-11-03
 
