@@ -62,6 +62,12 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: false
 
+      - name: Install development and runtime dependencies
+        run: bundle install --jobs 4
+
+      - name: Audit all resolved dependencies before publication
+        run: bundle exec bundler-audit check --update
+
       - name: Build gem
         run: gem build phronomy.gemspec
 

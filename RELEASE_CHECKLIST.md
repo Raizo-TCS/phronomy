@@ -38,6 +38,10 @@ Copy it into the GitHub Release draft and check off each item.
 - [ ] No new `requires_approval` tools missing the approval gate
 - [ ] No secrets, credentials, or PII in tool descriptions, schema strings, or spec fixtures
 - [ ] Dependency audit passes: `bundle exec bundler-audit check --update`
+  Run `bundle install` first; the development Gemfile provides the audit tool.
+  Audit the complete resolved bundle, including development and test dependencies,
+  without advisory exclusions. A runtime-only audit does not satisfy this gate.
+  The dependency-audit CI job and the release workflow enforce the same command.
 
 ---
 

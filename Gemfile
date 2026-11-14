@@ -9,6 +9,9 @@ gem "rake", "~> 13.0"
 
 gem "rspec", "~> 3.0"
 
+# Audit the complete development bundle before releasing the gem.
+gem "bundler-audit", "~> 0.9.3", require: false
+
 # Public API type-signature validation
 gem "rbs", "~> 4.1.0", require: false
 
@@ -35,11 +38,9 @@ gem "opentelemetry-sdk", require: false
 # HTTP stubbing for LangfuseTracer unit tests
 gem "webmock", require: false
 
-# ActiveRecord + SQLite3 + ActiveJob (CRuby only; C extensions not available on JRuby)
+# ActiveRecord for the CRuby pgvector integration tests.
 group :crb do
-  gem "activerecord", "~> 7.1"
-  gem "sqlite3", "~> 2.0"
-  gem "activejob", "~> 7.1"
+  gem "activerecord", "~> 8.0.5", ">= 8.0.5.2"
 end
 
 # YARD for API documentation generation

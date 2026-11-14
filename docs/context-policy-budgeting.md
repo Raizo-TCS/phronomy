@@ -102,7 +102,7 @@ For example, Example 22 can budget retrieved findings through these operations
 while SharedState continues to coordinate Agents and application Tools continue
 to own the finding store. No SharedState-to-Context dependency is introduced.
 
-The operations are Experimental and Unreleased. Existing private budget and
-estimation classes remain implementation details. Existing ContextPolicy
+The operations are Experimental and available since v0.33.0. Existing private
+budget and estimation classes remain implementation details. Existing ContextPolicy
 factories and DefaultPolicy behavior are unchanged, and the protected helper
 applies equally to normal Agent calls and SharedState member calls.
