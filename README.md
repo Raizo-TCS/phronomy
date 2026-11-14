@@ -45,6 +45,7 @@ persistent applications or custom Agent Tool subclasses.
 
 | API | Stability | Contract |
 |---|---|---|
+| `Context::ContextPolicyInput#input_token_limit / #with_input_token_limit` and protected `ContextPolicy#estimate_tokens` | Experimental (Unreleased) | Inspect and constrain selection budgets and estimate candidate content through Context-owned operations. [Policy budgeting](docs/context-policy-budgeting.md) |
 | `Agent::Base.with_tools(definitions, id:, version:)` | Experimental (Unreleased) | Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. [Tool composition](docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) |
 | `MultiAgent::SharedState.sharing(provider, id:, version:)`, `SharedState::Binding` and `SharedState::MemberLifecycleError` | Experimental (Unreleased) | Connect application-owned shared data and Tools to sequential coordination through a synchronous invocation-scoped provider. [Custom sharing contract and example](docs/shared-state-sharing.md) |
 | `Tool::Base#approval_display(arguments:, facts:)` | Beta (Unreleased) | The Tool selects the arguments and derived facts a person can see in an approval request. [Approval display](docs/runtime-and-concurrency.md#tool-approval-display) |

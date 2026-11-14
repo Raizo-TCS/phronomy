@@ -14,6 +14,13 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Added
 
+- Add public `ContextPolicyInput#input_token_limit` and
+  `#with_input_token_limit(limit)` for immutable, non-expanding selection limits,
+  plus protected `ContextPolicy#estimate_tokens(content)` using the same
+  canonical estimator as generated Policy items. Applications can reserve input
+  capacity while retaining DefaultPolicy selection without constructing private
+  budget objects or calling private token-estimation helpers. These operations
+  do not change model capabilities, generation settings or final validation.
 - Add `Agent::Base.with_tools(definitions, id:, version:)` to derive an Agent
   class with a complete replacement Tool map and explicit definition identity.
   The factory preserves Phronomy authoring settings and independently copies

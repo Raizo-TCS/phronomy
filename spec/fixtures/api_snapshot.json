@@ -469,6 +469,7 @@
       "deconstruct",
       "deconstruct_keys",
       "execution_id",
+      "input_token_limit",
       "instruction",
       "knowledge",
       "members",
@@ -478,7 +479,8 @@
       "to_h",
       "token_budget",
       "tools",
-      "with"
+      "with",
+      "with_input_token_limit"
     ],
     "public_class_methods": [
       "[]",
