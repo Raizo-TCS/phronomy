@@ -45,6 +45,8 @@ persistent applications or custom Agent Tool subclasses.
 
 | API | Stability | Contract |
 |---|---|---|
+| `Agent::Base.with_tools(definitions, id:, version:)` | Experimental (Unreleased) | Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. [Tool composition](docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) |
+| `MultiAgent::SharedState.sharing(provider, id:, version:)`, `SharedState::Binding` and `SharedState::MemberLifecycleError` | Experimental (Unreleased) | Connect application-owned shared data and Tools to sequential coordination through a synchronous invocation-scoped provider. [Custom sharing contract and example](docs/shared-state-sharing.md) |
 | `Tool::Base#approval_display(arguments:, facts:)` | Beta (Unreleased) | The Tool selects the arguments and derived facts a person can see in an approval request. [Approval display](docs/runtime-and-concurrency.md#tool-approval-display) |
 | `Phronomy::LLMAdapter::LMStudio` | Beta | Explicit known-output-error identification and bounded opt-in retry; [policy and evidence limits](docs/architecture/lm-studio-output-failures.md) |
 | Agent `output_schema:`, `schema_delivery:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |

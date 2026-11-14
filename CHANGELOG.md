@@ -12,6 +12,33 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Added
+
+- Add `Agent::Base.with_tools(definitions, id:, version:)` to derive an Agent
+  class with a complete replacement Tool map and explicit definition identity.
+  The factory preserves Phronomy authoring settings and independently copies
+  filter lists; configured callable instances remain shared. Custom SharedState
+  uses this public operation after merging member and application Tools. General
+  Agent subclass inheritance remains unchanged.
+- Add `MultiAgent::SharedState.sharing(provider, id:, version:)` and the public
+  `SharedState::Binding` value. A synchronous provider opens one application-owned
+  store for an invocation and supplies Tool definitions for each member/cycle.
+  Applications define their own records, search arguments and cleanup without
+  overriding SharedState private methods. Custom sharing requires an explicit
+  aggregation block and does not inject the default findings Tools or append
+  stored records to member prompts.
+- Include the sharing provider's stable ID and semantic version in custom
+  generated Agent definition identity. Default SharedState retains its existing
+  built-in Tools, prompts and instrumentation revision 1. The extension adds no
+  database adapter, ContextPolicy implementation or durable sharing lifecycle.
+- Release terminal custom-sharing members through the public Agent lifecycle
+  operation. Normal Agent approval waits keep the invocation and provider open.
+  `SharedState::MemberLifecycleError` reports failed release or a custom
+  `invoke` override returning a suspended result prematurely, with the Agent and
+  available result/error details. It does not automatically answer approvals or
+  release a pending execution; application providers retain responsibility for
+  resource cleanup and recovery policy.
+
 ### Changed
 
 - Reuse the immutable argument schema prepared by an explicit `parameters`

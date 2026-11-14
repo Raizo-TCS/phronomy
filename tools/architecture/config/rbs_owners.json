@@ -34,5 +34,7 @@
   "Phronomy::Agent::execution_wiring": "lib/phronomy/agent",
   "Phronomy::_ExecutionChannel": "lib/phronomy/execution",
   "Phronomy::_ExecutionSubmitter": "lib/phronomy/execution",
-  "Phronomy::GeneratorVerifier::_ApprovalListener": "lib/phronomy/generation"
+  "Phronomy::GeneratorVerifier::_ApprovalListener": "lib/phronomy/generation",
+  "Phronomy::MultiAgent::SharedState::_SharingTools": "lib/phronomy/multi_agent/shared_state",
+  "Phronomy::MultiAgent::SharedState::_SharingProvider": "lib/phronomy/multi_agent"
 }
