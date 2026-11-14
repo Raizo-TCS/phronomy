@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_33_0____2026_11_14">[0.33.0] - 2026-11-14</h2>
 <h3 id="Added">Added</h3>
 <ul>
 <li>Add public <code>ContextPolicyInput#input_token_limit</code> and
@@ -114,6 +115,33 @@ contributes empty argument and fact maps to new approval requests. Tool
 execution and policy evaluation still receive their original inputs.</li>
 <li>Apply the default approval display's sensitive-value check to values inside
 a Tool's redacted hash or array arguments, including copies used as fact keys.</li>
+</ul>
+<h3 id="Security">Security</h3>
+<ul>
+<li>Use patched ActiveRecord 8.0 development dependencies, including ActiveSupport
+8.0.5.2 or later in the 8.0 series. Remove unused ActiveJob and SQLite3
+development dependencies; the examples retain the dependencies they use.
+The published gem's runtime dependencies are unchanged.</li>
+<li>Provide Bundler Audit in the development bundle and check the complete
+dependency set in pull-request CI and immediately before release publication.</li>
+</ul>
+<h3 id="Compatibility_and_verification">Compatibility and verification</h3>
+<ul>
+<li>The new SharedState sharing, Agent Tool composition and Context budgeting APIs
+require 0.33.0 or later and remain Experimental. Default sharing and ordinary
+Agent subclass inheritance retain their existing behavior. Custom sharing is
+synchronous and invocation-scoped; it does not add durable sharing recovery.</li>
+<li>Approval display is selected by each Tool. Custom Tool implementations without
+<code>approval_display</code> expose empty display maps; execution and policy evaluation
+still use the original arguments. Review custom display overrides for safe
+human-facing fields when upgrading.</li>
+<li>Observed LM Studio/gpt-oss PEG-format failures remain unresolved.
+The existing adapter identifies known errors and bounds retries; this release
+does not claim to fix their root cause or establish full real-LLM acceptance.
+The latest full examples verification recorded 102 passed, 1 failed and no
+skips (Example 22: HTTP 400). A separate Qwen Example 22 run completed all three
+cycles, but took 2,220 seconds and does not replace the full verifier result
+or satisfy its 240-second per-example limit.</li>
 </ul>
 <h2 id="_0_32_0____2026_11_03">[0.32.0] - 2026-11-03</h2>
 <h3 id="Added">Added</h3>
@@ -1140,7 +1168,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 14 11:13:57 2026 by
+  Generated on Sat Nov 14 12:27:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

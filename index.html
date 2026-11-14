@@ -95,8 +95,9 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following table describes the application APIs. Entries marked Unreleased
-require a development build. The other entries are available in v0.32.0.
+<p>The following table describes the application APIs available in v0.33.0.
+The new sharing, Tool composition and Context budgeting operations remain
+Experimental; their introduction version is shown below.
 Worker hosting and completed parent/child release require v0.32.0 or later.
 Review the <a href="docs/migrations/0.31.md">0.31 migration notes</a> before upgrading
 persistent applications or custom Agent Tool subclasses.</p>
@@ -111,22 +112,22 @@ persistent applications or custom Agent Tool subclasses.</p>
 <tbody>
 <tr>
 <td><code>Context::ContextPolicyInput#input_token_limit / #with_input_token_limit</code> and protected <code>ContextPolicy#estimate_tokens</code></td>
-<td>Experimental (Unreleased)</td>
+<td>Experimental (since v0.33.0)</td>
 <td>Inspect and constrain selection budgets and estimate candidate content through Context-owned operations. <a href="docs/context-policy-budgeting.md">Policy budgeting</a></td>
 </tr>
 <tr>
 <td><code>Agent::Base.with_tools(definitions, id:, version:)</code></td>
-<td>Experimental (Unreleased)</td>
+<td>Experimental (since v0.33.0)</td>
 <td>Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. <a href="docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set">Tool composition</a></td>
 </tr>
 <tr>
 <td><code>MultiAgent::SharedState.sharing(provider, id:, version:)</code>, <code>SharedState::Binding</code> and <code>SharedState::MemberLifecycleError</code></td>
-<td>Experimental (Unreleased)</td>
+<td>Experimental (since v0.33.0)</td>
 <td>Connect application-owned shared data and Tools to sequential coordination through a synchronous invocation-scoped provider. <a href="docs/shared-state-sharing.md">Custom sharing contract and example</a></td>
 </tr>
 <tr>
 <td><code>Tool::Base#approval_display(arguments:, facts:)</code></td>
-<td>Beta (Unreleased)</td>
+<td>Beta (since v0.33.0)</td>
 <td>The Tool selects the arguments and derived facts a person can see in an approval request. <a href="docs/runtime-and-concurrency.md#tool-approval-display">Approval display</a></td>
 </tr>
 <tr>
@@ -360,7 +361,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 14 11:13:57 2026 by
+  Generated on Sat Nov 14 12:27:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
