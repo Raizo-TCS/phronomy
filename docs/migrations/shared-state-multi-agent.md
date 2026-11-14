@@ -42,3 +42,8 @@ for one invocation only.
 
 See [ADR-053](../decisions/053-shared-state-coordination-ownership.md) for the
 ownership and compatibility decision.
+
+The later [custom sharing extension](../shared-state-sharing.md) is opt-in and
+leaves the default behavior described above intact. It gives an application
+explicit ownership of its store and Tool definitions; its generated identity
+also records the application's sharing ID and semantic version.

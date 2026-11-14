@@ -77,11 +77,36 @@ module Phronomy
 
         def tool_aliases
           own = @tool_aliases || {}
+          return own if @tool_aliases_replace_inherited
+
           if superclass.respond_to?(:tool_aliases)
             superclass.tool_aliases.merge(own)
           else
             own
           end
+        end
+
+        # Derive an Agent definition with a complete replacement Tool map.
+        # Phronomy authoring settings and filters are preserved; mutable filter
+        # lists are independent, while configured callable instances are shared.
+        # No Agent instance or Runtime resource is created by this factory.
+        # @param definitions [Hash<Class, String, nil>] Tool classes and aliases
+        # @param id [String] identity for the derived Agent definition
+        # @param version [Integer] revision for the derived Agent definition
+        # @return [Class<Phronomy::Agent::Base>]
+        # @api public
+        def with_tools(definitions, id:, version:)
+          unless definitions.is_a?(Hash)
+            raise ArgumentError, "with_tools expects a Hash of ToolClass => alias_or_nil"
+          end
+
+          derived = Class.new(self)
+          derived.agent_definition(id: id, version: version)
+          copy_authoring_settings_to(derived)
+          copy_authoring_filters_to(derived)
+          derived.tools(definitions)
+          derived.instance_variable_set(:@tool_aliases_replace_inherited, true)
+          derived
         end
 
         def provider(name = nil)
@@ -262,6 +287,34 @@ module Phronomy
         end
 
         private
+
+        def copy_authoring_settings_to(derived)
+          settings = {
+            model: model,
+            provider: provider,
+            instructions: instructions,
+            context_policy: context_policy,
+            temperature: temperature,
+            max_iterations: max_iterations,
+            cache_instructions: cache_instructions,
+            max_output_tokens: max_output_tokens,
+            before_llm_input: before_llm_input
+          }
+          settings.each do |name, value|
+            derived.public_send(name, value) unless value.nil?
+          end
+          # These getters inherit by ivar presence. An explicit nil preserves
+          # absence even if the source class is configured again later.
+          %i[provider instructions].each do |name|
+            derived.instance_variable_set(:"@#{name}", nil) if settings[name].nil?
+          end
+        end
+
+        def copy_authoring_filters_to(derived)
+          _class_input_filters.each { |filter| derived.input_filter(filter) }
+          _class_output_filters.each { |filter| derived.output_filter(filter) }
+          _class_tool_result_filters.each { |filter| derived.tool_result_filter(filter) }
+        end
 
         def __construct_owned_agent(owner_runtime, reserved_agent_id, *args, **kwargs, &block)
           instance = allocate

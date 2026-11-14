@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+require "digest"
+
 module Phronomy
   module MultiAgent
-    # Implements peer coordination through an invocation-local KnowledgeStore.
+    # Coordinates members through default findings or application-defined shared data.
     # @api public
     class SharedState
       # Semantic revision of the framework-owned SharedState instrumentation
@@ -70,6 +72,29 @@ module Phronomy
           block ? @aggregator = block : @aggregator
         end
 
+        # Declare application-owned sharing for each invocation. The provider's
+        # open(input:, config:) method must synchronously yield one Binding.
+        # Its block scope owns any connection or other application resource.
+        # Increment version when the shared Tool schemas or meanings change.
+        # @param provider [#open]
+        # @param id [String] stable application sharing definition identity
+        # @param version [Integer] positive sharing definition revision
+        # @api public
+        def sharing(provider, id:, version:)
+          raise ArgumentError, "sharing provider must respond to open" unless provider.respond_to?(:open)
+          unless id.is_a?(String) && !id.strip.empty?
+            raise ArgumentError, "sharing id must be a nonempty String"
+          end
+          unless version.is_a?(Integer) && version.positive?
+            raise ArgumentError, "sharing version must be a positive Integer"
+          end
+
+          @sharing = {provider: provider, id: id.dup.freeze, version: version}.freeze
+        end
+
+        # @api private
+        def _sharing = @sharing
+
         def _members = Array(@members)
         def _coordination = @coordination
         def _max_cycles = @max_cycles
@@ -81,6 +106,8 @@ module Phronomy
       # @api public
       def invoke(input, config: {})
         validate_termination!
+        return invoke_with_sharing(input, config, self.class._sharing) if self.class._sharing
+
         store = KnowledgeStore.new
         cycles, terminated_by = coordinate_members(input, store)
 
@@ -97,7 +124,11 @@ module Phronomy
         cycle_limit = max_cycles || Float::INFINITY
 
         (1..cycle_limit).each do |cycle|
-          invoke_members(input, store, cycle)
+          if block_given?
+            yield cycle
+          else
+            invoke_members(input, store, cycle)
+          end
           completed_cycles = cycle
 
           if self.class._terminate_when&.call(store)
@@ -135,6 +166,120 @@ module Phronomy
 
         raise ArgumentError,
           "max_cycles or timeout must be configured before invoking SharedState"
+      end
+
+      def invoke_with_sharing(input, config, sharing)
+        unless self.class._aggregator
+          raise ArgumentError, "aggregate must be configured when sharing is configured"
+        end
+
+        open_sharing(sharing, input, config) do |binding|
+          cycles, terminated_by = coordinate_members(input, binding.store) do |cycle|
+            invoke_shared_members(input, binding, cycle, sharing)
+          end
+          {output: aggregate_findings(binding.store), cycles: cycles, terminated_by: terminated_by}
+        end
+      end
+
+      def open_sharing(sharing, input, config)
+        opening_thread = Thread.current
+        active = true
+        entered = completed = false
+        result = callback_error = nil
+
+        sharing.fetch(:provider).open(input: input, config: config) do |binding|
+          unless active && Thread.current.equal?(opening_thread)
+            raise ArgumentError, "sharing provider must yield synchronously within open"
+          end
+          raise ArgumentError, "sharing provider must yield exactly once" if entered
+
+          entered = true
+          unless binding.is_a?(Binding)
+            raise ArgumentError, "sharing provider must yield a SharedState::Binding"
+          end
+
+          result = yield binding
+          completed = true
+        rescue => error
+          callback_error = error
+          raise
+        end
+
+        raise callback_error if callback_error
+        unless entered && completed
+          raise ArgumentError, "sharing provider must yield exactly once and complete the block"
+        end
+
+        result
+      ensure
+        active = false
+      end
+
+      def invoke_shared_members(input, binding, cycle, sharing)
+        self.class._members.each do |member_config|
+          member = member_config.fetch(:klass)
+          definitions = shared_tool_definitions(member, binding, cycle)
+          instrumented = build_shared_researcher(member, definitions, sharing)
+          prompt = shared_prompt(input, member_config[:instruction])
+          invoke_shared_researcher(instrumented, prompt)
+        end
+      end
+
+      def invoke_shared_researcher(instrumented, prompt)
+        agent = instrumented.new
+        suspended = false
+        result = agent.invoke(prompt)
+        if result.is_a?(Hash) && result[:suspended]
+          suspended = true
+          raise MemberLifecycleError.new(agent: agent, result: result, reason: :suspended)
+        end
+        result
+      ensure
+        release_shared_member(agent, result, $!) if agent && !suspended
+      end
+
+      def release_shared_member(agent, result, primary_error)
+        agent.unload!
+      rescue => release_error
+        error = MemberLifecycleError.new(agent: agent, result: result, reason: :release_failed,
+          primary_error: primary_error, release_error: release_error)
+        raise error, cause: primary_error || release_error
+      end
+
+      def shared_tool_definitions(member, binding, cycle)
+        definitions = member.tools.to_h { |tool| [tool, member.tool_aliases[tool]] }
+        added = binding.tool_definitions(member: member, cycle: cycle)
+        unless (definitions.keys & added.keys).empty?
+          raise ArgumentError, "sharing Tool classes must not replace member Tools"
+        end
+
+        definitions = definitions.merge(added)
+        names = definitions.map { |tool, alias_name| (alias_name || tool.tool_name).to_s }
+        if names.any?(&:empty?) || names.uniq.length != names.length
+          raise ArgumentError, "sharing and member Tools must have distinct nonempty names or aliases"
+        end
+        definitions
+      end
+
+      def build_shared_researcher(member, definitions, sharing)
+        definition = shared_definition_for(member, sharing)
+        member.with_tools(definitions, id: definition.fetch(:id), version: definition.fetch(:version))
+      end
+
+      def shared_definition_for(member, sharing)
+        parent = member.agent_definition
+        identity = [parent.fetch(:id), parent.fetch(:version), sharing.fetch(:id), sharing.fetch(:version)]
+        digest = Digest::SHA256.hexdigest(Phronomy::CanonicalJSON.dump(identity))
+        {id: "Phronomy::MultiAgent::SharedState::Application/#{digest}", version: 1}
+      end
+
+      def shared_prompt(input, instruction)
+        guide = self.class._coordination ||
+          "Use the provided Tools to collaborate through the application's shared data."
+        parts = [guide]
+        parts << "\nYour specific focus for this session: #{instruction}" if instruction
+        parts << "\n\nTask: #{input}"
+        parts.join
       end
 
       def invoke_researcher(

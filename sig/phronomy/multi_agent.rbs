@@ -1,6 +1,29 @@
 module Phronomy
   module MultiAgent
     class SharedState
+      interface _SharingTools
+        def call: (member: singleton(::Phronomy::Agent::Base), cycle: Integer) -> Hash[singleton(::Phronomy::Tool::Base), untyped]
+      end
+
+      interface _SharingProvider
+        def open: (input: untyped, config: Hash[Symbol, untyped]) { (Binding) -> untyped } -> untyped
+      end
+
+      class Binding
+        def self.new: (store: untyped, tools: _SharingTools) -> instance
+        attr_reader store: untyped
+        def tool_definitions: (member: singleton(::Phronomy::Agent::Base), cycle: Integer) -> Hash[singleton(::Phronomy::Tool::Base), String?]
+      end
+
+      class MemberLifecycleError < ::Phronomy::Error
+        attr_reader agent: ::Phronomy::Agent::Base
+        attr_reader result: untyped
+        attr_reader reason: Symbol
+        attr_reader primary_error: Exception?
+        attr_reader release_error: Exception?
+        def self.new: (agent: ::Phronomy::Agent::Base, result: untyped, reason: Symbol, ?primary_error: Exception?, ?release_error: Exception?) -> instance
+      end
+
       class KnowledgeStore
         def self.new: () -> instance
         def read_all: () -> Array[Hash[Symbol, untyped]]
@@ -13,8 +36,9 @@ module Phronomy
       def self.coordination: (?untyped text) -> untyped
       def self.max_cycles: (?untyped value) -> Integer?
       def self.timeout: (?untyped value) -> Float?
-      def self.terminate_when: () ?{ (KnowledgeStore) -> untyped } -> untyped
-      def self.aggregate: () ?{ (KnowledgeStore) -> untyped } -> untyped
+      def self.terminate_when: () ?{ (untyped) -> untyped } -> untyped
+      def self.aggregate: () ?{ (untyped) -> untyped } -> untyped
+      def self.sharing: (_SharingProvider provider, id: String, version: Integer) -> Hash[Symbol, untyped]
       def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
     end
 

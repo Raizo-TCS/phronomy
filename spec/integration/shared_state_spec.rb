@@ -369,3 +369,202 @@ RSpec.describe "Group 31: SharedState", :integration do
     end
   end
 end
+
+RSpec.describe "SharedState application-owned records", :integration do
+  after { LLMStub.deactivate }
+
+  def record_tools(store)
+    writer = Class.new(Phronomy::Tool::Base) do
+      tool_name "record_issue"
+      description "Publish a structured issue with an application category and severity"
+      execution_mode :cooperative
+      on_schema_error :raise
+      param :category, type: :string, desc: "Issue category"
+      param :severity, type: :integer, desc: "Severity from one to five"
+      param :path, type: :string, desc: "Source file path"
+
+      define_method(:execute) do |category:, severity:, path:|
+        raise ArgumentError, "severity must be between one and five" unless (1..5).cover?(severity)
+
+        store.fetch(:records) << {category: category, severity: severity, path: path}
+        "recorded"
+      end
+    end
+    reader = Class.new(Phronomy::Tool::Base) do
+      tool_name "query_issues"
+      description "Select issues using application-defined typed conditions"
+      execution_mode :cooperative
+      on_schema_error :raise
+      param :minimum_severity, type: :integer, desc: "Minimum severity"
+      param :category, type: :string, desc: "Category to include", required: false
+
+      define_method(:execute) do |minimum_severity:, category: nil|
+        store.fetch(:records).select do |record|
+          record.fetch(:severity) >= minimum_severity && (!category || record.fetch(:category) == category)
+        end.to_json
+      end
+    end
+    {writer => "publish_issue", reader => "find_issues"}
+  end
+
+  def recording_provider(approval_required: false)
+    owner = self
+    @opened_stores = []
+    @closed_stores = []
+    @builder_calls = []
+    stores = @opened_stores
+    closed = @closed_stores
+    builders = @builder_calls
+    Object.new.tap do |provider|
+      provider.define_singleton_method(:open) do |input:, config:, &block|
+        store = {records: []}
+        stores << store
+        begin
+          block.call(Phronomy::MultiAgent::SharedState::Binding.new(store: store,
+            tools: ->(member:, cycle:) {
+              builders << [member, cycle]
+              owner.record_tools(store).tap do |definitions|
+                definitions.keys.first.requires_approval(true) if approval_required
+              end
+            }))
+        ensure
+          closed << store
+        end
+      end
+    end
+  end
+
+  def record_team(provider, *members)
+    Class.new(Phronomy::MultiAgent::SharedState).tap do |team|
+      team.sharing(provider, id: "integration-structured-records", version: 1)
+      members.each { |member| team.member(member) }
+      team.coordination("Publish issues and use find_issues to select relevant records.")
+      team.max_cycles(1)
+      team.aggregate { |store| store.fetch(:records).dup }
+    end
+  end
+
+  it "shares structured records through typed tools without copying all records into member input" do
+    first = IntegrationFactors.ss_researcher_class
+    second = IntegrationFactors.ss_researcher_class
+    provider = recording_provider
+    llm = LLMStub.activate(responses: [
+      LLMStub.tool_call_response("publish_issue", {category: "security", severity: 4, path: "login.rb"}),
+      LLMStub.tool_call_response("publish_issue", {category: "performance", severity: 1, path: "cache.rb"}),
+      "Published two issues.",
+      LLMStub.tool_call_response("find_issues", {minimum_severity: 3, category: "security"}),
+      "Reviewed the selected issue."
+    ])
+
+    result = record_team(provider, first, second).new.invoke("Review the repository")
+
+    expect(result[:output]).to eq([
+      {category: "security", severity: 4, path: "login.rb"},
+      {category: "performance", severity: 1, path: "cache.rb"}
+    ])
+    expect(@builder_calls).to eq([[first, 1], [second, 1]])
+    expect(@closed_stores).to eq(@opened_stores)
+    expect(llm.calls.size).to eq(5)
+    query_result = llm.messages_for(4).reverse.find { |message| message["role"] == "tool" }
+    expect(JSON.parse(query_result.fetch("content"))).to eq([
+      {"category" => "security", "severity" => 4, "path" => "login.rb"}
+    ])
+    second_input = llm.messages_for(3).find { |message| message["role"] == "user" }.fetch("content")
+    expect(second_input).not_to include("login.rb", "cache.rb", "Findings so far")
+    functions = llm.calls.fetch(3).fetch("tools").map { |tool| tool.fetch("function") }
+    expect(functions.map { |function| function.fetch("name") }).to contain_exactly("publish_issue", "find_issues")
+    query_schema = functions.find { |function| function["name"] == "find_issues" }.fetch("parameters")
+    expect(query_schema.fetch("properties").fetch("minimum_severity").fetch("type")).to eq("integer")
+  end
+
+  it "rejects invalid typed input before changing the store and closes the provider" do
+    provider = recording_provider
+    LLMStub.activate(responses: [
+      LLMStub.tool_call_response("publish_issue", {category: "security", severity: "urgent", path: "login.rb"})
+    ])
+
+    expect { record_team(provider, IntegrationFactors.ss_researcher_class).new.invoke("Review") }
+      .to raise_error(Phronomy::ToolError)
+    expect(@opened_stores.fetch(0).fetch(:records)).to eq([])
+    expect(@closed_stores).to eq(@opened_stores)
+  end
+
+  it "preserves a member input filter that blocks the request before any LLM call" do
+    member = IntegrationFactors.ss_researcher_class
+    member.input_filter(IntegrationFactors::BlockingInputFilter.new)
+    provider = recording_provider
+    llm = LLMStub.activate(responses: ["This response must not be requested."])
+
+    expect { record_team(provider, member).new.invoke("Review") }
+      .to raise_error(Phronomy::FilterBlockError, /input rejected/)
+    expect(llm.calls).to be_empty
+    expect(@opened_stores.fetch(0).fetch(:records)).to eq([])
+    expect(@closed_stores).to eq(@opened_stores)
+  end
+
+  it "keeps real approval waiting inside the provider scope and aggregates only after the reply" do
+    requests = Queue.new
+    agents = Queue.new
+    aggregated = false
+    member = IntegrationFactors.ss_researcher_class
+    member.define_method(:initialize) do |**options|
+      super(**options, on_event: ->(event) { requests << event.payload.fetch(:request) if event.type == :approval_required })
+      agents << self
+    end
+    provider = recording_provider(approval_required: true)
+    team = record_team(provider, member)
+    team.aggregate do |store|
+      aggregated = true
+      store.fetch(:records).dup
+    end
+    llm = LLMStub.activate(responses: [
+      LLMStub.tool_call_response("publish_issue", {category: "security", severity: 4, path: "login.rb"}),
+      "Issue published after approval."
+    ])
+    coordinator = Thread.new do
+      team.new.invoke("Review")
+    rescue => error
+      error
+    end
+    request = Timeout.timeout(5) { requests.pop }
+    agent = agents.pop
+
+    expect(agent.persistence.executions.load(request.execution_id).status).to eq(:suspended)
+    expect(coordinator).to be_alive
+    expect(@closed_stores).to eq([])
+    expect(@opened_stores.fetch(0).fetch(:records)).to eq([])
+    expect(aggregated).to be(false)
+    agent.approve_async(request.execution_id, approval_request_id: request.id, approved: true).wait_result(timeout: 5)
+    result = Timeout.timeout(5) { coordinator.value }
+
+    expect(result).to include(output: [{category: "security", severity: 4, path: "login.rb"}])
+    expect(aggregated).to be(true)
+    expect(@closed_stores).to eq(@opened_stores)
+    expect(llm.calls.size).to eq(2)
+    expect { agent.invoke("Reuse the released member") }.to raise_error(Phronomy::AgentUnloadedError)
+  ensure
+    if coordinator&.alive?
+      agent&.cancel_async(request.execution_id)&.wait_result(timeout: 5) if request
+      coordinator.join(5)
+      coordinator.kill if coordinator.alive?
+    end
+  end
+
+  it "enforces typed conditions through the public Tool call contract" do
+    store = {records: [{category: "security", severity: 4, path: "login.rb"}]}
+    reader = record_tools(store).keys.last.new
+
+    expect { reader.call({"minimum_severity" => "urgent"}) }
+      .to raise_error(Phronomy::ToolError, /schema error/i)
+    expect(store.fetch(:records)).to eq([{category: "security", severity: 4, path: "login.rb"}])
+  end
+
+  it "lets application validation reject a well-typed record before mutation" do
+    store = {records: []}
+    writer = record_tools(store).keys.first.new
+
+    expect { writer.call({"category" => "security", "severity" => 99, "path" => "login.rb"}) }
+      .to raise_error(Phronomy::ToolError, /severity/)
+    expect(store.fetch(:records)).to eq([])
+  end
+end

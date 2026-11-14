@@ -182,6 +182,13 @@
       "mixed_reason": "Handoff, team execution, and durable coordination remain combined."
     },
     {
+      "id": "M92",
+      "directory": "lib/phronomy/multi_agent/shared_state",
+      "role": "Application sharing binding / member lifecycle evidence",
+      "mixed": false,
+      "group": "G01"
+    },
+    {
       "id": "M37",
       "directory": "lib/phronomy/multi_agent/persistence",
       "role": "Team record codec / schema / guards",
@@ -439,7 +446,8 @@
       "id": "G01",
       "title": "AGENT COORDINATION",
       "members": [
-        "M17"
+        "M17",
+        "M92"
       ],
       "kind": "domain"
     },
@@ -801,6 +809,7 @@
   "matrix_order": [
     "M91",
     "M17",
+    "M92",
     "M89",
     "M26",
     "M32",

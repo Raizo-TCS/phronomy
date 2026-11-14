@@ -83,6 +83,7 @@ module Phronomy
       def self.instructions: (?untyped text) { (untyped) -> untyped } -> untyped
                            | (?untyped text) -> untyped
       def self.tools: (?Hash[Class, String?] definitions) -> untyped
+      def self.with_tools: (Hash[Class, String?] definitions, id: String, version: Integer) -> singleton(Base)
       def self.tool_aliases: () -> Hash[Class, String]
       def self.provider: (?Symbol name) -> Symbol?
       def self.temperature: (?Float value) -> Float?

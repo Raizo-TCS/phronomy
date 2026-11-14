@@ -295,7 +295,8 @@
       "temperature",
       "tool_aliases",
       "tool_result_filter",
-      "tools"
+      "tools",
+      "with_tools"
     ]
   },
   {
@@ -1054,7 +1055,8 @@
       "temperature",
       "tool_aliases",
       "tool_result_filter",
-      "tools"
+      "tools",
+      "with_tools"
     ]
   },
   {
