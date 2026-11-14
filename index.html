@@ -110,6 +110,11 @@ persistent applications or custom Agent Tool subclasses.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>Context::ContextPolicyInput#input_token_limit / #with_input_token_limit</code> and protected <code>ContextPolicy#estimate_tokens</code></td>
+<td>Experimental (Unreleased)</td>
+<td>Inspect and constrain selection budgets and estimate candidate content through Context-owned operations. <a href="docs/context-policy-budgeting.md">Policy budgeting</a></td>
+</tr>
+<tr>
 <td><code>Agent::Base.with_tools(definitions, id:, version:)</code></td>
 <td>Experimental (Unreleased)</td>
 <td>Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. <a href="docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set">Tool composition</a></td>
@@ -355,7 +360,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 14 05:35:36 2026 by
+  Generated on Sat Nov 14 11:13:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
