@@ -62,6 +62,15 @@ Release history for 0.14.0 and earlier is archived in
 - Apply the default approval display's sensitive-value check to values inside
   a Tool's redacted hash or array arguments, including copies used as fact keys.
 
+### Security
+
+- Use patched ActiveRecord 8.0 development dependencies, including ActiveSupport
+  8.0.5.2 or later in the 8.0 series. Remove unused ActiveJob and SQLite3
+  development dependencies; the examples retain the dependencies they use.
+  The published gem's runtime dependencies are unchanged.
+- Provide Bundler Audit in the development bundle and check the complete
+  dependency set in pull-request CI and immediately before release publication.
+
 ### Compatibility and verification
 
 - The new SharedState sharing, Agent Tool composition and Context budgeting APIs
