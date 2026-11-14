@@ -67,6 +67,33 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li>Add <code>Agent::Base.with_tools(definitions, id:, version:)</code> to derive an Agent
+class with a complete replacement Tool map and explicit definition identity.
+The factory preserves Phronomy authoring settings and independently copies
+filter lists; configured callable instances remain shared. Custom SharedState
+uses this public operation after merging member and application Tools. General
+Agent subclass inheritance remains unchanged.</li>
+<li>Add <code>MultiAgent::SharedState.sharing(provider, id:, version:)</code> and the public
+<code>SharedState::Binding</code> value. A synchronous provider opens one application-owned
+store for an invocation and supplies Tool definitions for each member/cycle.
+Applications define their own records, search arguments and cleanup without
+overriding SharedState private methods. Custom sharing requires an explicit
+aggregation block and does not inject the default findings Tools or append
+stored records to member prompts.</li>
+<li>Include the sharing provider's stable ID and semantic version in custom
+generated Agent definition identity. Default SharedState retains its existing
+built-in Tools, prompts and instrumentation revision 1. The extension adds no
+database adapter, ContextPolicy implementation or durable sharing lifecycle.</li>
+<li>Release terminal custom-sharing members through the public Agent lifecycle
+operation. Normal Agent approval waits keep the invocation and provider open.
+<code>SharedState::MemberLifecycleError</code> reports failed release or a custom
+<code>invoke</code> override returning a suspended result prematurely, with the Agent and
+available result/error details. It does not automatically answer approvals or
+release a pending execution; application providers retain responsibility for
+resource cleanup and recovery policy.</li>
+</ul>
 <h3 id="Changed">Changed</h3>
 <ul>
 <li>Reuse the immutable argument schema prepared by an explicit <code>parameters</code>
@@ -1106,7 +1133,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Tue Nov  3 14:23:48 2026 by
+  Generated on Sat Nov 14 05:35:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

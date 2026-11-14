@@ -96,7 +96,9 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/multi_agent/shared_state.rb
+    <dd>lib/phronomy/multi_agent/shared_state.rb<span class="defines">,<br>
+  lib/phronomy/multi_agent/shared_state/binding.rb,<br> lib/phronomy/multi_agent/shared_state/member_lifecycle_error.rb</span>
+
 </dd>
   </dl>
   
@@ -104,7 +106,7 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Implements peer coordination through an invocation-local KnowledgeStore.</p>
+    <p>Coordinates members through default findings or application-defined shared data.</p>
 
   </div>
 </div>
@@ -117,7 +119,7 @@
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::MultiAgent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="SharedState/Binding.html" title="Phronomy::MultiAgent::SharedState::Binding (class)">Binding</a></span>, <span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::MultiAgent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span>, <span class='object_link'><a href="SharedState/MemberLifecycleError.html" title="Phronomy::MultiAgent::SharedState::MemberLifecycleError (class)">MemberLifecycleError</a></span>
     
   
 </p>
@@ -217,6 +219,28 @@
   
   
   
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#_sharing-class_method" title="_sharing (class method)">.<strong>_sharing</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -359,6 +383,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#sharing-class_method" title="sharing (class method)">.<strong>sharing</strong>(provider, id:, version:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Declare application-owned sharing for each invocation.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#terminate_when-class_method" title="terminate_when (class method)">.<strong>terminate_when</strong>(&amp;block)  &#x21d2; Object </a>
     
 
@@ -466,10 +512,10 @@
       <pre class="lines">
 
 
-78</pre>
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__aggregator'>_aggregator</span> <span class='op'>=</span> <span class='ivar'>@aggregator</span></pre>
     </td>
@@ -501,10 +547,10 @@
       <pre class="lines">
 
 
-74</pre>
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__coordination'>_coordination</span> <span class='op'>=</span> <span class='ivar'>@coordination</span></pre>
     </td>
@@ -536,10 +582,10 @@
       <pre class="lines">
 
 
-75</pre>
+100</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 100</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__max_cycles'>_max_cycles</span> <span class='op'>=</span> <span class='ivar'>@max_cycles</span></pre>
     </td>
@@ -571,12 +617,51 @@
       <pre class="lines">
 
 
-73</pre>
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 98</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__members'>_members</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='ivar'>@members</span><span class='rparen'>)</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="_sharing-class_method">
+  
+    .<strong>_sharing</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+96</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 96</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid__sharing'>_sharing</span> <span class='op'>=</span> <span class='ivar'>@sharing</span></pre>
     </td>
   </tr>
 </table>
@@ -606,10 +691,10 @@
       <pre class="lines">
 
 
-77</pre>
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__terminate_when'>_terminate_when</span> <span class='op'>=</span> <span class='ivar'>@terminate_when</span></pre>
     </td>
@@ -641,10 +726,10 @@
       <pre class="lines">
 
 
-76</pre>
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__timeout'>_timeout</span> <span class='op'>=</span> <span class='ivar'>@timeout</span></pre>
     </td>
@@ -676,12 +761,12 @@
       <pre class="lines">
 
 
-69
-70
-71</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_block'>block</span> <span class='op'>?</span> <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='op'>:</span> <span class='ivar'>@aggregator</span>
@@ -715,12 +800,12 @@
       <pre class="lines">
 
 
-49
-50
-51</pre>
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_coordination'>coordination</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_text'>text</span> <span class='op'>?</span> <span class='ivar'>@coordination</span> <span class='op'>=</span> <span class='id identifier rubyid_text'>text</span> <span class='op'>:</span> <span class='ivar'>@coordination</span>
@@ -754,12 +839,12 @@
       <pre class="lines">
 
 
-54
-55
-56</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_cycles'>max_cycles</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@max_cycles</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='ivar'>@max_cycles</span>
@@ -793,17 +878,131 @@
       <pre class="lines">
 
 
-43
-44
 45
-46</pre>
+46
+47
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_member'>member</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='comma'>,</span> <span class='label'>instruction:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@members</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='ivar'>@members</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>klass:</span> <span class='id identifier rubyid_klass'>klass</span><span class='comma'>,</span> <span class='label'>instruction:</span> <span class='id identifier rubyid_instruction'>instruction</span><span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="sharing-class_method">
+  
+    .<strong>sharing</strong>(provider, id:, version:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Declare application-owned sharing for each invocation. The provider's
+open(input:, config:) method must synchronously yield one Binding.
+Its block scope owns any connection or other application resource.
+Increment version when the shared Tool schemas or meanings change.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>provider</span>
+      
+      
+        <span class='type'>(<tt>#open</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>stable application sharing definition identity</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>version</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>positive sharing definition revision</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 83</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_sharing'>sharing</span><span class='lparen'>(</span><span class='id identifier rubyid_provider'>provider</span><span class='comma'>,</span> <span class='label'>id:</span><span class='comma'>,</span> <span class='label'>version:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>sharing provider must respond to open</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_provider'>provider</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:open</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>String</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_strip'>strip</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>sharing id must be a nonempty String</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_version'>version</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Integer</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_version'>version</span><span class='period'>.</span><span class='id identifier rubyid_positive?'>positive?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>sharing version must be a positive Integer</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@sharing</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>provider:</span> <span class='id identifier rubyid_provider'>provider</span><span class='comma'>,</span> <span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span><span class='comma'>,</span> <span class='label'>version:</span> <span class='id identifier rubyid_version'>version</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -834,12 +1033,12 @@
       <pre class="lines">
 
 
-64
-65
-66</pre>
+66
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_terminate_when'>terminate_when</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_block'>block</span> <span class='op'>?</span> <span class='ivar'>@terminate_when</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='op'>:</span> <span class='ivar'>@terminate_when</span>
@@ -873,12 +1072,12 @@
       <pre class="lines">
 
 
-59
-60
-61</pre>
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span> <span class='op'>:</span> <span class='ivar'>@timeout</span>
@@ -918,19 +1117,23 @@
       <pre class="lines">
 
 
-82
-83
-84
-85
-86
-87
-88</pre>
+107
+108
+109
+110
+111
+112
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/shared_state.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_termination!'>validate_termination!</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_invoke_with_sharing'>invoke_with_sharing</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__sharing'>_sharing</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__sharing'>_sharing</span>
+
   <span class='id identifier rubyid_store'>store</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::MultiAgent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="SharedState/KnowledgeStore.html#initialize-instance_method" title="Phronomy::MultiAgent::SharedState::KnowledgeStore#initialize (method)">new</a></span></span>
   <span class='id identifier rubyid_cycles'>cycles</span><span class='comma'>,</span> <span class='id identifier rubyid_terminated_by'>terminated_by</span> <span class='op'>=</span> <span class='id identifier rubyid_coordinate_members'>coordinate_members</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_store'>store</span><span class='rparen'>)</span>
 
@@ -946,7 +1149,7 @@
 </div>
 
       <div id="footer">
-  Generated on Tue Nov  3 14:23:50 2026 by
+  Generated on Sat Nov 14 05:35:41 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

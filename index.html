@@ -110,6 +110,16 @@ persistent applications or custom Agent Tool subclasses.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>Agent::Base.with_tools(definitions, id:, version:)</code></td>
+<td>Experimental (Unreleased)</td>
+<td>Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. <a href="docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set">Tool composition</a></td>
+</tr>
+<tr>
+<td><code>MultiAgent::SharedState.sharing(provider, id:, version:)</code>, <code>SharedState::Binding</code> and <code>SharedState::MemberLifecycleError</code></td>
+<td>Experimental (Unreleased)</td>
+<td>Connect application-owned shared data and Tools to sequential coordination through a synchronous invocation-scoped provider. <a href="docs/shared-state-sharing.md">Custom sharing contract and example</a></td>
+</tr>
+<tr>
 <td><code>Tool::Base#approval_display(arguments:, facts:)</code></td>
 <td>Beta (Unreleased)</td>
 <td>The Tool selects the arguments and derived facts a person can see in an approval request. <a href="docs/runtime-and-concurrency.md#tool-approval-display">Approval display</a></td>
@@ -345,7 +355,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue Nov  3 14:23:48 2026 by
+  Generated on Sat Nov 14 05:35:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
