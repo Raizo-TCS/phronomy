@@ -56,6 +56,32 @@ module Phronomy
         freeze
       end
 
+      # Reports the input limit supplied to this Policy without exposing the
+      # framework's budget representation. Unknown capability remains nil.
+      # @return [Integer, nil]
+      # @api public
+      def input_token_limit
+        token_budget&.effective_input_limit
+      end
+
+      # Returns a selection input with an application limit. A known limit may
+      # only be retained or reduced. An unknown limit accepts an explicit cap
+      # without asserting that the model can accept that many tokens.
+      # @param limit [Integer] positive selection limit
+      # @return [ContextPolicyInput]
+      # @raise [ArgumentError] for an invalid limit or a known-limit increase
+      # @api public
+      def with_input_token_limit(limit)
+        unless limit.is_a?(Integer) && limit.positive?
+          raise ArgumentError, "input token limit must be a positive Integer"
+        end
+        if input_token_limit && limit > input_token_limit
+          raise ArgumentError, "input token limit must not exceed the current limit"
+        end
+
+        with(token_budget: Phronomy::LlmContextWindow::TokenBudget.new(max_input_tokens: limit))
+      end
+
       private
 
       def validate_items!(items, expected_class, label)

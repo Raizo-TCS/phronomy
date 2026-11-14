@@ -11,6 +11,16 @@ module Phronomy
 
       protected
 
+      # Uses the same canonical representation and estimator as generated Policy
+      # items. Estimates are planning values, not a model tokenizer guarantee.
+      # @param content [Object] text or JSON-serializable content
+      # @return [Integer] estimated token count
+      # @api public
+      def estimate_tokens(content)
+        bytes = content.is_a?(String) ? content : Phronomy::CanonicalJSON.dump(content)
+        Phronomy::LlmContextWindow::TokenEstimator.estimate(bytes)
+      end
+
       def instruction_item(
         content:,
         role: :system,
@@ -113,8 +123,7 @@ module Phronomy
       end
 
       def estimate_content(content)
-        bytes = content.is_a?(String) ? content : Phronomy::CanonicalJSON.dump(content)
-        Phronomy::LlmContextWindow::TokenEstimator.estimate(bytes)
+        estimate_tokens(content)
       end
     end
   end

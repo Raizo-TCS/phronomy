@@ -110,6 +110,8 @@ module Phronomy
       attr_reader previous_manifest: LLMInputManifest?
       attr_reader metadata: Hash[untyped, untyped]
       def initialize: (agent_id: String, ?execution_id: String?, call_sequence: Integer, call_mode: Symbol, ?instruction: Array[InstructionItem], ?knowledge: Array[KnowledgeItem], ?tools: Array[ToolItem], ?conversation: Array[Array[ConversationItem]], token_budget: untyped, ?model_config: Hash[untyped, untyped], previous_manifest: LLMInputManifest?, ?metadata: Hash[untyped, untyped]) -> void
+      def input_token_limit: () -> Integer?
+      def with_input_token_limit: (Integer limit) -> ContextPolicyInput
     end
 
     class ContextPlan
@@ -124,6 +126,7 @@ module Phronomy
     class ContextPolicy
       def call: (ContextPolicyInput input) -> ContextPlan
 
+      def estimate_tokens: (untyped content) -> Integer
       def instruction_item: (content: untyped, ?role: Symbol, ?kind: Symbol, ?content_format: Symbol?, ?required: bool, ?metadata: Hash[untyped, untyped]) -> ContextPolicyInput::InstructionItem
       def knowledge_item: (content: untyped, ?role: Symbol, ?kind: Symbol, ?content_format: Symbol?, ?required: bool, ?metadata: Hash[untyped, untyped]) -> ContextPolicyInput::KnowledgeItem
       def conversation_item: (content: untyped, role: Symbol, ?kind: Symbol, ?content_format: Symbol?, ?sequence: Integer?, ?required: bool, ?tool_call_id: String?, ?tool_call_ids: Array[String], ?delivery: Symbol, ?metadata: Hash[untyped, untyped]) -> ContextPolicyInput::ConversationItem
