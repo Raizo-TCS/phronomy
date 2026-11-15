@@ -48,6 +48,7 @@ module Phronomy
 
       # Validate the exact requested call and project its authorized batch in
       # Provider order from one execution snapshot in the caller's transaction.
+      # Only the validated dispatch snapshot is authorization evidence.
       # The receiving domain owns application and replay of these operations.
       def authorized_operations(scope, agent_id:, execution_id:, invocation_id:, name:, arguments:, names:)
         participate(scope) do |records|
@@ -58,7 +59,7 @@ module Phronomy
           batch = Array(execution.metadata[ExecutionMetadata::TOOL_BATCH_METADATA_KEY])
           requested = batch.find { |entry| entry.fetch("tool_invocation_id") == invocation_id }
           unless names.include?(name) && requested && requested.fetch("status") == "authorized" &&
-              requested.fetch("tool_name") == name && authorized_argument_values(requested) == arguments
+              requested.fetch("tool_name") == name && requested.fetch("validated_arguments") == arguments
             raise Phronomy::Persistence::StateConflictError, "Operation #{invocation_id} is not the authorized call"
           end
           batch.filter_map do |entry|
@@ -66,7 +67,7 @@ module Phronomy
             AuthorizedOperation.new(
               invocation_id: Phronomy::Values::Immutable.copy(entry.fetch("tool_invocation_id")),
               name: Phronomy::Values::Immutable.copy(entry.fetch("tool_name")),
-              arguments: Phronomy::Values::Immutable.copy(authorized_argument_values(entry))
+              arguments: Phronomy::Values::Immutable.copy(entry.fetch("validated_arguments"))
             )
           end.freeze
         end
@@ -284,12 +285,6 @@ module Phronomy
         return nil unless execution.result_ref
         (execution.metadata["result_format"] == "json") ?
           Phronomy::Values::Immutable.json(contents.fetch_json(execution.result_ref)) : contents.fetch_text(execution.result_ref)
-      end
-
-      def authorized_argument_values(entry)
-        # Unit 6 persists the exact validated snapshot. Older records encoded
-        # legacy raw params, whose explicit optional nil meant omission.
-        entry.key?("validated_arguments") ? entry.fetch("validated_arguments") : entry.fetch("arguments").compact
       end
 
       def with_scope(scope, &block)

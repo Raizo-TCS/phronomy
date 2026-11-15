@@ -83,9 +83,6 @@ module Phronomy
         return :current_request if segment.delivery.to_sym == :ask_argument
         return nil if CONTROL_CATEGORIES.include?(segment.category.to_sym)
         return :knowledge if segment.category.to_sym == :knowledge
-        unit_kind = segment.metadata["selection_unit_kind"] ||
-          segment.metadata[:selection_unit_kind]
-        return :tool_exchanges if unit_kind.to_s == "tool_exchange"
 
         case segment.category.to_sym
         when :external_message, :assistant_message, :tool_message,
@@ -101,12 +98,6 @@ module Phronomy
         if conversation_group_id
           return "context-policy-conversation:#{conversation_group_id}"
         end
-
-        # Compatibility for finalized pre-ACS-04 manifests. New manifests use
-        # context_policy_conversation_group_id and do not recreate Phronomy::Context::Unit.
-        unit_id = segment.metadata["selection_unit_id"] ||
-          segment.metadata[:selection_unit_id]
-        return "unit:#{unit_id}" if unit_id
 
         "segment:#{policy_category}:#{segment.position}"
       end

@@ -238,6 +238,10 @@ Color does not express a layer, dependency permission or a unique namespace.
 G57 Content Service uses teal and M10 moves to B3's persistence column. M73 is
 retired after merging its implementation into M10; it is removed from current
 nodes and the matrix. Historical phase/baseline evidence remains unchanged.
+The initial record-format migration module M20 and its sole group G52 are
+retired after removing the explicit legacy conversion API. Current durable codecs
+and the separate Unit4Migration retain their existing responsibilities. Historical
+phase/baseline evidence remains unchanged, and neither retired ID is reused.
 ContentStore is not a backend family. Its measured Storage dependency is kept;
 the gate permits only neutral Storage and Common dependencies from the service,
 and rejects reverse backend/Engine dependencies on it, including RBS-only paths.

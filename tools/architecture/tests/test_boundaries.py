@@ -202,8 +202,21 @@ class BoundaryTests(unittest.TestCase):
 
 
 class DiagramTests(unittest.TestCase):
-    def test_source_and_candidate_views_preserve_every_edge_matrix_cell_and_module(self):
+    def baseline_without_retired_migration(self):
+        # Keep the archived evidence immutable. Adapt only the explicitly retired
+        # M20 node; all other missing annotations must still fail rendering.
         audit = json.loads((HERE / 'evidence/baseline/module_audit_scoped.json').read_text())
+        retired = 'lib/phronomy/persistence/migration'
+        self.assertEqual(1, sum(m['directory'] == retired for m in audit['modules']))
+        self.assertNotIn(retired, {p['to'] for p in audit['module_pairs']})
+        audit['modules'] = [m for m in audit['modules'] if m['directory'] != retired]
+        audit['module_pairs'] = [p for p in audit['module_pairs']
+                                 if retired not in (p['from'], p['to'])]
+        audit['scc_all'] = [component for component in audit['scc_all'] if component != [retired]]
+        return audit
+
+    def test_source_and_candidate_views_preserve_every_edge_matrix_cell_and_module(self):
+        audit = self.baseline_without_retired_migration()
         architecture = refresh.read_architecture('baseline')
         count = len(audit['modules'])
         edge_count = len(audit['module_pairs'])
@@ -231,7 +244,7 @@ class DiagramTests(unittest.TestCase):
                     self.assertEqual(not candidate, metadata['source_links_enabled'])
 
     def test_annotation_must_assign_each_module_exactly_once(self):
-        audit = json.loads((HERE / 'evidence/baseline/module_audit_scoped.json').read_text())
+        audit = self.baseline_without_retired_migration()
         for invalid in ['missing', 'duplicate', 'old-rank']:
             config = refresh.read_architecture('baseline')
             if invalid == 'missing':

@@ -49,9 +49,13 @@ The unreleased cleanup removes obsolete entry points. Use
 `Runtime#shutdown`'s `cleanup_complete?` result predicate for resource release;
 `clean?` additionally requires a graceful shutdown. See the
 [cleanup migration](docs/migrations/cleanup-audit.md) before using this checkout.
+The [legacy-format cleanup](docs/migrations/legacy-format-removal.md) separately
+retires old data-conversion entry points and read fallbacks without changing
+the current saved representation.
 
 | API | Stability | Contract |
 |---|---|---|
+| `Persistence::Migration::InitialFormatMigration` | Removed (unreleased) | The pre-S3 conversion API is retired without a replacement. Current domain codecs and the separate Unit4 snapshot migration remain. [Legacy-format cleanup](docs/migrations/legacy-format-removal.md) |
 | `Context::ContextPolicyInput#input_token_limit / #with_input_token_limit` and protected `ContextPolicy#estimate_tokens` | Experimental (since v0.33.0) | Inspect and constrain selection budgets and estimate candidate content through Context-owned operations. [Policy budgeting](docs/context-policy-budgeting.md) |
 | `Agent::Base.with_tools(definitions, id:, version:)` | Experimental (since v0.33.0) | Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. [Tool composition](docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) |
 | `MultiAgent::SharedState.sharing(provider, id:, version:)`, `SharedState::Binding` and `SharedState::MemberLifecycleError` | Experimental (since v0.33.0) | Connect application-owned shared data and Tools to sequential coordination through a synchronous invocation-scoped provider. [Custom sharing contract and example](docs/shared-state-sharing.md) |

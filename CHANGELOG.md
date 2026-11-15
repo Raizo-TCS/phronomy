@@ -32,6 +32,15 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Removed
 
+- Remove Handoff's old selection-unit metadata fallback and Agent Store's raw
+  argument fallback. Current conversation groups and exact validated arguments
+  remain the authoritative saved facts; current record writers are unchanged.
+- Retire `Persistence::Migration::InitialFormatMigration` and the old
+  GeneratorVerifier Result JSON conversion command, including their dedicated
+  migration tests and active usage instructions. No replacement converter or
+  compatibility entry point is supplied. Current codecs, Result validation and
+  the separate Unit4 snapshot migration remain. See the
+  [legacy-format cleanup](docs/migrations/legacy-format-removal.md).
 - Remove `Runtime::ShutdownResult#success?`; use the equivalent
   `cleanup_complete?`. Keep `clean?`, which additionally requires a graceful
   shutdown.

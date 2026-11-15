@@ -2,8 +2,10 @@
 
 This cleanup removes redundant internal operations and old public entry points
 whose behavior is already provided by a current operation. Applications must
-use the current names; the removed names have no compatibility aliases. It does
-not change persisted records or require a data migration.
+use the current names; the removed names have no compatibility aliases. Current
+record writers are unchanged. The subsequent [legacy-format cleanup](legacy-format-removal.md)
+also removes old read fallbacks and explicitly retires two data-conversion
+entry points. It does not rewrite existing stores.
 
 For example, an application checking whether Runtime resources were released
 uses `cleanup_complete?` on the result returned by `Runtime#shutdown`. The
@@ -79,7 +81,8 @@ The cleanup also removes the unused internal `AgentInvocation#streaming?`,
 `RecoveryRules.subject_key`, and `Execution#__while_open` and
 `Execution#__cancellation_token` methods. Scope-owned operations used by result
 composition remain in `ExecutionScopeState`. Five completed scripts for migrating
-the repository's own test sources are removed; user-data migration tools remain.
+the repository's own test sources are removed. The subsequent legacy-format
+cleanup separately retires the pre-S3 migration API and old Result JSON converter.
 
 `JournalProjection#llm_call_records` and
 `LLMInputManifest#referenced_content_refs` remain available. Lack of calls from

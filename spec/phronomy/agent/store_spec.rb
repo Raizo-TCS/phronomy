@@ -8,10 +8,11 @@ RSpec.describe Phronomy::Agent::Store do
   let(:root) { Phronomy::Agent::AgentRoot.create(agent_id: "coordinator", agent_definition_id: "test", agent_definition_version: 1) }
   let(:batch) do
     [
-      {"tool_invocation_id" => "first", "tool_name" => "enqueue_task", "arguments" => {"description" => "one", "metadata" => nil}, "status" => "authorized"},
+      {"tool_invocation_id" => "first", "tool_name" => "enqueue_task", "arguments" => {"description" => "one", "metadata" => nil},
+       "validated_arguments" => {"description" => "one"}, "status" => "authorized"},
       {"tool_invocation_id" => "unapproved", "tool_name" => "enqueue_task", "arguments" => {"description" => "blocked"}, "status" => "pending"},
-      {"tool_invocation_id" => "other", "tool_name" => "unrelated", "arguments" => {}, "status" => "authorized"},
-      {"tool_invocation_id" => "last", "tool_name" => "finalize", "arguments" => {}, "status" => "authorized"}
+      {"tool_invocation_id" => "other", "tool_name" => "unrelated", "arguments" => {}, "validated_arguments" => {}, "status" => "authorized"},
+      {"tool_invocation_id" => "last", "tool_name" => "finalize", "arguments" => {}, "validated_arguments" => {}, "status" => "authorized"}
     ]
   end
 
@@ -59,7 +60,7 @@ RSpec.describe Phronomy::Agent::Store do
     end
   end
 
-  context "unit 6 validated argument evidence" do
+  context "validated argument evidence" do
     let(:batch) do
       [{"tool_invocation_id" => "first", "tool_name" => "enqueue_task", "status" => "authorized",
         "arguments" => {"n" => "2", "nullable" => nil}, "validated_arguments" => {"n" => 2, "nullable" => nil}}]
@@ -76,6 +77,24 @@ RSpec.describe Phronomy::Agent::Store do
           project(scope, invocation_id: "first", name: "enqueue_task", arguments: {"n" => "2", "nullable" => nil})
         end
       end.to raise_error(Phronomy::Persistence::StateConflictError)
+    end
+  end
+
+  ["first", "last"].each do |missing_id|
+    context "when #{missing_id} has no validated argument evidence" do
+      let(:batch) do
+        super().map { |entry| (entry.fetch("tool_invocation_id") == missing_id) ? entry.except("validated_arguments") : entry }
+      end
+
+      it "rejects the batch instead of inferring authorization from raw arguments" do
+        expect do
+          stores.coordinator.atomic do |scope|
+            store.participate(scope) { |records| records.agents.save(root.agent_id, expected_revision: 0, root: root.with(agent_revision: 1)) }
+            project(scope)
+          end
+        end.to raise_error(KeyError, /validated_arguments/)
+        expect(store.agents.load(root.agent_id).agent_revision).to eq(0)
+      end
     end
   end
 

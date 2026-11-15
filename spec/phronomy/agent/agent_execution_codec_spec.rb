@@ -105,7 +105,7 @@ RSpec.describe "current Agent domain semantic payload codecs" do
       .to eq(journal_record.to_h)
   end
 
-  it "rejects removed JournalRecord fields outside explicit migration" do
+  it "rejects removed JournalRecord fields" do
     legacy = journal_record.to_h.merge("correlation_id" => "legacy")
 
     expect do
@@ -135,7 +135,7 @@ RSpec.describe "current Agent domain semantic payload codecs" do
     expect(restored.to_h).to eq(execution.to_h)
   end
 
-  it "rejects removed approval parent identity outside explicit migration" do
+  it "rejects removed approval parent identity" do
     legacy = execution.to_h
     approval = legacy.fetch("approval_request").dup
     approval["agent_invocation_id"] = approval.delete("execution_id")
