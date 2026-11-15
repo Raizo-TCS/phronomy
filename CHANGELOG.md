@@ -12,6 +12,48 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Route ContextPolicy item estimates directly through the protected
+  `estimate_tokens` extension operation, removing the redundant private wrapper.
+- Exercise Tool approval redaction through the display/snapshot path used by
+  production approval requests instead of internal convenience getters.
+- Replace references to an absent repository language-check script with an
+  external maintainer check and recorded evidence. Correct the Storage phase
+  status: P4 is implemented; the separate final P5 review remains pending.
+
+### Fixed
+
+- Derive default SharedState members through `Agent::Base.with_tools`, retaining
+  Phronomy authoring settings and filters as custom sharing already does. A
+  member's iteration limit, temperature and other configuration no longer reset
+  when built-in sharing Tools are added. Preserve Tool aliases, the generated
+  definition identity and default findings-store behavior.
+
+### Removed
+
+- Remove Handoff's old selection-unit metadata fallback and Agent Store's raw
+  argument fallback. Current conversation groups and exact validated arguments
+  remain the authoritative saved facts; current record writers are unchanged.
+- Retire `Persistence::Migration::InitialFormatMigration` and the old
+  GeneratorVerifier Result JSON conversion command, including their dedicated
+  migration tests and active usage instructions. No replacement converter or
+  compatibility entry point is supplied. Current codecs, Result validation and
+  the separate Unit4 snapshot migration remain. See the
+  [legacy-format cleanup](docs/migrations/legacy-format-removal.md).
+- Remove `Runtime::ShutdownResult#success?`; use the equivalent
+  `cleanup_complete?`. Keep `clean?`, which additionally requires a graceful
+  shutdown.
+- Remove the obsolete `SchedulerReentrancyError` subclass; use
+  `EventLoopReentrancyError`, which is already raised by current execution paths.
+  No compatibility aliases are retained. See the
+  [cleanup migration](docs/migrations/cleanup-audit.md).
+- Remove unused internal Invocation, RecoveryRules and Execution helpers, along
+  with five completed development-only spec migration scripts. Keep the public
+  `JournalProjection#llm_call_records` and
+  `LLMInputManifest#referenced_content_refs` operations and the Scope hooks still
+  used for result composition.
+
 ## [0.33.0] - 2026-11-14
 
 ### Added

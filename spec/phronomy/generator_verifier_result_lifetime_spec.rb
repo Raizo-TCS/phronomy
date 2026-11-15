@@ -31,6 +31,14 @@ RSpec.describe "GeneratorVerifier result and resource ownership" do
     expect({accepted => :one, denied => :two}.length).to eq(2)
   end
 
+  it "rejects a serialized result missing its explicit failure field" do
+    data = JSON.parse(JSON.generate(type::Result.new(**fields).to_h))
+    expect(data).to include("failure" => nil)
+    data.delete("failure")
+
+    expect { type::Result.from_h(data) }.to raise_error(ArgumentError, "missing Result fields")
+  end
+
   it "copies and freezes nested values without freezing the application's source" do
     input = fields
     result = type::Result.new(**input)

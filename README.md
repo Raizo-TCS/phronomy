@@ -44,12 +44,24 @@ Worker hosting and completed parent/child release require v0.32.0 or later.
 Review the [0.31 migration notes](docs/migrations/0.31.md) before upgrading
 persistent applications or custom Agent Tool subclasses.
 
+The unreleased cleanup removes obsolete entry points. Use
+`EventLoopReentrancyError` for EventLoop reentrancy failures and
+`Runtime#shutdown`'s `cleanup_complete?` result predicate for resource release;
+`clean?` additionally requires a graceful shutdown. See the
+[cleanup migration](docs/migrations/cleanup-audit.md) before using this checkout.
+The [legacy-format cleanup](docs/migrations/legacy-format-removal.md) separately
+retires old data-conversion entry points and read fallbacks without changing
+the current saved representation.
+
 | API | Stability | Contract |
 |---|---|---|
+| `Persistence::Migration::InitialFormatMigration` | Removed (unreleased) | The pre-S3 conversion API is retired without a replacement. Current domain codecs and the separate Unit4 snapshot migration remain. [Legacy-format cleanup](docs/migrations/legacy-format-removal.md) |
 | `Context::ContextPolicyInput#input_token_limit / #with_input_token_limit` and protected `ContextPolicy#estimate_tokens` | Experimental (since v0.33.0) | Inspect and constrain selection budgets and estimate candidate content through Context-owned operations. [Policy budgeting](docs/context-policy-budgeting.md) |
 | `Agent::Base.with_tools(definitions, id:, version:)` | Experimental (since v0.33.0) | Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. [Tool composition](docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) |
 | `MultiAgent::SharedState.sharing(provider, id:, version:)`, `SharedState::Binding` and `SharedState::MemberLifecycleError` | Experimental (since v0.33.0) | Connect application-owned shared data and Tools to sequential coordination through a synchronous invocation-scoped provider. [Custom sharing contract and example](docs/shared-state-sharing.md) |
 | `Tool::Base#approval_display(arguments:, facts:)` | Beta (since v0.33.0) | The Tool selects the arguments and derived facts a person can see in an approval request. [Approval display](docs/runtime-and-concurrency.md#tool-approval-display) |
+| `Runtime#shutdown` result predicates `cleanup_complete?` and `clean?` | Beta | Check resource release with `cleanup_complete?`; `clean?` additionally requires a graceful shutdown. The obsolete `success?` alias is removed in this unreleased checkout. [Cleanup migration](docs/migrations/cleanup-audit.md#runtime-cleanup-completion) |
+| `Phronomy::EventLoopReentrancyError` | Beta | Raised when a synchronous operation would block the EventLoop control thread. The obsolete `SchedulerReentrancyError` subclass is removed in this unreleased checkout. [Cleanup migration](docs/migrations/cleanup-audit.md#eventloop-reentrancy-errors) |
 | `Phronomy::LLMAdapter::LMStudio` | Beta | Explicit known-output-error identification and bounded opt-in retry; [policy and evidence limits](docs/architecture/lm-studio-output-failures.md) |
 | Agent `output_schema:`, `schema_delivery:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |
 | Agent `transcript_messages` / `transcript_messages_async` | Beta | Read immutable conversation Message values with the same restoration rules as execution results; [reading conversation state](docs/getting-started.md) |
@@ -206,6 +218,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [0.19 unified Persistence migration](docs/migrations/0.19.md).
 - [0.22 semantic Multi-Agent Handoff migration](docs/migrations/0.22.md).
 - [0.31 persistence and Agent lifetime migration](docs/migrations/0.31.md).
+- [Unreleased cleanup migration](docs/migrations/cleanup-audit.md) — replacement entry points and retained public operations.
 - [Architecture Decision Records](docs/decisions/) — design rationale and superseding decisions.
 - [CHANGELOG](CHANGELOG.md) — current development and recent release history.
 - [Changelog archive: 0.14.0 and earlier](docs/changelog/0.14-and-earlier.md).

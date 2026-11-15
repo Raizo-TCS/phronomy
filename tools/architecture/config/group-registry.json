@@ -202,11 +202,6 @@
       "kind": "support"
     },
     {
-      "id": "G52",
-      "title": "MIGRATION",
-      "kind": "support"
-    },
-    {
       "id": "G53",
       "title": "TRACING",
       "kind": "support"
@@ -264,12 +259,14 @@
   ],
   "retired_groups": {
     "G19": "Split into G47 contracts and G48 implementations",
-    "G34": "r8 unit14: recovery semantics assigned to Agent and Persistence; never reuse"
+    "G34": "r8 unit14: recovery semantics assigned to Agent and Persistence; never reuse",
+    "G52": "Initial record format migration API removed; current durable readers remain strict; never reuse"
   },
   "retired_module_reservations": {
     "M65": "Prior unimplemented single async directory; never reuse",
     "M73": "ContentStore implementation merged into M10 content service; never reuse",
-    "M50": "r8 unit14: recovery/recovery.rb split into Agent recovery rules and Persistence snapshot comparison; never reuse"
+    "M50": "r8 unit14: recovery/recovery.rb split into Agent recovery rules and Persistence snapshot comparison; never reuse",
+    "M20": "persistence/migration removed with InitialFormatMigration; current codecs and Unit4Migration remain; never reuse"
   },
   "planned_modules": [
     {
@@ -388,7 +385,8 @@
       "G43",
       "G59",
       "G60",
-      "G34"
+      "G34",
+      "G52"
     ],
     "modules": [
       "M03",
@@ -412,9 +410,10 @@
       "M80",
       "M81",
       "M82",
-      "M50"
+      "M50",
+      "M20"
     ],
-    "reason": "Consolidated within the owning domain; old IDs retained only as migration evidence, never reused."
+    "reason": "Removed or consolidated within the owning domain; old IDs retained only as migration evidence, never reused."
   },
   "r8_unit1_retired_modules": [
     "M03",

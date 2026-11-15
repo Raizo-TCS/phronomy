@@ -119,23 +119,6 @@ RSpec.describe Phronomy::Agent::RecoveryRules do
     end
   end
 
-  describe ".subject_key" do
-    it "builds a persistence_operation key" do
-      key = described_class.subject_key(type: :persistence_operation, entity: :workflow)
-      expect(key).to eq("persistence_operation:workflow")
-    end
-
-    it "builds an llm_call key" do
-      key = described_class.subject_key(type: :llm_call, llm_call_id: "call-42")
-      expect(key).to eq("llm_call:call-42")
-    end
-
-    it "builds a tool_invocation key" do
-      key = described_class.subject_key(type: :tool_invocation, tool_invocation_id: "inv-1")
-      expect(key).to eq("tool_invocation:inv-1")
-    end
-  end
-
   describe ".subject_equal?" do
     it "returns true when subjects are logically equal" do
       expect(

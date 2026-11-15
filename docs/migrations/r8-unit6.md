@@ -91,8 +91,10 @@ an explicit items schema to restrict them.
 Storage SPI and SQL schemas are unchanged. New Tool batch metadata additionally
 records `validated_arguments`, separately from the unchanged raw request fields.
 Agent authorization projects and compares that exact snapshot (including explicit
-null in explicit schemas). Older snapshots without this field use the historical
-raw-argument/optional-nil-omission rule. Existing journal message boundaries,
+null in explicit schemas). Authorization projection requires this validated
+dispatch evidence; it does not infer approved values from raw request fields.
+Provider-recovery placeholders are revalidated and replaced by the normal Tool
+dispatch barrier before framework operations run. Existing journal message boundaries,
 Tool call identities and recorded usage remain readable. Legacy top-level
 thought_signature is decoded into opaque CallRequest metadata and rendered by
 the backend. Old SDK usage field spellings remain accepted by SavedContextReader.

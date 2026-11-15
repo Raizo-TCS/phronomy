@@ -173,10 +173,9 @@ Normal low-quality output follows the configured evaluation loop as before.
 
 `Result#failure` is nil except for output_failed, where it carries the owned error
 diagnostic (without raw_output). Hash/JSON round trips, equality, hashing and freeze
-include it. `Result.from_h` requires every new field; migrate old saved Result JSON
-explicitly with `scripts/migrate_generator_verifier_result.rb OLD.json NEW.json`.
-The script adds failure=nil, validates the result and creates a new file. It does
-not overwrite the source or silently alter invalid data. `raise_if_unaccepted`
+include it. `Result.from_h` requires every field, including `failure: nil` for
+results without an output failure. It rejects incomplete serialized results.
+`raise_if_unaccepted`
 retains the Result and the original OutputError cause in the same process.
 
 ## Symmetric lifetime rules

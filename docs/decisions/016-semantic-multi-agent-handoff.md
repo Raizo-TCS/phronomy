@@ -61,11 +61,12 @@ Tool-role messages are one indivisible conversation group. When the selected
 Plan is realized, the Manifest records the Framework conversation-group identity
 and classifies canonical Tool exchanges as `tool_exchanges` for Handoff.
 
-`HandoffProjection` groups current-format Manifest segments by that conversation
-group identity. It may still read legacy `selection_unit_id` metadata from a
-finalized pre-ACS-04 Manifest, but new Context assembly does not recreate
-`Selection::Unit`. `Selection::Candidate` and `Selection::Constraint` remain
-internal Context-input normalization details only.
+The current `Agent::TransferProjection` groups Manifest segments by that
+conversation-group identity. Segments without a group identity are projected
+independently. Historical selection-unit identifiers and kinds are no longer
+interpreted, and Context assembly does not recreate `Selection::Unit`.
+`Selection::Candidate` and `Selection::Constraint` remain internal Context-input
+normalization details only.
 
 Handoff Policy answers what may cross the Agent boundary. Target Context Policy
 remains the final authority for what enters each Target LLM call. Transferred

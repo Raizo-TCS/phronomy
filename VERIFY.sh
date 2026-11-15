@@ -30,12 +30,10 @@ required_files=(
   lib/phronomy/persistence/durable_record.rb
   lib/phronomy/persistence/durable_codec.rb
   lib/phronomy/persistence/repository_facades.rb
-  lib/phronomy/persistence/migration/initial_format_migration.rb
   sig/phronomy/persistence.rbs
   spec/phronomy/persistence/backend_spi_api_spec.rb
   spec/phronomy/persistence/durable_codec_spec.rb
   spec/phronomy/persistence/in_memory_spec.rb
-  spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
   lib/phronomy/engine/invocation_context.rb
@@ -128,11 +126,9 @@ syntax_files=(
   lib/phronomy/persistence/durable_record.rb
   lib/phronomy/persistence/durable_codec.rb
   lib/phronomy/persistence/repository_facades.rb
-  lib/phronomy/persistence/migration/initial_format_migration.rb
   spec/phronomy/persistence/backend_spi_api_spec.rb
   spec/phronomy/persistence/durable_codec_spec.rb
   spec/phronomy/persistence/in_memory_spec.rb
-  spec/phronomy/persistence/initial_format_migration_spec.rb
   lib/phronomy/testing/persistence_contract/a_workflow_state_repository.rb
   spec/phronomy/workflow_identity_contract_spec.rb
   lib/phronomy/engine/invocation_context.rb
@@ -327,17 +323,14 @@ ruby -c lib/phronomy/persistence/durable_record.rb >/dev/null
 ruby -c lib/phronomy/persistence/durable_codec.rb >/dev/null
 ruby -c lib/phronomy/persistence/repository_facades.rb >/dev/null
 ruby -c lib/phronomy/persistence/in_memory.rb >/dev/null
-ruby -c lib/phronomy/persistence/migration/initial_format_migration.rb >/dev/null
 ruby -c spec/phronomy/persistence/backend_spi_api_spec.rb >/dev/null
 ruby -c spec/phronomy/persistence/durable_codec_spec.rb >/dev/null
 ruby -c spec/phronomy/persistence/in_memory_spec.rb >/dev/null
-ruby -c spec/phronomy/persistence/initial_format_migration_spec.rb >/dev/null
 bundle exec rbs -I sig validate
 bundle exec rspec \
   spec/phronomy/persistence/backend_spi_api_spec.rb \
   spec/phronomy/persistence/durable_codec_spec.rb \
   spec/phronomy/persistence/in_memory_spec.rb \
-  spec/phronomy/persistence/initial_format_migration_spec.rb \
   spec/phronomy/persistence/backend_contract_spec.rb \
   spec/phronomy/agent/agent_execution_codec_spec.rb \
   spec/phronomy/agent/llm_input_manifest_spec.rb \
@@ -530,8 +523,7 @@ legacy_agent_invocation_identity="$(
 legacy_agent_invocation_identity="$(
   printf '%s\n' "$legacy_agent_invocation_identity" |
     grep -v 'lib/phronomy/agent/base.rb' |
-    grep -v 'lib/phronomy/agent/agent_execution.rb' |
-    grep -v 'lib/phronomy/persistence/migration/initial_format_migration.rb' || true
+    grep -v 'lib/phronomy/agent/agent_execution.rb' || true
 )"
 if [[ -n "$legacy_agent_invocation_identity" ]]; then
   echo "FAIL: active source/RBS reintroduced agent_invocation_id domain identity:" >&2

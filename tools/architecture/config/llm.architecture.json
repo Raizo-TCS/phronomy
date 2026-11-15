@@ -281,13 +281,6 @@
       "group": "G33"
     },
     {
-      "id": "M20",
-      "directory": "lib/phronomy/persistence/migration",
-      "role": "Explicit record format migration",
-      "mixed": false,
-      "group": "G52"
-    },
-    {
       "id": "M39",
       "directory": "lib/phronomy/persistence_composition",
       "role": "Assemble repositories over a view",
@@ -800,14 +793,6 @@
       ]
     },
     {
-      "id": "G52",
-      "title": "MIGRATION",
-      "kind": "support",
-      "members": [
-        "M20"
-      ]
-    },
-    {
       "id": "G53",
       "title": "TRACING",
       "kind": "support",
@@ -885,7 +870,6 @@
     "M22",
     "M23",
     "M24",
-    "M20",
     "M27",
     "M01",
     "M66",

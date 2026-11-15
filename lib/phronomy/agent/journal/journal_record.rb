@@ -57,8 +57,8 @@ module Phronomy
         ATTRIBUTES.to_h { |name| [name.to_s, public_send(name)] }
       end
 
-      # Historical durable fields are not accepted here. Explicit migration must
-      # convert them to the current semantic payload first.
+      # Reads the current semantic payload only. Historical durable fields are
+      # rejected rather than converted.
       def self.from_h(hash)
         source = hash.to_h { |key, value| [key.to_s, value] }
         expected = ATTRIBUTES.map(&:to_s).sort

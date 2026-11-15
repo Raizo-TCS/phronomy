@@ -149,9 +149,9 @@ module Phronomy
         freeze
       end
 
-      # Current-format-only durable decoder. Historical format conversion is an
-      # explicit migration operation and is never attempted here. Unlike the
-      # Ruby construction API, this decoder never coerces durable field types.
+      # Current-format-only durable decoder. Historical versions are rejected.
+      # Unlike the Ruby construction API, this decoder never coerces durable
+      # field types.
       def self.from_h(hash)
         source = strict_source!(
           hash,

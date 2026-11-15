@@ -252,57 +252,78 @@ RSpec.describe Phronomy::Agent::TransferProjection do
     expect(candidate.metadata["handoff_provenance"]).to eq(provenance.to_h)
   end
 
-  it "keeps all members of one Tool exchange selection unit together" do
+  it "selects a complete Tool exchange from a saved and reloaded ContextPolicy Manifest" do
     source = build_agent("projection-tool-source")
     target = build_agent("projection-tool-target")
     handoff = Phronomy::MultiAgent::Handoff.new(source_agent: source, target_agent: target, policy: policy)
-    assistant_ref = source.persistence.contents.put_json(
+    assistant_payload = {
       "role" => "assistant",
       "content" => nil,
       "tool_calls" => [{"id" => "tc-1", "name" => "lookup", "arguments" => {}}]
-    )
-    tool_ref = source.persistence.contents.put_json(
+    }
+    tool_payload = {
       "role" => "tool",
       "content" => "result",
       "tool_call_id" => "tc-1"
-    )
-    unit_metadata = {
-      "selection_unit_id" => "tool-exchange-1",
-      "selection_unit_kind" => "tool_exchange",
-      "handoff_policy_category" => "tool_exchanges",
-      "source_agent_id" => source.agent_id
     }
-    source_manifest = manifest(source.persistence, [
-      segment(
-        position: 0,
-        category: :assistant_message,
-        role: :assistant,
-        content_ref: assistant_ref,
-        metadata: unit_metadata
-      ),
-      segment(
-        position: 1,
-        category: :tool_message,
-        role: :tool,
-        content_ref: tool_ref,
-        tool_call_id: "tc-1",
-        metadata: unit_metadata
-      )
-    ])
+    provenance = Phronomy::Context::ContextPolicyInput::Provenance.new(
+      origin: :journal, agent_id: source.agent_id, execution_id: "source-execution"
+    )
+    assistant = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
+      id: "assistant-1", kind: :assistant_message, role: :assistant,
+      content: assistant_payload, provenance: provenance, tool_call_ids: ["tc-1"]
+    )
+    tool = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
+      id: "tool-1", kind: :tool_message, role: :tool,
+      content: tool_payload, provenance: provenance, tool_call_id: "tc-1"
+    )
+    history = Phronomy::Context::ContextPolicyInput::ConversationItem.new(
+      id: "history-1", kind: :external_message, role: :user,
+      content: "earlier request", provenance: provenance
+    )
+    input = Phronomy::Context::ContextPolicyInput.new(
+      agent_id: source.agent_id, execution_id: "source-execution",
+      call_sequence: 2, call_mode: :complete,
+      instruction: [], knowledge: [], tools: [],
+      conversation: [[history], [assistant, tool]],
+      token_budget: nil, model_config: {}, previous_manifest: nil, metadata: {}
+    )
+    assembly = Phronomy::Context::Assembly.new
+    prepared = assembly.prepare(
+      input: input,
+      policy: Phronomy::Context::DefaultPolicy.instance,
+      adapter_identity: Phronomy.configuration.llm_adapter.identity
+    )
+    _stored_manifest, manifest_ref = assembly.store(prepared, contents: source.persistence.contents)
+    source_manifest = Phronomy::Agent::SavedContextReader.manifest_from_ref(source, manifest_ref)
 
     context = described_class.new.build(
-      request: request(handoff, selection_intent: {tool_exchanges: true}),
+      request: request(handoff, selection_intent: {history: false, tool_exchanges: true}),
       manifest: source_manifest,
       persistence: source.persistence,
       source_agent: source
     )
 
-    expect(context.items.length).to eq(2)
     expect(context.items.map(&:policy_category).uniq).to eq([:tool_exchanges])
-    expect(context.items.map(&:candidate_category)).to contain_exactly(
+    expect(context.items.map(&:candidate_category)).to eq([
       :assistant_message,
       :tool_message
+    ])
+    expect(context.items.map(&:content)).to eq([assistant_payload, tool_payload])
+    expect(context.items.last.tool_call_id).to eq("tc-1")
+    expect(context.items.map { |item| item.provenance.origin_execution_id }.uniq)
+      .to eq(["source-execution"])
+    expect(context.items.map { |item| item.provenance.transfer_path }.uniq)
+      .to eq([[source.agent_id, target.agent_id]])
+
+    history_context = described_class.new.build(
+      request: request(handoff, selection_intent: {history: true, tool_exchanges: false}),
+      manifest: source_manifest,
+      persistence: source.persistence,
+      source_agent: source
     )
+
+    expect(history_context.items.map(&:content)).to eq(["earlier request"])
   end
 
   it "groups current-format Context conversation segments without Selection::Unit" do
@@ -332,6 +353,18 @@ RSpec.describe Phronomy::Agent::TransferProjection do
 
     expect(groups.length).to eq(1)
     expect(groups.values.first.fetch(:segments).map(&:position)).to eq([0, 1])
+  end
+
+  it "keeps Manifest segments independent when no conversation group is specified" do
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
+    source_manifest = manifest(persistence, [
+      segment(position: 0, category: :external_message, content_ref: persistence.contents.put_text("first")),
+      segment(position: 1, category: :external_message, content_ref: persistence.contents.put_text("second"))
+    ])
+
+    groups = described_class.new.send(:project_visible_groups, source_manifest)
+
+    expect(groups.values.map { |group| group.fetch(:segments).map(&:position) }).to eq([[0], [1]])
   end
   it "classifies current-format semantic Conversation as Handoff history independently of kind" do
     source = build_agent("projection-semantic-conversation-source")
@@ -407,9 +440,9 @@ RSpec.describe Phronomy::Agent::TransferProjection do
     expect(item.metadata).not_to have_key("context_policy_content_format")
   end
 
-  it "falls back to legacy kind-based content format when metadata is absent" do
-    source = build_agent("projection-legacy-format-source")
-    target = build_agent("projection-legacy-format-target")
+  it "infers message content format when optional format metadata is absent" do
+    source = build_agent("projection-inferred-format-source")
+    target = build_agent("projection-inferred-format-target")
     handoff = Phronomy::MultiAgent::Handoff.new(
       source_agent: source,
       target_agent: target,
@@ -417,7 +450,7 @@ RSpec.describe Phronomy::Agent::TransferProjection do
     )
     content_ref = source.persistence.contents.put_json(
       "role" => "assistant",
-      "content" => "legacy"
+      "content" => "saved assistant message"
     )
     source_manifest = manifest(source.persistence, [
       segment(

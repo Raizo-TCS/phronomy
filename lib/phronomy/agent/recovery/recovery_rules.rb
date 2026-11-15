@@ -88,18 +88,6 @@ module Phronomy
         normalized.freeze
       end
 
-      def subject_key(subject)
-        normalized = normalize_subject(subject)
-        case normalized.fetch(:type)
-        when :llm_call
-          "llm_call:#{normalized.fetch(:llm_call_id)}"
-        when :tool_invocation
-          "tool_invocation:#{normalized.fetch(:tool_invocation_id)}"
-        when :persistence_operation
-          "persistence_operation:#{normalized.fetch(:entity)}"
-        end
-      end
-
       def subject_equal?(left, right)
         normalize_subject(left) == normalize_subject(right)
       rescue ArgumentError, KeyError

@@ -345,9 +345,6 @@ module Phronomy
         display
       end
 
-      def display_arguments = immutable_copy(approval_display.fetch(:arguments))
-      def display_facts = immutable_copy(approval_display.fetch(:facts))
-
       private
 
       def restore_saved_state!(status, result)

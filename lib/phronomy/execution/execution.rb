@@ -127,20 +127,9 @@ module Phronomy
       observed
     end
 
-    # Scope/admission hooks shared with framework-owned operations.
-    # @api private
-    def __while_open(&block)
-      @scope.__while_open(&block)
-    end
-
     # @api private
     def __open?
       @scope.__open?
-    end
-
-    # @api private
-    def __cancellation_token
-      @token
     end
 
     # @api private

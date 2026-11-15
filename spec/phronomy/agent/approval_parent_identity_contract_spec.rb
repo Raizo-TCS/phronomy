@@ -100,53 +100,6 @@ RSpec.describe "CG-03a Agent execution parent identity" do
     end
   end
 
-  it "normalizes legacy embedded durable approval parent via InitialFormatMigration" do
-    legacy = {
-      "execution_id" => "execution-1",
-      "agent_id" => "agent-1",
-      "execution_revision" => 3,
-      "status" => "suspended",
-      "phase" => "approval",
-      "base_agent_revision" => 2,
-      "base_context_revision" => 1,
-      "base_journal_position" => 4,
-      "working_records" => [],
-      "llm_calls" => [],
-      "approval_request" => {
-        "id" => "approval-1",
-        "agent_invocation_id" => "legacy-runtime-route",
-        "items" => [
-          {
-            "tool_invocation_id" => "tool-invocation-1",
-            "tool_call_id" => "tool-call-1",
-            "tool_name" => "protected_tool",
-            "arguments" => {},
-            "facts" => {},
-            "reason" => nil,
-            "origin" => "local",
-            "metadata" => {}
-          }
-        ],
-        "created_at" => "2026-08-23T00:00:00Z"
-      },
-      "result_ref" => nil,
-      "error_ref" => nil,
-      "created_at" => "2026-08-23T00:00:00.000000Z",
-      "updated_at" => "2026-08-23T00:00:01.000000Z",
-      "terminal_reason" => nil,
-      "metadata" => {}
-    }
-
-    record = Phronomy::Persistence::Migration::InitialFormatMigration.agent_execution(legacy)
-    restored = Phronomy::Agent::Persistence::Codec.decode_agent_execution(record)
-    approval = restored.approval_request
-
-    expect(approval["execution_id"]).to eq("execution-1")
-    expect(approval).not_to have_key("agent_invocation_id")
-    expect(restored.to_h.fetch("approval_request"))
-      .not_to have_key("agent_invocation_id")
-  end
-
   it "represents the public approval execution parent in RBS" do
     root = File.expand_path("../../..", __dir__)
     rbs = File.read(File.join(root, "sig/phronomy/agent.rbs"))
