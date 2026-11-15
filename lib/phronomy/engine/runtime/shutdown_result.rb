@@ -52,11 +52,6 @@ module Phronomy
           %i[not_started terminated].include?(@event_loop_status) &&
           @task_registry_status == :empty
       end
-
-      # Runtime reset is safe when cleanup completed, even if execution failed.
-      def success?
-        cleanup_complete?
-      end
     end
   end
 end

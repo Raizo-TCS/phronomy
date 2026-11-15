@@ -24,7 +24,9 @@ Copy it into the GitHub Release draft and check off each item.
 
 - [ ] `bundle exec rspec --format documentation` — 0 failures
 - [ ] `bundle exec rspec --tag integration` — 0 failures, all expected pending
-- [ ] `ruby scripts/check_japanese.rb` — exit 0 (no Japanese in source)
+- [ ] External language check passes on the complete release files; source,
+  comments, documentation and release notes are in English. Record the checker
+  command, file scope and result; no language-check script is bundled here.
 - [ ] `bundle exec standardrb` — 0 offenses
 - [ ] `COVERAGE=1 bundle exec rspec` — coverage above configured threshold (Issue #207)
 - [ ] CI green on all Ruby matrix versions (3.2 / 3.3 / 3.4 / head)

@@ -370,6 +370,76 @@ RSpec.describe "Group 31: SharedState", :integration do
   end
 end
 
+RSpec.describe "SharedState default member configuration", :integration do
+  after { LLMStub.deactivate }
+
+  def default_team(member)
+    Class.new(Phronomy::MultiAgent::SharedState) do
+      member member
+      max_cycles 1
+    end
+  end
+
+  it "preserves an input filter that blocks the request before any LLM call" do
+    member = IntegrationFactors.ss_researcher_class
+    member.input_filter(IntegrationFactors::BlockingInputFilter.new)
+    llm = LLMStub.activate(responses: ["This response must not be requested."])
+
+    expect { default_team(member).new.invoke("Review") }
+      .to raise_error(Phronomy::FilterBlockError, /input rejected/)
+    expect(llm.calls).to be_empty
+  end
+
+  it "applies configured input, tool-result and output filters in the member invocation" do
+    member = IntegrationFactors.ss_researcher_class
+    seen = []
+    member.input_filter(->(input) {
+      seen << :input
+      "Filtered request: #{input}"
+    })
+    member.tool_result_filter(->(value, **_context) {
+      seen << :tool_result
+      "Filtered result: #{value}"
+    })
+    member.output_filter(->(output) {
+      seen << :output
+      output
+    })
+    llm = LLMStub.activate(responses: [
+      LLMStub.tool_call_response("write_finding", {content: "Reviewed finding"}),
+      "Review complete."
+    ])
+
+    result = default_team(member).new.invoke("Review")
+
+    expect(result.fetch(:output).map { |finding| finding.fetch(:content) }).to eq(["Reviewed finding"])
+    expect(seen).to eq([:input, :tool_result, :output])
+    first_input = llm.messages_for(0).find { |message| message["role"] == "user" }.fetch("content")
+    expect(first_input).to start_with("Filtered request:")
+    tool_result = llm.messages_for(1).find { |message| message["role"] == "tool" }.fetch("content")
+    expect(tool_result).to eq("Filtered result: Finding recorded.")
+  end
+
+  %w[read_store write_finding].each do |reserved_name|
+    it "rejects a member tool colliding with #{reserved_name} before any LLM call" do
+      existing = Class.new(Phronomy::Tool::Base) do
+        tool_name reserved_name
+        description "An application tool with a conflicting sharing name"
+        define_method(:execute) { "Application result" }
+      end
+      member = IntegrationFactors.ss_researcher_class
+      member.tools(existing => nil)
+      llm = LLMStub.activate(responses: ["This response must not be requested."])
+
+      expect { default_team(member).new.invoke("Review") }
+        .to raise_error(Phronomy::ConfigurationError, /duplicate effective Tool definition/)
+      expect(llm.calls).to be_empty
+      expect(member.tools).to eq([existing])
+      expect(member.tool_aliases).to eq({})
+    end
+  end
+end
+
 RSpec.describe "SharedState application-owned records", :integration do
   after { LLMStub.deactivate }
 

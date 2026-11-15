@@ -25,11 +25,11 @@ Run the linter:
 bundle exec standardrb
 ```
 
-Check that no Japanese characters appear in source files:
-
-```bash
-ruby scripts/check_japanese.rb
-```
+Check that source, comments, documentation and release notes are in English.
+Use the maintainer's external language checker and record its command, checked
+files and result with the review evidence. Check complete final files, including
+new files; a diff-only check can miss retained non-English content. This
+repository does not bundle a language-check script.
 
 ---
 

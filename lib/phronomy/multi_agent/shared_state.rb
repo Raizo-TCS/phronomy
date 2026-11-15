@@ -323,14 +323,11 @@ module Phronomy
         # application's definition-version namespace independent from framework
         # instrumentation.
         instrumented_def = instrumented_definition_for(researcher_class)
-        Class.new(researcher_class) do
-          model researcher_class.model
-          agent_definition(
-            id: instrumented_def.fetch(:id),
-            version: instrumented_def.fetch(:version)
-          )
-          tools(definitions)
-        end
+        researcher_class.with_tools(
+          definitions,
+          id: instrumented_def.fetch(:id),
+          version: instrumented_def.fetch(:version)
+        )
       end
 
       def build_read_tool(store)

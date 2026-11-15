@@ -114,10 +114,6 @@ module Phronomy
         @callback_failure = nil
       end
 
-      def streaming?
-        @mode == :stream
-      end
-
       def set_graph_metadata(phase: nil)
         @phase = phase
       end

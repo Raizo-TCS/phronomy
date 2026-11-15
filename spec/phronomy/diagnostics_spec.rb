@@ -61,9 +61,9 @@ RSpec.describe "Offload operation diagnostics" do
     end
   end
 
-  describe "Phronomy::SchedulerReentrancyError" do
+  describe "Phronomy::EventLoopReentrancyError" do
     it "is a subclass of Phronomy::Error" do
-      expect(Phronomy::SchedulerReentrancyError.ancestors).to include(Phronomy::Error)
+      expect(Phronomy::EventLoopReentrancyError.ancestors).to include(Phronomy::Error)
     end
   end
 end

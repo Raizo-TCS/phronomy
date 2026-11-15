@@ -175,7 +175,12 @@ unchanged and acyclic; Ruby+RBS architecture validation passes.
 
 ## Static exception inventory
 
-Ripper inspected 339 Ruby files. The following 63 definitions include base, private and optional-integration types; this is not a count of public APIs. Ruby declarations establish ownership. Existing RBS definitions and new owning-domain signatures are checked together.
+The original inventory used Ripper to inspect 339 Ruby files and listed 63
+definitions, including base, private and optional-integration types. The table
+below removes the superseded `SchedulerReentrancyError` entry as part of the
+[cleanup migration](../migrations/cleanup-audit.md). These historical scan totals
+are not a current count of source files or public APIs. Ruby declarations
+establish ownership; RBS declarations are checked at their owning boundaries.
 
 | Class | Parent | Declaration |
 |---|---|---|
@@ -208,7 +213,6 @@ Ripper inspected 339 Ruby files. The following 63 definitions include base, priv
 | `Phronomy::RecursionLimitError` | `Phronomy::Error` | `lib/phronomy/execution/recursion_limit_error.rb` |
 | `Phronomy::RuntimeShutdownError` | `Phronomy::Error` | `lib/phronomy/execution/runtime_shutdown_error.rb` |
 | `Phronomy::RuntimeShutdownReentrancyError` | `Phronomy::RuntimeShutdownError` | `lib/phronomy/execution/runtime_shutdown_reentrancy_error.rb` |
-| `Phronomy::SchedulerReentrancyError` | `Phronomy::EventLoopReentrancyError` | `lib/phronomy/execution/scheduler_reentrancy_error.rb` |
 | `Phronomy::TimeoutError` | `Phronomy::Error` | `lib/phronomy/execution/timeout_error.rb` |
 | `Phronomy::FilterBlockError` | `Phronomy::Error` | `lib/phronomy/filter/filter_block_error.rb` |
 | `Phronomy::GeneratorVerifier::UnacceptedResultError` | `Phronomy::Error` | `lib/phronomy/generation/generator_verifier/unaccepted_result_error.rb` |

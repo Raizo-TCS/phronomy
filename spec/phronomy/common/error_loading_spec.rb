@@ -46,7 +46,7 @@ RSpec.describe "Common base exception loading" do
         hierarchies = {
           "ParseError" => "Error",
           "LLMAdapter::RateLimitError" => "LLMAdapter::TransportError",
-          "SchedulerReentrancyError" => "EventLoopReentrancyError",
+          "EventLoopReentrancyError" => "Error",
           "RuntimeShutdownReentrancyError" => "RuntimeShutdownError",
           "AgentBusyError" => "Error",
           "Storage::ConflictError" => "Error",

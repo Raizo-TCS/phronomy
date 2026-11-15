@@ -35,7 +35,7 @@ module Phronomy
           role: role,
           content: content,
           content_format: content_format || inferred_content_format(content),
-          estimated_tokens: estimate_content(content),
+          estimated_tokens: estimate_tokens(content),
           required: required,
           provenance: generated_provenance,
           metadata: metadata
@@ -56,7 +56,7 @@ module Phronomy
           role: role,
           content: content,
           content_format: content_format || inferred_content_format(content),
-          estimated_tokens: estimate_content(content),
+          estimated_tokens: estimate_tokens(content),
           required: required,
           provenance: generated_provenance,
           metadata: metadata
@@ -82,7 +82,7 @@ module Phronomy
           content: content,
           content_format: content_format || inferred_content_format(content),
           sequence: sequence,
-          estimated_tokens: estimate_content(content),
+          estimated_tokens: estimate_tokens(content),
           required: required,
           provenance: generated_provenance,
           tool_call_id: tool_call_id,
@@ -120,10 +120,6 @@ module Phronomy
 
       def inferred_content_format(content)
         content.is_a?(String) ? :text : :json
-      end
-
-      def estimate_content(content)
-        estimate_tokens(content)
       end
     end
   end

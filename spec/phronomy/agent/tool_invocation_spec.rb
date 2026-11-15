@@ -115,9 +115,12 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     invocation.validate!
     invocation.send(:apply_authorization_outcome, Phronomy::Agent::ToolInvocation.send(:evaluate_authorization_command, invocation.send(:authorization_command)))
 
-    expect(invocation.display_arguments[:body]).to eq("[REDACTED]")
-    expect(invocation.display_facts[:recipient_count]).to eq(11)
-    expect(invocation.display_facts[:external_domain]).to eq("[REDACTED]")
+    batch = Struct.new(:execution_id, :tool_invocations).new("execution-1", [invocation])
+    item = Phronomy::Agent::ToolApprovalRequest.build(batch).items.first
+
+    expect(item.arguments[:body]).to eq("[REDACTED]")
+    expect(item.facts[:recipient_count]).to eq(11)
+    expect(item.facts[:external_domain]).to eq("[REDACTED]")
   end
 
   describe "#approval_display" do
@@ -130,7 +133,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         end
       end
 
-      expect(invocation.display_arguments).to eq(recipient_count: 11)
+      expect(invocation.approval_display.fetch(:arguments)).to eq(recipient_count: 11)
       expect(invocation.raw_arguments.fetch("body")).to eq("secret")
     end
 
@@ -184,7 +187,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
     end
   end
 
-  describe "#display_facts" do
+  describe "approval display redaction" do
     it "omits the entire facts Hash if it equals a sensitive argument" do
       tool_class.redact_params :payload
       [{}, {token: "secret"}].each do |sensitive|
@@ -212,7 +215,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
       outcome = described_class.send(:evaluate_authorization_command, invocation.send(:authorization_command))
       invocation.send(:apply_authorization_outcome, outcome)
 
-      expect(invocation.display_facts).to eq(flags: ["[REDACTED]"], groups: [{"[REDACTED]" => 3, :recipients => 11}])
+      expect(invocation.approval_display.fetch(:facts)).to eq(flags: ["[REDACTED]"], groups: [{"[REDACTED]" => 3, :recipients => 11}])
       expect(invocation.facts.fetch(:groups).first).to include("secret" => 1, :secret => 2)
       expect(invocation.arguments.fetch(:flag)).to be(false)
     end
@@ -235,8 +238,9 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
         outcome = described_class.send(:evaluate_authorization_command, invocation.send(:authorization_command))
         invocation.send(:apply_authorization_outcome, outcome)
 
-        expect(invocation.display_arguments).to include(pin: "[REDACTED]")
-        expect(invocation.display_facts).to eq(copied_pin: "[REDACTED]")
+        display = invocation.approval_display
+        expect(display.fetch(:arguments)).to include(pin: "[REDACTED]")
+        expect(display.fetch(:facts)).to eq(copied_pin: "[REDACTED]")
         expect(invocation.facts).to eq(copied_pin: 1234)
       end
     end

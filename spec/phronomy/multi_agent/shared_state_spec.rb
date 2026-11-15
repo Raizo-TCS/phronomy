@@ -513,6 +513,77 @@ RSpec.describe Phronomy::MultiAgent::SharedState do
   # ---------------------------------------------------------------------------
 
   describe "tool injection" do
+    it "preserves member authoring settings when adding default sharing tools" do
+      observed = nil
+      policy = Phronomy::Context::ContextPolicy.new
+      instructions = ->(input) { "Review #{input}" }
+      hook = ->(_context) {}
+      researcher = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "configured-shared-researcher", version: 2
+        model "research-model"
+        provider :openai
+        temperature 0
+        max_iterations 3
+        cache_instructions false
+        max_output_tokens 120
+        instructions(&instructions)
+        context_policy policy
+        before_llm_input(&hook)
+        define_method(:invoke) do |_input, config: {}|
+          observed = self.class
+          {output: "done", messages: []}
+        end
+      end
+      team = Class.new(described_class) do
+        member researcher
+        max_cycles 1
+      end
+
+      team.new.invoke("Review the project")
+
+      expect(observed.model).to eq("research-model")
+      expect(observed.provider).to eq(:openai)
+      expect(observed.temperature).to eq(0)
+      expect(observed.max_iterations).to eq(3)
+      expect(observed.cache_instructions).to be(false)
+      expect(observed.max_output_tokens).to eq(120)
+      expect(observed.instructions).to equal(instructions)
+      expect(observed.context_policy).to equal(policy)
+      expect(observed.before_llm_input).to equal(hook)
+      expect(researcher.agent_definition).to eq(id: "configured-shared-researcher", version: 2)
+    end
+
+    it "retains aliased member tools without changing the original tool declarations" do
+      original_tool = Class.new(Phronomy::Tool::Base) do
+        tool_name "read_store"
+        description "Read application records"
+        define_method(:execute) { "application records" }
+      end
+      observed = nil
+      researcher = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "aliased-shared-researcher", version: 1
+        tools original_tool => :read_application_records
+        define_method(:invoke) do |_input, config: {}|
+          observed = self.class
+          {output: "done", messages: []}
+        end
+      end
+      team = Class.new(described_class) do
+        member researcher
+        max_cycles 1
+      end
+
+      team.new.invoke("Review records")
+
+      expect(observed.tools).to include(original_tool)
+      expect(observed.tools.length).to eq(3)
+      expect(observed.tool_aliases).to eq(original_tool => "read_application_records")
+      effective_names = observed.tools.map { |tool| observed.tool_aliases[tool] || tool.tool_name }
+      expect(effective_names).to contain_exactly("read_application_records", "read_store", "write_finding")
+      expect(researcher.tools).to eq([original_tool])
+      expect(researcher.tool_aliases).to eq(original_tool => "read_application_records")
+    end
+
     it "uses a distinct deterministic definition for framework-owned instrumentation" do
       researcher = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "shared-state-researcher", version: 4
