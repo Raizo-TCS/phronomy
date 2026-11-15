@@ -107,4 +107,9 @@ The public class names below are unchanged. Their implementation files move:
 Use `require "phronomy"` and the public constants. Direct partial-load paths are
 not the public loading contract; no require shim is kept in the contract
 directories. Backend Contracts have no execution or implementation dependency.
-P4 Storage/ContentStore work remains pending.
+P4 Storage/ContentStore work is implemented; see the
+[Storage asynchronous execution guide](storage-async-client.md).
+[ADR-062](../decisions/062-content-store-service.md) subsequently classified
+ContentStore as a content service over Storage, rather than a physical backend.
+The final P5 cross-repository/API/documentation review remains pending, as
+recorded in [Backend responsibilities](../architecture/backend-groups.md).

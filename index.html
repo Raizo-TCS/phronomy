@@ -101,6 +101,14 @@ Experimental; their introduction version is shown below.
 Worker hosting and completed parent/child release require v0.32.0 or later.
 Review the <a href="docs/migrations/0.31.md">0.31 migration notes</a> before upgrading
 persistent applications or custom Agent Tool subclasses.</p>
+<p>The unreleased cleanup removes obsolete entry points. Use
+<code>EventLoopReentrancyError</code> for EventLoop reentrancy failures and
+<code>Runtime#shutdown</code>'s <code>cleanup_complete?</code> result predicate for resource release;
+<code>clean?</code> additionally requires a graceful shutdown. See the
+<a href="docs/migrations/cleanup-audit.md">cleanup migration</a> before using this checkout.
+The <a href="docs/migrations/legacy-format-removal.md">legacy-format cleanup</a> separately
+retires old data-conversion entry points and read fallbacks without changing
+the current saved representation.</p>
 <table>
 <thead>
 <tr>
@@ -110,6 +118,11 @@ persistent applications or custom Agent Tool subclasses.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>Persistence::Migration::InitialFormatMigration</code></td>
+<td>Removed (unreleased)</td>
+<td>The pre-S3 conversion API is retired without a replacement. Current domain codecs and the separate Unit4 snapshot migration remain. <a href="docs/migrations/legacy-format-removal.md">Legacy-format cleanup</a></td>
+</tr>
 <tr>
 <td><code>Context::ContextPolicyInput#input_token_limit / #with_input_token_limit</code> and protected <code>ContextPolicy#estimate_tokens</code></td>
 <td>Experimental (since v0.33.0)</td>
@@ -129,6 +142,16 @@ persistent applications or custom Agent Tool subclasses.</p>
 <td><code>Tool::Base#approval_display(arguments:, facts:)</code></td>
 <td>Beta (since v0.33.0)</td>
 <td>The Tool selects the arguments and derived facts a person can see in an approval request. <a href="docs/runtime-and-concurrency.md#tool-approval-display">Approval display</a></td>
+</tr>
+<tr>
+<td><code>Runtime#shutdown</code> result predicates <code>cleanup_complete?</code> and <code>clean?</code></td>
+<td>Beta</td>
+<td>Check resource release with <code>cleanup_complete?</code>; <code>clean?</code> additionally requires a graceful shutdown. The obsolete <code>success?</code> alias is removed in this unreleased checkout. <a href="docs/migrations/cleanup-audit.md#runtime-cleanup-completion">Cleanup migration</a></td>
+</tr>
+<tr>
+<td><code>Phronomy::EventLoopReentrancyError</code></td>
+<td>Beta</td>
+<td>Raised when a synchronous operation would block the EventLoop control thread. The obsolete <code>SchedulerReentrancyError</code> subclass is removed in this unreleased checkout. <a href="docs/migrations/cleanup-audit.md#eventloop-reentrancy-errors">Cleanup migration</a></td>
 </tr>
 <tr>
 <td><code>Phronomy::LLMAdapter::LMStudio</code></td>
@@ -331,6 +354,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <li><a href="docs/migrations/0.19.md">0.19 unified Persistence migration</a>.</li>
 <li><a href="docs/migrations/0.22.md">0.22 semantic Multi-Agent Handoff migration</a>.</li>
 <li><a href="docs/migrations/0.31.md">0.31 persistence and Agent lifetime migration</a>.</li>
+<li><a href="docs/migrations/cleanup-audit.md">Unreleased cleanup migration</a> — replacement entry points and retained public operations.</li>
 <li><a href="docs/decisions/">Architecture Decision Records</a> — design rationale and superseding decisions.</li>
 <li><a href="CHANGELOG.md">CHANGELOG</a> — current development and recent release history.</li>
 <li><a href="docs/changelog/0.14-and-earlier.md">Changelog archive: 0.14.0 and earlier</a>.</li>
@@ -361,7 +385,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 14 12:27:01 2026 by
+  Generated on Sun Nov 15 16:33:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

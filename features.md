@@ -90,7 +90,7 @@ Backend authors continue to implement the synchronous SPI only.
 | **OffloadPool sizing** — `offload_pool_size` / `offload_queue_size`; named pools available for application-owned isolation | Beta |
 | **InvocationContext** — Explicit cancellation/deadline/policy plus observability-correlation context for Agent and Workflow invocations | Beta |
 | **Metrics** — OffloadPool active/queue/abandoned metrics plus EventLoop queue/lag metrics | Beta |
-| **Runtime lifecycle** — Runtime-owned EventLoop and terminal `Runtime#shutdown` | Beta |
+| **Runtime lifecycle** — Runtime-owned EventLoop and terminal `Runtime#shutdown`; use the result's `cleanup_complete?` for resource release and `clean?` for a graceful shutdown; [cleanup migration](migrations/cleanup-audit.md) | Beta |
 
 ## Agent and workflow patterns
 
@@ -109,7 +109,7 @@ See the [migration guide](migrations/parallel-tool-chat-removal.md).
 | **Hosted child approvals** — An Orchestrator can release a single direct child and its parent at successive Tool approvals within the same child execution. The host transfers exclusive ownership between workers. [Contract](runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval) | Beta |
 | **Completed native child release** — A host can unload the local Orchestrator and its finished direct child while preserving their saved results, conversation and coordination history. [Contract](runtime-and-concurrency.md#releasing-a-completed-orchestrator-and-child) | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
-| **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; see the [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
+| **`Phronomy::MultiAgent::SharedState`** — Sequential peer-agent coordination through an invocation-local findings store; default member derivation preserves Phronomy authoring settings through `Agent::Base.with_tools`; see the [sharing contract](shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) and [namespace migration](migrations/shared-state-multi-agent.md) | Experimental |
 | **Agent Tool composition** — `Agent::Base.with_tools(definitions, id:, version:)` derives a class with a complete replacement Tool map while preserving Phronomy authoring settings and filters; [contract](shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) | Experimental (Unreleased) |
 | **Custom shared data and Tools** — `SharedState.sharing(provider, id:, version:)` and `SharedState::Binding` connect application-owned stores and Tool definitions without private overrides; [contract and executable example](shared-state-sharing.md) | Experimental (Unreleased) |
 | **Human-in-the-loop approval** — durable suspension publishes `:approval_required` through the Agent listener; `approve` / `approve_async` resumes the same logical `execution_id` with a fresh FSMSession incarnation | Beta |

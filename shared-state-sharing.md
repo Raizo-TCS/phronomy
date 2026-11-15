@@ -102,8 +102,9 @@ argument to the default `read_store` Tool or a search method to that store.
 The public `Agent::Base.with_tools(definitions, id:, version:)` factory creates
 an Agent subclass with a replacement Tool map and an explicit definition
 identity. Agent owns preservation of its authoring settings; SharedState uses
-this public operation after composing the member and application Tools. It does
-not need to read Agent private settings.
+this public operation after composing the member Tools with either its built-in
+sharing Tools or the application's Tools. It does not need to read Agent private
+settings.
 
 For example, inside the complete example's module, a provider can supply the
 entire Tool map for a derived researcher class:
@@ -131,6 +132,13 @@ The original class is unchanged. This explicit factory does not change general
 Agent subclass inheritance or define copying rules for application-specific
 class state.
 
+The default findings-store mode now preserves these settings through the same
+factory. For example, a member configured with `max_iterations 3` and
+`temperature 0.25` keeps those settings when SharedState adds `read_store` and
+`write_finding`. Member Tool aliases, the generated definition identity and the
+default store/prompt behavior remain unchanged. This fixes the earlier default
+derivation, which explicitly copied only the model setting.
+
 ## Application search and LLM input
 
 Application Tools own record fields and search conditions. ContextPolicy and the
@@ -151,8 +159,10 @@ explicitly through the existing appropriate contracts.
 SharedState continues to use the member's configured ContextPolicy. The binding
 does not automatically populate `before_llm_input` candidates, inspect Context
 internals or manage a provider message buffer. Example 22's adaptive reader is a
-separate application implementation; this extension alone does not migrate it
-or remove its existing private-API dependency.
+separate application implementation. Its current version uses the public sharing
+contract and Context budgeting APIs introduced in v0.33.0; its previous private
+overrides have been removed. The application still owns adaptive retrieval and
+budget allocation rather than delegating those policies to the sharing binding.
 
 ## Lifetime and verification
 

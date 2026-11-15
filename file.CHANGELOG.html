@@ -67,6 +67,48 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>Route ContextPolicy item estimates directly through the protected
+<code>estimate_tokens</code> extension operation, removing the redundant private wrapper.</li>
+<li>Exercise Tool approval redaction through the display/snapshot path used by
+production approval requests instead of internal convenience getters.</li>
+<li>Replace references to an absent repository language-check script with an
+external maintainer check and recorded evidence. Correct the Storage phase
+status: P4 is implemented; the separate final P5 review remains pending.</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Derive default SharedState members through <code>Agent::Base.with_tools</code>, retaining
+Phronomy authoring settings and filters as custom sharing already does. A
+member's iteration limit, temperature and other configuration no longer reset
+when built-in sharing Tools are added. Preserve Tool aliases, the generated
+definition identity and default findings-store behavior.</li>
+</ul>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li>Remove Handoff's old selection-unit metadata fallback and Agent Store's raw
+argument fallback. Current conversation groups and exact validated arguments
+remain the authoritative saved facts; current record writers are unchanged.</li>
+<li>Retire <code>Persistence::Migration::InitialFormatMigration</code> and the old
+GeneratorVerifier Result JSON conversion command, including their dedicated
+migration tests and active usage instructions. No replacement converter or
+compatibility entry point is supplied. Current codecs, Result validation and
+the separate Unit4 snapshot migration remain. See the
+<a href="docs/migrations/legacy-format-removal.md">legacy-format cleanup</a>.</li>
+<li>Remove <code>Runtime::ShutdownResult#success?</code>; use the equivalent
+<code>cleanup_complete?</code>. Keep <code>clean?</code>, which additionally requires a graceful
+shutdown.</li>
+<li>Remove the obsolete <code>SchedulerReentrancyError</code> subclass; use
+<code>EventLoopReentrancyError</code>, which is already raised by current execution paths.
+No compatibility aliases are retained. See the
+<a href="docs/migrations/cleanup-audit.md">cleanup migration</a>.</li>
+<li>Remove unused internal Invocation, RecoveryRules and Execution helpers, along
+with five completed development-only spec migration scripts. Keep the public
+<code>JournalProjection#llm_call_records</code> and
+<code>LLMInputManifest#referenced_content_refs</code> operations and the Scope hooks still
+used for result composition.</li>
+</ul>
 <h2 id="_0_33_0____2026_11_14">[0.33.0] - 2026-11-14</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1168,7 +1210,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 14 12:27:02 2026 by
+  Generated on Sun Nov 15 16:33:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

@@ -314,28 +314,6 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#__cancellation_token-instance_method" title="#__cancellation_token (instance method)">#<strong>__cancellation_token</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#__open%3F-instance_method" title="#__open? (instance method)">#<strong>__open?</strong>  &#x21d2; Boolean </a>
     
 
@@ -351,28 +329,6 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#__while_open-instance_method" title="#__while_open (instance method)">#<strong>__while_open</strong>(&amp;block)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Scope/admission hooks shared with framework-owned operations.</p></div></span>
   
 </li>
 
@@ -954,58 +910,15 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-147
-148
-149</pre>
+136
+137
+138</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 147</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 136</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___cancellation_error'>__cancellation_error</span>
   <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid___cancellation_error'>__cancellation_error</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="__cancellation_token-instance_method">
-  
-    #<strong>__cancellation_token</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-142
-143
-144</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 142</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid___cancellation_token'>__cancellation_token</span>
-  <span class='ivar'>@token</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1053,58 +966,15 @@ that JOB; its application-defined intermediate work is not discovered here.</p>
       <pre class="lines">
 
 
-137
-138
-139</pre>
+131
+132
+133</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 137</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 131</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___open?'>__open?</span>
   <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid___open?'>__open?</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="__while_open-instance_method">
-  
-    #<strong>__while_open</strong>(&amp;block)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Scope/admission hooks shared with framework-owned operations.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-132
-133
-134</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/execution/execution.rb', line 132</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid___while_open'>__while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@scope</span><span class='period'>.</span><span class='id identifier rubyid___while_open'>__while_open</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1311,7 +1181,7 @@ this execution's cancellation without mutating either original token.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Nov 14 12:27:04 2026 by
+  Generated on Sun Nov 15 16:33:26 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
