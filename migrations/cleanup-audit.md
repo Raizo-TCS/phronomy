@@ -1,6 +1,6 @@
 # Cleanup audit migration
 
-This cleanup removes redundant internal operations and old public entry points
+Phronomy 0.34.0 removes redundant internal operations and old public entry points
 whose behavior is already provided by a current operation. Applications must
 use the current names; the removed names have no compatibility aliases. Current
 record writers are unchanged. The subsequent [legacy-format cleanup](legacy-format-removal.md)

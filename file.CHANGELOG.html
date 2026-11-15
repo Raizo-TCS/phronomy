@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_34_0____2026_11_16">[0.34.0] - 2026-11-16</h2>
 <h3 id="Changed">Changed</h3>
 <ul>
 <li>Route ContextPolicy item estimates directly through the protected
@@ -108,6 +109,24 @@ with five completed development-only spec migration scripts. Keep the public
 <code>JournalProjection#llm_call_records</code> and
 <code>LLMInputManifest#referenced_content_refs</code> operations and the Scope hooks still
 used for result composition.</li>
+</ul>
+<h3 id="Compatibility_and_verification">Compatibility and verification</h3>
+<ul>
+<li>Replace <code>Runtime::ShutdownResult#success?</code> with <code>cleanup_complete?</code> and rescue
+<code>EventLoopReentrancyError</code> instead of the removed <code>SchedulerReentrancyError</code>.
+No compatibility aliases are retained. See the
+<a href="docs/migrations/cleanup-audit.md">cleanup migration</a>.</li>
+<li>Historical pre-S3 and GeneratorVerifier Result conversion support is retired
+without a replacement command. Current record writers and saved representation
+are unchanged; this release does not rewrite existing stores. Handoff no longer
+derives groups from old selection-unit metadata, and authorization requires
+validated argument evidence. Review the
+<a href="docs/migrations/legacy-format-removal.md">legacy-format migration</a> before
+upgrading applications that still consume those historical records.</li>
+<li>Previously observed LM Studio/gpt-oss PEG-format failures are not resolved by
+this cleanup. This release does not claim to fix their root cause or prevent
+recurrence; offline persistence/recovery checks do not establish full real-LLM
+acceptance.</li>
 </ul>
 <h2 id="_0_33_0____2026_11_14">[0.33.0] - 2026-11-14</h2>
 <h3 id="Added">Added</h3>
@@ -1210,7 +1229,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Nov 15 16:33:24 2026 by
+  Generated on Sun Nov 15 17:05:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
