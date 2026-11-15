@@ -1,6 +1,6 @@
 # Legacy-format cleanup
 
-This cleanup keeps current saved facts and removes specific historical read
+Phronomy 0.34.0 keeps current saved facts and removes specific historical read
 fallbacks and conversion facilities. It does not rewrite stores or introduce a
 new record version. Retiring the conversion facilities is an intentional removal
 of migration support, not a claim that another public API replaces them.

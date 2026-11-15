@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-11-16
+
 ### Changed
 
 - Route ContextPolicy item estimates directly through the protected
@@ -53,6 +55,24 @@ Release history for 0.14.0 and earlier is archived in
   `JournalProjection#llm_call_records` and
   `LLMInputManifest#referenced_content_refs` operations and the Scope hooks still
   used for result composition.
+
+### Compatibility and verification
+
+- Replace `Runtime::ShutdownResult#success?` with `cleanup_complete?` and rescue
+  `EventLoopReentrancyError` instead of the removed `SchedulerReentrancyError`.
+  No compatibility aliases are retained. See the
+  [cleanup migration](docs/migrations/cleanup-audit.md).
+- Historical pre-S3 and GeneratorVerifier Result conversion support is retired
+  without a replacement command. Current record writers and saved representation
+  are unchanged; this release does not rewrite existing stores. Handoff no longer
+  derives groups from old selection-unit metadata, and authorization requires
+  validated argument evidence. Review the
+  [legacy-format migration](docs/migrations/legacy-format-removal.md) before
+  upgrading applications that still consume those historical records.
+- Previously observed LM Studio/gpt-oss PEG-format failures are not resolved by
+  this cleanup. This release does not claim to fix their root cause or prevent
+  recurrence; offline persistence/recovery checks do not establish full real-LLM
+  acceptance.
 
 ## [0.33.0] - 2026-11-14
 
