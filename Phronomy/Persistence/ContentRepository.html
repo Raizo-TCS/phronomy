@@ -111,7 +111,8 @@
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
 <p>Domain-facing content access uses the Persistence failure vocabulary.
-ContentStore implementations retain their independent backend contract.</p>
+ContentStore remains a content service over neutral Storage; this facade
+translates known Storage failures without selecting a physical backend.</p>
 
   </div>
 </div>
@@ -270,12 +271,12 @@ ContentStore implementations retain their independent backend contract.</p>
       <pre class="lines">
 
 
-9
 10
-11</pre>
+11
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_store'>store</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span> <span class='op'>=</span> <span class='id identifier rubyid_store'>store</span>
@@ -333,12 +334,12 @@ ContentStore implementations retain their independent backend contract.</p>
       <pre class="lines">
 
 
-21
 22
-23</pre>
+23
+24</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_exist?'>exist?</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="StorageBoundary.html" title="Phronomy::Persistence::StorageBoundary (module)">StorageBoundary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="StorageBoundary.html#call-class_method" title="Phronomy::Persistence::StorageBoundary.call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_exist?'>exist?</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -376,12 +377,12 @@ ContentStore implementations retain their independent backend contract.</p>
       <pre class="lines">
 
 
-17
 18
-19</pre>
+19
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="StorageBoundary.html" title="Phronomy::Persistence::StorageBoundary (module)">StorageBoundary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="StorageBoundary.html#call-class_method" title="Phronomy::Persistence::StorageBoundary.call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_content_id'>content_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -419,12 +420,12 @@ ContentStore implementations retain their independent backend contract.</p>
       <pre class="lines">
 
 
-13
 14
-15</pre>
+15
+16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence/content_repository.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_put'>put</span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='comma'>,</span> <span class='label'>canonicalization_version:</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="StorageBoundary.html" title="Phronomy::Persistence::StorageBoundary (module)">StorageBoundary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="StorageBoundary.html#call-class_method" title="Phronomy::Persistence::StorageBoundary.call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_put'>put</span><span class='lparen'>(</span><span class='id identifier rubyid_bytes'>bytes</span><span class='comma'>,</span> <span class='label'>canonicalization_version:</span> <span class='id identifier rubyid_canonicalization_version'>canonicalization_version</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -439,7 +440,7 @@ ContentStore implementations retain their independent backend contract.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Nov 15 17:05:24 2026 by
+  Generated on Mon Nov 16 14:46:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

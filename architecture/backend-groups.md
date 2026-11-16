@@ -35,17 +35,28 @@ contracts and implementations have no Engine dependencies. See the
 
 ### P2: LLM
 
+The LLM contract owns a model turn's inputs, results and validation; its backend
+owns provider construction and translation. The execution client schedules the
+complete synchronous operation through Execution.
+
+For example, Agent supplies an `LLMAdapter::Request` to the internal client.
+The selected backend creates its SDK objects inside `perform_complete`, and
+Base validates the returned `LLMAdapter::Response` before Agent consumes it.
+
 - Install the AST analyzer, group annotations, SVG formatter and boundary gate
   in `tools/architecture/`. The Architecture workflow checks the committed
   phase and generates evidence for its actual checkout SHA.
-- `LLMAdapter::Base` now defines synchronous generation plus chat construction,
-  configuration, message/tool-call values, identity and optional input budget.
-  RubyLLM-specific construction and error translation belong to its backend.
-  Adapter extensions must implement the new operations; no legacy wrapper remains.
+- `LLMAdapter::Base` defines synchronous `complete` and `stream` templates,
+  identity and optional input budget. Backend extensions implement protected
+  `perform_complete` and `perform_stream`; SDK chat construction, configuration
+  and value translation stay private to the backend. The original P2 SPI was
+  replaced by [ADR-066](../decisions/066-llm-and-tool-operation-contracts.md)
+  and the [unit 6 migration](../migrations/r8-unit6.md).
 - `LLMAdapter::AsyncClient` owns the internal `complete_async` and `stream_async`
   operations in `llm_adapter/async/`. It is not a public extension API.
-- `LLMAdapter::RubyLLM` lives in `llm_adapter/backends/` and still inherits Base.
-  Its public name, synchronous signatures and default configuration are unchanged.
+- `LLMAdapter::RubyLLM` lives in `llm_adapter/backends/` and inherits Base.
+  Its public constant and default-provider role remain; the current signatures
+  use the typed operation contract introduced after the original P2 move.
 - Zeitwerk collapses these two new directories. Neither `Phronomy::Async` nor
   `LLMAdapter::Async` / `LLMAdapter::Backends` is introduced.
 - Agent constructs the framework client around the configured synchronous
@@ -55,39 +66,61 @@ The client preserves `on_full: :raise`, the original pool TaskResult, token
 forwarding and per-chunk cancellation. Transport timeout/retry stays with the
 adapter/provider. Construction starts no Runtime, and the default pool is
 resolved again on each operation; an injected pool stays caller-owned. Only an
-internal lightweight sink runs on the worker; application event callbacks
+internal lightweight sink runs on the worker; Agent application event callbacks
 continue to run on EventLoop.
 
 Use `require "phronomy"` and the public constants. The old implementation path
 `phronomy/llm_adapter/ruby_llm` moves to
 `phronomy/llm_adapter/backends/ruby_llm`; arbitrary partial-load paths are not the
 public loading contract. No shim in the contract directory reintroduces an
-implementation dependency. No public RBS or Stable/Beta API snapshot changes
-are needed in this phase; both are verified unchanged.
+implementation dependency. The original P2 source move left public RBS and the
+Stable/Beta snapshot unchanged. The subsequent unit 6 SPI replacement updates
+both; that historical P2 result is not a promise about the current signatures.
 
 ### P3: VectorStore and Embeddings
 
+Vector and embedding contracts own synchronous operation rules; their clients
+add submission and completion without selecting a provider. Backends implement
+protected hooks behind the inherited public validation templates.
+
+For example, `Embeddings::AsyncClient#embed_async` submits `Base#embed`, which
+validates text, calls `perform_embed`, and validates the returned vector. The
+application can use that vector in a separate VectorStore operation.
+
 - `VectorStore::AsyncClient` owns public add/search/remove/clear async operations;
-  `VectorStore::Embeddings::AsyncClient` owns public `embed_async`.
+  `Embeddings::AsyncClient` owns public `embed_async`.
 - Backends implement only synchronous methods. The old `AsyncBackend` mixin
   and inherited async methods are removed; application callers change receiver.
-- InMemory, Pgvector, RedisSearch and RubyLLMEmbeddings move into `backends/`
-  directories. Their public constants, synchronous signatures and bodies stay
-  unchanged. Zeitwerk explicitly collapses the new `async/` and `backends/` paths.
+- InMemory, Pgvector, RedisSearch and RubyLLMEmbeddings use `backends/`
+  directories. The original P3 relocation preserved their bodies; subsequent
+  [ADR-065](../decisions/065-vector-and-embeddings-common-operations.md) added
+  common operation templates and the independent `Embeddings` namespace.
+  See the [unit 5 migration](../migrations/r8-unit5.md) for the current SPI.
+  Zeitwerk collapses `async/` and `backends/` paths within each feature.
 - Synchronous RBS uses structural `_CancellationSignal`; async signatures keep
   TaskResult and the execution token. The public API snapshot records the new
   receivers and the intentional removals from Base/InMemory.
-- All three original backend-to-Engine edges are removed. In the measured view,
-  M28/M29 join G47 Contracts in B5. M67/M68 are clients in B4 and M71/M72 are
-  separately grouped implementations. No pending Storage clients are drawn.
+- All three original backend-to-Engine edges are removed. In the current
+  annotated view, M28/M83 belong to G47 Contracts in B5. M67/M86 are clients in
+  B4 and M71/M87 are separately grouped implementations. The old nested
+  Embeddings module IDs are retired; no pending Storage clients are drawn.
 
 ### P4: Storage execution
 
+Raw transaction submission and domain persistence work have different owners.
+The Storage client schedules a backend transaction; a domain execution
+environment schedules the domain's existing operation through Execution.
+
+For example, a raw notes write uses `Storage::AsyncClient#transaction_async`.
+An Agent terminal commit instead uses its Agent execution environment and keeps
+commit/readback reconciliation in the Agent operation.
+
 - Public `Storage::AsyncClient#transaction_async` opens the raw backend transaction
   on a worker and yields its scoped Storage::View. Backends stay synchronous.
-- Private `Storage::AsyncClient.submit(pool:)` executes existing domain units
-  without adding a transaction, timeout or token. All 16 durable submission sites
-  are recorded in the [execution inventory](storage-execution-boundaries.md).
+- Domain units use their execution environments or `Execution.submit` directly,
+  without a Storage forwarding helper or an extra transaction, timeout or token.
+  The [execution inventory](storage-execution-boundaries.md) records 14 current
+  submission sites in its six source files; it is not a framework-wide count.
 - M69 is an Async Client and M35 a concrete Storage backend in B4.
   Existing `Storage::Backends` is not collapsed.
 - See the [public API and transaction rules](../migrations/storage-async-client.md).
@@ -123,9 +156,26 @@ The recorded graph is not an ideal final r8 diagram.
 ## Pending phase
 
 P5 completes the final cross-repository/API/docs review after application.
+The current candidate aligns public composition, async input declarations and
+active guidance with the implemented responsibilities. It removes the unused
+private Storage submission helper and the obsolete callback-test placeholder.
+
+For example, the optional SQL package now obtains its canonical declarations
+through `PersistenceComposition.resources`, then supplies the existing table
+mappings and backend to composition. Agent-only backends use `agent_resources`.
+Neither catalog selects a backend or starts execution.
+
+The published 0.34.0 gem does not contain these catalog operations. Matching
+source checkouts can be tested together, but P5 remains pending until a core
+release containing the operations is published, all examples dependencies are
+resolved against that release, and the applied commits pass their CI checks.
+Do not use a private fallback or claim published-gem acceptance from a path
+bundle. `phase.json` records this candidate and its remaining acceptance gates.
+
 All retained P2-P4 responsibilities exist in source; the unnecessary M73 split
 is superseded by G57 service ownership. The measured SVG still comes from
 actual Ruby analysis; the target concept is a separate explanatory artifact.
+Completing P5 does not close every r8 pending scope.
 
 ## Regenerate and review
 

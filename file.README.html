@@ -95,7 +95,9 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following table describes the application APIs available in v0.34.0.
+<p>The following table describes the application APIs available in v0.34.0, plus
+explicitly marked Unreleased additions. Unreleased APIs require a checkout
+containing their implementation; they are not provided by the published 0.34.0 gem.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
 Worker hosting and completed parent/child release require v0.32.0 or later.
@@ -118,6 +120,11 @@ the current saved representation.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>PersistenceComposition.resources</code> and <code>.agent_resources</code></td>
+<td>Beta (Unreleased)</td>
+<td>Supply canonical frozen resource catalogs to an application-selected backend for <code>.build(backend:)</code> or <code>.agent(backend:)</code>, without creating a backend, stores or Runtime. <a href="docs/persistence-backends.md#supplying-a-backend-catalog">Backend catalog</a></td>
+</tr>
 <tr>
 <td><code>Persistence::Migration::InitialFormatMigration</code></td>
 <td>Removed (v0.34.0)</td>
@@ -385,7 +392,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Nov 15 17:05:17 2026 by
+  Generated on Mon Nov 16 14:46:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

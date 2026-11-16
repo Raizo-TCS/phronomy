@@ -55,8 +55,9 @@ rather than implicitly inheriting the parent revision. The Stable
 | **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`, selected per LLM call by Context Policy | Beta |
 | **`VectorStore#size`** — Document count for InMemory, RedisSearch, and Pgvector backends | Beta |
 | **Storage::AsyncClient** — `transaction_async` runs a raw backend transaction on one worker and returns TaskResult; [usage and lifetime rules](migrations/storage-async-client.md) | Beta |
+| **PersistenceComposition resource catalogs** — Unreleased `resources` / `agent_resources` expose canonical frozen declarations for full or Agent-only backend construction; [ownership and example](persistence-backends.md#supplying-a-backend-catalog) | Beta |
 | **VectorStore::AsyncClient** — `add_async` / `search_async` / `remove_async` / `clear_async` offload the synchronous Backend SPI through Phronomy and return `TaskResult`; native async override is not part of the current Backend SPI | Beta |
-| **VectorStore::Embeddings::AsyncClient** — `embed_async` offloads synchronous `embed` through Phronomy and returns `TaskResult` | Beta |
+| **Embeddings::AsyncClient** — `embed_async` offloads synchronous `embed` through Phronomy and returns `TaskResult` | Beta |
 | **Model Context Protocol (MCP) Tool** — `Phronomy::Tools::Mcp` integration through the official `mcp` gem | Beta |
 | **Agent Tool** — `Phronomy::Tools::Agent.from_agent` exposes a child Agent as a Tool without occupying a worker while waiting | Beta |
 | **Ordered event delivery** — Explicitly require `Phronomy::Integrations::OrderedEventDelivery` for bounded ordered delivery outside lifecycle callbacks; [lifetime and failure rules](ordered-event-delivery.md) | Beta |
