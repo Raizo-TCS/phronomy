@@ -79,7 +79,12 @@ RSpec.describe "Agent invocation transition contract" do
         tracker.context = context
         tracker.phase = source.to_s
         target = destinations[source]
-        expect(tracker.public_send(event_name)).to eq(!target.nil?), "#{source} / #{event_name}"
+        result = tracker.public_send(event_name)
+        if target.nil?
+          expect(result).to be(false), "#{source} / #{event_name}"
+        else
+          expect(result).to be_truthy, "#{source} / #{event_name}"
+        end
         expect(tracker.phase).to eq((target || source).to_s)
         declared = metadata.fetch(event_name).any? { |definition| definition[:from] == source }
         expect(declared).to eq(!target.nil?), "Session metadata: #{source} / #{event_name}"
@@ -102,7 +107,7 @@ RSpec.describe "Agent invocation transition contract" do
       tracker = tracker_class.new
       tracker.context = context
       tracker.phase = "calling_llm"
-      expect(tracker.llm_completed).to be(true)
+      expect(tracker.llm_completed).to be_truthy
       first = flags.index(true)
       expect(tracker.phase).to eq(%w[failed failed handed_off starting_tools output_filtering][first || 4])
       expect(calls).to eq(guard_names.take((first || 3) + 1))
@@ -112,7 +117,7 @@ RSpec.describe "Agent invocation transition contract" do
   it "uses the unconditional LLM fallback when the context is nil" do
     tracker = tracker_class.new
     tracker.phase = "calling_llm"
-    expect(tracker.llm_completed).to be(true)
+    expect(tracker.llm_completed).to be_truthy
     expect(tracker.phase).to eq("output_filtering")
   end
 

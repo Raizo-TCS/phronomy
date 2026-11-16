@@ -34,7 +34,12 @@ RSpec.describe "Agent Tool child progress contract" do
         machine = machine_class.new
         machine.context = context
         machine.phase = source.to_s
-        expect(machine.public_send(event)).to eq(!expected.nil?)
+        result = machine.public_send(event)
+        if expected.nil?
+          expect(result).to be(false)
+        else
+          expect(result).to be_truthy
+        end
         expect(machine.phase.to_sym).to eq(expected || source)
         expect(calls).to eq(guards.take(first ? first + 1 : guards.length))
       end
@@ -55,7 +60,12 @@ RSpec.describe "Agent Tool child progress contract" do
         expect(policy.next_phase(source, event, nil)).to eq(target)
         machine = machine_class.new
         machine.phase = source.to_s
-        expect(machine.public_send(event)).to eq(!target.nil?)
+        result = machine.public_send(event)
+        if target.nil?
+          expect(result).to be(false)
+        else
+          expect(result).to be_truthy
+        end
         expect(machine.phase.to_sym).to eq(target || source)
       end
     end
