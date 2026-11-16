@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_35_0____2026_11_17">[0.35.0] - 2026-11-17</h2>
 <h3 id="Added">Added</h3>
 <ul>
 <li>Add public Beta <code>PersistenceComposition.resources</code> and <code>.agent_resources</code> for
@@ -76,6 +77,11 @@ creating backends, stores or Runtime. The internal StorageSchema stays private.<
 </ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
+<li>Correct dependency-generated state-machine success assertions for both boolean
+and Transition return values. Refusal remains exactly false, and destination,
+guard order, exception and approval/resume checks remain intact. The existing
+execution boundary already normalizes successful values; product behavior and
+dependency requirements are unchanged.</li>
 <li>Align VectorStore AsyncClient RBS input types with the synchronous public
 operations: Numeric vectors and Integer or decimal String search limits.</li>
 <li>Correct current Embeddings names, LLM extension ownership, Execution client
@@ -88,6 +94,19 @@ rationale as explicitly historical.</li>
 <li>Remove the unused private <code>Storage::AsyncClient.submit</code> forwarding helper.
 Domain operations already submit through their execution environments or
 Execution; public <code>transaction_async</code> and its transaction behavior are retained.</li>
+</ul>
+<h3 id="Compatibility_and_verification">Compatibility and verification</h3>
+<ul>
+<li>External persistence backend integrations can use the public resource catalogs
+starting with v0.35.0 instead of reading private StorageSchema declarations.
+Composition owns the canonical catalog; integrations retain backend mapping
+and connection ownership. Resource identity, current saved formats, public
+transaction behavior and domain recovery policies are unchanged.</li>
+<li>VectorStore input type declarations now describe inputs already accepted by
+synchronous operations; this does not add coercion or change search behavior.</li>
+<li>This release does not resolve the root cause of previously observed
+LM Studio/gpt-oss PEG-format failures or claim to prevent recurrence.
+Published-gem examples acceptance remains separate from core verification.</li>
 </ul>
 <h2 id="_0_34_0____2026_11_16">[0.34.0] - 2026-11-16</h2>
 <h3 id="Changed">Changed</h3>
@@ -1251,7 +1270,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Nov 16 14:46:51 2026 by
+  Generated on Mon Nov 16 14:53:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
