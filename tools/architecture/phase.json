@@ -143,5 +143,26 @@
       "MultiAgent default persistence composition and full semantic dependency review",
       "Live provider and additional persistence acceptance gates"
     ]
+  },
+  "p5_review": {
+    "status": "implementation_candidate_pending_published_acceptance",
+    "baseline_core_commit": "e0c50c8a5cc6c7237ef27cd7db88c071419f4118",
+    "baseline_examples_commit": "157d5405f6827ecbcc0de3004764f9445e135a32",
+    "candidate_scope": [
+      "Public PersistenceComposition resource catalogs and optional SQL consumer",
+      "Async VectorStore input type alignment",
+      "Current documentation and Contract summary reconciliation",
+      "Unused private Storage submission helper removal",
+      "Obsolete callback placeholder removal"
+    ],
+    "pending_acceptance": [
+      "Apply and review the core candidate, then publish a release containing both catalog operations",
+      "Resolve all examples bundles against that published gem and confirm version, source and catalog behavior",
+      "Verify CI at the applied core/examples commits before moving P5 to completed_steps"
+    ],
+    "limits": [
+      "Paired-source verification is not published-gem acceptance",
+      "P5 completion is independent of other r8 pending_scope entries"
+    ]
   }
 }

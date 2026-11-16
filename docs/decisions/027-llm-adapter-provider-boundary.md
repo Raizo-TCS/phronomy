@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted
+Accepted; the SDK-shaped input and materialization provisions below are
+superseded by [ADR-066](066-llm-and-tool-operation-contracts.md). The synchronous
+provider boundary, default RubyLLM integration and provider-owned transport
+policy remain. For example, current adapters receive `LLMAdapter::Request`
+values and implement protected operation hooks; they no longer receive an
+Agent-constructed SDK chat. The materializer description below records the
+earlier boundary rather than the current extension SPI.
 
 ## Context
 

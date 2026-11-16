@@ -12,6 +12,8 @@ module Phronomy
       def self.convert: (Hash[String, json_value] snapshot, quiescent: bool) -> Hash[String, json_value]
     end
 
+    def self.resources: () -> Array[Storage::Resource]
+    def self.agent_resources: () -> Array[Storage::Resource]
     def self.agent: (?backend: _StorageBackend?) -> Agent::Store
     def self.build: (backend: _StorageBackend) -> Stores
     def self.in_memory: () -> Stores

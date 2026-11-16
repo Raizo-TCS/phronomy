@@ -55,6 +55,7 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Runnable,
   Phronomy::Context::PromptTemplate,
   # Beta
+  Phronomy::PersistenceComposition,
   Phronomy::Tool::Schema,
   Phronomy::Tool::CallRequest,
   Phronomy::Tool::Operation,
@@ -112,8 +113,7 @@ def snapshot_entry(klass)
     else []
     end
     instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS - internal_methods).sort
-    internal_class_methods = (klass == Phronomy::Storage::AsyncClient) ? %i[submit] : []
-    class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS - internal_class_methods).sort
+    class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS).sort
     {
       "name" => klass.name,
       "type" => "class",

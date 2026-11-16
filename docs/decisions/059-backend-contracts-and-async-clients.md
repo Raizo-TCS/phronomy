@@ -11,6 +11,15 @@ ContentStore's classification and directory split are superseded by
 Storage, outside Backend Contracts and Backend Implementations. The other
 contract/client/backend separations remain in force.
 
+Later contracts refine the client connection and LLM extension points without
+merging their responsibilities. [r8 unit 1](../architecture/r8-unit1.md) places
+submission behind Execution, and
+[ADR-066](066-llm-and-tool-operation-contracts.md) replaces the SDK-shaped LLM
+SPI with typed model-turn operations. For example, the LLM client submits a
+Request through Execution; the backend constructs its SDK chat inside a protected
+hook. Earlier claims about unchanged P2 signatures and RubyLLMMaterializer
+below are historical and do not define the current SPI.
+
 ## Context
 
 The synchronous LLMAdapter SPI and its RubyLLM implementation shared a directory
@@ -35,8 +44,10 @@ Numbered diagram bands also implied an ordering between independent concerns.
    collapse to retain feature namespaces. Do not make a common Async namespace,
    add a Base-to-client factory, or install an include/prepend compatibility hook.
 4. Implementations depend on Contracts. Contracts and implementations do not
-   reference Engine or clients; clients use Contracts and Engine through normal
-   constant references or object injection, without selecting concrete providers.
+   reference Engine or clients. Under the current Execution amendment, clients
+   use Backend and Execution contracts without directly referencing Engine or
+   selecting concrete providers. Engine implements the execution mechanism
+   chosen by composition.
 5. Preserve original TaskResult, non-waiting admission failure, token semantics,
    no additional operation timeout, provider-owned retries and EventLoop callback
    delivery. Resolve the default pool at operation time; do not cache it across
@@ -51,8 +62,9 @@ The vector/embedding SPI and namespace clauses are amended by
 ## Consequences
 
 This supersedes the remaining LLM Base-to-Runtime coupling described in ADR-040.
-ADR-027's synchronous public provider-call boundary and materialization caveat
-still apply: this change does not make RubyLLMMaterializer provider-neutral.
+The original P2 change retained ADR-027's synchronous provider-call boundary and
+its then-SDK-shaped materialization caveat. ADR-066 later replaced that
+materialization and extension SPI; the synchronous provider boundary remains.
 P2 keeps the LLM client internal. P3 introduces public VectorStore/Embeddings
 AsyncClients and moves async receivers off the synchronous backends. Their
 argument conventions and execution semantics are unchanged; the receiver

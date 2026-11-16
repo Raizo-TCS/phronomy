@@ -175,32 +175,4 @@ RSpec.describe Phronomy::Storage::AsyncClient do
       end
     end
   end
-
-  describe "internal synchronous storage submission" do
-    let(:pool) { Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 2) }
-    after { pool.shutdown(drain_timeout: 2) }
-
-    it "submits exactly once without wrapping existing work in another transaction" do
-      backend = sync_backend
-      expect(backend).to receive(:transaction).once.and_call_original
-      original = nil
-      expect(pool).to receive(:submit).once.with(on_full: :raise).and_wrap_original do |method, **options, &work|
-        original = method.call(**options, &work)
-      end
-      task = described_class.submit(pool: pool) { backend.transaction { :saved } }
-      expect(task).to equal(original)
-      expect(task.wait_result(timeout: 2)).to eq(:saved)
-    end
-
-    it "keeps commit-response loss as the original error and leaves reconciliation to the owner" do
-      backend = sync_backend
-      response_lost = IOError.new("commit response lost")
-      expect(backend).to receive(:transaction).once.and_wrap_original do |method, &work|
-        method.call(&work)
-        raise response_lost
-      end
-      task = described_class.submit(pool: pool) { backend.transaction { :saved } }
-      expect { task.wait_result(timeout: 2) }.to raise_error { |error| expect(error).to equal(response_lost) }
-    end
-  end
 end

@@ -73,11 +73,12 @@ RSpec.describe Phronomy::VectorStore::AsyncClient do
       expect(client.clear_async(cancellation_token: token).wait_result(timeout: 2)).to eq(:cleared)
     end
 
-    it "works with the unchanged InMemory synchronous backend" do
+    it "accepts Numeric vectors and a decimal String limit through the synchronous contract" do
       store = Phronomy::VectorStore::InMemory.new(dimension: 2)
       instance = described_class.new(backend: store, pool: pool)
-      instance.add_async(id: "a", embedding: [1.0, 0.0], metadata: {text: "hello"}).wait_result(timeout: 2)
-      expect(instance.search_async(query_embedding: [1.0, 0.0], k: 1).wait_result(timeout: 2).first[:id]).to eq("a")
+      expect(instance.add_async(id: "a", embedding: [1, 0], metadata: {text: "hello"}).wait_result(timeout: 2)).to equal(store)
+      results = instance.search_async(query_embedding: [1, 0], k: "08").wait_result(timeout: 2)
+      expect(results).to eq([{id: "a", score: 1.0, metadata: {text: "hello"}}])
       instance.remove_async(id: "a").wait_result(timeout: 2)
       expect(store.size).to eq(0)
       instance.clear_async.wait_result(timeout: 2)

@@ -12,6 +12,28 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Added
+
+- Add public Beta `PersistenceComposition.resources` and `.agent_resources` for
+  constructing external backends with the canonical full or Agent-only resource
+  catalog. Both return frozen Arrays of existing Resource objects without
+  creating backends, stores or Runtime. The internal StorageSchema stays private.
+
+### Fixed
+
+- Align VectorStore AsyncClient RBS input types with the synchronous public
+  operations: Numeric vectors and Integer or decimal String search limits.
+- Correct current Embeddings names, LLM extension ownership, Execution client
+  boundaries and the 14-site domain persistence submission inventory. Distinguish
+  neutral coordinator scopes from domain transactions and retain superseded ADR
+  rationale as explicitly historical.
+
+### Removed
+
+- Remove the unused private `Storage::AsyncClient.submit` forwarding helper.
+  Domain operations already submit through their execution environments or
+  Execution; public `transaction_async` and its transaction behavior are retained.
+
 ## [0.34.0] - 2026-11-16
 
 ### Changed
