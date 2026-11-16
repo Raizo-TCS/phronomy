@@ -12,6 +12,13 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid repeated state declaration checks when dispatching a compiled Workflow's
+  automatic completion event. Guards, callbacks, external-event handling and the
+  generic FSMSession contract are unchanged; no application API or dependency
+  requirement changes are needed.
+
 ## [0.35.0] - 2026-11-17
 
 ### Added

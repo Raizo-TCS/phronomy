@@ -98,6 +98,12 @@ module Phronomy
 
           before_transition(&transition_callback)
         end
+
+        # Dispatch the compiled automatic event without reopening its declaration.
+        # Resolve through the receiver's class so inherited machines stay isolated.
+        def state_completed(*args, **kwargs)
+          self.class.state_machine(:phase).events.fetch(:state_completed).fire(self, *args, **kwargs)
+        end
       end
     rescue => error
       raise ArgumentError, "Failed to build phase machine: #{error.message}"
