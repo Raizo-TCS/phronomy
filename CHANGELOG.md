@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-17
+
 ### Added
 
 - Add public Beta `PersistenceComposition.resources` and `.agent_resources` for
@@ -21,6 +23,11 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Correct dependency-generated state-machine success assertions for both boolean
+  and Transition return values. Refusal remains exactly false, and destination,
+  guard order, exception and approval/resume checks remain intact. The existing
+  execution boundary already normalizes successful values; product behavior and
+  dependency requirements are unchanged.
 - Align VectorStore AsyncClient RBS input types with the synchronous public
   operations: Numeric vectors and Integer or decimal String search limits.
 - Correct current Embeddings names, LLM extension ownership, Execution client
@@ -33,6 +40,19 @@ Release history for 0.14.0 and earlier is archived in
 - Remove the unused private `Storage::AsyncClient.submit` forwarding helper.
   Domain operations already submit through their execution environments or
   Execution; public `transaction_async` and its transaction behavior are retained.
+
+### Compatibility and verification
+
+- External persistence backend integrations can use the public resource catalogs
+  starting with v0.35.0 instead of reading private StorageSchema declarations.
+  Composition owns the canonical catalog; integrations retain backend mapping
+  and connection ownership. Resource identity, current saved formats, public
+  transaction behavior and domain recovery policies are unchanged.
+- VectorStore input type declarations now describe inputs already accepted by
+  synchronous operations; this does not add coercion or change search behavior.
+- This release does not resolve the root cause of previously observed
+  LM Studio/gpt-oss PEG-format failures or claim to prevent recurrence.
+  Published-gem examples acceptance remains separate from core verification.
 
 ## [0.34.0] - 2026-11-16
 

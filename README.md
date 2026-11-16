@@ -37,9 +37,8 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following table describes the application APIs available in v0.34.0, plus
-explicitly marked Unreleased additions. Unreleased APIs require a checkout
-containing their implementation; they are not provided by the published 0.34.0 gem.
+The following table describes the application APIs available in v0.35.0.
+The public persistence resource catalogs are available starting with v0.35.0.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
 Worker hosting and completed parent/child release require v0.32.0 or later.
@@ -57,7 +56,7 @@ the current saved representation.
 
 | API | Stability | Contract |
 |---|---|---|
-| `PersistenceComposition.resources` and `.agent_resources` | Beta (Unreleased) | Supply canonical frozen resource catalogs to an application-selected backend for `.build(backend:)` or `.agent(backend:)`, without creating a backend, stores or Runtime. [Backend catalog](docs/persistence-backends.md#supplying-a-backend-catalog) |
+| `PersistenceComposition.resources` and `.agent_resources` | Beta (since v0.35.0) | Supply canonical frozen resource catalogs to an application-selected backend for `.build(backend:)` or `.agent(backend:)`, without creating a backend, stores or Runtime. [Backend catalog](docs/persistence-backends.md#supplying-a-backend-catalog) |
 | `Persistence::Migration::InitialFormatMigration` | Removed (v0.34.0) | The pre-S3 conversion API is retired without a replacement. Current domain codecs and the separate Unit4 snapshot migration remain. [Legacy-format cleanup](docs/migrations/legacy-format-removal.md) |
 | `Context::ContextPolicyInput#input_token_limit / #with_input_token_limit` and protected `ContextPolicy#estimate_tokens` | Experimental (since v0.33.0) | Inspect and constrain selection budgets and estimate candidate content through Context-owned operations. [Policy budgeting](docs/context-policy-budgeting.md) |
 | `Agent::Base.with_tools(definitions, id:, version:)` | Experimental (since v0.33.0) | Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. [Tool composition](docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set) |
