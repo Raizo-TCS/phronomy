@@ -1,15 +1,29 @@
 # Storage asynchronous execution and ContentStore ownership
 
-P4 adds the public Beta `Phronomy::Storage::AsyncClient`. Synchronous storage
-backends and `Persistence#transaction` keep their existing interfaces. Backend
-authors implement no scheduler or async methods.
+Storage execution schedules raw transactions without taking ownership of domain
+persistence rules. The public Beta `Phronomy::Storage::AsyncClient` introduced
+in P4 wraps a synchronous backend; domain stores retain their own operations.
+
+For example, an application can write a raw notes resource with this client.
+An Agent instead uses its domain store, whose transaction participates through
+the neutral `Persistence#atomic` coordinator. Backend authors implement no
+scheduler or asynchronous methods.
 
 ## Public transaction API
 
+The client schedules one backend transaction and returns its completion handle.
+The transaction block receives a raw Storage view valid only for that scope.
+
+For example, with `stores = PersistenceComposition.in_memory`, construct the
+client around `stores.coordinator.backend`. Pass `stores.agent` to Agent,
+`stores.multi_agent` to MultiAgent, and `stores.workflow` to Workflow. These
+domain components are distinct from the raw backend and coordinator.
+
 Construct `Storage::AsyncClient.new(backend: raw_backend, pool: nil)` around a
-Storage SPI 2 backend. For an existing Persistence facade, use
-`persistence.backend`. The transaction block receives a **raw Storage::View**,
-not the domain repositories yielded by `Persistence#transaction`.
+Storage SPI 2 backend. The block receives a **raw Storage::View**.
+`stores.coordinator.atomic` instead yields a shared participation scope;
+`stores.agent.transaction` and `stores.multi_agent.transaction` yield their
+domain-owned records and scope. There is no coordinator `transaction` facade.
 
 `transaction_async(cancellation_token: nil, timeout: nil) { |view| ... }`
 returns the pool's original TaskResult. The complete transaction runs on one
@@ -20,8 +34,9 @@ savepoint behavior.
 
 ### Complete offline example
 
-This requires a checkout containing P4; the previously released 0.27.0 gem does
-not contain the new client. It uses only the public raw storage contract.
+An application owns its resource declarations and chooses its backend. This
+example saves a note in a custom resource and receives its payload after commit,
+using only the public raw storage contract.
 
 ```ruby runnable
 require "phronomy"
@@ -54,6 +69,13 @@ backend rules; no new transaction implementation is introduced.
 
 ## Admission, cancellation and ownership
 
+Admission and completion govern the submitted operation, while the backend owns
+the physical transaction. A settled timeout or cancellation does not establish
+whether a transaction that already started eventually committed.
+
+For example, a notes write may outlive its TaskResult timeout and still commit.
+The application must inspect durable state before retrying an uncertain write.
+
 Construction starts no Runtime. Each call resolves the current default pool,
 unless an explicit caller-owned `pool:` was supplied. Runtime reset does not
 transfer ownership of an injected pool.
@@ -68,16 +90,16 @@ outcome must reconcile through their domain's identities and stored state.
 
 ## Existing Agent, Workflow and coordination operations
 
-Internal `Storage::AsyncClient.submit(pool:)` accepts an existing synchronous
-storage unit. This is private framework API, not an application extension API.
-It submits exactly once and adds no transaction, token, or timeout. This lets
-domain operations preserve their own transaction and reconciliation boundaries.
-See the [operation inventory](../architecture/storage-execution-boundaries.md).
+Domain execution schedules complete persistence operations while each operation
+retains its transaction and reconciliation policy. Agent, Workflow and MultiAgent
+use their execution environments or `Execution.submit`, not a Storage forwarding
+helper. Submission adds no transaction, token or timeout.
 
-In particular, a Workflow runner may have only an injected repository rather
-than access to its raw backend. Internal submit therefore accepts a callable
-and the owner's pool; it does not require a dummy backend or a Persistence
-facade. Public transaction_async requires a real SPI 2 backend.
+For example, Workflow terminal persistence saves its snapshot and reads back an
+uncertain response within its own operation. A Workflow runner needs its injected
+repository and execution environment; it does not need a dummy raw backend to
+submit that operation. See the 14-site
+[operation inventory](../architecture/storage-execution-boundaries.md).
 
 Durable commit/readback policy, admission release, callback delivery and the
 application of results to live state remain with Agent/Workflow/MultiAgent.
@@ -86,6 +108,14 @@ authorization, tracing and application approval listeners retain their own
 execution boundaries.
 
 ## ContentStore path and diagram
+
+Content management owns canonical bytes, content identity and integrity over
+neutral Storage. The service does not select a physical backend or introduce
+another execution client.
+
+For example, StoredContents writes canonical JSON through a supplied blob view;
+the Persistence content adapter translates known storage failures for its domain
+caller. Neither operation creates a new worker or chooses a database.
 
 P4 originally moved `ContentStore::StoredContents` into
 `content_store/backends/stored_contents.rb`. [ADR-062](../decisions/062-content-store-service.md)

@@ -24,7 +24,7 @@ module Phronomy
       # Async variant of {VectorStore::Base#add}.
       #
       # @param id                 [String]
-      # @param embedding          [Array<Float>]
+      # @param embedding          [Array<Numeric>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
@@ -41,8 +41,8 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#search}.
       #
-      # @param query_embedding    [Array<Float>]
-      # @param k                  [Integer]
+      # @param query_embedding    [Array<Numeric>]
+      # @param k                  [Integer, String] positive integer or its decimal string
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
       # @return [Phronomy::TaskResult]

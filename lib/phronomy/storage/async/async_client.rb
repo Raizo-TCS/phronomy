@@ -38,18 +38,6 @@ module Phronomy
         end
       end
 
-      # Submit an existing domain-owned synchronous storage unit unchanged.
-      # It may already open transactions or perform reads/reconciliation. Do not
-      # add a transaction, timeout or cancellation condition around that unit.
-      # The owner supplies its current runtime's pool and applies the result.
-      #
-      # @api private
-      def self.submit(pool:, &operation)
-        raise ArgumentError, "storage submit requires a block" unless operation
-
-        Phronomy::Execution.submit(pool: pool, on_full: :raise, &operation)
-      end
-
       private
 
       def default_pool

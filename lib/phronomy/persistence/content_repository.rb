@@ -3,7 +3,8 @@
 module Phronomy
   class Persistence
     # Domain-facing content access uses the Persistence failure vocabulary.
-    # ContentStore implementations retain their independent backend contract.
+    # ContentStore remains a content service over neutral Storage; this facade
+    # translates known Storage failures without selecting a physical backend.
     # @api private
     class ContentRepository < Phronomy::ContentStore::Base
       def initialize(store)

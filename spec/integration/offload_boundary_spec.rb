@@ -10,9 +10,9 @@ require_relative "support/llm_stub"
 # TC-004 therefore verifies the application-facing Embeddings async boundary,
 # while TC-005 verifies the VectorStore async boundary used by retrieval code.
 #
-# Infeasible:
-#   TC-009 (stream_callback): SKIP — depends on Issue #292 (streaming callback
-#     via AsyncQueue not yet implemented; callbacks still run on worker thread)
+# Agent callback delivery on EventLoop is covered by
+# spec/phronomy/agent/async_event_contract_spec.rb and
+# spec/phronomy/llm_adapter_spec.rb, including worker/callback thread separation.
 #
 # No LLM required: all cases use LLMStub (WebMock) or pure-Ruby pool calls.
 
@@ -294,15 +294,6 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
       expect(pool.abandoned_active_count).to eq(0)
     ensure
       release << true unless released
-    end
-  end
-
-  # -------------------------------------------------------------------------
-  # TC-009: stream_callback — SKIP (depends on Issue #292)
-  # -------------------------------------------------------------------------
-  describe "TC-009: stream_callback — stream callback does not run on pool worker thread" do
-    it "is skipped pending Issue #292 (streaming callbacks via AsyncQueue)" do
-      skip "Depends on Issue #292: streaming callback decoupling not yet implemented"
     end
   end
 end

@@ -3,7 +3,7 @@
 [ADR-058](decisions/058-neutral-storage-primitives.md) defines the current
 extension contract. This is an intentional breaking replacement of the old
 fixed-repository Backend SPI. Application construction now uses
-`PersistenceComposition.build(backend:)` or `.in_memory`; pass its `agent`, `team`,
+`PersistenceComposition.build(backend:)` or `.in_memory`; pass its `agent`, `multi_agent`,
 or `workflow` component to that domain. `Persistence.new(backend:)` provides only
 the neutral coordinator. The old eight-repository facade and its queries were
 removed; see [r8 unit 3](architecture/r8-unit3.md).
@@ -15,8 +15,13 @@ Storage owns `Resource`, `Backend`, `View`, `Records`, `Streams`, `Blobs`, immut
 record types, active-execution policy, content digest algorithm or watermark API.
 
 Agent, Team, Workflow and ContentStore declare their own resource schemas.
-`PersistenceComposition::StorageSchema` gathers those declarations and
-`PersistenceComposition` binds domain record adapters to one coordinator.
+Composition supplies those canonical declarations to a backend and binds domain
+record adapters to one coordinator. Applications select the physical driver;
+the driver does not recreate domain schemas.
+
+For example, a custom SQL driver receives the composition catalog before
+`PersistenceComposition.build(backend:)` constructs `stores.agent`,
+`stores.multi_agent` and `stores.workflow` over its shared coordinator.
 Team and Workflow schemas live in their existing `persistence/` implementation
 directories. An isolated Agent uses `PersistenceComposition.agent` and does not
 construct Team or Workflow stores.
@@ -25,12 +30,52 @@ The Agent-owned `Watermark` composes guarded revision and stream-head conditions
 
 InMemory receives `resources:` and supplies one Monitor/snapshot transaction
 across the catalog. SQL reference composition supplies the same catalog and a
-separate physical table/column mapping to the neutral driver in examples
-`shared/storage`. Table names, columns, indexes, DurableRecord envelopes, payloads,
+separate physical table/column mapping to the optional examples package at
+`packages/phronomy-active_record/lib/phronomy/active_record/storage/`.
+Table names, columns, indexes, DurableRecord envelopes, payloads,
 format versions and content identities remain unchanged.
 
 The [S3 closure review](architecture/refactoring-closure.md) records why these
 names and placements remain and separates applied evidence from the candidate.
+
+### Supplying a backend catalog
+
+The composition catalog lets an external backend use domain-owned resource
+declarations through a public operation. Each accessor returns a frozen Array
+containing the canonical immutable Resource objects; it does not construct a
+backend, open a database, create domain stores or start Runtime. These Beta
+accessors are Unreleased and are not present in the published 0.34.0 gem.
+
+For example, an application selecting a full InMemory backend passes the public
+catalog to that backend, then composes its domain stores. An Agent-only
+application requests only Agent and content declarations, avoiding Team and
+Workflow schema loading.
+
+```ruby runnable
+require "phronomy"
+
+resources = Phronomy::PersistenceComposition.resources
+backend = Phronomy::Storage::Backends::InMemory.new(resources: resources)
+stores = Phronomy::PersistenceComposition.build(backend: backend)
+raise "backend changed" unless stores.coordinator.backend.equal?(backend)
+
+agent_resources = Phronomy::PersistenceComposition.agent_resources
+agent_backend = Phronomy::Storage::Backends::InMemory.new(resources: agent_resources)
+agent_store = Phronomy::PersistenceComposition.agent(backend: agent_backend)
+raise "agent backend changed" unless agent_store.coordinator.backend.equal?(agent_backend)
+raise "mutable catalog" unless resources.frozen? && agent_resources.frozen?
+```
+
+| Construction scope | Public catalog | Composition operation |
+|---|---|---|
+| Agent, MultiAgent, Workflow and content | `PersistenceComposition.resources` | `.build(backend:)` |
+| Agent and content only | `PersistenceComposition.agent_resources` | `.agent(backend:)` |
+
+Use the returned Resource objects rather than rebuilding equivalent declarations:
+Storage validates resource identity as well as registration. The internal
+`PersistenceComposition::StorageSchema` remains private. Database/table mappings,
+connection configuration and schema installation stay with the external package
+and application deployment.
 
 ## Backend and View
 

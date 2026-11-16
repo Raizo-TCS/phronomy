@@ -1,8 +1,12 @@
 # VectorStore and Embeddings: asynchronous client migration
 
-This unreleased P3 change moves the Beta asynchronous API to explicit clients.
-It changes the receiver used by callers. Backend authors continue to implement
-only synchronous methods; method arguments and results remain unchanged.
+The P3 migration separated asynchronous submission from synchronous backend
+operations. Current applications call explicit Beta clients, while backend
+authors implement protected synchronous hooks behind the common templates.
+
+For example, an application calls `async_store.search_async` to schedule the same
+public search operation that `store.search` performs synchronously. The current
+namespace and hook SPI also include the later [unit 5 migration](r8-unit5.md).
 
 | Previous receiver | New receiver |
 |---|---|
@@ -13,7 +17,7 @@ only synchronous methods; method arguments and results remain unchanged.
 | `embeddings.embed_async(text, token, timeout: seconds)` | `async_embeddings.embed_async(text, token, timeout: seconds)` |
 
 Construct the clients with `VectorStore::AsyncClient.new(backend: store)` and
-`VectorStore::Embeddings::AsyncClient.new(adapter: embeddings)`. The embedding
+`Embeddings::AsyncClient.new(adapter: embeddings)`. The embedding
 cancellation token stays positional. Synchronous `add`, `search`, `remove`,
 `clear`, `size` and `embed` stay on the existing backend objects.
 
@@ -27,8 +31,10 @@ The clients are public Beta API; their `async/` directories do not introduce
 
 This example uses an intentionally simple local embedding adapter to demonstrate
 the API. It needs no provider key, network request, or database server. The
-implementation supplies only `embed`; Phronomy supplies asynchronous execution.
-Run it against a checkout containing P3, not the previously released 0.27.0 gem.
+implementation supplies protected `perform_embed`; the inherited public `embed`
+validates input and result, and Phronomy supplies asynchronous execution. The
+example uses the current unit 5 namespace and extension SPI, which supersede
+the original P3 adapter names.
 
 ```ruby runnable
 require "phronomy"
@@ -95,14 +101,17 @@ minimal synchronous signal for an async operation's full token.
 
 ## Source ownership
 
-The public class names below are unchanged. Their implementation files move:
+Concrete implementations remain separate from their common operation contracts.
+For example, a vector store keeps its algorithm in `vector_store/backends/`,
+while an embedding provider lives in the independent `embeddings/backends/`
+directory introduced by the [unit 5 migration](r8-unit5.md).
 
-| Public class | New path under `lib/phronomy/` |
+| Current public class | Path under `lib/phronomy/` |
 |---|---|
 | `VectorStore::InMemory` | `vector_store/backends/in_memory.rb` |
 | `VectorStore::Pgvector` | `vector_store/backends/pgvector.rb` |
 | `VectorStore::RedisSearch` | `vector_store/backends/redis_search.rb` |
-| `VectorStore::Embeddings::RubyLLMEmbeddings` | `embeddings/backends/ruby_llm_embeddings.rb` |
+| `Embeddings::RubyLLMEmbeddings` | `embeddings/backends/ruby_llm_embeddings.rb` |
 
 Use `require "phronomy"` and the public constants. Direct partial-load paths are
 not the public loading contract; no require shim is kept in the contract

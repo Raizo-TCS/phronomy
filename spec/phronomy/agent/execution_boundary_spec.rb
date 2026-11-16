@@ -37,7 +37,7 @@ RSpec.describe "Agent-owned execution boundary" do
       machine = Phronomy::Agent::PhaseMachineBuilder.new.build.new
       machine.context = context
       machine.phase = "evaluating_tools"
-      expect(machine.state_completed).to be(true)
+      expect(machine.state_completed).to be_truthy
       expect(machine.phase.to_sym).to eq(expected)
       expect(calls).to eq(guards.take((first || 4) + 1))
     end

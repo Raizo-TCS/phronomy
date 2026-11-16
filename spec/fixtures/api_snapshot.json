@@ -786,6 +786,18 @@
     "public_class_methods": []
   },
   {
+    "name": "Phronomy::PersistenceComposition",
+    "type": "module",
+    "public_instance_methods": [],
+    "public_class_methods": [
+      "agent",
+      "agent_resources",
+      "build",
+      "in_memory",
+      "resources"
+    ]
+  },
+  {
     "name": "Phronomy::Tool::Schema",
     "type": "class",
     "public_instance_methods": [
