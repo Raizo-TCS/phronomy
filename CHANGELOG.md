@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.35.1] - 2026-11-18
+
 ### Fixed
 
 - Preserve Workflow states named `before`, `after`, `around` or `do` when

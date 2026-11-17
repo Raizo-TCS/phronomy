@@ -4,7 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.35.0 (latest release) | ✅ |
+| 0.35.1 (latest release) | ✅ |
 | Older versions | ❌ — please upgrade |
 
 Only the latest released version of `phronomy` receives security patches. If you
