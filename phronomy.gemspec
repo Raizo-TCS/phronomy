@@ -43,11 +43,11 @@ Gem::Specification.new do |spec|
   spec.add_dependency "faraday-net_http", "~> 3.4", ">= 3.4.4"
   spec.add_dependency "schematist", "~> 1.1"
   spec.add_dependency "json_schemer", "~> 2.5"
-  # Temporary compatibility bound: json_schemer 2.5.0 cannot load with 2.13.2.
-  # Remove once a compatible upstream release is verified with fresh resolution.
+  # json_schemer 2.5.0 cannot load with regexp_parser 2.13.2.
+  # Exclude only that release; 2.13.3 restores upstream compatibility.
   # https://github.com/ammar/regexp_parser/issues/116
   # https://github.com/davishmcclurg/json_schemer/issues/238
-  spec.add_dependency "regexp_parser", "< 2.13.2"
+  spec.add_dependency "regexp_parser", "!= 2.13.2"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"
