@@ -67,6 +67,21 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Preserve Workflow states named <code>before</code>, <code>after</code>, <code>around</code> or <code>do</code> when
+compiling transitions with state_machines 0.304.0. Explicit source and target
+arguments avoid callback-key collisions while retaining transition guards.</li>
+<li>Avoid repeated state declaration checks when dispatching a compiled Workflow's
+automatic completion event. Guards, callbacks, external-event handling and the
+generic FSMSession contract are unchanged.</li>
+<li>Exclude only <code>regexp_parser 2.13.2</code> from the distributed gem because
+<code>json_schemer 2.5.0</code> fails to load after <code>implements</code> became private in 2.13.2.
+This protects application dependency resolution while allowing the upstream
+fix in 2.13.3 and later versions
+(<a href="https://github.com/ammar/regexp_parser/issues/116">regexp_parser #116</a>,
+<a href="https://github.com/davishmcclurg/json_schemer/issues/238">json_schemer #238</a>).</li>
+</ul>
 <h2 id="_0_35_0____2026_11_17">[0.35.0] - 2026-11-17</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1270,7 +1285,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Nov 16 14:53:13 2026 by
+  Generated on Tue Nov 17 16:09:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
