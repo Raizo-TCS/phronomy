@@ -23,6 +23,15 @@ RSpec.describe "phronomy.gemspec packaging" do
     expect(lib_files).not_to be_empty
   end
 
+  # regexp_parser#116 and json_schemer#238: a fresh install must remain loadable.
+  it "ships a runtime constraint excluding the incompatible regexp_parser release" do
+    dependency = gemspec.runtime_dependencies.find { |item| item.name == "regexp_parser" }
+    expect(dependency).not_to be_nil
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("2.13.1"))).to be(true)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("2.13.2"))).to be(false)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("2.13.3"))).to be(true)
+  end
+
   it "requires RubyLLM 2.0 for the provider-neutral output cap and Tool API" do
     dependency = gemspec.dependencies.find { |item| item.name == "ruby_llm" }
     expect(dependency).not_to be_nil

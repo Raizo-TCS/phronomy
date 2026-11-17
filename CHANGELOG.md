@@ -12,6 +12,21 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve Workflow states named `before`, `after`, `around` or `do` when
+  compiling transitions with state_machines 0.304.0. Explicit source and target
+  arguments avoid callback-key collisions while retaining transition guards.
+- Avoid repeated state declaration checks when dispatching a compiled Workflow's
+  automatic completion event. Guards, callbacks, external-event handling and the
+  generic FSMSession contract are unchanged.
+- Exclude only `regexp_parser 2.13.2` from the distributed gem because
+  `json_schemer 2.5.0` fails to load after `implements` became private in 2.13.2.
+  This protects application dependency resolution while allowing the upstream
+  fix in 2.13.3 and later versions
+  ([regexp_parser #116](https://github.com/ammar/regexp_parser/issues/116),
+  [json_schemer #238](https://github.com/davishmcclurg/json_schemer/issues/238)).
+
 ## [0.35.0] - 2026-11-17
 
 ### Added
