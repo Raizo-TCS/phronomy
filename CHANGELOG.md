@@ -16,8 +16,13 @@ Release history for 0.14.0 and earlier is archived in
 
 - Avoid repeated state declaration checks when dispatching a compiled Workflow's
   automatic completion event. Guards, callbacks, external-event handling and the
-  generic FSMSession contract are unchanged; no application API or dependency
-  requirement changes are needed.
+  generic FSMSession contract are unchanged.
+- Temporarily constrain the distributed gem to `regexp_parser < 2.13.2` because
+  `json_schemer 2.5.0` fails to load after `implements` became private in 2.13.2.
+  This also protects fresh application installs, not only CI. Remove the bound
+  after a compatible upstream release is verified with fresh dependency resolution
+  ([regexp_parser #116](https://github.com/ammar/regexp_parser/issues/116),
+  [json_schemer #238](https://github.com/davishmcclurg/json_schemer/issues/238)).
 
 ## [0.35.0] - 2026-11-17
 
