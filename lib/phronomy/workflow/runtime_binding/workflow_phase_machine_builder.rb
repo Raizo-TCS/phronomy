@@ -57,8 +57,9 @@ module Phronomy
           event :state_completed do
             auto_transitions.each do |transition_definition|
               transition(
-                transition_definition[:from] => transition_definition[:to],
-                :if => condition_builder.call(transition_definition)
+                from: transition_definition[:from],
+                to: transition_definition[:to],
+                if: condition_builder.call(transition_definition)
               )
             end
           end
@@ -67,8 +68,9 @@ module Phronomy
             event event_name do
               transitions.each do |transition_definition|
                 transition(
-                  transition_definition[:from] => transition_definition[:to],
-                  :if => condition_builder.call(transition_definition)
+                  from: transition_definition[:from],
+                  to: transition_definition[:to],
+                  if: condition_builder.call(transition_definition)
                 )
               end
             end
