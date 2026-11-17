@@ -210,6 +210,7 @@ module Phronomy
         loop_instance&.begin_draining
 
         participants_idle = wait_for_participants(participants, drain_deadline)
+        @timer_service.wait_until_idle(drain_deadline)
         loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
 
         @lifecycle_mutex.synchronize do
@@ -217,13 +218,8 @@ module Phronomy
         end
 
         stop_deadline = monotonic_now + [cancel_grace.to_f, 0.2].max
-        event_loop_status = if loop_instance
-          loop_instance.stop_and_join(deadline: stop_deadline)
-        else
-          :not_started
-        end
-
-        pools_stopped, subsystem_error = shutdown_pools_and_timer(deadline: stop_deadline)
+        event_loop_status, pools_stopped, timers_idle, subsystem_error =
+          shutdown_resources(loop_instance, deadline: stop_deadline)
         participant_error = @lifecycle_mutex.synchronize { @shutdown_participant_error }
         cleanup_complete = participants_idle && participant_error.nil? &&
           loop_idle &&
@@ -231,6 +227,7 @@ module Phronomy
           event_loop_status != :cancel_timeout &&
           (!loop_instance || loop_instance.__receiver_cleanup_complete?) &&
           pools_stopped &&
+          timers_idle &&
           subsystem_error.nil?
 
         cleanup_complete = finalize_participants(participants) if cleanup_complete
@@ -306,21 +303,38 @@ module Phronomy
         "Runtime is #{current_state}; new work is not accepted"
     end
 
-    def shutdown_pools_and_timer(deadline:)
+    # EventLoop must keep delivering existing deadlines while accepted pool
+    # operations drain. Its thread remains the only timer callback executor.
+    # Future registrations beyond the shared budget make cleanup incomplete.
+    def shutdown_resources(loop_instance, deadline:)
       error = nil
       pools_stopped = false
+      timers_idle = false
+      event_loop_status = :not_started
       begin
         pools_stopped = @pool_registry.shutdown(deadline: deadline)
       rescue => caught
         error ||= caught
+      end
+      begin
+        timers_idle = @timer_service.wait_until_idle(deadline)
+      rescue => caught
+        error ||= caught
+      end
+      begin
+        event_loop_status = loop_instance.stop_and_join(deadline: deadline) if loop_instance
+      rescue => caught
+        event_loop_status = :failed
+        error ||= caught
       ensure
         begin
-          @timer_service.shutdown
+          timers_drained_on_shutdown = @timer_service.shutdown
+          timers_idle &&= timers_drained_on_shutdown
         rescue => caught
           error ||= caught
         end
       end
-      [pools_stopped, error]
+      [event_loop_status, pools_stopped, timers_idle, error]
     end
 
     def validate_timeout!(value, name)

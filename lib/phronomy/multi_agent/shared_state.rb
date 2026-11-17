@@ -221,11 +221,11 @@ module Phronomy
           definitions = shared_tool_definitions(member, binding, cycle)
           instrumented = build_shared_researcher(member, definitions, sharing)
           prompt = shared_prompt(input, member_config[:instruction])
-          invoke_shared_researcher(instrumented, prompt)
+          invoke_member_agent(instrumented, prompt)
         end
       end
 
-      def invoke_shared_researcher(instrumented, prompt)
+      def invoke_member_agent(instrumented, prompt)
         agent = instrumented.new
         suspended = false
         result = agent.invoke(prompt)
@@ -235,10 +235,10 @@ module Phronomy
         end
         result
       ensure
-        release_shared_member(agent, result, $!) if agent && !suspended
+        release_member_agent(agent, result, $!) if agent && !suspended
       end
 
-      def release_shared_member(agent, result, primary_error)
+      def release_member_agent(agent, result, primary_error)
         agent.unload!
       rescue => release_error
         error = MemberLifecycleError.new(agent: agent, result: result, reason: :release_failed,
@@ -298,7 +298,7 @@ module Phronomy
           extra_tools: extra_tools,
           per_agent_instruction: per_agent_instruction
         )
-        instrumented.new.invoke(prompt)
+        invoke_member_agent(instrumented, prompt)
       end
 
       def build_instrumented_researcher(researcher_class, store, cycle)

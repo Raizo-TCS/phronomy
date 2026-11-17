@@ -1,7 +1,22 @@
-# Execution boundary candidate (unapplied)
+# Execution boundary prototype (historical)
 
-Base: main 653e255a34fe4062d4beca47530e084fdd3a6ba9.
-This is an unpublished prototype for source-derived architecture review.
+This document preserves an earlier source-derived design proposal, including
+its original group names and compatibility decisions. It is not a pending
+implementation plan or the authority for the current source layout.
+
+For example, the Workflow phase compiler and neutral execution values are
+present in the current implementation, while later refinements changed the
+prototype's grouping and placement. Use [Phronomy Architecture](architecture.md)
+and the current source diagram for the reconciled responsibilities.
+
+Original prototype base: main 653e255a34fe4062d4beca47530e084fdd3a6ba9.
+The proposal below is retained as history, not a current public API guide.
+
+## Recorded proposal
+
+The prototype separated result values from concrete execution connections.
+For example, Engine and Services could share TaskResult without making those
+values acquire Runtime or invoke operation-submission services.
 
 TaskResult, Outcome, result composition, physical completion and ScopeState
 belong to Execution Results. They depend on Contracts and Common, without
@@ -16,7 +31,11 @@ terminal state. FSMSession retains terminal detection and persistence gating.
 TerminalDecision is an execution contract, independent of Workflow and FSM
 state vocabulary.
 
-## Intentional compatibility changes
+## Compatibility decisions recorded in the prototype
+
+The prototype moved execution-control adaptation out of shared values and
+removed obsolete internal entry points. For example, InvocationContext kept
+the supplied deadline value while the invoking service attached its timer.
 
 * InvocationContext#effective_timeout_token and #effective_cancellation_token
   are removed. Although annotated private, both occurred in the Stable API
