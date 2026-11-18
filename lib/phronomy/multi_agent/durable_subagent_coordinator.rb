@@ -47,7 +47,7 @@ module Phronomy
             child["imported"] = true if observed.terminal? && change.kind == :dispatch && change.operations.empty?
           end
           change.operations.each do |operation|
-            entry = @definitions.find { |name, _| "dispatch_to_#{name}" == operation.name }
+            entry = @definitions.find { |name, _| @agent_class.__subagent_tool_name(name) == operation.name }
             next unless entry
             next if children.any? { |child| child.fetch("slot") == operation.invocation_id }
             name, settings = entry
@@ -97,8 +97,10 @@ module Phronomy
           child = children.first
           next unless !child.fetch("imported") && child.fetch("execution_id") == execution_id
           next unless matching_child_class?(child, live_child)
+          tool_name = @agent_class.__subagent_tool_name(child.fetch("name"))
+          next unless tool_name
           next unless store.single_dispatch_wait?(agent_id: parent_id, execution_id: parent_execution_id,
-            invocation_id: child.fetch("slot"), name: "dispatch_to_#{child.fetch("name")}", expected_revision: parent_revision, scope: scope)
+            invocation_id: child.fetch("slot"), name: tool_name, expected_revision: parent_revision, scope: scope)
           next unless hosted_retentions?(parent_id, parent_execution_id, scope)
 
           child_id = child.fetch("agent_id")

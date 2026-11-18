@@ -215,6 +215,53 @@ RSpec.describe "Agent Tool child lifetime" do
   context "with active physical work" do
     let(:gate) { {entered: Queue.new, release: Queue.new} }
 
+    [:success, :provider_failure, :observer_cancellation].each do |outcome|
+      it "finishes accepted #{outcome} cleanup during graceful Runtime shutdown" do
+        failure = Phronomy::LLMAdapter::TransportError.new("accepted provider failure")
+        responses.replace([failure]) if outcome == :provider_failure
+        task = tool.call_async({"input" => "question"})
+        expect(gate.fetch(:entered).pop(timeout: 3)).to be(true)
+        child = created.first.fetch(:agent)
+        task.cancel! if outcome == :observer_cancellation
+        physical = Queue.new
+        task.on_physical_complete { physical << true }
+
+        runtime = Phronomy::Runtime.instance
+        registry = Phronomy::Agent::ExecutionEnvironment.current.ownership
+        waiting = Queue.new
+        allow(registry).to receive(:wait_until_idle).and_wrap_original do |original, deadline|
+          waiting << true
+          original.call(deadline)
+        end
+        shutdown = Thread.new { runtime.shutdown(timeout: 3, cancel_grace: 1) }
+        expect(waiting.pop(timeout: 3)).to be(true)
+        expect(runtime.state).to eq(:draining)
+        expect { definition.create }.to raise_error(Phronomy::RuntimeShutdownError)
+        expect { child.invoke_async("late").wait_result }.to raise_error(Phronomy::RuntimeShutdownError)
+
+        gate.fetch(:release) << true
+        expect(physical.pop(timeout: 3)).to be(true)
+        case outcome
+        when :success
+          expect(task.wait_result(timeout: 3)).to eq("answer")
+        when :provider_failure
+          expect { task.wait_result(timeout: 3) }.to raise_error(Phronomy::ToolError) { |error|
+            expect(error).not_to be_a(Phronomy::Tools::Agent::CleanupError)
+            expect(error.cause).to equal(failure)
+          }
+        else
+          expect { task.wait_result(timeout: 3) }.to raise_error(Phronomy::CancellationError)
+        end
+        expect(shutdown.join(3)).not_to be_nil
+        expect(shutdown.value.cleanup_complete?).to be(true)
+        expect_released
+        expect(requests.length).to eq(1)
+      ensure
+        gate.fetch(:release) << true
+        shutdown&.join(4)
+      end
+    end
+
     [:observer, :token].each do |kind|
       it "keeps #{kind} cancellation safe and releases after physical completion" do
         token = Phronomy::Concurrency::CancellationToken.new
@@ -280,6 +327,36 @@ RSpec.describe "Agent Tool child lifetime" do
   context "with approval pending" do
     let(:approvals) { Queue.new }
     let(:listener) { ->(event) { approvals << event.payload.fetch(:request) if event.type == :approval_required } }
+
+    it "bounds shutdown and reports incomplete cleanup when human approval never arrives" do
+      protected_tool = Class.new(Phronomy::Tool::Base) do
+        tool_name "pending_approval"
+        description "Wait for explicit approval"
+        requires_approval true
+        def execute = "approved"
+      end
+      definition.tools protected_tool => nil
+      responses.unshift(Phronomy::LLMAdapter::Response.new(tool_calls: [
+        Phronomy::Tool::CallRequest.new(id: "pending", name: "pending_approval", arguments: {})
+      ], finish_reason: :tool_calls))
+      task = tool.call_async({"input" => "question"})
+      expect(approvals.pop(timeout: 3)).not_to be_nil
+      child = created.first.fetch(:agent)
+      runtime = Phronomy::Runtime.instance
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+      result = runtime.shutdown(timeout: 0.02, cancel_grace: 1)
+
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 2
+      expect(result.cleanup_complete?).to be(false)
+      expect(task.physical_complete?).to be(false)
+      expect { task.wait_result(timeout: 0.01) }.to raise_error(Phronomy::TimeoutError)
+      expect(definition.get(child.agent_id)).to equal(child)
+      expect { Phronomy::Runtime.reset_default!(timeout: 0) }
+        .to raise_error(Phronomy::RuntimeShutdownError, /cleanup is incomplete/)
+      expect(Phronomy::Runtime.instance).to equal(runtime)
+      expect(requests.length).to eq(1)
+    end
 
     it "retains the child without auto-approval and releases after accepted approval finishes" do
       count = 0

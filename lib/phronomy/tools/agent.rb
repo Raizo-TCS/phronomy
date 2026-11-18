@@ -73,9 +73,14 @@ module Phronomy
 
             persistence = Phronomy::Agent::DefaultPersistence.build
             agent = agent_class.create(persistence: persistence)
+            ownership = Phronomy::Agent::OwnershipRegistry.current
+            ownership.expect_unload(agent)
             Phronomy::AsyncOperation.finalize(name: "agent-tool-#{name}-release",
               cleanup: -> { agent.unload_async },
-              on_cleanup_error: ->(value, primary, cleanup) { child_cleanup_failed(agent, value, primary, cleanup) }) do
+              on_cleanup_error: ->(value, primary, cleanup) {
+                ownership.cancel_expected_unload(agent)
+                child_cleanup_failed(agent, value, primary, cleanup)
+              }) do
               Phronomy::AsyncOperation.call(name: "agent-tool-#{name}-invoke",
                 transform: ->(result) { result[:output].to_s }) do
                 agent.invoke_async(input, config: task_config)

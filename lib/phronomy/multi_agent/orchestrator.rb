@@ -20,6 +20,19 @@ module Phronomy
         super(agent_id, persistence: persistence, execution_wiring: {phronomy_execution_participant: participant}, **options, &block)
       end
 
+      # Preserve native child ownership when explicitly replacing the Tool map.
+      # Ordinary subclass inheritance still starts with no subagent registrations.
+      def self.with_tools(definitions, id:, version:)
+        derived = super
+        retained = _subagent_tool_classes & derived.tools
+        registrations = registered_subagents.select do |name, _|
+          retained.any? { |tool| tool.tool_name == "dispatch_to_#{name}" }
+        end.transform_values(&:dup)
+        derived.instance_variable_set(:@_subagent_tool_classes, retained)
+        derived.instance_variable_set(:@registered_subagents, registrations)
+        derived
+      end
+
       def initialize(coordination_store: nil, execution_wiring: {}, **options, &block)
         @coordination_store = coordination_store || execution_wiring[:phronomy_execution_participant]&.persistence || Phronomy::MultiAgent::Store.configured
         super(execution_wiring: execution_wiring, **options, &block)
@@ -156,6 +169,13 @@ module Phronomy
         @registered_subagents ||= {}
       end
 
+      # @api private
+      def self.__subagent_tool_name(name)
+        native_name = "dispatch_to_#{name}"
+        tool = _subagent_tool_classes.find { |candidate| candidate.tool_name == native_name }
+        tool && (tool_aliases[tool] || native_name)
+      end
+
       def dispatch_parallel(
         *tasks,
         max_concurrency: nil,
@@ -237,7 +257,7 @@ module Phronomy
 
       # @api private
       def __framework_tool_replayable?(name)
-        self.class.registered_subagents.keys.any? { |key| "dispatch_to_#{key}" == name.to_s }
+        self.class.registered_subagents.keys.any? { |key| self.class.__subagent_tool_name(key) == name.to_s }
       end
 
       private

@@ -20,42 +20,56 @@ RSpec.describe Phronomy::Tools::Agent, "default composition" do
   end
 
   it "uses the supplied fresh store for each synchronous call without the run_once facade" do
-    stores = [Object.new, Object.new]
+    stores = Array.new(2) { Phronomy::PersistenceComposition.agent }
     token = Phronomy::Concurrency::CancellationToken.new
-    first = double("first agent")
-    second = double("second agent")
+    seen = []
+    definition.define_method(:invoke_async) do |input, config:|
+      seen << [self, persistence, input, config]
+      Phronomy::TaskResult.completed({output: (input == "first") ? 42 : nil})
+    end
     expect(Phronomy::Agent).not_to receive(:run_once)
     expect(Phronomy::Agent::DefaultPersistence).to receive(:build).ordered.and_return(stores[0])
-    expect(definition).to receive(:create).with(persistence: stores[0]).ordered.and_return(first)
-    expect(first).to receive(:invoke_async).with("first", config: {cancellation_token: token}).ordered.and_return(Phronomy::TaskResult.completed({output: 42}))
-    expect(first).to receive(:unload_async).ordered.and_return(Phronomy::TaskResult.completed(true))
+    expect(definition).to receive(:create).with(persistence: stores[0]).ordered.and_call_original
     expect(Phronomy::Agent::DefaultPersistence).to receive(:build).ordered.and_return(stores[1])
-    expect(definition).to receive(:create).with(persistence: stores[1]).ordered.and_return(second)
-    expect(second).to receive(:invoke_async).with("second", config: {}).ordered.and_return(Phronomy::TaskResult.completed({output: nil}))
-    expect(second).to receive(:unload_async).ordered.and_return(Phronomy::TaskResult.completed(true))
+    expect(definition).to receive(:create).with(persistence: stores[1]).ordered.and_call_original
 
     tool = tool_for(definition)
     expect(tool.execute(input: "first", cancellation_token: token)).to eq("42")
     expect(tool.execute(input: "second")).to eq("")
+    expect(seen.map { |_, store, input, config| [store, input, config] }).to eq([
+      [stores[0], "first", {cancellation_token: token}],
+      [stores[1], "second", {}]
+    ])
+    expect(seen.map(&:first).uniq.size).to eq(2)
+    expect(seen.all? { |agent, _| definition.get(agent.agent_id).nil? }).to be(true)
   end
 
   it "retains the asynchronous factory path and explicit config token priority" do
-    store = Object.new
-    agent = double("async agent")
+    store = Phronomy::PersistenceComposition.agent
     explicit = Phronomy::Concurrency::CancellationToken.new
     fallback = Phronomy::Concurrency::CancellationToken.new
     config = {cancellation_token: explicit}.freeze
     task = Phronomy::TaskResult.deferred(name: "tool-composition")
+    seen = []
+    definition.define_method(:invoke_async) do |input, config:|
+      seen << [self, input, config]
+      task
+    end
     expect(Phronomy::Agent).not_to receive(:run_once)
     expect(Phronomy::Agent::DefaultPersistence).to receive(:build).and_return(store)
-    expect(definition).to receive(:create).with(persistence: store).and_return(agent)
-    expect(agent).to receive(:invoke_async).with("async", config: {cancellation_token: explicit}).and_return(task)
-    expect(agent).to receive(:unload_async).and_return(Phronomy::TaskResult.completed(true))
+    expect(definition).to receive(:create).with(persistence: store).and_call_original
 
     result = tool_for(definition).call_async({"input" => "async"}, cancellation_token: fallback, config: config)
+    expect(result).not_to be_done
     task.complete({output: 21})
     expect(result.wait_result).to eq("21")
     expect(config).to eq(cancellation_token: explicit)
+    expect(seen.length).to eq(1)
+    agent, input, invocation_config = seen.first
+    expect(input).to eq("async")
+    expect(invocation_config).to eq(cancellation_token: explicit)
+    expect(agent.persistence).to equal(store)
+    expect(definition.get(agent.agent_id)).to be_nil
   end
 
   it "keeps fresh per-call Agents and stores even when an application store is configured" do
@@ -83,11 +97,14 @@ RSpec.describe Phronomy::Tools::Agent, "default composition" do
 
   it "preserves a synchronous Agent failure without retrying or wrapping it in execute" do
     error = Phronomy::ExecutionRehydrationRequiredError.new("recover")
-    agent = double("agent")
-    allow(definition).to receive(:create).and_return(agent)
-    expect(agent).to receive(:invoke_async).once.and_raise(error)
-    expect(agent).to receive(:unload_async).and_return(Phronomy::TaskResult.completed(true))
+    seen = []
+    definition.define_method(:invoke_async) do |input, config:|
+      seen << self
+      raise error
+    end
     expect { tool_for(definition).execute(input: "input") }.to raise_error { |raised| expect(raised).to equal(error) }
+    expect(seen.length).to eq(1)
+    expect(definition.get(seen.first.agent_id)).to be_nil
   end
 
   it "preserves a store factory failure without creating an Agent" do

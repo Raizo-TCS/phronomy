@@ -6,6 +6,37 @@ require_relative "support/hosted_subagent"
 RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integration do
   include_context "a native child requiring approval"
 
+  context "with an aliased native Tool in a derived Orchestrator" do
+    let(:parent_class) do
+      original = super()
+      definitions = original.tools.to_h do |tool|
+        [tool, (tool.tool_name == "dispatch_to_worker") ? "consult_worker" : nil]
+      end
+      original.with_tools(definitions, id: "derived-hosted-parent", version: 1)
+    end
+    let(:dispatch) { LLMStub.tool_call_response("consult_worker", {input: "child request"}) }
+
+    it "detaches, restores and completes the same child without losing native ownership" do
+      recorder = LLMStub.activate(responses: [dispatch, protected_call, "child completed", "parent completed"])
+      handle, request, child = start
+
+      expect(detach(handle, request).approval_request_id).to eq(request.id)
+      expect(parent_class.get(parent.agent_id)).to be_nil
+      expect(child_class.get(child.agent_id)).to be_nil
+      restored = parent_class.load(parent.agent_id, **options)
+      recovering = restored.resume_async(root_id)
+      waiting = Timeout.timeout(8) { events.pop }
+      expect(waiting.id).to eq(request.id)
+      expect { recovering.wait_result(timeout: 8) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+      completed = restored.approve_hosted_child(root_id, execution_id: request.execution_id,
+        approval_request_id: request.id)
+      expect(completed.wait_result(timeout: 8)).to include(output: "child completed")
+      expect(restored.resume(root_id)).to include(output: "parent completed")
+      expect(restored.unload_with_completed_child!(root_id, execution_id: request.execution_id)).to be(true)
+      expect(recorder.calls.size).to eq(4)
+    end
+  end
+
   it "releases both local owners, preserves their saved executions and restores the original child request" do
     recorder = LLMStub.activate(responses: [dispatch, protected_call, "child completed", "parent completed"])
     handle, request, child = start

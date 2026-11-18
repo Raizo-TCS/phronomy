@@ -23,6 +23,27 @@ used merely to wait for the child or its release. The existing Agent release can
 perform its ordinary asynchronous persistence checks. Records are not purged,
 and unrelated Agents or shared stores are not shut down.
 
+## Graceful Runtime shutdown
+
+An accepted private child's final release is part of its existing Agent
+ownership entry. Runtime waits for that release within the drain budget, and
+Agent can transfer the pending release to its ordinary unload transition after
+new admission closes. This adds no separate cleanup registry or application
+lifetime handle. Ordinary application-requested unloads do not gain admission
+during draining.
+
+For example, if shutdown begins while an Agent Tool waits for an LLM response,
+a successful response can still finish the child's release and return its normal
+output. Provider failure keeps its original error after release, and cancelling
+only the observer does not abandon physical cleanup. New Agent creation and
+invocation remain rejected once draining starts.
+
+The finite drain budget still applies. If a child remains suspended for human
+approval, shutdown reports incomplete cleanup rather than treating the retained
+child as released. The Tool result can remain pending; shutdown does not supply
+approval or promise later finalization after incomplete shutdown. The existing
+incomplete-cleanup rule prevents replacement of that default Runtime.
+
 ## Cancellation and approval
 
 Logical result settlement does not prove that physical work has ended. The
