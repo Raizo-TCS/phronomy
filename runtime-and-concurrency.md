@@ -637,9 +637,31 @@ been cancelled or timed out. It does not forcefully interrupt worker threads.
 See [R8 unit19](architecture/r8-unit19.md) and its
 [migration notes](migrations/r8-unit19.md) for the shutdown budget and result rules.
 
-`Runtime#shutdown` is terminal for that Runtime. It drains/terminates the
-Runtime-owned EventLoop, then closes pools and timers according to the Runtime
-shutdown contract.
+`Runtime#shutdown` is terminal for that Runtime. During the drain phase it waits
+for registered owners and pending timer notifications. During the stop phase it
+closes pool admission and waits for workers while EventLoop continues delivering
+existing deadlines. It then stops EventLoop and closes the timer service. Timer
+callbacks continue to run on EventLoop, not on the shutdown caller's thread.
+
+For example, a Blocking operation with a 50 ms timeout that takes 200 ms still
+reports `TimeoutError` when shutdown begins immediately after submission, if the
+shutdown budget permits that deadline to be delivered. The worker is allowed to
+finish physically. A queued operation whose timeout settles before it starts is
+skipped, just as during ordinary operation. Standalone fan-out deadlines also
+remain active even when their pending results do not occupy a pool worker.
+
+Complete cleanup requires accepted timer notifications to finish or be removed
+by their owners before the timer service closes. If the finite shutdown budget
+expires while notifications remain, Runtime reports incomplete cleanup even
+when no worker thread remains. It does not fire future callbacks early or create
+a background timer service to preserve deadlines after shutdown returns.
+
+For example, a notification scheduled far beyond both shutdown phases is not
+executed early merely to empty the timer queue. Discarding that notification at
+closure makes `cleanup_complete?` false and prevents default Runtime replacement.
+Once shutdown returns incomplete, future deadline delivery is not guaranteed;
+the application must not treat that result as completed work or a safe handoff.
+Repeated shutdown retains the original result rather than silently upgrading it.
 
 Internal subsystems can register one shutdown participant per Runtime-local key
 through `Runtime#__register_shutdown_participant`. This is an internal lifecycle

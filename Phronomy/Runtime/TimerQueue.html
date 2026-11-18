@@ -151,6 +151,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#drained_on_shutdown%3F-instance_method" title="#drained_on_shutdown? (instance method)">#<strong>drained_on_shutdown?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Capture the first closure rather than a preceding idle observation: a caller holding this queue may register after that observation.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#fire_due-instance_method" title="#fire_due (instance method)">#<strong>fire_due</strong>  &#x21d2; Object </a>
     
 
@@ -285,6 +307,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#wait_until_idle-instance_method" title="#wait_until_idle (instance method)">#<strong>wait_until_idle</strong>(deadline)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Wait without driving callbacks on the shutdown caller's thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#wake_with-instance_method" title="#wake_with (instance method)">#<strong>wake_with</strong>(&amp;block)  &#x21d2; Object </a>
     
 
@@ -341,7 +385,9 @@
 10
 11
 12
-13</pre>
+13
+14
+15</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 7</span>
@@ -350,6 +396,8 @@
   <span class='ivar'>@clock</span> <span class='op'>=</span> <span class='id identifier rubyid_clock'>clock</span>
   <span class='ivar'>@heap</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@idle</span> <span class='op'>=</span> <span class='const'>ConditionVariable</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@firing</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@stopped</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@wake</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
@@ -394,23 +442,82 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
       <pre class="lines">
 
 
-50
-51
 52
 53
 54
 55
-56</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel'>cancel</span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_before'>before</span> <span class='op'>=</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
     <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_delete_if'>delete_if</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='lparen'>(</span><span class='id identifier rubyid__'>_</span><span class='comma'>,</span> <span class='id identifier rubyid_registered'>registered</span><span class='rparen'>)</span><span class='op'>|</span> <span class='id identifier rubyid_registered'>registered</span> <span class='op'>==</span> <span class='id identifier rubyid_callback'>callback</span> <span class='rbrace'>}</span>
+    <span class='ivar'>@idle</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_idle_locked?'>idle_locked?</span>
     <span class='id identifier rubyid_before'>before</span> <span class='op'>!=</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="drained_on_shutdown?-instance_method">
+  
+    #<strong>drained_on_shutdown?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Capture the first closure rather than a preceding idle observation:
+a caller holding this queue may register after that observation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+123
+124
+125</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 123</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_drained_on_shutdown?'>drained_on_shutdown?</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@stopped</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@drained_on_shutdown</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -441,27 +548,34 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
       <pre class="lines">
 
 
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76</pre>
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_due'>fire_due</span>
   <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -469,7 +583,9 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
 
     <span class='id identifier rubyid_now'>now</span> <span class='op'>=</span> <span class='ivar'>@clock</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
     <span class='id identifier rubyid_due_count'>due_count</span> <span class='op'>=</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_bsearch_index'>bsearch_index</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='lparen'>(</span><span class='id identifier rubyid_fire_at'>fire_at</span><span class='comma'>,</span> <span class='id identifier rubyid__'>_</span><span class='rparen'>)</span><span class='op'>|</span> <span class='id identifier rubyid_fire_at'>fire_at</span> <span class='op'>&gt;</span> <span class='id identifier rubyid_now'>now</span> <span class='rbrace'>}</span> <span class='op'>||</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
-    <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span><span class='lparen'>(</span><span class='id identifier rubyid_due_count'>due_count</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:last</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span><span class='lparen'>(</span><span class='id identifier rubyid_due_count'>due_count</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:last</span><span class='rparen'>)</span>
+    <span class='ivar'>@firing</span> <span class='op'>+=</span> <span class='id identifier rubyid_callbacks'>callbacks</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
+    <span class='id identifier rubyid_callbacks'>callbacks</span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_callbacks'>callbacks</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_callback'>callback</span><span class='op'>|</span>
@@ -477,6 +593,11 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
     <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../RuntimeSettings.html" title="Phronomy::RuntimeSettings (class)">RuntimeSettings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="../RuntimeSettings.html#current-class_method" title="Phronomy::RuntimeSettings.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'><span class='object_link'><a href="../RuntimeSettings.html#logger-instance_method" title="Phronomy::RuntimeSettings#logger (method)">logger</a></span></span><span class='op'>&amp;.</span><span class='id identifier rubyid_error'>error</span> <span class='kw'>do</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[TimerQueue] callback raised </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>ensure</span>
+    <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+      <span class='ivar'>@firing</span> <span class='op'>-=</span> <span class='int'>1</span>
+      <span class='ivar'>@idle</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_idle_locked?'>idle_locked?</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_callbacks'>callbacks</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
@@ -501,12 +622,12 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
       <pre class="lines">
 
 
-78
-79
-80</pre>
+103
+104
+105</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_count'>pending_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
@@ -553,8 +674,6 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
       <pre class="lines">
 
 
-22
-23
 24
 25
 26
@@ -568,10 +687,12 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
 34
 35
 36
-37</pre>
+37
+38
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>schedule requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
@@ -618,15 +739,15 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
       <pre class="lines">
 
 
-40
-41
 42
 43
 44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_seconds_until_next'>seconds_until_next</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -654,29 +775,93 @@ callback already taken by fire_due may still run; owners arbitrate once.</p>
       <pre class="lines">
 
 
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91</pre>
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='id identifier rubyid_wake'>wake</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='ivar'>@stopped</span>
+    <span class='ivar'>@drained_on_shutdown</span> <span class='op'>=</span> <span class='id identifier rubyid_idle_locked?'>idle_locked?</span>
     <span class='ivar'>@stopped</span> <span class='op'>=</span> <span class='kw'>true</span>
     <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+    <span class='ivar'>@idle</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='id identifier rubyid_idle_locked?'>idle_locked?</span>
     <span class='ivar'>@wake</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_wake'>wake</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span>
   <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="wait_until_idle-instance_method">
+  
+    #<strong>wait_until_idle</strong>(deadline)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Wait without driving callbacks on the shutdown caller's thread. Both
+registrations and callbacks already removed from the heap must finish.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 64</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>until</span> <span class='id identifier rubyid_idle_locked?'>idle_locked?</span>
+      <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
+      <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
+
+      <span class='ivar'>@idle</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span><span class='lparen'>(</span><span class='ivar'>@mutex</span><span class='comma'>,</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='kw'>true</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -708,13 +893,13 @@ may change EventLoop's current wait deadline.</p>
       <pre class="lines">
 
 
-17
-18
 19
-20</pre>
+20
+21
+22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wake_with'>wake_with</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@wake</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='rbrace'>}</span>
@@ -730,7 +915,7 @@ may change EventLoop's current wait deadline.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Nov 17 16:15:47 2026 by
+  Generated on Wed Nov 18 13:47:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

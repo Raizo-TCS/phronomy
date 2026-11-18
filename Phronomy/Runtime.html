@@ -1513,10 +1513,7 @@ Retained participants remain available during and after shutdown.</p>
 252
 253
 254
-255
-256
-257
-258</pre>
+255</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 190</span>
@@ -1544,6 +1541,7 @@ Retained participants remain available during and after shutdown.</p>
     <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='op'>&amp;.</span><span class='id identifier rubyid_begin_draining'>begin_draining</span>
 
     <span class='id identifier rubyid_participants_idle'>participants_idle</span> <span class='op'>=</span> <span class='id identifier rubyid_wait_for_participants'>wait_for_participants</span><span class='lparen'>(</span><span class='id identifier rubyid_participants'>participants</span><span class='comma'>,</span> <span class='id identifier rubyid_drain_deadline'>drain_deadline</span><span class='rparen'>)</span>
+    <span class='ivar'>@timer_service</span><span class='period'>.</span><span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_deadline'>drain_deadline</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>||</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_deadline'>drain_deadline</span><span class='rparen'>)</span>
 
     <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1551,13 +1549,8 @@ Retained participants remain available during and after shutdown.</p>
     <span class='kw'>end</span>
 
     <span class='id identifier rubyid_stop_deadline'>stop_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='comma'>,</span> <span class='float'>0.2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
-    <span class='id identifier rubyid_event_loop_status'>event_loop_status</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span>
-      <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_stop_deadline'>stop_deadline</span><span class='rparen'>)</span>
-    <span class='kw'>else</span>
-      <span class='symbol'>:not_started</span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_pools_stopped'>pools_stopped</span><span class='comma'>,</span> <span class='id identifier rubyid_subsystem_error'>subsystem_error</span> <span class='op'>=</span> <span class='id identifier rubyid_shutdown_pools_and_timer'>shutdown_pools_and_timer</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_stop_deadline'>stop_deadline</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_event_loop_status'>event_loop_status</span><span class='comma'>,</span> <span class='id identifier rubyid_pools_stopped'>pools_stopped</span><span class='comma'>,</span> <span class='id identifier rubyid_timers_idle'>timers_idle</span><span class='comma'>,</span> <span class='id identifier rubyid_subsystem_error'>subsystem_error</span> <span class='op'>=</span>
+      <span class='id identifier rubyid_shutdown_resources'>shutdown_resources</span><span class='lparen'>(</span><span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='comma'>,</span> <span class='label'>deadline:</span> <span class='id identifier rubyid_stop_deadline'>stop_deadline</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_participant_error'>participant_error</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@shutdown_participant_error</span> <span class='rbrace'>}</span>
     <span class='id identifier rubyid_cleanup_complete'>cleanup_complete</span> <span class='op'>=</span> <span class='id identifier rubyid_participants_idle'>participants_idle</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_participant_error'>participant_error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span>
       <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>&amp;&amp;</span>
@@ -1565,6 +1558,7 @@ Retained participants remain available during and after shutdown.</p>
       <span class='id identifier rubyid_event_loop_status'>event_loop_status</span> <span class='op'>!=</span> <span class='symbol'>:cancel_timeout</span> <span class='op'>&amp;&amp;</span>
       <span class='lparen'>(</span><span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>||</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid___receiver_cleanup_complete?'>__receiver_cleanup_complete?</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
       <span class='id identifier rubyid_pools_stopped'>pools_stopped</span> <span class='op'>&amp;&amp;</span>
+      <span class='id identifier rubyid_timers_idle'>timers_idle</span> <span class='op'>&amp;&amp;</span>
       <span class='id identifier rubyid_subsystem_error'>subsystem_error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
 
     <span class='id identifier rubyid_cleanup_complete'>cleanup_complete</span> <span class='op'>=</span> <span class='id identifier rubyid_finalize_participants'>finalize_participants</span><span class='lparen'>(</span><span class='id identifier rubyid_participants'>participants</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_cleanup_complete'>cleanup_complete</span>
@@ -1666,7 +1660,7 @@ Retained participants remain available during and after shutdown.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Nov 17 16:15:45 2026 by
+  Generated on Wed Nov 18 13:47:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

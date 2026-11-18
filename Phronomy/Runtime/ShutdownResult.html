@@ -344,7 +344,7 @@ during execution but still release every owned resource successfully.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns true when every Runtime-owned resource is known to have stopped.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns true when owned resources stopped and pending timer notifications settled within the shutdown budget rather than being discarded.</p></div></span>
   
 </li>
 
@@ -783,15 +783,15 @@ A cancellation may release every resource, but is not considered clean.</p>
       <pre class="lines">
 
 
-49
 50
 51
 52
 53
-54</pre>
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/shutdown_result.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/shutdown_result.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clean?'>clean?</span>
   <span class='ivar'>@runtime_outcome</span> <span class='op'>==</span> <span class='symbol'>:terminated</span> <span class='op'>&amp;&amp;</span>
@@ -819,7 +819,8 @@ A cancellation may release every resource, but is not considered clean.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns true when every Runtime-owned resource is known to have stopped.</p>
+<p>Returns true when owned resources stopped and pending timer notifications
+settled within the shutdown budget rather than being discarded.</p>
 
   </div>
 </div>
@@ -845,12 +846,12 @@ A cancellation may release every resource, but is not considered clean.</p>
       <pre class="lines">
 
 
-43
 44
-45</pre>
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/shutdown_result.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/shutdown_result.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cleanup_complete?'>cleanup_complete?</span>
   <span class='ivar'>@cleanup_status</span> <span class='op'>==</span> <span class='symbol'>:complete</span>
@@ -865,7 +866,7 @@ A cancellation may release every resource, but is not considered clean.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Nov 17 16:15:48 2026 by
+  Generated on Wed Nov 18 13:47:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
