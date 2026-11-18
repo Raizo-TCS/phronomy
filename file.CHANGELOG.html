@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_35_3____2026_11_19">[0.35.3] - 2026-11-19</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
 <li>Allow an already accepted Agent Tool to finish its private child's release
@@ -78,6 +79,17 @@ cleanup incomplete instead of being treated as released.</li>
 a child Tool. Tool aliases now remain consistent across durable dispatch,
 replay and hosted approval recovery. Removed Tools lose their registrations;
 ordinary subclass inheritance keeps its existing behavior.</li>
+</ul>
+<h3 id="Compatibility_and_verification">Compatibility and verification</h3>
+<ul>
+<li>Public call signatures, dependency requirements and saved representations are
+unchanged. An unresolved private-child approval wait can still leave cleanup
+incomplete at the finite shutdown deadline; the Tool does not automatically
+approve, force-release or recover the child.</li>
+<li>Candidate-source examples verification passed against the existing
+llama-server with gpt-oss-20b. This does not establish resolution of the
+previously observed PEG-format failure root cause or replace post-release
+verification with the published gem.</li>
 </ul>
 <h2 id="_0_35_2____2026_11_18">[0.35.2] - 2026-11-18</h2>
 <h3 id="Fixed">Fixed</h3>
@@ -1329,7 +1341,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed Nov 18 17:32:14 2026 by
+  Generated on Wed Nov 18 17:39:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
