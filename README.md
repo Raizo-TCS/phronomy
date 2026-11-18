@@ -37,7 +37,7 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following table describes the application APIs available in v0.35.1.
+The following table describes the application APIs available in v0.35.2.
 The public persistence resource catalogs are available starting with v0.35.0.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.

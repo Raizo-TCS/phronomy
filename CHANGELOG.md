@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.35.2] - 2026-11-18
+
 ### Fixed
 
 - Release completed member Agents in default SharedState coordination through
@@ -31,6 +33,16 @@ Release history for 0.14.0 and earlier is archived in
   replacement still requires complete cleanup.
 - Reconcile P5 progress with the published v0.35.0 and examples acceptance, and
   identify the old execution-boundary proposal as historical documentation.
+
+### Compatibility and verification
+
+- Public signatures, dependency requirements and current saved formats are
+  unchanged. The existing `cleanup_complete?` predicate now remains false when
+  the shutdown budget leaves accepted timer callbacks unfinished, so a default
+  Runtime cannot be replaced after incomplete cleanup.
+- This core release does not claim new published-gem examples, live LLM or SQL
+  acceptance, or resolution of the previously observed LM Studio/gpt-oss
+  PEG-format failure root cause. Those checks remain separate follow-up work.
 
 ## [0.35.1] - 2026-11-18
 
