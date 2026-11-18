@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.35.3] - 2026-11-19
+
 ### Fixed
 
 - Allow an already accepted Agent Tool to finish its private child's release
@@ -23,6 +25,17 @@ Release history for 0.14.0 and earlier is archived in
   a child Tool. Tool aliases now remain consistent across durable dispatch,
   replay and hosted approval recovery. Removed Tools lose their registrations;
   ordinary subclass inheritance keeps its existing behavior.
+
+### Compatibility and verification
+
+- Public call signatures, dependency requirements and saved representations are
+  unchanged. An unresolved private-child approval wait can still leave cleanup
+  incomplete at the finite shutdown deadline; the Tool does not automatically
+  approve, force-release or recover the child.
+- Candidate-source examples verification passed against the existing
+  llama-server with gpt-oss-20b. This does not establish resolution of the
+  previously observed PEG-format failure root cause or replace post-release
+  verification with the published gem.
 
 ## [0.35.2] - 2026-11-18
 
