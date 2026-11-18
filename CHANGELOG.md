@@ -12,6 +12,18 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Allow an already accepted Agent Tool to finish its private child's release
+  during graceful Runtime draining. Track that release on the existing Agent
+  ownership entry without reopening new admission or adding a cleanup registry.
+  A child still awaiting human approval at the finite shutdown deadline leaves
+  cleanup incomplete instead of being treated as released.
+- Preserve native subagent registration when `Orchestrator.with_tools` retains
+  a child Tool. Tool aliases now remain consistent across durable dispatch,
+  replay and hosted approval recovery. Removed Tools lose their registrations;
+  ordinary subclass inheritance keeps its existing behavior.
+
 ## [0.35.2] - 2026-11-18
 
 ### Fixed

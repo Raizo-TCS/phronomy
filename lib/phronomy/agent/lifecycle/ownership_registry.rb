@@ -165,6 +165,34 @@ module Phronomy
         true
       end
 
+      # A private child already owned by this Runtime must finish its final
+      # release before the shutdown participant can become idle. Keep that
+      # obligation on the existing owner entry, not in a second registry.
+      def expect_unload(agent)
+        @mutex.synchronize do
+          ensure_running!
+          entry = @entries[agent.agent_id]
+          unless entry&.state == :live && entry.agent.equal?(agent) && entry.token.nil?
+            raise Phronomy::AgentBusyError, "Agent is not available for owned release"
+          end
+          @entries[agent.agent_id] = Entry.new(state: :live, agent: agent, token: :pending_unload)
+        end
+        true
+      end
+
+      # A failed finalizer leaves the child with its existing error owner. Never
+      # clear an accepted transition or a newer owner while removing the marker.
+      def cancel_expected_unload(agent)
+        @mutex.synchronize do
+          entry = @entries[agent.agent_id]
+          if entry&.state == :live && entry.agent.equal?(agent) && entry.token == :pending_unload
+            @entries[agent.agent_id] = Entry.new(state: :live, agent: agent, token: nil)
+            @condition.broadcast
+          end
+        end
+        true
+      end
+
       # Transfer only the single outstanding hosting operation, atomically with
       # the same admission gate used by all other Agent operations.
       def reserve_approval_detach!(agent, operation_token, transition, parent: nil)
@@ -191,8 +219,10 @@ module Phronomy
       # Returns the already accepted transition for duplicate callers.
       def reserve_unload(agent)
         @mutex.synchronize do
-          ensure_running!
           entry = @entries[agent.agent_id]
+          accepted_release = @state == :draining && entry&.state == :live &&
+            entry.agent.equal?(agent) && entry.token == :pending_unload
+          ensure_running! unless accepted_release
           if entry&.state == :unloading && entry.agent.equal?(agent)
             unless entry.token.is_a?(UnloadTransition)
               raise Phronomy::AgentBusyError, "Agent has a coordinated release in progress"
@@ -320,11 +350,15 @@ module Phronomy
         self
       end
 
-      # Live/recovery-required entries do not prevent Runtime shutdown. Only an
-      # ownership transition that is still actively changing state must settle.
+      # Ordinary live/recovery-required entries do not prevent Runtime shutdown.
+      # Accepted final releases stay pending through their atomic transition to
+      # unloading, so shutdown cannot observe an idle gap between the two.
       def wait_until_idle(deadline)
         @mutex.synchronize do
-          while @entries.values.any? { |entry| %i[constructing purging unloading].include?(entry.state) }
+          while @entries.values.any? { |entry|
+            %i[constructing purging unloading].include?(entry.state) ||
+                (entry.state == :live && entry.token == :pending_unload)
+          }
             remaining = deadline - monotonic_now
             # :nocov:
             return false if remaining <= 0
