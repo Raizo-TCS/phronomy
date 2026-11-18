@@ -39,7 +39,8 @@ module Phronomy
         freeze
       end
 
-      # Returns true when every Runtime-owned resource is known to have stopped.
+      # Returns true when owned resources stopped and pending timer notifications
+      # settled within the shutdown budget rather than being discarded.
       def cleanup_complete?
         @cleanup_status == :complete
       end

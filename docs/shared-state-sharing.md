@@ -185,12 +185,21 @@ and verifies provider cleanup. It uses the real Tool argument-validation path.
 It does not exercise the SharedState Agent loop or establish live-model,
 database or multi-process acceptance.
 
-In custom mode, SharedState releases terminal member instances through the
-Agent's public `unload!` operation. A normal Agent approval wait keeps the public
-`invoke` call pending. SharedState consequently stays inside the provider's
-`open` block and retains its resources; it does not return a suspended result or
-close the provider merely because an internal execution reaches an approval
-wait. The application remains responsible for answering or cancelling approvals.
+In both default and custom sharing modes, SharedState releases terminal member
+instances through the Agent's public `unload!` operation. It owns the lifetime of
+the members it creates, including successful calls, early coordination stops and
+invocation failures. Releasing a member does not delete its saved history.
+
+For example, two members running two cycles create four temporary Agents. Each
+Agent is released after its invocation finishes, while the shared findings stay
+available to later members and the final aggregation. Repeated coordination does
+not accumulate completed member owners in the Runtime.
+
+A normal Agent approval wait keeps the public `invoke` call pending. In custom
+mode, SharedState consequently stays inside the provider's `open` block and
+retains its resources; it does not return a suspended result or close the
+provider merely because an internal execution reaches an approval wait. The
+application remains responsible for answering or cancelling approvals.
 
 For example, when a member waits for approval of `record_issue`, the board stays
 open while that invocation waits. An approval allows the Tool and member to
@@ -207,7 +216,8 @@ during the wait; after a public approval response, the Tool writes its record,
 aggregation runs, the provider closes and the member is released. Fixed
 responses verify the execution path, not a live model's Tool-selection behavior.
 
-The lifecycle guard also detects a custom `invoke` override that returns a Hash
+In either sharing mode, the lifecycle guard also detects a custom `invoke`
+override that returns a Hash
 with a suspended status before reaching completion. That exceptional early
 return raises `SharedState::MemberLifecycleError` with `reason: :suspended` and
 stops coordination before later members or aggregation. It is not the behavior

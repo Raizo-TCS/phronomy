@@ -27,7 +27,20 @@ module Phronomy
       end
 
       def shutdown
-        @mutex.synchronize { @timer&.shutdown }
+        @mutex.synchronize do
+          return true unless @timer
+
+          @timer.shutdown
+          @timer.drained_on_shutdown?
+        end
+      end
+
+      # Capture the timer without holding the service lock during callbacks:
+      # an admitted continuation may acquire this same service while draining.
+      # @api private
+      def wait_until_idle(deadline)
+        timer = @mutex.synchronize { @timer }
+        !timer || timer.wait_until_idle(deadline)
       end
     end
   end

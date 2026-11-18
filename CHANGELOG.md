@@ -12,6 +12,26 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Release completed member Agents in default SharedState coordination through
+  the same lifecycle handling used by custom sharing. Normal approval waits stay
+  live; invocation and release failures retain their original causes and the
+  member handle when cleanup needs attention.
+- Keep Runtime deadline notifications active while accepted work drains during
+  shutdown, including queued Blocking operations and standalone fan-out results.
+  A delayed worker result cannot win merely because its timer driver stopped
+  before the worker pool drained.
+
+### Changed
+
+- Report incomplete Runtime cleanup if the finite shutdown budget expires with
+  accepted timer callbacks still pending. No callback fires early to simulate
+  cancellation, and no worker thread is forcibly interrupted. Default Runtime
+  replacement still requires complete cleanup.
+- Reconcile P5 progress with the published v0.35.0 and examples acceptance, and
+  identify the old execution-boundary proposal as historical documentation.
+
 ## [0.35.1] - 2026-11-18
 
 ### Fixed

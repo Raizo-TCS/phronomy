@@ -4,11 +4,10 @@
     "P1",
     "P2",
     "P3",
-    "P4"
-  ],
-  "pending_steps": [
+    "P4",
     "P5"
   ],
+  "pending_steps": [],
   "r8_unit1": {
     "status": "partial_spec_implementation",
     "completed_scope": [
@@ -145,21 +144,45 @@
     ]
   },
   "p5_review": {
-    "status": "implementation_candidate_pending_published_acceptance",
+    "status": "published_acceptance_completed",
+    "reconciled_on": "2026-11-18",
     "baseline_core_commit": "e0c50c8a5cc6c7237ef27cd7db88c071419f4118",
     "baseline_examples_commit": "157d5405f6827ecbcc0de3004764f9445e135a32",
-    "candidate_scope": [
+    "completed_scope": [
       "Public PersistenceComposition resource catalogs and optional SQL consumer",
       "Async VectorStore input type alignment",
       "Current documentation and Contract summary reconciliation",
       "Unused private Storage submission helper removal",
       "Obsolete callback placeholder removal"
     ],
-    "pending_acceptance": [
-      "Apply and review the core candidate, then publish a release containing both catalog operations",
-      "Resolve all examples bundles against that published gem and confirm version, source and catalog behavior",
-      "Verify CI at the applied core/examples commits before moving P5 to completed_steps"
-    ],
+    "published_acceptance": {
+      "core_version": "0.35.0",
+      "core_commit": "9ac89c68f6495b32edaed9a8f75bf99622ab0314",
+      "examples_reviewed_commit": "c144f3ae4edf21a1f1523f2726933d995449660b",
+      "examples_main_commit": "c835749b0506d25290a9d0686e4ff776b3f5a221",
+      "examples_tree": "591ed71bf1500f9f2650e4af66c2ebd3bac8299f",
+      "core_release": "https://github.com/Raizo-TCS/phronomy/releases/tag/v0.35.0",
+      "core_release_workflow": "https://github.com/Raizo-TCS/phronomy/actions/runs/43891868954",
+      "core_ruby_ci": "https://github.com/Raizo-TCS/phronomy/actions/runs/43890434896",
+      "examples_review": "https://github.com/Raizo-TCS/phronomy-examples/pull/29",
+      "examples_main_ci": [
+        "https://github.com/Raizo-TCS/phronomy-examples/actions/runs/43907045693",
+        "https://github.com/Raizo-TCS/phronomy-examples/actions/runs/43907045752",
+        "https://github.com/Raizo-TCS/phronomy-examples/actions/runs/43907045828",
+        "https://github.com/Raizo-TCS/phronomy-examples/actions/runs/43907045672"
+      ],
+      "recorded_acceptance": [
+        "PR #29 and the core release record all seven bundles using the published gem with PHRONOMY_PATH unset, including canonical Resource identity checks",
+        "PR #29 records the standard verifier at 103 passed, 0 failed, 0 skipped, root RSpec at 205/0 and SQLite at 151/0; counts overlap",
+        "PR #29 records live llama-server acceptance separately from fixed-response CI; historical LM Studio PEG failures are not claimed resolved"
+      ],
+      "verified_ci": [
+        "The containing core release workflow completed both jobs successfully",
+        "All 18 examples main jobs succeeded at the merge commit; the merged tree matches the reviewed head",
+        "Hosted Worker logs confirm the public 0.35.0 gem and source check; SQLite logs confirm 151 examples with 0 failures"
+      ]
+    },
+    "pending_acceptance": [],
     "limits": [
       "Paired-source verification is not published-gem acceptance",
       "P5 completion is independent of other r8 pending_scope entries"

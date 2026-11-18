@@ -8,6 +8,8 @@ module Phronomy
         @clock = clock
         @heap = []
         @mutex = Mutex.new
+        @idle = ConditionVariable.new
+        @firing = 0
         @stopped = false
         @wake = nil
       end
@@ -51,7 +53,23 @@ module Phronomy
         @mutex.synchronize do
           before = @heap.length
           @heap.delete_if { |(_, registered)| registered == callback }
+          @idle.broadcast if idle_locked?
           before != @heap.length
+        end
+      end
+
+      # Wait without driving callbacks on the shutdown caller's thread. Both
+      # registrations and callbacks already removed from the heap must finish.
+      # @api private
+      def wait_until_idle(deadline)
+        @mutex.synchronize do
+          until idle_locked?
+            remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            return false if remaining <= 0
+
+            @idle.wait(@mutex, remaining)
+          end
+          true
         end
       end
 
@@ -62,7 +80,9 @@ module Phronomy
 
           now = @clock.call
           due_count = @heap.bsearch_index { |(fire_at, _)| fire_at > now } || @heap.length
-          @heap.shift(due_count).map(&:last)
+          callbacks = @heap.shift(due_count).map(&:last)
+          @firing += callbacks.length
+          callbacks
         end
 
         callbacks.each do |callback|
@@ -70,6 +90,11 @@ module Phronomy
         rescue => error
           Phronomy::RuntimeSettings.current.logger&.error do
             "[TimerQueue] callback raised #{error.class}: #{error.message}"
+          end
+        ensure
+          @mutex.synchronize do
+            @firing -= 1
+            @idle.broadcast if idle_locked?
           end
         end
         callbacks.length
@@ -82,12 +107,27 @@ module Phronomy
       def shutdown
         wake = @mutex.synchronize do
           return self if @stopped
+          @drained_on_shutdown = idle_locked?
           @stopped = true
           @heap.clear
+          @idle.broadcast if idle_locked?
           @wake
         end
         wake&.call
         self
+      end
+
+      # Capture the first closure rather than a preceding idle observation:
+      # a caller holding this queue may register after that observation.
+      # @api private
+      def drained_on_shutdown?
+        @mutex.synchronize { @stopped && @drained_on_shutdown }
+      end
+
+      private
+
+      def idle_locked?
+        @heap.empty? && @firing.zero?
       end
     end
   end

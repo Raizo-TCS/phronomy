@@ -169,10 +169,19 @@ tmp/architecture-venv/bin/python tools/architecture/refresh_diagram.py . tmp/arc
 
 Use an empty output directory and committed `lib` and `sig` sources. The command never
 stages, commits or modifies Ruby or RBS source. The repository's `phase.json` declares
-the current phase (`storage`: P1/P2/P3/P4 complete). `--phase` can explicitly check another
+the current phase (`storage`: P1/P2/P3/P4/P5 complete). `--phase` can explicitly check another
 phase during development; it cannot add absent modules or remove real edges.
 New or missing directories, duplicate IDs, incomplete group membership and
 forbidden responsibility paths fail the gate.
+
+P5 completion records acceptance of its scoped changes against the published
+Phronomy 0.35.0 gem, followed by examples PR #29's merge and successful main CI.
+For example, the optional SQL package consumes the public Resource catalog, and
+the Hosted Worker jobs verify that the loaded gem comes from RubyGems rather
+than a paired source checkout. `phase.json` links the release, reviewed and
+merged examples commits, and the acceptance evidence. Earlier `r8_unit*`
+entries remain historical checkpoints; P5 completion does not close their
+unrelated pending scopes or certify all runtime behavior.
 
 Outputs include the full SVG/matrix, all/scoped AST JSON, source fingerprints,
 module-to-ID annotations, boundary results, graph/SCC differences from baseline,
