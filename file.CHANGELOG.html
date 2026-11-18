@@ -67,6 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_35_2____2026_11_18">[0.35.2] - 2026-11-18</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
 <li>Release completed member Agents in default SharedState coordination through
@@ -86,6 +87,16 @@ cancellation, and no worker thread is forcibly interrupted. Default Runtime
 replacement still requires complete cleanup.</li>
 <li>Reconcile P5 progress with the published v0.35.0 and examples acceptance, and
 identify the old execution-boundary proposal as historical documentation.</li>
+</ul>
+<h3 id="Compatibility_and_verification">Compatibility and verification</h3>
+<ul>
+<li>Public signatures, dependency requirements and current saved formats are
+unchanged. The existing <code>cleanup_complete?</code> predicate now remains false when
+the shutdown budget leaves accepted timer callbacks unfinished, so a default
+Runtime cannot be replaced after incomplete cleanup.</li>
+<li>This core release does not claim new published-gem examples, live LLM or SQL
+acceptance, or resolution of the previously observed LM Studio/gpt-oss
+PEG-format failure root cause. Those checks remain separate follow-up work.</li>
 </ul>
 <h2 id="_0_35_1____2026_11_18">[0.35.1] - 2026-11-18</h2>
 <h3 id="Fixed">Fixed</h3>
@@ -1306,7 +1317,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed Nov 18 13:47:18 2026 by
+  Generated on Wed Nov 18 13:54:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
