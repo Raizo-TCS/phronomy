@@ -132,6 +132,18 @@ The original class is unchanged. This explicit factory does not change general
 Agent subclass inheritance or define copying rules for application-specific
 class state.
 
+For an Orchestrator, this explicit factory also preserves native subagent
+registrations for the child Tools kept in the replacement map. Removed child
+Tools lose their registrations, and retained child Tools use their effective
+aliases for durable dispatch, replay and hosted approval recovery. Registration
+settings are independent of the original class. Ordinary subclass inheritance
+still starts with no native subagent registrations.
+
+For example, keeping a `dispatch_to_worker` Tool under the alias `consult_worker`
+still runs the registered child through the Orchestrator's coordination Store.
+Replacing that Tool with an unrelated application Tool removes the child
+registration; it does not keep an unreachable coordination entry.
+
 The default findings-store mode now preserves these settings through the same
 factory. For example, a member configured with `max_iterations 3` and
 `temperature 0.25` keeps those settings when SharedState adds `read_store` and

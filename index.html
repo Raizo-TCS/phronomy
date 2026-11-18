@@ -137,7 +137,7 @@ the current saved representation.</p>
 <tr>
 <td><code>Agent::Base.with_tools(definitions, id:, version:)</code></td>
 <td>Experimental (since v0.33.0)</td>
-<td>Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. <a href="docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set">Tool composition</a></td>
+<td>Derive an Agent class with a complete replacement Tool map and explicit definition identity while preserving Phronomy authoring settings and filters. Orchestrator derivation also preserves native subagent registrations for retained child Tools, including their aliases. <a href="docs/shared-state-sharing.md#deriving-an-agent-with-a-complete-tool-set">Tool composition</a></td>
 </tr>
 <tr>
 <td><code>MultiAgent::SharedState.sharing(provider, id:, version:)</code>, <code>SharedState::Binding</code> and <code>SharedState::MemberLifecycleError</code></td>
@@ -391,7 +391,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Wed Nov 18 13:54:53 2026 by
+  Generated on Wed Nov 18 17:32:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>

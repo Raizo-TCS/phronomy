@@ -315,7 +315,12 @@ therefore never consumed merely to wait for another Agent.</p>
 84
 85
 86
-87</pre>
+87
+88
+89
+90
+91
+92</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 35</span>
@@ -361,9 +366,14 @@ therefore never consumed merely to wait for another Agent.</p>
 
     <span class='id identifier rubyid_persistence'>persistence</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/DefaultPersistence.html" title="Phronomy::Agent::DefaultPersistence (module)">DefaultPersistence</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="../Agent/DefaultPersistence.html#build-class_method" title="Phronomy::Agent::DefaultPersistence.build (method)">build</a></span></span>
     <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_ownership'>ownership</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/OwnershipRegistry.html" title="Phronomy::Agent::OwnershipRegistry (class)">OwnershipRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="../Agent/OwnershipRegistry.html#current-class_method" title="Phronomy::Agent::OwnershipRegistry.current (method)">current</a></span></span>
+    <span class='id identifier rubyid_ownership'>ownership</span><span class='period'>.</span><span class='id identifier rubyid_expect_unload'>expect_unload</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
     <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AsyncOperation.html" title="Phronomy::AsyncOperation (module)">AsyncOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_finalize'><span class='object_link'><a href="../AsyncOperation.html#finalize-class_method" title="Phronomy::AsyncOperation.finalize (method)">finalize</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>-release</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
       <span class='label'>cleanup:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_unload_async'>unload_async</span> <span class='rbrace'>}</span><span class='comma'>,</span>
-      <span class='label'>on_cleanup_error:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_primary'>primary</span><span class='comma'>,</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_child_cleanup_failed'>child_cleanup_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_primary'>primary</span><span class='comma'>,</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='label'>on_cleanup_error:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_primary'>primary</span><span class='comma'>,</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+        <span class='id identifier rubyid_ownership'>ownership</span><span class='period'>.</span><span class='id identifier rubyid_cancel_expected_unload'>cancel_expected_unload</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_child_cleanup_failed'>child_cleanup_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_primary'>primary</span><span class='comma'>,</span> <span class='id identifier rubyid_cleanup'>cleanup</span><span class='rparen'>)</span>
+      <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span>
       <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../AsyncOperation.html" title="Phronomy::AsyncOperation (module)">AsyncOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../AsyncOperation.html#call-class_method" title="Phronomy::AsyncOperation.call (method)">call</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>-invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
         <span class='label'>transform:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span>
         <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='rparen'>)</span>
@@ -410,19 +420,19 @@ Tool::Base#call.</p>
       <pre class="lines">
 
 
-107
-108
-109
-110
-111
 112
 113
 114
 115
-116</pre>
+116
+117
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 112</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_args'>args</span><span class='comma'>,</span>
@@ -444,7 +454,7 @@ Tool::Base#call.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Nov 18 13:54:55 2026 by
+  Generated on Wed Nov 18 17:32:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.13).
 </div>
