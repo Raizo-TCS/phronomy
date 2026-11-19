@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-11-20
+
 ### Fixed
 
 - Wait for accepted synchronous Agent state updates before completing Runtime
