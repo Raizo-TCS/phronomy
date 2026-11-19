@@ -71,6 +71,7 @@ PUBLIC_API_ENTRIES = [
   Phronomy::MultiAgent::HandoffPolicy,
   Phronomy::MultiAgent::HandoffRunner,
   Phronomy::MultiAgent::Orchestrator,
+  Phronomy::MultiAgent::Orchestrator::ChildCleanupError,
   Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Filter::Base,
   Phronomy::Filter::PromptInjectionFilter,
@@ -113,7 +114,9 @@ def snapshot_entry(klass)
     else []
     end
     instance_methods = (klass.public_instance_methods - BASELINE_INSTANCE_METHODS - internal_methods).sort
-    class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS).sort
+    # Ruby visibility does not promote a documented framework helper to API.
+    internal_class_methods = (klass == Phronomy::MultiAgent::Orchestrator) ? %i[__subagent_tool_name] : []
+    class_methods = (klass.public_methods(false) - BASELINE_CLASS_METHODS - internal_class_methods).sort
     {
       "name" => klass.name,
       "type" => "class",

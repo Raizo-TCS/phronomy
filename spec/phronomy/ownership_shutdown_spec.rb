@@ -147,6 +147,95 @@ RSpec.describe "Feature-owned identity and Runtime shutdown" do
     expect { agent.purge! }.to raise_error(Phronomy::RuntimeShutdownError)
   end
 
+  [false, true].each do |initialize_event_loop|
+    %i[add_knowledge clear_transcript! clear_knowledge! reset_context! close!].each do |operation|
+      it "waits for admitted #{operation} before reset with EventLoop initialized=#{initialize_event_loop}" do
+        agent = agent_class.create(agent_id: "updating", persistence: store)
+        runtime.event_loop if initialize_event_loop
+        registry = Phronomy::Agent::EngineEnvironment.new(runtime: runtime).ownership
+        entered = Queue.new
+        release = Queue.new
+        allow(store).to receive(:transaction).and_wrap_original do |original, &block|
+          if Thread.current[:ownership_shutdown_writer]
+            entered << true
+            release.pop(timeout: 3)
+          end
+          original.call(&block)
+        end
+        writer = Thread.new do
+          Thread.current[:ownership_shutdown_writer] = true
+          (operation == :add_knowledge) ? agent.add_knowledge("accepted update") : agent.public_send(operation)
+        end
+        expect(entered.pop(timeout: 2)).to be(true)
+        waiting = Queue.new
+        allow(registry).to receive(:wait_until_idle).and_wrap_original do |original, deadline|
+          waiting << true
+          original.call(deadline)
+        end
+        resetting = Thread.new { Phronomy.reset_runtime!(timeout: 2) }
+        expect(waiting.pop(timeout: 2)).to be(true)
+
+        expect(agent_class.get("updating")).to equal(agent)
+        expect(agent.agent_root.agent_revision).to eq(0)
+        expect { agent.add_knowledge("late update") }.to raise_error(Phronomy::RuntimeShutdownError)
+        expect(resetting.join(0.02)).to be_nil
+
+        release << true
+        expect(writer.join(2)).not_to be_nil
+        expect(store.agents.load("updating").agent_revision).to eq(1)
+        expect(resetting.join(2)).not_to be_nil
+        expect(resetting.value.cleanup_complete?).to be(true)
+
+        replacement = agent_class.load("updating", persistence: store)
+        expect(replacement).not_to equal(agent)
+        expect(replacement.agent_root.agent_revision).to eq(1)
+        expect { replacement.add_knowledge("replacement update") }.not_to raise_error
+        expect(store.agents.load("updating").agent_revision).to eq(2)
+        expect { agent.add_knowledge("obsolete owner") }.to raise_error(Phronomy::RuntimeShutdownError)
+      ensure
+        release << true
+        writer&.join(3)
+        resetting&.join(3)
+      end
+    end
+  end
+
+  it "retains the owner and rejects reset when an admitted update misses the deadline" do
+    agent = agent_class.create(agent_id: "updating", persistence: store)
+    entered = Queue.new
+    release = Queue.new
+    allow(store).to receive(:transaction).and_wrap_original do |original, &block|
+      if Thread.current[:ownership_shutdown_writer]
+        entered << true
+        release.pop(timeout: 3)
+      end
+      original.call(&block)
+    end
+    writer = Thread.new do
+      Thread.current[:ownership_shutdown_writer] = true
+      agent.add_knowledge("accepted update")
+    end
+    expect(entered.pop(timeout: 2)).to be(true)
+
+    expect { Phronomy.reset_runtime!(timeout: 0) }
+      .to raise_error(Phronomy::RuntimeShutdownError, /cleanup is incomplete/)
+    expect(Phronomy::Runtime.instance).to equal(runtime)
+    expect(agent_class.get("updating")).to equal(agent)
+    expect(agent.agent_root.agent_revision).to eq(0)
+    expect { agent.add_knowledge("late update") }.to raise_error(Phronomy::RuntimeShutdownError)
+
+    release << true
+    expect(writer.join(2)).not_to be_nil
+    expect(writer.value).to equal(agent)
+    expect(agent.agent_root.agent_revision).to eq(1)
+    expect(store.agents.load("updating").agent_revision).to eq(1)
+    expect { Phronomy.reset_runtime!(timeout: 0) }
+      .to raise_error(Phronomy::RuntimeShutdownError, /cleanup is incomplete/)
+  ensure
+    release << true
+    writer&.join(3)
+  end
+
   {
     complete_purge: :__mark_purged!,
     abort_purge: :__restore_live_after_purge_abort!,

@@ -39,6 +39,8 @@ See [Features and Application Programming Interface (API) stability](docs/featur
 
 The following table describes the application APIs available in v0.35.3.
 The public persistence resource catalogs are available starting with v0.35.0.
+This checkout also includes the unreleased direct-child cleanup contract below;
+it is not part of the published v0.35.3 gem.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
 Worker hosting and completed parent/child release require v0.32.0 or later.
@@ -73,6 +75,7 @@ the current saved representation.
 | `Agent::HostedInvocation#detach!(execution_id:, approval_request_id:)` | Beta | Added in v0.32.0. Release an exclusively owned Orchestrator and its single direct subagent at the child's approval wait. A second worker can resume both saved executions while the first worker handles other requests. [Contract](docs/runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval) |
 | `MultiAgent::Orchestrator#approve_hosted_child` | Beta | Added in v0.32.0. Answer the current approval on a restored direct child. The returned handle can release the pair again if that child requests another approval during the same execution. [Contract](docs/runtime-and-concurrency.md#hosting-an-orchestrator-through-a-child-approval) |
 | `MultiAgent::Orchestrator#unload_with_completed_child!` | Beta | Added in v0.32.0. Release local owners after a direct child result has been imported and the parent has finished. The saved executions, transcripts and coordination history remain available. [Contract](docs/runtime-and-concurrency.md#releasing-a-completed-orchestrator-and-child) |
+| `MultiAgent::Orchestrator::ChildCleanupError` | Beta (Unreleased) | Retains exact child owners and causes when direct dispatch cannot safely release children whose results are not returned. Ordinary successful results keep their existing Agent reuse contract. [Direct-child lifetime](docs/async-composition.md#direct-orchestrator-children) |
 | `Tools::Agent::CleanupError` | Beta | Added in v0.31.0. Preserves the child, result and failure causes when safe release fails; retry `child_agent.unload_async` for release only; [contract](docs/architecture/agent-tool-child-lifetime.md) |
 | `Workflow#send_saved_event` | Beta | Added in v0.32.0. Deliver an event to a specific revision of a persisted Workflow wait; [contract](docs/runtime-and-concurrency.md#delivering-an-event-to-a-saved-workflow-wait) |
 | `Workflow::Builder#task_state` and `WorkflowTaskResumeError` | Beta | State-entry-scoped Task completion, live cancellation and explicit restart rejection; [contract](docs/architecture/dx05-workflow-task-state.md) |

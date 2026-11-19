@@ -52,7 +52,7 @@ module Phronomy
       end
 
       def resume(execution_id, config: {})
-        __with_operation do
+        __with_operation(wait_on_shutdown: false) do
           _check_event_loop_reentrancy(:resume, :resume_async)
           resume_async(execution_id, config: config).wait_result
         end
@@ -79,7 +79,7 @@ module Phronomy
         **removed_options,
         &removed_block
       )
-        __with_operation do
+        __with_operation(wait_on_shutdown: false) do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
           config = _prepare_output_config(config, invocation_context, output_schema, schema_delivery)
           _check_event_loop_reentrancy(:invoke, :invoke_async)
@@ -122,7 +122,7 @@ module Phronomy
         **removed_options,
         &removed_block
       )
-        __with_operation do
+        __with_operation(wait_on_shutdown: false) do
           _reject_removed_invocation_listener_arguments!(removed_options, removed_block)
           listener = _required_stream_listener!(:stream)
           config = _prepare_output_config(config, invocation_context, output_schema, schema_delivery)
@@ -159,7 +159,7 @@ module Phronomy
       end
 
       def approve(execution_id, approval_request_id:, approved: true, config: {})
-        __with_operation do
+        __with_operation(wait_on_shutdown: false) do
           _check_event_loop_reentrancy(:approve, :approve_async)
           approve_async(
             execution_id,
@@ -196,7 +196,7 @@ module Phronomy
         result: Phronomy::Agent::RecoveryRules::MISSING,
         error: Phronomy::Agent::RecoveryRules::MISSING
       )
-        __with_operation do
+        __with_operation(wait_on_shutdown: false) do
           _check_event_loop_reentrancy(:resolve, :resolve_async)
           resolve_async(
             execution_id,

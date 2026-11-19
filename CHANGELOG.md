@@ -12,6 +12,37 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Fixed
+
+- Wait for accepted synchronous Agent state updates before completing Runtime
+  shutdown and replacing the default Runtime. Existing execution-result waits
+  and saved approval suspension keep their separate shutdown rules.
+- Release failed directly dispatched Orchestrator children after physical
+  completion, and release successful siblings when an aggregate failure discards
+  their results. Successful returned children remain available for reuse.
+  Materialize children only for started JOBs so skipped queued work does not
+  leave unused owners.
+- Correct the architecture overview to describe WorkflowTerminalPolicy's
+  existing ownership of terminal persistence outcomes.
+
+### Added
+
+- Add Beta `MultiAgent::Orchestrator::ChildCleanupError` with retained child
+  owners, cleanup failures, the available result and primary operation error.
+  Cleanup failures remain visible even under `on_error: :skip`.
+
+### Compatibility
+
+- Existing call signatures, dependency requirements and saved formats remain
+  unchanged. The new public error and stricter cleanup-failure reporting are an
+  observable contract addition; this is not a no-public-API-change patch.
+- A direct Orchestrator helper still owning an unanswered child approval keeps
+  cleanup incomplete at the shutdown deadline. Ordinary standalone Agent saved
+  approval shutdown/reload behavior is preserved.
+- No new Runtime participant, registry, scheduler or delegation layer is added.
+  Team input validation and Example 01 output acceptance are separate audit
+  items and are not changed in this repair.
+
 ## [0.35.3] - 2026-11-19
 
 ### Fixed

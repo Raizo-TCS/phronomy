@@ -6,8 +6,25 @@ module Phronomy
     class Orchestrator < Agent::Base
       agent_definition id: "orchestrator", version: 1
 
-      ParallelChild = Data.define(:index, :agent, :input, :config)
+      ParallelChild = Data.define(:index, :agent_class, :input, :config, :knowledge)
       private_constant :ParallelChild
+
+      # Keeps exact child owners when safe release fails. The caller can finish
+      # approval/recovery or retry unload without repeating the dispatched work.
+      # @api public
+      class ChildCleanupError < Phronomy::Error
+        # @api public
+        attr_reader :failures, :result, :primary_error
+
+        # @api public
+        def initialize(failures:, result: nil, primary_error: nil)
+          @failures = failures.map { |failure| failure.dup.freeze }.freeze
+          @result = result
+          @primary_error = primary_error
+          ids = @failures.map { |failure| failure.fetch(:agent).agent_id }
+          super("Orchestrator could not release children #{ids.inspect}", code: "multi_agent.child_cleanup_failed")
+        end
+      end
 
       attr_reader :coordination_store
 
@@ -210,29 +227,62 @@ module Phronomy
         inherit_knowledge: true
       )
         validate_parallel_options!(tasks, max_concurrency, on_error)
-        children = build_fan_out_children(
-          tasks,
-          cancellation_token: nil,
-          invocation_context: nil,
-          inherit_knowledge: inherit_knowledge
-        )
-        Phronomy::Execution.run_async(children,
+        children = build_fan_out_children(tasks, inherit_knowledge: inherit_knowledge)
+        retained = []
+        retention_mutex = Mutex.new
+        collecting = true
+        keep_successful = false
+        retain = ->(agent) {
+          retention_mutex.synchronize do
+            next false unless collecting
+            retained << agent
+            true
+          end
+        }
+        execution = Phronomy::Execution.run_async(children,
           timeout: timeout, cancellation_token: cancellation_token,
-          invocation_context: invocation_context, max_concurrency: max_concurrency) do |child, execution|
-          execution.start_child(
+          invocation_context: invocation_context, max_concurrency: max_concurrency) do |child, run|
+          run.start_child(
             invocation_context: child.config[:invocation_context],
             cancellation_token: child.config[:cancellation_token],
             parent_task_id: invocation_context&.task_id
           ) do |child_context, token|
-            child.agent.invoke_async(child.input,
-              config: child.config.merge(cancellation_token: token),
-              invocation_context: child_context)
+            invoke_direct_child_async(child, invocation_context: child_context,
+              cancellation_token: token, retain: retain)
           end
-        end.map do |outcomes|
-          failure = outcomes.find { |outcome| outcome.status != :completed }
-          raise failure.error if failure && on_error == :raise
+        end
+        Phronomy::AsyncOperation.finalize(name: "orchestrator-dispatch-release",
+          cleanup: -> {
+            owners = retention_mutex.synchronize do
+              collecting = false
+              retained.dup
+            end
+            if keep_successful
+              owners.each { |agent| __execution_environment.ownership.cancel_expected_unload(agent) }
+              Phronomy::TaskResult.completed(nil)
+            else
+              release_direct_children(owners)
+            end
+          },
+          on_cleanup_error: ->(value, primary, cleanup) {
+            failures = cleanup.is_a?(ChildCleanupError) ? cleanup.failures : retained.map { |agent| {agent: agent, error: cleanup} }
+            child_cleanup_failed(value, primary, failures)
+          }) do
+          Phronomy::AsyncOperation.map(execution, name: "orchestrator-dispatch-results") do |outcomes|
+            values = outcomes.map { |outcome| (outcome.status == :completed) ? outcome.value : nil }
+            cleanup_failures = outcomes.flat_map do |outcome|
+              outcome.error.is_a?(ChildCleanupError) ? outcome.error.failures : []
+            end
+            failure = outcomes.find { |outcome| outcome.status != :completed }
+            unless cleanup_failures.empty?
+              primary = failure.error.is_a?(ChildCleanupError) ? failure.error.primary_error : failure.error
+              raise ChildCleanupError.new(failures: cleanup_failures, result: values, primary_error: primary), cause: primary
+            end
+            raise failure.error if failure && on_error == :raise
 
-          outcomes.map { |outcome| (outcome.status == :completed) ? outcome.value : nil }
+            keep_successful = true
+            values
+          end
         end
       end
 
@@ -246,13 +296,11 @@ module Phronomy
           raise Phronomy::EventLoopReentrancyError,
             "subagent cannot block the EventLoop; use the async Agent API"
         end
-        build_subagent(
-          agent_class,
-          inherit_knowledge: inherit_knowledge
-        ).invoke_async(
-          input,
-          config: config || {}
-        ).wait_result
+        task = {agent: agent_class, input: input, config: config || {}}
+        validate_parallel_options!([task], nil, :raise)
+        child = build_fan_out_children([task], inherit_knowledge: inherit_knowledge).first
+        invoke_direct_child_async(child, invocation_context: nil, cancellation_token: nil,
+          retain: ->(agent) { __execution_environment.ownership.cancel_expected_unload(agent) }).wait_result
       end
 
       # @api private
@@ -292,20 +340,6 @@ module Phronomy
 
       def active_knowledge_snapshot = knowledge_snapshot
 
-      def build_subagent(agent_class, inherit_knowledge: true, knowledge_snapshot: nil)
-        agent = agent_class.new
-        return agent unless inherit_knowledge
-
-        snapshot = knowledge_snapshot || active_knowledge_snapshot
-        snapshot.each do |entry|
-          agent.add_knowledge(
-            entry.content,
-            metadata: entry.metadata
-          )
-        end
-        agent
-      end
-
       def validate_parallel_options!(tasks, max_concurrency, on_error)
         unless %i[raise skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
@@ -317,6 +351,9 @@ module Phronomy
           raise ArgumentError, "fan-out task must be a Hash" unless task.is_a?(Hash)
           raise ArgumentError, "fan-out task requires :agent" unless task[:agent]
           raise ArgumentError, "fan-out task requires :input" unless task.key?(:input)
+          unless task.fetch(:config, {}).is_a?(Hash)
+            raise ArgumentError, "fan-out task :config must be a Hash"
+          end
           if task.key?(:thread_id) || task.key?("thread_id")
             raise ArgumentError,
               "fan-out task generic thread_id was removed; " \
@@ -326,39 +363,90 @@ module Phronomy
         end
       end
 
-      def build_fan_out_children(
-        tasks,
-        cancellation_token:,
-        invocation_context:,
-        inherit_knowledge:
-      )
+      def build_fan_out_children(tasks, inherit_knowledge:)
         inheritance_flags = tasks.map { |task| task.fetch(:inherit_knowledge, inherit_knowledge) }
         knowledge_snapshot = active_knowledge_snapshot if inheritance_flags.any?
 
         tasks.each_with_index.map do |task, index|
           task_config = task.fetch(:config, {}).dup
-          if cancellation_token && !task_config[:cancellation_token]
-            task_config[:cancellation_token] = cancellation_token
-          end
-          if invocation_context && !task_config[:invocation_context]
-            task_config[:invocation_context] = invocation_context.merge(
-              parent_task_id: invocation_context.task_id
-            )
-          end
-
-          child_agent = build_subagent(
-            task.fetch(:agent),
-            inherit_knowledge: inheritance_flags[index],
-            knowledge_snapshot: knowledge_snapshot
-          )
-
           ParallelChild.new(
             index: index,
-            agent: child_agent,
+            agent_class: task.fetch(:agent),
             input: task.fetch(:input),
-            config: task_config
+            config: task_config,
+            knowledge: inheritance_flags[index] ? knowledge_snapshot : []
           )
         end
+      end
+
+      # Only admitted JOBs materialize owners. Construction and knowledge I/O
+      # stay off EventLoop; the finalizer waits for their physical completion.
+      def invoke_direct_child_async(child, invocation_context:, cancellation_token:, retain:)
+        agent = nil
+        successful = false
+        environment = __execution_environment
+        # Preparation can fail before invoke initializes its executor. Establish
+        # the existing release path before any child becomes an accepted owner.
+        environment.registry
+        ownership = environment.ownership
+        Phronomy::AsyncOperation.finalize(name: "orchestrator-child-release",
+          cleanup: -> {
+            if !agent || (successful && retain.call(agent))
+              Phronomy::TaskResult.completed(nil)
+            else
+              agent.unload_async
+            end
+          },
+          on_cleanup_error: ->(value, primary, cleanup) {
+            ownership.cancel_expected_unload(agent)
+            child_cleanup_failed(value, primary, [{agent: agent, error: cleanup}])
+          }) do
+          materialized = environment.submit(on_full: :raise) do
+            agent = child.agent_class.new
+            ownership.expect_unload(agent)
+            child.knowledge.each { |entry| agent.add_knowledge(entry.content, metadata: entry.metadata) }
+            agent
+          end
+          materialized.flat_map do |owner|
+            config = cancellation_token ? child.config.merge(cancellation_token: cancellation_token) : child.config
+            Phronomy::AsyncOperation.call(name: "orchestrator-child-invoke",
+              transform: ->(value) {
+                successful = true
+                value
+              }) do
+              owner.invoke_async(child.input, config: config, invocation_context: invocation_context)
+            end
+          end
+        end
+      end
+
+      def release_direct_children(agents)
+        released = Phronomy::TaskResult.all_settled(agents.map(&:unload_async))
+        Phronomy::AsyncOperation.map(released, name: "orchestrator-unreturned-children") do |outcomes|
+          failures = outcomes.filter_map do |outcome|
+            next if outcome.status == :completed
+            agent = agents.fetch(outcome.index)
+            __execution_environment.ownership.cancel_expected_unload(agent)
+            {agent: agent, error: outcome.error}
+          end
+          raise ChildCleanupError.new(failures: failures) unless failures.empty?
+        end
+      end
+
+      def child_cleanup_failed(result, primary, failures)
+        failures = primary.failures + failures if primary.is_a?(ChildCleanupError)
+        error = ChildCleanupError.new(failures: failures, result: result, primary_error: primary)
+        begin
+          details = failures.map { |failure| {agent_id: failure.fetch(:agent).agent_id, error: Phronomy::Error.diagnostic(failure.fetch(:error))} }
+          message = "[Phronomy] Orchestrator child cleanup failed: #{details.inspect}"
+          logger = Phronomy::RuntimeSettings.current.logger
+          logger ? logger.error(message) : warn(message)
+        rescue
+          # A cancelled observer must not hide retained owners; diagnostic errors
+          # cannot replace the original cleanup result or retry business work.
+          nil
+        end
+        raise error, cause: primary || failures.first.fetch(:error)
       end
     end
   end

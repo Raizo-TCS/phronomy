@@ -11,7 +11,8 @@ module Phronomy
 
       def initialize(agent:, name:)
         super(name: name)
-        @operation_lease = agent.send(:__acquire_operation!)
+        # Retain explicit unload admission without making saved waits block shutdown.
+        @operation_lease = agent.send(:__acquire_operation!, wait_on_shutdown: false)
         @lifetime_mutex = Mutex.new
         @work = 0
         @finished = false
