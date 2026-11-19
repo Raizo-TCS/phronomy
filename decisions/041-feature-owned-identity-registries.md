@@ -43,9 +43,17 @@ map would also lose the required strong ownership and Runtime isolation.
 4. Participants implement `begin_draining` and `wait_until_idle(deadline)`.
    Runtime closes every gate under its lifecycle lock, including on EventLoop
    failure, before waiting outside that lock with one absolute monotonic deadline.
-   Closure must be short, idempotent, and must not call Runtime. For identity
-   registries, idle means no active construction/purge transition, not no live
-   objects. Stable recovery-required entries do not prevent shutdown.
+   Closure must be short, idempotent, and must not call Runtime. Agent registry
+   idleness includes accepted synchronous state-operation leases and
+   construction/purge/unload transitions, including accepted private-child releases. Team registry
+   idleness includes its active construction transitions. Live idle objects and
+   stable recovery-required entries do not themselves prevent shutdown.
+   For example, a synchronous Agent update waiting on Persistence retains its
+   existing operation lease until the write and local application finish;
+   shutdown must not detach its owner and expose a new Runtime owner first.
+   Execution completion observers retain their existing execution-owner and
+   shutdown rules, including saved approval suspension; a synchronous facade
+   waiting for that result is not a synchronous state update.
 5. Add the optional `after_runtime_shutdown` operation. Runtime invokes it outside
    its lifecycle lock only if all participant waits succeed, no participant hook
    has failed, EventLoop's idle/join checks pass without cancellation timeout,

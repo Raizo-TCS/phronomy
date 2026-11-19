@@ -115,6 +115,18 @@ a later Runtime owner. `purge!` is the explicit earlier destruction boundary: it
 invalidates the old object, deletes durable state, releases the process-local
 identity, and allows a later new Agent to reuse the textual ID.
 
+Ownership release must also follow accepted state updates. The Agent-owned
+registry includes accepted synchronous state-operation leases in its shutdown
+wait; Runtime does not inspect Agent methods or storage revisions. A synchronous
+facade waiting for an asynchronous execution is governed by that execution's
+existing admission and shutdown rules, not treated as a synchronous state write.
+
+For example, if `add_knowledge` is waiting for Persistence when shutdown starts,
+the update must finish before a clean reset can expose a replacement Agent.
+An exhausted shutdown budget leaves cleanup incomplete and retains the default
+Runtime. New mutations remain rejected during draining; immutable local reads
+remain available under their existing read-only admission rule.
+
 Live Agent ownership and top-level Execution admission are separate lifetimes.
 For one live Agent, `Agent::ExecutionRegistry` admits at most one nonterminal
 top-level Execution on EventLoop.
@@ -693,9 +705,11 @@ shutdown failure skips finalization entirely.
 including during/after shutdown. Registration still requires a running Runtime,
 even for an existing key. Agent/Team `get` uses lookup without registration;
 feature gates reject new ownership changes through retained registries after
-closure. Already admitted transitions may finish. Identity registries wait only
-for active construction/purge, then detach Agent references or clear Team
-owners at finalization; live idle objects do not themselves prolong shutdown.
+closure. Already admitted transitions may finish. Agent ownership waits for
+accepted synchronous state operations, construction, purge, unload and pending private-child
+release before detaching its references. Team ownership waits for active
+construction before clearing its directory. Live idle objects do not themselves
+prolong shutdown.
 
 `MultiAgent::AdmissionRegistry.for(runtime)` constructs and registers the shared
 coordination admission registry. MultiAgent::HandoffRunner and TeamCoordinator retain that

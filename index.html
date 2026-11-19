@@ -97,6 +97,8 @@ tracking <code>main</code> directly.</p>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
 <p>The following table describes the application APIs available in v0.35.3.
 The public persistence resource catalogs are available starting with v0.35.0.
+This checkout also includes the unreleased direct-child cleanup contract below;
+it is not part of the published v0.35.3 gem.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
 Worker hosting and completed parent/child release require v0.32.0 or later.
@@ -203,6 +205,11 @@ the current saved representation.</p>
 <td><code>MultiAgent::Orchestrator#unload_with_completed_child!</code></td>
 <td>Beta</td>
 <td>Added in v0.32.0. Release local owners after a direct child result has been imported and the parent has finished. The saved executions, transcripts and coordination history remain available. <a href="docs/runtime-and-concurrency.md#releasing-a-completed-orchestrator-and-child">Contract</a></td>
+</tr>
+<tr>
+<td><code>MultiAgent::Orchestrator::ChildCleanupError</code></td>
+<td>Beta (Unreleased)</td>
+<td>Retains exact child owners and causes when direct dispatch cannot safely release children whose results are not returned. Ordinary successful results keep their existing Agent reuse contract. <a href="docs/async-composition.md#direct-orchestrator-children">Direct-child lifetime</a></td>
 </tr>
 <tr>
 <td><code>Tools::Agent::CleanupError</code></td>
@@ -391,9 +398,9 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Wed Nov 18 17:39:32 2026 by
+  Generated on Thu Nov 19 17:43:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.13).
+  0.9.45 (ruby-3.3.14).
 </div>
 
     </div>

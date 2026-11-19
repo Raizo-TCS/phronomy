@@ -67,6 +67,37 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Wait for accepted synchronous Agent state updates before completing Runtime
+shutdown and replacing the default Runtime. Existing execution-result waits
+and saved approval suspension keep their separate shutdown rules.</li>
+<li>Release failed directly dispatched Orchestrator children after physical
+completion, and release successful siblings when an aggregate failure discards
+their results. Successful returned children remain available for reuse.
+Materialize children only for started JOBs so skipped queued work does not
+leave unused owners.</li>
+<li>Correct the architecture overview to describe WorkflowTerminalPolicy's
+existing ownership of terminal persistence outcomes.</li>
+</ul>
+<h3 id="Added">Added</h3>
+<ul>
+<li>Add Beta <code>MultiAgent::Orchestrator::ChildCleanupError</code> with retained child
+owners, cleanup failures, the available result and primary operation error.
+Cleanup failures remain visible even under <code>on_error: :skip</code>.</li>
+</ul>
+<h3 id="Compatibility">Compatibility</h3>
+<ul>
+<li>Existing call signatures, dependency requirements and saved formats remain
+unchanged. The new public error and stricter cleanup-failure reporting are an
+observable contract addition; this is not a no-public-API-change patch.</li>
+<li>A direct Orchestrator helper still owning an unanswered child approval keeps
+cleanup incomplete at the shutdown deadline. Ordinary standalone Agent saved
+approval shutdown/reload behavior is preserved.</li>
+<li>No new Runtime participant, registry, scheduler or delegation layer is added.
+Team input validation and Example 01 output acceptance are separate audit
+items and are not changed in this repair.</li>
+</ul>
 <h2 id="_0_35_3____2026_11_19">[0.35.3] - 2026-11-19</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
@@ -1341,9 +1372,9 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed Nov 18 17:39:33 2026 by
+  Generated on Thu Nov 19 17:43:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.45 (ruby-3.3.13).
+  0.9.45 (ruby-3.3.14).
 </div>
 
     </div>
