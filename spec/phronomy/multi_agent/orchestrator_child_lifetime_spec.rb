@@ -61,6 +61,18 @@ RSpec.describe "Direct Orchestrator child lifetime" do
     result.wait_result(timeout: 3)
   end
 
+  # Capture the production timeout callback instead of scheduling a wall-clock
+  # timer, then deliver it on EventLoop after the required child starts.
+  def controlled_execution_timeout
+    callbacks = Queue.new
+    expect(Phronomy::Execution).to receive(:after).once do |seconds, &callback|
+      expect(seconds).to be_positive
+      callbacks << callback
+      -> {}
+    end
+    -> { on_loop(&callbacks.pop(true)) }
+  end
+
   it "preserves successful subagent owners for explicit reuse and release" do
     result = parent.subagent(worker, "question")
     child = worker.get(result.fetch(:agent_id))
@@ -179,6 +191,7 @@ RSpec.describe "Direct Orchestrator child lifetime" do
   end
 
   it "does not materialize queued children after a whole-execution timeout" do
+    expire = controlled_execution_timeout
     gate = Queue.new
     entered = Queue.new
     allow(respond).to receive(:call) do |_request|
@@ -186,8 +199,10 @@ RSpec.describe "Direct Orchestrator child lifetime" do
       gate.pop(timeout: 5)
       Phronomy::LLMAdapter::Response.new(content: "late answer")
     end
-    pending = parent.dispatch_parallel_async(task, task, max_concurrency: 1, timeout: 0.1)
+    pending = parent.dispatch_parallel_async(task, task, max_concurrency: 1, timeout: 60)
     expect(entered.pop(timeout: 3)).to be(true)
+    expect(pending).not_to be_done
+    expire.call
     expect { pending.wait_result(timeout: 3) }.to raise_error(Phronomy::ExecutionTimeoutError)
     expect(created.length).to eq(1)
     expect(worker.get(created.first.agent_id)).to equal(created.first)
@@ -252,6 +267,7 @@ RSpec.describe "Direct Orchestrator child lifetime" do
   end
 
   it "retains completed values as history while releasing their owners on timeout" do
+    expire = controlled_execution_timeout
     entered, gate, released = Queue.new, Queue.new, Queue.new
     calls = 0
     allow(respond).to receive(:call) do |_request|
@@ -262,8 +278,10 @@ RSpec.describe "Direct Orchestrator child lifetime" do
       end
       Phronomy::LLMAdapter::Response.new(content: "answer")
     end
-    pending = parent.dispatch_parallel_async(task, task, max_concurrency: 1, timeout: 0.2)
+    pending = parent.dispatch_parallel_async(task, task, max_concurrency: 1, timeout: 60)
     expect(entered.pop(timeout: 3)).to be(true)
+    expect(pending).not_to be_done
+    expire.call
     expect { pending.wait_result(timeout: 3) }.to raise_error(Phronomy::ExecutionTimeoutError) do |error|
       expect(error.outcomes.first.value.fetch(:agent_id)).to eq(created.first.agent_id)
       expect(error.outcomes.last.status).to eq(:unfinished)
