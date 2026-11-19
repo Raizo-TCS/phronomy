@@ -223,9 +223,13 @@ a new public API for requiring arbitrary internal paths.
 WorkflowRunner directly owns terminal save submission and F1 snapshot readback.
 The former WorkflowRecovery prepend and shadowed save implementation are removed;
 the active path is independent of an installation hook. Private methods separate
-submission, save/reconciliation and result delivery. FSMSession still interprets
-the terminal persistence event; that ownership is a separate next step. See
-[ADR-054](decisions/054-workflow-terminal-save-single-owner.md) and the
+submission, save/reconciliation and result delivery. WorkflowTerminalPolicy
+interprets the terminal persistence result and supplies a shared TerminalDecision;
+FSMSession applies that decision without interpreting Workflow save outcomes.
+For example, an uncertain save result retires the session through the shared
+decision protocol rather than a Workflow-specific branch in Engine. See
+[ADR-054](decisions/054-workflow-terminal-save-single-owner.md),
+[ADR-056](decisions/056-workflow-terminal-policy-ownership.md) and the
 [remaining refactoring plan](architecture/remaining-refactoring-plan.md).
 The Agent entry explicitly preserves Agent lifecycle extension installation.
 Configuration accessors now live beside Configuration, rather than inside the

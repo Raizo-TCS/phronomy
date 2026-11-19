@@ -186,6 +186,62 @@ runtime coordination to Execution. AgentExecution remains the durable Agent
 record; ExecutionCoordinator keeps admission, persistence, approval, recovery
 and terminal barriers while reusing the common context/control binding.
 
+## Direct Orchestrator children
+
+Direct dispatch owns children while preparing and invoking them, then transfers
+successful children through returned result identifiers. Children whose results
+are discarded need a safe release path or an explicit retained-owner error.
+Runtime's strong ownership remains necessary for successful Agent reuse.
+
+For example, a successful `subagent` result includes `agent_id`, so the caller
+can retrieve that same child and use or unload it. A failed child in
+`dispatch_parallel(..., on_error: :skip)` is released before its ordinary failure
+becomes `nil`. If `on_error: :raise` discards the entire result array, successful
+siblings are also released because their identifiers are not being returned.
+
+Children are materialized when their JOB starts, with construction and inherited
+knowledge writes off EventLoop. Queued JOBs that never start do not create Agent
+owners. Invocation cleanup follows physical completion; a logical cancellation
+does not authorize unloading a still-running child. Stored Agent history is
+preserved by unload, and direct calls do not create durable parent executions.
+The parent's knowledge snapshot is still read synchronously at dispatch entry;
+this does not add default knowledge-inheriting dispatch support on EventLoop.
+An EventLoop caller must use `inherit_knowledge: false` under the existing rule.
+
+A timeout or explicit whole-execution cancellation also does not return a normal
+result array. Completed child payloads in the execution error remain useful
+history, but do not promise live child owners after release.
+
+Direct helpers retain their child return-or-release obligation until it settles.
+For example, an unanswered child approval at the finite shutdown deadline leaves
+cleanup incomplete and retains the Runtime. It is not the ordinary standalone
+Agent saved-wait shutdown path, and it does not imply hosted parent/child detach
+support. No answer or forced release is invented to make shutdown complete.
+
+Safe-release failures discovered before observed completion raise
+`Orchestrator::ChildCleanupError`, even with
+`on_error: :skip`. Its `failures` array contains `{agent:, error:}` records for
+exact retained owners; `primary_error` and `result` preserve the available
+operation failure and result. A result payload is not a promise that its Agent
+remains loaded; the `failures` records identify the owners still requiring care.
+Resolve approval or recovery requirements before
+retrying the failed owner's `unload_async`. Retrying release does not repeat the
+child's business operation. The caller must not treat this error as an ordinary
+discarded child failure.
+
+If timeout or cancellation has already settled the outer result while a child
+is still running, later cleanup cannot replace that earlier result. A late
+release failure retains the owner and reports its `agent_id` and cause through
+the configured logger, or a warning when no logger is configured. Applications
+needing direct access to every child throughout cancellation should create and
+own Agents explicitly, then compose their results with Execution.
+
+Cancelling an observation handle alone is not a durable transfer of ownership.
+Retain and observe the operation, or use its explicit cancellation policy and
+inspect completion. No new background cleanup service, generic Registry or
+automatic approval is introduced. The hosted durable subagent path keeps its
+separate saved parent/child and approval contracts.
+
 ## Development-release migration
 
 - Replace `Phronomy::Task` with `Phronomy::TaskResult`. The old constant and file

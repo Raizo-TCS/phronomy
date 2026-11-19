@@ -43,6 +43,13 @@ module Phronomy
     end
 
     class Orchestrator < ::Phronomy::Agent::Base
+      class ChildCleanupError < ::Phronomy::Error
+        attr_reader failures: Array[{agent: ::Phronomy::Agent::Base, error: Exception}]
+        attr_reader result: untyped
+        attr_reader primary_error: Exception?
+        def self.new: (failures: Array[{agent: ::Phronomy::Agent::Base, error: Exception}], ?result: untyped, ?primary_error: Exception?) -> instance
+      end
+
       attr_reader coordination_store: Store?
       def self.create: (?coordination_store: Store?, **Object options) ?{ (Object) -> void } -> instance
       def self.load: (String agent_id, persistence: Agent::Store, coordination_store: Store, **Object options) ?{ (Object) -> void } -> instance

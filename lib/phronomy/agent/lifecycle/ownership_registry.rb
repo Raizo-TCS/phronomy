@@ -139,7 +139,7 @@ module Phronomy
 
       # Admission and lifetime transitions share this mutex. No Runtime or Store
       # operation is called while it is held.
-      def acquire_operation(agent, read_only: false)
+      def acquire_operation(agent, read_only: false, wait_on_shutdown: true)
         token = Object.new.freeze
         @mutex.synchronize do
           ensure_running! unless read_only && @state == :draining
@@ -150,7 +150,7 @@ module Phronomy
           unless entry&.state == :live && entry.agent.equal?(agent)
             raise Phronomy::RuntimeShutdownError, "Agent is no longer the live Runtime owner"
           end
-          (@operations[agent] ||= {})[token] = true
+          (@operations[agent] ||= {})[token] = wait_on_shutdown
         end
         OperationLease.new(self, agent, token)
       end
@@ -351,11 +351,14 @@ module Phronomy
       end
 
       # Ordinary live/recovery-required entries do not prevent Runtime shutdown.
+      # Synchronous state operations must settle before their owner is detached.
+      # Execution observers instead rely on the execution and physical-work
+      # owners: waiting for future approval is not an active synchronous write.
       # Accepted final releases stay pending through their atomic transition to
       # unloading, so shutdown cannot observe an idle gap between the two.
       def wait_until_idle(deadline)
         @mutex.synchronize do
-          while @entries.values.any? { |entry|
+          while @operations.values.any? { |operations| operations.value?(true) } || @entries.values.any? { |entry|
             %i[constructing purging unloading].include?(entry.state) ||
                 (entry.state == :live && entry.token == :pending_unload)
           }

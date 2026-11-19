@@ -59,8 +59,10 @@ module Phronomy
         end
       end
 
-      def __with_operation(async: false, read_only: false)
-        lease = __acquire_operation!(read_only: read_only)
+      # Synchronous state work has no separate Runtime owner. Execution wait
+      # facades opt out: their domain and physical-work owners already drain it.
+      def __with_operation(async: false, read_only: false, wait_on_shutdown: !async)
+        lease = __acquire_operation!(read_only: read_only, wait_on_shutdown: wait_on_shutdown)
         followed = false
         value = yield
         if async && lease
@@ -82,11 +84,11 @@ module Phronomy
         @root
       end
 
-      def __acquire_operation!(read_only: false)
+      def __acquire_operation!(read_only: false, wait_on_shutdown: true)
         __assert_agent_accessible!
         return nil if @_phronomy_runtime_owner_state == :constructing
 
-        __execution_environment.ownership.acquire_operation(self, read_only: read_only)
+        __execution_environment.ownership.acquire_operation(self, read_only: read_only, wait_on_shutdown: wait_on_shutdown)
       end
 
       def __mark_unloaded!
