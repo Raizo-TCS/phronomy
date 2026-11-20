@@ -55,7 +55,7 @@ RSpec.describe "Agent structured output contract" do
     [:length, nil, '{"answer":"ok","score":0.8}', "agent.output_incomplete", "length"],
     [:unknown, nil, "{}", "agent.output_incomplete", "unknown_finish_reason"],
     [:stop, "refused", "{}", "agent.output_refused", "model_refusal"]].each do |finish, refusal, content, code, reason|
-    it "persists #{reason} and restores the owned error without replay" do
+    it "persists #{reason} and returns the failed observation without replay" do
       responses.replace([Phronomy::LLMAdapter::Response.new(content: content, finish_reason: finish, refusal: refusal)])
       error = nil
       expect { agent.invoke("question", output_schema: schema) }.to raise_error(Phronomy::Agent::OutputError) { |e| error = e }
@@ -63,9 +63,15 @@ RSpec.describe "Agent structured output contract" do
       expect(error.reason).to eq(reason)
       expect(error.raw_output).to eq(content)
       expect(store.executions.load(error.execution_id).status).to eq(:failed)
+      saved_error = store.result(error.execution_id).fetch(:error)
       agent.unload!
       loaded = agent_class.load(agent.agent_id, persistence: store)
-      expect { loaded.resume(error.execution_id) }.to raise_error(Phronomy::Agent::OutputError) { |e|
+      observed = loaded.resume(error.execution_id)
+      expect(observed).to include(agent_id: agent.agent_id, execution_id: error.execution_id,
+        status: :failed, phase: :failed, output: nil, result: nil, error: saved_error)
+      expect(observed).to be_frozen
+      expect(observed[:error]).to be_frozen
+      expect { Phronomy::Agent::ExecutionObservation.from_result(observed).value! }.to raise_error(Phronomy::Agent::OutputError) { |e|
         expect(e.reason).to eq(reason)
         expect(e.raw_output).to eq(content)
       }

@@ -12,7 +12,9 @@ authorization and any decision to start another attempt.
 `run_once` forwards both options. With a schema, omitted/nil delivery means
 `:native`; explicit `:native` and `:none` are supported. A non-nil delivery without
 a schema, or any other value, raises ArgumentError before admission. The same
-keywords and final-output semantics apply to sync/async and invoke/stream.
+keywords and output-validation rules apply to sync/async and invoke/stream.
+The exact-execution APIs report confirmed failures as result values, as described
+under [Exact execution results](#exact-execution-results).
 Without a schema the existing free-text behavior remains. With a schema, successful
 `output` and `result` are deeply frozen JSON objects with String keys; `raw_output`
 preserves the model text. Token events are provisional, not validated objects.
@@ -147,6 +149,61 @@ refusal and metadata; missing finish evidence is unknown, never assumed normal.
 Fresh-runtime and new SQL connection-pool tests verify success, failure and approval
 continuation without replay of confirmed LLM/Tool work. This is a durable-facts
 claim, not an external side-effect exactly-once guarantee.
+
+## Exact execution results
+
+An exact-execution operation starts or continues a specific Agent execution and
+reports its confirmed terminal result. The execution's outcome is distinct from
+whether that operation could start, resume or observe the execution. This is an
+unreleased behavior change for saved `OutputError` failures.
+
+For example, a Team worker can finish with invalid structured output. The Agent
+saves `status: :failed`; the Team receives that result, records the failed
+assignment, and applies its existing failure policy. No Team-specific callback,
+state machine or exception handler is required in the Agent.
+
+| Operation | Confirmed output failure | Operation failure |
+| --- | --- | --- |
+| `invoke`, `invoke_async`, `stream`, `stream_async` | Raise/fail the TaskResult with `OutputError` | Raise/fail the TaskResult |
+| `start_reserved_async`, `resume_async`, `resume` | Return the existing execution-result hash with `status: :failed` and saved `error` diagnostic | Raise/fail the TaskResult |
+| `Store#observe_execution` | Return an `ExecutionObservation` containing the saved status and error | Raise when observation cannot be completed |
+
+The exact-execution rule also applies to other confirmed terminal states,
+including cancellation. `resume` returns an already terminal execution without
+running that Agent again. `start_reserved_async` also reuses a terminal result
+when its reservation, input and saved output contract match. Output validation
+remains strict: a failed result is not validated output and must not be treated
+as a successful Agent response.
+
+The existing completion callback receives `(result, nil)` when the terminal
+result was obtained, even when `result[:status] == :failed`. An `error` in
+`on_complete` means that the exact-execution operation could not deliver a
+confirmed result. Examples include a persistence read failure, mismatched
+ownership or reservation, and an unresolved execution requiring recovery or
+approval wiring. Such errors do not manufacture a failed execution record.
+The ordinary Agent event listener and its existing error policy are unchanged.
+
+Applications that need the saved failure raised explicitly can use the existing
+observation conversion after receiving the result:
+
+```ruby
+result = agent.resume(execution_id)
+observation = Phronomy::Agent::ExecutionObservation.from_result(result)
+observation.value!
+```
+
+For a failed output contract, `value!` restores and raises `OutputError` with its
+saved diagnostic. Coordination code instead inspects `status` and `error` before
+deciding whether to fail the parent, skip the child or continue. This keeps that
+policy with the caller rather than the child Agent.
+
+For the F0 child-output failure, result delivery is conditional on reading the
+committed Agent execution and its diagnostic through Agent Persistence. After
+F4 Runtime/process loss, the same identity and readable saved result permit
+re-observation without rerunning that terminal child. Local callbacks themselves
+are not persisted, and this contract makes no X0 external-effect exactly-once
+guarantee. Persistence/ownership failures and unfinished executions retain their
+existing recovery requirements.
 
 ## Generation evaluation
 

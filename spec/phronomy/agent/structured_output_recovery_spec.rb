@@ -107,10 +107,17 @@ RSpec.describe "Structured output saved continuation (F4; no replay of confirmed
     expect { agent.invoke("input", output_schema: schema) }.to raise_error(Phronomy::Agent::OutputError) { |error| execution_id = error.execution_id }
     expect(calls).to eq(1)
     expect(llm.calls.length).to eq(2)
+    saved_error = store.agent.result(execution_id).fetch(:error)
     backend = reboot(store.snapshot)
+    resumed_llm = LLMStub.activate(responses: ["must not replay"])
     loaded = worker.load(agent.agent_id, persistence: backend.agent)
-    expect { loaded.resume(execution_id) }.to raise_error(Phronomy::Agent::OutputError)
+    result = loaded.resume(execution_id)
+    expect(result).to include(agent_id: agent.agent_id, execution_id: execution_id,
+      status: :failed, phase: :failed, output: nil, result: nil, error: saved_error)
+    expect(result[:error]).to include("class" => "Phronomy::Agent::OutputError",
+      "reason" => "invalid_json", "raw_output" => "broken output")
     expect(calls).to eq(1)
     expect(llm.calls.length).to eq(2)
+    expect(resumed_llm.calls).to be_empty
   end
 end

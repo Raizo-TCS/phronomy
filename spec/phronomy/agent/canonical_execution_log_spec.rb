@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require_relative "../../integration/support/llm_stub"
 
 RSpec.describe "Canonical Complete Execution Log capture" do
   it "captures the complete assistant message before Tool execution is intercepted" do
@@ -108,5 +109,37 @@ RSpec.describe "Canonical Complete Execution Log capture" do
       "tool_call_id" => "price-call"
     )
     expect(invocation.messages.fetch(0).content).to eq({price: 100}.inspect)
+  end
+
+  it "persists a nil Tool result without dropping the required result field" do
+    tool = Class.new(Phronomy::Tool::Base) do
+      tool_name "empty_result"
+      description "Return an empty application result"
+      def execute = nil
+    end
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "nil-tool-result", version: 1
+      model "gpt-4o-mini"
+      provider :openai
+      tools tool => nil
+    end
+    RubyLLM.configure { |c|
+      c.openai_api_key = "test"
+      c.openai_api_base = "https://example.test/v1"
+    }
+    persistence = Phronomy::PersistenceComposition.in_memory.agent
+    agent = agent_class.create(persistence: persistence)
+    llm = LLMStub.activate(responses: [LLMStub.tool_call_response("empty_result", {}), "finished"])
+
+    result = agent.invoke_async("run the tool").wait_result(timeout: 3)
+    expect(result).to include(output: "finished")
+    expect(persistence.result(result.fetch(:execution_id))).to include(status: :completed)
+
+    record = agent.journal_projection.records.find { |entry| entry.kind == :tool_result }
+    expect(record).not_to be_nil
+    expect(persistence.contents.fetch_json(record.content_ref)).to be_nil
+    expect(llm.calls.size).to eq(2)
+  ensure
+    LLMStub.deactivate
   end
 end
