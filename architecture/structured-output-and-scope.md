@@ -154,8 +154,8 @@ claim, not an external side-effect exactly-once guarantee.
 
 An exact-execution operation starts or continues a specific Agent execution and
 reports its confirmed terminal result. The execution's outcome is distinct from
-whether that operation could start, resume or observe the execution. This is an
-unreleased behavior change for saved `OutputError` failures.
+whether that operation could start, resume or observe the execution. This behavior
+changed in v0.37.0 for saved `OutputError` failures.
 
 For example, a Team worker can finish with invalid structured output. The Agent
 saves `status: :failed`; the Team receives that result, records the failed

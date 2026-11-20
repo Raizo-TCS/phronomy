@@ -95,8 +95,7 @@ tracking <code>main</code> directly.</p>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
-<p>The following table describes the application APIs available in v0.36.0, plus
-explicitly marked unreleased contract changes.
+<p>The following table describes the application APIs available in v0.37.0.
 The public persistence resource catalogs are available starting with v0.35.0.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
@@ -172,7 +171,7 @@ the current saved representation.</p>
 </tr>
 <tr>
 <td>Agent <code>start_reserved_async</code>, <code>resume_async</code> and <code>resume</code></td>
-<td>Beta (Unreleased contract change)</td>
+<td>Beta (behavior changed in v0.37.0)</td>
 <td>Return the confirmed execution result, including <code>status: :failed</code> and saved <code>OutputError</code> diagnostics. Errors in starting, resuming or observing the execution remain operation failures; <a href="docs/architecture/structured-output-and-scope.md#exact-execution-results">exact execution results</a></td>
 </tr>
 <tr>
@@ -402,7 +401,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Fri Nov 20 18:46:59 2026 by
+  Generated on Fri Nov 20 18:53:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>
