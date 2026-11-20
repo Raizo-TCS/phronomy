@@ -37,8 +37,7 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following table describes the application APIs available in v0.36.0, plus
-explicitly marked unreleased contract changes.
+The following table describes the application APIs available in v0.37.0.
 The public persistence resource catalogs are available starting with v0.35.0.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
@@ -67,7 +66,7 @@ the current saved representation.
 | `Phronomy::EventLoopReentrancyError` | Beta | Raised when a synchronous operation would block the EventLoop control thread. The obsolete `SchedulerReentrancyError` subclass is removed in v0.34.0. [Cleanup migration](docs/migrations/cleanup-audit.md#eventloop-reentrancy-errors) |
 | `Phronomy::LLMAdapter::LMStudio` | Beta | Explicit known-output-error identification and bounded opt-in retry; [policy and evidence limits](docs/architecture/lm-studio-output-failures.md) |
 | Agent `output_schema:`, `schema_delivery:`, `Agent::OutputError` and `OutputParser::JsonSchemaParser` | Beta | Agent returns validated immutable JSON or an explicit output failure; [contract and migration](docs/architecture/structured-output-and-scope.md) |
-| Agent `start_reserved_async`, `resume_async` and `resume` | Beta (Unreleased contract change) | Return the confirmed execution result, including `status: :failed` and saved `OutputError` diagnostics. Errors in starting, resuming or observing the execution remain operation failures; [exact execution results](docs/architecture/structured-output-and-scope.md#exact-execution-results) |
+| Agent `start_reserved_async`, `resume_async` and `resume` | Beta (behavior changed in v0.37.0) | Return the confirmed execution result, including `status: :failed` and saved `OutputError` diagnostics. Errors in starting, resuming or observing the execution remain operation failures; [exact execution results](docs/architecture/structured-output-and-scope.md#exact-execution-results) |
 | Agent `transcript_messages` / `transcript_messages_async` | Beta | Read immutable conversation Message values with the same restoration rules as execution results; [reading conversation state](docs/getting-started.md) |
 | `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` with output-failure diagnostics | Beta | [Generation and structured-output contract](docs/architecture/structured-output-and-scope.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |

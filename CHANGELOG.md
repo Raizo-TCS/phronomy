@@ -12,6 +12,8 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-11-21
+
 ### Changed
 
 - Agent `start_reserved_async`, `resume_async` and `resume` return saved
