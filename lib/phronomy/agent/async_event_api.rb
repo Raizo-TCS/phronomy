@@ -33,6 +33,11 @@ module Phronomy
         end
       end
 
+      # Starts or observes the reserved execution and returns its committed result.
+      # Failed executions, including OutputError, fulfill the Task with status
+      # and error details. Admission, recovery and observation errors reject it.
+      # @return [Phronomy::TaskResult] the exact execution result
+      # @api public
       def start_reserved_async(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
         __with_operation(async: true) do
           unless reservation.is_a?(ReservedExecution) && reservation.agent_id == agent_id
@@ -44,6 +49,11 @@ module Phronomy
         end
       end
 
+      # Continues an existing execution or returns its committed terminal result.
+      # A saved failed/cancelled result is a fulfilled observation; an inability
+      # to resume or observe the execution remains an operation error.
+      # @return [Phronomy::TaskResult] the exact execution result
+      # @api public
       def resume_async(execution_id, config: {})
         __with_operation(async: true) do
           config = __invocation_config(_prepare_invocation_config(config, nil))
@@ -51,6 +61,9 @@ module Phronomy
         end
       end
 
+      # Waits for the same committed result returned by resume_async.
+      # @return [Hash] execution status, output and saved error details
+      # @api public
       def resume(execution_id, config: {})
         __with_operation(wait_on_shutdown: false) do
           _check_event_loop_reentrancy(:resume, :resume_async)

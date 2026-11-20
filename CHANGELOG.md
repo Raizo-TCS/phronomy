@@ -12,6 +12,34 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Agent `start_reserved_async`, `resume_async` and `resume` return saved
+  `OutputError` failures as ordinary execution-result hashes with `status: :failed`
+  and the original diagnostic, consistently with other confirmed execution
+  failures. Their TaskResult completion reports successful observation of that
+  result; starting, resuming or observing the execution can still fail separately.
+  Ordinary `invoke` / `invoke_async` / `stream` / `stream_async` retain their
+  output-failure exception contract.
+
+### Fixed
+
+- Let Team consume a child's confirmed output failure through its existing result
+  handling. The assignment records `failed`, then the Team applies its configured
+  failure policy and releases its active-run slot after the Team result commits.
+  Observing the same terminal child after restart does not run that child again.
+- Preserve a legitimate `nil` Tool result in runtime events so it can be saved
+  as JSON null. This also lets the existing Orchestrator `on_error: :skip`
+  policy complete after a confirmed child output failure.
+
+### Compatibility
+
+- Exact-execution output-failure handling is an intentional public behavior
+  change. Callers must inspect the returned status/error, or explicitly unwrap
+  through `Agent::ExecutionObservation.from_result(result).value!` to raise the
+  saved failure. Call signatures, result shapes and saved formats are unchanged;
+  no new event bus, state machine or coordination layer is introduced.
+
 ## [0.36.0] - 2026-11-20
 
 ### Fixed

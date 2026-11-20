@@ -180,9 +180,8 @@ module Phronomy
 
       def materialize(execution)
         result = @agent.persistence.result(execution.execution_id)
-        if result[:error].is_a?(Hash) && result[:error]["class"] == "Phronomy::Agent::OutputError"
-          raise RecoverySupport.error_from_failure(result[:error])
-        end
+        # A committed failure is an observed outcome, not an observation error.
+        # Callers decide how that outcome affects their own execution.
         result.merge(output: result[:result]).freeze
       end
     end

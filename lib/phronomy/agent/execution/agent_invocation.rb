@@ -330,7 +330,7 @@ module Phronomy
                   "tool_call_id" => invocation.tool_call_id.to_s
                 },
                 llm_call_id: @tool_batch_llm_call_id
-              }.compact
+              }
             )
           )
         end
