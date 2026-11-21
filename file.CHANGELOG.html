@@ -87,6 +87,9 @@ Observing the same terminal child after restart does not run that child again.</
 <li>Preserve a legitimate <code>nil</code> Tool result in runtime events so it can be saved
 as JSON null. This also lets the existing Orchestrator <code>on_error: :skip</code>
 policy complete after a confirmed child output failure.</li>
+<li>Make Agent Tool collection tests wait for completed worker frames to
+return while preserving Runtime ownership registries and completed handles
+as retention checks. Production lifetime behavior is unchanged.</li>
 </ul>
 <h3 id="Compatibility">Compatibility</h3>
 <ul>
@@ -1402,7 +1405,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri Nov 20 18:53:25 2026 by
+  Generated on Sat Nov 21 03:18:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>
