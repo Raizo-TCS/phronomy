@@ -96,4 +96,38 @@ RSpec.describe Phronomy::Concurrency::PhysicalCompletionTask do
 
     expect(logger).to have_received(:error)
   end
+
+  context "when reporting a physical observer failure also fails", :notification_reporting do
+    before do
+      logger = instance_double(Logger, error: nil)
+      allow(logger).to receive(:error).and_raise(IOError, "logger unavailable")
+      Phronomy.configuration.logger = logger
+    end
+
+    it "delivers remaining observers exactly once and preserves physical completion" do
+      task = described_class.deferred
+      calls = []
+      task.on_physical_complete do
+        calls << :first
+        raise ArgumentError, "observer failed"
+      end
+      task.on_physical_complete { calls << :second }
+
+      expect { task.mark_physical_complete! }.not_to raise_error
+      expect(task).to be_physical_complete
+      expect(calls).to eq(%i[first second])
+      task.mark_physical_complete!
+      expect(calls).to eq(%i[first second])
+    end
+
+    it "isolates a late observer after physical completion" do
+      task = described_class.deferred
+      task.mark_physical_complete!
+
+      expect {
+        task.on_physical_complete { raise ArgumentError, "late observer failed" }
+      }.not_to raise_error
+      expect(task).to be_physical_complete
+    end
+  end
 end

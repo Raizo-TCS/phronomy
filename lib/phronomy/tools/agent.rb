@@ -66,7 +66,13 @@ module Phronomy
             unless config.nil? || config.is_a?(Hash)
               raise ArgumentError, "Agent Tool config must be a Hash"
             end
-            task_config = (config || {}).dup
+            # A private child owns a new execution. Keep application context and
+            # shared controls, not the parent's reservation, observers or runtime
+            # wiring. The existing hook deadline is a shared time budget.
+            task_config = (config || {}).reject do |key, _value|
+              name = key.to_s
+              name == "execution_id" || (name.start_with?("phronomy_") && name != "phronomy_timeout_deadline")
+            end
             if cancellation_token && !task_config[:cancellation_token]
               task_config[:cancellation_token] = cancellation_token
             end

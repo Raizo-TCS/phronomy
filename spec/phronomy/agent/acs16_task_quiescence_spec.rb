@@ -252,7 +252,11 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       source = File.read(
         File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
       )
+      # Other terminal operations also test state_required. Inspect the stale
+      # result guard within its owning method rather than the first occurrence.
       stale_section = source
+        .split("def apply_terminal_commit_on_event_loop(ready)", 2)
+        .fetch(1)
         .split("if operation.state_required", 2)
         .fetch(1)
         .split("if ready.error", 2)

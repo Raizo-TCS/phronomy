@@ -88,8 +88,13 @@ module Phronomy
         callbacks.each do |callback|
           callback.call
         rescue => error
-          Phronomy::RuntimeSettings.current.logger&.error do
-            "[TimerQueue] callback raised #{error.class}: #{error.message}"
+          begin
+            Phronomy::RuntimeSettings.current.logger&.error do
+              "[TimerQueue] callback raised #{error.class}: #{error.message}"
+            end
+          rescue
+            # Reporting must not interrupt delivery to the remaining timers.
+            nil
           end
         ensure
           @mutex.synchronize do

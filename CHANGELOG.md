@@ -21,6 +21,23 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Give fresh Agent Tool children their own execution wiring instead of forwarding
+  the parent's reserved ID, admission, coordination participants and observers.
+  Preserve application context, cancellation and shared deadline controls.
+- Keep rejected execution registration and its terminal delivery isolated from
+  an existing owner with the same ID. Session startup failure after a successful
+  installation uses normal owned terminal cleanup; an unregistered start never
+  releases the other owner's state or drains its completion waiters.
+- Retire the loaded coordinator and worker Agents of confirmed terminal Team
+  runs after their observed physical work finishes, without delaying the saved
+  Team result or deleting durable history. Drop terminal coordinator class
+  entries while preserving active and recovery-required runs.
+- Report failed Team child retirement with its identities and retain the live
+  owner. Terminal `resume` can retry release without replaying business work;
+  read-only `result` does not initiate cleanup.
+- Isolate logger failures while reporting cancellation, physical-completion and
+  timer callback errors. Later callbacks still run, queued cancellation remains
+  effective, and timer accounting and Runtime delivery continue.
 - Validate and snapshot Team `durable_context` before accepting a new run. An
   invalid value no longer creates an active Team execution.
 - Finish an accepted Team run when its child start is definitively rejected and
