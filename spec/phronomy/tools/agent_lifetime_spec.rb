@@ -68,6 +68,19 @@ RSpec.describe "Agent Tool child lifetime" do
     result.wait_result(timeout: 3)
   end
 
+  def drain_released_child_workers(agent_ids)
+    expect(agent_ids.map { |id| definition.get(id) }).to all(be_nil)
+    runtime = Phronomy::Runtime.instance
+    pool = runtime.__offload_if_initialized
+    expect(pool).not_to be_nil
+    # A result can be delivered before its worker frame returns. Join those
+    # frames without clearing Runtime ownership or completed result handles.
+    pool.shutdown(drain_timeout: 5)
+    expect(pool).to be_terminated
+    expect(runtime.state).to eq(:running)
+    on_loop { true }
+  end
+
   [:sync, :async].each do |mode|
     it "releases after #{mode} success and preserves records and other owners" do
       other_class = Class.new(Phronomy::Agent::Base) { agent_definition id: "unrelated", version: 1 }
@@ -388,13 +401,13 @@ RSpec.describe "Agent Tool child lifetime" do
   end
 
   it "does not retain a released child through a completed Tool handle" do
-    reference, task = Thread.new do
+    reference, task, agent_id = Thread.new do
       result = tool.call_async({"input" => "question"})
       result.wait_result(timeout: 5)
       child = created.pop.fetch(:agent)
-      [WeakRef.new(child), result]
+      [WeakRef.new(child), result, child.agent_id]
     end.value
-    on_loop { true }
+    drain_released_child_workers([agent_id])
     3.times { GC.start }
     expect(reference.weakref_alive?).to be_falsey
     expect(task.wait_result).to eq("answer")
@@ -402,15 +415,15 @@ RSpec.describe "Agent Tool child lifetime" do
 
   it "does not retain earlier children across completed Tool calls" do
     responses.replace(Array.new(6) { Phronomy::LLMAdapter::Response.new(content: "answer", finish_reason: :stop) })
-    references, tasks = Thread.new do
+    references, tasks, agent_ids = Thread.new do
       Array.new(6) do
         result = tool.call_async({"input" => "question"})
         result.wait_result(timeout: 5)
         child = created.pop.fetch(:agent)
-        [WeakRef.new(child), result]
+        [WeakRef.new(child), result, child.agent_id]
       end.transpose
     end.value
-    on_loop { true }
+    drain_released_child_workers(agent_ids)
     3.times { GC.start }
     expect(references.none?(&:weakref_alive?)).to be(true)
     expect(tasks.map(&:wait_result)).to eq(Array.new(6, "answer"))
