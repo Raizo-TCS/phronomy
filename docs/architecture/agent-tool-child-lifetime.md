@@ -23,6 +23,35 @@ used merely to wait for the child or its release. The existing Agent release can
 perform its ordinary asynchronous persistence checks. Records are not purged,
 and unrelated Agents or shared stores are not shut down.
 
+## Child invocation context
+
+A private child shares the caller's application context and operation controls,
+but starts its own Agent execution. The Tool separates those inputs at the
+fresh-child boundary; ordinary Tool dispatch continues to receive its owner's
+invocation context.
+
+For example, a reserved Team worker can call an Agent Tool without giving the
+private child the worker's reservation or completion observers. Cancelling the
+shared operation still reaches the child, while the Team observes only its own
+reserved worker and the private child obtains a distinct execution ID.
+
+| Input | Fresh private child |
+| --- | --- |
+| Application keys, including `durable_context`, `approval_context` and `user_id` | Forward unchanged; child validation still applies |
+| `invocation_context` and `cancellation_token` | Preserve the existing context, scope, deadline and cancellation behavior |
+| Existing `phronomy_timeout_deadline` guard | Preserve the same deadline object; do not restart its budget |
+| Parent `execution_id` and other `phronomy_*` runtime bindings | Do not forward; the child builds its own execution wiring |
+
+The reserved runtime namespace includes admission participants, reservations,
+exact-result observers, Handoff controls, runtime projections and output
+contracts. Symbol and String names follow the same filtering rule without
+normalizing or modifying the caller's Hash. Application code should use public
+invocation controls rather than supply these private runtime bindings.
+
+This does not make an Agent Tool child a registered durable subagent or add
+cross-process recovery for a private approval wait. The existing private-child
+approval and release contracts below continue to apply.
+
 ## Graceful Runtime shutdown
 
 An accepted private child's final release is part of its existing Agent

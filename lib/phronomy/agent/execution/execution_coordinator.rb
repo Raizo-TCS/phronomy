@@ -506,7 +506,7 @@ module Phronomy
       rescue => error
         # Preparation may already be durably active. Terminalize through another
         # offloaded durable operation rather than releasing the admission blindly.
-        begin_terminal_without_session_on_event_loop(
+        begin_terminal_after_start_failure_on_event_loop(
           request: request,
           prepared: ready.result,
           error: error
@@ -558,13 +558,7 @@ module Phronomy
         execution_session_runner(environment).register(
           session, request.result_task
         )
-      # simplecov:disable
-      rescue => _error
-        environment.registry.release_agent_execution(prepared.execution.execution_id) if
-          environment&.executing? && environment.registry.agent_execution_state(prepared.execution.execution_id)
-        raise
       end
-      # simplecov:enable
 
       def deliver_start_failure_on_event_loop(request, error)
         callback_error = @agent.send(
@@ -767,7 +761,7 @@ module Phronomy
         begin
           register_initial_session_on_event_loop(request, result)
         rescue => error
-          begin_terminal_without_session_on_event_loop(
+          begin_terminal_after_start_failure_on_event_loop(
             request: request,
             prepared: result,
             error: error
@@ -1380,9 +1374,19 @@ module Phronomy
         submit_terminal_operation(operation, delivery)
       end
 
-      def begin_terminal_without_session_on_event_loop(request:, prepared:, error:)
+      def begin_terminal_after_start_failure_on_event_loop(request:, prepared:, error:)
         return deliver_start_failure_on_event_loop(request, error) unless prepared&.execution
 
+        environment = @agent.__execution_environment
+        state = environment.registry.agent_execution_state(prepared.execution.execution_id)
+        if state && state.agent.equal?(@agent) && state.coordinator.equal?(self)
+          # Installation succeeded before session entry failed. Preserve its
+          # waiters and physical work until the ordinary terminal barrier ends.
+          return finish_on_event_loop(state.execution_id, request.result_task,
+            state.invocation, error, fsm_session_id: state.fsm_session_id)
+        end
+
+        # A rejected installation does not own a same-ID state or its observers.
         operation = build_terminal_operation(
           execution: prepared.execution,
           root: prepared.root,
@@ -1438,10 +1442,12 @@ module Phronomy
           state: :terminalizing
         )
         terminal_transition_started = true
-        environment.registry.register_agent_completion_waiter(
-          operation.execution_id,
-          delivery.result_task
-        )
+        if operation.state_required
+          environment.registry.register_agent_completion_waiter(
+            operation.execution_id,
+            delivery.result_task
+          )
+        end
         task = environment.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. TaskResult/listener delivery state stays outside it.
@@ -1466,6 +1472,7 @@ module Phronomy
             execution_id: operation.execution_id,
             state: :recovery_required
           )
+          fail_task(delivery.result_task, error) unless operation.state_required
           Phronomy::RuntimeSettings.current.logger&.warn(
             "[Phronomy] Agent terminal transition requires recovery for " \
             "#{operation.execution_id}: #{error.class}: #{error.message}"
@@ -1506,7 +1513,7 @@ module Phronomy
         operation = ready.operation
         delivery = ready.delivery
         environment = @agent.__execution_environment
-        state = environment.registry.agent_execution_state(operation.execution_id)
+        state = environment.registry.agent_execution_state(operation.execution_id) if operation.state_required
 
         if operation.state_required
           unless state && state.agent.equal?(@agent) &&
@@ -1550,7 +1557,8 @@ module Phronomy
         delivery = ready.delivery
         if operation.execution.metadata["reservation"] || operation.execution.metadata["execution_extension"]
           release_terminal_ownership(environment, operation.execution_id, state)
-          environment.registry.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each do |task|
+          terminal_waiters(environment, operation.execution_id, delivery.result_task,
+            registered: operation.state_required).each do |task|
             fail_task(task, ready.error)
           end
           return
@@ -1560,6 +1568,7 @@ module Phronomy
           execution_id: operation.execution_id,
           state: :recovery_required
         )
+        fail_task(delivery.result_task, ready.error) unless operation.state_required
         Phronomy::RuntimeSettings.current.logger&.warn(
           "[Phronomy] Agent terminal durable outcome requires recovery for " \
           "#{operation.execution_id}: #{ready.error.class}: #{ready.error.message}"
@@ -1593,7 +1602,8 @@ module Phronomy
         elsif delivery.result_task.is_a?(FrameworkRecoveryTask)
           @recovered_coordination_wait = RecoveredCoordinationWait.new(self, operation.execution_id, outcome.execution.execution_revision)
         end
-        environment.registry.take_agent_completion_waiters(operation.execution_id, fallback: delivery.result_task).each { |task| fail_task(task, outcome.error) }
+        terminal_waiters(environment, operation.execution_id, delivery.result_task,
+          registered: operation.state_required).each { |task| fail_task(task, outcome.error) }
       end
 
       def suspend_execution_on_event_loop(ready, state, environment)
@@ -1670,7 +1680,7 @@ module Phronomy
         callback_error = deliver_terminal(delivery.application_listener, :done, outcome.result)
         settle_execution_waiters(
           environment, operation.execution_id, delivery.result_task,
-          callback_error, :done, outcome.result
+          callback_error, :done, outcome.result, registered: operation.state_required
         )
       end
 
@@ -1686,7 +1696,7 @@ module Phronomy
         callback_error = deliver_terminal(delivery.application_listener, :handoff, result)
         settle_execution_waiters(
           environment, operation.execution_id, delivery.result_task,
-          callback_error, :handoff, result
+          callback_error, :handoff, result, registered: operation.state_required
         )
       end
 
@@ -1703,7 +1713,7 @@ module Phronomy
         )
         settle_execution_waiters(
           environment, operation.execution_id, delivery.result_task,
-          callback_error, type, nil, outcome.error
+          callback_error, type, nil, outcome.error, registered: operation.state_required
         )
       end
 
@@ -1795,12 +1805,9 @@ module Phronomy
 
       def settle_execution_waiters(
         environment, execution_id, fallback_task, callback_error, event_type,
-        result, execution_error = nil
+        result, execution_error = nil, registered: true
       )
-        waiters = environment.registry.take_agent_completion_waiters(
-          execution_id,
-          fallback: fallback_task
-        )
+        waiters = terminal_waiters(environment, execution_id, fallback_task, registered: registered)
         # All these waiters observe the same terminal execution. A synchronous
         # completion callback may request unload immediately, so acknowledge
         # every finished operation before publishing any logical result. Each
@@ -1812,6 +1819,12 @@ module Phronomy
             task, callback_error, event_type, result, execution_error
           )
         end
+      end
+
+      def terminal_waiters(environment, execution_id, fallback_task, registered:)
+        return [fallback_task] unless registered
+
+        environment.registry.take_agent_completion_waiters(execution_id, fallback: fallback_task)
       end
 
       def report_nonterminal_callback_error(callback_error, event_type, result)

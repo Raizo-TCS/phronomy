@@ -21,6 +21,13 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Give fresh Agent Tool children their own execution wiring instead of forwarding
+  the parent's reserved ID, admission, coordination participants and observers.
+  Preserve application context, cancellation and shared deadline controls.
+- Keep rejected execution registration and its terminal delivery isolated from
+  an existing owner with the same ID. Session startup failure after a successful
+  installation uses normal owned terminal cleanup; an unregistered start never
+  releases the other owner's state or drains its completion waiters.
 - Retire the loaded coordinator and worker Agents of confirmed terminal Team
   runs after their observed physical work finishes, without delaying the saved
   Team result or deleting durable history. Drop terminal coordinator class
