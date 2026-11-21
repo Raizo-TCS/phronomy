@@ -320,7 +320,13 @@ therefore never consumed merely to wait for another Agent.</p>
 89
 90
 91
-92</pre>
+92
+93
+94
+95
+96
+97
+98</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 35</span>
@@ -359,7 +365,13 @@ therefore never consumed merely to wait for another Agent.</p>
     <span class='kw'>unless</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>||</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent Tool config must be a Hash</span><span class='tstring_end'>&quot;</span></span>
     <span class='kw'>end</span>
-    <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+    <span class='comment'># A private child owns a new execution. Keep application context and
+</span>    <span class='comment'># shared controls, not the parent&#39;s reservation, observers or runtime
+</span>    <span class='comment'># wiring. The existing hook deadline is a shared time budget.
+</span>    <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_reject'>reject</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_key'>key</span><span class='comma'>,</span> <span class='id identifier rubyid__value'>_value</span><span class='op'>|</span>
+      <span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='id identifier rubyid_key'>key</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+      <span class='id identifier rubyid_name'>name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>||</span> <span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_start_with?'>start_with?</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy_</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_name'>name</span> <span class='op'>!=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy_timeout_deadline</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
       <span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
     <span class='kw'>end</span>
@@ -420,19 +432,19 @@ Tool::Base#call.</p>
       <pre class="lines">
 
 
-112
-113
-114
-115
-116
-117
 118
 119
 120
-121</pre>
+121
+122
+123
+124
+125
+126
+127</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 118</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_args'>args</span><span class='comma'>,</span>
@@ -454,7 +466,7 @@ Tool::Base#call.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Nov 21 10:13:20 2026 by
+  Generated on Sat Nov 21 10:18:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>

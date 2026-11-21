@@ -180,6 +180,11 @@ the current saved representation.</p>
 <td>Distinguish reserved-start validation rejection from uncertain execution outcomes. Team validates durable input before admission and records a confirmed child-start rejection as its own failure after a guarded absence check; <a href="docs/architecture/team-admission-rejection.md">rejection contract</a></td>
 </tr>
 <tr>
+<td><code>MultiAgent::TeamCoordinator#invoke / #stream / #resume / #result</code></td>
+<td>Beta</td>
+<td>Terminal runs retire internally owned child Agents after physical work completes; saved outcomes remain authoritative. <code>result</code> stays read-only and terminal <code>resume</code> can retry failed retirement. Automatic retirement is Unreleased; <a href="docs/architecture/team-child-retirement.md">child lifetime</a></td>
+</tr>
+<tr>
 <td>Agent <code>transcript_messages</code> / <code>transcript_messages_async</code></td>
 <td>Beta</td>
 <td>Read immutable conversation Message values with the same restoration rules as execution results; <a href="docs/getting-started.md">reading conversation state</a></td>
@@ -218,6 +223,11 @@ the current saved representation.</p>
 <td><code>MultiAgent::Orchestrator::ChildCleanupError</code></td>
 <td>Beta (since v0.36.0)</td>
 <td>Retains exact child owners and causes when direct dispatch cannot safely release children whose results are not returned. Ordinary successful results keep their existing Agent reuse contract. <a href="docs/async-composition.md#direct-orchestrator-children">Direct-child lifetime</a></td>
+</tr>
+<tr>
+<td><code>Tools::Agent.from_agent</code> and generated Tool <code>call_async</code></td>
+<td>Beta</td>
+<td>Fresh children inherit application context and cancellation/deadline controls while owning their own execution wiring. Parent-binding isolation is Unreleased; arguments and result formats are unchanged. <a href="docs/architecture/agent-tool-child-lifetime.md#child-invocation-context">Child invocation context</a></td>
 </tr>
 <tr>
 <td><code>Tools::Agent::CleanupError</code></td>
@@ -406,7 +416,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 21 10:13:18 2026 by
+  Generated on Sat Nov 21 10:18:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>

@@ -76,6 +76,23 @@ admission, recovery and observation failures keep their existing contracts.</li>
 </ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
+<li>Give fresh Agent Tool children their own execution wiring instead of forwarding
+the parent's reserved ID, admission, coordination participants and observers.
+Preserve application context, cancellation and shared deadline controls.</li>
+<li>Keep rejected execution registration and its terminal delivery isolated from
+an existing owner with the same ID. Session startup failure after a successful
+installation uses normal owned terminal cleanup; an unregistered start never
+releases the other owner's state or drains its completion waiters.</li>
+<li>Retire the loaded coordinator and worker Agents of confirmed terminal Team
+runs after their observed physical work finishes, without delaying the saved
+Team result or deleting durable history. Drop terminal coordinator class
+entries while preserving active and recovery-required runs.</li>
+<li>Report failed Team child retirement with its identities and retain the live
+owner. Terminal <code>resume</code> can retry release without replaying business work;
+read-only <code>result</code> does not initiate cleanup.</li>
+<li>Isolate logger failures while reporting cancellation, physical-completion and
+timer callback errors. Later callbacks still run, queued cancellation remains
+effective, and timer accounting and Runtime delivery continue.</li>
 <li>Validate and snapshot Team <code>durable_context</code> before accepting a new run. An
 invalid value no longer creates an active Team execution.</li>
 <li>Finish an accepted Team run when its child start is definitively rejected and
@@ -1429,7 +1446,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 21 10:13:19 2026 by
+  Generated on Sat Nov 21 10:18:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>
