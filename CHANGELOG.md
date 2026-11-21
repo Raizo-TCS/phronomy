@@ -12,6 +12,30 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Changed
+
+- Reserved Agent starts expose `Agent::ExecutionRejectedError`, with the reserved
+  Agent/execution IDs and original cause, for validation failures detected before
+  durable admission is attempted. Ordinary invocation errors and uncertain
+  admission, recovery and observation failures keep their existing contracts.
+
+### Fixed
+
+- Validate and snapshot Team `durable_context` before accepting a new run. An
+  invalid value no longer creates an active Team execution.
+- Finish an accepted Team run when its child start is definitively rejected and
+  a guarded public observation confirms the reserved execution is absent. Save
+  the Team failure and release its active-run slot in the same transaction;
+  preserve recovery when a competing child exists or observation/commit is
+  uncertain. This also handles invalid input retained by earlier versions.
+
+### Compatibility
+
+- The new reserved-start error and Team failure behavior change the public error
+  contract. Call signatures and saved record formats are unchanged. No child
+  execution is fabricated, and no new execution or coordination layer is added.
+  See [Team admission rejection](docs/architecture/team-admission-rejection.md).
+
 ## [0.37.0] - 2026-11-21
 
 ### Changed

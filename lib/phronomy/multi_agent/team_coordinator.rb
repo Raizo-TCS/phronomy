@@ -242,6 +242,13 @@ module Phronomy
       end
 
       def admit(input, config = {})
+        context = nil
+        if config.key?(:durable_context)
+          unless config[:durable_context].is_a?(Hash)
+            raise ArgumentError, "config[:durable_context] must be a canonical JSON-compatible Hash"
+          end
+          context = Phronomy::CanonicalJSON.load(Phronomy::CanonicalJSON.dump(config.fetch(:durable_context)))
+        end
         definition = definition_snapshot
         id = SecureRandom.uuid
         now = Time.now.utc.iso8601(6)
@@ -256,7 +263,7 @@ module Phronomy
               workers: Array.new(self.class._pool_size) { |i| {"index" => i, "agent_id" => SecureRandom.uuid} },
               tasks: [], assignments: [], result_ref: nil, error_ref: nil, created_at: now, updated_at: now,
               metadata: {"definition" => definition, "operations" => {}, "cancel_requested" => false,
-                         "durable_context_ref" => config.key?(:durable_context) ? tx.contents.put_json(config.fetch(:durable_context)) : nil})
+                         "durable_context_ref" => config.key?(:durable_context) ? tx.contents.put_json(context) : nil})
             tx.team_executions.create_active(intended)
             tx.teams.save(team_id, expected_revision: root.team_revision, root: root.with(lifecycle_status: "active"))
           end
@@ -279,6 +286,7 @@ module Phronomy
         begin
           intended = nil
           persistence.transaction do |tx, scope|
+            tx.guard_team!(team_id)
             current = tx.team_executions.load(id)
             raise Phronomy::Persistence::StateConflictError, "Team execution owner mismatch" unless current.team_id == team_id
             intended = yield(current, tx, scope)
@@ -362,6 +370,8 @@ module Phronomy
             next if completed.active?
             return terminal_value(completed)
           end
+        rescue Phronomy::Agent::ExecutionRejectedError => error
+          terminal_value(finish_rejected_child(id, error))
         rescue Phronomy::CancellationError
           # An absent reserved child is not started just to cancel it. Keep its
           # identity in the terminal Team record for discovery.
@@ -469,6 +479,28 @@ module Phronomy
         update(id) do |fresh, tx, scope|
           next fresh if fresh.terminal?
           fresh.with(status: status, phase: status, error_ref: tx.contents.put_json(error))
+        end
+      end
+
+      # The Agent owns rejection classification. Team owns the parent outcome.
+      # Its admission guard also fences a competing reserved child start, so an
+      # absence observation and the Team terminal write share one decision.
+      def finish_rejected_child(id, error)
+        update(id) do |fresh, tx, scope|
+          next fresh if fresh.terminal?
+          slots = [fresh.coordinator] + fresh.assignments.map do |assignment|
+            fresh.workers.fetch(assignment.fetch("worker")).merge("execution_id" => assignment.fetch("execution_id"))
+          end
+          unless slots.any? { |slot| slot.fetch("agent_id") == error.agent_id && slot.fetch("execution_id") == error.execution_id }
+            raise Phronomy::Persistence::StateConflictError, "Rejected child does not belong to Team execution #{id}"
+          end
+          observed = persistence.agent_store.observe_execution(agent_id: error.agent_id,
+            execution_id: error.execution_id, scope: scope)
+          unless observed.absent?
+            raise Phronomy::ExecutionRehydrationRequiredError,
+              "Rejected start overlaps an existing child execution #{error.execution_id}; resume the Team"
+          end
+          fresh.with(status: "failed", phase: "failed", error_ref: tx.contents.put_json(Phronomy::Error.diagnostic(error)))
         end
       end
 

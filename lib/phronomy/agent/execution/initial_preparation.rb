@@ -34,7 +34,9 @@ module Phronomy
         begin
           raw_message = @agent.send(:extract_message, operation.input)
         rescue => error
-          return unadmitted_result(operation, error, :not_established)
+          rejection = ExecutionRejectedError.from_error(error, agent_id: @agent.agent_id,
+            execution_id: operation.config[:phronomy_exact_observers] && operation.config[:phronomy_reserved_execution_id])
+          return unadmitted_result(operation, rejection, :not_established)
         end
 
         begin
@@ -45,6 +47,8 @@ module Phronomy
             config: operation.config,
             preparation_replayable: operation.preparation_replayable
           )
+        rescue ExecutionRejectedError => error
+          return unadmitted_result(operation, error, :not_established)
         rescue Phronomy::AgentBusyError => error
           # A durable nonterminal execution keeps Runtime admission fail-closed
           # until recovery can establish its lineage, including after F4 loss.
@@ -216,9 +220,15 @@ module Phronomy
       end
 
       def admit_execution(raw_message, root:, mode: :invoke, config: {}, preparation_replayable: false)
+        begin
+          metadata = initial_preparation_metadata(mode.to_sym, preparation_replayable)
+        rescue => error
+          raise ExecutionRejectedError.from_error(error, agent_id: @agent.agent_id,
+            execution_id: config[:phronomy_exact_observers] && config[:phronomy_reserved_execution_id])
+        end
         admission = Admission.new(persistence: @persistence, root: root,
           input: raw_message, config: config,
-          preparation_metadata: initial_preparation_metadata(mode.to_sym, preparation_replayable))
+          preparation_metadata: metadata)
         participant = config[:phronomy_admission]
         if admission.correlation && !participant
           raise Phronomy::ConfigurationError, "Coordinated admission requires its current owner"
