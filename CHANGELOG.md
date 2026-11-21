@@ -33,6 +33,9 @@ Release history for 0.14.0 and earlier is archived in
 - Preserve a legitimate `nil` Tool result in runtime events so it can be saved
   as JSON null. This also lets the existing Orchestrator `on_error: :skip`
   policy complete after a confirmed child output failure.
+- Make Agent Tool collection tests wait for completed worker frames to
+  return while preserving Runtime ownership registries and completed handles
+  as retention checks. Production lifetime behavior is unchanged.
 
 ### Compatibility
 
