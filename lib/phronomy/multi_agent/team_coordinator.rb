@@ -309,8 +309,9 @@ module Phronomy
       end
 
       def run(id, config)
+        observations = {}
         current = read_execution(id)
-        return terminal_value(current) if current.terminal?
+        return terminal_value(current, observations) if current.terminal?
         unless current.metadata.fetch("definition") == definition_snapshot
           raise Phronomy::ConfigurationError, "Team execution #{id} pool/definition mismatch"
         end
@@ -323,13 +324,13 @@ module Phronomy
         begin
           loop do
             current = read_execution(id)
-            return terminal_value(current) if current.terminal?
+            return terminal_value(current, observations) if current.terminal?
             token.cancel! if cancellation_requested?(current)
             action, subject = next_run_action(current)
             case action
             when :coordinator
               outcome = run_child(current, current.coordinator, coordinator_class(id),
-                persistence.contents.fetch_text(current.input_ref), "coordinator", config, token)
+                persistence.contents.fetch_text(current.input_ref), "coordinator", config, token, observations)
               update(id) do |fresh, _tx|
                 fresh.with(phase: "workers", coordinator: fresh.coordinator.merge(
                   "state" => outcome[:status].to_s, "result_ref" => outcome[:result_ref], "error_ref" => outcome[:error_ref]
@@ -341,15 +342,15 @@ module Phronomy
               worker = current.workers.fetch(unfinished.fetch("worker"))
               task = current.tasks.find { |item| item.fetch("id") == unfinished.fetch("task_id") }
               outcome = run_child(current, worker.merge("execution_id" => unfinished.fetch("execution_id")),
-                self.class._worker_agent, task.fetch("description"), unfinished.fetch("task_id"), config, token)
+                self.class._worker_agent, task.fetch("description"), unfinished.fetch("task_id"), config, token, observations)
               saved = record_assignment(id, unfinished, outcome)
               entry = assignment_values(saved).find { |item| item.fetch(:task).fetch(:id) == task.fetch("id") }
               yield entry.merge(type: outcome[:error] ? :task_failed : :task_completed) if block_given?
               next
             when :failed
-              return terminal_value(finish_error(id, persistence.contents.fetch_json(subject.fetch("error_ref"))))
+              return terminal_value(finish_error(id, persistence.contents.fetch_json(subject.fetch("error_ref"))), observations)
             when :cancelled
-              return terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"))
+              return terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"), observations)
             when :reserve
               reserve_assignment(current, subject)
               next
@@ -360,7 +361,7 @@ module Phronomy
               output = Phronomy::Values::Serializable.convert(aggregate ? aggregate.call(values) : values, unsupported_message: "Team result is not canonically serializable")
               Phronomy::CanonicalJSON.dump(output)
             rescue => error
-              return terminal_value(finish_error(id, Phronomy::Error.diagnostic(error)))
+              return terminal_value(finish_error(id, Phronomy::Error.diagnostic(error)), observations)
             end
             # Aggregate may be replayed only until the canonical outcome commits.
             completed = update(id) do |fresh, tx, scope|
@@ -368,17 +369,17 @@ module Phronomy
               fresh.with(status: "completed", phase: "completed", result_ref: tx.contents.put_json(output))
             end
             next if completed.active?
-            return terminal_value(completed)
+            return terminal_value(completed, observations)
           end
         rescue Phronomy::Agent::ExecutionRejectedError => error
-          terminal_value(finish_rejected_child(id, error))
+          terminal_value(finish_rejected_child(id, error), observations)
         rescue Phronomy::CancellationError
           # An absent reserved child is not started just to cancel it. Keep its
           # identity in the terminal Team record for discovery.
           if (failed = failed_child(read_execution(id)))
-            terminal_value(finish_error(id, persistence.contents.fetch_json(failed.fetch("error_ref"))))
+            terminal_value(finish_error(id, persistence.contents.fetch_json(failed.fetch("error_ref"))), observations)
           else
-            terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"))
+            terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"), observations)
           end
         ensure
           cancellation_subscriptions.close
@@ -415,7 +416,7 @@ module Phronomy
           execution.assignments.any? { |entry| entry.fetch("state") == "cancelled" }
       end
 
-      def run_child(current, slot, klass, input, purpose, config, token)
+      def run_child(current, slot, klass, input, purpose, config, token, observations)
         id = slot.fetch("agent_id")
         child = klass.get(id)
         unless child
@@ -435,7 +436,9 @@ module Phronomy
         if (context_ref = current.metadata["durable_context_ref"])
           child_config = child_config.merge(durable_context: persistence.contents.fetch_json(context_ref))
         end
-        child.start_reserved_async(reservation: Phronomy::Agent::ReservedExecution.new(agent_id: id, execution_id: slot.fetch("execution_id"), correlation: child_config.fetch(:phronomy_reservation)), input: input, config: child_config).wait_result
+        operation = child.start_reserved_async(reservation: Phronomy::Agent::ReservedExecution.new(agent_id: id, execution_id: slot.fetch("execution_id"), correlation: child_config.fetch(:phronomy_reservation)), input: input, config: child_config)
+        (observations[id] ||= []) << operation
+        operation.wait_result
       end
 
       def reserve_assignment(current, task)
@@ -504,13 +507,63 @@ module Phronomy
         end
       end
 
-      def terminal_value(execution)
+      def terminal_value(execution, observations)
         raise Phronomy::CancellationError, "Team run #{execution.team_execution_id} cancelled" if execution.status == "cancelled"
         if execution.error_ref
           failure = persistence.contents.fetch_json(execution.error_ref)
           raise Phronomy::Error.from_diagnostic(failure)
         end
         persistence.contents.fetch_json(execution.result_ref)
+      ensure
+        retire_terminal_children(execution, observations)
+      end
+
+      # A confirmed Team terminal result ends ownership of its execution-only
+      # children, not their durable histories. Cleanup cannot replace that result.
+      def retire_terminal_children(execution, observations)
+        return unless execution.terminal?
+
+        id = execution.team_execution_id
+        @coordinator_classes.delete(id)
+        ([execution.coordinator] + execution.workers).map { |slot| slot.fetch("agent_id") }.uniq.each do |agent_id|
+          child = begin
+            Phronomy::Agent::Base.get(agent_id)
+          rescue Phronomy::AgentBusyError
+            # Another terminal observer may already have started its release.
+            # get only reports an ownership transition, not an active operation.
+            next
+          end
+          next unless child
+          unless child.persistence.equal?(persistence.agent_store)
+            raise Phronomy::ConfigurationError, "Team child #{agent_id} Persistence mismatch during release"
+          end
+
+          # all_settled observes logical completion. Finalize each observation
+          # first so reused workers retain every outstanding physical boundary.
+          settled = Array(observations[agent_id]).map do |operation|
+            Phronomy::AsyncOperation.finalize(name: "team-child-quiescence",
+              cleanup: -> { Phronomy::TaskResult.completed(nil) },
+              on_cleanup_error: ->(_value, _primary, error) { error }) { operation }
+          end
+          Phronomy::AsyncOperation.finalize(name: "team-child-release",
+            cleanup: -> { child.unload_async },
+            on_cleanup_error: ->(_value, _primary, error) {
+              report_child_release_failure(id, agent_id, error)
+              error
+            }) { Phronomy::TaskResult.all_settled(settled) }
+        rescue => error
+          report_child_release_failure(id, agent_id, error)
+        end
+      end
+
+      def report_child_release_failure(id, agent_id, error)
+        message = "[Phronomy] Team child release failed team_id=#{team_id.inspect} team_execution_id=#{id.inspect} agent_id=#{agent_id.inspect}: #{error.class}: #{error.message}"
+        logger = Phronomy::RuntimeSettings.current.logger
+        logger ? logger.error(message) : warn(message)
+      rescue
+        # Reporting failure cannot change a committed Team result or a retained
+        # Agent owner. A later terminal resume can retry the existing public API.
+        nil
       end
 
       def coordinator_class(id)

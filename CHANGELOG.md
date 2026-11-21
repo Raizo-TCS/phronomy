@@ -21,6 +21,13 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Retire the loaded coordinator and worker Agents of confirmed terminal Team
+  runs after their observed physical work finishes, without delaying the saved
+  Team result or deleting durable history. Drop terminal coordinator class
+  entries while preserving active and recovery-required runs.
+- Report failed Team child retirement with its identities and retain the live
+  owner. Terminal `resume` can retry release without replaying business work;
+  read-only `result` does not initiate cleanup.
 - Isolate logger failures while reporting cancellation, physical-completion and
   timer callback errors. Later callbacks still run, queued cancellation remains
   effective, and timer accounting and Runtime delivery continue.
