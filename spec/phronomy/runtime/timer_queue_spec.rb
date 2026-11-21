@@ -75,4 +75,41 @@ RSpec.describe Phronomy::Runtime::TimerQueue do
     timer.shutdown
     expect(timer.drained_on_shutdown?).to be(false)
   end
+
+  context "when reporting a timer callback failure also fails", :notification_reporting do
+    before do
+      logger = instance_double(Logger, error: nil, warn: nil)
+      allow(logger).to receive(:error).and_raise(IOError, "logger unavailable")
+      Phronomy.configuration.logger = logger
+    end
+
+    it "delivers later due timers and finishes their in-flight accounting" do
+      timer = described_class.new(clock: -> { 1.0 })
+      calls = []
+      timer.schedule(seconds: 0) do
+        calls << :first
+        raise ArgumentError, "timer failed"
+      end
+      timer.schedule(seconds: 0) { calls << :second }
+
+      expect(timer.fire_due).to eq(2)
+      expect(calls).to eq(%i[first second])
+      expect(timer.pending_count).to eq(0)
+      expect(timer.wait_until_idle(Process.clock_gettime(Process::CLOCK_MONOTONIC))).to be(true)
+      expect(timer.fire_due).to eq(0)
+    ensure
+      timer&.shutdown
+    end
+
+    it "keeps Runtime able to deliver another timer and accept public Blocking work" do
+      runtime = Phronomy::Runtime.instance
+      delivered = Queue.new
+      runtime.timer_queue.schedule(seconds: 0) { raise ArgumentError, "timer failed" }
+      runtime.timer_queue.schedule(seconds: 0) { delivered << :later_timer }
+
+      expect(delivered.pop(timeout: 2)).to eq(:later_timer)
+      expect(runtime.state).to eq(:running)
+      expect(Phronomy::Blocking.call_async { :next_work }.wait_result(timeout: 2)).to eq(:next_work)
+    end
+  end
 end

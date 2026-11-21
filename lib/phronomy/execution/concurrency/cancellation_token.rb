@@ -98,8 +98,13 @@ module Phronomy
       def deliver_cancel_callback(callback)
         callback.call
       rescue => error
-        Phronomy::RuntimeSettings.current.logger&.error do
-          "[CancellationToken] on_cancel callback raised #{error.class}: #{error.message}"
+        begin
+          Phronomy::RuntimeSettings.current.logger&.error do
+            "[CancellationToken] on_cancel callback raised #{error.class}: #{error.message}"
+          end
+        rescue
+          # Reporting must not interrupt delivery to the remaining observers.
+          nil
         end
       end
 

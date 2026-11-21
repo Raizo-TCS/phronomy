@@ -21,6 +21,9 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Isolate logger failures while reporting cancellation, physical-completion and
+  timer callback errors. Later callbacks still run, queued cancellation remains
+  effective, and timer accounting and Runtime delivery continue.
 - Validate and snapshot Team `durable_context` before accepting a new run. An
   invalid value no longer creates an active Team execution.
 - Finish an accepted Team run when its child start is definitively rejected and

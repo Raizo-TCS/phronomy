@@ -68,8 +68,13 @@ module Phronomy
       def deliver_physical_callback(callback)
         callback.call
       rescue => error
-        Phronomy::RuntimeSettings.current.logger&.error do
-          "[PhysicalCompletionTask] callback raised #{error.class}: #{error.message}"
+        begin
+          Phronomy::RuntimeSettings.current.logger&.error do
+            "[PhysicalCompletionTask] callback raised #{error.class}: #{error.message}"
+          end
+        rescue
+          # Reporting must not interrupt delivery to the remaining observers.
+          nil
         end
       end
     end
