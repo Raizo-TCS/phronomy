@@ -36,6 +36,11 @@ module Phronomy
       # Starts or observes the reserved execution and returns its committed result.
       # Failed executions, including OutputError, fulfill the Task with status
       # and error details. Admission, recovery and observation errors reject it.
+      # ExecutionRejectedError identifies durable-context, input-extraction or
+      # preparation-metadata validation rejected before durable admission.
+      # It identifies this start request, not global absence; coordinating owners
+      # must observe the reservation under their guard before ending their run.
+      # @see file:docs/architecture/team-admission-rejection.md
       # @return [Phronomy::TaskResult] the exact execution result
       # @api public
       def start_reserved_async(reservation:, input:, config: {}, output_schema: nil, schema_delivery: nil)
@@ -294,7 +299,12 @@ module Phronomy
       end
 
       def _start_agent_operation(input, config:, mode:, listener:)
-        config = __invocation_config(_snapshot_durable_context(config))
+        begin
+          config = __invocation_config(_snapshot_durable_context(config))
+        rescue => error
+          raise ExecutionRejectedError.from_error(error, agent_id: agent_id,
+            execution_id: config[:phronomy_exact_observers] && config[:phronomy_reserved_execution_id])
+        end
         @_phronomy_execution_wiring = config.dup.freeze
         approval = _approval_configuration_snapshot(nil)
         execution_coordinator_for(config).start(

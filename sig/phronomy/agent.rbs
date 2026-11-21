@@ -29,6 +29,12 @@ module Phronomy
         ?violations: Array[Hash[String, untyped]], ?raw_output: untyped) -> void
     end
 
+    class ExecutionRejectedError < Phronomy::Error
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      def initialize: (String message, agent_id: String, execution_id: String) -> void
+    end
+
     interface _BeforeLLMInputHook
       def call: (Phronomy::Context::LLMInputBuildContext context) -> Phronomy::Context::LLMInputPatch?
     end

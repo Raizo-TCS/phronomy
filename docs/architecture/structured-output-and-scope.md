@@ -183,6 +183,12 @@ ownership or reservation, and an unresolved execution requiring recovery or
 approval wiring. Such errors do not manufacture a failed execution record.
 The ordinary Agent event listener and its existing error policy are unchanged.
 
+Reserved-start validation has a narrower explicit failure contract:
+`Agent::ExecutionRejectedError` identifies a request rejected before attempting
+durable admission. It does not assert that another caller has not started the
+same reserved execution. Team checks that identity under its admission guard
+before finalizing its own run; see [Team admission rejection](team-admission-rejection.md).
+
 Applications that need the saved failure raised explicitly can use the existing
 observation conversion after receiving the result:
 
