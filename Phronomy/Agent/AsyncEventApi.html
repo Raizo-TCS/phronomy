@@ -435,20 +435,20 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-174
-175
-176
-177
-178
 179
 180
 181
 182
 183
-184</pre>
+184
+185
+186
+187
+188
+189</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 174</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 179</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>wait_on_shutdown:</span> <span class='kw'>false</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -481,11 +481,6 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-186
-187
-188
-189
-190
 191
 192
 193
@@ -497,10 +492,15 @@ listeners or listener blocks;</li>
 199
 200
 201
-202</pre>
+202
+203
+204
+205
+206
+207</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 186</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 191</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>async:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -539,20 +539,20 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-74
-75
-76
-77
-78
 79
 80
 81
 82
 83
-84</pre>
+84
+85
+86
+87
+88
+89</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel_async'>cancel_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>async:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -585,11 +585,6 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-86
-87
-88
-89
-90
 91
 92
 93
@@ -605,10 +600,15 @@ listeners or listener blocks;</li>
 103
 104
 105
-106</pre>
+106
+107
+108
+109
+110
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -651,11 +651,6 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-108
-109
-110
-111
-112
 113
 114
 115
@@ -670,10 +665,15 @@ listeners or listener blocks;</li>
 124
 125
 126
-127</pre>
+127
+128
+129
+130
+131
+132</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -715,11 +715,6 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-204
-205
-206
-207
-208
 209
 210
 211
@@ -734,10 +729,15 @@ listeners or listener blocks;</li>
 220
 221
 222
-223</pre>
+223
+224
+225
+226
+227
+228</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 204</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 209</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve'>resolve</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -779,11 +779,6 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-225
-226
-227
-228
-229
 230
 231
 232
@@ -797,10 +792,15 @@ listeners or listener blocks;</li>
 240
 241
 242
-243</pre>
+243
+244
+245
+246
+247
+248</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 225</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 230</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resolve_async'>resolve_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -866,15 +866,15 @@ listeners or listener blocks;</li>
       <pre class="lines">
 
 
-67
-68
-69
-70
-71
-72</pre>
+72
+73
+74
+75
+76
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>wait_on_shutdown:</span> <span class='kw'>false</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -929,15 +929,15 @@ to resume or observe the execution remains an operation error.</p>
       <pre class="lines">
 
 
-57
-58
-59
-60
-61
-62</pre>
+62
+63
+64
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 62</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume_async'>resume_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>async:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -1033,7 +1033,11 @@ The caller holds the external exclusive claim for this Agent.</p>
   <div class="discussion">
     <p>Starts or observes the reserved execution and returns its committed result.
 Failed executions, including OutputError, fulfill the Task with status
-and error details. Admission, recovery and observation errors reject it.</p>
+and error details. Admission, recovery and observation errors reject it.
+ExecutionRejectedError identifies durable-context, input-extraction or
+preparation-metadata validation rejected before durable admission.
+It identifies this start request, not global absence; coordinating owners
+must observe the reservation under their guard before ending their run.</p>
 
   </div>
 </div>
@@ -1056,25 +1060,32 @@ and error details. Admission, recovery and observation errors reject it.</p>
   
 </ul>
 
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><a href="../../file.team-admission-rejection.html" title="team-admission-rejection">team-admission-rejection</a></li>
+    
+  </ul>
+
 </div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
 46
 47
 48
 49
-50</pre>
+50
+51
+52
+53
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start_reserved_async'>start_reserved_async</span><span class='lparen'>(</span><span class='label'>reservation:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>output_schema:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>schema_delivery:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid___with_operation'>__with_operation</span><span class='lparen'>(</span><span class='label'>async:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -1106,11 +1117,6 @@ and error details. Admission, recovery and observation errors reject it.</p>
       <pre class="lines">
 
 
-129
-130
-131
-132
-133
 134
 135
 136
@@ -1127,10 +1133,15 @@ and error details. Admission, recovery and observation errors reject it.</p>
 147
 148
 149
-150</pre>
+150
+151
+152
+153
+154
+155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 129</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -1174,11 +1185,6 @@ and error details. Admission, recovery and observation errors reject it.</p>
       <pre class="lines">
 
 
-152
-153
-154
-155
-156
 157
 158
 159
@@ -1194,10 +1200,15 @@ and error details. Admission, recovery and observation errors reject it.</p>
 169
 170
 171
-172</pre>
+172
+173
+174
+175
+176
+177</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 152</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 157</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -1230,7 +1241,7 @@ and error details. Admission, recovery and observation errors reject it.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Nov 21 03:18:17 2026 by
+  Generated on Sat Nov 21 10:13:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>

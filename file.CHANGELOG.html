@@ -67,6 +67,30 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>Reserved Agent starts expose <code>Agent::ExecutionRejectedError</code>, with the reserved
+Agent/execution IDs and original cause, for validation failures detected before
+durable admission is attempted. Ordinary invocation errors and uncertain
+admission, recovery and observation failures keep their existing contracts.</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>Validate and snapshot Team <code>durable_context</code> before accepting a new run. An
+invalid value no longer creates an active Team execution.</li>
+<li>Finish an accepted Team run when its child start is definitively rejected and
+a guarded public observation confirms the reserved execution is absent. Save
+the Team failure and release its active-run slot in the same transaction;
+preserve recovery when a competing child exists or observation/commit is
+uncertain. This also handles invalid input retained by earlier versions.</li>
+</ul>
+<h3 id="Compatibility">Compatibility</h3>
+<ul>
+<li>The new reserved-start error and Team failure behavior change the public error
+contract. Call signatures and saved record formats are unchanged. No child
+execution is fabricated, and no new execution or coordination layer is added.
+See <a href="docs/architecture/team-admission-rejection.md">Team admission rejection</a>.</li>
+</ul>
 <h2 id="_0_37_0____2026_11_21">[0.37.0] - 2026-11-21</h2>
 <h3 id="Changed">Changed</h3>
 <ul>
@@ -1405,7 +1429,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 21 03:18:17 2026 by
+  Generated on Sat Nov 21 10:13:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>

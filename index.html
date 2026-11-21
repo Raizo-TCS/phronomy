@@ -175,6 +175,11 @@ the current saved representation.</p>
 <td>Return the confirmed execution result, including <code>status: :failed</code> and saved <code>OutputError</code> diagnostics. Errors in starting, resuming or observing the execution remain operation failures; <a href="docs/architecture/structured-output-and-scope.md#exact-execution-results">exact execution results</a></td>
 </tr>
 <tr>
+<td><code>Agent::ExecutionRejectedError</code> and Team rejection handling</td>
+<td>Beta (Unreleased)</td>
+<td>Distinguish reserved-start validation rejection from uncertain execution outcomes. Team validates durable input before admission and records a confirmed child-start rejection as its own failure after a guarded absence check; <a href="docs/architecture/team-admission-rejection.md">rejection contract</a></td>
+</tr>
+<tr>
 <td>Agent <code>transcript_messages</code> / <code>transcript_messages_async</code></td>
 <td>Beta</td>
 <td>Read immutable conversation Message values with the same restoration rules as execution results; <a href="docs/getting-started.md">reading conversation state</a></td>
@@ -401,7 +406,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Nov 21 03:18:16 2026 by
+  Generated on Sat Nov 21 10:13:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.14).
 </div>
