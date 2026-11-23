@@ -218,6 +218,11 @@ boundaries. The bounded model explains the selected cooperative protocol and
 its environment assumptions; neither syntax checks nor a mock implementation
 alone demonstrates that cancellation reaches a real blocked child.
 
+The [bounded TLA+ model](../../spec/models/team_cancellation_delivery/README.md)
+includes the callback, Team host, persistence attempt, child and Runtime as
+separate state components. Its checked progress claims require explicit host
+retry after a visible error and cooperative return from blocking operations.
+
 For example, an acceptance case blocks a real provider call, requests external
 cancellation while another worker submission would fail, and verifies the
 saved cancellation and child signal without creating a delivery job. The
