@@ -103,20 +103,20 @@ RSpec.describe "MultiAgent execution connection" do
   it "delivers Team cancellation through the original connection" do
     team = team_class.create(persistence: stores.multi_agent)
     external = Phronomy::Concurrency::CancellationToken.new
-    queued = []
-    expect(environment).to receive(:submit).with(on_full: :raise).once { |&work| queued << work }
+    child_token = nil
+    expect(environment).not_to receive(:submit)
     allow(team).to receive(:run_child) do |_run, _child, _klass, _input, _label, _config, token|
       port.install_provider(-> { raise "must not redirect cancellation" })
       external.cancel!
       expect(token).not_to be_cancelled
-      queued.fetch(0).call
-      expect(token).to be_cancelled
-      raise Phronomy::CancellationError, "cancelled child"
+      child_token = token
+      {status: :completed}
     end
     expect { team.invoke("work", config: {cancellation_token: external}) }.to raise_error(Phronomy::CancellationError)
     run = team.executions.first
     expect(run.status).to eq("cancelled")
     expect(run.metadata.fetch("cancel_requested")).to be(true)
+    expect(child_token).to be_cancelled
     expect(admissions.idle?).to be(true)
   end
 

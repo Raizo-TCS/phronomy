@@ -27,6 +27,7 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Agent::ScopeCleanupError,
   Phronomy::MultiAgent::TeamNotFoundError,
   Phronomy::MultiAgent::TeamBusyError,
+  Phronomy::MultiAgent::TeamCancellationDeliveryError,
   Phronomy::Embeddings::AuthenticationError,
   Phronomy::Embeddings::RateLimitError,
   Phronomy::Agent::Base,

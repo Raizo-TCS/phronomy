@@ -183,6 +183,29 @@
     ]
   },
   {
+    "name": "Phronomy::MultiAgent::TeamCancellationDeliveryError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "set_backtrace",
+      "team_execution_id",
+      "team_id"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
     "name": "Phronomy::Embeddings::AuthenticationError",
     "type": "class",
     "public_instance_methods": [

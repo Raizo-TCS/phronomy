@@ -126,6 +126,7 @@ module Phronomy
       # @api public
       def invoke(team_input, config: {})
         with_admission do
+          reject_other_pending_cancellation!
           execution = admit(team_input.to_s, config)
           run(execution.team_execution_id, config)
         end
@@ -135,6 +136,7 @@ module Phronomy
       # @api public
       def stream(team_input, config: {}, &block)
         with_admission do
+          reject_other_pending_cancellation!
           execution = admit(team_input.to_s, config)
           run(execution.team_execution_id, config, &block)
         end
@@ -163,12 +165,7 @@ module Phronomy
       def cancel(team_execution_id)
         assert_caller!
         id = team_execution_id.to_s
-        update(id) do |current, _tx|
-          next current unless current.active?
-          current.with(metadata: current.metadata.merge("cancel_requested" => true))
-        end
-        token = @tokens_mutex.synchronize { @tokens[id] }
-        token&.cancel!
+        apply_cancellation(id)
         result(id)
       end
 
@@ -177,7 +174,8 @@ module Phronomy
       def initialize(id, store, metadata, listener, environment, create:)
         @team_id, @persistence, @listener, @environment = id, store, listener, environment
         @admissions = @environment.admissions
-        @tokens_mutex, @tokens = Mutex.new, {}
+        @cancellation_mutex = Mutex.new
+        @cancellation_request = nil
         @coordinator_classes = {}
         definition = self.class.team_definition
         if create
@@ -309,20 +307,24 @@ module Phronomy
       end
 
       def run(id, config)
-        observations = {}
+        reject_other_pending_cancellation!(id)
         current = read_execution(id)
+        request = cancellation_request(id)
+        observations = request.observations
         return terminal_value(current, observations) if current.terminal?
         unless current.metadata.fetch("definition") == definition_snapshot
           raise Phronomy::ConfigurationError, "Team execution #{id} pool/definition mismatch"
         end
-        token = Phronomy::Concurrency::CancellationToken.new
-        @tokens_mutex.synchronize { @tokens[id] = token }
+        token = request.token
         cancellation_subscriptions = Phronomy::Concurrency::ResultSubscriptions.new
-        callback = proc { @environment.submit(on_full: :raise) { cancel(id) } }
-        cancellation_subscriptions.explicit_cancellation(config[:cancellation_token], &callback)
-        token.cancel! if current.metadata["cancel_requested"]
+        registration = nil
         begin
+          registration = request.attach
+          callback = proc { request.request(registration) }
+          cancellation_subscriptions.explicit_cancellation(config[:cancellation_token], &callback)
+          request.confirm(cancel: true) if current.metadata["cancel_requested"]
           loop do
+            deliver_cancellation(request)
             current = read_execution(id)
             return terminal_value(current, observations) if current.terminal?
             token.cancel! if cancellation_requested?(current)
@@ -330,7 +332,7 @@ module Phronomy
             case action
             when :coordinator
               outcome = run_child(current, current.coordinator, coordinator_class(id),
-                persistence.contents.fetch_text(current.input_ref), "coordinator", config, token, observations)
+                persistence.contents.fetch_text(current.input_ref), "coordinator", config, token, observations, request)
               update(id) do |fresh, _tx|
                 fresh.with(phase: "workers", coordinator: fresh.coordinator.merge(
                   "state" => outcome[:status].to_s, "result_ref" => outcome[:result_ref], "error_ref" => outcome[:error_ref]
@@ -342,7 +344,7 @@ module Phronomy
               worker = current.workers.fetch(unfinished.fetch("worker"))
               task = current.tasks.find { |item| item.fetch("id") == unfinished.fetch("task_id") }
               outcome = run_child(current, worker.merge("execution_id" => unfinished.fetch("execution_id")),
-                self.class._worker_agent, task.fetch("description"), unfinished.fetch("task_id"), config, token, observations)
+                self.class._worker_agent, task.fetch("description"), unfinished.fetch("task_id"), config, token, observations, request)
               saved = record_assignment(id, unfinished, outcome)
               entry = assignment_values(saved).find { |item| item.fetch(:task).fetch(:id) == task.fetch("id") }
               yield entry.merge(type: outcome[:error] ? :task_failed : :task_completed) if block_given?
@@ -357,12 +359,14 @@ module Phronomy
             end
             values = assignment_values(current)
             aggregate = self.class._aggregator
+            next if deliver_cancellation(request)
             begin
               output = Phronomy::Values::Serializable.convert(aggregate ? aggregate.call(values) : values, unsupported_message: "Team result is not canonically serializable")
               Phronomy::CanonicalJSON.dump(output)
             rescue => error
               return terminal_value(finish_error(id, Phronomy::Error.diagnostic(error)), observations)
             end
+            next if deliver_cancellation(request)
             # Aggregate may be replayed only until the canonical outcome commits.
             completed = update(id) do |fresh, tx, scope|
               next fresh if fresh.terminal? || fresh.metadata["cancel_requested"]
@@ -382,8 +386,14 @@ module Phronomy
             terminal_value(finish_error(id, {"class" => "Phronomy::CancellationError", "message" => "Team run cancelled"}, status: "cancelled"), observations)
           end
         ensure
+          failure = $!
           cancellation_subscriptions.close
-          @tokens_mutex.synchronize { @tokens.delete(id) }
+          pending = request.detach(registration) if registration
+          if pending && request.pending? && (!failure || failure.is_a?(StandardError)) &&
+              !failure.is_a?(TeamCancellationDeliveryError)
+            request.failed(failure) if failure
+            raise_cancellation_delivery_error(request, failure || request.failure)
+          end
         end
       end
 
@@ -416,7 +426,57 @@ module Phronomy
           execution.assignments.any? { |entry| entry.fetch("state") == "cancelled" }
       end
 
-      def run_child(current, slot, klass, input, purpose, config, token, observations)
+      def cancellation_request(id)
+        @cancellation_mutex.synchronize do
+          unless @cancellation_request&.team_execution_id == id
+            @cancellation_request = TeamCancellationRequest.new(team_execution_id: id, admissions: @admissions)
+          end
+          @cancellation_request
+        end
+      end
+
+      def matching_cancellation_request(id)
+        @cancellation_mutex.synchronize do
+          @cancellation_request if @cancellation_request&.team_execution_id == id
+        end
+      end
+
+      def reject_other_pending_cancellation!(id = nil)
+        request = @cancellation_mutex.synchronize { @cancellation_request }
+        return unless request&.pending? && request.team_execution_id != id
+
+        raise_cancellation_delivery_error(request, request.failure)
+      end
+
+      def raise_cancellation_delivery_error(request, cause)
+        raise TeamCancellationDeliveryError.new(team_id: team_id,
+          team_execution_id: request.team_execution_id), cause: cause
+      end
+
+      def apply_cancellation(id)
+        confirmed = update(id) do |current, _tx|
+          next current unless current.active?
+          current.with(metadata: current.metadata.merge("cancel_requested" => true))
+        end
+        # Confirm before a public result query: its read failure cannot undo the
+        # authoritative cancellation write or retain a discharged local request.
+        matching_cancellation_request(id)&.confirm(cancel: true, terminal: confirmed.terminal?)
+        confirmed
+      end
+
+      def deliver_cancellation(request)
+        return unless request.pending?
+
+        apply_cancellation(request.team_execution_id)
+      rescue => error
+        return unless request.pending?
+
+        request.failed(error)
+        raise_cancellation_delivery_error(request, error)
+      end
+
+      def run_child(current, slot, klass, input, purpose, config, token, observations, request)
+        deliver_cancellation(request)
         id = slot.fetch("agent_id")
         child = klass.get(id)
         unless child
@@ -438,7 +498,7 @@ module Phronomy
         end
         operation = child.start_reserved_async(reservation: Phronomy::Agent::ReservedExecution.new(agent_id: id, execution_id: slot.fetch("execution_id"), correlation: child_config.fetch(:phronomy_reservation)), input: input, config: child_config)
         (observations[id] ||= []) << operation
-        operation.wait_result
+        request.wait(operation) { deliver_cancellation(request) }
       end
 
       def reserve_assignment(current, task)
@@ -508,6 +568,7 @@ module Phronomy
       end
 
       def terminal_value(execution, observations)
+        matching_cancellation_request(execution.team_execution_id)&.terminal
         raise Phronomy::CancellationError, "Team run #{execution.team_execution_id} cancelled" if execution.status == "cancelled"
         if execution.error_ref
           failure = persistence.contents.fetch_json(execution.error_ref)
@@ -516,6 +577,7 @@ module Phronomy
         persistence.contents.fetch_json(execution.result_ref)
       ensure
         retire_terminal_children(execution, observations)
+        observations.clear if execution.terminal?
       end
 
       # A confirmed Team terminal result ends ownership of its execution-only
