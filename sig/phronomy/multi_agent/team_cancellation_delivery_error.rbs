@@ -1,0 +1,9 @@
+module Phronomy
+  module MultiAgent
+    class TeamCancellationDeliveryError < Phronomy::Error
+      attr_reader team_id: String
+      attr_reader team_execution_id: String
+      def initialize: (team_id: untyped, team_execution_id: untyped) -> void
+    end
+  end
+end

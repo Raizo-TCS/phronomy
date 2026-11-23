@@ -21,6 +21,12 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Fixed
 
+- Retain explicit Team cancellation requests and wake the existing synchronous
+  Team host while it waits for a child. Record cancellation before signalling
+  children without submitting another worker job. Unconfirmed persistence
+  raises `MultiAgent::TeamCancellationDeliveryError` with exact Team/run IDs;
+  retain the request for explicit `resume` or `cancel`, including across the
+  original observer's return and Runtime shutdown accounting.
 - Give fresh Agent Tool children their own execution wiring instead of forwarding
   the parent's reserved ID, admission, coordination participants and observers.
   Preserve application context, cancellation and shared deadline controls.
@@ -48,6 +54,10 @@ Release history for 0.14.0 and earlier is archived in
 
 ### Compatibility
 
+- Team cancellation-delivery failures are now observable operation errors,
+  separate from saved business cancellation. A new turn cannot bypass an older
+  unresolved intent on the same Team. Existing call signatures and saved record
+  formats remain unchanged. See [cancellation delivery](docs/architecture/team-cancellation-delivery.md).
 - The new reserved-start error and Team failure behavior change the public error
   contract. Call signatures and saved record formats are unchanged. No child
   execution is fabricated, and no new execution or coordination layer is added.

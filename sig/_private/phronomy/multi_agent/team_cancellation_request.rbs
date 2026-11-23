@@ -1,0 +1,19 @@
+module Phronomy
+  module MultiAgent
+    class TeamCancellationRequest
+      attr_reader team_execution_id: String
+      attr_reader token: Phronomy::Concurrency::CancellationToken
+      attr_reader observations: Hash[String, Array[Phronomy::TaskResult[untyped]]]
+      def initialize: (team_execution_id: String, admissions: untyped) -> void
+      def attach: () -> Object
+      def request: (Object registration) -> bool
+      def pending?: () -> bool
+      def failure: () -> Exception?
+      def failed: (Exception error) -> untyped
+      def confirm: (cancel: bool, ?terminal: bool) -> untyped
+      def terminal: () -> untyped
+      def detach: (Object registration) -> untyped
+      def wait: [R] (Phronomy::TaskResult[R] operation) { () -> untyped } -> R
+    end
+  end
+end
