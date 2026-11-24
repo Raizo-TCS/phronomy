@@ -52,14 +52,14 @@ For example, a receipt can be `confirmed_post` while application is still pendin
 | `recovery` and diagnostic identities, including `approved` | The same captured approval decision and process-local authority. |
 | `outcome` | `confirmed_pre`, `confirmed_post`, `unresolved` or `unavailable`. |
 | `application_state` | `pending` or `applied` by the original owner. |
-| `continuation_state` | `pending`, `restored` or `resumed`. Restored means the same original wait; resumed means the retained continuation has been admitted or transferred to its terminal completion path. |
+| `continuation_state` | `pending`, `restored` or `resumed`. Restored records restoration of the same original wait; resumed records admission or terminal handoff of the retained continuation. These are historical handoff facts, not the job's current status. |
 | `physical_complete?` | Whether the approval save and recovery read workers have stopped. This excludes the resumed Tool/provider work and whole Agent job. |
 | `resolved?` | Physical approval completion plus applied state and restored/resumed continuation. |
 | `revision` | Exact confirmed execution revision: original suspended revision for pre-state, saved approval revision for post-state; otherwise nil. |
 | `execution_task` | Fresh independent observation of resumed execution, available only for confirmed post-state with applied/resumed continuation. |
 | `error` | Recovery/read/application error, separate from the resumed execution's own result or error. |
 
-Confirmed pre-state restores the same request, invocation, suspended cancellation binding and admission. It neither rewrites the decision nor releases the job. The application can request another explicit decision after receiving the restored wait. Confirmed post-state applies the captured decision and continues the same invocation, retaining exact parent/child session identities across partial registration.
+Confirmed pre-state restores the same request, invocation, suspended cancellation binding and admission. It neither rewrites the decision nor releases the job. Restoring that binding can immediately honor an already captured cancellation, so a restored receipt does not prove that the job is still awaiting approval. Check the original invocation's current outcome and current approval state before offering another explicit decision. Confirmed post-state applies the captured decision and continues the same invocation, retaining exact parent/child session identities across partial registration.
 
 For example, if the first Tool child was admitted and registration of a later child failed, recovery must not recreate or restart the first child. It resumes only missing registrations whose non-admission is known. Missing sessions observed later are not proof that earlier business effects never ran.
 
@@ -244,9 +244,9 @@ For example, both reports contain the following complete observation, including 
 
 ## Add explicit handling only for the uncertain decision path
 
-The following complete helper makes one decision and, only after `ApprovalRecoveryError`, performs one explicit reconciliation. It returns a restored request, a resumed execution observation, or retained pending recovery. It does not loop, automatically write another decision, transfer ownership or manufacture a replacement Agent.
+The following complete helper makes one decision and, only after `ApprovalRecoveryError`, performs one explicit reconciliation. It returns a restoration receipt tied to the original request, a resumed execution observation, or retained pending recovery. It does not loop, automatically write another decision, transfer ownership or manufacture a replacement Agent.
 
-For example, a rolled-back decision returns `approval_required` with the original request so the application can obtain or confirm another human decision. A committed decision returns `resumed` with an execution TaskResult. If readback is unavailable, the caller retains the Agent and capability and chooses when to observe again.
+For example, a rolled-back decision returns `approval_restored` with the original request and historical restoration receipt. The original invocation may already report cancellation because recovery honored captured cancellation; the application must inspect that outcome before presenting another approval. A committed decision returns `resumed` with an execution TaskResult. If readback is unavailable, the caller retains the Agent and capability and chooses when to observe again.
 
 <!-- example: recovery-handler -->
 ```ruby
@@ -256,8 +256,9 @@ require "phronomy"
 
 # The caller owns the Agent, original invocation and unresolved references.
 # Recovery may start the already authorized Tool for its first execution.
-# A confirmed pre-state is returned for a separate human decision; this function
-# never automatically submits another approval write.
+# A restored receipt records a completed handoff, not the job's current status.
+# Check the original invocation before offering a new human decision; this
+# function never automatically submits another approval write.
 def decide_with_recovery(agent:, request:, approved: true)
   result = agent.approve(request.execution_id, approval_request_id: request.id, approved: approved)
   {state: :completed, result: result}.freeze
@@ -265,7 +266,7 @@ rescue Phronomy::Agent::ApprovalRecoveryError => failure
   recovery = failure.recovery
   receipt = agent.reconcile_approval(recovery: recovery)
   if receipt.resolved? && receipt.continuation_state == :restored
-    {state: :approval_required, request: request, recovery: recovery, receipt: receipt}.freeze
+    {state: :approval_restored, request: request, recovery: recovery, receipt: receipt}.freeze
   elsif receipt.resolved? && receipt.continuation_state == :resumed
     {state: :resumed, execution_task: receipt.execution_task, recovery: recovery, receipt: receipt}.freeze
   else
@@ -294,7 +295,7 @@ For example, an approval owned by an Orchestrator/Team participant must continue
 
 Recovery can finish on the original running or draining Runtime. A stopped owner cannot be replaced through these methods, and unresolved responsibility prevents complete cleanup. Positive mechanism evidence that the initial save was never admitted can restore the ordinary wait and preserve the ordinary error; a missing handle or generic submission exception does not establish that evidence.
 
-For example, shutdown while an uncertain save/read still has physical work cannot report successful release merely because its waiting TaskResult ended. Conversely, a confirmed restored wait remains an active Agent job whose ordinary cancellation and shutdown obligations continue.
+For example, shutdown while an uncertain save/read still has physical work cannot report successful release merely because its waiting TaskResult ended. Conversely, restoring a wait does not release the Agent job: its ordinary cancellation and shutdown obligations continue, and an already captured cancellation can immediately move that job to terminal handling.
 
 The backend must establish that the prior transaction has settled and authoritative readback is ordered after it, with the Store's guard and atomicity guarantees intact. Local worker quiescence, a matching revision or an in-memory test does not prove these properties for every remote database. There is no claim of exactly-once external effects after a process crash.
 
