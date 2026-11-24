@@ -83,7 +83,7 @@ module Phronomy
       end
 
       def initialize: (agent: Base, persistence: Store) -> void
-      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?) -> Outcome
+      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?, ?on_outcome: (^(Outcome) -> untyped)?) -> Outcome
     end
   end
 end

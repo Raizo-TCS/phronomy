@@ -1448,6 +1448,12 @@ module Phronomy
             delivery.result_task
           )
         end
+        if terminal_recovery_eligible?(operation)
+          TerminalRecoveryOperation.new(agent: @agent, coordinator: self,
+            environment: environment, command: operation, delivery: delivery,
+            committer: @outcome_committer).start
+          return
+        end
         task = environment.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
           # worker boundary. TaskResult/listener delivery state stays outside it.
@@ -1482,6 +1488,94 @@ module Phronomy
 
         fail_task(delivery.result_task, error)
         raise
+      end
+
+      def terminal_recovery_eligible?(operation)
+        view = operation.terminal_view
+        error = view.source_error || view.block_error || view.invocation_error
+        operation.state_required && operation.execution.status == :active &&
+          view.phase != :suspended && !view.handoff &&
+          !error.is_a?(Phronomy::ExecutionRehydrationRequiredError) &&
+          !operation.execution.metadata["reservation"] &&
+          !operation.execution.metadata["execution_extension"] &&
+          !operation.wiring[:phronomy_execution_participant]
+      end
+
+      # Observation completion is distinct from releasing the retained job.
+      def terminal_recovery_failed_on_event_loop(owner, failure)
+        environment = owner.environment
+        assert_event_loop!(environment)
+        return unless environment.registry.owns_terminal_operation?(owner)
+        environment.registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :recovery_required)
+        waiters = terminal_waiters(environment, owner.execution_id, owner.delivery.result_task, registered: true)
+        owner.retain_original_waiters(waiters)
+        waiters.each { |task| task.fail(failure) }
+      end
+
+      # A recovery receipt is applied only to the exact retained incarnation.
+      # Local pre/post comparisons make a partial apply or release retry safe;
+      # journal records and old application callbacks are never replayed.
+      def apply_retained_terminal_on_event_loop(owner, outcome)
+        environment = owner.environment
+        registry = environment.registry
+        assert_event_loop!(environment)
+        unless registry.owns_terminal_operation?(owner) && registry.agent_execution_quiescent?(owner.execution_id)
+          raise Phronomy::Error, "Agent terminal recovery ownership or physical quiescence changed"
+        end
+        command, delivery = owner.command, owner.delivery
+        state = registry.agent_execution_state(owner.execution_id)
+        unless state && state.agent.equal?(@agent) && state.coordinator.equal?(self) &&
+            state.fsm_session_id.to_s == owner.fsm_session_id.to_s
+          raise Phronomy::Error, "Agent terminal recovery no longer owns the original session"
+        end
+        ordinary_delivery = owner.ordinary_delivery?
+        if owner.applied?
+          unless state.execution.to_h == outcome.execution.to_h &&
+              @agent.send(:__root_for_operation).to_h == outcome.root.to_h &&
+              @agent.send(:_journal_records_snapshot) == command.journal_records + outcome.appended_records
+            raise Phronomy::Persistence::StateConflictError, "Agent live post-state changed before terminal recovery release"
+          end
+        else
+          apply_retained_terminal_state(owner, outcome, state, environment)
+          owner.application_applied!
+        end
+        unless registry.release_terminal_operation(owner)
+          raise Phronomy::Error, "Agent terminal recovery ownership could not be released"
+        end
+        if ordinary_delivery
+          event_type = (outcome.type == :failed) ? terminal_event_type(outcome.error) : :done
+          payload = (outcome.type == :failed) ? {error: outcome.error} : outcome.result
+          callback_error = deliver_terminal(delivery.application_listener, event_type, payload)
+          settle_execution_waiters(environment, command.execution_id, delivery.result_task,
+            callback_error, event_type, outcome.result, outcome.error, registered: true)
+        else
+          # The old invocation is already closed. A later recovery is a fresh
+          # observation and must not call its old stream/event listener again.
+          settle_execution_waiters(environment, command.execution_id, delivery.result_task,
+            nil, (outcome.type == :failed) ? terminal_event_type(outcome.error) : :done,
+            outcome.result, outcome.error, registered: true)
+        end
+      end
+
+      def apply_retained_terminal_state(owner, outcome, state, environment)
+        command = owner.command
+        unless state.execution.to_h == command.execution.to_h || state.execution.to_h == outcome.execution.to_h
+          raise Phronomy::Persistence::StateConflictError, "Agent live execution changed before terminal recovery apply"
+        end
+        before_records = command.journal_records
+        after_records = before_records + outcome.appended_records
+        current_records = @agent.send(:_journal_records_snapshot)
+        current_root = @agent.send(:__root_for_operation)
+        unless [before_records, after_records].include?(current_records) &&
+            [command.root.to_h, outcome.root.to_h].include?(current_root.to_h)
+          raise Phronomy::Persistence::StateConflictError, "Agent live root or journal changed before terminal recovery apply"
+        end
+        @agent.send(:_append_journal_records, outcome.appended_records) if current_records == before_records
+        @agent.__replace_root(outcome.root) if current_root.to_h != outcome.root.to_h
+        state.invocation&.acknowledge_runtime_snapshot(command.runtime_snapshot)
+        environment.registry.replace_agent_execution(command.execution_id,
+          execution: outcome.execution, fsm_session_id: state.fsm_session_id)
       end
 
       def terminal_view(invocation, source_error)

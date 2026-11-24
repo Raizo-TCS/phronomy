@@ -1,0 +1,18 @@
+digraph AgentOwner {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.55", label="Retained Agent owner", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=13, margin="0.16,0.10"];
+  edge [fontname="DejaVu Sans", fontsize=11, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  Retained [label="Retained"];
+  Applying [label="Applied; still retained"];
+  Released [label="Released"];
+  StoppedRetained [label="Stopped; obligation retained", fillcolor="#fff0d8"];
+  final [shape=doublecircle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  initial -> Retained;
+  Retained -> Retained [label="confirm pre / keep active job"];
+  Retained -> Applying [label="confirm post and exact owner / apply once"];
+  Applying -> Released [label="physical quiet and exact post / release"];
+  Retained -> StoppedRetained [label="stop / retain custody"];
+  Applying -> StoppedRetained [label="stop before release"];
+  Released -> final;
+}

@@ -1,0 +1,445 @@
+{
+  "scope": "G3b-2 retained original Agent owner and independent terminal recovery observations",
+  "cases": [
+    {
+      "id": "safety-post-observers",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "all",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-pre-retry",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "read",
+          "retry"
+        ],
+        "Fault": "all",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-pending-backend",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pending",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "all",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "post-read-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "pre-retry-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "pending-backend-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "BackendProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "pending_fresh",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-backend-settlement",
+      "kind": "missing_assumption",
+      "target": "TypeOK",
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "pending_fresh",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "bug-overlap-original",
+      "kind": "mutation_safety",
+      "target": "PhysicalSerialization",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pending",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "overlap_original"
+      }
+    },
+    {
+      "id": "bug-local-return-is-settlement",
+      "kind": "mutation_safety",
+      "target": "BackendFactsNeedSettlement",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pending",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "local_return_is_settlement"
+      }
+    },
+    {
+      "id": "bug-promote-read-to-retry",
+      "kind": "mutation_safety",
+      "target": "ReadNeverWrites",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "read",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "promote_read_to_retry"
+      }
+    },
+    {
+      "id": "bug-cache-pre",
+      "kind": "mutation_safety",
+      "target": "NoConflictOverwrite",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "read",
+          "retry"
+        ],
+        "Fault": "interference",
+        "Bug": "cache_pre"
+      }
+    },
+    {
+      "id": "bug-cancel-drops-lane",
+      "kind": "mutation_safety",
+      "target": "PhysicalCustody",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "cancel",
+        "Bug": "cancel_drops_lane"
+      }
+    },
+    {
+      "id": "bug-release-before-physical",
+      "kind": "mutation_safety",
+      "target": "ReleaseRequiresAppliedPost",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "release_before_physical"
+      }
+    },
+    {
+      "id": "bug-stale-apply",
+      "kind": "mutation_safety",
+      "target": "ExactOwnerApplication",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "identity_change",
+        "Bug": "stale_apply"
+      }
+    },
+    {
+      "id": "bug-duplicate-apply",
+      "kind": "mutation_safety",
+      "target": "ApplyOnce",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "duplicate_apply"
+      }
+    },
+    {
+      "id": "bug-reopen-original",
+      "kind": "mutation_safety",
+      "target": "OriginalNeverReopened",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "reopen_original"
+      }
+    },
+    {
+      "id": "bug-release-pre",
+      "kind": "mutation_safety",
+      "target": "PreKeepsOwnership",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "release_pre"
+      }
+    },
+    {
+      "id": "bug-replay-business",
+      "kind": "mutation_safety",
+      "target": "NoBusinessReplay",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "replay_business"
+      }
+    },
+    {
+      "id": "bug-shutdown-drops-custody",
+      "kind": "mutation_safety",
+      "target": "CustodyUntilRelease",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "shutdown",
+        "Bug": "shutdown_drops_custody"
+      }
+    },
+    {
+      "id": "bug-replay-closed-callback",
+      "kind": "mutation_safety",
+      "target": "ClosedObserverNoCallback",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "replay_closed_callback"
+      }
+    },
+    {
+      "id": "witness-shared-read",
+      "kind": "witness",
+      "target": "WitnessNoSharedRead",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-mixed-refusal",
+      "kind": "witness",
+      "target": "WitnessNoMixedRefusal",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "read",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-cancel-independent",
+      "kind": "witness",
+      "target": "WitnessNoCancelledReadResult",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "cancel",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-fresh-pre-conflict",
+      "kind": "witness",
+      "target": "WitnessNoFreshRetry",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pre",
+        "Modes": [
+          "read",
+          "retry"
+        ],
+        "Fault": "interference",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-late-physical",
+      "kind": "witness",
+      "target": "WitnessNoLatePhysical",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "pending",
+        "Modes": [
+          "retry",
+          "retry"
+        ],
+        "Fault": "none",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-shutdown-retained",
+      "kind": "witness",
+      "target": "WitnessNoShutdownRetention",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "shutdown",
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-lost-notification-recovery",
+      "kind": "witness",
+      "target": "WitnessNoLostNotificationRecovery",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "post",
+        "Modes": [
+          "read",
+          "read"
+        ],
+        "Fault": "notification_loss",
+        "Bug": "none"
+      }
+    }
+  ]
+}

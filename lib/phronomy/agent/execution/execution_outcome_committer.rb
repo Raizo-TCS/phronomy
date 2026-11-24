@@ -36,7 +36,7 @@ module Phronomy
       end
 
       # @api private
-      def commit_outcome(operation, on_evidence: nil)
+      def commit_outcome(operation, on_evidence: nil, on_outcome: nil)
         view = operation.terminal_view
         error = view.callback_failure&.to_stream_callback_error || view.source_error ||
           view.block_error || view.invocation_error
@@ -70,7 +70,7 @@ module Phronomy
             commit_terminal(records, operation, state, receipt, error)
           end
         end
-        capture ? perform_with_evidence(change, writes, on_evidence) : change.perform
+        capture ? perform_with_evidence(change, writes, on_evidence, on_outcome) : change.perform
       end
 
       private
@@ -82,11 +82,11 @@ module Phronomy
           !operation.wiring[:phronomy_execution_participant]
       end
 
-      def perform_with_evidence(change, writes, collector)
+      def perform_with_evidence(change, writes, collector, outcome_collector)
         result = change.perform
       rescue => original_error
         begin
-          publish_evidence(change, writes, collector)
+          publish_evidence(change, writes, collector, outcome_collector)
         rescue => capture_error
           begin
             Phronomy::RuntimeSettings.current.logger&.warn(
@@ -100,11 +100,13 @@ module Phronomy
       else
         # Collector failure after a successful commit propagates; the collector
         # must not interpret its own failure as proof that persistence failed.
-        publish_evidence(change, writes, collector)
+        publish_evidence(change, writes, collector, outcome_collector)
         result
       end
 
-      def publish_evidence(change, writes, collector)
+      def publish_evidence(change, writes, collector, outcome_collector)
+        values = change.captured_evidence
+        outcome_collector&.call(values.fetch(:result)) if values
         evidence = TerminalPersistenceEvidence.capture(change, writes, persistence: @agent.persistence)
         collector.call(evidence) if evidence
       end
