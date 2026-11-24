@@ -617,7 +617,11 @@ RSpec.describe "Agent terminal recovery through its original Runtime" do
     setup_agent
     start_unknown
     environment = @agent.__execution_environment
-    allow(environment).to receive(:submit).and_raise(Phronomy::BackpressureError.new("recovery read rejected"))
+    allow(environment).to receive(:submit) do |on_full:, on_rejected:, &operation|
+      error = Phronomy::BackpressureError.new("recovery read rejected")
+      on_rejected.call(error)
+      raise error
+    end
 
     expect_retained(reconcile, outcome: :unavailable)
     expect(@fault[:recovery_loads]).to eq(0)

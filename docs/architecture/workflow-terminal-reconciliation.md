@@ -205,3 +205,9 @@ settlement protocol.
 Crash durability, remote
 request receipts, arbitrary competing writers, stopped-owner takeover and the
 remaining Agent recovery paths require separate work.
+
+## Preserve custody when submission is uncertain
+
+Terminal recovery retains the original owner whenever a submitted worker may still execute. Positive executor rejection, returned handles and physical completion remain separate from whether the caller received a response.
+
+For example, an adapter that queues a reconciliation read and then loses its handle must not permit a second read or release the owner. See [recovery submission custody](recovery-submission-custody.md) for the shared evidence rules, deliberate fault-behavior change, compatibility limits and validation scope.

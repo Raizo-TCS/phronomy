@@ -1,0 +1,195 @@
+{
+  "scope": "G3b-4 initial-save and recovery-attempt admission evidence, physical custody, and independent observation; domain persistence proof remains abstract",
+  "cases": [
+    {
+      "id": "safety-initial",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "initial",
+        "Fault": "all",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-attempt",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "all",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "initial-read-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Boundary": "initial",
+        "Fault": "none",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "refusal-retry-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "first_refused",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "bug-no-handle-refusal",
+      "kind": "mutation",
+      "target": "NonAdmissionNeedsProof",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "initial",
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Bug": "no_handle_is_refusal"
+      }
+    },
+    {
+      "id": "bug-late-value-physical",
+      "kind": "mutation",
+      "target": "CompletionNeedsEvidence",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Bug": "result_is_physical"
+      }
+    },
+    {
+      "id": "bug-forget-unknown-attempt",
+      "kind": "mutation",
+      "target": "PhysicalSerialization",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Bug": "forget_unknown_attempt"
+      }
+    },
+    {
+      "id": "witness-unknown-initial-quiet",
+      "kind": "witness",
+      "target": "NoUnknownQuietWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "initial",
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-unknown-attempt-quiet",
+      "kind": "witness",
+      "target": "NoUnknownQuietWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-refusal-then-acceptance",
+      "kind": "witness",
+      "target": "NoRefusalThenAcceptanceWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "first_refused",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-closed-caller-release",
+      "kind": "witness",
+      "target": "NoClosedCallerReleaseWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "caller_closure",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-returned-queued",
+      "kind": "witness",
+      "target": "NoReturnedQueuedWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "none",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-fresh-caller",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Boundary": "initial",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-completion-handle",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Boundary": "attempt",
+        "Fault": "accepted_lost_handle",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    }
+  ]
+}

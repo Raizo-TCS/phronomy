@@ -118,7 +118,10 @@ RSpec.describe "Workflow terminal lifecycle through Runtime" do
   it "releases admission when terminal submission fails before an operation is queued" do
     task, fsm_id = begin_waiting("submission")
     original = Phronomy::RuntimeShutdownError.new("offload rejected submission")
-    allow(runtime.offload).to receive(:submit).and_raise(original)
+    allow(runtime.offload).to receive(:submit) do |on_rejected: nil, **_options|
+      on_rejected&.call(original)
+      raise original
+    end
     workflow.signal(workflow_instance_id: "submission", event: :finish)
     expect { result_of(task) }.to raise_error { |error| expect(error).to equal(original) }
     expect(registry.workflow_admission_owner("submission")).to be_nil
