@@ -21,6 +21,8 @@
   "Phronomy::_CompletionHandle": "lib/phronomy/execution",
   "Phronomy::_ExecutionBackend": "lib/phronomy/execution",
   "Phronomy::_ExecutionPool": "lib/phronomy/execution",
+  "Phronomy::_ExecutionRejectionBackend": "lib/phronomy/execution",
+  "Phronomy::_ExecutionRejectionPool": "lib/phronomy/execution",
   "Phronomy::_ExecutionRuntime": "lib/phronomy/execution",
   "Phronomy::Tool::_AuthorizationRequest": "lib/phronomy/tool",
   "Phronomy::Persistence::_Participant": "lib/phronomy/persistence",
