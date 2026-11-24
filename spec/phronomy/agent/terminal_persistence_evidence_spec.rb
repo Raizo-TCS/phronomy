@@ -85,6 +85,19 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     end
   end
 
+  it "binds captured proof to the Agent's writer Store rather than a different committer read Store" do
+    other = Phronomy::Agent::Store.new(coordinator: persistence.coordinator,
+      records: Phronomy::Agent::Persistence::Records)
+    mismatched = Phronomy::Agent::ExecutionOutcomeCommitter.new(agent: agent, persistence: other)
+    evidence = nil
+    mismatched.commit_outcome(command, on_evidence: ->(proof) { evidence = proof })
+    expect(evidence.reconcile(persistence: persistence).disposition).to eq(:committed)
+    expect(other.coordinator).not_to receive(:atomic)
+    result = evidence.retry(persistence: other)
+    expect(result.disposition).to eq(:unknown)
+    expect(result.read_error).to be_a(Phronomy::Persistence::StateConflictError)
+  end
+
   it "rejects an orphan journal tail beyond the Root's claimed committed position" do
     evidence, = capture
     extra = Phronomy::Agent::JournalRecord.new(agent_id: agent.agent_id,

@@ -105,7 +105,7 @@ module Phronomy
       end
 
       def publish_evidence(change, writes, collector)
-        evidence = TerminalPersistenceEvidence.capture(change, writes, persistence: @persistence)
+        evidence = TerminalPersistenceEvidence.capture(change, writes, persistence: @agent.persistence)
         collector.call(evidence) if evidence
       end
 
