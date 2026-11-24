@@ -132,4 +132,35 @@ RSpec.describe "GeneratorVerifier approval and lifetime", :integration do
       expect(pipeline.release!).to be true
     end
   end
+
+  it "settles cancellation recorded before an already queued approval save without executing its Tool" do
+    @llm = LLMStub.activate(responses: responses_for(:draft))
+    effects = []
+    tool = IntegrationFactors.approval_tool
+    tool.define_method(:execute) { |query:| effects << query }
+    allow(IntegrationFactors).to receive(:approval_tool).and_return(tool)
+    entered, released, approvals = Queue.new, Queue.new, Queue.new
+    allow_any_instance_of(Phronomy::Agent::ApprovalResumeCommit)
+      .to receive(:commit_retained).and_wrap_original do |original, *args, **kwargs|
+        entered << true
+        released.pop
+        original.call(*args, **kwargs)
+      end
+    pipeline = pipeline_for(phase: :draft, on_approval: approvals.method(:<<))
+    task = pipeline.invoke_async("request")
+    approval = Timeout.timeout(5) { approvals.pop }
+    reply = approval.respond_async(approved: true)
+    Timeout.timeout(5) { entered.pop }
+
+    expect(pipeline.cancel_async.wait_result(timeout: 5)).to be true
+    released << true
+
+    outcomes = Phronomy::TaskResult.all_settled([task, reply]).wait_result(timeout: 5)
+    expect(outcomes.map(&:error)).to all(be_a(Phronomy::CancellationError))
+    expect(effects).to be_empty
+    expect(@llm.calls.length).to eq(1)
+    expect(pipeline.release!).to be true
+  ensure
+    released&.push(true)
+  end
 end

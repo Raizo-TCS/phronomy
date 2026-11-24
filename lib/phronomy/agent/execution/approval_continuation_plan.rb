@@ -8,10 +8,11 @@ module Phronomy
     class ApprovalContinuationPlan
       attr_reader :parent_id
 
-      def initialize(environment:, invocation:, result_task:, approved:, config:, on_complete:)
+      def initialize(environment:, invocation:, result_task:, approved:, config:, on_complete:, cancel_requested: false)
         @environment, @invocation, @result_task = environment, invocation, result_task
         @approved, @config, @on_complete = approved, config, on_complete
         @configured = false
+        @captured_cancellation = cancel_requested
         @original_token = invocation.config[:cancellation_token]
         parent = environment.build_agent_session(invocation: invocation,
           resume_event: :resume, resume_phase: :suspended)
@@ -85,18 +86,20 @@ module Phronomy
         [@original_token, @invocation.config[:cancellation_token]].compact.uniq
       end
 
-      def cancellation_requested? = cancellation_tokens.any?(&:cancelled?)
+      def cancellation_requested? = @captured_cancellation || cancellation_tokens.any?(&:cancelled?)
 
       def bind_parent_cancellation
         return if @cancellation
         @cancellation = Phronomy::Concurrency::Subscriptions.new
         sink = @sessions.first.fetch(:session).event_sink
-        cancellation_tokens.each do |token|
-          @cancellation.cancellation(token) do
-            sink.post(:approval_resume_cancelled,
-              {error: Phronomy::CancellationError.new("Agent execution cancelled during approval continuation")})
-          end
+        cancel = lambda do
+          sink.post(:approval_resume_cancelled,
+            {error: Phronomy::CancellationError.new("Agent execution cancelled during approval continuation")})
         end
+        cancellation_tokens.each do |token|
+          @cancellation.cancellation(token, &cancel)
+        end
+        cancel.call if @captured_cancellation
       end
 
       def register(record)

@@ -1086,6 +1086,7 @@ module Phronomy
         bind_suspended_cancellation(*owner.suspended_cancellation.first(3))
         owner.application_applied!
         owner.continuation_completed!(:restored)
+        cancel_suspended_on_event_loop(owner.execution_id) if owner.captured_cancellation_requested?
       end
 
       def apply_retained_approval_on_event_loop(owner, outcome)

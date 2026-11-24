@@ -356,6 +356,22 @@ RSpec.describe Phronomy::Agent::ApprovalPersistenceEvidence do
     expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:unknown)
   end
 
+  {lose_response: :committed, rollback_write: :not_committed}.each do |fault, disposition|
+    it "preserves an already requested cancellation when the decision is #{disposition}" do
+      persistence.request_cancellation(agent_id: agent.agent_id, execution_id: execution.execution_id)
+      public_send(fault)
+
+      expect { retain }.to raise_error(IOError)
+
+      expect(@evidence.before.fetch(:agent).fetch(4)).to be(true)
+      expect(@evidence.after.fetch(:agent).fetch(4)).to be(true)
+      expect(@evidence.reconcile(persistence: persistence).disposition).to eq(disposition)
+      allow(persistence).to receive(:transaction).and_call_original
+      expect(persistence.cancellation_requested?(agent_id: agent.agent_id,
+        execution_id: execution.execution_id)).to be(true)
+    end
+  end
+
   it "does not mistake a new retention for the captured post-state" do
     retain
     persistence.transaction do |records|

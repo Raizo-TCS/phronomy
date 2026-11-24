@@ -110,9 +110,10 @@ module Phronomy
 
       def validate_retained_before!(operation, before)
         snapshot = before.fetch(:agent)
+        # Cancellation can win while this decision is already queued. Preserve
+        # its captured bit in both proofs; the owner must honor it on either path.
         unless snapshot.fetch(0) == operation.root.to_h && snapshot.fetch(1) == operation.execution.to_h &&
-            before.fetch(:journal_head) == operation.root.journal_position && snapshot.fetch(2).empty? &&
-            !snapshot.fetch(4)
+            before.fetch(:journal_head) == operation.root.journal_position && snapshot.fetch(2).empty?
           raise Phronomy::Persistence::StateConflictError, "Suspended approval changed before its decision"
         end
       end

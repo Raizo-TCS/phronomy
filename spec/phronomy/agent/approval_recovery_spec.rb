@@ -320,6 +320,33 @@ RSpec.describe "Standalone approval recovery through the original Runtime" do
     expect(@store.executions.load(@request.execution_id).status).to eq(:cancelled)
   end
 
+  %i[pre post].each do |mode|
+    it "honors captured durable cancellation after #{mode} recovery without mutating an unwoken caller token" do
+      setup_wait
+      allow(Phronomy::Agent::ExecutionCancellation).to receive(:signal).and_return(true)
+      result_of(@agent.cancel_async(@request.execution_id))
+      expect(@store.cancellation_requested?(agent_id: @agent.agent_id,
+        execution_id: @request.execution_id)).to be(true)
+      expect(@token).not_to be_cancelled
+      start_unknown(mode: mode)
+
+      receipt = reconcile
+
+      expect { result_of(@original) }.to raise_error(Phronomy::CancellationError)
+      if mode == :pre
+        expect_restored(receipt)
+      else
+        receipt = reconcile unless receipt.resolved?
+        expect_resumed(receipt)
+        expect { result_of(receipt.execution_task) }.to raise_error(Phronomy::CancellationError)
+      end
+      expect(@store.executions.load(@request.execution_id).status).to eq(:cancelled)
+      expect(@effects).to be_empty
+      expect(@calls.size).to eq(1)
+      expect(@token).not_to be_cancelled
+    end
+  end
+
   it "retains unknown proof after a read failure and accepts a later explicit observation" do
     setup_wait
     start_unknown

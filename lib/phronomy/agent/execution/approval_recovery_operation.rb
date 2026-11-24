@@ -50,6 +50,10 @@ module Phronomy
       def resolved? = @mutex.synchronize { resolved_locked? }
       def application_applied! = @mutex.synchronize { @application_state = :applied }
 
+      def captured_cancellation_requested?
+        @mutex.synchronize { @evidence&.before&.fetch(:agent)&.fetch(4) == true }
+      end
+
       def resolution_permitted?
         @mutex.synchronize do
           @resolution_target && @application_state == :applied &&
@@ -97,7 +101,7 @@ module Phronomy
         owner_coordinator = coordinator
         @continuation_plan = ApprovalContinuationPlan.new(environment: environment,
           invocation: invocation, result_task: @canonical_task, approved: approved,
-          config: request.config, on_complete: lambda do |**result|
+          config: request.config, cancel_requested: captured_cancellation_requested?, on_complete: lambda do |**result|
             owner_coordinator.deliver_on_event_loop(ExecutionCoordinator::SessionFinishedCommand.new(
               coordinator: owner_coordinator, **result
             ))
