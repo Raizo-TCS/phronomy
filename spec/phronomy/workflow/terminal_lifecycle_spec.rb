@@ -56,9 +56,10 @@ RSpec.describe "Workflow terminal lifecycle through Runtime" do
   end
 
   %i[conflict unreadable].each do |readback|
-    it "retains unresolved #{readback} ownership until shutdown without settling the caller" do
+    it "reports unresolved #{readback} through a recovery capability and retains ownership after incomplete shutdown" do
       repository = stored
-      expect(repository).to receive(:save).once.and_raise(IOError.new("commit outcome lost"))
+      original = IOError.new("commit outcome lost")
+      expect(repository).to receive(:save).once.and_raise(original)
       task, fsm_id = begin_waiting("unresolved-#{readback}")
       id = "unresolved-#{readback}"
       owner = registry.workflow_admission_owner(id)
@@ -74,13 +75,19 @@ RSpec.describe "Workflow terminal lifecycle through Runtime" do
       expect(registry.workflow_admission_owner(id)).to equal(owner)
       expect(registry.workflow_admission_fsm_session_id(id)).to be_nil
       expect(runtime.event_loop.admitted_fsm_session?(fsm_id)).to be(false)
-      expect(task.status).to eq(:pending)
+      failure = nil
+      expect { result_of(task) }.to raise_error(Phronomy::WorkflowTerminalRecoveryError) { |error| failure = error }
+      expect(failure.workflow_instance_id).to eq(id)
+      expect(failure.original_error).to equal(original)
+      expect(failure.recovery.recovery_id).to eq(failure.recovery_id)
+      expect(workflow.pending_terminal_recovery(workflow_instance_id: id)).to equal(failure.recovery)
       competitor = workflow.invoke_async({}, config: {workflow_instance_id: id})
       expect { result_of(competitor) }.to raise_error(Phronomy::Error, /live execution segment/)
 
-      expect(runtime.shutdown(timeout: 2).cleanup_complete?).to be(true)
-      expect(registry.workflow_admission_owner(id)).to be_nil
-      expect(task.status).to eq(:pending)
+      expect(runtime.shutdown(timeout: 0.02, cancel_grace: 0.2).cleanup_complete?).to be(false)
+      expect(registry.workflow_admission_owner(id)).to equal(owner)
+      expect(workflow.pending_terminal_recovery(workflow_instance_id: id)).to equal(failure.recovery)
+      expect { result_of(task) }.to raise_error { |error| expect(error).to equal(failure) }
     end
   end
 

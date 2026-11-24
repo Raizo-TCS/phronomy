@@ -17,7 +17,7 @@ module Phronomy
     end
 
     def existing_registry = WorkflowExecutionRegistry.existing_for(@runtime)
-    def executing? = @runtime.event_loop.current?
+    def executing? = @runtime.event_loop_current?
 
     def submit(**options, &operation)
       Phronomy::Execution.submit(runtime: @runtime, **options, &operation)
@@ -41,6 +41,13 @@ module Phronomy
 
     def register_session(session, completion:)
       @runtime.event_loop.register(session, completion: completion, receiver: registry)
+    end
+
+    def retire_session(fsm_session_id:, error:)
+      @runtime.__event_loop_if_initialized&.post(Phronomy::Event.new(
+        type: :recovery_required, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+        payload: {fsm_session_id: fsm_session_id, error: error}
+      )) || false
     end
 
     def subscribe_cancellation(token, &callback)

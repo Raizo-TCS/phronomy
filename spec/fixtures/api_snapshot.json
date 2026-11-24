@@ -722,6 +722,9 @@
       "batch",
       "invoke",
       "invoke_async",
+      "pending_terminal_recovery",
+      "reconcile_terminal",
+      "reconcile_terminal_async",
       "resume",
       "send_event",
       "send_saved_event",
@@ -767,6 +770,56 @@
       "from_diagnostic",
       "to_tty?"
     ]
+  },
+  {
+    "name": "Phronomy::WorkflowTerminalRecovery",
+    "type": "class",
+    "public_instance_methods": [
+      "recovery_id",
+      "workflow_instance_id"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::WorkflowTerminalRecoveryError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "full_message",
+      "message",
+      "original_error",
+      "recovery",
+      "recovery_id",
+      "set_backtrace",
+      "workflow_instance_id"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::WorkflowTerminalRecoveryResult",
+    "type": "class",
+    "public_instance_methods": [
+      "application_state",
+      "context",
+      "error",
+      "outcome",
+      "ownership_state",
+      "recovery",
+      "recovery_id",
+      "revision",
+      "workflow_instance_id"
+    ],
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::WorkflowContext",

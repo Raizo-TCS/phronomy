@@ -36,6 +36,7 @@ module Phronomy
       @session_receivers = {}
       @dispatching_delivery = nil
       @receiver_shutdown_error = nil
+      @unaccepted_retirements = {}
       @fsms = {}
       @waiting = {}
       @admitted_fsm_session_ids = Set.new
@@ -46,6 +47,7 @@ module Phronomy
       @state = :running
       @outstanding_sessions = 0
       @shutdown_status = nil
+      @abort_error = nil
 
       @lag_mutex = Mutex.new
       @last_lag_ns = 0
@@ -163,7 +165,9 @@ module Phronomy
 
     # @api private
     def __receiver_cleanup_complete?
-      @receiver_shutdown_error.nil?
+      @lifecycle_mutex.synchronize do
+        @receiver_shutdown_error.nil? && @unaccepted_retirements.empty?
+      end
     end
 
     def register(fsm_session, completion: nil, receiver: nil)
@@ -183,7 +187,8 @@ module Phronomy
 
       @lifecycle_mutex.synchronize do
         ensure_accepting_registrations!
-        if @admitted_fsm_session_ids.include?(fsm_session.id)
+        if @admitted_fsm_session_ids.include?(fsm_session.id) ||
+            @session_receivers.key?(fsm_session.id) || @unaccepted_retirements.key?(fsm_session.id)
           raise Phronomy::Error,
             "FSMSession #{fsm_session.id.inspect} is already registered"
         end
@@ -334,7 +339,15 @@ module Phronomy
         join_until(deadline)
 
         @shutdown_status = if thread_alive?
-          @lifecycle_mutex.synchronize { @state = :failed }
+          @lifecycle_mutex.synchronize do
+            @state = :failed
+            @abort_error = Phronomy::RuntimeShutdownError.new(
+              "EventLoop drain deadline expired; retained work requires recovery"
+            )
+            # Cooperative stop: an executing callback is never interrupted.
+            # Once it returns, the owner retires queued/live transport work.
+            @queue.push(STOP)
+          end
           :cancel_timeout
         elsif state == :failed
           :failed
@@ -375,6 +388,8 @@ module Phronomy
 
     def run_loop
       loop do
+        break if @abort_error
+
         fire_due_timers
         timeout = @runtime.__timer_queue.seconds_until_next
         item = dequeue(timeout: timeout)
@@ -391,7 +406,11 @@ module Phronomy
         dispatch(event)
         check_dispatch_time(dispatch_start_ns, event)
       end
-      fire_due_timers
+      if @abort_error
+        cleanup_abandoned_work(@abort_error)
+      else
+        fire_due_timers
+      end
     rescue => error
       notify_unexpected_dispatcher_failure(error)
       raise
@@ -424,6 +443,9 @@ module Phronomy
       case event.type
       when :finished, :halted, :error
         fsm_session_id = event.payload.fetch(:fsm_session_id)
+        # A late terminal message cannot bypass a refused custody transfer.
+        return if @unaccepted_retirements.key?(fsm_session_id)
+
         session = @fsms.delete(fsm_session_id)
         waiter = @waiting.delete(fsm_session_id)
         decrement_outstanding if session
@@ -438,11 +460,71 @@ module Phronomy
       when :execution_control
         dispatch_execution(event.payload)
       when :recovery_required
-        fsm_session_id = event.payload.fetch(:fsm_session_id)
-        session = @fsms.delete(fsm_session_id)
+        retire_execution(event.payload)
+      end
+    end
+
+    def retire_execution(payload)
+      fsm_session_id = payload.fetch(:fsm_session_id)
+      pending = @unaccepted_retirements[fsm_session_id]
+      session = @fsms.delete(fsm_session_id)
+      return unless session || pending
+
+      receiver = pending ? pending.fetch(:receiver) :
+        @lifecycle_mutex.synchronize { @session_receivers[fsm_session_id] }
+      unless receiver
         decrement_outstanding if session
-        receiver = @lifecycle_mutex.synchronize { @session_receivers.delete(fsm_session_id) }
-        receiver&.session_retired(fsm_session_id, reason: :recovery_required)
+        return
+      end
+
+      retirement = pending ? pending.fetch(:retirement) : ExecutionRetirement.new(
+        fsm_session_id: fsm_session_id, reason: :recovery_required, error: payload[:error]
+      )
+      # Retain the source and recipient before calling the recipient. Neither a
+      # throw nor an untyped return may silently discharge completion custody.
+      # Moving the session count to retained custody is one idle-accounting step.
+      @lifecycle_mutex.synchronize do
+        @outstanding_sessions -= 1 if session && @outstanding_sessions.positive?
+        @session_receivers.delete(fsm_session_id)
+        @unaccepted_retirements[fsm_session_id] = {
+          retirement: retirement, receiver: receiver, error: nil
+        }.freeze
+      end
+      acceptance = begin
+        value = receiver.adopt_retirement(retirement)
+        if value.equal?(ExecutionRetirement::UNSUPPORTED)
+          receiver.session_retired(fsm_session_id, reason: :recovery_required)
+        end
+        value
+      rescue => error
+        retain_retirement(retirement, receiver, error)
+        return
+      end
+      if acceptance.equal?(ExecutionRetirement::UNSUPPORTED)
+        release_retirement_custody(fsm_session_id)
+      elsif retirement.accepted_by?(acceptance)
+        waiter = @waiting.delete(fsm_session_id)
+        release_retirement_custody(fsm_session_id)
+        complete_waiter(waiter, retirement)
+      else
+        retain_retirement(retirement, receiver, Phronomy::Error.new(
+          "Execution receiver did not accept retirement custody for #{fsm_session_id.inspect}"
+        ))
+      end
+    end
+
+    def retain_retirement(retirement, receiver, error = nil)
+      @lifecycle_mutex.synchronize do
+        @unaccepted_retirements[retirement.fsm_session_id] = {
+          retirement: retirement, receiver: receiver, error: error
+        }.freeze
+      end
+    end
+
+    def release_retirement_custody(fsm_session_id)
+      @lifecycle_mutex.synchronize do
+        @unaccepted_retirements.delete(fsm_session_id)
+        @idle_cond.broadcast if runtime_idle_locked?
       end
     end
 
@@ -474,8 +556,12 @@ module Phronomy
         complete_waiter(event.payload[:completion], error)
       end
 
-      @waiting.values.each { |waiter| complete_waiter(waiter, error) }
-      @waiting.clear
+      @waiting.delete_if do |fsm_session_id, waiter|
+        next false if @unaccepted_retirements.key?(fsm_session_id)
+
+        complete_waiter(waiter, error)
+        true
+      end
       @fsms.clear
       deliveries = @lifecycle_mutex.synchronize do
         pending = @execution_deliveries.values
@@ -536,6 +622,7 @@ module Phronomy
 
     def runtime_idle_locked?
       @outstanding_sessions.zero? && @execution_deliveries.empty? &&
+        @unaccepted_retirements.empty? &&
         @execution_receivers.values.all?(&:idle?)
     end
 

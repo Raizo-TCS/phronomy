@@ -54,6 +54,39 @@ module Phronomy
         expected_revision: expected_revision, event: event, input: input)
     end
 
+    # Observes a retained terminal operation through its original Workflow owner.
+    # Reads persistence only while its disposition remains unknown; never saves
+    # again or resumes graph actions. The capability is local to this process.
+    # A stopped owner remains retained and reports unavailable recovery.
+    # @param recovery [WorkflowTerminalRecovery] capability from a recovery error
+    # @return [TaskResult<WorkflowTerminalRecoveryResult>] a fresh observation
+    # @api public
+    def reconcile_terminal_async(recovery:)
+      @runner.reconcile_terminal_async(recovery: recovery)
+    end
+
+    # Waits for an explicit terminal-reconciliation observation on a host thread.
+    # The original failed observation is never reopened by this operation.
+    # @param recovery [WorkflowTerminalRecovery] capability from a recovery error
+    # @return [WorkflowTerminalRecoveryResult]
+    # @raise [EventLoopReentrancyError] when called on EventLoop
+    # @api public
+    def reconcile_terminal(recovery:)
+      @runner.reconcile_terminal(recovery: recovery)
+    end
+
+    # Finds a retained uncertain terminal operation belonging to this Workflow.
+    # This local lookup performs no persistence I/O and does not start a Runtime.
+    # Use it when the initial observation was cancelled or its error was dropped.
+    # Resolved operations leave the index; a previously held capability remains
+    # usable for repeat observation of its retained receipt.
+    # @param workflow_instance_id [String] nonempty Workflow identity
+    # @return [WorkflowTerminalRecovery, nil]
+    # @api public
+    def pending_terminal_recovery(workflow_instance_id:)
+      @runner.pending_terminal_recovery(workflow_instance_id: workflow_instance_id)
+    end
+
     # Sends an event to an active Workflow execution without blocking.
     #
     # +workflow_instance_id+ is the logical/durable Workflow identity. EventLoop resolves it

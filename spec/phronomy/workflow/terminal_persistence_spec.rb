@@ -2,6 +2,42 @@
 
 require "spec_helper"
 
+module WorkflowTerminalPersistenceSpec
+  # Control only transport scheduling; registry ownership and terminal evidence
+  # use the production receivers and tasks.
+  class Mailbox
+    def initialize
+      @owner = Thread.current
+      @mutex = Mutex.new
+      @messages = []
+    end
+
+    def current? = Thread.current.equal?(@owner)
+
+    def synchronize(&block)
+      @mutex.synchronize(&block)
+    end
+
+    def admit(_receiver, &block)
+      synchronize(&block)
+    end
+
+    def post(receiver, message, admission:, completion:)
+      @messages << [receiver, message, completion]
+      true
+    end
+
+    def deliver_pending
+      messages = @messages
+      @messages = []
+      messages.each do |receiver, message, completion|
+        receiver.deliver(message)
+        completion&.complete(true)
+      end
+    end
+  end
+end
+
 RSpec.describe "WorkflowRunner terminal persistence" do
   Repository = Struct.new(:record) do
     def load(_workflow_instance_id)
@@ -71,6 +107,22 @@ RSpec.describe "WorkflowRunner terminal persistence" do
     expect(result.outcome).to eq(:outcome_unknown)
     expect(result.error).to be_a(Phronomy::Persistence::ConflictError)
   end
+
+  it "keeps an identical snapshot at a later revision unresolved" do
+    intended = {fields: {value: 2}, phase: "done"}
+    op = operation(
+      record: {revision: 4, snapshot: intended},
+      expected_revision: 2,
+      snapshot: intended
+    )
+    runner = Phronomy::WorkflowRunner.allocate
+
+    result = runner.send(:reconcile_workflow_terminal_f1, op, IOError.new("response lost"))
+
+    expect(result.outcome).to eq(:outcome_unknown)
+    expect(result.revision).to be_nil
+    expect(result.error).to be_a(Phronomy::Persistence::StateConflictError)
+  end
 end
 
 RSpec.describe "Workflow terminal save submission contract" do
@@ -82,38 +134,47 @@ RSpec.describe "Workflow terminal save submission contract" do
   let(:sink) { double("Session event sink") }
   let(:stages) { {} }
   let(:delivered) { [] }
+  let(:mailbox) { WorkflowTerminalPersistenceSpec::Mailbox.new }
+  let(:registry) { Phronomy::WorkflowExecutionRegistry.new(channel: mailbox) }
+  let(:environment) { instance_double(Phronomy::WorkflowExecutionEnvironment, executing?: true, registry: registry) }
+  let(:offload_task) { Phronomy::Concurrency::PhysicalCompletionTask.new(name: "terminal-save") }
+  let(:result_task) { Phronomy::TaskResult.deferred(name: "workflow-result") }
+  let(:owner) { Object.new.freeze }
 
   before do
-    task = double("Offload result")
-    registry = double("Workflow execution registry")
-    environment = instance_double(Phronomy::WorkflowExecutionEnvironment, executing?: true, registry: registry)
     runner.instance_variable_set(:@environment, environment)
-    @owner = Object.new.freeze
-    expect(registry).to receive(:mark_workflow_admission).with(
-      "workflow-save", owner_token: @owner, state: :persisting_terminal
-    ).once
+    runner.instance_variable_set(:@recovery_identity, Object.new.freeze)
+    registry.admit_workflow("workflow-save", owner_token: owner)
+    registry.bind_workflow_session("workflow-save", owner_token: owner, fsm_session_id: "terminal-session")
     expect(environment).to receive(:submit).with(on_full: :raise) do |&work|
+      expect(registry.terminal_operation(owner)).to be_a(Phronomy::WorkflowTerminalOperation)
       stages[:work] = work
-      task
+      offload_task
     end
-    expect(task).to receive(:on_complete) { |&completion| stages[:completion] = completion }
     allow(sink).to receive(:post) do |event, result|
       delivered << [event, result]
       true
     end
     execution = Phronomy::WorkflowRunner::Execution.new(
-      context: context, workflow_instance_id: "workflow-save", owner_token: @owner,
-      recursion_limit: 10, repository: repository, persist: true, expected_revision: 8
+      context: context, workflow_instance_id: "workflow-save", owner_token: owner,
+      recursion_limit: 10, repository: repository, persist: true, expected_revision: 8,
+      result_task: result_task
     )
     expect(runner.send(:begin_terminal_persistence_on_event_loop,
       execution, terminal_type: :finished, context: context, event_sink: sink)).to eq(:finished)
+    expect(registry.workflow_admission_state("workflow-save")).to eq(:persisting_terminal)
     expect(delivered).to be_empty
   end
 
   def finish_operation
     result = stages.fetch(:work).call
     expect(delivered).to be_empty
-    stages.fetch(:completion).call(result, nil)
+    offload_task.mark_physical_complete!
+    mailbox.deliver_pending
+    expect(delivered).to be_empty
+    offload_task.complete(result)
+    expect(delivered).to be_empty
+    mailbox.deliver_pending
     expect(delivered.size).to eq(1)
     expect(delivered.first.first).to eq(:workflow_terminal_persistence_result)
     expect(delivered.first.last).to equal(result)
@@ -178,24 +239,43 @@ RSpec.describe "Workflow terminal save submission contract" do
     expect(finish_operation.to_h).to eq(outcome: :outcome_unknown, revision: nil, error: unreadable)
   end
 
-  it "publishes an offload delivery error as uncertain without attempting another save" do
+  it "publishes logical offload failure as uncertain while physical completion remains unproven" do
     failure = RuntimeError.new("worker completion failed")
     expect(repository).not_to receive(:save)
     expect(repository).not_to receive(:load)
-    stages.fetch(:completion).call(nil, failure)
+    offload_task.fail(failure)
+    expect(delivered).to be_empty
+    mailbox.deliver_pending
     expect(delivered.map(&:first)).to eq([:workflow_terminal_persistence_result])
     expect(delivered.first.last.to_h).to eq(outcome: :outcome_unknown, revision: nil, error: failure)
+    expect(registry.terminal_operation(owner).pending?).to be(true)
+    expect(registry.workflow_admission_owner("workflow-save")).to equal(owner)
+    expect(registry.release_workflow("workflow-save", owner_token: owner)).to be(false)
+    offload_task.mark_physical_complete!
+    mailbox.deliver_pending
+    expect(delivered.size).to eq(1)
   end
 
-  it "logs a rejected delivery without retrying the save or bypassing the session" do
-    logger = double("logger")
-    Phronomy.configuration.logger = logger
-    allow(sink).to receive(:post).and_return(false)
-    expect(logger).to receive(:warn).with(/rejected Workflow terminal persistence result/).once
+  it "retains a recovery capability and requests retirement when the session rejects delivery" do
     expect(repository).to receive(:save).once.and_return(9)
     expect(repository).not_to receive(:load)
     result = stages.fetch(:work).call
     expect(sink).to receive(:post).with(:workflow_terminal_persistence_result, result).once.and_return(false)
-    stages.fetch(:completion).call(result, nil)
+    expect(environment).to receive(:retire_session).with(
+      fsm_session_id: "terminal-session", error: an_instance_of(Phronomy::Error)
+    ).once
+    offload_task.mark_physical_complete!
+    offload_task.complete(result)
+    mailbox.deliver_pending
+
+    operation = registry.terminal_operation(owner)
+    expect(operation.pending?).to be(true)
+    expect(registry.workflow_admission_owner("workflow-save")).to equal(owner)
+    expect(registry.release_workflow("workflow-save", owner_token: owner)).to be(false)
+    expect { result_task.wait_result(timeout: 1) }.to raise_error(Phronomy::WorkflowTerminalRecoveryError) do |error|
+      expect(error.recovery).to equal(operation.recovery)
+      expect(error.workflow_instance_id).to eq("workflow-save")
+      expect(error.recovery_id).to eq(operation.recovery_id)
+    end
   end
 end

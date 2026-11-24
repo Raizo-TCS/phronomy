@@ -69,7 +69,9 @@ module Phronomy
     end
 
     def retire_without_result!(error)
-      @task_execution.retire(error)
+      # The retained terminal operation settles observation after completion
+      # custody is accepted. A raw failure here races away the recovery handle.
+      @task_execution.close
       super
     end
   end

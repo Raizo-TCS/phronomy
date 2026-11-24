@@ -19,6 +19,7 @@ module Phronomy
       super
       @workflow_admissions = {}
       @task_executions = {}
+      @terminal_operations = {}
       @draining = false
     end
 
@@ -29,6 +30,8 @@ module Phronomy
     def deliver(command)
       assert_event_loop_thread!
       case command
+      when WorkflowTerminalOperation::Observe, WorkflowTerminalOperation::Ready
+        command.operation.deliver(command)
       when WorkflowTaskReception::Notification
         task_execution_for(command.reception)&.receive(command)
       when WorkflowTaskReception::DeliveryFailure
@@ -51,15 +54,64 @@ module Phronomy
       mark_workflow_recovery_required_for_session(fsm_session_id) if reason == :recovery_required
     end
 
+    def adopt_retirement(retirement)
+      assert_event_loop_thread!
+      operation = synchronize do
+        @terminal_operations.values.find { |item| item.fsm_session_id == retirement.fsm_session_id.to_s }
+      end
+      return nil unless operation && owns_terminal_operation?(operation)
+      return nil unless operation.adopt_retirement(retirement)
+      mark_workflow_recovery_required_for_session(retirement.fsm_session_id)
+      retirement.acceptance
+    end
+
+    def retain_terminal_operation(operation)
+      assert_event_loop_thread!
+      synchronize do
+        admission = @workflow_admissions[operation.workflow_instance_id]
+        unless admission&.owner_token&.equal?(operation.owner_token) &&
+            !@terminal_operations.key?(operation.owner_token)
+          raise Phronomy::Error, "Workflow terminal operation has no unique owner"
+        end
+        @terminal_operations[operation.owner_token] = operation
+      end
+    end
+
+    def terminal_operation(owner_token)
+      synchronize { @terminal_operations[owner_token] }
+    end
+
+    def owns_terminal_operation?(operation)
+      synchronize do
+        @terminal_operations[operation.owner_token].equal?(operation) &&
+          @workflow_admissions[operation.workflow_instance_id]&.owner_token&.equal?(operation.owner_token)
+      end
+    end
+
+    def pending_terminal_recovery(workflow_instance_id, runner_identity:)
+      operation = synchronize do
+        owner = @workflow_admissions[workflow_instance_id]&.owner_token
+        @terminal_operations[owner]
+      end
+      operation.recovery if operation&.belongs_to?(runner_identity) && operation.pending?
+    end
+
     def shutdown(error:)
-      executions = synchronize do
-        @workflow_admissions.clear
+      executions, operations = synchronize do
+        @workflow_admissions.delete_if { |_key, admission| !@terminal_operations.key?(admission.owner_token) }
         values = @task_executions.values
         @task_executions.clear
-        values
+        [values, @terminal_operations.values.dup]
       end
       failure = error || Phronomy::RuntimeShutdownError.new("Runtime stopped Workflow task execution")
-      executions.each { |execution| execution.retire(failure) }
+      operations.each { |operation| operation.shutdown(failure) }
+      executions.each do |execution|
+        if operations.any? { |operation| operation.owner_token.equal?(execution.owner_token) }
+          execution.close
+        else
+          execution.retire(failure)
+        end
+      end
     end
 
     # Called under Runtime's lifecycle lock. Only queue owner-side decisions;
@@ -179,14 +231,19 @@ module Phronomy
       assert_event_loop_thread!
       key = workflow_instance_id.to_s
       execution = nil
+      operation = nil
       released = synchronize do
         current = @workflow_admissions[key]
         next false unless current&.owner_token&.equal?(owner_token)
+        operation = @terminal_operations[owner_token]
+        next false if operation && !operation.release_permitted?
 
         @workflow_admissions.delete(key)
+        @terminal_operations.delete(owner_token)
         execution = @task_executions.delete(owner_token)
         true
       end
+      operation&.released if released
       execution&.close
       released
     end
@@ -249,9 +306,7 @@ module Phronomy
     end
 
     def workflow_admission_transition_in_progress_locked?
-      @workflow_admissions.values.any? do |admission|
-        %i[admitting executing persisting_terminal].include?(admission.state)
-      end
+      !@workflow_admissions.empty?
     end
   end
 end

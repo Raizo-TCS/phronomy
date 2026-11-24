@@ -48,6 +48,13 @@ module Phronomy
     def session_retired(fsm_session_id, reason:)
     end
 
+    # Opt-in completion custody. A receiver must retain its domain obligation
+    # before returning retirement.acceptance. nil, booleans, and acceptance of
+    # another retirement are refusals, not successful adoption.
+    def adopt_retirement(retirement)
+      ExecutionRetirement::UNSUPPORTED
+    end
+
     private
 
     def synchronize(&block)
