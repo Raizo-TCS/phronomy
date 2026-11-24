@@ -120,6 +120,11 @@ module Phronomy
       def resume_async: (String execution_id, ?config: Hash[Symbol, Object]) -> TaskResult[execution_result]
       def resume: (String execution_id, ?config: Hash[Symbol, Object]) -> execution_result
       def cancel_async: (String execution_id) -> TaskResult[ExecutionObservation]
+      def pending_terminal_recovery: (execution_id: String) -> TerminalRecovery?
+      def reconcile_terminal_async: (recovery: TerminalRecovery) -> TaskResult[TerminalRecoveryResult]
+      def reconcile_terminal: (recovery: TerminalRecovery) -> TerminalRecoveryResult
+      def retry_terminal_async: (recovery: TerminalRecovery) -> TaskResult[TerminalRecoveryResult]
+      def retry_terminal: (recovery: TerminalRecovery) -> TerminalRecoveryResult
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       # Public operation methods no longer accept per-invocation event listeners

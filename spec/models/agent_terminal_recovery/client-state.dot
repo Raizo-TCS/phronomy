@@ -1,0 +1,18 @@
+digraph RecoveryObserver {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.5", ranksep="0.55", label="One fresh recovery observer", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=13, margin="0.16,0.10"];
+  edge [fontname="DejaVu Sans", fontsize=11, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  Requested [label="Requested"];
+  Active [label="Active observation"];
+  Done [label="Done"];
+  Cancelled [label="Cancelled"];
+  final [shape=doublecircle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  initial -> Requested;
+  Requested -> Active [label="owner accepts"];
+  Requested -> Done [label="unavailable or retained post receipt"];
+  Active -> Done [label="owner publishes receipt"];
+  Active -> Cancelled [label="caller cancels / work unchanged"];
+  Done -> final;
+  Cancelled -> final;
+}

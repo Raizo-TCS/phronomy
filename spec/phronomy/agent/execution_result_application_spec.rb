@@ -88,10 +88,16 @@ RSpec.describe "Execution owner result application (F0/F1/F3; no X0)" do
   end
 
   after do
-    on_loop do
-      registry.release_agent_execution(execution.execution_id)
-      registry.release_agent_execution_admission(agent.agent_id, execution_id: execution.execution_id)
-      registry.take_agent_completion_waiters(execution.execution_id)
+    if registry.terminal_operation(execution.execution_id)
+      # These owner-application examples deliberately hold the terminal worker.
+      # Teardown must not bypass its retained custody through the old release API.
+      runtime.shutdown(timeout: 0.02, cancel_grace: 0.1)
+    else
+      on_loop do
+        registry.release_agent_execution(execution.execution_id)
+        registry.release_agent_execution_admission(agent.agent_id, execution_id: execution.execution_id)
+        registry.take_agent_completion_waiters(execution.execution_id)
+      end
     end
   end
 

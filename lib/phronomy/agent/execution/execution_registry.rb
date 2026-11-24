@@ -36,6 +36,14 @@ module Phronomy
       AgentAdmission = Data.define(:agent_id, :owner_token, :execution_id, :state)
       private_constant :AgentAdmission
 
+      # The admission token is retained independently of the durable execution
+      # ID, so an old recovery reference cannot release a replacement owner.
+      TerminalOperationEntry = Data.define(
+        :operation, :agent, :coordinator, :owner_token, :agent_id,
+        :execution_id, :fsm_session_id
+      )
+      private_constant :TerminalOperationEntry
+
       UNSET = Object.new.freeze
       PhysicalCompletion = Data.define(:execution_id, :token)
       private_constant :UNSET, :PhysicalCompletion
@@ -47,6 +55,7 @@ module Phronomy
         @agent_completion_waiters = Hash.new { |hash, key| hash[key] = [] }
         @agent_inflight_work = Hash.new { |hash, key| hash[key] = {} }
         @agent_deferred_terminals = {}
+        @terminal_operations = {}
       end
 
       def post(command, admission: false, completion: nil)
@@ -55,8 +64,11 @@ module Phronomy
 
       def deliver(command)
         assert_event_loop_thread!
-        if command.is_a?(PhysicalCompletion)
+        case command
+        when PhysicalCompletion
           complete_agent_physical_work(command)
+        when TerminalRecoveryOperation::Observe, TerminalRecoveryOperation::Ready
+          command.operation.deliver(command)
         else
           command.coordinator.deliver_on_event_loop(command)
         end
@@ -66,28 +78,103 @@ module Phronomy
       def idle?
         @agent_inflight_work.values.all?(&:empty?) &&
           @agent_deferred_terminals.empty? &&
+          @terminal_operations.empty? &&
           !agent_admission_transition_in_progress_locked?
       end
 
       # A dispatcher failure runs this on EventLoop; normal teardown runs it only
       # after that thread has joined. Task callbacks run outside the lifecycle lock.
       def shutdown(error:)
-        pending = synchronize do
-          waiters = @agent_completion_waiters.values.flatten
+        pending, retained = synchronize do
+          waiters = @agent_completion_waiters.dup
           @agent_completion_waiters.clear
-          @agent_inflight_work.clear
-          @agent_deferred_terminals.clear
-          @agent_admissions.clear
-          @agent_executions.clear
-          waiters
+          @agent_inflight_work.delete_if { |id, _work| !@terminal_operations.key?(id) }
+          @agent_deferred_terminals.delete_if { |id, _command| !@terminal_operations.key?(id) }
+          @agent_admissions.delete_if { |_id, admission| !@terminal_operations.key?(admission.execution_id) }
+          @agent_executions.delete_if { |id, _state| !@terminal_operations.key?(id) }
+          [waiters, @terminal_operations.values.map(&:operation)]
         end
-        return if pending.empty?
 
-        error ||= Phronomy::ExecutionRehydrationRequiredError.new(
+        failure = error || Phronomy::ExecutionRehydrationRequiredError.new(
           "Runtime terminated while Agent execution remained nonterminal; " \
           "process-local TaskResult handles are not rehydrated"
         )
-        pending.each { |waiter| waiter.fail(error) }
+        retained.each do |operation|
+          waiters = pending.delete(operation.execution_id)
+          operation.retain_original_waiters(Array(waiters))
+          diagnostic = operation.shutdown(failure)
+          fail_shutdown_waiters(waiters,
+            diagnostic.is_a?(Exception) ? diagnostic : failure)
+        end
+        pending.each_value { |waiters| fail_shutdown_waiters(waiters, failure) }
+      end
+
+      # Retain custody before a terminal worker can start. Live Agent mutation
+      # remains on this receiver; workers may only record evidence in the owner.
+      # @api private
+      def retain_terminal_operation(operation)
+        assert_event_loop_thread!
+        key = operation.execution_id.to_s
+        synchronize do
+          state = @agent_executions[key]
+          admission = @agent_admissions[operation.agent_id.to_s]
+          unless state && state.agent.equal?(operation.agent) &&
+              state.coordinator.equal?(operation.coordinator) &&
+              state.execution.execution_revision == operation.expected_execution_revision &&
+              state.fsm_session_id.to_s == operation.fsm_session_id.to_s &&
+              admission&.execution_id == key && !@terminal_operations.key?(key)
+            raise Phronomy::Error, "Agent terminal operation has no unique matching owner"
+          end
+          @terminal_operations[key] = TerminalOperationEntry.new(
+            operation: operation, agent: state.agent, coordinator: state.coordinator,
+            owner_token: admission.owner_token, agent_id: admission.agent_id,
+            execution_id: key.freeze, fsm_session_id: state.fsm_session_id
+          )
+        end
+        operation
+      end
+
+      # @api private
+      def terminal_operation(execution_id)
+        synchronize { @terminal_operations[execution_id.to_s]&.operation }
+      end
+
+      # The owner checks its expected pre-revision before applying, and may then
+      # retry release at the applied post-revision. This predicate checks custody.
+      # @api private
+      def owns_terminal_operation?(operation)
+        synchronize { owns_terminal_operation_locked?(operation) }
+      end
+
+      # Read-only lookup through the existing original Runtime, including after
+      # stopped delivery. It never creates an owner or performs persistence I/O.
+      # @api private
+      def pending_agent_terminal_recovery(execution_id, agent:)
+        entry = synchronize { @terminal_operations[execution_id.to_s] }
+        entry.operation.recovery if entry&.agent&.equal?(agent) && entry.operation.pending?
+      end
+
+      # One atomic custody release after live application and physical quiescence.
+      # @api private
+      def release_terminal_operation(operation)
+        assert_event_loop_thread!
+        return false unless operation.release_permitted?
+
+        released = synchronize do
+          next false unless owns_terminal_operation_locked?(operation)
+          key = operation.execution_id.to_s
+          work = @agent_inflight_work.fetch(key, nil)
+          next false if work && !work.empty?
+          next false if @agent_deferred_terminals.key?(key)
+
+          entry = @terminal_operations.delete(key)
+          @agent_inflight_work.delete(key)
+          @agent_executions.delete(key)
+          @agent_admissions.delete(entry.agent_id)
+          true
+        end
+        operation.released if released
+        released
       end
 
       # Process-local read-only admission check used by destructive Agent lifecycle
@@ -214,6 +301,7 @@ module Phronomy
             false
           end
           next false unless authoritative
+          next false if @terminal_operations.key?(current.execution_id)
 
           @agent_admissions.delete(key)
           true
@@ -424,6 +512,9 @@ module Phronomy
         assert_event_loop_thread!
         key = execution_id.to_s
         synchronize do
+          if @terminal_operations.key?(key)
+            raise Phronomy::Error, "Agent execution #{key.inspect} requires terminal operation release"
+          end
           work = @agent_inflight_work.fetch(key, nil)
           unless work.nil? || work.empty?
             raise Phronomy::Error,
@@ -439,6 +530,24 @@ module Phronomy
       end
 
       private
+
+      def owns_terminal_operation_locked?(operation)
+        entry = @terminal_operations[operation.execution_id.to_s]
+        return false unless entry&.operation&.equal?(operation)
+        admission = @agent_admissions[entry.agent_id]
+        state = @agent_executions[entry.execution_id]
+        admission&.owner_token&.equal?(entry.owner_token) &&
+          admission.execution_id == entry.execution_id &&
+          state&.agent&.equal?(entry.agent) && state.coordinator.equal?(entry.coordinator) &&
+          state.fsm_session_id.to_s == entry.fsm_session_id.to_s
+      end
+
+      # Stopped observation delivery is not domain-operation completion. Only a
+      # retained terminal owner with known quiescence may acknowledge its work;
+      # ordinary suspended executions keep their existing physical boundary.
+      def fail_shutdown_waiters(waiters, error)
+        Array(waiters).each { |waiter| waiter.fail(error) }
+      end
 
       def complete_agent_physical_work(payload)
         key = payload.execution_id.to_s

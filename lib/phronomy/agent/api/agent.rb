@@ -18,9 +18,14 @@ module Phronomy
 end
 
 require_relative "../async_event_api"
+require_relative "../terminal_recovery_api"
 
 unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)
+end
+
+unless Phronomy::Agent::Base < Phronomy::Agent::TerminalRecoveryApi
+  Phronomy::Agent::Base.prepend(Phronomy::Agent::TerminalRecoveryApi)
 end
 
 # Durable Agent Recovery and Agent-incarnation event binding.

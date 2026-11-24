@@ -1,0 +1,43 @@
+module Phronomy
+  module Agent
+    class TerminalRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+    end
+
+    class TerminalRecoveryError < Phronomy::Error
+      attr_reader recovery: TerminalRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader original_error: Exception?
+      def cause: () -> Exception?
+
+      private
+
+      def initialize: (recovery: TerminalRecovery, error: Exception?, ?original_error: Exception?) -> void
+    end
+
+    class TerminalRecoveryResult
+      attr_reader recovery: TerminalRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable
+      attr_reader application_state: :pending | :applied
+      attr_reader ownership_state: :retained | :released
+      attr_reader revision: Integer?
+      attr_reader execution: ExecutionObservation?
+      attr_reader error: Exception?
+
+      private
+
+      def initialize: (recovery: TerminalRecovery,
+        outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable,
+        application_state: :pending | :applied,
+        ownership_state: :retained | :released,
+        ?revision: Integer?, ?execution: ExecutionObservation?, ?error: Exception?) -> void
+    end
+  end
+end

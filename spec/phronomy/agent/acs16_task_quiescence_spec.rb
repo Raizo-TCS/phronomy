@@ -216,12 +216,13 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
   end
 
   describe "nonterminal recovery boundary" do
-    it "keeps the Execution TaskResult pending when terminal durability requires recovery" do
+    it "closes the observation while retaining the accepted execution when terminal durability requires recovery" do
       persistence = Phronomy::PersistenceComposition.in_memory.agent
+      save_error = IOError.new("terminal persistence unavailable")
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
       allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
         if terminal_statuses.include?(execution.status)
-          raise "terminal persistence unavailable"
+          raise save_error
         end
         original.call(
           execution_id,
@@ -238,14 +239,28 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
       )
       task = agent.invoke_async("finish normally")
 
-      expect { task.wait_result(timeout: 0.1) }
-        .to raise_error(Phronomy::TimeoutError)
-      expect(task).not_to be_done
+      failure = nil
+      expect { task.wait_result(timeout: 1) }
+        .to raise_error(Phronomy::Agent::TerminalRecoveryError) { |error| failure = error }
+      expect(task.status).to eq(:failed)
+      expect(failure.original_error).to equal(save_error)
+      expect(failure.cause).to equal(save_error)
+      expect(agent.pending_terminal_recovery(execution_id: failure.execution_id)).to equal(failure.recovery)
       expect(events).to be_empty
 
+      # The write failed before a complete proposal existed. A new observation
+      # can report that limit, but it cannot reconstruct or replay business work.
+      recovery = agent.reconcile_terminal(recovery: failure.recovery)
+      expect(recovery.outcome).to eq(:unavailable)
+      expect(recovery.application_state).to eq(:pending)
+      expect(recovery.ownership_state).to eq(:retained)
       competing = agent.invoke_async("competing top-level execution")
       expect { competing.wait_result(timeout: 1) }
         .to raise_error(Phronomy::AgentBusyError)
+
+      shutdown = Phronomy::Runtime.instance.shutdown(timeout: 0.02, cancel_grace: 0.1)
+      expect(shutdown.cleanup_complete?).to be(false)
+      expect(agent.pending_terminal_recovery(execution_id: failure.execution_id)).to equal(failure.recovery)
     end
 
     it "does not encode stale terminal-result rejection as parent TaskResult settlement" do
@@ -331,23 +346,33 @@ RSpec.describe "ACS-16 TaskResult settlement and physical quiescence" do
 
     it "logs the warning when terminal durability requires recovery and a logger is configured" do
       persistence = Phronomy::PersistenceComposition.in_memory.agent
+      save_error = IOError.new("terminal persistence unavailable")
       terminal_statuses = %i[completed rejected failed cancelled blocked handed_off]
       allow_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).to receive(:save).and_wrap_original do |original, execution_id, expected_revision:, execution:|
         if terminal_statuses.include?(execution.status)
-          raise "terminal persistence unavailable"
+          raise save_error
         end
         original.call(execution_id, expected_revision: expected_revision, execution: execution)
       end
       allow(RubyLLM).to receive(:chat).and_return(build_acs16_terminal_chat)
 
-      logger = instance_double(Logger, warn: nil)
+      warnings = Queue.new
+      logger = instance_double(Logger)
+      allow(logger).to receive(:warn) { |message| warnings << message }
       Phronomy.configuration.logger = logger
 
       agent = ACS16TerminalBarrierAgent.new(persistence: persistence)
       task = agent.invoke_async("finish normally")
 
-      expect { task.wait_result(timeout: 0.15) }.to raise_error(Phronomy::TimeoutError)
-      expect(task).not_to be_done
+      failure = nil
+      expect { task.wait_result(timeout: 1) }
+        .to raise_error(Phronomy::Agent::TerminalRecoveryError) { |error| failure = error }
+      expect(task.status).to eq(:failed)
+      expect(failure.cause).to equal(save_error)
+      expect(agent.pending_terminal_recovery(execution_id: failure.execution_id)).to equal(failure.recovery)
+      # The observation may settle before diagnostic logging on the same owner.
+      warning = Timeout.timeout(2) { warnings.pop }
+      expect(warning).to include(failure.execution_id, save_error.message)
       expect(logger).to have_received(:warn)
     end
 

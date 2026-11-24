@@ -1,0 +1,448 @@
+# frozen_string_literal: true
+
+require "securerandom"
+require "weakref"
+
+module Phronomy
+  module Agent
+    # Owns one installed Agent's terminal save and explicit recovery observations.
+    # Workers publish facts into mailboxes; only the captured EventLoop may apply
+    # them. A closed observer never relinquishes the accepted Agent execution.
+    # @api private
+    class TerminalRecoveryOperation
+      Observe = Data.define(:operation, :observer, :kind)
+      Ready = Data.define(:operation, :attempt_id)
+
+      attr_reader :agent, :coordinator, :environment, :agent_id, :execution_id, :fsm_session_id,
+        :expected_execution_revision, :recovery_id, :recovery, :command, :delivery
+
+      def initialize(agent:, coordinator:, environment:, command:, delivery:, committer:)
+        @agent = agent
+        @agent_reference = WeakRef.new(agent)
+        @coordinator, @environment, @registry = coordinator, environment, environment.registry
+        @persistence, @committer = agent.persistence, committer
+        @command, @delivery = command, delivery
+        @agent_id, @execution_id = agent.agent_id.to_s.freeze, command.execution_id
+        @fsm_session_id, @expected_execution_revision = command.fsm_session_id, command.expected_execution_revision
+        @recovery_id = SecureRandom.uuid.freeze
+        @recovery = TerminalRecovery.send(:new, self)
+        @mutex = Mutex.new
+        @save = new_slot(nil, :save)
+        @attempt = nil
+        @observers = []
+        @original_waiters = [delivery.result_task]
+        @evidence = @intended = @confirmation = @execution_observation = nil
+        @original_error = @last_error = nil
+        @uncertain = @initial_delivered = false
+        @application_state, @ownership_state = :pending, :retained
+      end
+
+      def belongs_to?(candidate)
+        @agent_reference.__getobj__.equal?(candidate)
+      rescue WeakRef::RefError
+        false
+      end
+
+      def pending?
+        @mutex.synchronize { @uncertain && @ownership_state == :retained }
+      end
+
+      def applied?
+        @mutex.synchronize { @application_state == :applied }
+      end
+
+      def ordinary_delivery?
+        @mutex.synchronize { !@uncertain }
+      end
+
+      def application_applied!
+        @mutex.synchronize { @application_state = :applied }
+      end
+
+      def release_permitted?
+        @mutex.synchronize do
+          @application_state == :applied && @save[:physical] &&
+            (!@attempt || @attempt[:physical])
+        end
+      end
+
+      def released
+        @mutex.synchronize do
+          @ownership_state = :released
+          @agent = @coordinator = @environment = @registry = @persistence = @committer = nil
+          @command = @delivery = @intended = @evidence = nil
+          @save[:task] = @save[:result] = @save[:error] = nil
+          @original_waiters = []
+          @original_error = @last_error = nil
+        end
+      end
+
+      def start
+        @registry.retain_terminal_operation(self)
+        task = @environment.submit(on_full: :raise) do
+          @mutex.synchronize { @save[:started] = true }
+          result = @committer.commit_outcome(@command,
+            on_evidence: method(:capture_evidence), on_outcome: method(:capture_outcome))
+          capture_worker(nil, result, nil)
+          result
+        rescue Exception => error # rubocop:disable Lint/RescueException
+          capture_worker(nil, nil, error)
+          raise
+        end
+        watch(task, nil)
+        self
+      rescue => error
+        if task
+          mark_uncertain_on_owner(error)
+        else
+          @mutex.synchronize do
+            @save[:logical] = @save[:physical] = true
+            @save[:error] = error
+          end
+          signal(nil)
+        end
+        self
+      end
+
+      def observe(kind = :reconcile)
+        raise ArgumentError, "unsupported Agent terminal recovery operation" unless %i[reconcile retry].include?(kind)
+        observer = Phronomy::TaskResult.deferred(name: "agent-terminal-#{kind}:#{@recovery_id}")
+        @mutex.synchronize { @observers << observer }
+        observer.on_complete do |_value, _error|
+          @mutex.synchronize do
+            @observers.delete(observer)
+            @attempt&.fetch(:observers)&.delete(observer)
+          end
+        end
+        registry, released = @mutex.synchronize { [@registry, @ownership_state == :released] }
+        if released
+          observer.complete(build_result)
+        elsif !registry || !registry.post(Observe.new(operation: self, observer: observer, kind: kind),
+          completion: delivery_observer(observer))
+          observer.complete(unavailable_result(Phronomy::RuntimeShutdownError.new("Original Agent owner is unavailable")))
+        end
+        observer
+      rescue => error
+        observer&.complete(unavailable_result(error))
+        observer || raise
+      end
+
+      def shutdown(error)
+        failure = fail_original(error)
+        observers = @mutex.synchronize { @observers.dup }
+        observers.each { |observer| observer.complete(unavailable_result(error)) }
+        failure
+      end
+
+      def deliver(message)
+        case message
+        when Observe then observe_on_owner(message.observer, message.kind)
+        when Ready
+          message.attempt_id ? finish_attempt(message.attempt_id) : deliver_initial
+        else
+          raise Phronomy::Error, "unsupported Agent terminal recovery message"
+        end
+      end
+
+      # Safe outside EventLoop: only the original observation is settled here.
+      # Registry ownership and live execution state remain untouched.
+      def fail_original(error)
+        task, failure = @mutex.synchronize do
+          @uncertain = true
+          @last_error = error
+          @original_error ||= error
+          [@delivery&.result_task, diagnostic_locked(error)]
+        end
+        task&.fail(failure)
+        acknowledge_original_if_quiet
+        failure
+      end
+
+      def retain_original_waiters(waiters)
+        @mutex.synchronize { @original_waiters |= waiters }
+        acknowledge_original_if_quiet
+      end
+
+      private
+
+      def acknowledge_original_if_quiet
+        waiters = @mutex.synchronize { (@uncertain && @save[:physical]) ? @original_waiters.dup : [] }
+        waiters.each { |task| task.finish_operation! if task.respond_to?(:finish_operation!) }
+      end
+
+      def new_slot(id, kind)
+        {id: id, kind: kind, task: nil, started: false, physical: false, logical: false,
+         result: nil, error: nil, worker_recorded: false, observers: []}
+      end
+
+      def slot_for(id)
+        id.nil? ? @save : (@attempt if @attempt && @attempt[:id].equal?(id))
+      end
+
+      def capture_evidence(value)
+        @mutex.synchronize { @evidence = value }
+      end
+
+      def capture_outcome(value)
+        @mutex.synchronize { @intended = value }
+      end
+
+      def capture_worker(id, result, error)
+        @mutex.synchronize do
+          slot = slot_for(id)
+          return unless slot
+          slot[:result], slot[:error], slot[:worker_recorded] = result, error, true
+          @original_error ||= error if id.nil?
+        end
+      end
+
+      def watch(task, id)
+        @mutex.synchronize { slot_for(id)[:task] = task }
+        physical = task.respond_to?(:on_physical_complete)
+        if physical
+          task.on_physical_complete do
+            @mutex.synchronize { slot_for(id)&.[]=(:physical, true) }
+            acknowledge_original_if_quiet if id.nil?
+            signal(id)
+          end
+        end
+        task.on_complete do |result, error|
+          @mutex.synchronize do
+            slot = slot_for(id)
+            if slot
+              slot[:logical] = true
+              slot[:physical] = true unless physical
+              unless slot[:worker_recorded]
+                slot[:result], slot[:error] = result, error
+              end
+            end
+          end
+          signal(id)
+        end
+      end
+
+      def refresh_slot(id)
+        task = @mutex.synchronize { slot_for(id)&.fetch(:task) }
+        return unless task
+        status, value, error = task.__snapshot
+        physical = if task.respond_to?(:physical_complete?)
+          task.physical_complete?
+        else
+          !task.respond_to?(:on_physical_complete) && status != :pending
+        end
+        @mutex.synchronize do
+          slot = slot_for(id)
+          return unless slot
+          slot[:physical] ||= physical
+          if status != :pending
+            slot[:logical] = true
+            slot[:result], slot[:error] = value, error unless slot[:worker_recorded]
+          end
+        end
+        acknowledge_original_if_quiet if id.nil?
+      end
+
+      def signal(id)
+        registry = @mutex.synchronize { @registry }
+        return unless registry
+        return if registry.post(Ready.new(operation: self, attempt_id: id))
+        delivery_failed(id, Phronomy::RuntimeShutdownError.new("Agent owner rejected terminal evidence"))
+      rescue => error
+        delivery_failed(id, error)
+      end
+
+      def delivery_failed(id, error)
+        return fail_original(error) unless id
+        observers = @mutex.synchronize do
+          slot = slot_for(id)
+          slot ? slot[:observers].shift(slot[:observers].length) : []
+        end
+        observers.each { |observer| observer.complete(unavailable_result(error)) }
+      end
+
+      def delivery_observer(observer)
+        Phronomy::TaskResult.deferred(name: "agent-terminal-delivery:#{@recovery_id}").tap do |delivery|
+          delivery.on_complete do |_value, error|
+            observer.complete(unavailable_result(error)) if error
+          end
+        end
+      end
+
+      def deliver_initial
+        refresh_slot(nil)
+        slot, uncertain = @mutex.synchronize { [@save.dup, @uncertain] }
+        return unless slot[:logical]
+        return if @mutex.synchronize { @initial_delivered || @ownership_state == :released }
+        return if !slot[:physical] && !slot[:error] && !uncertain
+        if slot[:error] || uncertain
+          error = slot[:error] || @last_error || Phronomy::Error.new("Agent terminal save requires explicit recovery")
+          mark_uncertain_on_owner(error)
+          @mutex.synchronize { @initial_delivered = true }
+          return
+        end
+        @mutex.synchronize { @initial_delivered = true }
+        remember_post(slot[:result])
+        apply_confirmation
+      rescue => error
+        mark_uncertain_on_owner(error)
+      end
+
+      def mark_uncertain_on_owner(error)
+        failure = fail_original(error)
+        coordinator = @mutex.synchronize { @coordinator }
+        coordinator&.send(:terminal_recovery_failed_on_event_loop, self, failure)
+        failure
+      end
+
+      def observe_on_owner(observer, kind)
+        return if observer.done?
+        refresh_slot(nil)
+        registry, released, physical, active = @mutex.synchronize do
+          [@registry, @ownership_state == :released, @save[:physical], @attempt&.dup]
+        end
+        return observer.complete(build_result) if released
+        unless registry&.owns_terminal_operation?(self)
+          return observer.complete(unavailable_result(Phronomy::Error.new("Agent terminal recovery owner no longer matches")))
+        end
+        unless physical
+          return observer.complete(unavailable_result(Phronomy::Error.new("Original Agent save is still physically active")))
+        end
+        if active
+          if active[:kind] != kind
+            return observer.complete(unavailable_result(Phronomy::Error.new("A different Agent terminal recovery operation is physically active")))
+          end
+          @mutex.synchronize { @attempt[:observers] << observer }
+          finish_attempt(active[:id])
+          return
+        end
+        if @mutex.synchronize { @confirmation == :committed }
+          return observer.complete(apply_confirmation)
+        end
+        # A successful late worker result is stronger than its abandoned task.
+        outcome = @mutex.synchronize { @save[:physical] && @save[:result] }
+        if outcome
+          remember_post(outcome)
+          return observer.complete(apply_confirmation)
+        end
+        evidence, persistence = @mutex.synchronize { [@evidence, @persistence] }
+        unless evidence
+          return observer.complete(unavailable_result(Phronomy::Error.new("Agent terminal save has no complete captured proposal")))
+        end
+        id = Object.new.freeze
+        @mutex.synchronize do
+          @attempt = new_slot(id, kind)
+          @attempt[:observers] << observer
+        end
+        task = @environment.submit(on_full: :raise) do
+          @mutex.synchronize { slot_for(id)&.[]=(:started, true) }
+          result = evidence.public_send(kind, persistence: persistence, original_error: @original_error)
+          capture_worker(id, result, nil)
+          result
+        rescue Exception => error # rubocop:disable Lint/RescueException
+          capture_worker(id, nil, error)
+          raise
+        end
+        watch(task, id)
+      rescue => error
+        if task
+          delivery_failed(id, error)
+        else
+          observers = close_attempt(defined?(id) && id)
+          (observers.empty? ? [observer] : observers).each { |item| item.complete(unavailable_result(error)) }
+        end
+      end
+
+      def finish_attempt(id)
+        refresh_slot(id)
+        slot = @mutex.synchronize { slot_for(id)&.dup }
+        return unless slot && slot[:logical] && slot[:physical]
+        if slot[:error] && !slot[:error].is_a?(StandardError)
+          close_attempt(id).each { |observer| observer.fail(slot[:error]) }
+          return
+        end
+        result = slot[:result]
+        observation = if result&.disposition == :committed
+          intended = @mutex.synchronize { @intended }
+          if intended
+            remember_post(intended)
+            apply_confirmation
+          else
+            unavailable_result(Phronomy::Error.new("Agent terminal proof has no retained semantic outcome"))
+          end
+        elsif result&.disposition == :not_committed
+          build_result(outcome: :confirmed_pre)
+        else
+          error = slot[:error] || result&.read_error
+          build_result(outcome: error ? :unavailable : :unresolved, error: error && diagnostic(error))
+        end
+        close_attempt(id).each_with_index do |observer, index|
+          observer.complete(index.zero? ? observation : build_result(outcome: observation.outcome, error: observation.error))
+        end
+      rescue => error
+        close_attempt(id).each { |observer| observer.complete(unavailable_result(error)) }
+      end
+
+      def close_attempt(id)
+        @mutex.synchronize do
+          return [] unless id && @attempt && @attempt[:id].equal?(id)
+          observers = @attempt[:observers]
+          @attempt = nil
+          observers
+        end
+      end
+
+      def remember_post(outcome)
+        raise Phronomy::Error, "Agent terminal save returned no semantic outcome" unless outcome
+        execution = outcome.execution
+        observation = ExecutionObservation.new(agent_id: agent_id, execution_id: execution_id,
+          status: execution.status, result: outcome.result&.fetch(:output, nil),
+          raw_output: outcome.result&.fetch(:raw_output, nil),
+          error: outcome.error && (outcome.error.is_a?(OutputError) ? outcome.error.diagnostic : Phronomy::Error.diagnostic(outcome.error)), reservation: nil,
+          transfer_receipt: nil, cancellation_requested: execution.metadata["cancellation_requested"] == true ||
+            @mutex.synchronize { @evidence && @evidence.after.fetch(0).fetch(4) } || false)
+        @mutex.synchronize do
+          @confirmation = :committed
+          @intended = outcome
+          @revision = execution.execution_revision
+          @execution_observation = observation
+        end
+      end
+
+      def apply_confirmation
+        coordinator, outcome = @mutex.synchronize { [@coordinator, @intended] }
+        return build_result if @mutex.synchronize { @ownership_state == :released }
+        coordinator.send(:apply_retained_terminal_on_event_loop, self, outcome)
+        build_result
+      rescue => error
+        mark_uncertain_on_owner(error)
+        build_result(error: diagnostic(error))
+      end
+
+      def unavailable_result(error)
+        build_result(outcome: :unavailable, error: diagnostic(error))
+      end
+
+      def build_result(outcome: nil, error: nil)
+        state = @mutex.synchronize do
+          [@confirmation, @application_state, @ownership_state, @revision, @execution_observation]
+        end
+        confirmation, application, ownership, revision, execution = state
+        outcome = :confirmed_post if confirmation == :committed
+        TerminalRecoveryResult.new(recovery: @recovery, outcome: outcome || :unavailable,
+          application_state: application, ownership_state: ownership,
+          revision: revision, execution: execution && ExecutionObservation.new(**execution.to_h), error: error)
+      end
+
+      def diagnostic(error)
+        @mutex.synchronize { diagnostic_locked(error) }
+      end
+
+      def diagnostic_locked(error)
+        return error if error.is_a?(TerminalRecoveryError) && error.recovery.equal?(@recovery)
+        TerminalRecoveryError.new(recovery: @recovery,
+          error: error || Phronomy::Error.new("Agent terminal outcome requires reconciliation"),
+          original_error: @original_error || error)
+      end
+    end
+  end
+end

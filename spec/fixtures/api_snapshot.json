@@ -277,13 +277,18 @@
       "invoke_async",
       "journal_projection",
       "knowledge_snapshot",
+      "pending_terminal_recovery",
       "persistence",
       "purge!",
+      "reconcile_terminal",
+      "reconcile_terminal_async",
       "reset_context!",
       "resolve",
       "resolve_async",
       "resume",
       "resume_async",
+      "retry_terminal",
+      "retry_terminal_async",
       "start_hosted",
       "start_reserved_async",
       "stream",
@@ -398,6 +403,59 @@
       "from_result",
       "members"
     ]
+  },
+  {
+    "name": "Phronomy::Agent::TerminalRecovery",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "execution_id",
+      "recovery_id"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::TerminalRecoveryError",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "execution_id",
+      "full_message",
+      "message",
+      "original_error",
+      "recovery",
+      "recovery_id",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::TerminalRecoveryResult",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "application_state",
+      "error",
+      "execution",
+      "execution_id",
+      "outcome",
+      "ownership_state",
+      "recovery",
+      "recovery_id",
+      "revision"
+    ],
+    "public_class_methods": []
   },
   {
     "name": "Phronomy::Agent::KnowledgeItem",
@@ -1099,13 +1157,18 @@
       "invoke_async",
       "journal_projection",
       "knowledge_snapshot",
+      "pending_terminal_recovery",
       "persistence",
       "purge!",
+      "reconcile_terminal",
+      "reconcile_terminal_async",
       "reset_context!",
       "resolve",
       "resolve_async",
       "resume",
       "resume_async",
+      "retry_terminal",
+      "retry_terminal_async",
       "start_hosted",
       "start_reserved_async",
       "stream",
