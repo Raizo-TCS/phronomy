@@ -1,0 +1,91 @@
+module Phronomy
+  module Agent
+    class AgentExecution
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader execution_revision: Integer
+      def terminal?: () -> bool
+      def to_h: () -> Hash[String, untyped]
+    end
+
+    class AgentRoot
+      attr_reader agent_id: String
+      attr_reader agent_revision: Integer
+      attr_reader journal_position: Integer
+      def to_h: () -> Hash[String, untyped]
+    end
+
+    class JournalRecord
+      attr_reader record_id: String
+      attr_reader agent_id: String
+      attr_reader sequence: Integer?
+      def to_h: () -> Hash[String, untyped]
+    end
+
+    # Private persistence building block; no live-owner lifecycle API.
+    class TerminalPersistenceEvidence
+      type disposition = :committed | :not_committed | :unknown
+
+      class ContentWrite < Data
+        attr_reader reference: String
+        attr_reader bytes: String
+        attr_reader canonicalization_version: Integer
+      end
+
+      class Outcome < Data
+        attr_reader type: :completed | :failed
+        attr_reader execution: AgentExecution
+        attr_reader root: AgentRoot
+        attr_reader appended_records: Array[JournalRecord]
+        attr_reader result: Hash[Symbol, untyped]?
+        attr_reader error_diagnostic: Hash[String, json_value]?
+      end
+
+      class Result < Data
+        attr_reader disposition: TerminalPersistenceEvidence::disposition
+        attr_reader evidence: TerminalPersistenceEvidence
+        attr_reader original_error: Exception?
+        attr_reader read_error: Exception?
+      end
+
+      attr_reader before: Array[untyped]
+      attr_reader after: Array[untyped]
+      attr_reader outcome: Outcome
+      attr_reader content_writes: Array[ContentWrite]
+      attr_reader attempt_id: String
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      def self.capture: (ExecutionChange, Array[ContentWrite], persistence: Store) -> instance?
+      def reconcile: (persistence: Store, ?original_error: Exception?) -> Result
+      def retry: (persistence: Store, ?original_error: Exception?) -> Result
+    end
+
+    class ExecutionOutcomeCommitter
+      class Command < Data
+        attr_reader execution_id: String
+        attr_reader fsm_session_id: String?
+        attr_reader expected_execution_revision: Integer
+        attr_reader root: AgentRoot
+        attr_reader journal_records: Array[JournalRecord]
+        attr_reader execution: AgentExecution
+        attr_reader runtime_snapshot: Hash[Symbol, untyped]
+        attr_reader terminal_view: untyped
+        attr_reader state_required: bool
+        attr_reader wiring: Hash[Symbol, untyped]
+      end
+
+      class Outcome < Data
+        attr_reader type: Symbol
+        attr_reader execution: AgentExecution
+        attr_reader root: AgentRoot
+        attr_reader appended_records: Array[JournalRecord]
+        attr_reader result: Hash[Symbol, untyped]?
+        attr_reader error: Exception?
+        attr_reader approval_request: ToolApprovalRequest?
+      end
+
+      def initialize: (agent: Base, persistence: Store) -> void
+      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?) -> Outcome
+    end
+  end
+end
