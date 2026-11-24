@@ -415,7 +415,7 @@ RSpec.describe "Workflow terminal reconciliation through Runtime" do
     before = @repository.counts
 
     repeated = reconcile
-    stale = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+    stale = Phronomy::WorkflowTerminalPersistence::Result.new(
       outcome: :known_failure, revision: nil, error: IOError.new("stale failure")
     )
     expect(old_session.event_sink.post(:workflow_terminal_persistence_result, stale)).to be(false)

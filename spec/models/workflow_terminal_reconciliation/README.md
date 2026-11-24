@@ -29,13 +29,13 @@ or that an accepted envelope proves the save committed.
 | Model fact or action | Implementation correspondence |
 | --- | --- |
 | `obligationHeld` before the original write | `WorkflowTerminalOperation#start` installs the operation through `WorkflowExecutionRegistry#retain_terminal_operation` before submission. |
-| Original write, captured reply and physical return | Operation-specific immutable snapshot/revision; `capture_worker`, `watch`, and separate physical/logical task observations. |
+| Original write, captured reply and physical return | `WorkflowTerminalPersistence::Command` captures the immutable snapshot/revision; `WorkflowTerminalPersistence.save` performs repository I/O. `WorkflowTerminalOperation#capture_worker` and `watch` retain its result and separate physical/logical task observations. |
 | `RetireRoute`, `AcceptCustody`, `DetachWaiter` | `WorkflowExecutionRegistry#adopt_retirement`, exact `ExecutionRetirement#accepted_by?`, and Engine retirement dispatch. |
 | `custodyRefused`, retained source waiter | EventLoop retains its unaccepted retirement, receiver and completion; cleanup cannot turn refusal into successful custody transfer. |
 | `ReportDeliveryFailure` | `fail_original` can fail the public observation after evidence is retained while Engine still owns its separate source completion. It does not fail or detach that source. |
 | Cancelled original observation and `LookupRecovery` | `pending_terminal_recovery` exposes an unresolved capability belonging to the same compiled Workflow; it performs no storage read or retry. |
 | `Request`, `StartRead`, attempt identity | Owner-side `observe_on_owner`, one retained attempt slot, independent observation tasks, and correlated `Ready` messages. |
-| `pre`, `post`, `other` evidence | Workflow revision/snapshot classification: exact intended revision and snapshot; expected pre-revision; or conflict, including an equal snapshot at a later revision. |
+| `pre`, `post`, `other` evidence | `WorkflowTerminalPersistence.reconcile` uses `SnapshotComparison.compare_revisioned_snapshot`: exact intended revision and snapshot; expected pre-revision; or conflict, including an equal snapshot at a later revision. `WorkflowTerminalPersistence::Result` carries the classification. |
 | `proof`, `applied`, `released` | Retained confirmation, `apply_confirmation`, and owner-aware registry release after required physical boundaries. |
 | Immutable observation classification | Original TaskResult cannot reopen; later recovery calls produce new immutable results. Concrete result field fidelity is tested in Ruby. |
 | Reused Workflow ID and old reply | The original owner token/operation/attempt must still match; an old capability or result cannot release the new segment. |
@@ -57,6 +57,12 @@ N + 1 contract. `other` can represent a later equal snapshot: equality of values
 alone cannot identify the attempted write. The model assumes the declared host
 ownership and repository atomic/CAS contract; it does not implement distributed
 leases or establish arbitrary inter-process write history.
+
+Repository I/O and classification belong to `WorkflowTerminalPersistence`;
+scheduling, evidence capture and owner release belong to
+`WorkflowTerminalOperation`. The operation retains an opaque compiled-Workflow
+identity, not a Runner reference or callback. Moving these unchanged I/O rules
+to the helper does not add a protocol action or change the checked model.
 
 ## Safety and observation rules
 

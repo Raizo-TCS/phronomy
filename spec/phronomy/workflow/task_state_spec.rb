@@ -361,11 +361,18 @@ RSpec.describe "Workflow task_state" do
   it "reports an unknown durable outcome while retaining recovery-required ownership" do
     store = Phronomy::PersistenceComposition.in_memory.workflow
     app = graph(Phronomy::TaskResult.completed(9), persistence: store)
-    allow(store).to receive(:save).and_raise(IOError, "commit uncertain")
+    save_error = IOError.new("commit uncertain")
+    allow(store).to receive(:save).and_raise(save_error)
     allow(store).to receive(:load).and_return(nil, {revision: 8, snapshot: {fields: {value: 99}, phase: "__end__"}})
     task = app.invoke_async({}, config: {workflow_instance_id: "uncertain"})
-    expect { result(task) }.to raise_error(Phronomy::Persistence::StateConflictError)
+    expect { result(task) }.to raise_error(Phronomy::WorkflowTerminalRecoveryError) { |error|
+      expect(error.workflow_instance_id).to eq("uncertain")
+      expect(error.original_error).to equal(save_error)
+      expect(error.cause).to be_a(Phronomy::Persistence::StateConflictError)
+      expect(app.pending_terminal_recovery(workflow_instance_id: "uncertain")).to equal(error.recovery)
+    }
     expect(registry.workflow_admission_owner("uncertain")).not_to be_nil
+    expect(registry.workflow_admission_state("uncertain")).to eq(:recovery_required)
     expect(task.status).to eq(:failed)
   end
 

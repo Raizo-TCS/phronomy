@@ -14,10 +14,9 @@ module Phronomy
     attr_reader :workflow_instance_id, :recovery_id, :owner_token,
       :fsm_session_id, :recovery
 
-    def initialize(runner:, environment:, registry:, execution:, command:,
+    def initialize(runner_identity:, environment:, registry:, execution:, command:,
       terminal_type:, event_sink:, context_class:)
-      @runner = runner
-      @runner_identity = runner.__recovery_identity
+      @runner_identity = runner_identity
       @environment = environment
       @registry = registry
       @command = command
@@ -58,7 +57,7 @@ module Phronomy
       @registry.retain_terminal_operation(self)
       task = @environment.submit(on_full: :raise) do
         @mutex.synchronize { @save[:started] = true }
-        result = @runner.send(:persist_terminal_snapshot, @command, on_error: method(:remember_save_error))
+        result = WorkflowTerminalPersistence.save(@command, on_error: method(:remember_save_error))
         capture_worker(nil, result, nil)
         result
       rescue Exception => error # rubocop:disable Lint/RescueException
@@ -142,7 +141,7 @@ module Phronomy
       @mutex.synchronize do
         @ownership_state = :released
         @original_observer = nil
-        @runner = @environment = @registry = @command = @event_sink = nil
+        @environment = @registry = @command = @event_sink = nil
         @save[:task] = nil
       end
     end
@@ -302,11 +301,11 @@ module Phronomy
     def persistence_result(slot)
       return slot[:result] if slot[:physical] && slot[:result]
       if slot[:physical] && !slot[:started] && slot[:error]
-        return WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+        return WorkflowTerminalPersistence::Result.new(
           outcome: :known_failure, revision: nil, error: slot[:error]
         )
       end
-      WorkflowRunner::WorkflowTerminalPersistenceResult.new(outcome: :outcome_unknown,
+      WorkflowTerminalPersistence::Result.new(outcome: :outcome_unknown,
         revision: nil, error: slot[:error] || Phronomy::Error.new("Workflow persistence is not physically complete"))
     end
 
@@ -328,7 +327,7 @@ module Phronomy
         return if @initial_delivered || @ownership_state == :released
         result = persistence_result(@save)
         if @uncertain
-          result = WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+          result = WorkflowTerminalPersistence::Result.new(
             outcome: :outcome_unknown, revision: nil, error: @last_error || result.error
           )
         end
@@ -388,7 +387,7 @@ module Phronomy
       end
       task = @environment.submit(on_full: :raise) do
         @mutex.synchronize { slot_for(id)&.[]=(:started, true) }
-        result = @runner.send(:reconcile_workflow_terminal_f1, @command, @original_error || @last_error)
+        result = WorkflowTerminalPersistence.reconcile(@command, @original_error || @last_error)
         capture_worker(id, result, nil)
         result
       rescue Exception => error # rubocop:disable Lint/RescueException

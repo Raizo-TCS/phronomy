@@ -46,7 +46,7 @@ RSpec.describe "WorkflowRunner terminal persistence" do
   end
 
   def operation(record:, expected_revision:, snapshot:)
-    Phronomy::WorkflowRunner::WorkflowTerminalPersistenceCommand.new(
+    Phronomy::WorkflowTerminalPersistence::Command.new(
       repository: Repository.new(record),
       workflow_instance_id: "wf-1",
       expected_revision: expected_revision,
@@ -61,10 +61,7 @@ RSpec.describe "WorkflowRunner terminal persistence" do
       expected_revision: 2,
       snapshot: intended
     )
-    runner = Phronomy::WorkflowRunner.allocate
-
-    result = runner.send(
-      :reconcile_workflow_terminal_f1,
+    result = Phronomy::WorkflowTerminalPersistence.reconcile(
       op,
       RuntimeError.new("response lost")
     )
@@ -81,9 +78,7 @@ RSpec.describe "WorkflowRunner terminal persistence" do
       expected_revision: 2,
       snapshot: intended
     )
-    runner = Phronomy::WorkflowRunner.allocate
-
-    result = runner.send(:reconcile_workflow_terminal_f1, op, error)
+    result = Phronomy::WorkflowTerminalPersistence.reconcile(op, error)
 
     expect(result.outcome).to eq(:known_failure)
     expect(result.error).to equal(error)
@@ -96,10 +91,7 @@ RSpec.describe "WorkflowRunner terminal persistence" do
       expected_revision: 2,
       snapshot: intended
     )
-    runner = Phronomy::WorkflowRunner.allocate
-
-    result = runner.send(
-      :reconcile_workflow_terminal_f1,
+    result = Phronomy::WorkflowTerminalPersistence.reconcile(
       op,
       RuntimeError.new("response lost")
     )
@@ -115,9 +107,7 @@ RSpec.describe "WorkflowRunner terminal persistence" do
       expected_revision: 2,
       snapshot: intended
     )
-    runner = Phronomy::WorkflowRunner.allocate
-
-    result = runner.send(:reconcile_workflow_terminal_f1, op, IOError.new("response lost"))
+    result = Phronomy::WorkflowTerminalPersistence.reconcile(op, IOError.new("response lost"))
 
     expect(result.outcome).to eq(:outcome_unknown)
     expect(result.revision).to be_nil

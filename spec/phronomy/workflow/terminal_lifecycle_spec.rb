@@ -104,7 +104,7 @@ RSpec.describe "Workflow terminal lifecycle through Runtime" do
 
     second, second_id = begin_waiting("reused")
     expect(second_id).not_to eq(first_id)
-    stale = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+    stale = Phronomy::WorkflowTerminalPersistence::Result.new(
       outcome: :known_failure, revision: nil, error: RuntimeError.new("stale failure")
     )
     expect(first_session.event_sink.post(:workflow_terminal_persistence_result, stale)).to be(false)
