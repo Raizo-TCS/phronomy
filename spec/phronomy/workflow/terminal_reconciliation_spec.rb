@@ -492,7 +492,10 @@ RSpec.describe "Workflow terminal reconciliation through Runtime" do
     setup_workflow
     start_unknown
     rejection = Phronomy::BackpressureError.new("recovery read rejected")
-    allow(@runtime.offload).to receive(:submit).and_raise(rejection)
+    allow(@runtime.offload).to receive(:submit) do |on_rejected: nil, **_options|
+      on_rejected&.call(rejection)
+      raise rejection
+    end
 
     rejected = reconcile
 
@@ -857,5 +860,40 @@ RSpec.describe "Workflow terminal reconciliation through Runtime" do
     expect(@repository.counts).to eq(saves: 1, loads: 3)
     expect(admitted.empty?).to be(true)
     expect(@actions.size).to eq(1)
+  end
+
+  it "polls an admitted read whose physical callback registration failed without stranding another observer" do
+    setup_workflow
+    start_unknown
+    gate = block_reconciliation_read
+    admitted = Queue.new
+    registration_error = IOError.new("physical read completion registration failed")
+    environment = @workflow.instance_variable_get(:@runner).instance_variable_get(:@environment)
+    allow(environment).to receive(:submit).and_wrap_original do |submit, **options, &work|
+      submit.call(**options, &work).tap do |task|
+        allow(task).to receive(:on_physical_complete).and_raise(registration_error)
+        admitted << task
+      end
+    end
+    first = @workflow.reconcile_terminal_async(recovery: @recovery)
+    task = take(admitted)
+    take(gate.entered)
+    expect_retained(result_of(first), outcome: :unavailable)
+    expect(task.physical_complete?).to be(false)
+
+    second = @workflow.reconcile_terminal_async(recovery: @recovery)
+
+    expect_retained(result_of(second), outcome: :unavailable)
+    expect(admitted.empty?).to be(true)
+    expect(@repository.counts).to eq(saves: 1, loads: 3)
+    gate.release << true
+    eventually { task.physical_complete? }
+    result = reconcile
+    expect(result.outcome).to eq(:confirmed_post)
+    expect(result.ownership_state).to eq(:released)
+    expect(admitted.empty?).to be(true)
+    expect(@repository.counts).to eq(saves: 1, loads: 3)
+    expect(@actions.size).to eq(1)
+    expect(@original.status).to eq(:failed)
   end
 end

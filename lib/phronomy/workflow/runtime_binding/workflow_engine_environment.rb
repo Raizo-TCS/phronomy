@@ -19,6 +19,8 @@ module Phronomy
     def existing_registry = WorkflowExecutionRegistry.existing_for(@runtime)
     def executing? = @runtime.event_loop_current?
 
+    def supports_submission_rejection? = true
+
     def submit(**options, &operation)
       Phronomy::Execution.submit(runtime: @runtime, **options, &operation)
     end

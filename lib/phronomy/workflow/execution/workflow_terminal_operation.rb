@@ -55,26 +55,20 @@ module Phronomy
 
     def start
       @registry.retain_terminal_operation(self)
-      task = @environment.submit(on_full: :raise) do
-        @mutex.synchronize { @save[:started] = true }
-        result = WorkflowTerminalPersistence.save(@command, on_error: method(:remember_save_error))
-        capture_worker(nil, result, nil)
-        result
-      rescue Exception => error # rubocop:disable Lint/RescueException
-        capture_worker(nil, nil, error)
-        raise
+      task = submit_worker(nil) do
+        WorkflowTerminalPersistence.save(@command, on_error: method(:remember_save_error))
       end
       watch(task, nil)
       self
     rescue => error
-      if task
-        # Callback registration failed after admission. Retain the real task
-        # and its physical lane; this is not a never-started submission.
+      if task || !@mutex.synchronize { @save[:rejection_confirmed] && !@save[:started] }
+        # An absent handle is not refusal evidence. Keep the command and original
+        # owner when admission is unknown, just as for callback binding failure.
         reject_initial_delivery(error)
         return self
       end
-      # A raised submit did not return an admitted handle. The existing submit
-      # contract guarantees that no operation can subsequently start.
+      # Only synchronous executor refusal proves that this save cannot run.
+      # Workflow preserves its ordinary known-failure release policy in that case.
       @mutex.synchronize do
         @save[:physical] = true
         @save[:logical] = true
@@ -209,11 +203,48 @@ module Phronomy
 
     def new_slot(id)
       {id: id, task: nil, started: false, physical: false, logical: false,
-       result: nil, error: nil, worker_recorded: false, observers: []}
+       result: nil, error: nil, worker_recorded: false, observers: [],
+       rejection_confirmed: false, admission_unknown: false,
+       physical_watch: false, watch_error: nil}
     end
 
     def slot_for(id)
       id.nil? ? @save : (@attempt if @attempt && @attempt[:id].equal?(id))
+    end
+
+    # The optional callback proves refusal; errors and missing handles do not.
+    # A started worker or an actual returned handle always preserves its lane.
+    def submit_worker(id)
+      slot = @mutex.synchronize { slot_for(id) }
+      refusal = lambda do |_error|
+        @mutex.synchronize do
+          slot[:rejection_confirmed] = true if slot_for(id).equal?(slot)
+        end
+      end
+      task = Phronomy::Execution.submit_with_rejection_evidence(@environment,
+        on_full: :raise, on_rejected: refusal) do
+        @mutex.synchronize { slot[:started] = true }
+        result = yield
+        capture_worker(id, result, nil)
+        result
+      rescue Exception => error # rubocop:disable Lint/RescueException
+        capture_worker(id, nil, error)
+        raise
+      end
+      raise Phronomy::Error, "Workflow submission returned no task" unless task
+      @mutex.synchronize { slot[:task] = task }
+      task
+    rescue => error
+      @mutex.synchronize do
+        if slot && slot_for(id).equal?(slot)
+          refused = slot[:rejection_confirmed] && !slot[:started] && !slot[:task]
+          slot[:admission_unknown] = !refused
+          slot[:logical] = true
+          slot[:physical] = refused
+          slot[:error] = error
+        end
+      end
+      raise
     end
 
     def capture_worker(id, result, error)
@@ -259,6 +290,7 @@ module Phronomy
           @mutex.synchronize { slot_for(id)&.[]=(:physical, true) }
           signal(id)
         end
+        @mutex.synchronize { slot_for(id)&.[]=(:physical_watch, true) }
       end
       task.on_complete do |result, error|
         @mutex.synchronize do
@@ -274,6 +306,9 @@ module Phronomy
         end
         signal(id)
       end
+    rescue => error
+      @mutex.synchronize { slot_for(id)&.[]=(:watch_error, error) }
+      raise
     end
 
     def signal(id)
@@ -364,9 +399,18 @@ module Phronomy
         return observer.complete(unavailable_result(Phronomy::Error.new("Workflow retirement custody is not yet accepted")))
       end
       unless physical
-        return observer.complete(unavailable_result(Phronomy::Error.new("Original Workflow save is still physically active")))
+        return observer.complete(unavailable_result(Phronomy::Error.new("Original Workflow save has no physical completion proof")))
       end
       if active
+        refresh_slot(active[:id])
+        unknown, error, watch_error = @mutex.synchronize do
+          [active[:admission_unknown], active[:error],
+            (active[:watch_error] if !active[:physical_watch] && !active[:physical])]
+        end
+        if unknown
+          return observer.complete(unavailable_result(error))
+        end
+        return observer.complete(unavailable_result(watch_error)) if watch_error
         @mutex.synchronize { @attempt[:observers] << observer }
         finish_attempt(active[:id])
         return
@@ -385,14 +429,8 @@ module Phronomy
         @attempt = new_slot(id)
         @attempt[:observers] << observer
       end
-      task = @environment.submit(on_full: :raise) do
-        @mutex.synchronize { slot_for(id)&.[]=(:started, true) }
-        result = WorkflowTerminalPersistence.reconcile(@command, @original_error || @last_error)
-        capture_worker(id, result, nil)
-        result
-      rescue Exception => error # rubocop:disable Lint/RescueException
-        capture_worker(id, nil, error)
-        raise
+      task = submit_worker(id) do
+        WorkflowTerminalPersistence.reconcile(@command, @original_error || @last_error)
       end
       watch(task, id)
     rescue => error
@@ -404,8 +442,10 @@ module Phronomy
       end
       observers = @mutex.synchronize do
         if defined?(id) && id && @attempt && @attempt[:id].equal?(id)
-          values = @attempt[:observers]
-          @attempt = nil
+          values = @attempt[:observers].shift(@attempt[:observers].length)
+          # Unknown admission keeps the attempt even after all observers settle.
+          # A late worker result alone cannot prove physical executor completion.
+          @attempt = nil unless @attempt[:admission_unknown]
           values
         else
           [observer]

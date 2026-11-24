@@ -223,6 +223,37 @@ module Phronomy
         @mutex.synchronize { @evidence = value }
       end
 
+      # Readback and captured-write retry own the same physical lane as first
+      # submission. A lost handle cannot establish that their work was refused.
+      # This fact belongs to the attempt; it does not change submission_state,
+      # which describes the original terminal worker's admission.
+      def submit_recovery_worker(id, &work)
+        slot = @mutex.synchronize { slot_for(id) }
+        refusal = lambda do |_error|
+          @mutex.synchronize do
+            slot[:rejection_confirmed] = true if slot_for(id).equal?(slot)
+          end
+        end
+        task = Phronomy::Execution.submit_with_rejection_evidence(@environment, on_full: :raise, on_rejected: refusal) do
+          @mutex.synchronize { slot[:started] = true }
+          work.call
+        end
+        raise Phronomy::Error, "Agent terminal recovery submission returned no task handle" unless task
+        @mutex.synchronize { slot[:task] = task }
+        task
+      rescue => error
+        @mutex.synchronize do
+          if slot && slot_for(id).equal?(slot)
+            proven_refusal = slot[:rejection_confirmed] && !slot[:started] && !slot[:task]
+            slot[:admission_unknown] = !proven_refusal
+            slot[:logical] = true
+            slot[:physical] = proven_refusal
+            slot[:error] = error
+          end
+        end
+        raise
+      end
+
       def capture_outcome(value)
         @mutex.synchronize { @intended = value }
       end
@@ -392,8 +423,7 @@ module Phronomy
           @attempt = new_slot(id, kind)
           @attempt[:observers] << observer
         end
-        task = @environment.submit(on_full: :raise) do
-          @mutex.synchronize { slot_for(id)&.[]=(:started, true) }
+        task = submit_recovery_worker(id) do
           result = evidence.public_send(kind, persistence: persistence, original_error: @original_error)
           capture_worker(id, result, nil)
           result
@@ -403,7 +433,7 @@ module Phronomy
         end
         watch(task, id)
       rescue => error
-        if task
+        if task || (id && @mutex.synchronize { slot_for(id)&.fetch(:admission_unknown) })
           delivery_failed(id, error)
         else
           observers = close_attempt(defined?(id) && id)

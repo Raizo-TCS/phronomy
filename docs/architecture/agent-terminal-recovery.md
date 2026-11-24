@@ -276,3 +276,9 @@ The delivery's validation summary records measured test counts and limits. Requi
 | Unresolved shutdown | Cleanup could discard local Agent custody | Cleanup remains incomplete and the stopped original owner is not replaced. |
 
 Both canonical Contract diagrams require review for direction, responsibility, cycles and unjustified layer skipping. The source dependency graph has existing cycles; acyclicity of selected Contract diagrams is not a claim that all source files form a DAG. Public API snapshots, RBS, annotations, full changed-file English checks, archive integrity and actual bundle application are additional delivery checks, not substitutes for the lifecycle acceptance cases.
+
+## Preserve custody when submission is uncertain
+
+Terminal recovery retains the original owner whenever a submitted worker may still execute. Positive executor rejection, returned handles and physical completion remain separate from whether the caller received a response.
+
+For example, an adapter that queues a reconciliation read and then loses its handle must not permit a second read or release the owner. See [recovery submission custody](recovery-submission-custody.md) for the shared evidence rules, deliberate fault-behavior change, compatibility limits and validation scope.
