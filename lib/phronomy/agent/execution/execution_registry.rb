@@ -103,10 +103,10 @@ module Phronomy
           waiters = pending.delete(operation.execution_id)
           operation.retain_original_waiters(Array(waiters))
           diagnostic = operation.shutdown(failure)
-          settle_shutdown_waiters(waiters,
-            diagnostic.is_a?(Exception) ? diagnostic : failure, finish: false)
+          fail_shutdown_waiters(waiters,
+            diagnostic.is_a?(Exception) ? diagnostic : failure)
         end
-        pending.each_value { |waiters| settle_shutdown_waiters(waiters, failure) }
+        pending.each_value { |waiters| fail_shutdown_waiters(waiters, failure) }
       end
 
       # Retain custody before a terminal worker can start. Live Agent mutation
@@ -542,11 +542,11 @@ module Phronomy
           state.fsm_session_id.to_s == entry.fsm_session_id.to_s
       end
 
-      def settle_shutdown_waiters(waiters, error, finish: true)
-        Array(waiters).each do |waiter|
-          waiter.finish_operation! if finish && waiter.respond_to?(:finish_operation!)
-          waiter.fail(error)
-        end
+      # Stopped observation delivery is not domain-operation completion. Only a
+      # retained terminal owner with known quiescence may acknowledge its work;
+      # ordinary suspended executions keep their existing physical boundary.
+      def fail_shutdown_waiters(waiters, error)
+        Array(waiters).each { |waiter| waiter.fail(error) }
       end
 
       def complete_agent_physical_work(payload)

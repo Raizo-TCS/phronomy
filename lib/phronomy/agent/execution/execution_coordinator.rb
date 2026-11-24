@@ -1511,6 +1511,16 @@ module Phronomy
         waiters = terminal_waiters(environment, owner.execution_id, owner.delivery.result_task, registered: true)
         owner.retain_original_waiters(waiters)
         waiters.each { |task| task.fail(failure) }
+        begin
+          cause = failure.cause || failure
+          Phronomy::RuntimeSettings.current.logger&.warn(
+            "[Phronomy] Agent terminal durable outcome requires recovery for " \
+            "#{owner.execution_id}: #{cause.class}: #{cause.message}"
+          )
+        rescue
+          # Reporting cannot replace the recovery diagnostic or relinquish custody.
+          nil
+        end
       end
 
       # A recovery receipt is applied only to the exact retained incarnation.
@@ -1571,8 +1581,8 @@ module Phronomy
             [command.root.to_h, outcome.root.to_h].include?(current_root.to_h)
           raise Phronomy::Persistence::StateConflictError, "Agent live root or journal changed before terminal recovery apply"
         end
-        @agent.send(:_append_journal_records, outcome.appended_records) if current_records == before_records
-        @agent.__replace_root(outcome.root) if current_root.to_h != outcome.root.to_h
+        apply_agent_live_state(root: outcome.root,
+          appended_records: (current_records == before_records) ? outcome.appended_records : [])
         state.invocation&.acknowledge_runtime_snapshot(command.runtime_snapshot)
         environment.registry.replace_agent_execution(command.execution_id,
           execution: outcome.execution, fsm_session_id: state.fsm_session_id)

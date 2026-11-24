@@ -157,12 +157,16 @@ RSpec.describe "Agent terminal recovery custody" do
     expect(registry.owns_terminal_operation?(operation)).to be(true)
   end
 
-  it "cleans ordinary observations without creating terminal custody" do
+  it "fails an ordinary approval observation without completing its domain operation" do
     install
+    registry.replace_agent_execution(operation.execution_id,
+      execution: execution.dup.tap { |value| value.status = :suspended }, fsm_session_id: nil)
+    registry.mark_agent_execution_admission(agent.agent_id,
+      execution_id: operation.execution_id, state: :suspended)
     task = observer
     registry.shutdown(error: nil)
     expect { task.wait_result }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
-    expect(task).to be_physical_complete
+    expect(task).not_to be_physical_complete
     expect(registry).to be_idle
     expect(registry.agent_execution_owner(operation.execution_id)).to be_nil
     expect(registry.agent_execution_admitted?(agent.agent_id)).to be(false)

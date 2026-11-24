@@ -10,7 +10,7 @@ digraph AgentOwner {
   final [shape=doublecircle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
   initial -> Retained;
   Retained -> Retained [label="confirm pre / keep active job"];
-  Retained -> Applying [label="confirm post and exact owner / apply once"];
+  Retained -> Applying [label="confirm post, exact owner and physical quiet\n/ apply once"];
   Applying -> Released [label="physical quiet and exact post / release"];
   Retained -> StoppedRetained [label="stop / retain custody"];
   Applying -> StoppedRetained [label="stop before release"];
