@@ -66,6 +66,7 @@ RSpec.describe "Agent invocation transition contract" do
       tool_setup_failed: {dispatching_tools: :failed},
       tool_dispatch_prepared: {dispatching_tools: :evaluating_tools},
       resume: {suspended: :waiting_for_tools},
+      approval_resume_cancelled: {waiting_for_tools: :failed},
       application_callback_failed: %i[filtering_input building_context calling_llm
         starting_tools evaluating_tools waiting_for_tools dispatching_tools
         recording_tool_results output_filtering].to_h { |state| [state, :failed] }

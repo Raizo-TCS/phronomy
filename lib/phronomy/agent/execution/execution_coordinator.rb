@@ -1111,6 +1111,9 @@ module Phronomy
             execution_id: owner.execution_id, state: :executing)
           owner.application_applied!
         end
+        # Terminal publication may synchronously unload the Agent. Include the
+        # ordinary decision lease in the existing finish-all-waiters barrier.
+        registry.register_agent_completion_waiter(owner.execution_id, owner.request.result_task)
         registry.register_agent_completion_waiter(owner.execution_id, owner.continuation_task)
         owner.observe_continuation_once do
           request = owner.request.with(result_task: owner.continuation_task)
