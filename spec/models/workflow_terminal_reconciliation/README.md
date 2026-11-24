@@ -7,9 +7,10 @@ repeating the save or Workflow actions. Persistence fact, owner application,
 physical work, transport custody and application observation are separate state.
 
 For example, a save can commit after its logical observation has failed. A later
-read cannot establish noncommit until that original write physically ends. Once
-the exact post-state is confirmed, a context-construction error must preserve
-that fact and its outstanding owner responsibility.
+read can establish noncommit only with a backend settlement and read-ordering
+guarantee that excludes a subsequent commit by that original write. Once the
+exact post-state is confirmed, a context-construction error must preserve that
+fact and its outstanding owner responsibility.
 
 The [implementation contract](../../../docs/architecture/workflow-terminal-reconciliation.md)
 describes the Ruby API and supported profile. This model is bounded protocol
@@ -30,6 +31,7 @@ or that an accepted envelope proves the save committed.
 | --- | --- |
 | `obligationHeld` before the original write | `WorkflowTerminalOperation#start` installs the operation through `WorkflowExecutionRegistry#retain_terminal_operation` before submission. |
 | Original write, captured reply and physical return | `WorkflowTerminalPersistence::Command` captures the immutable snapshot/revision; `WorkflowTerminalPersistence.save` performs repository I/O. `WorkflowTerminalOperation#capture_worker` and `watch` retain its result and separate physical/logical task observations. |
+| `FinishOriginal` before `StartRead` | The modeled boundary assumes the original backend write has settled and cannot commit later. A local worker or TaskResult completion maps to this boundary only when the backend/adapter contract supplies that guarantee. |
 | `RetireRoute`, `AcceptCustody`, `DetachWaiter` | `WorkflowExecutionRegistry#adopt_retirement`, exact `ExecutionRetirement#accepted_by?`, and Engine retirement dispatch. |
 | `custodyRefused`, retained source waiter | EventLoop retains its unaccepted retirement, receiver and completion; cleanup cannot turn refusal into successful custody transfer. |
 | `ReportDeliveryFailure` | `fail_original` can fail the public observation after evidence is retained while Engine still owns its separate source completion. It does not fail or detach that source. |
@@ -57,6 +59,18 @@ N + 1 contract. `other` can represent a later equal snapshot: equality of values
 alone cannot identify the attempted write. The model assumes the declared host
 ownership and repository atomic/CAS contract; it does not implement distributed
 leases or establish arbitrary inter-process write history.
+
+There is a separate backend settlement and read-ordering premise.
+`CommitOriginal` is enabled only while `originalPhysical` is true;
+`FinishOriginal` permanently disables it. `ReadStorage` observes the current
+abstract storage state. Thus the model assumes that a reconciliation read is
+ordered after settlement of the attempted write and does not return an older
+replica view. Local `TaskResult` completion, local worker return and revision
+CAS do not, by themselves, establish either property. For example, if a network
+save returns an ambiguous failure, a read sees the pre-state, and the remote
+database can still commit that save afterward, `confirmed_pre` is not proven
+by this model. Such a backend requires independent settlement/ordering evidence;
+this slice does not add that evidence or claim support for that execution.
 
 Repository I/O and classification belong to `WorkflowTerminalPersistence`;
 scheduling, evidence capture and owner release belong to
@@ -124,8 +138,9 @@ expected temporal counterexample even though the correct saved state exists.
 | Missing read physical return | Classification and delivery fairness do not prove that a still-active read physically ended. |
 | Missing readable storage | A returned read failure does not become confirmed persistence merely because its task finished. |
 
-Weak fairness on `FinishOriginal` or `FinishRead` explicitly assumes the relevant
-operation returns. It is not a claim that CPU time preempts blocked I/O. No
+Weak fairness on `FinishOriginal` assumes eventual backend write settlement
+under the correspondence premise above; `FinishRead` assumes the read physically
+returns. Neither is a claim that CPU time preempts blocked I/O. No
 fairness is placed on ordinary `Request`. Most positive profiles supply the
 request as an initial premise. The paired physical-return profiles instead use
 `WF_s(SupplyAfterPhysical)` to assume caller reactivation after the write returns.
@@ -165,6 +180,9 @@ it model an arbitrary number of simultaneous callers.
 - Graph callbacks, arbitrary context constructors and physical task adapters
   are not implemented here. The model separates their effects and assumes
   accurate physical-completion declarations from the supported adapter.
+  Original-write settlement and ordered readback additionally require the
+  backend guarantee described above; local physical completion alone is
+  insufficient.
 - The model may publish read evidence before physical-end notification, while
   the implementation can impose a stronger physical/logical gate. Release must
   remain safe under either ordering.

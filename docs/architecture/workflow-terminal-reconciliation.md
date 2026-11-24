@@ -190,6 +190,18 @@ may still commit cannot be classified as absent merely because one observer
 timed out. Neither shutdown nor an unavailable result makes that inference.
 Later recovery does not rewrite a previously recorded incomplete shutdown result.
 Exclusive host ownership, the repository's monotonic revision/CAS contract and
-in-process reference retention remain prerequisites. Crash durability, remote
+in-process reference retention remain prerequisites. Pre-state confirmation also
+requires authoritative readback ordered after the original save has settled:
+that save must not be able to commit later. Local worker or TaskResult physical
+completion alone does not establish this remote-storage guarantee, and an
+eventually consistent replica is not authoritative readback. The existing
+repository capability flags do not certify either condition. A backend that can
+commit after returning an ambiguous failure requires separate settlement
+evidence or fencing before this profile's `confirmed_pre` result can be relied
+on. The in-memory fault tests exercise settled writes; remote adapters require
+their own acceptance tests. This implementation does not add that backend
+settlement protocol.
+
+Crash durability, remote
 request receipts, arbitrary competing writers, stopped-owner takeover and the
 remaining Agent recovery paths require separate work.
