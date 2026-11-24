@@ -1,0 +1,24 @@
+digraph ApprovalOwner {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.60", label="Original owner's approval recovery", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=12, margin="0.16,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  Pending [label="Recovery pending\napplication: pending\ncontinuation: pending", fillcolor="#fff0d8"];
+  Pre [label="confirmed_pre\napplication: pending\ncontinuation: pending"];
+  Post [label="confirmed_post\napplication: pending\ncontinuation: pending"];
+  Applied [label="confirmed_post\napplication: applied\ncontinuation: pending", fillcolor="#fff0d8"];
+  Restored [label="Same approval wait restored\napplication: applied\ncontinuation: restored", fillcolor="#e6f3e8"];
+  Resumed [label="Execution responsibility transferred\napplication: applied\ncontinuation: resumed", fillcolor="#e6f3e8"];
+  initial -> Pending [label="original decision observation failed"];
+  Pending -> Pending [label="no exact proof / retain custody\nunresolved or unavailable receipt"];
+  Pending -> Pre [label="fresh reconciliation\n[exact pre + workers quiet]"];
+  Pending -> Post [label="fresh reconciliation\n[exact post + workers quiet]"];
+  Pre -> Restored [label="restore original request\n/ reconnect cancellation"];
+  Post -> Applied [label="install saved projections\n/ retain completed steps"];
+  Applied -> Applied [label="partial admission / retain exact plan\n[unknown admission forbids replay]"];
+  Applied -> Resumed [label="[all sessions accepted]\nor [valid terminal handoff]"];
+  Restored -> Restored [label="repeat observation / same receipt"];
+  Resumed -> Resumed [label="repeat observation / fresh execution observer"];
+  {rank=same; Pre; Post;}
+  {rank=same; Restored; Resumed;}
+}

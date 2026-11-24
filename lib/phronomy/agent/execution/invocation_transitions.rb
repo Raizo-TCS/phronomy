@@ -68,6 +68,9 @@ module Phronomy
           resume: [
             {from: :suspended, to: :waiting_for_tools, guard: nil}
           ],
+          approval_resume_cancelled: [
+            {from: :waiting_for_tools, to: :failed, guard: nil}
+          ],
           application_callback_failed: [
             {from: :filtering_input, to: :failed, guard: nil},
             {from: :building_context, to: :failed, guard: nil},

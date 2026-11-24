@@ -29,7 +29,99 @@ module Phronomy
         persist_decision(execution, operation.root, request, operation.approved)
       end
 
+      # Captures one standalone decision without interpreting an ambiguous
+      # response. The execution owner retains the proof and decides when to read.
+      # @api private
+      def commit_retained(operation, on_evidence: nil, on_outcome: nil)
+        request = validated_approval_request(operation)
+        validate_retained_operation!(operation)
+        evidence = nil
+        result = persist_retained_decision(operation, request) { |captured| evidence = captured }
+      rescue => original_error
+        begin
+          publish_retained_evidence(evidence, on_evidence, on_outcome)
+        rescue
+          # A collector cannot replace the original persistence failure.
+          nil
+        end
+        raise original_error
+      else
+        publish_retained_evidence(evidence, on_evidence, on_outcome)
+        result
+      end
+
       private
+
+      def validate_retained_operation!(operation)
+        execution = operation.execution
+        unless operation.root.agent_id == @agent_id && execution.agent_id == @agent_id &&
+            operation.execution_id == execution.execution_id &&
+            operation.expected_execution_revision == execution.execution_revision &&
+            execution.status == :suspended && !operation.approval_request_id.empty? &&
+            [true, false].include?(operation.approved)
+          raise ArgumentError, "Retained approval does not match its suspended execution"
+        end
+        if execution.metadata["reservation"] || execution.metadata["execution_extension"] ||
+            execution.metadata["cancellation_requested"]
+          raise ArgumentError, "Retained approval requires an uncancelled standalone execution"
+        end
+      end
+
+      def persist_retained_decision(operation, request)
+        bytes = Phronomy::CanonicalJSON.dump(
+          "approval_request_id" => operation.approval_request_id,
+          "approved" => operation.approved
+        ).b.freeze
+        result = scope = nil
+        @persistence.transaction do |records, current_scope|
+          scope = current_scope
+          ApprovalPersistenceEvidence.require_outer_scope!(scope)
+          @persistence.guard_agents(scope, agent_ids: [@agent_id])
+          before = ApprovalPersistenceEvidence.read(persistence: @persistence,
+            agent_id: @agent_id, execution_id: operation.execution_id,
+            journal_position: operation.root.journal_position, scope: scope)
+          validate_retained_before!(operation, before)
+          decision_ref = records.contents.put(bytes,
+            canonicalization_version: Phronomy::CanonicalJSON::VERSION)
+          decision = approval_decision(operation.execution, operation.root, decision_ref)
+          execution = stage_recovery_snapshot(operation)
+          updated = resumed_execution(execution, request, operation.approved, decision)
+          root = resumed_root(operation.root)
+          result = Result.new(execution: updated, root: root)
+          evidence = ApprovalPersistenceEvidence.capture(persistence: @persistence,
+            before: before, outcome: result, decision: decision, decision_bytes: bytes)
+          yield evidence
+          records.executions.save(execution.execution_id,
+            expected_revision: operation.expected_execution_revision, execution: updated)
+          records.agents.save(@agent_id,
+            expected_revision: operation.root.agent_revision, root: root)
+          after = ApprovalPersistenceEvidence.read(persistence: @persistence,
+            agent_id: @agent_id, execution_id: operation.execution_id,
+            journal_position: operation.root.journal_position, scope: scope)
+          unless after == evidence.after && records.contents.fetch(decision_ref) == bytes
+            raise Phronomy::Persistence::StateConflictError, "Approval write differs from its captured proof"
+          end
+        end
+        unless scope&.committed?
+          raise Phronomy::Persistence::TransactionError, "Approval decision has not committed its outer scope"
+        end
+        result
+      end
+
+      def validate_retained_before!(operation, before)
+        snapshot = before.fetch(:agent)
+        unless snapshot.fetch(0) == operation.root.to_h && snapshot.fetch(1) == operation.execution.to_h &&
+            before.fetch(:journal_head) == operation.root.journal_position && snapshot.fetch(2).empty? &&
+            !snapshot.fetch(4)
+          raise Phronomy::Persistence::StateConflictError, "Suspended approval changed before its decision"
+        end
+      end
+
+      def publish_retained_evidence(evidence, collector, outcome_collector)
+        return unless evidence
+        outcome_collector&.call(evidence.outcome)
+        collector&.call(evidence)
+      end
 
       def validated_approval_request(operation)
         request = operation.execution.approval_request || {}
@@ -65,6 +157,10 @@ module Phronomy
           "approval_request_id" => (request["id"] || request[:id]).to_s,
           "approved" => approved
         )
+        approval_decision(execution, root, decision_ref)
+      end
+
+      def approval_decision(execution, root, decision_ref)
         JournalRecord.new(
           agent_id: @agent_id,
           execution_id: execution.execution_id,
@@ -77,12 +173,7 @@ module Phronomy
       end
 
       def save_resumed_execution(tx, current, request, approved, decision)
-        updated = current.with(
-          status: :active,
-          phase: :resuming,
-          working_records: current.working_records + [decision],
-          approval_request: request.merge("approved" => approved)
-        )
+        updated = resumed_execution(current, request, approved, decision)
         tx.executions.save(
           current.execution_id,
           expected_revision: current.execution_revision,
@@ -92,16 +183,23 @@ module Phronomy
       end
 
       def save_resumed_root(tx, current)
-        updated = current.with(
-          agent_revision: current.agent_revision + 1,
-          lifecycle_status: :active
-        )
+        updated = resumed_root(current)
         tx.agents.save(
           current.agent_id,
           expected_revision: current.agent_revision,
           root: updated
         )
         updated
+      end
+
+      def resumed_execution(current, request, approved, decision)
+        current.with(status: :active, phase: :resuming,
+          working_records: current.working_records + [decision],
+          approval_request: request.merge("approved" => approved))
+      end
+
+      def resumed_root(current)
+        current.with(agent_revision: current.agent_revision + 1, lifecycle_status: :active)
       end
     end
   end

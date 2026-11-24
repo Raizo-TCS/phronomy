@@ -1,0 +1,486 @@
+{
+  "scope": "Original-owner standalone approval proof, partial application, stable session admission, cancellation transfer, and independent observation",
+  "cases": [
+    {
+      "id": "safety-post",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "all",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-pre",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "pre",
+        "Approved": true,
+        "Fault": "all",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-rejected",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-divergent",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "divergent",
+        "Approved": true,
+        "Fault": "all",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-unknown-admission",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "after_registration",
+        "FreshCaller": true,
+        "AdmissionQuery": false,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-observers",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "post-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "pre-cancellation-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved",
+        "RestoredCancellationEventuallyHandled"
+      ],
+      "constants": {
+        "Outcome": "pre",
+        "Approved": true,
+        "Fault": "cancel",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "refusal-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "refused",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "partial-install-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "install_interruption",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "partial-registration-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "after_registration",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "refused-registration-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "before_registration",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "bug-revision-only",
+      "kind": "mutation",
+      "target": "CompleteEvidence",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "divergent",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "revision_only"
+      }
+    },
+    {
+      "id": "bug-parent-only",
+      "kind": "mutation",
+      "target": "ContinuationComplete",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "parent_is_resumed"
+      }
+    },
+    {
+      "id": "bug-restart-partial-plan",
+      "kind": "mutation",
+      "target": "SingleRegistration",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "restart_plan"
+      }
+    },
+    {
+      "id": "bug-absence-replay",
+      "kind": "mutation",
+      "target": "NoEffectReplay",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "absent_is_unadmitted"
+      }
+    },
+    {
+      "id": "bug-drop-cancellation",
+      "kind": "mutation",
+      "target": "WaitCancellationConnected",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "pre",
+        "Approved": true,
+        "Fault": "cancel",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "drop_cancellation"
+      }
+    },
+    {
+      "id": "bug-unknown-cleanup",
+      "kind": "mutation",
+      "target": "CustodyUntilHandoff",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "lost_save_handle",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "unknown_cleanup"
+      }
+    },
+    {
+      "id": "bug-reopen-original",
+      "kind": "mutation",
+      "target": "ClosedOriginalStaysClosed",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "reopen_original"
+      }
+    },
+    {
+      "id": "bug-shared-observer",
+      "kind": "mutation",
+      "target": "IndependentObservers",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": true,
+        "Bug": "shared_observer"
+      }
+    },
+    {
+      "id": "bug-stale-owner",
+      "kind": "mutation",
+      "target": "ExactOwnerMutation",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "owner_change",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "stale_owner"
+      }
+    },
+    {
+      "id": "witness-pre-restoration",
+      "kind": "witness",
+      "target": "NoPreRestoreWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "pre",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-restored-cancellation",
+      "kind": "witness",
+      "target": "NoRestoredCancellationWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "pre",
+        "Approved": true,
+        "Fault": "cancel",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-partial-plan",
+      "kind": "witness",
+      "target": "NoPartialPlanWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-terminal-handoff",
+      "kind": "witness",
+      "target": "NoTerminalHandoffWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "cancel",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-late-unknown",
+      "kind": "witness",
+      "target": "NoLateUnknownWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "lost_save_handle",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-independent-observers",
+      "kind": "witness",
+      "target": "NoIndependentCompletionWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": true,
+        "AdmissionQuery": true,
+        "ObserveClients": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-fresh-caller",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "none",
+        "FreshCaller": false,
+        "AdmissionQuery": true,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-admission-query",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Outcome": "post",
+        "Approved": true,
+        "Fault": "after_registration",
+        "FreshCaller": true,
+        "AdmissionQuery": false,
+        "ObserveClients": false,
+        "Bug": "none"
+      }
+    }
+  ]
+}

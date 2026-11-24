@@ -1,0 +1,52 @@
+module Phronomy
+  module Agent
+    class ApprovalRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader approval_request_id: String
+      attr_reader recovery_id: String
+      attr_reader approved: bool
+    end
+
+    class ApprovalRecoveryError < Phronomy::Error
+      attr_reader recovery: ApprovalRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader approval_request_id: String
+      attr_reader recovery_id: String
+      attr_reader approved: bool
+      attr_reader original_error: Exception?
+      def cause: () -> Exception?
+
+      private
+
+      def initialize: (recovery: ApprovalRecovery, error: Exception?, ?original_error: Exception?) -> void
+    end
+
+    class ApprovalRecoveryResult
+      attr_reader recovery: ApprovalRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader approval_request_id: String
+      attr_reader recovery_id: String
+      attr_reader approved: bool
+      attr_reader outcome: :confirmed_pre | :confirmed_post | :unresolved | :unavailable
+      attr_reader application_state: :pending | :applied
+      attr_reader continuation_state: :pending | :restored | :resumed
+      attr_reader revision: Integer?
+      attr_reader execution_task: TaskResult[execution_result]?
+      attr_reader error: Exception?
+      def physical_complete?: () -> bool
+      def resolved?: () -> bool
+
+      private
+
+      def initialize: (recovery: ApprovalRecovery,
+        outcome: :confirmed_pre | :confirmed_post | :unresolved | :unavailable,
+        application_state: :pending | :applied,
+        continuation_state: :pending | :restored | :resumed,
+        physical_complete: bool,
+        ?revision: Integer?, ?execution_task: TaskResult[execution_result]?, ?error: Exception?) -> void
+    end
+  end
+end

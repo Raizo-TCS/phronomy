@@ -1000,6 +1000,7 @@ module Phronomy
         end
 
         operation = capture_approval_resume(state, request)
+        retained_approval = retained_approval_eligible?(state, request)
         resume_transition_started = false
         submitted = false
         begin
@@ -1014,6 +1015,12 @@ module Phronomy
         end
         suspended_cancellation = clear_suspended_cancellation
         resume_transition_started = true
+        if retained_approval
+          return ApprovalRecoveryOperation.new(agent: @agent, coordinator: self,
+            environment: environment, command: operation, request: request,
+            invocation: state.invocation, suspended_cancellation: suspended_cancellation,
+            committer: @approval_resume_commit).start
+        end
         task = environment.submit(on_full: :raise) do
           @approval_resume_commit.commit(operation)
         end
@@ -1043,6 +1050,79 @@ module Phronomy
         end
         fail_task(request.result_task, error)
         raise unless resume_transition_started
+      end
+
+      # Only an installed standalone wait carries the original invocation and
+      # cancellation authority needed for this process-local recovery operation.
+      def retained_approval_eligible?(state, request)
+        binding = @suspended_cancellation
+        state.invocation && state.fsm_session_id.nil? && binding &&
+          binding[0].to_s == state.execution_id.to_s && binding[1].equal?(state.invocation) &&
+          !(request.result_task.is_a?(ApprovalOperation) && request.result_task.parent_wait) &&
+          !state.execution.metadata["reservation"] && !state.execution.metadata["execution_extension"] &&
+          !state.invocation.config[:phronomy_execution_participant]
+      end
+
+      def approval_recovery_failed_on_event_loop(owner, _failure)
+        environment = owner.environment
+        assert_event_loop!(environment)
+        return unless environment.registry.owns_approval_operation?(owner)
+        environment.registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :recovery_required)
+      end
+
+      def restore_retained_approval_on_event_loop(owner)
+        environment = owner.environment
+        registry = environment.registry
+        assert_event_loop!(environment)
+        state = registry.agent_execution_state(owner.execution_id)
+        unless registry.owns_approval_operation?(owner) && state.fsm_session_id.nil? &&
+            state.execution.to_h == owner.command.execution.to_h &&
+            @agent.send(:__root_for_operation).to_h == owner.command.root.to_h
+          raise Phronomy::Persistence::StateConflictError, "Original approval wait changed before restoration"
+        end
+        registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :suspended)
+        bind_suspended_cancellation(*owner.suspended_cancellation.first(3))
+        owner.application_applied!
+        owner.continuation_completed!(:restored)
+      end
+
+      def apply_retained_approval_on_event_loop(owner, outcome)
+        environment = owner.environment
+        registry = environment.registry
+        assert_event_loop!(environment)
+        state = registry.agent_execution_state(owner.execution_id)
+        unless registry.owns_approval_operation?(owner) && state.invocation.equal?(owner.invocation)
+          raise Phronomy::Error, "Original approval continuation owner changed"
+        end
+        plan = owner.prepare_continuation
+        unless state.fsm_session_id.nil? || state.fsm_session_id.to_s == plan.parent_id.to_s
+          raise Phronomy::Error, "Original approval continuation session changed"
+        end
+        unless owner.applied?
+          unless [owner.command.execution.to_h, outcome.execution.to_h].include?(state.execution.to_h) &&
+              [owner.command.root.to_h, outcome.root.to_h].include?(@agent.send(:__root_for_operation).to_h)
+            raise Phronomy::Persistence::StateConflictError, "Agent live approval pre/post state changed"
+          end
+          apply_agent_live_state(root: outcome.root, appended_records: [])
+          registry.replace_agent_execution(owner.execution_id, execution: outcome.execution)
+          registry.mark_agent_execution_admission(@agent.agent_id,
+            execution_id: owner.execution_id, state: :executing)
+          owner.application_applied!
+        end
+        registry.register_agent_completion_waiter(owner.execution_id, owner.continuation_task)
+        owner.observe_continuation_once do
+          request = owner.request.with(result_task: owner.continuation_task)
+          ready = ResumeCommitReady.new(coordinator: self, request: request,
+            operation: owner.command, result: outcome, error: nil)
+          observe_resumed_execution(ready, state)
+        end
+        registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :executing)
+        plan.resume
+        owner.continuation_completed!(:resumed) if plan.complete?
+        owner.continue_terminal_if_ready
       end
 
       def capture_approval_resume(state, request)
@@ -1272,6 +1352,14 @@ module Phronomy
             result_task,
             Phronomy::Error.new("stale Agent terminal callback for #{execution_id}")
           )
+        end
+
+        if (approval_owner = environment.registry.approval_operation(execution_id))
+          handed_off = approval_owner.parent_finished(fsm_session_id) do
+            finish_on_event_loop(execution_id, result_task, invocation, error,
+              fsm_session_id: fsm_session_id)
+          end
+          return unless handed_off
         end
 
         terminal_error = error || invocation&.error
