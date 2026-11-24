@@ -1,0 +1,23 @@
+digraph ApprovalClient {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.45", ranksep="0.55", label="One client's fresh recovery observation", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=12, margin="0.16,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  Awaiting [label="Awaiting recovery receipt"];
+  Received [label="Recovery receipt observed\nresolved or still pending"];
+  Closed [label="Recovery observation closed", fillcolor="#f4ecec"];
+  Execution [label="Observing fresh execution_task"];
+  Completed [label="Execution observation complete\nsuccess or failure", fillcolor="#e6f3e8"];
+  ExecutionClosed [label="Execution observation closed", fillcolor="#f4ecec"];
+  final [shape=doublecircle, label="", width=0.18, height=0.18, fillcolor="#263d4b", fixedsize=true];
+  initial -> Awaiting [label="reconcile_approval_async / new observer"];
+  Awaiting -> Received [label="owner publishes receipt"];
+  Awaiting -> Closed [label="caller cancels observation\n/ owner work unchanged"];
+  Received -> Execution [label="[continuation = resumed]\n/ observe returned execution_task"];
+  Received -> final [label="[no execution_task] or caller stops here"];
+  Closed -> final;
+  Execution -> Completed [label="canonical execution completes"];
+  Execution -> ExecutionClosed [label="caller cancels observation\n/ other observers unchanged"];
+  Completed -> final;
+  ExecutionClosed -> final;
+}

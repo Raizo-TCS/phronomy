@@ -56,6 +56,7 @@ module Phronomy
         @agent_inflight_work = Hash.new { |hash, key| hash[key] = {} }
         @agent_deferred_terminals = {}
         @terminal_operations = {}
+        @approval_operations = {}
       end
 
       def post(command, admission: false, completion: nil)
@@ -67,7 +68,8 @@ module Phronomy
         case command
         when PhysicalCompletion
           complete_agent_physical_work(command)
-        when TerminalRecoveryOperation::Observe, TerminalRecoveryOperation::Ready
+        when TerminalRecoveryOperation::Observe, TerminalRecoveryOperation::Ready,
+            ApprovalRecoveryOperation::Observe, ApprovalRecoveryOperation::Ready
           command.operation.deliver(command)
         else
           command.coordinator.deliver_on_event_loop(command)
@@ -78,7 +80,7 @@ module Phronomy
       def idle?
         @agent_inflight_work.values.all?(&:empty?) &&
           @agent_deferred_terminals.empty? &&
-          @terminal_operations.empty? &&
+          @terminal_operations.empty? && @approval_operations.empty? &&
           !agent_admission_transition_in_progress_locked?
       end
 
@@ -86,13 +88,14 @@ module Phronomy
       # after that thread has joined. Task callbacks run outside the lifecycle lock.
       def shutdown(error:)
         pending, retained = synchronize do
+          retained_ids = @terminal_operations.keys | @approval_operations.keys
           waiters = @agent_completion_waiters.dup
           @agent_completion_waiters.clear
-          @agent_inflight_work.delete_if { |id, _work| !@terminal_operations.key?(id) }
-          @agent_deferred_terminals.delete_if { |id, _command| !@terminal_operations.key?(id) }
-          @agent_admissions.delete_if { |_id, admission| !@terminal_operations.key?(admission.execution_id) }
-          @agent_executions.delete_if { |id, _state| !@terminal_operations.key?(id) }
-          [waiters, @terminal_operations.values.map(&:operation)]
+          @agent_inflight_work.delete_if { |id, _work| !retained_ids.include?(id) }
+          @agent_deferred_terminals.delete_if { |id, _command| !retained_ids.include?(id) }
+          @agent_admissions.delete_if { |_id, admission| !retained_ids.include?(admission.execution_id) }
+          @agent_executions.delete_if { |id, _state| !retained_ids.include?(id) }
+          [waiters, (@terminal_operations.values + @approval_operations.values).map(&:operation)]
         end
 
         failure = error || Phronomy::ExecutionRehydrationRequiredError.new(
@@ -165,7 +168,7 @@ module Phronomy
           key = operation.execution_id.to_s
           work = @agent_inflight_work.fetch(key, nil)
           next false if work && !work.empty?
-          next false if @agent_deferred_terminals.key?(key)
+          next false if @agent_deferred_terminals.key?(key) || @approval_operations.key?(key)
 
           entry = @terminal_operations.delete(key)
           @agent_inflight_work.delete(key)
@@ -175,6 +178,51 @@ module Phronomy
         end
         operation.released if released
         released
+      end
+
+      # Approval decision custody ends at restored waiting or accepted continuation;
+      # it never releases the Agent execution's admission.
+      def retain_approval_operation(operation)
+        assert_event_loop_thread!
+        key = operation.execution_id.to_s
+        synchronize do
+          state = @agent_executions[key]
+          admission = @agent_admissions[operation.agent_id.to_s]
+          unless state && state.agent.equal?(operation.agent) && state.coordinator.equal?(operation.coordinator) &&
+              state.execution.execution_revision == operation.command.expected_execution_revision &&
+              state.invocation.equal?(operation.invocation) && state.fsm_session_id.nil? &&
+              admission&.execution_id == key && !@approval_operations.key?(key)
+            raise Phronomy::Error, "Agent approval decision has no unique matching owner"
+          end
+          @approval_operations[key] = TerminalOperationEntry.new(operation: operation,
+            agent: state.agent, coordinator: state.coordinator, owner_token: admission.owner_token,
+            agent_id: admission.agent_id, execution_id: key.freeze, fsm_session_id: nil)
+        end
+        operation
+      end
+
+      def approval_operation(execution_id)
+        synchronize { @approval_operations[execution_id.to_s]&.operation }
+      end
+
+      def owns_approval_operation?(operation)
+        synchronize { owns_approval_operation_locked?(operation) }
+      end
+
+      def pending_agent_approval_recovery(execution_id, agent:)
+        entry = synchronize { @approval_operations[execution_id.to_s] }
+        entry.operation.recovery if entry&.agent&.equal?(agent) && entry.operation.pending?
+      end
+
+      def resolve_approval_operation(operation)
+        assert_event_loop_thread!
+        return false unless operation.resolution_permitted?
+        synchronize do
+          next false unless owns_approval_operation_locked?(operation)
+          @approval_operations.delete(operation.execution_id.to_s)
+          operation.resolution_released!
+          true
+        end
       end
 
       # Process-local read-only admission check used by destructive Agent lifecycle
@@ -301,7 +349,7 @@ module Phronomy
             false
           end
           next false unless authoritative
-          next false if @terminal_operations.key?(current.execution_id)
+          next false if @terminal_operations.key?(current.execution_id) || @approval_operations.key?(current.execution_id)
 
           @agent_admissions.delete(key)
           true
@@ -512,7 +560,7 @@ module Phronomy
         assert_event_loop_thread!
         key = execution_id.to_s
         synchronize do
-          if @terminal_operations.key?(key)
+          if @terminal_operations.key?(key) || @approval_operations.key?(key)
             raise Phronomy::Error, "Agent execution #{key.inspect} requires terminal operation release"
           end
           work = @agent_inflight_work.fetch(key, nil)
@@ -530,6 +578,16 @@ module Phronomy
       end
 
       private
+
+      def owns_approval_operation_locked?(operation)
+        entry = @approval_operations[operation.execution_id.to_s]
+        return false unless entry&.operation&.equal?(operation)
+        admission = @agent_admissions[entry.agent_id]
+        state = @agent_executions[entry.execution_id]
+        admission&.owner_token&.equal?(entry.owner_token) && admission.execution_id == entry.execution_id &&
+          state&.agent&.equal?(entry.agent) && state.coordinator.equal?(entry.coordinator) &&
+          state.invocation.equal?(operation.invocation)
+      end
 
       def owns_terminal_operation_locked?(operation)
         entry = @terminal_operations[operation.execution_id.to_s]

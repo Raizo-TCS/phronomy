@@ -168,6 +168,11 @@ module Phronomy
       end
 
       def handle_fsm_event(event)
+        if event.type == :approval_resume_cancelled
+          @error ||= event.payload.fetch(:error)
+          return true
+        end
+
         if event.type == :llm_stream_chunk
           payload = event.payload || {}
           return :consume unless current_llm_result_authoritative?(payload[:llm_call_id])

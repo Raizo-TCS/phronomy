@@ -127,6 +127,9 @@ module Phronomy
       def retry_terminal: (recovery: TerminalRecovery) -> TerminalRecoveryResult
       def retry_terminal_submission_async: (recovery: TerminalRecovery) -> TaskResult[TerminalRecoveryResult]
       def retry_terminal_submission: (recovery: TerminalRecovery) -> TerminalRecoveryResult
+      def pending_approval_recovery: (execution_id: String) -> ApprovalRecovery?
+      def reconcile_approval_async: (recovery: ApprovalRecovery) -> TaskResult[ApprovalRecoveryResult]
+      def reconcile_approval: (recovery: ApprovalRecovery) -> ApprovalRecoveryResult
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       # Public operation methods no longer accept per-invocation event listeners

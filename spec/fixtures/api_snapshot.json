@@ -277,9 +277,12 @@
       "invoke_async",
       "journal_projection",
       "knowledge_snapshot",
+      "pending_approval_recovery",
       "pending_terminal_recovery",
       "persistence",
       "purge!",
+      "reconcile_approval",
+      "reconcile_approval_async",
       "reconcile_terminal",
       "reconcile_terminal_async",
       "reset_context!",
@@ -457,6 +460,67 @@
       "recovery_id",
       "revision",
       "submission_state"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ApprovalRecovery",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "approval_request_id",
+      "approved",
+      "execution_id",
+      "recovery_id"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ApprovalRecoveryError",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "approval_request_id",
+      "approved",
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "execution_id",
+      "full_message",
+      "message",
+      "original_error",
+      "recovery",
+      "recovery_id",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::ApprovalRecoveryResult",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "application_state",
+      "approval_request_id",
+      "approved",
+      "continuation_state",
+      "error",
+      "execution_id",
+      "execution_task",
+      "outcome",
+      "physical_complete?",
+      "recovery",
+      "recovery_id",
+      "resolved?",
+      "revision"
     ],
     "public_class_methods": []
   },
@@ -1160,9 +1224,12 @@
       "invoke_async",
       "journal_projection",
       "knowledge_snapshot",
+      "pending_approval_recovery",
       "pending_terminal_recovery",
       "persistence",
       "purge!",
+      "reconcile_approval",
+      "reconcile_approval_async",
       "reconcile_terminal",
       "reconcile_terminal_async",
       "reset_context!",

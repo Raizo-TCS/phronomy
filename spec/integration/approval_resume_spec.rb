@@ -284,7 +284,13 @@ RSpec.describe "Agent cancellation while suspended", :integration do
     task = agent.invoke_async("request", config: {cancellation_token: token})
     request = Timeout.timeout(5) { queue.pop }
     environment = agent.__execution_environment
-    allow(environment).to receive(:submit).and_raise(Phronomy::Error, "queue full")
+    rejection = Phronomy::Error.new("queue full")
+    allow(environment).to receive(:submit) do |on_rejected:, **_options|
+      # A known full queue reports non-admission before raising. An exception
+      # alone would leave the save's acceptance unknown and retain recovery.
+      on_rejected.call(rejection)
+      raise rejection
+    end
     response = agent.approve_async(request.execution_id, approval_request_id: request.id, approved: true)
     expect { response.wait_result(timeout: 5) }.to raise_error(Phronomy::Error, "queue full")
     allow(environment).to receive(:submit).and_call_original
