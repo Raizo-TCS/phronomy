@@ -37,7 +37,8 @@ tracking `main` directly.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
 
-The following table describes the application APIs available in v0.37.0.
+The following table describes application APIs in v0.37.0 and the current
+development version. Entries marked Unreleased are not available in v0.37.0.
 The public persistence resource catalogs are available starting with v0.35.0.
 The sharing, Tool composition and Context budgeting operations remain
 Experimental; their introduction version is shown below.
@@ -70,6 +71,7 @@ the current saved representation.
 | `Agent::ExecutionRejectedError` and Team rejection handling | Beta (Unreleased) | Distinguish reserved-start validation rejection from uncertain execution outcomes. Team validates durable input before admission and records a confirmed child-start rejection as its own failure after a guarded absence check; [rejection contract](docs/architecture/team-admission-rejection.md) |
 | `MultiAgent::TeamCoordinator#invoke / #stream / #resume / #result` | Beta | Terminal runs retire internally owned child Agents after physical work completes; saved outcomes remain authoritative. `result` stays read-only and terminal `resume` can retry failed retirement. Automatic retirement is Unreleased; [child lifetime](docs/architecture/team-child-retirement.md) |
 | `MultiAgent::TeamCancellationDeliveryError` | Beta (Unreleased) | Exact Team/run identities for unresolved token-originated cancellation delivery. Retained intent can be retried with the same run's `resume` or `cancel`; [control delivery and lifetime](docs/architecture/team-cancellation-delivery.md). |
+| Agent `pending_terminal_recovery(execution_id:)`, `reconcile_terminal[_async](recovery:)`, `retry_terminal[_async](recovery:)`, `Agent::TerminalRecovery`, `Agent::TerminalRecoveryResult` and `Agent::TerminalRecoveryError` | Unreleased | Observe retained terminal saves on the original running or draining Runtime. Reconciliation performs no persistence writes; explicit retry saves captured records without replaying application work. Saved outcome, owner application and release remain separate; no stopped-owner or process-crash recovery. [Recovery contract](docs/architecture/agent-terminal-recovery.md) |
 | Agent `transcript_messages` / `transcript_messages_async` | Beta | Read immutable conversation Message values with the same restoration rules as execution results; [reading conversation state](docs/getting-started.md) |
 | `Phronomy::GeneratorVerifier`, its approval/lifetime operations and immutable `Result` with output-failure diagnostics | Beta | [Generation and structured-output contract](docs/architecture/structured-output-and-scope.md) |
 | `Agent.open_scope`, `Agent::Scope`, `Agent::Base#unload_async / #unload!`, `AgentUnloadedError` and `Agent::ScopeCleanupError` | Beta | Runtime-bound ownership and safe release of idle Agent incarnations without changing saved history or closing the Store; [contract](docs/architecture/dx05-agent-scope.md) |
