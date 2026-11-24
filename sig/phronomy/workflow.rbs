@@ -2,6 +2,44 @@ module Phronomy
   class WorkflowTaskResumeError < Error
     def initialize: (?String message, ?code: String?) -> void
   end
+
+  class WorkflowTerminalRecovery
+    def workflow_instance_id: () -> String
+    def recovery_id: () -> String
+  end
+
+  class WorkflowTerminalRecoveryError < Error
+    attr_reader recovery: WorkflowTerminalRecovery
+    attr_reader workflow_instance_id: String
+    attr_reader recovery_id: String
+    attr_reader original_error: Exception?
+    def cause: () -> Exception?
+
+    private
+
+    def initialize: (recovery: WorkflowTerminalRecovery, error: Exception?, ?original_error: Exception?) -> void
+  end
+
+  class WorkflowTerminalRecoveryResult
+    attr_reader recovery: WorkflowTerminalRecovery
+    attr_reader workflow_instance_id: String
+    attr_reader recovery_id: String
+    attr_reader outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable
+    attr_reader application_state: :pending | :applied
+    attr_reader ownership_state: :retained | :released
+    attr_reader revision: Integer?
+    attr_reader context: untyped
+    attr_reader error: Exception?
+
+    private
+
+    def initialize: (recovery: WorkflowTerminalRecovery,
+      outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable,
+      application_state: :pending | :applied,
+      ownership_state: :retained | :released,
+      ?revision: Integer?, ?context: untyped, ?error: Exception?) -> void
+  end
+
   module WorkflowContext
     def phase: () -> Symbol
     def halted?: () -> bool
@@ -19,6 +57,9 @@ module Phronomy
     def resume: (state: untyped, ?input: untyped) -> untyped
     def send_event: (state: untyped, event: Symbol, ?input: untyped) -> untyped
     def send_saved_event: (workflow_instance_id: String, expected_revision: Integer, event: Symbol, ?input: untyped) -> untyped
+    def reconcile_terminal_async: (recovery: WorkflowTerminalRecovery) -> TaskResult[WorkflowTerminalRecoveryResult]
+    def reconcile_terminal: (recovery: WorkflowTerminalRecovery) -> WorkflowTerminalRecoveryResult
+    def pending_terminal_recovery: (workflow_instance_id: String) -> WorkflowTerminalRecovery?
     def signal: (workflow_instance_id: String, event: Symbol, ?payload: untyped) -> bool
 
     class Builder

@@ -12,7 +12,7 @@ module Phronomy
     end
 
     def start(terminal_type:, context:, event_sink:)
-      @persist.call(terminal_type: terminal_type, context: context, event_sink: event_sink)
+      @operation = @persist.call(terminal_type: terminal_type, context: context, event_sink: event_sink)
     end
 
     def handles?(event)
@@ -21,6 +21,7 @@ module Phronomy
 
     def decision_for(event)
       result = event.payload
+      @operation.accept_terminal_result(result) if @operation.is_a?(Phronomy::WorkflowTerminalOperation)
       case result.outcome
       when :success
         Phronomy::TerminalDecision.new(action: :complete, error: nil)

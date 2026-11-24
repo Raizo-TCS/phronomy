@@ -30,10 +30,11 @@ module Phronomy
       :repository,
       :persist,
       :expected_revision,
-      :cancellation_token
+      :cancellation_token,
+      :result_task
     ) do
-      def initialize(cancellation_token: nil, **fields)
-        super(**fields, cancellation_token: cancellation_token)
+      def initialize(cancellation_token: nil, result_task: nil, **fields)
+        super(**fields, cancellation_token: cancellation_token, result_task: result_task)
       end
     end
 
@@ -62,16 +63,9 @@ module Phronomy
 
     # EventLoop -> Offload operation-specific immutable/value snapshots.
     WorkflowLoadCommand = Data.define(:repository, :workflow_instance_id)
-    WorkflowTerminalPersistenceCommand = Data.define(
-      :repository,
-      :workflow_instance_id,
-      :expected_revision,
-      :snapshot
-    )
 
     # Offload -> EventLoop/FSMSession operation results.
     WorkflowLoadResult = Data.define(:repository, :snapshot, :revision)
-    WorkflowTerminalPersistenceResult = Data.define(:outcome, :revision, :error)
 
     StartLoadReady = Data.define(:runner, :request, :result, :error)
     ResumeLoadReady = Data.define(:runner, :request, :result, :error)
@@ -99,6 +93,7 @@ module Phronomy
       @wait_state_names = wait_state_names
       @task_states = task_states
       @persistence = persistence
+      @recovery_identity = Object.new.freeze
       @environment = WorkflowExecutionEnvironment.current
       @phase_machine_class = @environment.compile_transitions(
         entry_point: @entry_point,
@@ -118,6 +113,32 @@ module Phronomy
 
     def invoke_deferred(input, config: {})
       start_new_execution(input, config)
+    end
+
+    def reconcile_terminal_async(recovery:)
+      unless recovery.is_a?(Phronomy::WorkflowTerminalRecovery)
+        raise ArgumentError, "recovery must be a WorkflowTerminalRecovery"
+      end
+      operation = recovery.send(:operation)
+      unless operation.is_a?(Phronomy::WorkflowTerminalOperation) &&
+          operation.recovery.equal?(recovery) && operation.belongs_to?(@recovery_identity)
+        raise ArgumentError, "recovery belongs to another Workflow"
+      end
+      operation.observe
+    end
+
+    def reconcile_terminal(recovery:)
+      ensure_blocking_call_allowed!(:reconcile_terminal, :reconcile_terminal_async)
+      reconcile_terminal_async(recovery: recovery).wait_result
+    end
+
+    def pending_terminal_recovery(workflow_instance_id:)
+      unless workflow_instance_id.is_a?(String) && !workflow_instance_id.empty?
+        raise ArgumentError, "workflow_instance_id must be a nonempty String"
+      end
+      @environment.existing_registry&.pending_terminal_recovery(
+        workflow_instance_id, runner_identity: @recovery_identity
+      )
     end
 
     def stream(input, config: {}, &observer)
@@ -624,6 +645,7 @@ module Phronomy
       stable_observer: nil
     )
       assert_execution_owner!
+      execution = execution.with(result_task: result_task)
       task_execution = unless @task_states.empty?
         WorkflowTaskExecution.new(definitions: @task_states, registry: @environment.registry,
           environment: @environment, owner_token: execution.owner_token, result_task: result_task,
@@ -670,6 +692,15 @@ module Phronomy
     # accepted the durable terminal result (when a durable barrier is required).
     def finalize_execution(execution:, result_task:, result:, error:, task_execution: nil)
       assert_execution_owner!
+      operation = @environment.registry.terminal_operation(execution.owner_token)
+      if operation
+        operation.confirm_retirement(result) if result.is_a?(Phronomy::ExecutionRetirement)
+        unless operation.normal_finalization?
+          operation.fail_original(error || (result.error if result.is_a?(Phronomy::ExecutionRetirement)))
+          return
+        end
+        operation.apply_normal_finalization
+      end
       @environment.registry.release_workflow(
         execution.workflow_instance_id,
         owner_token: execution.owner_token
@@ -694,105 +725,17 @@ module Phronomy
         state: :persisting_terminal
       )
 
-      operation = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceCommand.new(
+      operation = Phronomy::WorkflowTerminalPersistence::Command.new(
         repository: execution.repository,
         workflow_instance_id: execution.workflow_instance_id.to_s.freeze,
         expected_revision: execution.expected_revision,
         snapshot: deep_immutable_copy(snapshot_for(context))
       )
 
-      task = @environment.submit(on_full: :raise) do
-        persist_terminal_snapshot(operation)
-      end
-      task.on_complete do |result, operation_error|
-        deliver_terminal_persistence_result(execution, event_sink, result, operation_error)
-      end
+      Phronomy::WorkflowTerminalOperation.new(runner_identity: @recovery_identity, environment: @environment,
+        registry: @environment.registry, execution: execution, command: operation,
+        terminal_type: terminal_type, event_sink: event_sink, context_class: @state_class).start
       terminal_type
-    end
-
-    def persist_terminal_snapshot(operation)
-      revision = operation.repository.save(
-        operation.workflow_instance_id,
-        expected_revision: operation.expected_revision,
-        snapshot: operation.snapshot
-      )
-      Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-        outcome: :success,
-        revision: revision,
-        error: nil
-      )
-    rescue Phronomy::Persistence::ConflictError,
-      Phronomy::Persistence::NotFoundError,
-      Phronomy::Persistence::SerializationError,
-      Phronomy::Persistence::UnsupportedBackendError => error
-      Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-        outcome: :known_failure,
-        revision: nil,
-        error: error
-      )
-    rescue => error
-      reconcile_workflow_terminal_f1(operation, error)
-    end
-
-    def deliver_terminal_persistence_result(execution, event_sink, result, operation_error)
-      delivery = if operation_error
-        Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-          outcome: :outcome_unknown,
-          revision: nil,
-          error: operation_error
-        )
-      else
-        result
-      end
-      accepted = event_sink.post(:workflow_terminal_persistence_result, delivery)
-      unless accepted
-        Phronomy::RuntimeSettings.current.logger&.warn(
-          "[Phronomy] EventLoop rejected Workflow terminal persistence result " \
-          "for #{execution.workflow_instance_id.inspect}"
-        )
-      end
-    end
-
-    def reconcile_workflow_terminal_f1(operation, original_error)
-      record = operation.repository.load(operation.workflow_instance_id)
-      case Phronomy::Persistence::SnapshotComparison.compare_revisioned_snapshot(
-        record: record,
-        expected_pre_revision: operation.expected_revision,
-        intended_snapshot: operation.snapshot
-      )
-      when :post_state
-        revision = Phronomy::Persistence::SnapshotComparison.fetch_value(record, :revision)
-        Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-          outcome: :success,
-          revision: revision,
-          error: nil
-        )
-      when :pre_state
-        # The uncertain save is now known not to have committed. Do not blindly
-        # retry it here; surface a known failure through the ordinary terminal
-        # barrier semantics.
-        Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-          outcome: :known_failure,
-          revision: nil,
-          error: original_error
-        )
-      else
-        conflict = Phronomy::Persistence::StateConflictError.new(
-          "Workflow terminal Persistence outcome conflicts with both expected " \
-          "pre-state and intended post-state for #{operation.workflow_instance_id.inspect}"
-        )
-        Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-          outcome: :outcome_unknown,
-          revision: nil,
-          error: conflict
-        )
-      end
-    rescue => reconciliation_error
-      Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
-        outcome: :outcome_unknown,
-        revision: nil,
-        error: reconciliation_error
-      )
     end
 
     def release_and_fail(request, error)
@@ -851,6 +794,7 @@ module Phronomy
           context: context,
           event_sink: event_sink
         )
+        @environment.registry.terminal_operation(execution.owner_token)
       }
     end
 

@@ -6,6 +6,17 @@ Implementation baseline: core `01cd2f57549f6d1e60825254f4520d0f123e651c`
 `fcd434c45ad98e5c93953cbce1ffef3c12246894` (Refactor 33). The adopted private contract is
 [ADR-056](../decisions/056-workflow-terminal-policy-ownership.md).
 
+This document records the historical W2a/W2b design and validation, not the current
+terminal-recovery API contract. The policy/Engine responsibility separation still
+applies. The uncertainty observation, completion-custody and shutdown behavior
+below has been superseded by the implemented
+[Workflow terminal reconciliation contract](workflow-terminal-reconciliation.md).
+That contract supports explicit recovery through the same running or draining
+Runtime, retains unresolved responsibility at shutdown, and does not implement
+stopped-owner takeover or process-crash recovery. For example, an unknown save
+now yields a typed recovery reference instead of leaving the ordinary caller
+pending through successful shutdown.
+
 ## Role and consumers
 
 FSMSession drives one live state machine on EventLoop. WorkflowRunner assembles
@@ -58,11 +69,14 @@ The retirement action reuses the existing recovery-required management route.
 An observer exception still uses Refactor 32's ordinary error path, with the
 already confirmed snapshot retained. No observer retry or extra save is added.
 
-Unresolved uncertainty instead retires the session and retains recovery-required
-admission without falsely settling the caller. Normal shutdown clears that
-ownership and ends the dispatcher, while the caller remains pending; unexpected
-dispatcher failure retains its separate existing waiter-cleanup behavior. This
-change does not promise that normal shutdown resolves an unknown commit.
+At the W2b baseline, unresolved uncertainty instead retired the session and
+retained recovery-required admission without settling the caller. Normal shutdown
+cleared that ownership and ended the dispatcher while the caller remained pending;
+unexpected dispatcher failure retained its separate waiter-cleanup behavior.
+Those historical observations did not establish that normal shutdown resolved an
+unknown commit. They are not the current acceptance requirements: current recovery
+keeps the obligation, fails the original observation with a typed recovery error,
+and prevents complete cleanup while responsibility remains unresolved.
 
 ## Alternatives and compatibility
 
@@ -76,11 +90,13 @@ The internal constructor changes from terminal_barrier to terminal_policy;
 there is no compatibility alias or new public plugin API. Without a policy,
 Engine does not reserve a Workflow-specific event name. Production Workflow
 emits the result event only when it has injected its durable policy.
-Public signatures, Workflow command/result identities, data records and Storage
-SPI stay unchanged. One policy class and one decision value type are added;
-this is responsibility separation, not a total-line-count reduction.
+At W2b, public signatures, Workflow command/result identities, data records and
+Storage SPI stayed unchanged. One policy class and one decision value type were
+added; this was responsibility separation, not a total-line-count reduction.
+The later reconciliation APIs and result types are documented separately in the
+[current contract](workflow-terminal-reconciliation.md).
 
-## Acceptance evidence
+## Historical W2b acceptance evidence
 
 | Scenario | Test boundary |
 |---|---|

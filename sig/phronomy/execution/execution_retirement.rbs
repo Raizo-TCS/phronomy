@@ -1,0 +1,18 @@
+module Phronomy
+  # Internal transport custody only; no domain outcome or release authority.
+  class ExecutionRetirement
+    UNSUPPORTED: Object
+
+    class Acceptance < Data
+      attr_reader retirement: ExecutionRetirement
+      def self.new: (retirement: ExecutionRetirement) -> Acceptance
+    end
+
+    attr_reader fsm_session_id: String
+    attr_reader reason: Symbol
+    attr_reader error: Exception?
+    def initialize: (fsm_session_id: String, reason: Symbol, ?error: Exception?) -> void
+    def acceptance: () -> Acceptance
+    def accepted_by?: (untyped value) -> bool
+  end
+end

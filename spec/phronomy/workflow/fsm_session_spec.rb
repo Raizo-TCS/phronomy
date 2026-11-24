@@ -396,7 +396,10 @@ RSpec.describe Phronomy::FSMSession do
       execution = build_test_execution(ctx, recursion_limit: 25).with(
         repository: double("Workflow repository"), persist: true
       )
-      allow(runner).to receive(:begin_terminal_persistence_on_event_loop)
+      # This session unit boundary supplies classified evidence directly; real
+      # persistence scheduling and custody are covered by Runtime integration.
+      allow(runner).to receive(:terminal_persistence_callback).with(execution)
+        .and_return(->(terminal_type:, context:, event_sink:) {})
       runner.instance_variable_set(:@environment, Phronomy::WorkflowEngineEnvironment.new(runtime: fake_runtime))
       runner.send(:build_session_for, execution: execution)
     end
@@ -408,7 +411,7 @@ RSpec.describe Phronomy::FSMSession do
       with_fake_loop do |_fake, fake_runtime|
         session = build_durable_test_session(ctx, runner: runner, fake_runtime: fake_runtime)
         # The policy recognizes this event, but the session has not requested it.
-        bogus_result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+        bogus_result = Phronomy::WorkflowTerminalPersistence::Result.new(
           outcome: :success, revision: 1, error: nil
         )
         session.handle(
@@ -430,8 +433,10 @@ RSpec.describe Phronomy::FSMSession do
       with_fake_loop do |fake, fake_runtime|
         session = build_durable_test_session(ctx, runner: runner, fake_runtime: fake_runtime)
         session.start
+        expect(session.instance_variable_get(:@terminal_lifecycle_state)).to eq(:awaiting_terminal)
+        expect(fake.events).to be_empty
 
-        unknown_result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+        unknown_result = Phronomy::WorkflowTerminalPersistence::Result.new(
           outcome: :bogus_unknown, revision: nil, error: nil
         )
         session.handle(
@@ -445,6 +450,8 @@ RSpec.describe Phronomy::FSMSession do
         error_event = fake.events.find { |e| e.type == :error }
         expect(error_event).not_to be_nil
         expect(error_event.payload[:result]).to be_a(Phronomy::Error)
+        expect(error_event.payload[:result].message).to eq("unknown Workflow terminal persistence outcome: :bogus_unknown")
+        expect(session.instance_variable_get(:@terminal_lifecycle_state)).to eq(:error)
       end
     end
 
@@ -453,7 +460,9 @@ RSpec.describe Phronomy::FSMSession do
       with_fake_loop do |fake, fake_runtime|
         session = build_durable_test_session(ctx_class.new, runner: runner, fake_runtime: fake_runtime)
         session.start
-        result = Phronomy::WorkflowRunner::WorkflowTerminalPersistenceResult.new(
+        expect(session.instance_variable_get(:@terminal_lifecycle_state)).to eq(:awaiting_terminal)
+        expect(fake.events).to be_empty
+        result = Phronomy::WorkflowTerminalPersistence::Result.new(
           outcome: :known_failure, revision: nil, error: nil
         )
         session.handle(Phronomy::Event.new(
@@ -463,6 +472,7 @@ RSpec.describe Phronomy::FSMSession do
         error = fake.events.first.payload[:result]
         expect(error).to be_a(Phronomy::Error)
         expect(error.message).to eq("Workflow terminal persistence failed")
+        expect(session.instance_variable_get(:@terminal_lifecycle_state)).to eq(:error)
       end
     end
   end

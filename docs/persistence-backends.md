@@ -374,9 +374,10 @@ Caller mutation of a loaded snapshot must not mutate durable storage.
 
 ### Workflow Runtime admission and terminal-save outcome
 
-Same-process Workflow admission is owned by Runtime/EventLoop, not by this
-repository. EventLoop acquires an opaque owner token for `workflow_instance_id`
-before mutable durable load/hydration, then binds a separately generated
+Same-process Workflow admission is held by Workflow's registry on Runtime's
+serial EventLoop, not by this repository. The registry acquires an opaque owner
+token for `workflow_instance_id` before mutable durable load/hydration, then binds
+a separately generated
 `fsm_session_id` only after the concrete FSMSession is constructed.
 
 A durable Workflow terminal/halt snapshot is saved through OffloadPool while the
@@ -394,7 +395,7 @@ portable known failure / known not committed
   -> barrier remains closed; Workflow error path
 
 arbitrary storage/transport failure whose commit outcome is not established
-  -> outcome unknown; barrier remains closed and Runtime fails closed
+  -> outcome unknown; retire the session and retain Workflow responsibility
 ```
 
 This distinction is independent of physical topology. A local backend can have
@@ -402,6 +403,31 @@ an uncertain outcome, and a remote backend can return a definite optimistic
 conflict. Backends must therefore preserve meaningful portable errors when the
 contract establishes them, and must surface other storage/transport failures
 honestly rather than converting them into `ConflictError`.
+
+An unresolved terminal save now produces `WorkflowTerminalRecoveryError` after
+the Workflow owner retains its evidence and completion custody. The original
+observation fails; it is not a failed business result or permission to release
+the unresolved owner. `pending_terminal_recovery` can recover the local reference
+if the initial observer was cancelled or its error was dropped.
+
+Explicit `reconcile_terminal_async` / `reconcile_terminal` operations inspect
+that exact retained operation through the original running or draining Runtime.
+Unknown persistence is compared with the exact expected pre-revision and intended
+post-revision/snapshot after the original save's physical boundary. Reconciliation
+does not repeat `save`, resume graph actions or alter this repository SPI. Its
+result separates persistence confirmation, owner application and ownership
+release. Confirmed facts are retained if later application or context construction
+fails.
+
+Unresolved obligations prevent complete shutdown cleanup and remain retained
+after the dispatcher stops. This profile does not transfer custody to a stopped
+owner's replacement or provide process-crash recovery. See the implemented
+[Workflow terminal reconciliation contract](architecture/workflow-terminal-reconciliation.md)
+for local capability lifetime, independent observations and supported recovery
+conditions. The earlier
+[terminal ownership design](architecture/workflow-terminal-ownership-design.md)
+is a historical refactoring record, including its superseded uncertainty and
+shutdown behavior.
 
 ### Workflow value serialization
 
