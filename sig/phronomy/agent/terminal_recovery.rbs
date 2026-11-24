@@ -30,6 +30,7 @@ module Phronomy
       attr_reader revision: Integer?
       attr_reader execution: ExecutionObservation?
       attr_reader error: Exception?
+      attr_reader submission_state: :not_admitted | :admitted | :unknown
 
       private
 
@@ -37,7 +38,8 @@ module Phronomy
         outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable,
         application_state: :pending | :applied,
         ownership_state: :retained | :released,
-        ?revision: Integer?, ?execution: ExecutionObservation?, ?error: Exception?) -> void
+        ?revision: Integer?, ?execution: ExecutionObservation?, ?error: Exception?,
+        ?submission_state: :not_admitted | :admitted | :unknown) -> void
     end
   end
 end

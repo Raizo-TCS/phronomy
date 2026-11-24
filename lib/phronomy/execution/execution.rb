@@ -10,9 +10,24 @@ module Phronomy
     class << self
       attr_writer :backend_provider
 
-      def submit(**options, &operation)
+      def submit(on_rejected: nil, **options, &operation)
         raise ArgumentError, "Execution.submit requires a block" unless operation
-        backend.submit(**options, &operation)
+        submit_with_rejection_evidence(backend, on_rejected: on_rejected, **options, &operation)
+      end
+
+      # Optional evidence must not change a legacy submitter's call contract.
+      # The capability only permits sending the callback; only the callback's
+      # actual invocation supplies evidence. Never retry a failed submission.
+      # @api private
+      def submit_with_rejection_evidence(submitter, on_rejected: nil, **options, &operation)
+        if on_rejected && submitter.respond_to?(:supports_submission_rejection?) &&
+            submitter.supports_submission_rejection? == true &&
+            submitter.method(:submit).parameters.any? { |kind, name|
+              kind == :keyrest || ([:key, :keyreq].include?(kind) && name == :on_rejected)
+            }
+          options[:on_rejected] = on_rejected
+        end
+        submitter.submit(**options, &operation)
       end
 
       def after(seconds, &callback)

@@ -61,6 +61,28 @@ module Phronomy
         retry_terminal_async(recovery: recovery).wait_result
       end
 
+      # Explicitly resubmits terminal work only after the original execution
+      # mechanism proved it was not admitted and no handle or worker started.
+      # Validation and encoding may run for the first time; provider and Tool
+      # work are not repeated. This never broadens captured-write retry.
+      # @param recovery [TerminalRecovery] reference from this Agent
+      # @return [TaskResult<TerminalRecoveryResult>] a fresh observation
+      # @api public
+      def retry_terminal_submission_async(recovery:)
+        _terminal_recovery_operation(recovery).observe(:submission)
+      end
+
+      # Waits for the explicit first terminal-work submission on a host thread.
+      # A previous not_admitted receipt is a fact, not a reusable permission.
+      # @param recovery [TerminalRecovery] reference from this Agent
+      # @return [TerminalRecoveryResult]
+      # @raise [EventLoopReentrancyError] when called on EventLoop
+      # @api public
+      def retry_terminal_submission(recovery:)
+        _check_event_loop_reentrancy(:retry_terminal_submission, :retry_terminal_submission_async)
+        retry_terminal_submission_async(recovery: recovery).wait_result
+      end
+
       private
 
       def _terminal_recovery_operation(recovery)

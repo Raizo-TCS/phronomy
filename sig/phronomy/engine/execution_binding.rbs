@@ -1,6 +1,7 @@
 module Phronomy
   module ExecutionBinding
-    def self.submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+    def self.supports_submission_rejection?: () -> bool
+    def self.submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol, ?on_rejected: (^(Exception) -> void)?) { () -> V } -> TaskResult[V]
     def self.after: (Numeric seconds) { () -> void } -> ^() -> untyped
   end
 end

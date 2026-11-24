@@ -7,6 +7,12 @@ module Phronomy
     def submit: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
   end
 
+  # Optional mechanism extension; legacy pools need not implement it.
+  interface _ExecutionRejectionPool
+    def supports_submission_rejection?: () -> bool
+    def submit: [V] (?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol, ?on_rejected: (^(Exception) -> void)?) { () -> V } -> TaskResult[V]
+  end
+
   interface _ExecutionRuntime
     def offload: () -> _ExecutionPool
     def pool: (Symbol name, size: Integer, queue_size: Integer) -> _ExecutionPool
@@ -16,9 +22,18 @@ module Phronomy
     def submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
     def after: (Numeric seconds) { () -> void } -> ^() -> untyped
   end
+
+  # A declaration permits forwarding evidence; it does not certify admission.
+  interface _ExecutionRejectionBackend
+    def supports_submission_rejection?: () -> bool
+    def submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol, ?on_rejected: (^(Exception) -> void)?) { () -> V } -> TaskResult[V]
+    def after: (Numeric seconds) { () -> void } -> ^() -> untyped
+  end
+
   class Execution
     def self.backend_provider=: (^() -> _ExecutionBackend provider) -> ^() -> _ExecutionBackend
-    def self.submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol) { () -> V } -> TaskResult[V]
+    def self.submit: [V] (?pool: _ExecutionPool?, ?runtime: _ExecutionRuntime?, ?pool_name: Symbol?, ?size: Integer, ?queue_size: Integer, ?timeout: Numeric?, ?cancellation_token: Concurrency::CancellationToken?, ?on_full: Symbol, ?on_rejected: (^(Exception) -> void)?) { () -> V } -> TaskResult[V]
+    def self.submit_with_rejection_evidence: [V] (untyped submitter, ?on_rejected: (^(Exception) -> void)?, **untyped options) { () -> V } -> TaskResult[V]
     def self.after: (Numeric seconds) { () -> void } -> ^() -> untyped
     attr_reader invocation_context: InvocationContext
 

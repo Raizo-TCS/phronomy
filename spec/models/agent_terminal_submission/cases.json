@@ -1,0 +1,405 @@
+{
+  "scope": "G3b-3 positive non-admission evidence and one-time first terminal block submission; adjacent models cover detailed persistence and owner recovery",
+  "cases": [
+    {
+      "id": "safety-refused",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitRetry",
+        "Fault": "all",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-queued",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "queued",
+        "Methods": "SubmitSubmit",
+        "Fault": "all",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-unknown",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "unknown",
+        "Methods": "SubmitSubmit",
+        "Fault": "all",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-failed-before-proof",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "failed_before_proof",
+        "Methods": "SubmitRetry",
+        "Fault": "all",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-complete-proof",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "proof_pre",
+        "Methods": "RetryRetry",
+        "Fault": "all",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "submission-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "pool-restored-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "blocked",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "proof-byte-retry-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "proof_pre",
+        "Methods": "RetryRetry",
+        "Fault": "none",
+        "FreshCaller": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-fresh-caller",
+      "kind": "missing_assumption",
+      "target": "TypeOK",
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyReleased"
+      ],
+      "constants": {
+        "Profile": "blocked",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "bug-started-false",
+      "kind": "mutation_safety",
+      "target": "AtMostOneAcceptedBlock",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "queued",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "started_false_is_rejected"
+      }
+    },
+    {
+      "id": "bug-generic-exception",
+      "kind": "mutation_safety",
+      "target": "AtMostOneAcceptedBlock",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "unknown",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "exception_is_rejected"
+      }
+    },
+    {
+      "id": "bug-begun-worker-replay",
+      "kind": "mutation_safety",
+      "target": "FirstBlockAtMostOnce",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "failed_before_proof",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "begun_failure_is_rejected"
+      }
+    },
+    {
+      "id": "bug-observer-cancel-slot",
+      "kind": "mutation_safety",
+      "target": "PhysicalSlotPreserved",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "observer_cancel",
+        "FreshCaller": false,
+        "Bug": "cancel_drops_slot"
+      }
+    },
+    {
+      "id": "bug-closed-callback",
+      "kind": "mutation_safety",
+      "target": "NoOldObserverReplay",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "replay_closed_callback"
+      }
+    },
+    {
+      "id": "bug-original-reopened",
+      "kind": "mutation_safety",
+      "target": "NoOldObserverReplay",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "reopen_original"
+      }
+    },
+    {
+      "id": "bug-reencode-proof",
+      "kind": "mutation_safety",
+      "target": "EncodingAtMostOnce",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "proof_pre",
+        "Methods": "RetryRetry",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "reencode_byte_retry"
+      }
+    },
+    {
+      "id": "nonconforming-refusal-callback",
+      "kind": "missing_assumption_safety",
+      "target": "NonAdmissionNeedsProof",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "false_refusal_receipt"
+      }
+    },
+    {
+      "id": "bug-retain-old-refusal",
+      "kind": "mutation_safety",
+      "target": "NonAdmissionNeedsProof",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "retain_old_refusal"
+      }
+    },
+    {
+      "id": "witness-queued-denial",
+      "kind": "witness",
+      "target": "WitnessNoQueuedDenial",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "queued",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-unknown-denial",
+      "kind": "witness",
+      "target": "WitnessNoUnknownDenial",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "unknown",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-submission-join",
+      "kind": "witness",
+      "target": "WitnessNoSubmissionJoin",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-mixed-refusal",
+      "kind": "witness",
+      "target": "WitnessNoMixedRefusal",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitRead",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-first-run",
+      "kind": "witness",
+      "target": "WitnessNoFirstRunAfterRefusal",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-started-failure-denial",
+      "kind": "witness",
+      "target": "WitnessNoStartedFailureDenial",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "failed_before_proof",
+        "Methods": "SubmitSubmit",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-proof-byte-retry",
+      "kind": "witness",
+      "target": "WitnessNoProofUsesBytes",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "proof_pre",
+        "Methods": "RetryRetry",
+        "Fault": "none",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-cancel-independent",
+      "kind": "witness",
+      "target": "WitnessNoCancelIndependent",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "observer_cancel",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-stopped-custody",
+      "kind": "witness",
+      "target": "WitnessNoStoppedCustody",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "shutdown",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-lost-notification",
+      "kind": "witness",
+      "target": "WitnessNoLostReplyRecovery",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Profile": "rejected",
+        "Methods": "SubmitSubmit",
+        "Fault": "notification_loss",
+        "FreshCaller": false,
+        "Bug": "none"
+      }
+    }
+  ]
+}

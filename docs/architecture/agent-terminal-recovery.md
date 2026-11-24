@@ -234,6 +234,8 @@ For example, if terminal submission is rejected before the worker starts, the ac
 
 The same limitation applies to a failure before full proposal capture. This stage does not add first-time terminal encoding or business replay through the save-only retry API, and it does not complete every Agent terminal failure case. A known complete late worker outcome can still supply conclusive evidence under the original operation's protocol.
 
+The later [terminal submission recovery contract](agent-terminal-submission-recovery.md) adds a separate explicit operation for mechanism-proven non-admission. It does not broaden `retry_terminal`: accepted work that fails before complete capture still cannot be resubmitted through that operation.
+
 The caller/backend must establish that the prior backend transaction has settled and that authoritative readback is ordered after it. The Store must provide its guard exclusion and atomic transaction semantics. Local worker return, revisions or CAS alone do not establish those remote conditions. External database/LLM acceptance is separate from in-memory fault injection.
 
 Supported domain scope is an installed standalone Agent's completed, failed or cancelled terminal save. Reservation/participant coordination, execution extensions, approval suspension, handoff, initial preparation and dispatch recovery remain outside this terminal protocol. Those paths retain their existing separate contracts.

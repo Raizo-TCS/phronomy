@@ -289,6 +289,8 @@
       "resume_async",
       "retry_terminal",
       "retry_terminal_async",
+      "retry_terminal_submission",
+      "retry_terminal_submission_async",
       "start_hosted",
       "start_reserved_async",
       "stream",
@@ -453,7 +455,8 @@
       "ownership_state",
       "recovery",
       "recovery_id",
-      "revision"
+      "revision",
+      "submission_state"
     ],
     "public_class_methods": []
   },
@@ -1169,6 +1172,8 @@
       "resume_async",
       "retry_terminal",
       "retry_terminal_async",
+      "retry_terminal_submission",
+      "retry_terminal_submission_async",
       "start_hosted",
       "start_reserved_async",
       "stream",

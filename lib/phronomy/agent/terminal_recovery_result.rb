@@ -10,18 +10,22 @@ module Phronomy
       OUTCOMES = %i[confirmed_post confirmed_pre unresolved unavailable].freeze
       APPLICATION_STATES = %i[pending applied].freeze
       OWNERSHIP_STATES = %i[retained released].freeze
-      private_constant :OUTCOMES, :APPLICATION_STATES, :OWNERSHIP_STATES
+      SUBMISSION_STATES = %i[not_admitted admitted unknown].freeze
+      private_constant :OUTCOMES, :APPLICATION_STATES, :OWNERSHIP_STATES, :SUBMISSION_STATES
 
       # @api public
       attr_reader :recovery, :agent_id, :execution_id, :recovery_id, :outcome,
-        :application_state, :ownership_state, :revision, :execution, :error
+        :application_state, :ownership_state, :revision, :execution, :error, :submission_state
 
       # @api private
       def initialize(recovery:, outcome:, application_state:, ownership_state:,
-        revision: nil, execution: nil, error: nil)
+        revision: nil, execution: nil, error: nil, submission_state: :unknown)
         unless OUTCOMES.include?(outcome) && APPLICATION_STATES.include?(application_state) &&
-            OWNERSHIP_STATES.include?(ownership_state)
+            OWNERSHIP_STATES.include?(ownership_state) && SUBMISSION_STATES.include?(submission_state)
           raise ArgumentError, "unsupported Agent terminal recovery state"
+        end
+        if submission_state == :not_admitted && %i[confirmed_pre confirmed_post].include?(outcome)
+          raise ArgumentError, "unadmitted Agent terminal work cannot have a captured persistence disposition"
         end
         if ownership_state == :released && application_state != :applied
           raise ArgumentError, "Agent ownership cannot be released before application"
@@ -52,6 +56,7 @@ module Phronomy
         @revision = revision
         @execution = execution
         @error = error
+        @submission_state = submission_state
         freeze
       end
     end
