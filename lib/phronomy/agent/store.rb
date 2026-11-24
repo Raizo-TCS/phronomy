@@ -13,10 +13,11 @@ module Phronomy
 
       # Record protocol for Agent-owned framework operations only.
       # @api private
-      attr_reader :contents, :agents, :journals, :executions, :retentions
+      attr_reader :contents, :agents, :journals, :executions, :retentions, :execution_evidence_identity
 
       def initialize(coordinator:, records:)
         @coordinator, @record_adapter = coordinator, records
+        @execution_evidence_identity = Object.new.freeze
         @records = coordinator.bind(records)
         @contents = @records.contents
         @agents = @records.agents

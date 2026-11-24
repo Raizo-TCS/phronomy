@@ -101,6 +101,8 @@ module Phronomy
       attr_reader correlation: Hash[String, json_value]?
       attr_reader coordinator: ::Phronomy::Persistence
       def finishing?: () -> bool
+      def captured_evidence: () -> Hash[Symbol, untyped]?
+      def self.read_agent_evidence: (store: Store, agent_id: String, execution_id: String, journal_position: Integer, scope: ::Phronomy::Persistence::Transaction) -> Array[untyped]
       def prepare_in: (::Phronomy::Persistence::Transaction scope) -> nil
       def commit_in: (::Phronomy::Persistence::Transaction scope, ?state: ExecutionExtensionState?, ?transfer_receipt: Hash[String, json_value]?, ?pending: bool) -> nil
       def transfer_context: (::Phronomy::Persistence::Transaction scope) -> TransferContext

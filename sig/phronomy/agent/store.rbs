@@ -43,6 +43,7 @@ module Phronomy
       end
 
       attr_reader coordinator: ::Phronomy::Persistence
+      attr_reader execution_evidence_identity: Object
       attr_reader contents: _ContentRepository
       attr_reader agents: _AgentRepository
       attr_reader journals: _JournalRepository

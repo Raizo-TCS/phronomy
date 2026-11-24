@@ -83,6 +83,29 @@ module Phronomy
 
       private :perform_once
 
+      # Detached values for an opt-in domain persistence proof. The original
+      # synchronous change and participant wiring are never replayable.
+      # @api private
+      def captured_evidence
+        return unless @scope&.outermost? && @before && @after && @result
+        {before: Phronomy::Values::Immutable.copy(@before),
+         after: Phronomy::Values::Immutable.copy(@after), result: @result}.freeze
+      end
+
+      # Agent's complete guarded comparison footprint, shared with explicit
+      # persistence-only reconciliation. The caller owns the outer transaction.
+      # @api private
+      def self.read_agent_evidence(store:, agent_id:, execution_id:, journal_position:, scope:)
+        store.participate(scope) do |records|
+          root = records.agents.load(agent_id)
+          execution = records.executions.load(execution_id)
+          journal = records.journals.read(agent_id, after: journal_position,
+            limit: [root.journal_position - journal_position, 1].max)
+          ref = execution.metadata.dig("execution_extension", "state_ref")
+          [root.to_h, execution.to_h, journal.map(&:to_h), ref && records.contents.fetch_json(ref), records.cancellations.requested?(agent_id, execution_id)]
+        end
+      end
+
       # Capture the complete pre-state after the participant has acquired its
       # ordered guards, before it changes its own records.
       def prepare_in(scope)
@@ -150,14 +173,8 @@ module Phronomy
       end
 
       def snapshot(scope)
-        agent_state = @store.participate(scope) do |records|
-          root = records.agents.load(agent_id)
-          execution = records.executions.load(execution_id)
-          journal = records.journals.read(agent_id, after: @root.journal_position,
-            limit: [root.journal_position - @root.journal_position, 1].max)
-          ref = execution.metadata.dig("execution_extension", "state_ref")
-          [root.to_h, execution.to_h, journal.map(&:to_h), ref && records.contents.fetch_json(ref), records.cancellations.requested?(agent_id, execution_id)]
-        end
+        agent_state = self.class.read_agent_evidence(store: @store, agent_id: agent_id,
+          execution_id: execution_id, journal_position: @root.journal_position, scope: scope)
         [agent_state, @participant&.change_evidence(self, scope)]
       end
     end
