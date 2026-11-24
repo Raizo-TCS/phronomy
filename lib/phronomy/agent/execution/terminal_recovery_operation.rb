@@ -34,6 +34,7 @@ module Phronomy
         @evidence = @intended = @confirmation = @execution_observation = nil
         @original_error = @last_error = nil
         @uncertain = @initial_delivered = false
+        @submission_state = :unknown
         @application_state, @ownership_state = :pending, :retained
       end
 
@@ -79,16 +80,7 @@ module Phronomy
 
       def start
         @registry.retain_terminal_operation(self)
-        task = @environment.submit(on_full: :raise) do
-          @mutex.synchronize { @save[:started] = true }
-          result = @committer.commit_outcome(@command,
-            on_evidence: method(:capture_evidence), on_outcome: method(:capture_outcome))
-          capture_worker(nil, result, nil)
-          result
-        rescue Exception => error # rubocop:disable Lint/RescueException
-          capture_worker(nil, nil, error)
-          raise
-        end
+        task = submit_terminal_worker(nil)
         watch(task, nil)
         self
       rescue => error
@@ -96,7 +88,8 @@ module Phronomy
           mark_uncertain_on_owner(error)
         else
           @mutex.synchronize do
-            @save[:logical] = @save[:physical] = true
+            @save[:logical] = true
+            @save[:physical] = @submission_state == :not_admitted
             @save[:error] = error
           end
           signal(nil)
@@ -105,7 +98,7 @@ module Phronomy
       end
 
       def observe(kind = :reconcile)
-        raise ArgumentError, "unsupported Agent terminal recovery operation" unless %i[reconcile retry].include?(kind)
+        raise ArgumentError, "unsupported Agent terminal recovery operation" unless %i[reconcile retry submission].include?(kind)
         observer = Phronomy::TaskResult.deferred(name: "agent-terminal-#{kind}:#{@recovery_id}")
         @mutex.synchronize { @observers << observer }
         observer.on_complete do |_value, _error|
@@ -172,11 +165,58 @@ module Phronomy
 
       def new_slot(id, kind)
         {id: id, kind: kind, task: nil, started: false, physical: false, logical: false,
-         result: nil, error: nil, worker_recorded: false, observers: []}
+         result: nil, error: nil, worker_recorded: false, observers: [],
+         rejection_confirmed: false, admission_unknown: false, watch_error: nil, physical_watch: false}
       end
 
       def slot_for(id)
         id.nil? ? @save : (@attempt if @attempt && @attempt[:id].equal?(id))
+      end
+
+      # The executor's positive refusal callback is the admission evidence.
+      # Exception class, absent handle and a not-yet-started block are not proof.
+      # Consume a previous refusal before asking for a new execution right.
+      def submit_terminal_worker(id)
+        slot = @mutex.synchronize do
+          @submission_state = :unknown
+          slot_for(id)
+        end
+        refusal = lambda do |_error|
+          @mutex.synchronize do
+            slot[:rejection_confirmed] = true if slot_for(id).equal?(slot)
+          end
+        end
+        task = Phronomy::Execution.submit_with_rejection_evidence(@environment, on_full: :raise, on_rejected: refusal) do
+          @mutex.synchronize do
+            @submission_state = :admitted
+            slot[:started] = true
+          end
+          result = @committer.commit_outcome(@command,
+            on_evidence: method(:capture_evidence), on_outcome: method(:capture_outcome))
+          capture_worker(id, result, nil)
+          result
+        rescue Exception => error # rubocop:disable Lint/RescueException
+          capture_worker(id, nil, error)
+          raise
+        end
+        # An admitted queued task consumes authority even before its block starts.
+        @mutex.synchronize do
+          @submission_state = :admitted
+          slot[:task] = task
+        end
+        task
+      rescue => error
+        @mutex.synchronize do
+          if slot && slot_for(id).equal?(slot)
+            proven_refusal = slot[:rejection_confirmed] && !slot[:started] && @submission_state != :admitted
+            @submission_state = :not_admitted if proven_refusal
+            slot[:admission_unknown] = !proven_refusal
+            slot[:logical] = true
+            slot[:physical] = proven_refusal
+            slot[:error] = error
+          end
+        end
+        raise
       end
 
       def capture_evidence(value)
@@ -205,6 +245,7 @@ module Phronomy
             acknowledge_original_if_quiet if id.nil?
             signal(id)
           end
+          @mutex.synchronize { slot_for(id)&.[]=(:physical_watch, true) }
         end
         task.on_complete do |result, error|
           @mutex.synchronize do
@@ -219,6 +260,9 @@ module Phronomy
           end
           signal(id)
         end
+      rescue => error
+        @mutex.synchronize { slot_for(id)&.[]=(:watch_error, error) }
+        raise
       end
 
       def refresh_slot(id)
@@ -308,6 +352,15 @@ module Phronomy
           return observer.complete(unavailable_result(Phronomy::Error.new("Original Agent save is still physically active")))
         end
         if active
+          if active[:admission_unknown]
+            return observer.complete(unavailable_result(active[:error] || Phronomy::Error.new("Agent terminal submission has no authoritative admission receipt")))
+          end
+          if active[:watch_error]
+            refresh_slot(active[:id])
+            active = @mutex.synchronize { slot_for(active[:id])&.dup }
+            completion_observable = active && ((active[:logical] && active[:physical]) || active[:physical_watch])
+            return observer.complete(unavailable_result(active&.fetch(:watch_error))) unless completion_observable
+          end
           if active[:kind] != kind
             return observer.complete(unavailable_result(Phronomy::Error.new("A different Agent terminal recovery operation is physically active")))
           end
@@ -323,6 +376,12 @@ module Phronomy
         if outcome
           remember_post(outcome)
           return observer.complete(apply_confirmation)
+        end
+        if kind == :submission
+          unless @mutex.synchronize { @submission_state == :not_admitted }
+            return observer.complete(unavailable_result(Phronomy::Error.new("Agent terminal submission was not authoritatively refused")))
+          end
+          return begin_submission_retry(observer)
         end
         evidence, persistence = @mutex.synchronize { [@evidence, @persistence] }
         unless evidence
@@ -352,6 +411,24 @@ module Phronomy
         end
       end
 
+      def begin_submission_retry(observer)
+        id = Object.new.freeze
+        @mutex.synchronize do
+          @attempt = new_slot(id, :submission)
+          @attempt[:observers] << observer
+        end
+        task = submit_terminal_worker(id)
+        watch(task, id)
+      rescue => error
+        if task || @mutex.synchronize { slot_for(id)&.fetch(:admission_unknown) }
+          # A returned handle can be polled later. Without one, physical completion
+          # remains unknown even if a hidden worker eventually publishes a value.
+          delivery_failed(id, error)
+        else
+          close_attempt(id).each { |item| item.complete(unavailable_result(error)) }
+        end
+      end
+
       def finish_attempt(id)
         refresh_slot(id)
         slot = @mutex.synchronize { slot_for(id)&.dup }
@@ -361,7 +438,14 @@ module Phronomy
           return
         end
         result = slot[:result]
-        observation = if result&.disposition == :committed
+        observation = if slot[:kind] == :submission
+          if result
+            remember_post(result)
+            apply_confirmation
+          else
+            unavailable_result(slot[:error] || Phronomy::Error.new("Agent terminal submission produced no confirmed outcome"))
+          end
+        elsif result&.disposition == :committed
           intended = @mutex.synchronize { @intended }
           if intended
             remember_post(intended)
@@ -424,13 +508,14 @@ module Phronomy
 
       def build_result(outcome: nil, error: nil)
         state = @mutex.synchronize do
-          [@confirmation, @application_state, @ownership_state, @revision, @execution_observation]
+          [@confirmation, @application_state, @ownership_state, @revision, @execution_observation, @submission_state]
         end
-        confirmation, application, ownership, revision, execution = state
+        confirmation, application, ownership, revision, execution, submission = state
         outcome = :confirmed_post if confirmation == :committed
         TerminalRecoveryResult.new(recovery: @recovery, outcome: outcome || :unavailable,
           application_state: application, ownership_state: ownership,
-          revision: revision, execution: execution && ExecutionObservation.new(**execution.to_h), error: error)
+          revision: revision, execution: execution && ExecutionObservation.new(**execution.to_h),
+          submission_state: submission, error: error)
       end
 
       def diagnostic(error)

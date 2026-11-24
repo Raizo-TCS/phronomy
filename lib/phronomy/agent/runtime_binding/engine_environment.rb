@@ -22,6 +22,7 @@ module Phronomy
       def existing_ownership = @runtime.__shutdown_participant(key: OwnershipRegistry)
       def executing? = @runtime.event_loop.current?
       def session_phase(id) = @runtime.event_loop.fsm_session_state(id)
+      def supports_submission_rejection? = true
 
       def submit(**options, &operation)
         Phronomy::Execution.submit(runtime: @runtime, **options, &operation)

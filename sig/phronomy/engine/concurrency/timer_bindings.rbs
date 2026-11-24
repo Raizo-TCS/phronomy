@@ -8,6 +8,8 @@ module Phronomy
     class OffloadPool
       @timer_queue_provider: (^() -> _TimerQueue)?
       def initialize: (?pool_size: Integer, ?queue_size: Integer, ?name: (String | Symbol)?, ?logger: untyped, ?timer_queue_provider: (^() -> _TimerQueue)?) -> void
+      def submit: [V] (?timeout: Numeric?, ?cancellation_token: CancellationToken?, ?on_full: Symbol, ?full_timeout: Numeric?, ?on_rejected: (^(Exception) -> void)?) { () -> V } -> TaskResult[V]
+      def supports_submission_rejection?: () -> bool
       def begin_shutdown: () -> self
       def terminated?: () -> bool
       def shutdown: (?drain_timeout: Numeric, ?deadline: Numeric?) -> self

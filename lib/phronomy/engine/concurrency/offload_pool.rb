@@ -328,6 +328,10 @@ module Phronomy
         @workers = Array.new(pool_size) { |i| spawn_worker(i) }
       end
 
+      # Declares the optional definite-refusal callback without acquiring work.
+      # @api private
+      def supports_submission_rejection? = true
+
       # Submits synchronous off-EventLoop work to the pool.
       #
       # Returns a {Phronomy::TaskResult} immediately after queue admission; the block
@@ -356,10 +360,18 @@ module Phronomy
       # operation, timer, or cancellation subscription is created. Application
       # code should use Phronomy::Blocking.call_async.
       #
+      # The optional rejection callback reports only a definite refusal before
+      # queue admission: a full nonblocking queue, a closed queue, or an already
+      # stopped pool. It runs synchronously before the submission exception is
+      # raised. No callback means no admission conclusion. Returned tasks,
+      # worker failures and unknown exceptions never produce this evidence.
+      # Callback failure cannot replace the original submission exception.
+      #
       # @param timeout [Numeric, nil] operation-wide deadline in seconds
       # @param cancellation_token [CancellationToken, nil] operation-wide token
       # @param on_full [Symbol] +:wait+, +:raise+, or +:timeout+
       # @param full_timeout [Numeric, nil] queue-admission timeout for +on_full: :timeout+
+      # @param on_rejected [Proc, nil] receives the definite submission refusal
       # @yield block containing synchronous work
       # @return [Phronomy::TaskResult]
       # @raise [Phronomy::ConfigurationError] when a timer is required but no
@@ -374,13 +386,18 @@ module Phronomy
         cancellation_token: nil,
         on_full: :wait,
         full_timeout: nil,
+        on_rejected: nil,
         &block
       )
         if Phronomy::WaitPolicy.blocking_forbidden? && on_full != :raise
           raise Phronomy::EventLoopReentrancyError,
             "OffloadPool admission cannot wait on EventLoop; use on_full: :raise"
         end
-        raise Phronomy::PoolShutdownError, "pool has been shut down" if @shutdown
+        if @shutdown
+          error = Phronomy::PoolShutdownError.new("pool has been shut down")
+          notify_submission_rejection(on_rejected, error)
+          raise error
+        end
 
         submitted_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         already_cancelled = cancellation_token&.cancelled? || false
@@ -448,8 +465,9 @@ module Phronomy
             begin
               @queue.push(operation, true)
             rescue ThreadError
-              raise Phronomy::BackpressureError,
-                "OffloadPool queue is full (depth: #{@queue_size})"
+              error = Phronomy::BackpressureError.new("OffloadPool queue is full (depth: #{@queue_size})")
+              notify_submission_rejection(on_rejected, error)
+              raise error
             end
           when :timeout
             deadline = full_timeout ?
@@ -474,7 +492,9 @@ module Phronomy
         rescue ClosedQueueError => e
           # Shutdown raced with this submit — preserve the existing public error.
           operation.fail_submission!(e)
-          raise Phronomy::PoolShutdownError, "pool has been shut down"
+          error = Phronomy::PoolShutdownError.new("pool has been shut down")
+          notify_submission_rejection(on_rejected, error)
+          raise error
         rescue => e
           operation.fail_submission!(e)
           raise
@@ -575,6 +595,14 @@ module Phronomy
 
       SENTINEL = :shutdown
       private_constant :SENTINEL
+
+      def notify_submission_rejection(callback, error)
+        callback&.call(error)
+      rescue => _callback_error
+        # A failed evidence receiver grants no recovery authority. Preserve the
+        # actual queue refusal for the existing submission caller.
+        nil
+      end
 
       def offload_task_name
         @name ? "offload-#{@name}" : "offload"

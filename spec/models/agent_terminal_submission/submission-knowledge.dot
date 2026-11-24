@@ -1,0 +1,17 @@
+digraph SubmissionKnowledge {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.5", ranksep="0.6", label="Original owner's submission knowledge", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=13, margin="0.16,0.10"];
+  edge [fontname="DejaVu Sans", fontsize=11, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  NotAdmitted [label="not_admitted\npositive pre-enqueue refusal"];
+  Unknown [label="unknown\nno conclusive receipt", fillcolor="#fff0d8"];
+  Admitted [label="admitted\nfirst block already accepted"];
+  initial -> NotAdmitted [label="proved rejection"];
+  initial -> Unknown [label="no admission proof"];
+  initial -> Admitted [label="handle or worker entry"];
+  NotAdmitted -> NotAdmitted [label="explicit request / proved rejection"];
+  NotAdmitted -> Admitted [label="explicit request / handle or entry"];
+  NotAdmitted -> Unknown [label="explicit request / uncertain admission"];
+  Unknown -> Admitted [label="later worker entry observed"];
+  Admitted -> Admitted [label="queued, started or failed\n/ no submission permission"];
+}
