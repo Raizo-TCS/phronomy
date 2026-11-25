@@ -23,6 +23,9 @@ module Phronomy
         @agent_reference = WeakRef.new(agent)
         @registry, @persistence, @committer = environment.registry, agent.persistence, committer
         @command, @request, @invocation = command, request, invocation
+        task = request.result_task
+        @hosted_context = task.respond_to?(:hosted_context) ? task.hosted_context : nil
+        @parent_wait = task.respond_to?(:parent_wait) ? task.parent_wait : nil
         @suspended_cancellation = suspended_cancellation
         @agent_id, @execution_id = agent.agent_id.to_s.freeze, command.execution_id
         @approval_request_id, @approved = command.approval_request_id, command.approved
@@ -91,12 +94,19 @@ module Phronomy
       def prepare_continuation
         return @continuation_plan if @continuation_plan
         unless @canonical_task
-          @canonical_task = OperationResult.new(agent: @agent, name: "approval-continuation:#{recovery_id}")
+          @canonical_task = @coordinator.send(:build_retained_approval_task,
+            name: "approval-continuation:#{recovery_id}", parent_wait: @parent_wait,
+            hosted_context: @hosted_context)
           original = @request.result_task
+          original.bind_hosted_continuation(@canonical_task) if @hosted_context
           @canonical_task.on_complete do |value, error|
             original.finish_operation! if original.respond_to?(:finish_operation!)
             error ? original.fail(error) : original.complete(value)
           end
+          # The canonical task acquires its lease before this original decision
+          # relinquishes its own. Its still-open normal observation keeps only
+          # the guarded detach bridge, never a second unload-blocking lease.
+          original.finish_operation! if @hosted_context
         end
         owner_coordinator = coordinator
         @continuation_plan = ApprovalContinuationPlan.new(environment: environment,
@@ -109,6 +119,10 @@ module Phronomy
       end
 
       def continuation_task = @canonical_task
+
+      def validate_hosted_authority!
+        @hosted_context&.validate_live!
+      end
 
       def observe_continuation_once
         return if @continuation_observed
@@ -140,6 +154,7 @@ module Phronomy
         retained = true
         task = submit_worker(nil) do
           @committer.commit_retained(@command,
+            parent_evidence: @hosted_context&.parent_evidence,
             on_evidence: ->(value) { @mutex.synchronize { @evidence = value } },
             on_outcome: ->(value) { @mutex.synchronize { @intended = value } })
         end
@@ -229,7 +244,11 @@ module Phronomy
         @mutex.synchronize do
           return unless resolved_locked? && !@attempt
           @agent = @coordinator = @environment = @registry = @persistence = @committer = nil
-          @command = @request = @invocation = @suspended_cancellation = nil
+          @command = @request = @invocation = @suspended_cancellation = @parent_wait = nil
+          if @continuation_state == :restored
+            @hosted_context&.release!
+            @hosted_context = nil
+          end
           @evidence = @intended = @continuation_plan = @terminal_continuation = nil
           @save[:completion].clear_locked
           @original_error = @last_error = nil
@@ -379,9 +398,12 @@ module Phronomy
           finish_attempt(active[:id])
           return
         end
-        return observer.complete(apply_confirmation) if @mutex.synchronize { !@confirmation.nil? }
+        # Hosted authority is a captured parent/child snapshot. A prior confirmed
+        # decision never authorizes another partial handoff after that authority
+        # changes; each unresolved hosted observation reads the proof again.
+        return observer.complete(apply_confirmation) if !@hosted_context && @mutex.synchronize { !@confirmation.nil? }
         outcome = @mutex.synchronize { @save[:completion].result }
-        if outcome
+        if outcome && !@hosted_context
           remember_post(outcome)
           return observer.complete(apply_confirmation)
         end
@@ -479,9 +501,11 @@ module Phronomy
           [@confirmation, @application_state, @continuation_state, @revision,
             @save[:completion].physical && (!@attempt || @attempt[:completion].physical)]
         end
+        observer = (continuation == :resumed) ? execution_observer : nil
+        hosted = observer && @hosted_context&.build_invocation(observation: execution_observer, detach_task: @canonical_task)
         ApprovalRecoveryResult.new(recovery: recovery, outcome: confirmation || outcome || :unavailable,
           application_state: application, continuation_state: continuation, revision: revision,
-          physical_complete: physical, execution_task: (continuation == :resumed) ? execution_observer : nil,
+          physical_complete: physical, execution_task: observer, hosted_invocation: hosted,
           error: error)
       end
 

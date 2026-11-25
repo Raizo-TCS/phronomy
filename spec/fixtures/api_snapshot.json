@@ -520,6 +520,7 @@
       "error",
       "execution_id",
       "execution_task",
+      "hosted_invocation",
       "outcome",
       "physical_complete?",
       "recovery",

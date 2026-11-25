@@ -717,6 +717,7 @@ RSpec.describe "Agent dispatch recovery through its original Runtime" do
         end
       end
       refused = false
+      reject_initial_ready = refusal == :initial_ready
       if refusal == :failure_event
         failure_event = (kind == :provider) ? :llm_setup_failed : :tool_setup_failed
         allow_any_instance_of(Phronomy::FSMSession::EventSink).to receive(:post)
@@ -731,7 +732,7 @@ RSpec.describe "Agent dispatch recovery through its original Runtime" do
       else
         allow(@registry).to receive(:post).and_wrap_original do |original, command, **options|
           if command.is_a?(Phronomy::Agent::DispatchRecoveryOperation::Ready) &&
-              command.attempt_id.nil? && command.operation.dispatch_kind == kind && !refused
+              command.attempt_id.nil? && command.operation.dispatch_kind == kind && reject_initial_ready
             refused = true
             false
           else
@@ -742,6 +743,12 @@ RSpec.describe "Agent dispatch recovery through its original Runtime" do
       start_unknown
       expect(refused).to be(true)
       expect(@fault[:commits]).to eq(0)
+      if refusal == :initial_ready
+        # Logical and physical completion can each publish Ready. Keep both
+        # unavailable until the pending-state assertions and worker end are known.
+        eventually { @runtime.offload.active_count.zero? && @runtime.offload.queue_depth.zero? }
+        reject_initial_ready = false
+      end
       receipt = reconcile
       expect(receipt.outcome).to eq(:not_prepared)
       expect(receipt.revision).to be_nil

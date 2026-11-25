@@ -15,14 +15,16 @@ module Phronomy
       # revision identifies the confirmed execution record: the original wait
       # revision for pre-state, or the saved approval revision for post-state.
       # execution_task is a fresh observation, never the owner's canonical task.
+      # hosted_invocation has its own observation and exact next-wait detach
+      # authority. It is nil once that hosted authority has physically finished.
       # @api public
       attr_reader :recovery, :agent_id, :execution_id, :approval_request_id, :recovery_id,
         :approved, :outcome, :application_state, :continuation_state, :revision,
-        :execution_task, :error
+        :execution_task, :hosted_invocation, :error
 
       # @api private
       def initialize(recovery:, outcome:, application_state:, continuation_state:,
-        physical_complete:, revision: nil, execution_task: nil, error: nil)
+        physical_complete:, revision: nil, execution_task: nil, hosted_invocation: nil, error: nil)
         unless OUTCOMES.include?(outcome) && APPLICATION_STATES.include?(application_state) &&
             CONTINUATION_STATES.include?(continuation_state)
           raise ArgumentError, "unsupported Agent approval recovery state"
@@ -50,6 +52,10 @@ module Phronomy
         elsif !execution_task.nil?
           raise ArgumentError, "only resumed approval work has an execution observation"
         end
+        if !hosted_invocation.nil? &&
+            (continuation_state != :resumed || !hosted_invocation.is_a?(HostedInvocation))
+          raise ArgumentError, "only resumed hosted approval work has a hosted invocation"
+        end
 
         @recovery = recovery
         @agent_id = recovery.agent_id.to_s.dup.freeze
@@ -63,6 +69,7 @@ module Phronomy
         @physical_complete = physical_complete
         @revision = revision
         @execution_task = execution_task
+        @hosted_invocation = hosted_invocation
         @error = error
         freeze
       end

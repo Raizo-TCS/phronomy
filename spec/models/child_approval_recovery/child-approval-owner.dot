@@ -1,0 +1,23 @@
+digraph ChildApprovalOwner {
+  graph [rankdir=TB, bgcolor="white", pad="0.20", nodesep="0.30", ranksep="0.48", label="Original child's approval owner", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=12, margin="0.14,0.10"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  Held [label="Original decision retained\nfailed observer remains closed", fillcolor="#fff0d8"];
+  Proof [label="Complete guarded evidence known\nchild pre/post + hosted parent authority"];
+  Restored [label="Same approval wait restored\noriginal binding or rehydrated wait", fillcolor="#e6f3e8"];
+  Applied [label="Saved decision applied\ncanonical continuation retained", fillcolor="#fff0d8"];
+  Handed [label="Execution responsibility transferred\nfresh observations available", fillcolor="#e6f3e8"];
+  Waiting [label="Hosted continuation waits again\ncanonical detach authority preserved"];
+  Detached [label="Exact next wait detached\nparent and child released safely", fillcolor="#e6f3e8"];
+  initial -> Held [label="original decision observation fails"];
+  Held -> Held [label="unknown proof or physical end\n/ retain responsibility"];
+  Held -> Proof [label="explicit reconcile\n[workers quiet; exact evidence]"];
+  Proof -> Restored [label="[pre; original owner valid]\n/ restore without decision replay"];
+  Proof -> Applied [label="[post; original owner valid]\n/ preserve hosted parent wait"];
+  Applied -> Held [label="known refusal / fresh read before retry\n[accepted sessions never replay]"];
+  Applied -> Handed [label="continuation admission established\n[exact current local authority]"];
+  Handed -> Waiting [label="execution requests another approval"];
+  Waiting -> Detached [label="matching recovered hosted handle detaches\n[current parent wait + canonical task]"];
+  {rank=same; Restored; Applied;}
+}

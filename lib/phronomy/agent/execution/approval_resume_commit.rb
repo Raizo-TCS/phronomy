@@ -29,14 +29,15 @@ module Phronomy
         persist_decision(execution, operation.root, request, operation.approved)
       end
 
-      # Captures one standalone decision without interpreting an ambiguous
+      # Captures one participant-free decision without interpreting an ambiguous
       # response. The execution owner retains the proof and decides when to read.
       # @api private
-      def commit_retained(operation, on_evidence: nil, on_outcome: nil)
+      def commit_retained(operation, on_evidence: nil, on_outcome: nil, parent_evidence: nil)
         request = validated_approval_request(operation)
         validate_retained_operation!(operation)
+        parent_evidence&.validate_target!(persistence: @persistence, operation: operation)
         evidence = nil
-        result = persist_retained_decision(operation, request) { |captured| evidence = captured }
+        result = persist_retained_decision(operation, request, parent_evidence: parent_evidence) { |captured| evidence = captured }
       rescue => original_error
         begin
           publish_retained_evidence(evidence, on_evidence, on_outcome)
@@ -61,13 +62,13 @@ module Phronomy
             [true, false].include?(operation.approved)
           raise ArgumentError, "Retained approval does not match its suspended execution"
         end
-        if execution.metadata["reservation"] || execution.metadata["execution_extension"] ||
+        if execution.metadata["execution_extension"] ||
             execution.metadata["cancellation_requested"]
-          raise ArgumentError, "Retained approval requires an uncancelled standalone execution"
+          raise ArgumentError, "Retained approval requires an uncancelled participant-free execution"
         end
       end
 
-      def persist_retained_decision(operation, request)
+      def persist_retained_decision(operation, request, parent_evidence:)
         bytes = Phronomy::CanonicalJSON.dump(
           "approval_request_id" => operation.approval_request_id,
           "approved" => operation.approved
@@ -76,11 +77,13 @@ module Phronomy
         @persistence.transaction do |records, current_scope|
           scope = current_scope
           ApprovalPersistenceEvidence.require_outer_scope!(scope)
-          @persistence.guard_agents(scope, agent_ids: [@agent_id])
+          @persistence.guard_agents(scope, agent_ids: parent_evidence ? parent_evidence.agent_ids : [@agent_id])
+          parent_evidence&.assert_current!(persistence: @persistence, scope: scope)
           before = ApprovalPersistenceEvidence.read(persistence: @persistence,
             agent_id: @agent_id, execution_id: operation.execution_id,
-            journal_position: operation.root.journal_position, scope: scope)
+            journal_position: operation.root.journal_position, scope: scope, parent_evidence: parent_evidence)
           validate_retained_before!(operation, before)
+          parent_evidence&.assert_child_before!(before)
           decision_ref = records.contents.put(bytes,
             canonicalization_version: Phronomy::CanonicalJSON::VERSION)
           decision = approval_decision(operation.execution, operation.root, decision_ref)
@@ -89,7 +92,7 @@ module Phronomy
           root = resumed_root(operation.root)
           result = Result.new(execution: updated, root: root)
           evidence = ApprovalPersistenceEvidence.capture(persistence: @persistence,
-            before: before, outcome: result, decision: decision, decision_bytes: bytes)
+            before: before, outcome: result, decision: decision, decision_bytes: bytes, parent_evidence: parent_evidence)
           yield evidence
           records.executions.save(execution.execution_id,
             expected_revision: operation.expected_execution_revision, execution: updated)
@@ -97,7 +100,7 @@ module Phronomy
             expected_revision: operation.root.agent_revision, root: root)
           after = ApprovalPersistenceEvidence.read(persistence: @persistence,
             agent_id: @agent_id, execution_id: operation.execution_id,
-            journal_position: operation.root.journal_position, scope: scope)
+            journal_position: operation.root.journal_position, scope: scope, parent_evidence: parent_evidence)
           unless after == evidence.after && records.contents.fetch(decision_ref) == bytes
             raise Phronomy::Persistence::StateConflictError, "Approval write differs from its captured proof"
           end
