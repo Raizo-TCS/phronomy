@@ -65,7 +65,8 @@ The shared protocol preserves these rules:
   cannot write into a replacement attempt, and owner delivery still checks the
   original attempt identity.
 
-Retirement clears retained task, result and error references after owner delivery.
+When owner release or resolution permits cleanup, the owners clear retained
+task, result and error references.
 Both owners also clear the private registration error; terminal recovery
 previously retained that unused reference after release. Public diagnostic
 receipts and recovery behavior are unchanged. Clearing is not a new lifecycle
