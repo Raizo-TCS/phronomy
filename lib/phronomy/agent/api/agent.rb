@@ -20,6 +20,7 @@ end
 require_relative "../async_event_api"
 require_relative "../terminal_recovery_api"
 require_relative "../approval_recovery_api"
+require_relative "../dispatch_recovery_api"
 
 unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)
@@ -31,6 +32,10 @@ end
 
 unless Phronomy::Agent::Base < Phronomy::Agent::ApprovalRecoveryApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::ApprovalRecoveryApi)
+end
+
+unless Phronomy::Agent::Base < Phronomy::Agent::DispatchRecoveryApi
+  Phronomy::Agent::Base.prepend(Phronomy::Agent::DispatchRecoveryApi)
 end
 
 # Durable Agent Recovery and Agent-incarnation event binding.

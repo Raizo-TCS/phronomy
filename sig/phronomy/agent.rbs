@@ -130,6 +130,11 @@ module Phronomy
       def pending_approval_recovery: (execution_id: String) -> ApprovalRecovery?
       def reconcile_approval_async: (recovery: ApprovalRecovery) -> TaskResult[ApprovalRecoveryResult]
       def reconcile_approval: (recovery: ApprovalRecovery) -> ApprovalRecoveryResult
+      def pending_dispatch_recovery: (execution_id: String) -> DispatchRecovery?
+      def reconcile_dispatch_async: (recovery: DispatchRecovery) -> TaskResult[DispatchRecoveryResult]
+      def reconcile_dispatch: (recovery: DispatchRecovery) -> DispatchRecoveryResult
+      def retry_dispatch_async: (recovery: DispatchRecovery) -> TaskResult[DispatchRecoveryResult]
+      def retry_dispatch: (recovery: DispatchRecovery) -> DispatchRecoveryResult
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       # Public operation methods no longer accept per-invocation event listeners

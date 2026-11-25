@@ -66,7 +66,7 @@ RSpec.describe "ACS-04 Context Policy architecture regression guards" do
 
   it "runs follow-up Policy between snapshot encoding and the durable state commit" do
     worker = File.read(File.join(root, "lib/phronomy/agent/execution/dispatch_preparation.rb"))
-    preparation = worker.split("def prepare_provider(operation)", 2).fetch(1).split(/^      def /, 2).first
+    preparation = worker.split("def prepare_provider(operation,", 2).fetch(1).split(/^      def /, 2).first
     context = worker.split("def prepare_provider_context", 2).fetch(1).split(/^      def /, 2).first
     encoding = worker.split("def encode_provider_records", 2).fetch(1).split(/^      def /, 2).first
     commit = worker.split("def commit_provider_preparation", 2).fetch(1).split(/^      def /, 2).first

@@ -57,6 +57,7 @@ module Phronomy
         @agent_deferred_terminals = {}
         @terminal_operations = {}
         @approval_operations = {}
+        @dispatch_operations = {}
       end
 
       def post(command, admission: false, completion: nil)
@@ -69,7 +70,8 @@ module Phronomy
         when PhysicalCompletion
           complete_agent_physical_work(command)
         when TerminalRecoveryOperation::Observe, TerminalRecoveryOperation::Ready,
-            ApprovalRecoveryOperation::Observe, ApprovalRecoveryOperation::Ready
+            ApprovalRecoveryOperation::Observe, ApprovalRecoveryOperation::Ready,
+            DispatchRecoveryOperation::Observe, DispatchRecoveryOperation::Ready
           command.operation.deliver(command)
         else
           command.coordinator.deliver_on_event_loop(command)
@@ -80,7 +82,7 @@ module Phronomy
       def idle?
         @agent_inflight_work.values.all?(&:empty?) &&
           @agent_deferred_terminals.empty? &&
-          @terminal_operations.empty? && @approval_operations.empty? &&
+          @terminal_operations.empty? && @approval_operations.empty? && @dispatch_operations.empty? &&
           !agent_admission_transition_in_progress_locked?
       end
 
@@ -88,14 +90,14 @@ module Phronomy
       # after that thread has joined. Task callbacks run outside the lifecycle lock.
       def shutdown(error:)
         pending, retained = synchronize do
-          retained_ids = @terminal_operations.keys | @approval_operations.keys
+          retained_ids = @terminal_operations.keys | @approval_operations.keys | @dispatch_operations.keys
           waiters = @agent_completion_waiters.dup
           @agent_completion_waiters.clear
           @agent_inflight_work.delete_if { |id, _work| !retained_ids.include?(id) }
           @agent_deferred_terminals.delete_if { |id, _command| !retained_ids.include?(id) }
           @agent_admissions.delete_if { |_id, admission| !retained_ids.include?(admission.execution_id) }
           @agent_executions.delete_if { |id, _state| !retained_ids.include?(id) }
-          [waiters, (@terminal_operations.values + @approval_operations.values).map(&:operation)]
+          [waiters, (@terminal_operations.values + @approval_operations.values + @dispatch_operations.values).map(&:operation)]
         end
 
         failure = error || Phronomy::ExecutionRehydrationRequiredError.new(
@@ -168,7 +170,7 @@ module Phronomy
           key = operation.execution_id.to_s
           work = @agent_inflight_work.fetch(key, nil)
           next false if work && !work.empty?
-          next false if @agent_deferred_terminals.key?(key) || @approval_operations.key?(key)
+          next false if @agent_deferred_terminals.key?(key) || @approval_operations.key?(key) || @dispatch_operations.key?(key)
 
           entry = @terminal_operations.delete(key)
           @agent_inflight_work.delete(key)
@@ -220,6 +222,52 @@ module Phronomy
         synchronize do
           next false unless owns_approval_operation_locked?(operation)
           @approval_operations.delete(operation.execution_id.to_s)
+          operation.resolution_released!
+          true
+        end
+      end
+
+      # A dispatch barrier owns the captured preparation until it hands the same
+      # invocation onward. Resolving it never releases execution admission.
+      def retain_dispatch_operation(operation)
+        assert_event_loop_thread!
+        key = operation.execution_id.to_s
+        synchronize do
+          state = @agent_executions[key]
+          admission = @agent_admissions[operation.agent_id.to_s]
+          unless state && state.agent.equal?(operation.agent) && state.coordinator.equal?(operation.coordinator) &&
+              state.execution.execution_revision == operation.command.expected_execution_revision &&
+              state.invocation.equal?(operation.invocation) &&
+              state.fsm_session_id.to_s == operation.command.fsm_session_id.to_s &&
+              admission&.execution_id == key && !@dispatch_operations.key?(key)
+            raise Phronomy::Error, "Agent dispatch preparation has no unique matching owner"
+          end
+          @dispatch_operations[key] = TerminalOperationEntry.new(operation: operation,
+            agent: state.agent, coordinator: state.coordinator, owner_token: admission.owner_token,
+            agent_id: admission.agent_id, execution_id: key.freeze, fsm_session_id: state.fsm_session_id)
+        end
+        operation
+      end
+
+      def dispatch_operation(execution_id)
+        synchronize { @dispatch_operations[execution_id.to_s]&.operation }
+      end
+
+      def owns_dispatch_operation?(operation)
+        synchronize { owns_dispatch_operation_locked?(operation) }
+      end
+
+      def pending_agent_dispatch_recovery(execution_id, agent:)
+        entry = synchronize { @dispatch_operations[execution_id.to_s] }
+        entry.operation.recovery if entry&.agent&.equal?(agent) && entry.operation.pending?
+      end
+
+      def resolve_dispatch_operation(operation)
+        assert_event_loop_thread!
+        return false unless operation.resolution_permitted?
+        synchronize do
+          next false unless owns_dispatch_operation_locked?(operation)
+          @dispatch_operations.delete(operation.execution_id.to_s)
           operation.resolution_released!
           true
         end
@@ -349,7 +397,8 @@ module Phronomy
             false
           end
           next false unless authoritative
-          next false if @terminal_operations.key?(current.execution_id) || @approval_operations.key?(current.execution_id)
+          next false if @terminal_operations.key?(current.execution_id) || @approval_operations.key?(current.execution_id) ||
+            @dispatch_operations.key?(current.execution_id)
 
           @agent_admissions.delete(key)
           true
@@ -462,6 +511,11 @@ module Phronomy
         task
       end
 
+      # Snapshot only: observation failure does not remove job-completion leases.
+      def agent_completion_waiters(execution_id)
+        synchronize { @agent_completion_waiters.fetch(execution_id.to_s, []).dup.freeze }
+      end
+
       # Atomically detaches all process-local completion waiters at authoritative
       # terminal delivery. A fallback TaskResult is included for pre-install terminal
       # paths that never acquired a live execution directory entry.
@@ -560,7 +614,7 @@ module Phronomy
         assert_event_loop_thread!
         key = execution_id.to_s
         synchronize do
-          if @terminal_operations.key?(key) || @approval_operations.key?(key)
+          if @terminal_operations.key?(key) || @approval_operations.key?(key) || @dispatch_operations.key?(key)
             raise Phronomy::Error, "Agent execution #{key.inspect} requires terminal operation release"
           end
           work = @agent_inflight_work.fetch(key, nil)
@@ -578,6 +632,16 @@ module Phronomy
       end
 
       private
+
+      def owns_dispatch_operation_locked?(operation)
+        entry = @dispatch_operations[operation.execution_id.to_s]
+        return false unless entry&.operation&.equal?(operation)
+        admission = @agent_admissions[entry.agent_id]
+        state = @agent_executions[entry.execution_id]
+        admission&.owner_token&.equal?(entry.owner_token) && admission.execution_id == entry.execution_id &&
+          state&.agent&.equal?(entry.agent) && state.coordinator.equal?(entry.coordinator) &&
+          state.invocation.equal?(operation.invocation) && state.fsm_session_id.to_s == entry.fsm_session_id.to_s
+      end
 
       def owns_approval_operation_locked?(operation)
         entry = @approval_operations[operation.execution_id.to_s]
