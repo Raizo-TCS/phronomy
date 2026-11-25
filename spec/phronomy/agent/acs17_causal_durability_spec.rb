@@ -390,8 +390,18 @@ RSpec.describe "ACS-17 causal durability" do
       .split(/^      def /, 2)
       .first
 
-    expect(provider_apply).to include("start_prepared_provider_call")
-    expect(tool_apply).to include("start_prepared_tool_dispatch")
+    expect(provider_apply).to include("dispatch_prepared_provider_on_event_loop")
+    expect(tool_apply).to include("dispatch_prepared_tools_on_event_loop")
+
+    retained_apply = coordinator
+      .split("def apply_retained_dispatch_on_event_loop", 2)
+      .fetch(1)
+      .split(/^      def /, 2)
+      .first
+    expect(retained_apply.index("authorize_continuation!")).to be <
+      retained_apply.index("dispatch_prepared_provider_on_event_loop")
+    expect(retained_apply.index("authorize_continuation!")).to be <
+      retained_apply.index("dispatch_prepared_tools_on_event_loop")
   end
 
   def provider_operation_after_tools(agent, persistence)

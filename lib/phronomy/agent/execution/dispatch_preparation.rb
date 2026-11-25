@@ -31,26 +31,44 @@ module Phronomy
       end
 
       # @api private
-      def prepare_provider(operation)
+      def prepare_provider(operation, on_evidence: nil, on_outcome: nil, on_barrier_started: nil)
         staged = stage_provider_call(operation)
         recorded = encode_provider_records(operation, staged)
         IterationBudget.check!(recorded, default: @agent.class.max_iterations)
         assembler, prepared = prepare_provider_context(operation, recorded)
         committed, manifest, manifest_ref = commit_provider_preparation(
-          operation, recorded, assembler, prepared
+          operation, recorded, assembler, prepared, on_evidence: on_evidence,
+          on_barrier_started: on_barrier_started
         )
-        materialize_provider_result(committed.execution, manifest, manifest_ref)
+        result = materialize_provider_result(committed.execution, manifest, manifest_ref)
+        on_outcome&.call(result)
+        result
       end
 
       # @api private
-      def prepare_tools(operation)
+      def prepare_tools(operation, on_evidence: nil, on_outcome: nil, on_barrier_started: nil)
         updated = @persistence.transaction do |tx|
           assert_local_durable_base!(tx, operation.root)
           build_tool_dispatch_execution(operation, tx)
         end
         change = ExecutionChange.new(agent: @agent, current: operation.execution,
           root: operation.root, kind: :dispatch, updated: updated, config: operation.invocation_config)
-        ToolResult.new(execution: change.perform)
+        committed = perform_dispatch_change(change, operation, kind: :tool, collector: on_evidence,
+          on_barrier_started: on_barrier_started)
+        result = ToolResult.new(execution: committed)
+        on_outcome&.call(result)
+        result
+      end
+
+      # Materializes already captured input only after the owner has proved its
+      # dispatch barrier committed. No hook, Policy or business call is repeated.
+      # @api private
+      def recover_result(evidence)
+        if evidence.kind == :provider
+          materialize_provider_result(evidence.execution, evidence.manifest, evidence.manifest_ref)
+        else
+          ToolResult.new(execution: evidence.execution)
+        end
       end
 
       private
@@ -119,7 +137,7 @@ module Phronomy
         [assembler, prepared]
       end
 
-      def commit_provider_preparation(operation, recorded, assembler, prepared)
+      def commit_provider_preparation(operation, recorded, assembler, prepared, on_evidence:, on_barrier_started:)
         manifest, manifest_ref = @persistence.transaction do |tx|
           assert_local_durable_base!(tx, operation.root)
           Phronomy::Context::Assembly.new.store(prepared, contents: tx.contents,
@@ -128,8 +146,41 @@ module Phronomy
         updated = execution_with_provider_manifest(recorded, manifest_ref)
         change = ExecutionChange.new(agent: @agent, current: operation.execution,
           root: operation.root, kind: :dispatch, updated: updated, config: operation.invocation_config)
-        intended = ProviderResult.new(execution: change.perform, runtime_projection: nil, error: nil)
+        committed = perform_dispatch_change(change, operation, kind: :provider, collector: on_evidence,
+          manifest: manifest, manifest_ref: manifest_ref, on_barrier_started: on_barrier_started)
+        intended = ProviderResult.new(execution: committed, runtime_projection: nil, error: nil)
         [intended, manifest, manifest_ref]
+      end
+
+      def perform_dispatch_change(change, operation, kind:, collector:, on_barrier_started:, manifest: nil, manifest_ref: nil)
+        capture = collector && retained_evidence_eligible?(operation)
+        # Absence of a complete proof cannot establish non-admission. The owner
+        # separately records whether execution-change processing could start.
+        on_barrier_started&.call
+        result = change.perform
+      rescue => original_error
+        begin
+          publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref) if capture
+        rescue
+          # A failed collector cannot replace the original persistence error.
+          nil
+        end
+        raise original_error
+      else
+        publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref) if capture
+        result
+      end
+
+      def publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref)
+        evidence = DispatchPersistenceEvidence.capture(change, persistence: @agent.persistence,
+          kind: kind, manifest: manifest, manifest_ref: manifest_ref)
+        collector.call(evidence) if evidence
+      end
+
+      def retained_evidence_eligible?(operation)
+        operation.execution.status == :active &&
+          !operation.execution.metadata["reservation"] && !operation.execution.metadata["execution_extension"] &&
+          !operation.invocation_config[:phronomy_execution_participant]
       end
 
       def execution_with_provider_manifest(recorded, manifest_ref)

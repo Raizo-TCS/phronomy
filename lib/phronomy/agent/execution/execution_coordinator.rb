@@ -195,6 +195,7 @@ module Phronomy
       # and sends only that snapshot to OffloadPool.
       # @api private
       def prepare_provider_dispatch(invocation, event_sink:, streaming:)
+        complete_prior_dispatch_continuation(invocation, event_sink)
         state = dispatch_preparation_state!(
           invocation, event_sink, phase: :calling_llm, kind: "Provider"
         )
@@ -210,6 +211,7 @@ module Phronomy
 
       # @api private
       def prepare_tool_dispatch(invocation, event_sink:)
+        complete_prior_dispatch_continuation(invocation, event_sink)
         state = dispatch_preparation_state!(
           invocation, event_sink, phase: :dispatching_tools, kind: "Tool"
         )
@@ -225,6 +227,8 @@ module Phronomy
 
       def submit_provider_dispatch_preparation(operation)
         environment = @agent.__execution_environment
+        return retain_dispatch_preparation(operation, :provider) if retained_dispatch_eligible?(operation)
+
         task = environment.submit(on_full: :raise) do
           @dispatch_preparation.prepare_provider(operation)
         end
@@ -246,6 +250,8 @@ module Phronomy
 
       def submit_tool_dispatch_preparation(operation)
         environment = @agent.__execution_environment
+        return retain_dispatch_preparation(operation, :tool) if retained_dispatch_eligible?(operation)
+
         task = environment.submit(on_full: :raise) do
           @dispatch_preparation.prepare_tools(operation)
         end
@@ -913,10 +919,14 @@ module Phronomy
           return
         end
 
+        dispatch_prepared_provider_on_event_loop(operation, result, state)
+      end
+
+      def dispatch_prepared_provider_on_event_loop(operation, result, state, event_sink: state.invocation.event_sink)
         Agent::InvocationActions.start_prepared_provider_call(
           agent: @agent,
           environment: @agent.__execution_environment,
-          event_sink: state.invocation.event_sink,
+          event_sink: event_sink,
           invocation: state.invocation,
           projection: result.runtime_projection,
           streaming: operation.streaming
@@ -934,9 +944,13 @@ module Phronomy
           execution: result.execution
         )
         state.invocation.acknowledge_runtime_snapshot(operation.runtime_snapshot)
+        dispatch_prepared_tools_on_event_loop(state)
+      end
+
+      def dispatch_prepared_tools_on_event_loop(state, event_sink: state.invocation.event_sink)
         Agent::InvocationActions.start_prepared_tool_dispatch(
           environment: @agent.__execution_environment,
-          event_sink: state.invocation.event_sink,
+          event_sink: event_sink,
           invocation: state.invocation
         )
       end
@@ -952,6 +966,153 @@ module Phronomy
           "[Phronomy] causal durable barrier requires recovery for " \
           "#{operation.execution_id}: #{error.class}: #{error.message}"
         )
+      end
+
+      def retained_dispatch_eligible?(command)
+        !command.execution.metadata["reservation"] && !command.execution.metadata["execution_extension"] &&
+          !command.invocation_config[:phronomy_execution_participant]
+      end
+
+      def retain_dispatch_preparation(command, kind)
+        environment = @agent.__execution_environment
+        state = environment.registry.agent_execution_state(command.execution_id)
+        DispatchRecoveryOperation.new(agent: @agent, coordinator: self, environment: environment,
+          command: command, invocation: state.invocation, dispatch_kind: kind,
+          original_waiters: environment.registry.agent_completion_waiters(command.execution_id),
+          preparer: @dispatch_preparation).start
+      end
+
+      # Reaching a later dispatch entry through the same FSM proves its previous
+      # continuation progressed, even if that handoff's local reply was lost.
+      def complete_prior_dispatch_continuation(invocation, event_sink)
+        owner = @agent.__execution_environment.registry.dispatch_operation(invocation.execution_id)
+        return unless owner && owner.invocation.equal?(invocation) &&
+          owner.fsm_session_id.to_s == event_sink.fsm_session_id.to_s && owner.continuation_authorized?
+        owner.continuation_completed!
+        owner.retire_after_delivery
+      end
+
+      def dispatch_recovery_failed_on_event_loop(owner, _failure)
+        assert_event_loop!(owner.environment)
+        return unless owner.environment.registry.owns_dispatch_operation?(owner)
+        owner.environment.registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :recovery_required)
+        # The original stream observation is closed. The recovery receipt exposes
+        # a fresh execution observation rather than reviving its old callbacks.
+        owner.invocation.event_listener = nil
+      end
+
+      def stop_retained_dispatch_on_event_loop(owner, error)
+        environment = owner.environment
+        registry = environment.registry
+        assert_event_loop!(environment)
+        state = retained_dispatch_state!(owner)
+        dispatch_recovery_failed_on_event_loop(owner, nil) if owner.pending?
+        unless state.execution.to_h == owner.command.execution.to_h &&
+            @agent.send(:__root_for_operation).to_h == owner.command.root.to_h
+          raise Phronomy::Persistence::StateConflictError, "Live state changed before preparation failure handoff"
+        end
+        owner.prepare_failed_continuation!
+        owner.application_applied!
+        owner.prepare_continuation
+        registry.register_agent_completion_waiter(owner.execution_id, owner.continuation_task)
+        delivery = owner.prepare_continuation_delivery
+        if owner.continuation_authorized?
+          unless owner.continuation_returned? && delivery.retry_rejected! && delivery.finish_handoff?
+            raise runtime_rejected_error(:dispatch_preparation_failure)
+          end
+        else
+          owner.authorize_continuation!
+          event = (owner.dispatch_kind == :provider) ? :llm_setup_failed : :tool_setup_failed
+          delivery.post(event, error)
+          owner.continuation_returned!
+          raise runtime_rejected_error(:dispatch_preparation_failure) unless delivery.finish_handoff?
+        end
+        registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :executing)
+        owner.continuation_completed!(:stopped)
+      end
+
+      def retained_dispatch_state!(owner)
+        registry = owner.environment.registry
+        state = registry.agent_execution_state(owner.execution_id)
+        unless registry.owns_dispatch_operation?(owner) && state.invocation.equal?(owner.invocation) &&
+            state.fsm_session_id.to_s == owner.command.fsm_session_id.to_s
+          raise Phronomy::Error, "Original dispatch preparation owner changed"
+        end
+        state
+      end
+
+      def apply_retained_dispatch_on_event_loop(owner, outcome)
+        environment = owner.environment
+        registry = environment.registry
+        assert_event_loop!(environment)
+        state = retained_dispatch_state!(owner)
+        dispatch_recovery_failed_on_event_loop(owner, nil) if owner.pending?
+        command = owner.command
+        if owner.continuation_authorized?
+          unless state.execution.to_h == outcome.execution.to_h &&
+              @agent.send(:__root_for_operation).to_h == command.root.to_h
+            raise Phronomy::Persistence::StateConflictError, "Applied dispatch state changed before notification repair"
+          end
+          delivery = owner.continuation_delivery
+          if owner.continuation_returned? && delivery&.retry_rejected! && delivery.finish_handoff?
+            registry.mark_agent_execution_admission(@agent.agent_id,
+              execution_id: owner.execution_id, state: :executing)
+            owner.continuation_completed!
+            return
+          end
+          raise Phronomy::ExecutionRehydrationRequiredError, "Dispatch continuation already authorized; it cannot be replayed"
+        end
+        phase = (owner.dispatch_kind == :provider) ? :calling_llm : :dispatching_tools
+        unless environment.session_phase(command.fsm_session_id) == phase &&
+            [command.execution.to_h, outcome.execution.to_h].include?(state.execution.to_h) &&
+            @agent.send(:__root_for_operation).to_h == command.root.to_h
+          raise Phronomy::Persistence::StateConflictError, "Original live dispatch pre/post state changed"
+        end
+        unless owner.applied?
+          projection = outcome.respond_to?(:runtime_projection) && outcome.runtime_projection
+          if projection
+            registry.replace_agent_execution(owner.execution_id,
+              execution: outcome.execution, runtime_projection: projection)
+          else
+            registry.replace_agent_execution(owner.execution_id, execution: outcome.execution)
+          end
+          state.invocation.acknowledge_runtime_snapshot(command.runtime_snapshot)
+          owner.application_applied!
+        end
+        registry.mark_agent_execution_admission(@agent.agent_id,
+          execution_id: owner.execution_id, state: :executing)
+        owner.prepare_continuation
+        registry.register_agent_completion_waiter(owner.execution_id, owner.continuation_task)
+        delivery = owner.prepare_continuation_delivery
+        error = outcome.respond_to?(:error) && outcome.error
+        begin
+          if owner.captured_cancellation_requested?
+            raise Phronomy::CancellationError, "Agent execution cancellation was recorded before dispatch"
+          end
+          @agent.send(:check_cancellation!, state.invocation.config, "invocation cancelled before recovered dispatch")
+        rescue Phronomy::CancellationError, Phronomy::TimeoutError => cancellation
+          error = cancellation
+        end
+        # The local notification bridge can resend a positively rejected event,
+        # but never restores the external dispatch authorization.
+        return unless owner.authorize_continuation!
+        if error
+          event = (owner.dispatch_kind == :provider) ? :llm_setup_failed : :tool_setup_failed
+          delivery.post(event, error)
+        else
+          # Authorization precedes the external admission edge. A raised call
+          # does not prove rejection and cannot authorize business replay.
+          if owner.dispatch_kind == :provider
+            dispatch_prepared_provider_on_event_loop(command, outcome, state, event_sink: delivery)
+          else
+            dispatch_prepared_tools_on_event_loop(state, event_sink: delivery)
+          end
+        end
+        owner.continuation_returned!
+        raise runtime_rejected_error(:dispatch_continuation) unless delivery.finish_handoff?
+        owner.continuation_completed!
       end
 
       # ----------------------------------------------------------------------
@@ -1356,6 +1517,15 @@ module Phronomy
             result_task,
             Phronomy::Error.new("stale Agent terminal callback for #{execution_id}")
           )
+        end
+
+        if (dispatch_owner = environment.registry.dispatch_operation(execution_id))
+          # An accepted continuation may finish after its admission reply was
+          # lost. The matching session's completion proves the handoff occurred;
+          # do not replay dispatch merely to repair the receipt.
+          return unless dispatch_owner.continuation_authorized?
+          dispatch_owner.continuation_completed!
+          dispatch_owner.retire_after_delivery
         end
 
         if (approval_owner = environment.registry.approval_operation(execution_id))

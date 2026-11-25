@@ -1,0 +1,49 @@
+module Phronomy
+  module Agent
+    class DispatchRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader dispatch_kind: :provider | :tool
+    end
+
+    class DispatchRecoveryError < Phronomy::Error
+      attr_reader recovery: DispatchRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader dispatch_kind: :provider | :tool
+      attr_reader original_error: Exception?
+      def cause: () -> Exception?
+
+      private
+
+      def initialize: (recovery: DispatchRecovery, error: Exception?, ?original_error: Exception?) -> void
+    end
+
+    class DispatchRecoveryResult
+      attr_reader recovery: DispatchRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader dispatch_kind: :provider | :tool
+      attr_reader outcome: :confirmed_pre | :confirmed_post | :not_prepared | :unresolved | :unavailable
+      attr_reader application_state: :pending | :applied
+      attr_reader continuation_state: :pending | :resumed | :stopped
+      attr_reader revision: Integer?
+      attr_reader execution_task: TaskResult[execution_result]?
+      attr_reader error: Exception?
+      def physical_complete?: () -> bool
+      def resolved?: () -> bool
+
+      private
+
+      def initialize: (recovery: DispatchRecovery,
+        outcome: :confirmed_pre | :confirmed_post | :not_prepared | :unresolved | :unavailable,
+        application_state: :pending | :applied,
+        continuation_state: :pending | :resumed | :stopped,
+        physical_complete: bool,
+        ?revision: Integer?, ?execution_task: TaskResult[execution_result]?, ?error: Exception?) -> void
+    end
+  end
+end

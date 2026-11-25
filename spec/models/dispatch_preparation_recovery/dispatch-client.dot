@@ -1,0 +1,17 @@
+digraph DispatchClient {
+  graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.5", ranksep="0.7", fontname="sans-serif", label="One client's fresh recovery observation", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#edf4fa", color="#526c80", fontname="sans-serif", fontsize=13, margin="0.16,0.1"];
+  edge [fontname="sans-serif", fontsize=10, color="#526c80"];
+  start [shape=point, width=0.12, label="", fillcolor="#243a4b"];
+  receipt [label="Waiting for recovery receipt"];
+  receiptClosed [label="Receipt observation ended\nRetained owner may still work", fillcolor="#fff0d9"];
+  execution [label="Watching same invocation\nThrough a fresh execution observer"];
+  complete [label="Execution observation ended", fillcolor="#e4f3e9"];
+  end [shape=doublecircle, width=0.16, label="", fillcolor="#243a4b"];
+  start -> receipt [label="explicit reconcile or retry"];
+  receipt -> receiptClosed [label="cancel / timeout / pending receipt"];
+  receipt -> execution [label="resumed or stopped receipt\n/ receive independent execution observer"];
+  receiptClosed -> end;
+  execution -> complete [label="completion / failure / observer cancellation"];
+  complete -> end;
+}

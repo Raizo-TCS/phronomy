@@ -1,0 +1,25 @@
+digraph DispatchOwner {
+  graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.5", ranksep="0.7", fontname="sans-serif", label="Original owner's dispatch preparation", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#edf4fa", color="#526c80", fontname="sans-serif", fontsize=13, margin="0.16,0.1"];
+  edge [fontname="sans-serif", fontsize=10, color="#526c80"];
+  start [shape=point, width=0.12, label="", fillcolor="#243a4b"];
+  held [label="Proposal retained\nOriginal observer remains final"];
+  read [label="Recovery worker active"];
+  pre [label="Complete pre-state\nProposal remains retained"];
+  post [label="Complete post-state\nApply once in original owner"];
+  continued [label="Continuation handed off\nJob may still be active", fillcolor="#e4f3e9"];
+  stopped [label="Stopped before barrier\nSame invocation failed", fillcolor="#e4f3e9"];
+  unknown [label="External admission unknown\nResponsibility remains retained", fillcolor="#fff0d9"];
+  start -> held;
+  held -> stopped [label="[physical error, barrier never entered]\n/ apply same failure; hand off accepted notification"];
+  held -> read [label="explicit reconcile / retry\n[original worker proved quiet]"];
+  read -> held [label="unreadable / conflict\n[recovery worker quiet]"];
+  read -> pre [label="exact pre-state\n[recovery worker quiet]"];
+  pre -> read [label="explicit retry\n/ recheck and write captured proposal"];
+  held -> post [label="retained successful result\n[original worker proved quiet]", constraint=false];
+  read -> post [label="exact post-state\n[recovery worker quiet]"];
+  post -> continued [label="[exact owner, no prior dispatch]\n/ recheck cancellation and input; hand off once"];
+  post -> unknown [label="dispatch admission uncertain\n/ retain exact invocation"];
+  unknown -> continued [label="matching completion receipt\n[exact owner and quiet workers] / hand off", constraint=false];
+  unknown -> unknown [label="observe / keep external uncertainty"];
+}
