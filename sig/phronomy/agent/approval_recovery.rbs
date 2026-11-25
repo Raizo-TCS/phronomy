@@ -34,7 +34,8 @@ module Phronomy
       attr_reader application_state: :pending | :applied
       attr_reader continuation_state: :pending | :restored | :resumed
       attr_reader revision: Integer?
-      attr_reader execution_task: TaskResult[execution_result]?
+      attr_reader execution_task: TaskResult[execution_result | ApprovalWait]?
+      attr_reader hosted_invocation: HostedInvocation?
       attr_reader error: Exception?
       def physical_complete?: () -> bool
       def resolved?: () -> bool
@@ -46,7 +47,8 @@ module Phronomy
         application_state: :pending | :applied,
         continuation_state: :pending | :restored | :resumed,
         physical_complete: bool,
-        ?revision: Integer?, ?execution_task: TaskResult[execution_result]?, ?error: Exception?) -> void
+        ?revision: Integer?, ?execution_task: TaskResult[execution_result | ApprovalWait]?,
+        ?hosted_invocation: HostedInvocation?, ?error: Exception?) -> void
     end
   end
 end

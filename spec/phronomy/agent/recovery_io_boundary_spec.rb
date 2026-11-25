@@ -257,8 +257,8 @@ RSpec.describe "Recovery Persistence I/O boundary (ADR-014/024; F1/F4)" do
         .agent_execution_owner(request.execution_id)
       commit = owner.coordinator.instance_variable_get(:@approval_resume_commit)
       committed_snapshots = Queue.new
-      allow(commit).to receive(:commit).and_wrap_original do |original_commit, operation|
-        saved = original_commit.call(operation)
+      allow(commit).to receive(:commit_retained).and_wrap_original do |original_commit, operation, **options|
+        saved = original_commit.call(operation, **options)
         expect(calls).to eq(0)
         committed_snapshots << saved.execution.metadata.fetch(
           Phronomy::Agent::ExecutionMetadata::TOOL_BATCH_METADATA_KEY

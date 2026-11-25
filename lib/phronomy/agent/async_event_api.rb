@@ -280,11 +280,18 @@ module Phronomy
             reader.call(agent_id, parent_execution_id, child_execution_id, approval_id,
               parent_revision: parent_wait.revision, live_child: owner.agent)
           end
-          wait = lookup.call(execution_id, approval_request_id)
-          raise Phronomy::AgentBusyError, "No matching hosted child approval wait" unless wait
+          parent_evidence = ApprovalParentEvidence.capture(persistence: owner.agent.persistence,
+            parent_agent_id: agent_id, parent_execution_id: parent_execution_id,
+            parent_revision: parent_wait.revision, child_agent_id: owner.agent.agent_id) do
+            lookup.call(execution_id, approval_request_id)
+          end
+          wait = parent_evidence.wait
+          context = HostedApprovalContext.new(parent: self, child: owner.agent,
+            parent_wait: parent_wait, parent_evidence: parent_evidence, reader: reader)
           task = owner.coordinator.resume(wait.execution_id, approval_request_id: wait.approval_request_id, approved: approved,
-            config: owner.agent._prepare_invocation_config(config, nil), parent_wait: parent_wait)
-          HostedInvocation.new(self, parent_execution_id, task, resumed_from: wait, &lookup)
+            config: owner.agent._prepare_invocation_config(config, nil), parent_wait: parent_wait, hosted_context: context)
+          context.build_invocation(observation: task, detach_task: task) ||
+            HostedInvocation.new(self, parent_execution_id, task, resumed_from: wait)
         end
       end
 

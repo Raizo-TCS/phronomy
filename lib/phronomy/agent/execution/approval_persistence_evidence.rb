@@ -4,7 +4,7 @@ require "securerandom"
 
 module Phronomy
   module Agent
-    # Process-local proof of one standalone approval decision. It retains only
+    # Process-local proof of one participant-free approval decision. It retains only
     # immutable facts and requires the original Store after the write has settled.
     # Reconciliation never resumes execution or repeats persistence writes.
     # @api private
@@ -19,23 +19,25 @@ module Phronomy
         raise Phronomy::Persistence::TransactionError, "Approval evidence requires its own outer transaction"
       end
 
-      def self.read(persistence:, agent_id:, execution_id:, journal_position:, scope:)
+      def self.read(persistence:, agent_id:, execution_id:, journal_position:, scope:, parent_evidence: nil)
         snapshot = ExecutionChange.read_agent_evidence(store: persistence,
           agent_id: agent_id, execution_id: execution_id,
           journal_position: journal_position, scope: scope)
-        persistence.participate(scope) do |records|
-          Phronomy::Values::Immutable.copy(agent: snapshot,
-            journal_head: records.journals.head(agent_id),
-            retentions: records.retentions.list(agent_id))
+        result = persistence.participate(scope) do |records|
+          {agent: snapshot, journal_head: records.journals.head(agent_id),
+           retentions: records.retentions.list(agent_id)}
         end
+        result[:parent] = parent_evidence.read(persistence: persistence, scope: scope) if parent_evidence
+        Phronomy::Values::Immutable.copy(result)
       end
 
-      def self.capture(persistence:, before:, outcome:, decision:, decision_bytes:)
-        new(persistence.execution_evidence_identity, before, outcome, decision, decision_bytes)
+      def self.capture(persistence:, before:, outcome:, decision:, decision_bytes:, parent_evidence: nil)
+        new(persistence.execution_evidence_identity, before, outcome, decision, decision_bytes, parent_evidence)
       end
 
-      def initialize(persistence_identity, before, outcome, decision, decision_bytes)
+      def initialize(persistence_identity, before, outcome, decision, decision_bytes, parent_evidence)
         @persistence_identity = persistence_identity
+        @parent_evidence = parent_evidence
         @before = Phronomy::Values::Immutable.copy(before)
         @outcome, @decision = outcome, decision
         @agent_id, @execution_id = outcome.execution.agent_id, outcome.execution.execution_id
@@ -57,10 +59,10 @@ module Phronomy
         end
         disposition = persistence.coordinator.atomic do |scope|
           self.class.require_outer_scope!(scope)
-          persistence.guard_agents(scope, agent_ids: [agent_id])
+          persistence.guard_agents(scope, agent_ids: @parent_evidence ? @parent_evidence.agent_ids : [agent_id])
           snapshot = self.class.read(persistence: persistence,
             agent_id: agent_id, execution_id: execution_id,
-            journal_position: @journal_position, scope: scope)
+            journal_position: @journal_position, scope: scope, parent_evidence: @parent_evidence)
           classification = Phronomy::Persistence::SaveOutcome.compare(before: before, after: after) { snapshot }
           if classification.disposition == :committed
             persistence.participate(scope) do |records|

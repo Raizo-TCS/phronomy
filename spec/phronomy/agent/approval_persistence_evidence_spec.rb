@@ -272,7 +272,7 @@ RSpec.describe Phronomy::Agent::ApprovalPersistenceEvidence do
     expect { retain(command(approved: nil)) }.to raise_error(ArgumentError)
   end
 
-  %w[reservation execution_extension cancellation_requested].each do |key|
+  %w[execution_extension cancellation_requested].each do |key|
     it "rejects #{key} before persistence" do
       changed = execution.with(execution_revision: execution.execution_revision,
         metadata: execution.metadata.merge(key => true))
@@ -391,5 +391,43 @@ RSpec.describe Phronomy::Agent::ApprovalPersistenceEvidence do
     expect(@evidence.after.fetch(:retentions)).to eq([retention])
     expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:committed)
     expect(persistence.retentions.list(agent.agent_id)).to eq([retention])
+  end
+  context "with an opaque child reservation" do
+    let(:correlation) { {"kind" => "subagent", "parent_agent_id" => "parent", "parent_execution_id" => "parent-run", "slot" => "child-slot"} }
+    let(:execution) do
+      value = super()
+      value.with(execution_revision: value.execution_revision,
+        metadata: value.metadata.merge("reservation" => correlation))
+    end
+    let(:retention) do
+      Phronomy::Agent::Retention.new(agent_id: agent.agent_id,
+        execution_id: execution.execution_id, owner_key: "subagent:parent-run")
+    end
+
+    before { persistence.transaction { |records| records.retentions.retain(retention) } }
+
+    it "retains the complete child correlation and holds without interpreting the owner" do
+      lose_response
+      expect { retain }.to raise_error(IOError, /response lost/)
+      expect(@evidence.before.fetch(:agent).fetch(1).fetch("metadata").fetch("reservation")).to eq(correlation)
+      expect(@evidence.after.fetch(:agent).fetch(1).fetch("metadata").fetch("reservation")).to eq(correlation)
+      expect(@evidence.before.fetch(:retentions)).to eq([retention])
+      expect(@evidence.after.fetch(:retentions)).to eq([retention])
+      expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:committed)
+    end
+
+    it "does not accept a changed child reservation as the captured approval outcome" do
+      retain
+      changed = @outcome.execution.with(execution_revision: @outcome.execution.execution_revision,
+        metadata: @outcome.execution.metadata.merge("reservation" => correlation.merge("slot" => "foreign-slot")))
+      alter_observed_record(:executions, changed)
+      expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:unknown)
+    end
+
+    it "does not infer a safe continuation when the original child hold was released" do
+      retain
+      persistence.transaction { |records| records.retentions.release(agent_id: agent.agent_id, owner_key: retention.owner_key) }
+      expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:unknown)
+    end
   end
 end

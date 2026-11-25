@@ -1,0 +1,25 @@
+digraph ChildApprovalClient {
+  graph [rankdir=TB, bgcolor="white", pad="0.20", nodesep="0.30", ranksep="0.48", label="Client observing child approval recovery", labelloc=t, fontsize=19, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fa", color="#385b70", fontname="DejaVu Sans", fontsize=12, margin="0.14,0.10"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#385b70", arrowsize=0.8];
+  initial [shape=circle, label="", width=0.16, height=0.16, fillcolor="#263d4b", fixedsize=true];
+  Awaiting [label="Await fresh recovery receipt\noriginal failed observation stays closed"];
+  Receipt [label="Receipt received\nknown outcome or still pending"];
+  Observing [label="Observe execution_task or hosted_invocation\nindependent observations of canonical work"];
+  Closed [label="This observation closed\nother observers and owner unchanged", fillcolor="#f4ecec"];
+  Done [label="Execution result observed\nsuccess or failure", fillcolor="#e6f3e8"];
+  Detached [label="Next approval wait detached\nexact fresh hosted handle", fillcolor="#e6f3e8"];
+  final [shape=doublecircle, label="", width=0.18, height=0.18, fillcolor="#263d4b", fixedsize=true];
+  initial -> Awaiting [label="reconcile_approval_async / new observation"];
+  Awaiting -> Receipt [label="owner publishes receipt"];
+  Awaiting -> Closed [label="caller cancels receipt observation"];
+  Receipt -> final [label="[restored or still pending]\n/ stop or explicitly reconcile later"];
+  Receipt -> Observing [label="[resumed] / use fresh result surfaces"];
+  Observing -> Closed [label="caller cancels one execution observer"];
+  Observing -> Done [label="canonical work completes"];
+  Observing -> Detached [label="[hosted; exact next wait]\nhosted_invocation.detach!"];
+  Closed -> final;
+  Done -> final;
+  Detached -> final;
+  {rank=same; Done; Detached;}
+}

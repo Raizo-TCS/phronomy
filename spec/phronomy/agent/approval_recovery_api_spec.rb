@@ -103,7 +103,36 @@ RSpec.describe "Agent approval recovery observation contracts" do
     expect(value.resolved?).to be(true)
     expect(value.physical_complete?).to be(true)
     expect(value.execution_task).to equal(execution)
+    expect(value.hosted_invocation).to be_nil
     expect(execution.status).to eq(:pending)
+  end
+
+  it "can expose a separate hosted continuation handle after an applied post-state" do
+    execution = Phronomy::TaskResult.deferred
+    hosted = Phronomy::Agent::HostedInvocation.allocate
+    value = receipt(outcome: :confirmed_post, revision: 3, physical_complete: true,
+      application_state: :applied, continuation_state: :resumed,
+      execution_task: execution, hosted_invocation: hosted)
+
+    expect(value.hosted_invocation).to equal(hosted)
+    expect(value.execution_task).to equal(execution)
+    expect(value).to be_frozen
+  end
+
+  it "never exposes a hosted continuation before a resumed post-state or accepts a lookalike" do
+    hosted = Phronomy::Agent::HostedInvocation.allocate
+    expect { receipt(hosted_invocation: hosted) }.to raise_error(ArgumentError, /only resumed hosted/)
+    expect do
+      receipt(outcome: :confirmed_pre, revision: 2, physical_complete: true,
+        application_state: :applied, continuation_state: :restored, hosted_invocation: hosted)
+    end.to raise_error(ArgumentError, /only resumed hosted/)
+    [false, Object.new].each do |invalid|
+      expect do
+        receipt(outcome: :confirmed_post, revision: 3, physical_complete: true,
+          application_state: :applied, continuation_state: :resumed,
+          execution_task: Phronomy::TaskResult.deferred, hosted_invocation: invalid)
+      end.to raise_error(ArgumentError, /only resumed hosted/)
+    end
   end
 
   it "keeps execution failure separate from the successful recovery receipt" do

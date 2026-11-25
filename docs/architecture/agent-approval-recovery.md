@@ -6,6 +6,8 @@ For example, a report-reading Tool waits for a human decision. The decision tran
 
 Baseline: G3b-4 `b2f7c349215085983cfcc89097df9cdbaddef24d`. This document describes the G3a implementation candidate. Contract concept v55 and foundation v48 remain the canonical architectural boundaries. The delivery evidence identifies the final candidate and validation results.
 
+G3d extends this operation to supported correlated child and restored waits. The hosted continuation has an optional independent handle and additional parent-authority checks; see [child and restored approval recovery](agent-child-approval-recovery.md). The original G3a examples and baseline below remain historical evidence.
+
 ## Keep the decision, owner transition and caller observation separate
 
 An approval transaction and its reply are different facts. The retained operation captures immutable before/after evidence, the exact request and decision, original Store identity, and the original owner. It exposes `ApprovalRecoveryError` only while retaining the uncertain obligation. A later observation does not reopen the failed approval TaskResult.

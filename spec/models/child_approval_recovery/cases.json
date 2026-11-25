@@ -1,0 +1,990 @@
+{
+  "scope": "Correlated child proof, hosted parent authority and preserved second-wait detach capability; complements the generic approval model",
+  "cases": [
+    {
+      "id": "safety-direct-pre",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "direct-pre-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-direct-post",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "direct-post-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-rehydrated-pre",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "rehydrated",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "rehydrated-pre-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "rehydrated",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-rehydrated-post",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "rehydrated",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "rehydrated-post-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "rehydrated",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-hosted-pre",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "hosted-pre-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-hosted-post",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "hosted-post-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-rejected",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": false,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-captured-child-cancel",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": true,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-different-child-proof",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "different",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-independent-observers",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "observer_cancel",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "safety-next-hosted-wait",
+      "kind": "property",
+      "target": null,
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "refused-admission-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "refused_admission",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "lost-admission-reply-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "lost_admission_reply",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "next-hosted-detach-progress",
+      "kind": "property",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved",
+        "EventuallyDetached"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "bug-child-only-parent-proof",
+      "kind": "mutation",
+      "target": "CompleteParentProof",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "parent_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "child_only_proof"
+      }
+    },
+    {
+      "id": "bug-cached-parent-proof",
+      "kind": "mutation",
+      "target": "AuthorityAtAdmission",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "cached_parent_proof"
+      }
+    },
+    {
+      "id": "bug-ignore-physical",
+      "kind": "mutation",
+      "target": "PhysicalBeforeApplication",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "ignore_physical"
+      }
+    },
+    {
+      "id": "bug-stale-owner",
+      "kind": "mutation",
+      "target": "ExactOwnerApplication",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "owner_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "stale_owner"
+      }
+    },
+    {
+      "id": "bug-stale-parent-wait",
+      "kind": "mutation",
+      "target": "ExactLocalParentApplication",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "local_parent_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "stale_parent_wait"
+      }
+    },
+    {
+      "id": "bug-plain-canonical-task",
+      "kind": "mutation",
+      "target": "HostedCanonicalAuthority",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "plain_canonical_task"
+      }
+    },
+    {
+      "id": "bug-drop-direct-binding",
+      "kind": "mutation",
+      "target": "RestorationBinding",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "drop_direct_binding"
+      }
+    },
+    {
+      "id": "bug-stale-detach",
+      "kind": "mutation",
+      "target": "DetachAuthority",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "local_parent_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": true,
+        "Bug": "stale_detach"
+      }
+    },
+    {
+      "id": "bug-stale-child-detach",
+      "kind": "mutation",
+      "target": "DetachAuthority",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "owner_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": true,
+        "Bug": "stale_detach"
+      }
+    },
+    {
+      "id": "bug-save-end-retires-context",
+      "kind": "mutation",
+      "target": "ContextRetirementAfterExecution",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "save_end_retires_context"
+      }
+    },
+    {
+      "id": "bug-return-retired-hosted-handle",
+      "kind": "mutation",
+      "target": "NoLateHostedHandle",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": false,
+        "Bug": "return_retired_hosted_handle"
+      }
+    },
+    {
+      "id": "bug-old-handle-detach",
+      "kind": "mutation",
+      "target": "DetachAuthority",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": true,
+        "Bug": "old_handle_detach"
+      }
+    },
+    {
+      "id": "bug-physical-return-release",
+      "kind": "mutation",
+      "target": "CustodyUntilTransfer",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "physical_return_is_release"
+      }
+    },
+    {
+      "id": "bug-unknown-admission-replay",
+      "kind": "mutation",
+      "target": "NoAdmissionReplay",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "lost_admission_reply",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "unknown_is_unadmitted"
+      }
+    },
+    {
+      "id": "bug-reopen-original",
+      "kind": "mutation",
+      "target": "ClosedOriginalStaysClosed",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "reopen_original"
+      }
+    },
+    {
+      "id": "bug-shared-observer",
+      "kind": "mutation",
+      "target": "IndependentObservers",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "observer_cancel",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": false,
+        "Bug": "shared_observer"
+      }
+    },
+    {
+      "id": "bug-observer-cancels-work",
+      "kind": "mutation",
+      "target": "ObservationCannotCancelWork",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "observer_cancel",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": false,
+        "Bug": "observer_cancels_work"
+      }
+    },
+    {
+      "id": "witness-restored-direct-wait",
+      "kind": "witness",
+      "target": "NoRestoredWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "direct",
+        "Outcome": "pre",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-hosted-handoff",
+      "kind": "witness",
+      "target": "NoHostedHandoffWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-second-wait-detach",
+      "kind": "witness",
+      "target": "NoSecondDetachWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": true,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-independent-completion",
+      "kind": "witness",
+      "target": "NoIndependentCompletionWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "observer_cancel",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": true,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-unknown-physical-return",
+      "kind": "witness",
+      "target": "NoUnknownQuietWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-stale-parent-retained",
+      "kind": "witness",
+      "target": "NoStaleParentRetainedWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "parent_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "witness-partial-retry-blocked",
+      "kind": "witness",
+      "target": "NoPartialRetryBlockedWitness",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "all",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-fresh-caller",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": false,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-readable-store",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "none",
+        "FreshCaller": true,
+        "Readable": false,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-physical-proof",
+      "kind": "missing_assumption",
+      "target": null,
+      "specification": "ProgressSpec",
+      "properties": [
+        "EventuallyResolved"
+      ],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "lost_handle",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": true,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    },
+    {
+      "id": "missing-parent-stability",
+      "kind": "missing_assumption",
+      "target": "AuthorityAtAdmission",
+      "specification": "Spec",
+      "properties": [],
+      "constants": {
+        "Mode": "hosted",
+        "Outcome": "post",
+        "Approved": true,
+        "ChildCancelled": false,
+        "Fault": "parent_change",
+        "FreshCaller": true,
+        "Readable": true,
+        "ParentStable": false,
+        "ObserveClients": false,
+        "NextApproval": false,
+        "Bug": "none"
+      }
+    }
+  ]
+}

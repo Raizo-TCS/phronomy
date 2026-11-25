@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
+RSpec.describe "Participant approval resume snapshot ownership (F0/F2/F3; no X0)" do
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "approval-snapshot-owner", version: 1
@@ -33,7 +33,14 @@ RSpec.describe "Approval resume snapshot ownership (F0/F2/F3; no X0)" do
       tool_name: +"lookup", raw_arguments: arguments, arguments: nil, status: :completed,
       execution_completed?: true, result: saved_result)
   end
-  let(:invocation) { double("invocation", tool_invocations: [child], tool_batch_llm_call_id: +"llm-1") }
+  # Participant-owned transitions still use the ordinary commit/result path.
+  # These examples isolate its immutable snapshots and stale-result rejection;
+  # retained standalone and child recovery use the real Runtime acceptance specs.
+  let(:participant) { double("execution participant") }
+  let(:invocation) do
+    double("participant invocation", tool_invocations: [child], tool_batch_llm_call_id: +"llm-1",
+      config: {phronomy_execution_participant: participant}.freeze)
+  end
   let(:submitted) { [] }
 
   def on_loop(&action)

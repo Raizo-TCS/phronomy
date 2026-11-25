@@ -24,11 +24,25 @@ module Phronomy
       # A resumed approval must never be adopted by the original start handle.
       # Only a hosted decision owns the right to detach its next suspension.
       class ApprovalOperation < OperationResult
-        attr_reader :parent_wait
+        attr_reader :parent_wait, :hosted_context
 
-        def initialize(agent:, name:, parent_wait:)
+        def initialize(agent:, name:, parent_wait:, hosted_context: nil)
           super(agent: agent, name: name)
-          @parent_wait = parent_wait
+          @parent_wait, @hosted_context = parent_wait, hosted_context
+          on_physical_complete do
+            @parent_wait = @hosted_context = nil
+          end
+          on_complete { |_value, _error| @hosted_continuation_task = nil }
+        end
+
+        def bind_hosted_continuation(task)
+          @hosted_continuation_task = task unless done?
+        end
+
+        # The normal hosted handle may follow its still-open observation into
+        # the retained continuation. A failed or cancelled observation cannot.
+        def hosted_detach_task
+          done? ? self : (@hosted_continuation_task || self)
         end
       end
 
@@ -157,11 +171,11 @@ module Phronomy
         execution_id,
         approval_request_id:,
         approved:,
-        config: {}, parent_wait: nil
+        config: {}, parent_wait: nil, hosted_context: nil
       )
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
-        result_task = ApprovalOperation.new(agent: @agent, parent_wait: parent_wait,
+        result_task = ApprovalOperation.new(agent: @agent, parent_wait: parent_wait, hosted_context: hosted_context,
           name: "agent-approval-resume:#{execution_id}")
         command = ResumeCommand.new(
           coordinator: self,
@@ -321,9 +335,10 @@ module Phronomy
         registry = environment.registry
         state = registry.agent_execution_state(wait.execution_id)
         binding = @suspended_cancellation
-        task = command.task || binding&.fetch(2)
+        source_task = command.task || binding&.fetch(2)
+        task = source_task.is_a?(ApprovalOperation) ? source_task.hosted_detach_task : source_task
         parent = command.parent
-        if task.is_a?(ApprovalOperation) && (!command.task.equal?(task) || !task.parent_wait&.current?)
+        if task.is_a?(ApprovalOperation) && (!command.task || !task.parent_wait&.current?)
           raise Phronomy::AgentBusyError, "This handle does not own the resumed child wait"
         end
         if parent && registry.agent_execution_admitted?(parent.agent_id)
@@ -1146,6 +1161,7 @@ module Phronomy
           unless parent_wait.current? && !@suspended_cancellation
             return fail_task(request.result_task, Phronomy::AgentBusyError.new("Hosted decision requires a restored child wait"))
           end
+          request.result_task.hosted_context&.validate_live!
         end
 
         approval = state.execution.approval_request || {}
@@ -1213,15 +1229,22 @@ module Phronomy
         raise unless resume_transition_started
       end
 
-      # Only an installed standalone wait carries the original invocation and
-      # cancellation authority needed for this process-local recovery operation.
+      # A live wait keeps its original cancellation authority. A restored hosted
+      # child instead carries the exact parent's committed wait and saved proof.
+      # Reservation content remains opaque to Agent and is compared in full.
       def retained_approval_eligible?(state, request)
-        binding = @suspended_cancellation
-        state.invocation && state.fsm_session_id.nil? && binding &&
-          binding[0].to_s == state.execution_id.to_s && binding[1].equal?(state.invocation) &&
-          !(request.result_task.is_a?(ApprovalOperation) && request.result_task.parent_wait) &&
-          !state.execution.metadata["reservation"] && !state.execution.metadata["execution_extension"] &&
+        return false unless state.invocation && state.fsm_session_id.nil? &&
+          !state.execution.metadata["execution_extension"] &&
           !state.invocation.config[:phronomy_execution_participant]
+        binding = @suspended_cancellation
+        task = request.result_task
+        if task.is_a?(ApprovalOperation) && task.parent_wait
+          !binding && task.hosted_context && task.parent_wait.current?
+        else
+          # Rehydration installs the exact suspended invocation and admission
+          # without an original observation to bind. Preserve that distinction.
+          !binding || (binding[0].to_s == state.execution_id.to_s && binding[1].equal?(state.invocation))
+        end
       end
 
       def approval_recovery_failed_on_event_loop(owner, _failure)
@@ -1242,12 +1265,32 @@ module Phronomy
             @agent.send(:__root_for_operation).to_h == owner.command.root.to_h
           raise Phronomy::Persistence::StateConflictError, "Original approval wait changed before restoration"
         end
+        owner.validate_hosted_authority!
         registry.mark_agent_execution_admission(@agent.agent_id,
           execution_id: owner.execution_id, state: :suspended)
-        bind_suspended_cancellation(*owner.suspended_cancellation.first(3))
+        binding = owner.suspended_cancellation
+        bind_suspended_cancellation(*binding.first(3)) if binding
         owner.application_applied!
         owner.continuation_completed!(:restored)
-        cancel_suspended_on_event_loop(owner.execution_id) if owner.captured_cancellation_requested?
+        if owner.captured_cancellation_requested?
+          if binding
+            cancel_suspended_on_event_loop(owner.execution_id)
+          else
+            # A restored wait has no original observation or cancellation
+            # subscription. Its captured durable cancellation still owns the
+            # same terminal continuation; do not fabricate a new live wait.
+            finish_on_event_loop(owner.execution_id, owner.request.result_task,
+              owner.invocation, Phronomy::CancellationError.new("Agent execution cancelled during approval"),
+              fsm_session_id: nil)
+          end
+        end
+      end
+
+      def build_retained_approval_task(name:, parent_wait:, hosted_context:)
+        ApprovalOperation.new(agent: @agent, name: name,
+          parent_wait: parent_wait, hosted_context: hosted_context).tap do |task|
+          task.on_physical_complete { hosted_context&.release! }
+        end
       end
 
       def apply_retained_approval_on_event_loop(owner, outcome)
@@ -1258,6 +1301,7 @@ module Phronomy
         unless registry.owns_approval_operation?(owner) && state.invocation.equal?(owner.invocation)
           raise Phronomy::Error, "Original approval continuation owner changed"
         end
+        owner.validate_hosted_authority!
         plan = owner.prepare_continuation
         unless state.fsm_session_id.nil? || state.fsm_session_id.to_s == plan.parent_id.to_s
           raise Phronomy::Error, "Original approval continuation session changed"
