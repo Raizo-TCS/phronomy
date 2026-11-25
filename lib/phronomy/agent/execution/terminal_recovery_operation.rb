@@ -62,8 +62,8 @@ module Phronomy
 
       def release_permitted?
         @mutex.synchronize do
-          @application_state == :applied && @save[:physical] &&
-            (!@attempt || @attempt[:physical])
+          @application_state == :applied && @save[:completion].physical &&
+            (!@attempt || @attempt[:completion].physical)
         end
       end
 
@@ -72,7 +72,7 @@ module Phronomy
           @ownership_state = :released
           @agent = @coordinator = @environment = @registry = @persistence = @committer = nil
           @command = @delivery = @intended = @evidence = nil
-          @save[:task] = @save[:result] = @save[:error] = nil
+          @save[:completion].clear_locked
           @original_waiters = []
           @original_error = @last_error = nil
         end
@@ -88,9 +88,7 @@ module Phronomy
           mark_uncertain_on_owner(error)
         else
           @mutex.synchronize do
-            @save[:logical] = true
-            @save[:physical] = @submission_state == :not_admitted
-            @save[:error] = error
+            @save[:completion].submission_failed_locked(error, physical: @submission_state == :not_admitted)
           end
           signal(nil)
         end
@@ -159,14 +157,13 @@ module Phronomy
       private
 
       def acknowledge_original_if_quiet
-        waiters = @mutex.synchronize { (@uncertain && @save[:physical]) ? @original_waiters.dup : [] }
+        waiters = @mutex.synchronize { (@uncertain && @save[:completion].physical) ? @original_waiters.dup : [] }
         waiters.each { |task| task.finish_operation! if task.respond_to?(:finish_operation!) }
       end
 
       def new_slot(id, kind)
-        {id: id, kind: kind, task: nil, started: false, physical: false, logical: false,
-         result: nil, error: nil, worker_recorded: false, observers: [],
-         rejection_confirmed: false, admission_unknown: false, watch_error: nil, physical_watch: false}
+        {id: id, kind: kind, completion: PhysicalAttempt.new(mutex: @mutex),
+         started: false, observers: [], rejection_confirmed: false, admission_unknown: false}
       end
 
       def slot_for(id)
@@ -202,7 +199,7 @@ module Phronomy
         # An admitted queued task consumes authority even before its block starts.
         @mutex.synchronize do
           @submission_state = :admitted
-          slot[:task] = task
+          slot[:completion].attach_locked(task)
         end
         task
       rescue => error
@@ -211,9 +208,7 @@ module Phronomy
             proven_refusal = slot[:rejection_confirmed] && !slot[:started] && @submission_state != :admitted
             @submission_state = :not_admitted if proven_refusal
             slot[:admission_unknown] = !proven_refusal
-            slot[:logical] = true
-            slot[:physical] = proven_refusal
-            slot[:error] = error
+            slot[:completion].submission_failed_locked(error, physical: proven_refusal)
           end
         end
         raise
@@ -239,16 +234,14 @@ module Phronomy
           work.call
         end
         raise Phronomy::Error, "Agent terminal recovery submission returned no task handle" unless task
-        @mutex.synchronize { slot[:task] = task }
+        @mutex.synchronize { slot[:completion].attach_locked(task) }
         task
       rescue => error
         @mutex.synchronize do
           if slot && slot_for(id).equal?(slot)
-            proven_refusal = slot[:rejection_confirmed] && !slot[:started] && !slot[:task]
+            proven_refusal = slot[:rejection_confirmed] && !slot[:started] && !slot[:completion].task
             slot[:admission_unknown] = !proven_refusal
-            slot[:logical] = true
-            slot[:physical] = proven_refusal
-            slot[:error] = error
+            slot[:completion].submission_failed_locked(error, physical: proven_refusal)
           end
         end
         raise
@@ -262,59 +255,26 @@ module Phronomy
         @mutex.synchronize do
           slot = slot_for(id)
           return unless slot
-          slot[:result], slot[:error], slot[:worker_recorded] = result, error, true
+          slot[:completion].record_worker_locked(result, error)
           @original_error ||= error if id.nil?
         end
       end
 
       def watch(task, id)
-        @mutex.synchronize { slot_for(id)[:task] = task }
-        physical = task.respond_to?(:on_physical_complete)
-        if physical
-          task.on_physical_complete do
-            @mutex.synchronize { slot_for(id)&.[]=(:physical, true) }
-            acknowledge_original_if_quiet if id.nil?
-            signal(id)
-          end
-          @mutex.synchronize { slot_for(id)&.[]=(:physical_watch, true) }
-        end
-        task.on_complete do |result, error|
-          @mutex.synchronize do
-            slot = slot_for(id)
-            if slot
-              slot[:logical] = true
-              slot[:physical] = true unless physical
-              unless slot[:worker_recorded]
-                slot[:result], slot[:error] = result, error
-              end
-            end
-          end
+        completion = @mutex.synchronize { slot_for(id).fetch(:completion) }
+        completion.watch(task) do |event|
+          acknowledge_original_if_quiet if id.nil? && event == :physical
           signal(id)
         end
-      rescue => error
-        @mutex.synchronize { slot_for(id)&.[]=(:watch_error, error) }
-        raise
       end
 
       def refresh_slot(id)
-        task = @mutex.synchronize { slot_for(id)&.fetch(:task) }
-        return unless task
-        status, value, error = task.__snapshot
-        physical = if task.respond_to?(:physical_complete?)
-          task.physical_complete?
-        else
-          !task.respond_to?(:on_physical_complete) && status != :pending
-        end
-        @mutex.synchronize do
-          slot = slot_for(id)
-          return unless slot
-          slot[:physical] ||= physical
-          if status != :pending
-            slot[:logical] = true
-            slot[:result], slot[:error] = value, error unless slot[:worker_recorded]
-          end
-        end
-        acknowledge_original_if_quiet if id.nil?
+        completion = @mutex.synchronize { slot_for(id)&.fetch(:completion) }
+        acknowledge_original_if_quiet if completion&.refresh && id.nil?
+      end
+
+      def snapshot_slot_locked(slot)
+        slot&.merge(slot.fetch(:completion).snapshot_locked)
       end
 
       def signal(id)
@@ -345,7 +305,7 @@ module Phronomy
 
       def deliver_initial
         refresh_slot(nil)
-        slot, uncertain = @mutex.synchronize { [@save.dup, @uncertain] }
+        slot, uncertain = @mutex.synchronize { [snapshot_slot_locked(@save), @uncertain] }
         return unless slot[:logical]
         return if @mutex.synchronize { @initial_delivered || @ownership_state == :released }
         return if !slot[:physical] && !slot[:error] && !uncertain
@@ -373,7 +333,7 @@ module Phronomy
         return if observer.done?
         refresh_slot(nil)
         registry, released, physical, active = @mutex.synchronize do
-          [@registry, @ownership_state == :released, @save[:physical], @attempt&.dup]
+          [@registry, @ownership_state == :released, @save[:completion].physical, snapshot_slot_locked(@attempt)]
         end
         return observer.complete(build_result) if released
         unless registry&.owns_terminal_operation?(self)
@@ -388,7 +348,7 @@ module Phronomy
           end
           if active[:watch_error]
             refresh_slot(active[:id])
-            active = @mutex.synchronize { slot_for(active[:id])&.dup }
+            active = @mutex.synchronize { snapshot_slot_locked(slot_for(active[:id])) }
             completion_observable = active && ((active[:logical] && active[:physical]) || active[:physical_watch])
             return observer.complete(unavailable_result(active&.fetch(:watch_error))) unless completion_observable
           end
@@ -403,7 +363,7 @@ module Phronomy
           return observer.complete(apply_confirmation)
         end
         # A successful late worker result is stronger than its abandoned task.
-        outcome = @mutex.synchronize { @save[:physical] && @save[:result] }
+        outcome = @mutex.synchronize { @save[:completion].physical && @save[:completion].result }
         if outcome
           remember_post(outcome)
           return observer.complete(apply_confirmation)
@@ -461,7 +421,7 @@ module Phronomy
 
       def finish_attempt(id)
         refresh_slot(id)
-        slot = @mutex.synchronize { slot_for(id)&.dup }
+        slot = @mutex.synchronize { snapshot_slot_locked(slot_for(id)) }
         return unless slot && slot[:logical] && slot[:physical]
         if slot[:error] && !slot[:error].is_a?(StandardError)
           close_attempt(id).each { |observer| observer.fail(slot[:error]) }
