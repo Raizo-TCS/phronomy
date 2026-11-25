@@ -136,7 +136,14 @@ module Phronomy
       private_class_method :observed_usage
 
       def submit_finish(handle, attributes)
-        Phronomy::Blocking.call_async do
+        # Diagnostic completion must not occupy a business-work admission slot.
+        # The existing Runtime pool registry owns this bounded pool and shutdown.
+        Phronomy::Execution.submit(
+          pool_name: :automatic_tracing,
+          size: 1,
+          queue_size: 100,
+          on_full: :raise
+        ) do
           finish_now(handle, attributes)
         end.on_complete do |_value, error|
           if error

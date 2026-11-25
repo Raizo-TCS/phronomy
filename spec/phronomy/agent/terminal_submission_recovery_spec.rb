@@ -184,6 +184,44 @@ RSpec.describe "Agent terminal submission recovery through the original Runtime"
     expect(@counts).to eq(provider: 2, tool: 1, committer: 1, parse: 1, terminal_encode: 1)
   end
 
+  it "keeps terminal submission recoverable when the Tool finishes before callback registration" do
+    setup_agent
+    finished_worker = gate
+    worker_paused = false
+    allow(@runtime.offload).to receive(:run_operation).and_wrap_original do |original, operation|
+      result = original.call(operation)
+      if @counts[:provider] == 1 && @counts[:tool] == 1 && !worker_paused
+        worker_paused = true
+        finished_worker.entered << true
+        finished_worker.release.pop
+      end
+      result
+    end
+    allow_any_instance_of(Phronomy::Agent::ToolInvocation)
+      .to receive(:start_async_tool_operation).and_wrap_original do |original, environment|
+        task = original.call(environment)
+        take(finished_worker.entered)
+        expect(task.done?).to be(true)
+        task
+      end
+    allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator)
+      .to receive(:submit_provider_dispatch_preparation).and_wrap_original do |original, operation|
+        original.call(operation)
+      ensure
+        if @counts[:provider] == 1 && @counts[:tool] == 1
+          finished_worker.release << true
+        end
+      end
+
+    # A settled Tool invokes its completion callback on the EventLoop. Tracing
+    # finish must leave the business queue slot for the next provider dispatch.
+    start_with_rejected_terminal
+    release_saturation
+    expect_released(submit_again)
+
+    expect(@counts).to eq(provider: 2, tool: 1, committer: 1, parse: 1, terminal_encode: 1)
+  end
+
   it "permits another explicit request after repeated proven full-pool refusals" do
     setup_agent
     start_with_rejected_terminal

@@ -162,6 +162,32 @@ This guarantee is specific to Framework automatic instrumentation. It does not
 redefine the behavior of Application code that directly calls the public
 `Tracing::Base#trace` template method.
 
+Automatic span completion that must leave the EventLoop uses the existing
+Execution contract's bounded `automatic_tracing` named pool: one worker and
+100 waiting slots, owned by the default Runtime. Its admission capacity is
+separate from the default business-work pool. This is an internal allocation,
+not an additional application scheduling API.
+
+For example, a Tool can finish before its completion callback is registered.
+The callback then runs immediately on the EventLoop. Recording that Tool's
+completion must not consume the only default-pool slot needed to prepare the
+next provider call. Conversely, a full default pool does not refuse a tracing
+completion while the tracing pool still has capacity.
+
+Submission never waits for queue space. If the tracing pool is full or the
+Runtime rejects new work during shutdown, the automatic boundary reports a
+warning and does not retry or run the tracer inline on the EventLoop. Accepted
+trace work remains owned by Runtime shutdown; a worker that exceeds the shutdown
+budget can leave cleanup incomplete. A completed business TaskResult does not
+prove that its trace has been exported, and trace delivery is not durable.
+
+This separates deferred completion admission, not all tracing execution cost.
+`start_span` and completion from a blocking-allowed caller keep their existing
+synchronous behavior. Named pools do not isolate process CPU or memory, and
+configured tracers remain responsible for their own I/O timeouts. The tracer
+SPI, redaction, logical span boundaries and public invocation results are
+unchanged.
+
 ## 10. Observed token counts
 
 Tracing receives a plain `Hash[Symbol, Integer?]` in `usage:`. Supported keys are:
