@@ -186,7 +186,7 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     expect(multi).to include('"multi_agent.turn"')
   end
 
-  it "reports rejected asynchronous finish without blocking or losing the operation result" do
+  it "reports rejected asynchronous finish when its own bounded pool is full" do
     logger = double("logger", warn: nil)
     Phronomy.configure do |config|
       config.logger = logger
@@ -196,12 +196,13 @@ RSpec.describe "D02-F03 automatic tracing coverage" do
     end
     started = Queue.new
     release = Queue.new
-    running = Phronomy::Blocking.call_async {
+    pool = Phronomy::Runtime.instance.pool(:automatic_tracing, size: 1, queue_size: 1)
+    running = pool.submit(on_full: :raise) {
       started << true
       release.pop
     }
     Timeout.timeout(3) { started.pop }
-    queued = Phronomy::Blocking.call_async { :queued }
+    queued = pool.submit(on_full: :raise) { :queued }
     allow(Phronomy::WaitPolicy).to receive(:blocking_forbidden?).and_return(true)
     handle = Phronomy::Tracing::Automatic.start("full-pool")
     expect(Phronomy::Tracing::Automatic.finish(handle, output: "original")).to be_nil
