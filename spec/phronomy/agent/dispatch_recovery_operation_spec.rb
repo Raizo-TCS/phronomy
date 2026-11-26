@@ -57,8 +57,8 @@ RSpec.describe Phronomy::Agent::DispatchRecoveryOperation do
       preparer: preparer, original_waiters: [original])
   end
 
-  def proof(disposition, error = nil)
-    Struct.new(:disposition, :read_error).new(disposition, error)
+  def proof(disposition, error = nil, continuation_error: nil)
+    Struct.new(:disposition, :read_error, :continuation_error).new(disposition, error, continuation_error)
   end
 
   def drain
@@ -116,6 +116,7 @@ RSpec.describe Phronomy::Agent::DispatchRecoveryOperation do
       owner.continuation_completed!(:stopped)
     end
     allow(preparer).to receive(:recover_result).with(evidence).and_return(outcome)
+    allow(evidence).to receive(:participation?).and_return(false)
   end
 
   it "preserves a cancelled recovery observation while a shared read later resumes the original execution" do
@@ -187,6 +188,78 @@ RSpec.describe Phronomy::Agent::DispatchRecoveryOperation do
     complete_worker(1)
     expect(next_reader.wait_result.outcome).to eq(:confirmed_pre)
     expect(first.status).to eq(:cancelled)
+  end
+
+  it "preserves a parent post-state while fresh child authority blocks continuation" do
+    allow(evidence).to receive(:participation?).and_return(true)
+    start_unknown
+    authority_error = Phronomy::Persistence::StateConflictError.new("child reservation changed")
+    allow(evidence).to receive(:reconcile).and_return(
+      proof(:committed, continuation_error: authority_error), proof(:committed)
+    )
+    blocked = operation.observe
+    drain
+    complete_worker(1)
+    receipt = blocked.wait_result
+    expect(receipt.outcome).to eq(:confirmed_post)
+    expect(receipt.revision).to eq(4)
+    expect(receipt.error.cause).to equal(authority_error)
+    expect(receipt.resolved?).to be(false)
+    expect(operation.continuation_authorized?).to be(false)
+    expect(@applied).to be_empty
+    expect(registry.owner).to equal(operation)
+
+    # A cached post-state must still use a fresh read, even for explicit retry.
+    expect(evidence).not_to receive(:retry)
+    later = operation.observe(:retry)
+    drain
+    expect(later.status).to eq(:pending)
+    expect(@submitted.size).to eq(3)
+    expect(@applied).to be_empty
+    complete_worker(2)
+    expect(later.wait_result.resolved?).to be(true)
+    expect(@applied).to eq([outcome])
+    expect(original.__snapshot.last).to be_a(Phronomy::Agent::DispatchRecoveryError)
+  end
+
+  it "keeps parent post-state knowledge when its next authority read fails" do
+    allow(evidence).to receive(:participation?).and_return(true)
+    start_unknown
+    authority_error = Phronomy::Persistence::StateConflictError.new("child remains active")
+    read_error = IOError.new("parent evidence unavailable")
+    allow(evidence).to receive(:reconcile).and_return(
+      proof(:committed, continuation_error: authority_error), proof(:unknown, read_error)
+    )
+    first = operation.observe
+    drain
+    complete_worker(1)
+    expect(first.wait_result.outcome).to eq(:confirmed_post)
+    later = operation.observe
+    drain
+    complete_worker(2)
+    receipt = later.wait_result
+    expect(receipt.outcome).to eq(:confirmed_post)
+    expect(receipt.error.cause).to equal(read_error)
+    expect(receipt.resolved?).to be(false)
+    expect(@applied).to be_empty
+    expect(registry.owner).to equal(operation)
+  end
+
+  it "reports the child authority error when a confirmed pre-state cannot be retried" do
+    allow(evidence).to receive(:participation?).and_return(true)
+    start_unknown
+    authority_error = Phronomy::Persistence::StateConflictError.new("reserved child already exists")
+    allow(evidence).to receive(:retry).and_return(proof(:not_committed, authority_error))
+    blocked = operation.observe(:retry)
+    drain
+    complete_worker(1)
+    receipt = blocked.wait_result
+    expect(receipt.outcome).to eq(:confirmed_pre)
+    expect(receipt.revision).to eq(3)
+    expect(receipt.error.cause).to equal(authority_error)
+    expect(receipt.resolved?).to be(false)
+    expect(@applied).to be_empty
+    expect(registry.owner).to equal(operation)
   end
 
   it "does not infer physical completion from a lost initial submission handle" do

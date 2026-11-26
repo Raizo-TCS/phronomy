@@ -405,10 +405,12 @@ module Phronomy
         if @mutex.synchronize { @confirmation == :not_prepared || not_prepared_locked? }
           return observer.complete(apply_preparation_failure)
         end
-        # A child's original observation may already have moved its parent to
-        # a coordination wait. Recheck the child's exact saved correlation and
-        # cancellation before new admission, without freezing the parent's state.
-        fresh_proof = @mutex.synchronize { @command.execution.metadata["reservation"] && !@continuation_authorized }
+        # Both a reserved child and an opted-in parent need current authority
+        # before new admission. A historical saved barrier alone cannot prove
+        # that the same child relationships still permit its continuation.
+        fresh_proof = @mutex.synchronize do
+          (@command.execution.metadata["reservation"] || @evidence&.participation?) && !@continuation_authorized
+        end
         if !fresh_proof && @mutex.synchronize { @confirmation == :confirmed_post }
           return observer.complete(apply_confirmation)
         end
@@ -457,10 +459,14 @@ module Phronomy
         proof, result = slot[:result]&.then { |value| [value.proof, value.result] }
         observation = if proof&.disposition == :committed
           remember_post(result)
-          apply_confirmation
+          if proof.continuation_error
+            build_result(error: diagnostic(proof.continuation_error))
+          else
+            apply_confirmation
+          end
         elsif proof&.disposition == :not_committed && @mutex.synchronize { @confirmation != :confirmed_post }
           @mutex.synchronize { @confirmation, @revision = :confirmed_pre, expected_execution_revision }
-          build_result
+          build_result(error: proof.read_error && diagnostic(proof.read_error))
         else
           error = slot[:error] || proof&.read_error
           if !error && @mutex.synchronize { @confirmation == :confirmed_post }

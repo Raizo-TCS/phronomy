@@ -179,6 +179,19 @@ Completion callbacks are lightweight bridges that enqueue the result back to the
 EventLoop. If EventLoop no longer accepts the result, the callback does not fall
 back to direct live mutation.
 
+Retained native parent dispatch follows the same split: the native coordinator
+supplies opaque captured persistence effects and current child authority; the
+Agent owns continuation identity and live application. A known committed parent
+barrier does not bypass a fresh child-authority check. Ordered persistence guards
+end before external Provider or Tool work; authoritative settled readback and the
+original-owner admission protocol remain required. See the
+[native parent dispatch contract](architecture/native-parent-dispatch-recovery.md).
+
+For example, after losing a parent child-reservation save response, recovery may
+retry the exact captured content, hold and execution records. It does not run the
+participant's commit decision again or start the child while a conflicting child
+execution is active.
+
 ## Provider Call result authority
 
 Provider Call identity is purpose-specific semantic provenance. EventLoop

@@ -1,0 +1,19 @@
+digraph ParentOwner {
+  graph [rankdir=TB, bgcolor="white", label="Native parent dispatch owner", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.4, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fb", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.18,0.12"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=11];
+  start [shape=point, width=0.12, label=""];
+  unresolved [label="Dispatch outcome unresolved\nCaptured plan and continuation retained"];
+  pre [label="Pre-state confirmed\nContinuation retained"];
+  blocked [label="Post-state confirmed\nContinuation not admitted"];
+  admitted [label="Continuation admitted once\nProvider or Tool may start", fillcolor="#e7f5eb"];
+  released [label="Recovery owner released\nDurable history retained", fillcolor="#e7f5eb"];
+  start -> unresolved [label="Original save reply lost"];
+  unresolved -> pre [label="Reconcile [complete pre proof]\n/ report not committed"];
+  unresolved -> blocked [label="Reconcile [complete post proof]\n/ preserve historical commit"];
+  pre -> blocked [label="Explicit retry [fresh pre + native authority]\n/ atomically replay captured persistence"];
+  pre -> pre [label="Retry [authority unavailable]\n/ perform no write"];
+  blocked -> blocked [label="Fresh proof unavailable or authority changed\n/ retain committed knowledge and custody"];
+  blocked -> admitted [label="Fresh guarded post + authority; physical completion\n[read-to-admission stability and admission available]"];
+  admitted -> released [label="One-shot application completed\n/ release local recovery custody"];
+}

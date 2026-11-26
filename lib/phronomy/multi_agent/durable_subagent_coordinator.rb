@@ -20,6 +20,24 @@ module Phronomy
         Phronomy::Agent::ExecutionExtensionState.new(binding_key: BINDING_KEY, binding_version: 1)
       end
 
+      # Opt in only this binding and its original Agent store. Eligibility runs
+      # on the owner thread and must not read persistence or acquire guards.
+      private def dispatch_recovery_supported?(execution:, persistence:)
+        extension = execution.metadata["execution_extension"]
+        persistence.equal?(@persistence.agent_store) &&
+          extension&.fetch("binding_key") == BINDING_KEY &&
+          extension.fetch("binding_version") == 1
+      end
+
+      # Captured values replace live participant wiring after its single commit.
+      # Recovery never calls this coordinator's commit or constructs a child.
+      private def capture_dispatch_recovery(values:, persistence:)
+        unless persistence.equal?(@persistence.agent_store)
+          raise Phronomy::Persistence::TransactionError, "Native dispatch proof belongs to another Agent store"
+        end
+        NativeDispatchEvidence.capture(values: values, persistence: persistence, native_persistence: @persistence)
+      end
+
       def guard_change(change, scope)
         snapshot = state_for(change.extension)
         ids = [change.agent_id] + snapshot.fetch("children").filter_map do |child|
