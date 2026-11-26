@@ -70,12 +70,14 @@ RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integratio
   context "when a restored child requests approval again" do
     let(:effects) { [] }
 
-    def restore_pair(request)
+    def restore_pair(request, expected_error: Phronomy::ExecutionRehydrationRequiredError, &inspect_failure)
       restored = parent_class.load(parent.agent_id, **options)
       recovering = restored.resume_async(root_id)
       observed = Timeout.timeout(8) { events.pop }
       expect([observed.execution_id, observed.id]).to eq([request.execution_id, request.id])
-      expect { recovering.wait_result(timeout: 8) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+      expect { recovering.wait_result(timeout: 8) }.to raise_error(expected_error) do |error|
+        inspect_failure&.call(error)
+      end
       restored
     end
 
@@ -100,12 +102,24 @@ RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integratio
         commit.call(change)
       end
 
-      middle = restore_pair(first)
+      failure = nil
+      middle = restore_pair(first, expected_error: Phronomy::Agent::OutcomeRecoveryError) do |error|
+        failure = error
+        expect(error.cause).to be_a(Phronomy::ExecutionRehydrationRequiredError)
+        expect(error.cause.message).to eq("failed recovered parent commit")
+      end
       participant = Phronomy::MultiAgent::DurableSubagentCoordinator.new(agent_class: parent_class, persistence: stores.multi_agent)
       wait = participant.child_approval_wait(middle.agent_id, root_id, first.execution_id, first.id)
       expect(wait.approval_request_id).to eq(first.id)
       saved = saved_state(first.execution_id)
+      expect(middle.pending_outcome_recovery(execution_id: root_id)).to equal(failure.recovery)
+      expect(middle.pending_terminal_recovery(execution_id: root_id)).to be_nil
+      receipt = middle.reconcile_outcome(recovery: failure.recovery)
+      expect([receipt.outcome, receipt.application_state, receipt.ownership_state, receipt.submission_state])
+        .to eq([:unavailable, :pending, :retained, :admitted])
+      expect(receipt.saved_outcome).to be_nil
       expect { answer(middle, first) }.to raise_error(Phronomy::AgentBusyError)
+      expect { middle.unload! }.to raise_error(Phronomy::AgentBusyError)
       expect(saved_state(first.execution_id)).to eq(saved)
       expect_live(middle)
       expect(child_class.get(child.agent_id)).not_to be_nil
@@ -213,13 +227,31 @@ RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integratio
   end
 
   it "requires a committed parent wait even if an unrelated failure also requests rehydration" do
-    LLMStub.activate(responses: [dispatch, protected_call])
+    recorder = LLMStub.activate(responses: [dispatch, protected_call])
     allow_any_instance_of(Phronomy::MultiAgent::DurableSubagentCoordinator).to receive(:commit).and_wrap_original do |commit, change|
       raise Phronomy::ExecutionRehydrationRequiredError, "failed parent commit" if change.kind == :terminal
       commit.call(change)
     end
-    handle, request, child = start
-    expect { detach(handle, request) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError, /failed parent commit/)
+    failure = nil
+    handle, request, child = start(expected_error: Phronomy::Agent::OutcomeRecoveryError) do |error|
+      failure = error
+      expect(error.cause).to be_a(Phronomy::ExecutionRehydrationRequiredError)
+      expect(error.cause.message).to eq("failed parent commit")
+    end
+    saved = saved_state(request.execution_id)
+    expect(parent.pending_outcome_recovery(execution_id: root_id)).to equal(failure.recovery)
+    expect(parent.pending_terminal_recovery(execution_id: root_id)).to be_nil
+    receipt = parent.reconcile_outcome(recovery: failure.recovery)
+    expect([receipt.outcome, receipt.application_state, receipt.ownership_state, receipt.submission_state])
+      .to eq([:unavailable, :pending, :retained, :admitted])
+    expect(receipt.saved_outcome).to be_nil
+    expect { detach(handle, request) }.to raise_error { |error| expect(error).to equal(failure) }
+    expect do
+      parent.approve_hosted_child(root_id, execution_id: request.execution_id, approval_request_id: request.id)
+    end.to raise_error(Phronomy::AgentBusyError)
+    expect { parent.unload! }.to raise_error(Phronomy::AgentBusyError)
+    expect(saved_state(request.execution_id)).to eq(saved)
+    expect(recorder.calls.size).to eq(2)
     expect_live(parent)
     expect_live(child)
   end

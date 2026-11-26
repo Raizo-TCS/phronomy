@@ -36,6 +36,8 @@ module Phronomy
         @attempt = nil
         @observers = []
         @evidence = @intended = @confirmation = nil
+        @write_started = false
+        @unwritten_before = nil
         @original_error = @last_error = nil
         @uncertain = @initial_delivered = false
         @application_state, @continuation_state = :pending, :pending
@@ -54,7 +56,7 @@ module Phronomy
       def application_applied! = @mutex.synchronize { @application_state = :applied }
 
       def captured_cancellation_requested?
-        @mutex.synchronize { @evidence&.before&.fetch(:agent)&.fetch(4) == true }
+        @mutex.synchronize { (@evidence&.before || @unwritten_before)&.fetch(:agent)&.fetch(4) == true }
       end
 
       def resolution_permitted?
@@ -155,6 +157,8 @@ module Phronomy
         task = submit_worker(nil) do
           @committer.commit_retained(@command,
             parent_evidence: @hosted_context&.parent_evidence,
+            participant: @invocation.config[:phronomy_execution_participant],
+            on_write_started: -> { @mutex.synchronize { @write_started = true } },
             on_evidence: ->(value) { @mutex.synchronize { @evidence = value } },
             on_outcome: ->(value) { @mutex.synchronize { @intended = value } })
         end
@@ -250,6 +254,7 @@ module Phronomy
             @hosted_context = nil
           end
           @evidence = @intended = @continuation_plan = @terminal_continuation = nil
+          @unwritten_before = nil
           @save[:completion].clear_locked
           @original_error = @last_error = nil
         end
@@ -398,17 +403,18 @@ module Phronomy
           finish_attempt(active[:id])
           return
         end
-        # Hosted authority is a captured parent/child snapshot. A prior confirmed
-        # decision never authorizes another partial handoff after that authority
-        # changes; each unresolved hosted observation reads the proof again.
-        return observer.complete(apply_confirmation) if !@hosted_context && @mutex.synchronize { !@confirmation.nil? }
+        # Hosted and native relationships require current authority for every
+        # unfinished continuation. An unwritten decision also requires a fresh
+        # exact wait observation; neither path may reuse historical permission.
+        fresh_authority = @hosted_context || @mutex.synchronize { !@evidence || @evidence.participation? }
+        return observer.complete(apply_confirmation) if !fresh_authority && @mutex.synchronize { !@confirmation.nil? }
         outcome = @mutex.synchronize { @save[:completion].result }
-        if outcome && !@hosted_context
+        if outcome && !fresh_authority
           remember_post(outcome)
           return observer.complete(apply_confirmation)
         end
         evidence = @mutex.synchronize { @evidence }
-        unless evidence
+        if !evidence && @mutex.synchronize { @write_started }
           return observer.complete(unavailable_result(Phronomy::Error.new("Approval decision has no complete captured proposal")))
         end
         id = Object.new.freeze
@@ -416,7 +422,14 @@ module Phronomy
           @attempt = new_slot(id)
           @attempt[:observers] << observer
         end
-        task = submit_worker(id) { evidence.reconcile(persistence: @persistence, original_error: @original_error) }
+        task = submit_worker(id) do
+          if evidence
+            evidence.reconcile(persistence: @persistence, original_error: @original_error)
+          else
+            @committer.observe_unwritten(@command, parent_evidence: @hosted_context&.parent_evidence,
+              participant: @invocation.config[:phronomy_execution_participant], original_error: @original_error)
+          end
+        end
         watch(task, id)
       rescue => error
         if task || (id && @mutex.synchronize { slot_for(id)&.fetch(:admission_unknown) })
@@ -438,12 +451,16 @@ module Phronomy
         result = slot[:result]
         observation = if result&.disposition == :committed
           remember_post(@mutex.synchronize { @intended })
-          apply_confirmation
-        elsif result&.disposition == :not_committed
+          result.continuation_error ? build_result(error: diagnostic(result.continuation_error)) : apply_confirmation
+        elsif result&.disposition == :not_committed && @mutex.synchronize { @confirmation != :confirmed_post }
+          @mutex.synchronize { @unwritten_before = result.evidence.before } unless @evidence
           remember_pre
-          apply_confirmation
+          result.continuation_error ? build_result(error: diagnostic(result.continuation_error)) : apply_confirmation
         else
           error = slot[:error] || result&.read_error
+          if !error && @mutex.synchronize { @confirmation == :confirmed_post }
+            error = Phronomy::Persistence::StateConflictError.new("Saved approval authority no longer matches its captured evidence")
+          end
           build_result(outcome: error ? :unavailable : :unresolved, error: error && diagnostic(error))
         end
         close_attempt(id).each_with_index do |observer, index|

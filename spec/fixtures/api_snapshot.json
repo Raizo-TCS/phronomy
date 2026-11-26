@@ -279,6 +279,7 @@
       "knowledge_snapshot",
       "pending_approval_recovery",
       "pending_dispatch_recovery",
+      "pending_outcome_recovery",
       "pending_terminal_recovery",
       "persistence",
       "purge!",
@@ -286,6 +287,8 @@
       "reconcile_approval_async",
       "reconcile_dispatch",
       "reconcile_dispatch_async",
+      "reconcile_outcome",
+      "reconcile_outcome_async",
       "reconcile_terminal",
       "reconcile_terminal_async",
       "reset_context!",
@@ -295,6 +298,10 @@
       "resume_async",
       "retry_dispatch",
       "retry_dispatch_async",
+      "retry_outcome",
+      "retry_outcome_async",
+      "retry_outcome_submission",
+      "retry_outcome_submission_async",
       "retry_terminal",
       "retry_terminal_async",
       "retry_terminal_submission",
@@ -464,6 +471,62 @@
       "recovery",
       "recovery_id",
       "revision",
+      "submission_state"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::OutcomeRecovery",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "execution_id",
+      "recovery_id"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::OutcomeRecoveryError",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "execution_id",
+      "full_message",
+      "message",
+      "original_error",
+      "recovery",
+      "recovery_id",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::OutcomeRecoveryResult",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "application_state",
+      "approval_request",
+      "error",
+      "execution",
+      "execution_id",
+      "outcome",
+      "ownership_state",
+      "recovery",
+      "recovery_id",
+      "revision",
+      "saved_outcome",
       "submission_state"
     ],
     "public_class_methods": []
@@ -1290,6 +1353,7 @@
       "knowledge_snapshot",
       "pending_approval_recovery",
       "pending_dispatch_recovery",
+      "pending_outcome_recovery",
       "pending_terminal_recovery",
       "persistence",
       "purge!",
@@ -1297,6 +1361,8 @@
       "reconcile_approval_async",
       "reconcile_dispatch",
       "reconcile_dispatch_async",
+      "reconcile_outcome",
+      "reconcile_outcome_async",
       "reconcile_terminal",
       "reconcile_terminal_async",
       "reset_context!",
@@ -1306,6 +1372,10 @@
       "resume_async",
       "retry_dispatch",
       "retry_dispatch_async",
+      "retry_outcome",
+      "retry_outcome_async",
+      "retry_outcome_submission",
+      "retry_outcome_submission_async",
       "retry_terminal",
       "retry_terminal_async",
       "retry_terminal_submission",

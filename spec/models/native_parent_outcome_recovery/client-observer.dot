@@ -1,0 +1,16 @@
+digraph ClientObserver {
+  graph [rankdir=TB, bgcolor="white", label="Independent recovery observations", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.4, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#fff7e9", color="#9c7138", fontname="sans-serif", fontsize=12, margin="0.17,0.12"];
+  edge [color="#9c7138", fontname="sans-serif", fontsize=10];
+  original [label="Original observation failed\nClosed permanently"];
+  request [label="New management observation\nReconcile or explicit outcome-write retry"];
+  pending [label="Waiting for retained physical attempt\nOther observers may join"];
+  cancelled [label="This observation cancelled\nPhysical attempt remains owned", fillcolor="#fbeeed"];
+  completed [label="This observation completed\nRead saved kind, application and release status", fillcolor="#e7f5eb"];
+  note [shape=note, fillcolor="#fff8df", color="#8b7846", label="Outcome wait publication is not job completion.\nApproval-decision reconciliation never retries its write.\nA cancelled observer does not reopen or release the owner."];
+  original -> request [style=dashed, label="Caller creates a separate observation"];
+  request -> pending [label="Accepted request / join or start one attempt"];
+  pending -> cancelled [label="Observer cancellation / close only this observation"];
+  pending -> completed [label="Physical result delivered / settle each open observer"];
+  completed -> note [style=dashed, arrowhead=none];
+}

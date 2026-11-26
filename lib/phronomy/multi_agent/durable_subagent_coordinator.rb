@@ -39,6 +39,24 @@ module Phronomy
           native_persistence: @persistence, binding_key: BINDING_KEY)
       end
 
+      private def outcome_recovery_supported?(execution:, persistence:)
+        dispatch_recovery_supported?(execution: execution, persistence: persistence)
+      end
+
+      private def capture_outcome_recovery(values:, persistence:)
+        NativeOutcomeEvidence.capture(values: values, persistence: persistence,
+          native_persistence: @persistence, binding_key: BINDING_KEY)
+      end
+
+      private def approval_recovery_supported?(execution:, persistence:)
+        dispatch_recovery_supported?(execution: execution, persistence: persistence)
+      end
+
+      private def capture_approval_recovery(execution:, persistence:)
+        NativeApprovalEvidence.capture(execution: execution, persistence: persistence,
+          native_persistence: @persistence, binding_key: BINDING_KEY)
+      end
+
       def guard_change(change, scope)
         snapshot = state_for(change.extension)
         ids = [change.agent_id] + snapshot.fetch("children").filter_map do |child|
@@ -186,31 +204,7 @@ module Phronomy
       end
 
       private def terminal_acknowledgement(parent_id, parent_execution_id, child, observed)
-        owner = {"kind" => "subagent", "parent_agent_id" => parent_id,
-                 "parent_execution_id" => parent_execution_id, "slot" => child.fetch("slot")}
-        reservation = Phronomy::Agent::ReservedExecution.new(agent_id: child.fetch("agent_id"),
-          execution_id: child.fetch("execution_id"), correlation: owner)
-        return unless observed.terminal? && observed.reservation == reservation
-
-        # Cancellation intent and retention changes do not rewrite the terminal
-        # result. Its retained history remains the source; the receipt stores
-        # only the digest of the immutable content read in this guarded scope.
-        outcome = {"result" => observed.result, "raw_output" => observed.raw_output,
-                   "error" => observed.error, "transfer_receipt" => observed.transfer_receipt}
-        {"version" => 1, "agent_id" => observed.agent_id, "execution_id" => observed.execution_id,
-         "reservation" => owner, "status" => observed.status.to_s,
-         "outcome_digest" => Digest::SHA256.hexdigest(JSON.generate(ordered_outcome_value(outcome)))}
-      end
-
-      # Structured results allow the full JSON number range, including integers
-      # outside Canonical JSON's safe range. Sort object keys without narrowing
-      # that result contract or changing the types of its JSON values.
-      private def ordered_outcome_value(value)
-        case value
-        when Hash then value.keys.sort.to_h { |key| [key, ordered_outcome_value(value.fetch(key))] }
-        when Array then value.map { |item| ordered_outcome_value(item) }
-        else value
-        end
+        NativeChildAuthority.terminal_acknowledgement(parent_id, parent_execution_id, child, observed)
       end
 
       private def stored_children(parent_id, execution_id, scope)

@@ -362,6 +362,51 @@ RSpec.describe "Standalone approval recovery through the original Runtime" do
     expect(@calls.size).to eq(2)
   end
 
+  %i[content capture].each do |boundary|
+    it "restores the exact wait after a #{boundary} failure before the approval decision was written" do
+      setup_wait
+      if boundary == :content
+        armed = true
+        allow(@store).to receive(:transaction).and_wrap_original do |original, &write|
+          original.call do |records, scope|
+            if armed
+              armed = false
+              allow(records.contents).to receive(:put).and_raise(IOError, "decision content unavailable")
+            end
+            write.call(records, scope)
+          end
+        end
+      else
+        allow(Phronomy::Agent::ApprovalPersistenceEvidence).to receive(:read).and_raise(IOError, "capture unavailable")
+      end
+      @decision = @agent.approve_async(@request.execution_id, approval_request_id: @request.id)
+      await_unknown
+      expect(durable_snapshot).to eq(@before)
+      if boundary == :capture
+        expect_pending(reconcile, outcome: :unavailable)
+        allow(Phronomy::Agent::ApprovalPersistenceEvidence).to receive(:read).and_call_original
+      end
+
+      recovery_writes = 0
+      allow(@store).to receive(:transaction).and_wrap_original do |original, &write|
+        recovery_writes += 1
+        original.call(&write)
+      end
+      expect_restored(reconcile)
+      expect(recovery_writes).to eq(0)
+      expect(durable_snapshot).to eq(@before)
+      expect(live_snapshot).to include(status: :suspended, phase: :approval,
+        admission: :suspended, request_id: @request.id, cancellation_binding: true)
+      expect(@effects).to be_empty
+      expect(@calls.size).to eq(1)
+      expect { result_of(@decision) }.to raise_error(Phronomy::Agent::ApprovalRecoveryError)
+      fresh = @agent.approve_async(@request.execution_id, approval_request_id: @request.id)
+      expect(result_of(fresh).fetch(:output)).to eq("approved answer")
+      expect(@effects).to eq(["1:0"])
+      expect(@calls.size).to eq(2)
+    end
+  end
+
   it "does not treat a divergent durable decision as authority for continuation" do
     setup_wait
     start_unknown

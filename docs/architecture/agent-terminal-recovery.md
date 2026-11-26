@@ -8,6 +8,8 @@ Baseline: G3b-1 `e4a57fa278ed5136679ad884a8a4c51fa585382e`. This document descri
 
 The later [correlated-child execution recovery contract](agent-child-execution-recovery.md) extends actual terminal recovery to supported original correlated child owners. Child-local release remains separate from parent result import and retention-based peer release.
 
+G3h adds a separate [native outcome recovery contract](native-parent-outcome-recovery.md) for native parent final, coordination-wait and approval-wait saves. `TerminalRecovery` remains actually final only. The private retained-attempt owner is shared, while the new `OutcomeRecoveryResult#saved_outcome` distinguishes saved waits from a final execution.
+
 ## Preserve responsibility after an observation ends
 
 The original Agent owner retains an uncertain terminal operation before exposing its recovery capability. The original caller's observation can then end with an explicit recovery error while the accepted job remains owned. A later recovery request creates a new observation; it does not reopen an earlier failed or cancelled TaskResult.

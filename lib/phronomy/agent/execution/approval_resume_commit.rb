@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../../execution/concurrency/worker_input_restricted"
+require "digest"
 
 module Phronomy
   module Agent
@@ -15,6 +16,8 @@ module Phronomy
         :root, :execution, :approval_request_id, :approved, :tool_batch_snapshot
       )
       Result = Data.define(:execution, :root)
+      UnwrittenProof = Data.define(:before)
+      private_constant :UnwrittenProof
 
       # @api private
       def initialize(agent_id:, persistence:)
@@ -29,15 +32,18 @@ module Phronomy
         persist_decision(execution, operation.root, request, operation.approved)
       end
 
-      # Captures one participant-free decision without interpreting an ambiguous
+      # Captures one bounded decision without interpreting an ambiguous
       # response. The execution owner retains the proof and decides when to read.
       # @api private
-      def commit_retained(operation, on_evidence: nil, on_outcome: nil, parent_evidence: nil)
+      def commit_retained(operation, on_evidence: nil, on_outcome: nil, parent_evidence: nil, participant: nil, on_write_started: nil)
         request = validated_approval_request(operation)
-        validate_retained_operation!(operation)
+        validate_retained_operation!(operation, participant: participant)
         parent_evidence&.validate_target!(persistence: @persistence, operation: operation)
+        native_evidence = capture_native_evidence(operation, participant)
         evidence = nil
-        result = persist_retained_decision(operation, request, parent_evidence: parent_evidence) { |captured| evidence = captured }
+        result = persist_retained_decision(operation, request,
+          parent_evidence: parent_evidence, native_evidence: native_evidence,
+          on_write_started: on_write_started) { |captured| evidence = captured }
       rescue => original_error
         begin
           publish_retained_evidence(evidence, on_evidence, on_outcome)
@@ -51,9 +57,57 @@ module Phronomy
         result
       end
 
+      # The original worker positively reported that no persistence write began.
+      # A later explicit observation may prove and restore that exact live wait,
+      # but may neither write nor turn the old approval into a new decision.
+      # @api private
+      def observe_unwritten(operation, parent_evidence: nil, participant: nil, original_error: nil)
+        validated_approval_request(operation)
+        validate_retained_operation!(operation, participant: participant)
+        parent_evidence&.validate_target!(persistence: @persistence, operation: operation)
+        native_evidence = capture_native_evidence(operation, participant)
+        before = continuation_error = nil
+        @persistence.coordinator.atomic do |scope|
+          ApprovalPersistenceEvidence.require_outer_scope!(scope)
+          guard_approval(scope, parent_evidence, native_evidence)
+          parent_evidence&.assert_current!(persistence: @persistence, scope: scope)
+          before = ApprovalPersistenceEvidence.read(persistence: @persistence,
+            agent_id: @agent_id, execution_id: operation.execution_id,
+            journal_position: operation.root.journal_position, scope: scope, parent_evidence: parent_evidence)
+          validate_retained_before!(operation, before)
+          parent_evidence&.assert_child_before!(before)
+          begin
+            native_evidence&.assert_current!(persistence: @persistence, scope: scope)
+          rescue => error
+            continuation_error = error
+          end
+        end
+        ApprovalPersistenceEvidence::Result.new(disposition: :not_committed,
+          evidence: UnwrittenProof.new(before: before), original_error: original_error,
+          read_error: nil, continuation_error: continuation_error)
+      rescue => error
+        ApprovalPersistenceEvidence::Result.new(disposition: :unknown, evidence: nil,
+          original_error: original_error, read_error: error)
+      end
+
       private
 
-      def validate_retained_operation!(operation)
+      def capture_native_evidence(operation, participant)
+        evidence = participant&.__send__(:capture_approval_recovery,
+          execution: operation.execution, persistence: @persistence)
+        if participant && !evidence
+          raise ArgumentError, "Approval participant did not supply detached authority"
+        end
+        evidence
+      end
+
+      def guard_approval(scope, parent_evidence, native_evidence)
+        ids = parent_evidence ? parent_evidence.agent_ids : [@agent_id]
+        ids += native_evidence.guarded_agent_ids(persistence: @persistence, scope: scope) if native_evidence
+        @persistence.guard_agents(scope, agent_ids: ids.uniq)
+      end
+
+      def validate_retained_operation!(operation, participant:)
         execution = operation.execution
         unless operation.root.agent_id == @agent_id && execution.agent_id == @agent_id &&
             operation.execution_id == execution.execution_id &&
@@ -62,13 +116,15 @@ module Phronomy
             [true, false].include?(operation.approved)
           raise ArgumentError, "Retained approval does not match its suspended execution"
         end
-        if execution.metadata["execution_extension"] ||
+        supported = participant&.respond_to?(:approval_recovery_supported?, true) &&
+          participant.__send__(:approval_recovery_supported?, execution: execution, persistence: @persistence)
+        if (participant && !supported) || (execution.metadata["execution_extension"] && !supported) ||
             execution.metadata["cancellation_requested"]
-          raise ArgumentError, "Retained approval requires an uncancelled participant-free execution"
+          raise ArgumentError, "Retained approval requires an uncancelled supported execution"
         end
       end
 
-      def persist_retained_decision(operation, request, parent_evidence:)
+      def persist_retained_decision(operation, request, parent_evidence:, native_evidence:, on_write_started:)
         bytes = Phronomy::CanonicalJSON.dump(
           "approval_request_id" => operation.approval_request_id,
           "approved" => operation.approved
@@ -77,23 +133,29 @@ module Phronomy
         @persistence.transaction do |records, current_scope|
           scope = current_scope
           ApprovalPersistenceEvidence.require_outer_scope!(scope)
-          @persistence.guard_agents(scope, agent_ids: parent_evidence ? parent_evidence.agent_ids : [@agent_id])
+          guard_approval(scope, parent_evidence, native_evidence)
           parent_evidence&.assert_current!(persistence: @persistence, scope: scope)
+          native_evidence&.assert_current!(persistence: @persistence, scope: scope)
           before = ApprovalPersistenceEvidence.read(persistence: @persistence,
             agent_id: @agent_id, execution_id: operation.execution_id,
             journal_position: operation.root.journal_position, scope: scope, parent_evidence: parent_evidence)
           validate_retained_before!(operation, before)
           parent_evidence&.assert_child_before!(before)
-          decision_ref = records.contents.put(bytes,
-            canonicalization_version: Phronomy::CanonicalJSON::VERSION)
+          decision_ref = "sha256:#{Digest::SHA256.hexdigest(bytes)}"
           decision = approval_decision(operation.execution, operation.root, decision_ref)
           execution = stage_recovery_snapshot(operation)
           updated = resumed_execution(execution, request, operation.approved, decision)
           root = resumed_root(operation.root)
           result = Result.new(execution: updated, root: root)
           evidence = ApprovalPersistenceEvidence.capture(persistence: @persistence,
-            before: before, outcome: result, decision: decision, decision_bytes: bytes, parent_evidence: parent_evidence)
+            before: before, outcome: result, decision: decision, decision_bytes: bytes,
+            parent_evidence: parent_evidence, native_evidence: native_evidence)
           yield evidence
+          on_write_started&.call
+          saved_ref = records.contents.put(bytes, canonicalization_version: Phronomy::CanonicalJSON::VERSION)
+          unless saved_ref == decision_ref
+            raise Phronomy::ContentStore::IntegrityError, "Approval content differs from its captured identity"
+          end
           records.executions.save(execution.execution_id,
             expected_revision: operation.expected_execution_revision, execution: updated)
           records.agents.save(@agent_id,

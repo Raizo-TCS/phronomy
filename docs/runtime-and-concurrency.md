@@ -192,6 +192,18 @@ retry the exact captured content, hold and execution records. It does not run th
 participant's commit decision again or start the child while a conflicting child
 execution is active.
 
+Retained [native final/wait recovery](architecture/native-parent-outcome-recovery.md)
+uses the same worker/EventLoop ownership split. A confirmed wait releases its
+save-recovery custody without claiming the Agent job finished; a recovered own
+approval wait retains its exact request and cancellation binding. The original
+failed observation stays closed. Existing approval recovery separately checks
+fresh native child authority before applying a captured decision, and admits no
+new decision merely because a wait was saved.
+
+For example, recovery can publish the parent's saved publishing approval request
+after its old listener has closed. The caller uses the request from the new
+receipt with existing `approve_async`; the old listener is not replayed.
+
 ## Provider Call result authority
 
 Provider Call identity is purpose-specific semantic provenance. EventLoop

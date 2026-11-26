@@ -31,11 +31,13 @@ RSpec.shared_context "a native child requiring approval" do
 
   after { LLMStub.deactivate }
 
-  def start(agent = parent, id = root_id)
+  def start(agent = parent, id = root_id, expected_error: Phronomy::ExecutionRehydrationRequiredError, &inspect_failure)
     reservation = Phronomy::Agent::ReservedExecution.new(agent_id: agent.agent_id, execution_id: id)
     handle = agent.start_hosted(reservation: reservation, input: "run", config: {cancellation_token: token})
     request = Timeout.timeout(8) { events.pop }
-    expect { handle.wait_result(timeout: 8) }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+    expect { handle.wait_result(timeout: 8) }.to raise_error(expected_error) do |error|
+      inspect_failure&.call(error)
+    end
     child = child_class.get(stores.agent.execution_identity(request.execution_id).agent_id)
     [handle, request, child]
   end
