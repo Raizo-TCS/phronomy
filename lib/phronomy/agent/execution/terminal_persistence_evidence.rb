@@ -4,10 +4,13 @@ require "securerandom"
 
 module Phronomy
   module Agent
-    # Opt-in, process-local proof for one installed standalone terminal write.
+    # Opt-in, process-local proof for one installed Agent terminal write,
+    # including an opaque correlated child without a transaction participant.
     # This value owns neither the original observer nor the live execution.
     # The caller must retain it and use the original Persistence only after the
     # previous backend transaction has settled and authoritative reads apply.
+    # Saving completed facts changes neither parent state nor durable holds.
+    # A parent's later import/release does not invalidate those terminal facts.
     # @api private
     class TerminalPersistenceEvidence
       ContentWrite = Data.define(:reference, :bytes, :canonicalization_version)

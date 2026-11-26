@@ -1,0 +1,26 @@
+digraph ChildOwner {
+  graph [rankdir=TB, bgcolor="transparent", fontname="DejaVu Sans", pad="0.25", nodesep="0.35", ranksep="0.6", label="Child recovery owner", labelloc=t, fontsize=20];
+  node [shape=box, style="rounded,filled", fillcolor="#eef4ff", color="#38527a", fontname="DejaVu Sans", fontsize=12, margin="0.15,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#38527a"];
+  initial [shape=circle, label="", width=0.16, fillcolor="#25364f", color="#25364f"];
+  retained [label="Retained\nProof or authority unresolved"];
+  comparing [label="Comparing captured child state\nExact owner; physical end known"];
+  pre [label="Confirmed pre-state\nSame proposal and custody retained"];
+  post [label="Confirmed post-state\nApply the same captured proposal"];
+  dispatched [label="Dispatch continuation accepted\nJob remains active", fillcolor="#e6f4e9"];
+  released [label="Terminal state applied\nLocal child admission released", fillcolor="#e6f4e9"];
+  final [shape=doublecircle, label="", width=0.18, fillcolor="#25364f", color="#25364f"];
+  initial -> retained;
+  retained -> comparing [label="fresh request [physical proof]\n/ compare child state"];
+  comparing -> retained [label="unreadable or divergent\n/ keep custody"];
+  comparing -> pre [label="complete pre-state / report pre"];
+  pre -> comparing [label="explicit save retry\n/ guard captured bytes"];
+  comparing -> post [label="complete post-state\n/ preserve correlation"];
+  post -> retained [label="submission refused\n/ require a fresh read"];
+  post -> dispatched [label="dispatch [fresh proof]\n/ hand off once"];
+  post -> released [label="terminal [quiet and applied]\n/ release local admission"];
+  dispatched -> final;
+  released -> final;
+  note [shape=note, fillcolor="#fff6dc", color="#92763a", label="Owner completion is not job completion.\nParent import has its own owner.\nRetentions protect history;\nthey do not authorize dispatch."];
+  final -> note [style=invis];
+}

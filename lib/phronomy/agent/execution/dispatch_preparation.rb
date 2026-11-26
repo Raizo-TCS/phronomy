@@ -179,7 +179,7 @@ module Phronomy
 
       def retained_evidence_eligible?(operation)
         operation.execution.status == :active &&
-          !operation.execution.metadata["reservation"] && !operation.execution.metadata["execution_extension"] &&
+          !operation.execution.metadata["execution_extension"] &&
           !operation.invocation_config[:phronomy_execution_participant]
       end
 

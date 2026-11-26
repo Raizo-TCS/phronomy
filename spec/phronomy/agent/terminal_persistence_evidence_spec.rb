@@ -9,12 +9,13 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
   let(:agent) { agent_class.create(agent_id: "terminal-proof-owner", persistence: persistence) }
   let(:worker) { Phronomy::Agent::ExecutionOutcomeCommitter.new(agent: agent, persistence: persistence) }
   let(:output) { {"answer" => ["captured"]} }
+  let(:execution_metadata) { {} }
   let(:execution) do
     input = Phronomy::Agent::JournalRecord.new(agent_id: agent.agent_id,
       execution_id: "terminal-proof-run", kind: :external_message, channel: :llm,
       role: :user, content_ref: persistence.contents.put_text("input"), context_candidate: true)
     Phronomy::Agent::AgentExecution.start(agent_root: agent.agent_root,
-      input_record: input, execution_id: "terminal-proof-run").with(status: :active)
+      input_record: input, execution_id: "terminal-proof-run", metadata: execution_metadata).with(status: :active)
   end
   let(:view) do
     Phronomy::Agent::ExecutionOutcomeCommitter::TerminalView.new(phase: :completed,
@@ -125,11 +126,44 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     expect(persistence.executions.load(execution.execution_id)).to be_terminal
   end
 
-  it "does not claim standalone evidence for reservation-owned execution" do
-    reserved = execution.with(execution_revision: execution.execution_revision, metadata: {"reservation" => {"owner" => "parent"}})
-    proofs = []
-    worker.commit_outcome(command.with(execution: reserved), on_evidence: ->(proof) { proofs << proof })
-    expect(proofs).to be_empty
+  context "with an opaque correlated child" do
+    let(:correlation) { {"kind" => "custom-parent", "slot" => "original-slot"} }
+    let(:execution_metadata) { {"reservation" => correlation} }
+    let(:hold) do
+      Phronomy::Agent::Retention.new(agent_id: agent.agent_id,
+        execution_id: execution.execution_id, owner_key: "original-parent")
+    end
+
+    before { persistence.coordinator.atomic { |scope| persistence.retain(hold, scope: scope) } }
+
+    it "records the exact child result without changing its correlation or durable holder" do
+      evidence, result = capture
+      expect(evidence.outcome.execution.metadata.fetch("reservation")).to eq(correlation)
+      expect(result.execution).to be_terminal
+      expect(persistence.retained_references(agent_id: agent.agent_id)).to eq([hold])
+      expect(evidence.reconcile(persistence: persistence).disposition).to eq(:committed)
+    end
+
+    it "keeps committed terminal facts valid after the holder releases its own durable reference" do
+      evidence, = capture
+      persistence.coordinator.atomic do |scope|
+        persistence.release_retention(agent_id: agent.agent_id, owner_key: hold.owner_key, scope: scope)
+      end
+      expect(evidence.reconcile(persistence: persistence).disposition).to eq(:committed)
+      expect_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).not_to receive(:save)
+      expect(evidence.retry(persistence: persistence).disposition).to eq(:committed)
+      expect(persistence.retained_references(agent_id: agent.agent_id)).to be_empty
+    end
+
+    it "refuses a changed reservation without writing the captured result again" do
+      evidence, = capture
+      current = persistence.executions.load(execution.execution_id)
+      persistence.executions.save(current.execution_id, expected_revision: current.execution_revision,
+        execution: current.with(metadata: current.metadata.merge("reservation" => correlation.merge("slot" => "another-slot"))))
+      expect_any_instance_of(Phronomy::Agent::Persistence::ExecutionRepository).not_to receive(:save)
+      expect(evidence.reconcile(persistence: persistence).disposition).to eq(:unknown)
+      expect(evidence.retry(persistence: persistence).disposition).to eq(:unknown)
+    end
   end
 
   it "propagates collector failure after successful commit without undoing persistence" do

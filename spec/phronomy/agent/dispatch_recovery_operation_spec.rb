@@ -6,8 +6,9 @@ RSpec.describe Phronomy::Agent::DispatchRecoveryOperation do
   let(:persistence) { Object.new }
   let(:agent) { double("agent", agent_id: "dispatch-agent", persistence: persistence) }
   let(:command) do
-    Struct.new(:execution_id, :fsm_session_id, :expected_execution_revision)
-      .new("execution-1", "session-1", 3)
+    execution = Struct.new(:metadata).new({}.freeze)
+    Struct.new(:execution_id, :fsm_session_id, :expected_execution_revision, :execution)
+      .new("execution-1", "session-1", 3, execution)
   end
   let(:invocation) { Object.new }
   let(:registry) do
