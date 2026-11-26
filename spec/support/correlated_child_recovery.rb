@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "../integration/support/hosted_subagent"
-
 RSpec.shared_context "a correlated child with uncertain persistence" do
+  require_relative "../integration/support/hosted_subagent"
+
   include_context "a native child requiring approval"
 
   let(:effects) { [] }
