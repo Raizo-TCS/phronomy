@@ -1,0 +1,452 @@
+{
+  "cases": [
+    {
+      "id": "safety-new-post",
+      "kind": "property",
+      "description": "A lost native parent post response is reconciled without another write.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-new-pre",
+      "kind": "property",
+      "description": "Explicit retry restores the captured parent content and allowed retention delta.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unimported-absent",
+      "kind": "property",
+      "description": "An old unimported slot can remain wholly absent.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"unimported\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unimported-terminal",
+      "kind": "property",
+      "description": "A terminal exact child remains in its own domain.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"unimported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-imported-terminal",
+      "kind": "property",
+      "description": "An imported slot requires terminal correlation and its own hold.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-refused-active",
+      "kind": "property",
+      "description": "Ambiguous or nonterminal existing child authority blocks retry and admission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"unimported\"\n  ChildState = \"active\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-refused-suspended",
+      "kind": "property",
+      "description": "Ambiguous or nonterminal existing child authority blocks retry and admission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"unimported\"\n  ChildState = \"suspended\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-refused-root_only",
+      "kind": "property",
+      "description": "Ambiguous or nonterminal existing child authority blocks retry and admission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"unimported\"\n  ChildState = \"root_only\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-refused-execution_only",
+      "kind": "property",
+      "description": "Ambiguous or nonterminal existing child authority blocks retry and admission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"unimported\"\n  ChildState = \"execution_only\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-imported-absent",
+      "kind": "property",
+      "description": "An imported slot cannot lose its child execution.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-parent-root",
+      "kind": "property",
+      "description": "A changed parent proof cannot be overwritten from cached pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"root\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-parent-execution",
+      "kind": "property",
+      "description": "A changed parent proof cannot be overwritten from cached pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"execution\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-parent-journal",
+      "kind": "property",
+      "description": "A changed parent proof cannot be overwritten from cached pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"journal\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-parent-extension",
+      "kind": "property",
+      "description": "A changed parent proof cannot be overwritten from cached pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"extension\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-parent-cancellation",
+      "kind": "property",
+      "description": "A changed parent proof cannot be overwritten from cached pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"cancellation\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-parent-holds",
+      "kind": "property",
+      "description": "A changed parent proof cannot be overwritten from cached pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"holds\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-child_root",
+      "kind": "property",
+      "description": "Historical post knowledge does not grant changed continuation authority.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"child_root\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-child_reservation",
+      "kind": "property",
+      "description": "Historical post knowledge does not grant changed continuation authority.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"child_reservation\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-child_definition",
+      "kind": "property",
+      "description": "Historical post knowledge does not grant changed continuation authority.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"child_definition\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-child_hold",
+      "kind": "property",
+      "description": "Historical post knowledge does not grant changed continuation authority.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"child_hold\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-owner",
+      "kind": "property",
+      "description": "Historical post knowledge does not grant changed continuation authority.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"owner\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unreadable",
+      "kind": "property",
+      "description": "Unavailable storage establishes no write or continuation permission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-lost-retry-response",
+      "kind": "property",
+      "description": "A lost retry reply requires another read without repeating the write.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = TRUE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-observer-cancellation",
+      "kind": "property",
+      "description": "Observation cancellation cannot release physical persistence custody.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-post",
+      "kind": "property",
+      "description": "Under explicit caller, stable proof and completion premises, captured dispatch is admitted once.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-pre",
+      "kind": "property",
+      "description": "Under explicit caller, stable proof and completion premises, captured dispatch is admitted once.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-lost-retry-response",
+      "kind": "property",
+      "description": "Under explicit caller, stable proof and completion premises, captured dispatch is admitted once.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = TRUE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-imported-terminal",
+      "kind": "property",
+      "description": "Under explicit caller, stable proof and completion premises, captured dispatch is admitted once.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-irrelevant-child-change",
+      "kind": "property",
+      "description": "Under explicit caller, stable proof and completion premises, captured dispatch is admitted once.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_generation\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "bug-ignore-root",
+      "kind": "mutation",
+      "description": "Dropping one complete parent coordinate admits a changed proof.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"root\"\n  ObserveClients = FALSE\n  Bug = \"root\"\nINVARIANT CompleteParentProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "CompleteParentProof"
+    },
+    {
+      "id": "bug-ignore-execution",
+      "kind": "mutation",
+      "description": "Dropping one complete parent coordinate admits a changed proof.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"execution\"\n  ObserveClients = FALSE\n  Bug = \"execution\"\nINVARIANT CompleteParentProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "CompleteParentProof"
+    },
+    {
+      "id": "bug-ignore-journal",
+      "kind": "mutation",
+      "description": "Dropping one complete parent coordinate admits a changed proof.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"journal\"\n  ObserveClients = FALSE\n  Bug = \"journal\"\nINVARIANT CompleteParentProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "CompleteParentProof"
+    },
+    {
+      "id": "bug-ignore-extension",
+      "kind": "mutation",
+      "description": "Dropping one complete parent coordinate admits a changed proof.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"extension\"\n  ObserveClients = FALSE\n  Bug = \"extension\"\nINVARIANT CompleteParentProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "CompleteParentProof"
+    },
+    {
+      "id": "bug-ignore-cancellation",
+      "kind": "mutation",
+      "description": "Dropping one complete parent coordinate admits a changed proof.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"cancellation\"\n  ObserveClients = FALSE\n  Bug = \"cancellation\"\nINVARIANT CompleteParentProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "CompleteParentProof"
+    },
+    {
+      "id": "bug-ignore-holds",
+      "kind": "mutation",
+      "description": "Dropping one complete parent coordinate admits a changed proof.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"holds\"\n  ObserveClients = FALSE\n  Bug = \"holds\"\nINVARIANT CompleteParentProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "CompleteParentProof"
+    },
+    {
+      "id": "bug-cached-pre",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"execution\"\n  ObserveClients = FALSE\n  Bug = \"cached_pre\"\nINVARIANT ExactRetry\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactRetry"
+    },
+    {
+      "id": "bug-retry-without-child-authority",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"root_only\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"skip_retry_authority\"\nINVARIANT ExactRetry\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactRetry"
+    },
+    {
+      "id": "bug-missing-extension-content",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"omit_content\"\nINVARIANT ExactRetry\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactRetry"
+    },
+    {
+      "id": "bug-missing-parent-hold",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"omit_hold\"\nINVARIANT ExactRetry\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactRetry"
+    },
+    {
+      "id": "bug-active-child",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"unimported\"\n  ChildState = \"active\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"accept_active_child\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-child-hold",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_hold\"\n  ObserveClients = FALSE\n  Bug = \"ignore_child_hold\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-child-reservation",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_reservation\"\n  ObserveClients = FALSE\n  Bug = \"ignore_child_reservation\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-child-definition",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_definition\"\n  ObserveClients = FALSE\n  Bug = \"ignore_child_definition\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-new-root-only",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"root_only\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"new_root_only\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-imported-absent",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"imported_absent\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-cached-post",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"child_root\"\n  ObserveClients = FALSE\n  Bug = \"cached_post\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-forget-post",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = TRUE\n  RetryReplyLost = FALSE\n  Drift = \"execution\"\n  ObserveClients = FALSE\n  Bug = \"forget_post\"\nINVARIANT HistoricalPostSticky\nCHECK_DEADLOCK FALSE\n",
+      "target": "HistoricalPostSticky"
+    },
+    {
+      "id": "bug-child-write",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"rewrite_child\"\nINVARIANT IndependentChildDomain\nCHECK_DEADLOCK FALSE\n",
+      "target": "IndependentChildDomain"
+    },
+    {
+      "id": "bug-preparation-replay",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"rebuild_preparation\"\nINVARIANT NoPreparationOrParticipantReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoPreparationOrParticipantReplay"
+    },
+    {
+      "id": "bug-participant-replay",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"replay_participant\"\nINVARIANT NoPreparationOrParticipantReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoPreparationOrParticipantReplay"
+    },
+    {
+      "id": "bug-effect-replay",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"replay_effect\"\nINVARIANT NoEffectReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoEffectReplay"
+    },
+    {
+      "id": "bug-history-drop",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"drop_history\"\nINVARIANT HistoryRetained\nCHECK_DEADLOCK FALSE\n",
+      "target": "HistoryRetained"
+    },
+    {
+      "id": "bug-physical-overlap",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"ignore_physical\"\nINVARIANT PhysicalCustody\nCHECK_DEADLOCK FALSE\n",
+      "target": "PhysicalCustody"
+    },
+    {
+      "id": "bug-stale-owner",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"owner\"\n  ObserveClients = FALSE\n  Bug = \"stale_owner\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    },
+    {
+      "id": "bug-observation-owner-release",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = TRUE\n  Bug = \"observer_releases_owner\"\nINVARIANT PhysicalCustody\nCHECK_DEADLOCK FALSE\n",
+      "target": "PhysicalCustody"
+    },
+    {
+      "id": "bug-reopen-original",
+      "kind": "mutation",
+      "description": "A deliberate protocol mutation violates its named safety obligation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"reopen_original\"\nINVARIANT ClosedOriginal\nCHECK_DEADLOCK FALSE\n",
+      "target": "ClosedOriginal"
+    },
+    {
+      "id": "bug-freeze-child-generation",
+      "kind": "mutation_liveness",
+      "description": "Freezing an irrelevant child generation invents a recovery progress blocker.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_generation\"\n  ObserveClients = FALSE\n  Bug = \"freeze_child_generation\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyAdmitted\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-post-blocked",
+      "kind": "witness",
+      "description": "Negating a valid reachable protocol state must produce a counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"root_only\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT NoConfirmedPostBlockedWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoConfirmedPostBlockedWitness"
+    },
+    {
+      "id": "witness-cancelled-physical-owner",
+      "kind": "witness",
+      "description": "Negating a valid reachable protocol state must produce a counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = TRUE\n  Bug = \"none\"\nINVARIANT NoCancelledOwnerWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoCancelledOwnerWitness"
+    },
+    {
+      "id": "witness-independent-observers",
+      "kind": "witness",
+      "description": "Negating a valid reachable protocol state must produce a counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = TRUE\n  Bug = \"none\"\nINVARIANT NoIndependentObserversWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoIndependentObserversWitness"
+    },
+    {
+      "id": "witness-explicit-retry",
+      "kind": "witness",
+      "description": "Negating a valid reachable protocol state must produce a counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT NoRetryWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoRetryWitness"
+    },
+    {
+      "id": "witness-read-only-post",
+      "kind": "witness",
+      "description": "Negating a valid reachable protocol state must produce a counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT NoReadOnlyPostWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoReadOnlyPostWitness"
+    },
+    {
+      "id": "witness-irrelevant-child-change",
+      "kind": "witness",
+      "description": "Negating a valid reachable protocol state must produce a counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"imported\"\n  ChildState = \"terminal\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_generation\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT NoIrrelevantChildChangeWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoIrrelevantChildChangeWitness"
+    },
+    {
+      "id": "missing-fresh-caller",
+      "kind": "missing_assumption",
+      "description": "Removing an explicit progress premise prevents guaranteed continuation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = FALSE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyAdmitted\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-explicit-retry",
+      "kind": "missing_assumption",
+      "description": "Removing an explicit progress premise prevents guaranteed continuation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"pre\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = FALSE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyAdmitted\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-readable-storage",
+      "kind": "missing_assumption",
+      "description": "Removing an explicit progress premise prevents guaranteed continuation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyAdmitted\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-physical-completion",
+      "kind": "missing_assumption",
+      "description": "Removing an explicit progress premise prevents guaranteed continuation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = FALSE\n  Admission = TRUE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyAdmitted\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-admission",
+      "kind": "missing_assumption",
+      "description": "Removing an explicit progress premise prevents guaranteed continuation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = FALSE\n  StableRead = TRUE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"none\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT HistoricalPostSticky\nINVARIANT FreshNativeAuthority\nINVARIANT CompleteParentProof\nINVARIANT IndependentChildDomain\nINVARIANT NoPreparationOrParticipantReplay\nINVARIANT NoEffectReplay\nINVARIANT HistoryRetained\nINVARIANT PhysicalCustody\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT OneAdmission\nPROPERTY EventuallyAdmitted\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-read-to-admission-stability",
+      "kind": "missing_assumption",
+      "description": "Transaction guards do not fence conflicting writes after the proof and before owner admission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  ChildKind = \"new\"\n  ChildState = \"absent\"\n  Readable = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  Cleanup = TRUE\n  Admission = TRUE\n  StableRead = FALSE\n  RefuseFirst = FALSE\n  RetryReplyLost = FALSE\n  Drift = \"child_root\"\n  ObserveClients = FALSE\n  Bug = \"none\"\nINVARIANT FreshNativeAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshNativeAuthority"
+    }
+  ]
+}

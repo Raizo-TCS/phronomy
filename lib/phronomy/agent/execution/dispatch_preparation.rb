@@ -154,33 +154,38 @@ module Phronomy
 
       def perform_dispatch_change(change, operation, kind:, collector:, on_barrier_started:, manifest: nil, manifest_ref: nil)
         capture = collector && retained_evidence_eligible?(operation)
+        participant = operation.invocation_config[:phronomy_execution_participant]
         # Absence of a complete proof cannot establish non-admission. The owner
         # separately records whether execution-change processing could start.
         on_barrier_started&.call
         result = change.perform
       rescue => original_error
         begin
-          publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref) if capture
+          publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref, participant) if capture
         rescue
           # A failed collector cannot replace the original persistence error.
           nil
         end
         raise original_error
       else
-        publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref) if capture
+        publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref, participant) if capture
         result
       end
 
-      def publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref)
+      def publish_dispatch_evidence(change, kind, collector, manifest, manifest_ref, participant)
         evidence = DispatchPersistenceEvidence.capture(change, persistence: @agent.persistence,
-          kind: kind, manifest: manifest, manifest_ref: manifest_ref)
+          kind: kind, manifest: manifest, manifest_ref: manifest_ref, participant: participant)
         collector.call(evidence) if evidence
       end
 
       def retained_evidence_eligible?(operation)
-        operation.execution.status == :active &&
-          !operation.execution.metadata["execution_extension"] &&
-          !operation.invocation_config[:phronomy_execution_participant]
+        return false unless operation.execution.status == :active
+        participant = operation.invocation_config[:phronomy_execution_participant]
+        return !operation.execution.metadata["execution_extension"] unless participant
+
+        participant.respond_to?(:dispatch_recovery_supported?, true) &&
+          participant.__send__(:dispatch_recovery_supported?,
+            execution: operation.execution, persistence: @agent.persistence)
       end
 
       def execution_with_provider_manifest(recorded, manifest_ref)

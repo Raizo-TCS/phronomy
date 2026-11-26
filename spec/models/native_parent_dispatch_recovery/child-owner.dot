@@ -1,0 +1,16 @@
+digraph ChildOwner {
+  graph [rankdir=TB, bgcolor="white", label="Native child authority", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.4, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#f1f0fb", color="#64548b", fontname="sans-serif", fontsize=12, margin="0.18,0.12"];
+  edge [color="#64548b", fontname="sans-serif", fontsize=11];
+  absent [label="Root and execution absent\nEligible for a new or unimported slot"];
+  active [label="Child active or suspended\nExisting independent execution owner\nParent dispatch recovery blocked"];
+  terminal [label="Child terminal\nEligible only for an existing slot\nExact reservation, definition and own hold"];
+  invalid [label="Relationship incomplete or changed\nParent dispatch recovery blocked", fillcolor="#fbeeed"];
+  absent -> active [label="Separate child admission\n/ create exact child execution"];
+  active -> terminal [label="Separate child finalization\n/ save terminal child result"];
+  absent -> invalid [label="Partial or foreign child appears"];
+  terminal -> invalid [label="Required identity or hold changes"];
+  terminal -> terminal [label="Unrelated generation or history changes\n/ preserve exact terminal authority"];
+  note [shape=note, fillcolor="#fff8df", color="#8b7846", label="Parent recovery reads child authority only.\nThese child transitions belong to child execution.\nThey are not replayed by the parent plan."];
+  {rank=same; terminal; note;}
+}

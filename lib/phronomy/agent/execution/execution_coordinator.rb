@@ -984,8 +984,12 @@ module Phronomy
       end
 
       def retained_dispatch_eligible?(command)
-        !command.execution.metadata["execution_extension"] &&
-          !command.invocation_config[:phronomy_execution_participant]
+        participant = command.invocation_config[:phronomy_execution_participant]
+        return !command.execution.metadata["execution_extension"] unless participant
+
+        participant.respond_to?(:dispatch_recovery_supported?, true) &&
+          participant.__send__(:dispatch_recovery_supported?,
+            execution: command.execution, persistence: @agent.persistence)
       end
 
       def retain_dispatch_preparation(command, kind)
