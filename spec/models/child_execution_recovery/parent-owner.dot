@@ -1,0 +1,21 @@
+digraph ParentOwner {
+  graph [rankdir=TB, bgcolor="transparent", fontname="DejaVu Sans", pad="0.25", nodesep="0.35", ranksep="0.6", label="Parent result-import owner", labelloc=t, fontsize=20];
+  node [shape=box, style="rounded,filled", fillcolor="#eef4ff", color="#38527a", fontname="DejaVu Sans", fontsize=12, margin="0.15,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#38527a"];
+  initial [shape=circle, label="", width=0.16, fillcolor="#25364f", color="#25364f"];
+  pending [label="Pending child result\nExact slot and durable hold retained"];
+  failed [label="Original observation failed\nDurable import responsibility remains"];
+  resumed [label="Fresh parent recovery\nExisting resume authority checked"];
+  imported [label="Exact child result imported\nHistory holds can remain", fillcolor="#e6f4e9"];
+  cleanup [label="Pair can be unloaded\nChild physical custody has ended", fillcolor="#e6f4e9"];
+  final [shape=doublecircle, label="", width=0.18, fillcolor="#25364f", color="#25364f"];
+  initial -> pending;
+  pending -> failed [label="original observation error\n/ retain responsibility"];
+  failed -> resumed [label="fresh caller [matching slot]\n/ use existing resume path"];
+  pending -> imported [label="saved terminal result\n[matching identity and policy]\n/ import once"];
+  resumed -> imported [label="saved terminal result\n[matching identity and policy]\n/ complete fresh observation"];
+  imported -> cleanup [label="child custody ended [physically quiet]\n/ permit local unload"];
+  cleanup -> final;
+  note [shape=note, fillcolor="#fff6dc", color="#92763a", label="Import may precede child cleanup.\nFailed observations stay failed.\nLocal unload keeps history holds.\nParent policy can retain responsibility."];
+  final -> note [style=invis];
+}

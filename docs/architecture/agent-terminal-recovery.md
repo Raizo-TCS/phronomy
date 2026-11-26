@@ -6,6 +6,8 @@ For example, a research Agent calculates an answer, commits its terminal records
 
 Baseline: G3b-1 `e4a57fa278ed5136679ad884a8a4c51fa585382e`. This document describes the G3b-2 implementation candidate and its explicit acceptance boundary. The delivery evidence records the exact final commit and actual check results. Contract concept v55 and foundation v48 are the canonical architecture references.
 
+The later [correlated-child execution recovery contract](agent-child-execution-recovery.md) extends actual terminal recovery to supported original correlated child owners. Child-local release remains separate from parent result import and retention-based peer release.
+
 ## Preserve responsibility after an observation ends
 
 The original Agent owner retains an uncertain terminal operation before exposing its recovery capability. The original caller's observation can then end with an explicit recovery error while the accepted job remains owned. A later recovery request creates a new observation; it does not reopen an earlier failed or cancelled TaskResult.
@@ -238,7 +240,7 @@ The later [terminal submission recovery contract](agent-terminal-submission-reco
 
 The caller/backend must establish that the prior backend transaction has settled and that authoritative readback is ordered after it. The Store must provide its guard exclusion and atomic transaction semantics. Local worker return, revisions or CAS alone do not establish those remote conditions. External database/LLM acceptance is separate from in-memory fault injection.
 
-Supported domain scope is an installed standalone Agent's completed, failed or cancelled terminal save. Reservation/participant coordination, execution extensions, approval suspension, handoff, initial preparation and dispatch recovery remain outside this terminal protocol. Those paths retain their existing separate contracts.
+The original G3b stage covered an installed standalone Agent's completed, failed or cancelled terminal save. G3e additionally supports the correlated-child actual terminal paths described in [child execution recovery](agent-child-execution-recovery.md). Parent participant coordination, execution extensions, approval suspension, handoff, initial preparation and dispatch recovery retain separate contracts; the child eligibility extension does not include those boundaries.
 
 ## Retain justified symmetry without a generic manager
 
@@ -255,7 +257,7 @@ For example, a Workflow segment's confirmed pre-state can release its failed ter
 | Confirmed pre-state | G2 policy may apply and release | Pending and retained | Preserve domain semantics. |
 | Saved result | Workflow context and revision | ExecutionObservation and execution revision | Reuse existing domain views. |
 | Error and observation | Recovery error does not prove business failure; original observation stays closed | Same rule, including failed/cancelled saved executions | Adopt symmetry. |
-| Lifetime | Physical-attempt serialization and stopped-owner unavailability | Same rule with Agent admission and standalone terminal ownership | Reuse neutral facilities; keep domain application local. |
+| Lifetime | Physical-attempt serialization and stopped-owner unavailability | Same rule with Agent admission and original terminal ownership; G3b standalone and the later G3e supported child scope | Reuse neutral facilities; keep domain application local. |
 
 No new generic recovery manager is justified by this stage. The review must assess removed duplicate code, adapter burden, comprehension, duplicate state authority, shared defect corrections, total tests and execution/retention cost together. Similar public verbs alone do not prove that a shared implementation simplifies Agent, Team and Workflow.
 

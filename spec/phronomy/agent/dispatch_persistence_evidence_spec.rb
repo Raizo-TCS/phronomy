@@ -52,6 +52,16 @@ RSpec.describe Phronomy::Agent::DispatchPersistenceEvidence do
     worker.public_send((kind == :provider) ? :prepare_provider : :prepare_tools, operation, **callbacks)
   end
 
+  def reserved_command(kind)
+    reservation = {"kind" => "subagent", "parent_agent_id" => "parent-owner",
+                   "parent_execution_id" => "parent-run", "slot" => "child-slot"}
+    reserved = execution.with(metadata: execution.metadata.merge("reservation" => reservation))
+    persistence.transaction do |records|
+      records.executions.save(execution.execution_id, expected_revision: execution.execution_revision, execution: reserved)
+    end
+    command(kind).with(execution: reserved, expected_execution_revision: reserved.execution_revision)
+  end
+
   def fail_barrier(kind, committed:)
     skip = (kind == :provider) ? 2 : 1
     armed = true
@@ -202,12 +212,60 @@ RSpec.describe Phronomy::Agent::DispatchPersistenceEvidence do
         expect(proof.retry(persistence: persistence).disposition).to eq(:unknown)
       end
 
-      it "does not claim standalone proof for a reserved execution" do
-        operation = command(kind)
-        reserved = execution.with(execution_revision: execution.execution_revision,
-          metadata: execution.metadata.merge("reservation" => {"owner" => "parent"}))
+      it "preserves the exact admitted child's opaque reservation in its complete proof" do
+        operation = reserved_command(kind)
+        proof = nil
+        prepare(kind, operation, on_evidence: ->(value) { proof = value })
+        correlation = operation.execution.metadata.fetch("reservation")
+        expect(proof.before.fetch(0).fetch(1).fetch("metadata").fetch("reservation")).to eq(correlation)
+        expect(proof.after.fetch(0).fetch(1).fetch("metadata").fetch("reservation")).to eq(correlation)
+        expect(proof.reconcile(persistence: persistence).disposition).to eq(:committed)
+      end
+
+      it "does not retry a child proposal after its durable correlation changed" do
+        operation = reserved_command(kind)
+        fail_barrier(kind, committed: false)
+        proof = nil
+        expect { prepare(kind, operation, on_evidence: ->(value) { proof = value }) }.to raise_error(IOError)
+        allow(persistence.coordinator).to receive(:atomic).and_call_original
+        current = persistence.executions.load(execution.execution_id)
+        changed = current.with(metadata: current.metadata.merge("reservation" => {"owner" => "another"}))
+        persistence.transaction do |records|
+          records.executions.save(execution.execution_id, expected_revision: current.execution_revision, execution: changed)
+        end
+        expect(proof.reconcile(persistence: persistence).disposition).to eq(:unknown)
+        expect(proof.retry(persistence: persistence).disposition).to eq(:unknown)
+        expect(persistence.executions.load(execution.execution_id).to_h).to eq(changed.to_h)
+      end
+
+      it "preserves child history holds without treating a new hold as execution revocation" do
+        operation = reserved_command(kind)
+        hold = Phronomy::Agent::Retention.new(agent_id: agent.agent_id,
+          execution_id: execution.execution_id, owner_key: "subagent:parent-run")
+        persistence.retentions.retain(hold)
+        fail_barrier(kind, committed: false)
+        proof = nil
+        expect { prepare(kind, operation, on_evidence: ->(value) { proof = value }) }.to raise_error(IOError)
+        allow(persistence.coordinator).to receive(:atomic).and_call_original
+        observer_hold = Phronomy::Agent::Retention.new(agent_id: agent.agent_id,
+          execution_id: execution.execution_id, owner_key: "audit-observer")
+        persistence.retentions.retain(observer_hold)
+        expect(proof.retry(persistence: persistence).disposition).to eq(:committed)
+        expect(persistence.retentions.list(agent.agent_id)).to contain_exactly(hold, observer_hold)
+      end
+
+      it "does not capture a participant's independently owned dispatch proposal" do
+        participant = Object.new
+        participant.define_singleton_method(:change_evidence) { |_change, _scope| [] }
+        participant.define_singleton_method(:commit) do |change|
+          change.coordinator.atomic do |scope|
+            change.prepare_in(scope)
+            change.commit_in(scope)
+          end
+        end
         proofs = []
-        prepare(kind, operation.with(execution: reserved), on_evidence: ->(value) { proofs << value })
+        operation = command(kind).with(invocation_config: {phronomy_execution_participant: participant})
+        prepare(kind, operation, on_evidence: ->(value) { proofs << value })
         expect(proofs).to be_empty
       end
 

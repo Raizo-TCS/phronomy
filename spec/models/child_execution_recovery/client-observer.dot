@@ -1,0 +1,20 @@
+digraph ClientObserver {
+  graph [rankdir=TB, bgcolor="transparent", fontname="DejaVu Sans", pad="0.25", nodesep="0.4", ranksep="0.6", label="One client observation", labelloc=t, fontsize=20];
+  node [shape=box, style="rounded,filled", fillcolor="#eef4ff", color="#38527a", fontname="DejaVu Sans", fontsize=12, margin="0.15,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#38527a"];
+  initial [shape=circle, label="", width=0.16, fillcolor="#25364f", color="#25364f"];
+  pending [label="Waiting on one observation\nRecovery receipt or execution result"];
+  receipt [label="Recovery receipt received\nExecution correlation preserved", fillcolor="#e6f4e9"];
+  durable [label="Durable result observed\nOwner may remain retained", fillcolor="#e6f4e9"];
+  closed [label="Observation closed\nCancelled, timed out or failed", fillcolor="#fff0e4"];
+  final [shape=doublecircle, label="", width=0.18, fillcolor="#25364f", color="#25364f"];
+  initial -> pending [label="request / create this observation"];
+  pending -> receipt [label="receipt arrives\n/ report disposition"];
+  pending -> durable [label="saved result arrives\n/ report terminal fact"];
+  pending -> closed [label="cancellation or error\n/ close this observation"];
+  receipt -> final;
+  durable -> final;
+  closed -> final;
+  note [shape=note, fillcolor="#fff6dc", color="#92763a", label="Final ends only this observation.\nIt neither grants dispatch nor releases custody.\nOther observers keep their own states."];
+  final -> note [style=invis];
+}

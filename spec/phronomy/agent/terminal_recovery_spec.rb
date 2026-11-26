@@ -235,6 +235,35 @@ RSpec.describe "Agent terminal recovery through its original Runtime" do
     expect(@counts[:provider]).to eq(2)
   end
 
+  it "preserves the exact opaque reservation in the recovered execution observation" do
+    setup_agent
+    reservation = Phronomy::Agent::ReservedExecution.new(agent_id: @agent.agent_id,
+      execution_id: "correlated-terminal-observation",
+      correlation: {"owner" => "original-parent", "slot" => "original-slot"})
+    admission_owner = Object.new
+    admission_owner.define_singleton_method(:admit) { |admission| admission.accept }
+    @original = @agent.start_reserved_async(reservation: reservation, input: "finish the original child",
+      config: {phronomy_admission: admission_owner})
+    original_result = result_of(@original)
+    expect(original_result).to include(output: "retained answer")
+    @execution_id = reservation.execution_id
+    @recovery = @agent.pending_terminal_recovery(execution_id: @execution_id)
+    expect(@recovery).to be_a(Phronomy::Agent::TerminalRecovery)
+    expect(@registry.agent_execution_admitted?(@agent.agent_id)).to be(true)
+
+    recovered = reconcile
+
+    expect(recovered.outcome).to eq(:confirmed_post)
+    expect(recovered.ownership_state).to eq(:released)
+    expect(@registry.agent_execution_admitted?(@agent.agent_id)).to be(false)
+    observed = @store.observe_execution(agent_id: @agent.agent_id, execution_id: @execution_id)
+    expect(recovered.execution.to_h).to eq(observed.to_h)
+    expect(recovered.execution.reservation).to eq(reservation)
+    expect(reconcile.execution.reservation).to eq(reservation)
+    expect(result_of(@original)).to equal(original_result)
+    expect(@counts[:provider]).to eq(1)
+  end
+
   it "retains confirmed pre-state and retries only captured content and records after real Tool work" do
     setup_agent(mode: :pre, tools: true, response: '{"answer":"retained answer"}')
     schema = {type: "object", properties: {answer: {type: "string"}}, required: ["answer"], additionalProperties: false}

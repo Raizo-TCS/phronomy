@@ -984,7 +984,7 @@ module Phronomy
       end
 
       def retained_dispatch_eligible?(command)
-        !command.execution.metadata["reservation"] && !command.execution.metadata["execution_extension"] &&
+        !command.execution.metadata["execution_extension"] &&
           !command.invocation_config[:phronomy_execution_participant]
       end
 
@@ -1802,7 +1802,6 @@ module Phronomy
         operation.state_required && operation.execution.status == :active &&
           view.phase != :suspended && !view.handoff &&
           !error.is_a?(Phronomy::ExecutionRehydrationRequiredError) &&
-          !operation.execution.metadata["reservation"] &&
           !operation.execution.metadata["execution_extension"] &&
           !operation.wiring[:phronomy_execution_participant]
       end

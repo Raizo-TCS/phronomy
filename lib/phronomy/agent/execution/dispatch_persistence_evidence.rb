@@ -4,7 +4,7 @@ require "securerandom"
 
 module Phronomy
   module Agent
-    # Detached proof of one standalone pre-dispatch execution change. The proof
+    # Detached proof of one participant-free pre-dispatch execution change. The proof
     # does not authorize external dispatch or retain live Agent/participant state.
     # Only the original Store may compare or repeat the captured execution save,
     # after the prior backend attempt has settled and authoritative reads apply.

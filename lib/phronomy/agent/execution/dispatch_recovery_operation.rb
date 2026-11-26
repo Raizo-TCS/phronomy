@@ -405,27 +405,34 @@ module Phronomy
         if @mutex.synchronize { @confirmation == :not_prepared || not_prepared_locked? }
           return observer.complete(apply_preparation_failure)
         end
-        return observer.complete(apply_confirmation) if @mutex.synchronize { @confirmation == :confirmed_post }
+        # A child's original observation may already have moved its parent to
+        # a coordination wait. Recheck the child's exact saved correlation and
+        # cancellation before new admission, without freezing the parent's state.
+        fresh_proof = @mutex.synchronize { @command.execution.metadata["reservation"] && !@continuation_authorized }
+        if !fresh_proof && @mutex.synchronize { @confirmation == :confirmed_post }
+          return observer.complete(apply_confirmation)
+        end
         outcome = @mutex.synchronize { @save[:completion].result }
         if outcome
           remember_post(outcome)
-          return observer.complete(apply_confirmation)
+          return observer.complete(apply_confirmation) unless fresh_proof
         end
         evidence, persistence, preparer = @mutex.synchronize { [@evidence, @persistence, @preparer] }
         unless evidence
           return observer.complete(unavailable_result(Phronomy::Error.new("Dispatch preparation has no complete captured proposal")))
         end
         id = Object.new.freeze
-        @mutex.synchronize do
+        evidence_action = @mutex.synchronize do
           # A later write or read invalidates a previously observed pre-state.
           # Keep confirmed post-state sticky, but never turn a lost retry reply
           # into a new claim that the original pre-state still holds.
-          @confirmation = @revision = nil
+          @confirmation = @revision = nil unless @confirmation == :confirmed_post
           @attempt = new_slot(id, kind)
           @attempt[:observers] << observer
+          (@confirmation == :confirmed_post) ? :reconcile : kind
         end
         task = submit_worker(id) do
-          proof = evidence.public_send(kind, persistence: persistence, original_error: @original_error)
+          proof = evidence.public_send(evidence_action, persistence: persistence, original_error: @original_error)
           result = preparer.recover_result(evidence) if proof.disposition == :committed
           RecoveryOutcome.new(proof: proof, result: result)
         end
@@ -451,11 +458,14 @@ module Phronomy
         observation = if proof&.disposition == :committed
           remember_post(result)
           apply_confirmation
-        elsif proof&.disposition == :not_committed
+        elsif proof&.disposition == :not_committed && @mutex.synchronize { @confirmation != :confirmed_post }
           @mutex.synchronize { @confirmation, @revision = :confirmed_pre, expected_execution_revision }
           build_result
         else
           error = slot[:error] || proof&.read_error
+          if !error && @mutex.synchronize { @confirmation == :confirmed_post }
+            error = Phronomy::Persistence::StateConflictError.new("Saved dispatch authority no longer matches its captured evidence")
+          end
           build_result(outcome: error ? :unavailable : :unresolved, error: error && diagnostic(error))
         end
         close_attempt(id).each_with_index do |observer, index|

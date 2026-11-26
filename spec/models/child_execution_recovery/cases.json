@@ -1,0 +1,344 @@
+{
+  "cases": [
+    {
+      "id": "safety-dispatch-post",
+      "kind": "property",
+      "description": "safety dispatch post"
+    },
+    {
+      "id": "safety-dispatch-pre",
+      "kind": "property",
+      "description": "safety dispatch pre"
+    },
+    {
+      "id": "safety-terminal-pre",
+      "kind": "property",
+      "description": "safety terminal pre"
+    },
+    {
+      "id": "safety-terminal-succeeded",
+      "kind": "property",
+      "description": "safety terminal succeeded"
+    },
+    {
+      "id": "safety-terminal-failed",
+      "kind": "property",
+      "description": "safety terminal failed"
+    },
+    {
+      "id": "safety-terminal-cancelled",
+      "kind": "property",
+      "description": "safety terminal cancelled"
+    },
+    {
+      "id": "safety-dispatch-five-field-drift",
+      "kind": "property",
+      "description": "safety dispatch five field drift"
+    },
+    {
+      "id": "safety-terminal-five-field-drift",
+      "kind": "property",
+      "description": "safety terminal five field drift"
+    },
+    {
+      "id": "safety-observer-isolation",
+      "kind": "property",
+      "description": "safety observer isolation"
+    },
+    {
+      "id": "safety-parent-progress",
+      "kind": "property",
+      "description": "safety parent progress"
+    },
+    {
+      "id": "safety-hold-changes",
+      "kind": "property",
+      "description": "safety hold changes"
+    },
+    {
+      "id": "safety-parent-already-imported",
+      "kind": "property",
+      "description": "safety parent already imported"
+    },
+    {
+      "id": "safety-parent-already-failed",
+      "kind": "property",
+      "description": "safety parent already failed"
+    },
+    {
+      "id": "safety-stale-owner",
+      "kind": "property",
+      "description": "safety stale owner"
+    },
+    {
+      "id": "dispatch-post-progress",
+      "kind": "property",
+      "description": "dispatch post progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "dispatch-pre-retry-progress",
+      "kind": "property",
+      "description": "dispatch pre retry progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "dispatch-refusal-progress",
+      "kind": "property",
+      "description": "dispatch refusal progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "dispatch-lost-retry-reply-progress",
+      "kind": "property",
+      "description": "dispatch lost retry reply progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "dispatch-unknown-matching-completion-progress",
+      "kind": "property",
+      "description": "dispatch unknown matching completion progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "terminal-post-progress",
+      "kind": "property",
+      "description": "terminal post progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "terminal-pre-retry-progress",
+      "kind": "property",
+      "description": "terminal pre retry progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "terminal-parent-already-imported-progress",
+      "kind": "property",
+      "description": "terminal parent already imported progress",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "failed-parent-import-progress",
+      "kind": "property",
+      "description": "failed parent import progress",
+      "property": "EventuallyImported"
+    },
+    {
+      "id": "pair-unload-progress",
+      "kind": "property",
+      "description": "pair unload progress",
+      "property": "EventuallyPairUnloaded"
+    },
+    {
+      "id": "bug-ignore-root",
+      "kind": "mutation",
+      "description": "bug ignore root",
+      "target": "CompleteChildProof"
+    },
+    {
+      "id": "bug-ignore-execution",
+      "kind": "mutation",
+      "description": "bug ignore execution",
+      "target": "CompleteChildProof"
+    },
+    {
+      "id": "bug-ignore-journal",
+      "kind": "mutation",
+      "description": "bug ignore journal",
+      "target": "CompleteChildProof"
+    },
+    {
+      "id": "bug-ignore-extension",
+      "kind": "mutation",
+      "description": "bug ignore extension",
+      "target": "CompleteChildProof"
+    },
+    {
+      "id": "bug-ignore-cancellation",
+      "kind": "mutation",
+      "description": "bug ignore cancellation",
+      "target": "CompleteChildProof"
+    },
+    {
+      "id": "bug-retention-is-authority",
+      "kind": "mutation",
+      "description": "bug retention is authority",
+      "target": "CompleteChildProof"
+    },
+    {
+      "id": "bug-cached-post-grant",
+      "kind": "mutation",
+      "description": "bug cached post grant",
+      "target": "FreshProofBeforeGrant"
+    },
+    {
+      "id": "bug-cached-pre-write",
+      "kind": "mutation",
+      "description": "bug cached pre write",
+      "target": "NoStaleProposalWrite"
+    },
+    {
+      "id": "bug-release-drops-parent-hold",
+      "kind": "mutation",
+      "description": "bug release drops parent hold",
+      "target": "ParentResultCustody"
+    },
+    {
+      "id": "bug-parent-cancel-drops-hold",
+      "kind": "mutation",
+      "description": "bug parent cancel drops hold",
+      "target": "HoldUntilImport"
+    },
+    {
+      "id": "bug-wrong-parent-import",
+      "kind": "mutation",
+      "description": "bug wrong parent import",
+      "target": "ExactParentImport"
+    },
+    {
+      "id": "bug-import-unloads-pending-child",
+      "kind": "mutation",
+      "description": "bug import unloads pending child",
+      "target": "PairUnloadAfterChildCustody"
+    },
+    {
+      "id": "bug-drop-receipt-correlation",
+      "kind": "mutation",
+      "description": "bug drop receipt correlation",
+      "target": "ReceiptCorrelationPreserved"
+    },
+    {
+      "id": "bug-observation-releases-owner",
+      "kind": "mutation",
+      "description": "bug observation releases owner",
+      "target": "CustodyUntilApplication"
+    },
+    {
+      "id": "bug-freeze-parent-revision",
+      "kind": "mutation_liveness",
+      "description": "bug freeze parent revision",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "bug-require-original-holds",
+      "kind": "mutation_liveness",
+      "description": "bug require original holds",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "witness-pre-retained",
+      "kind": "witness",
+      "description": "witness pre retained",
+      "target": "NoPreRetainedWitness"
+    },
+    {
+      "id": "witness-parent-import-before-child-physical",
+      "kind": "witness",
+      "description": "witness parent import before child physical",
+      "target": "NoImportedPendingChildWitness"
+    },
+    {
+      "id": "witness-released-protected-terminal-result",
+      "kind": "witness",
+      "description": "witness released protected terminal result",
+      "target": "NoReleasedProtectedResultWitness"
+    },
+    {
+      "id": "witness-failed-parent-fresh-import",
+      "kind": "witness",
+      "description": "witness failed parent fresh import",
+      "target": "NoRecoveredFailedParentWitness"
+    },
+    {
+      "id": "witness-independent-observers",
+      "kind": "witness",
+      "description": "witness independent observers",
+      "target": "NoIndependentObserversWitness"
+    },
+    {
+      "id": "witness-parent-progress-independent",
+      "kind": "witness",
+      "description": "witness parent progress independent",
+      "target": "NoParentProgressWitness"
+    },
+    {
+      "id": "witness-hold-changes-independent",
+      "kind": "witness",
+      "description": "witness hold changes independent",
+      "target": "NoChangedHoldsRecoveryWitness"
+    },
+    {
+      "id": "witness-durable-observation-before-owner",
+      "kind": "witness",
+      "description": "witness durable observation before owner",
+      "target": "NoDurableObservationPendingCustodyWitness"
+    },
+    {
+      "id": "witness-cancelled-dispatch",
+      "kind": "witness",
+      "description": "witness cancelled dispatch",
+      "target": "NoLocalCancelWitness"
+    },
+    {
+      "id": "missing-readable-store",
+      "kind": "missing_assumption",
+      "description": "missing readable store",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "missing-physical-evidence",
+      "kind": "missing_assumption",
+      "description": "missing physical evidence",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "missing-backend-settlement",
+      "kind": "missing_assumption",
+      "description": "missing backend settlement",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "missing-explicit-retry",
+      "kind": "missing_assumption",
+      "description": "missing explicit retry",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "missing-parent-caller",
+      "kind": "missing_assumption",
+      "description": "missing parent caller",
+      "property": "EventuallyImported"
+    },
+    {
+      "id": "missing-read-stability",
+      "kind": "missing_assumption",
+      "description": "missing read stability",
+      "target": "FreshProofBeforeGrant"
+    },
+    {
+      "id": "witness-original-terminal-before-owner",
+      "kind": "witness",
+      "description": "Original exact-execution observer returns saved terminal result while child owner remains retained.",
+      "target": "NoSuccessfulOriginalPendingCustodyWitness"
+    },
+    {
+      "id": "terminal-failed-policy-progress",
+      "kind": "property",
+      "description": "Child terminal recovery completes while existing failure policy retains parent result responsibility.",
+      "property": "EventuallyChildResolved"
+    },
+    {
+      "id": "missing-parent-import-policy",
+      "kind": "missing_assumption",
+      "description": "An explicit caller cannot guarantee parent import when the existing business policy does not support that import.",
+      "property": "EventuallyImported"
+    },
+    {
+      "id": "witness-failed-policy-retains-result",
+      "kind": "witness",
+      "description": "Failed-child policy can leave the closed failed parent holding an unimported result after child recovery releases local admission.",
+      "target": "NoPolicyRetainedResultWitness"
+    }
+  ]
+}

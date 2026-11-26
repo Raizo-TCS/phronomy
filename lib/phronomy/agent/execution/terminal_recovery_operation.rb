@@ -471,7 +471,9 @@ module Phronomy
         observation = ExecutionObservation.new(agent_id: agent_id, execution_id: execution_id,
           status: execution.status, result: outcome.result&.fetch(:output, nil),
           raw_output: outcome.result&.fetch(:raw_output, nil),
-          error: outcome.error && (outcome.error.is_a?(OutputError) ? outcome.error.diagnostic : Phronomy::Error.diagnostic(outcome.error)), reservation: nil,
+          error: outcome.error && (outcome.error.is_a?(OutputError) ? outcome.error.diagnostic : Phronomy::Error.diagnostic(outcome.error)),
+          reservation: execution.metadata["reservation"] && ReservedExecution.new(agent_id: agent_id,
+            execution_id: execution_id, correlation: execution.metadata["reservation"]),
           transfer_receipt: nil, cancellation_requested: execution.metadata["cancellation_requested"] == true ||
             @mutex.synchronize { @evidence && @evidence.after.fetch(0).fetch(4) } || false)
         @mutex.synchronize do

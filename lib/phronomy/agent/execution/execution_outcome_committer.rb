@@ -78,7 +78,7 @@ module Phronomy
       def terminal_evidence_eligible?(operation, error)
         operation.state_required && operation.execution.status == :active && operation.terminal_view.phase != :suspended &&
           !operation.terminal_view.handoff && !error.is_a?(Phronomy::ExecutionRehydrationRequiredError) &&
-          !operation.execution.metadata["reservation"] && !operation.execution.metadata["execution_extension"] &&
+          !operation.execution.metadata["execution_extension"] &&
           !operation.wiring[:phronomy_execution_participant]
       end
 

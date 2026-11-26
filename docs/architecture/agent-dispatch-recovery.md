@@ -6,6 +6,8 @@ For example, a report Agent has already read a Tool result and prepares the next
 
 Baseline: G3a2 `fba34a0ed4c98da94bfeaad4946dfee234f4b0e0`. This document describes the G3c implementation candidate. Contract concept v55 and foundation v48 identify the responsible boundaries; the delivery evidence records the final source, architecture review and validation results. Same-process failed-Runtime management remains a separate completion group.
 
+The later [correlated-child execution recovery contract](agent-child-execution-recovery.md) extends supported follow-up dispatch to original correlated child owners, with a fresh child-footprint check before new admission. Parent participant changes and initial admission remain separate.
+
 ## Keep a captured preparation and an external effect separate
 
 The retained preparation contains the original input and the complete before/after save evidence, tied to its execution, session and operation identities. A successful readback may establish saved permission, but cannot establish whether an external request was admitted or completed. Only an original continuation whose first dispatch is still authorized may advance.
@@ -289,7 +291,7 @@ For example, using a terminal helper that releases Agent admission after success
 
 ## Bound the supported recovery conditions
 
-G3c retains the original live standalone Agent, its exact Store and captured preparation. Existing hosted, participant and reserved paths need their own applicability evidence and are not automatically granted takeover through this capability. A draining Runtime may process already retained work; full administration after Runtime failure remains a separate completion group.
+The original G3c stage retains the live standalone Agent, its exact Store and captured preparation. G3e adds the supported correlated-child follow-up dispatch paths described in [child execution recovery](agent-child-execution-recovery.md). Hosted, participant and other reserved paths still require their own applicability evidence; the capability never grants takeover. A draining Runtime may process already retained work; full administration after Runtime failure remains a separate completion group.
 
 For example, another Agent with the same execution identifier cannot use a copied `DispatchRecovery` to dispatch the prepared Tool. The original owner must still satisfy identity, session, revision, cancellation and non-dispatch conditions before it continues.
 
