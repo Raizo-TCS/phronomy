@@ -203,26 +203,66 @@ RSpec.describe "Native parent terminal-result custody policy acceptance" do
         else
           expect(slot).not_to have_key("terminal_acknowledgement")
         end
-        if mode == :post
-          # The failed caller observation does not erase a committed receipt.
-          # Unload makes its own fresh guarded proof after local work finishes.
-          expect(error.message).to include("ordinary child action failed") unless unreadable
-          expect(parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id)).to be(true)
-        else
+        retained = mode == :pre || unreadable
+        if retained
+          expect(error).to be_a(Phronomy::Agent::OutcomeRecoveryError)
+          expect(error.cause).to be_a(unreadable ? Phronomy::ExecutionRehydrationRequiredError : IOError)
+          recovery = error.recovery
+          expect(parent.pending_outcome_recovery(execution_id: root_id)).to equal(recovery)
+          expect(parent.pending_terminal_recovery(execution_id: root_id)).to be_nil
+          expect(parent.__execution_environment.registry.agent_execution_admitted?(parent.agent_id)).to be(true)
           expect { parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id) }
             .to raise_error(Phronomy::AgentBusyError)
+          expect_live(parent)
+          expect_live(child)
+          receipt = parent.reconcile_outcome(recovery: recovery)
+          if mode == :pre
+            expect([receipt.outcome, receipt.application_state, receipt.ownership_state])
+              .to eq([:confirmed_pre, :pending, :retained])
+            expect(receipt.saved_outcome).to be_nil
+            expect(stores.agent.executions.load(root_id).to_h).to eq(saved.to_h)
+            expect { parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id) }
+              .to raise_error(Phronomy::AgentBusyError)
+            receipt = parent.retry_outcome(recovery: recovery)
+          end
+          expect([receipt.outcome, receipt.application_state, receipt.ownership_state, receipt.saved_outcome])
+            .to eq([:confirmed_post, :applied, :released, :terminal])
+          expect(receipt.execution.status).to eq(:failed)
+          expect(receipt.execution.error.fetch("message")).to include("ordinary child action failed")
+          observed = stores.agent.observe_execution(agent_id: parent.agent_id, execution_id: root_id)
+          expect(receipt.execution.to_h).to eq(observed.to_h)
+          expect(parent.pending_outcome_recovery(execution_id: root_id)).to be_nil
+          expect(parent.__execution_environment.registry.agent_execution_admitted?(parent.agent_id)).to be(false)
+          expect(stores.agent.executions.load(root_id).to_h).to eq(saved.to_h) if mode == :post
+        else
+          # Immediate post readback preserves the ordinary business failure;
+          # there is no retained save capability to reconcile in this case.
+          expect(error).not_to be_a(Phronomy::Agent::OutcomeRecoveryError)
+          expect(error.message).to include("ordinary child action failed")
+          expect(parent.pending_outcome_recovery(execution_id: root_id)).to be_nil
         end
+        final_extension = stores.agent.execution_extension(agent_id: parent.agent_id, execution_id: root_id,
+          binding_key: "phronomy.subagent")
+        final_slot = stores.multi_agent.contents.fetch_json(final_extension.state_ref).fetch("children").first
+        child_observation = stores.agent.observe_execution(agent_id: child.agent_id, execution_id: @child_execution_id)
+        child_outcome = {"result" => child_observation.result, "raw_output" => child_observation.raw_output,
+                         "error" => child_observation.error, "transfer_receipt" => child_observation.transfer_receipt}
+        expect(final_slot.fetch("imported")).to be(false)
+        expect(final_slot.fetch("terminal_acknowledgement")).to eq(
+          "version" => 1, "agent_id" => child.agent_id, "execution_id" => @child_execution_id,
+          "reservation" => child_observation.reservation.correlation, "status" => "failed",
+          "outcome_digest" => Digest::SHA256.hexdigest(Phronomy::CanonicalJSON.dump(child_outcome))
+        )
+        expect(stores.agent.executions.load(root_id).status).to eq(:failed)
+        expect(parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id)).to be(true)
+        expect(parent_class.get(parent.agent_id)).to be_nil
+        expect(child_class.get(child.agent_id)).to be_nil
         expect(stores.agent.retained_references(agent_id: parent.agent_id)).not_to be_empty
         expect(stores.agent.retained_references(agent_id: child.agent_id)).not_to be_empty
         expect(effects).to eq(["once"])
         expect(@recorder.calls.size).to eq(2)
         expect { result_of(original) }.to raise_error { |observed| expect(observed).to equal(error) }
         expect(parent.pending_terminal_recovery(execution_id: root_id)).to be_nil
-        if unreadable
-          expect(error).to be_a(Phronomy::ExecutionRehydrationRequiredError)
-        elsif mode == :pre
-          expect(error).to be_a(IOError)
-        end
       end
     end
   end
