@@ -97,7 +97,8 @@ RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integratio
       LLMStub.activate(responses: [dispatch, protected_call])
       original, first, child = start
       detach(original, first)
-      allow_any_instance_of(Phronomy::MultiAgent::DurableSubagentCoordinator).to receive(:commit).and_wrap_original do |commit, change|
+      # Fail at the native outcome entry before a complete proposal exists.
+      allow_any_instance_of(Phronomy::MultiAgent::DurableSubagentCoordinator).to receive(:commit_prepared_outcome).and_wrap_original do |commit, change|
         raise Phronomy::ExecutionRehydrationRequiredError, "failed recovered parent commit" if change.kind == :terminal
         commit.call(change)
       end
@@ -228,7 +229,8 @@ RSpec.describe "Hosted Orchestrator with a child awaiting approval", :integratio
 
   it "requires a committed parent wait even if an unrelated failure also requests rehydration" do
     recorder = LLMStub.activate(responses: [dispatch, protected_call])
-    allow_any_instance_of(Phronomy::MultiAgent::DurableSubagentCoordinator).to receive(:commit).and_wrap_original do |commit, change|
+    # Fail at the native outcome entry before a complete proposal exists.
+    allow_any_instance_of(Phronomy::MultiAgent::DurableSubagentCoordinator).to receive(:commit_prepared_outcome).and_wrap_original do |commit, change|
       raise Phronomy::ExecutionRehydrationRequiredError, "failed parent commit" if change.kind == :terminal
       commit.call(change)
     end

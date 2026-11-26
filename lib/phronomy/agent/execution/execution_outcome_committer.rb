@@ -36,7 +36,7 @@ module Phronomy
       end
 
       # @api private
-      def commit_outcome(operation, on_evidence: nil, on_outcome: nil)
+      def commit_outcome(operation, on_evidence: nil, on_outcome: nil, on_prepared: nil)
         view = operation.terminal_view
         error = view.callback_failure&.to_stream_callback_error || view.source_error ||
           view.block_error || view.invocation_error
@@ -54,9 +54,26 @@ module Phronomy
         end
         participant = operation.wiring[:phronomy_execution_participant]
         capture = on_evidence && outcome_evidence_eligible?(operation, error, participant)
+        prepared = capture && participant&.respond_to?(:commit_prepared_outcome, true)
         writes = [] if capture
+        change = nil
+        prepare = if prepared
+          ->(records, state, pending) { prepare_terminal_outcome(records, operation, state, pending, error, change.cancel_requested) }
+        end
+        publish = if prepared
+          lambda do |values, content_writes|
+            input = TerminalPersistenceEvidence::CapturedInput.new(values, content_writes,
+              persistence: @agent.persistence, participant: participant)
+            on_prepared&.call(input)
+            on_outcome&.call(values.fetch(:result))
+            evidence = input.materialize(persistence: @agent.persistence)
+            on_evidence.call(evidence) if evidence
+            evidence
+          end
+        end
         change = ExecutionChange.new(agent: @agent, current: operation.execution,
-          root: operation.root, kind: :terminal, terminal: view, config: operation.wiring) do |tx, state, receipt, pending|
+          root: operation.root, kind: :terminal, terminal: view, config: operation.wiring,
+          prepare_outcome: prepare, on_prepared: publish) do |tx, state, receipt, pending|
           if pending
             waiting = operation.execution.with(metadata: extension_metadata(operation.execution, state).merge(
               "cancellation_requested" => change.cancel_requested || operation.execution.metadata["cancellation_requested"] == true
@@ -71,7 +88,7 @@ module Phronomy
             commit_terminal(records, operation, state, receipt, error)
           end
         end
-        capture ? perform_with_evidence(change, writes, on_evidence, on_outcome, participant) : change.perform
+        (capture && !prepared) ? perform_with_evidence(change, writes, on_evidence, on_outcome, participant) : change.perform
       end
 
       private
@@ -116,13 +133,30 @@ module Phronomy
         collector.call(evidence) if evidence
       end
 
-      def commit_terminal(tx, operation, state, receipt, error)
+      def prepare_terminal_outcome(records, operation, state, pending, error, cancellation_requested)
+        contents = OutcomeWritePlan::Contents.new(records.contents, write_class: TerminalPersistenceEvidence::ContentWrite)
+        view = OutcomeWritePlan::ContentView.new(contents: contents)
+        outcome = if pending
+          waiting = operation.execution.with(metadata: extension_metadata(operation.execution, state).merge(
+            "cancellation_requested" => cancellation_requested || operation.execution.metadata["cancellation_requested"] == true
+          ))
+          Outcome.new(type: :coordination_wait, execution: waiting, root: operation.root,
+            appended_records: [].freeze, result: nil,
+            error: error || Phronomy::ExecutionRehydrationRequiredError.new("Execution retains unfinished participant work"), approval_request: nil)
+        else
+          raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
+          commit_terminal(view, operation, state, nil, error, prepare: true)
+        end
+        OutcomeWritePlan.new(outcome: outcome, writes: contents.writes)
+      end
+
+      def commit_terminal(tx, operation, state, receipt, error, prepare: false)
         view = operation.terminal_view
         if !error && view.phase == :suspended
           suspended = encode_suspension(tx, operation)
           suspended = with_extension(suspended, state)
-          save_execution(tx, operation.execution, suspended)
-          root = save_suspended_root(tx, operation.root)
+          save_execution(tx, operation.execution, suspended) unless prepare
+          root = prepare ? suspended_root(operation.root) : save_suspended_root(tx, operation.root)
           return Outcome.new(type: :suspended, execution: suspended, root: root,
             appended_records: [].freeze,
             result: result_base(suspended, root).merge(suspended: true, approval_request: view.approval_request).freeze,
@@ -137,9 +171,9 @@ module Phronomy
           encode_completion(tx, operation)
         end
         execution = with_extension(execution, state)
-        appended = append_journal(tx, operation.root, records)
-        save_execution(tx, operation.execution, execution)
-        root = save_terminal_root(tx, operation.root, appended)
+        appended = prepare ? records.each_with_index.map { |record, index| record.with_sequence(operation.root.journal_position + index + 1) } : append_journal(tx, operation.root, records)
+        save_execution(tx, operation.execution, execution) unless prepare
+        root = prepare ? terminal_root(operation.root, appended) : save_terminal_root(tx, operation.root, appended)
         if error
           Outcome.new(type: :failed, execution: execution, root: root, appended_records: appended.freeze,
             result: nil, error: error, approval_request: nil)
@@ -296,20 +330,28 @@ module Phronomy
       end
 
       def save_suspended_root(tx, root)
-        updated = root.with(agent_revision: root.agent_revision + 1, lifecycle_status: :suspended)
+        updated = suspended_root(root)
         tx.agents.save(root.agent_id, expected_revision: root.agent_revision, root: updated)
         updated
       end
 
       def save_terminal_root(tx, root, appended)
-        updated = root.with(
+        updated = terminal_root(root, appended)
+        tx.agents.save(root.agent_id, expected_revision: root.agent_revision, root: updated)
+        updated
+      end
+
+      def suspended_root(root)
+        root.with(agent_revision: root.agent_revision + 1, lifecycle_status: :suspended)
+      end
+
+      def terminal_root(root, appended)
+        root.with(
           agent_revision: root.agent_revision + 1,
           context_revision: root.context_revision + (appended.any?(&:context_candidate) ? 1 : 0),
           journal_position: root.journal_position + appended.length,
           lifecycle_status: :idle
         )
-        tx.agents.save(root.agent_id, expected_revision: root.agent_revision, root: updated)
-        updated
       end
 
       def completed_outcome(view, execution, root, appended, messages)

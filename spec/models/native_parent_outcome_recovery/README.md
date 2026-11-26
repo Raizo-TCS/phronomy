@@ -4,7 +4,29 @@ A native parent can save a final result, an active coordination wait or its own 
 
 For example, a report parent tries to finish while a reviewer still owns work. Its participant saves a coordination wait. Proving that save committed permits publication of the same active wait; it does not prove that the report completed. If the reviewer finishes meanwhile, a later ordinary parent resume can import that new fact.
 
-The baseline is applied G3g `44288e1239701bf16aa67854a48c830b7295e2d4`, tree `31193090f7305c82da780765f803b955742330c7`. Contract concept v55 and foundation v48 remain the architecture references. This is a bounded protocol model of G3h, not a refinement proof of Ruby. The public native `OutcomeRecovery` family distinguishes these three saved kinds; the existing `TerminalRecovery` family remains actual-final-only. The parent's own decision uses the existing `ApprovalRecovery` family.
+The original G3h model used applied G3g `44288e1239701bf16aa67854a48c830b7295e2d4`, tree `31193090f7305c82da780765f803b955742330c7`, as its baseline. The G3i preparation prefix extends applied G3h `cfef5fc0b961e8e29868e0fa15b03326dc1d7629`. Contract concept v55 and foundation v48 remain the architecture references. This is one bounded protocol model, not a refinement proof of Ruby. The public native `OutcomeRecovery` family distinguishes these three saved kinds; the existing `TerminalRecovery` family remains actual-final-only. The parent's own decision uses the existing `ApprovalRecovery` family.
+
+## Retain complete material before real outcome writes
+
+The original worker constructs a complete detached persistence proposal, retains its raw values, and attaches executable evidence before admitting any real outcome write. Complete raw material and an executable proof object are separate milestones. The new prefix joins the captured-write protocol below; it does not introduce another durable job or a central owner for the other entities.
+
+For example, writing a captured approval-wait content value can fail after backend admission. The proposal already includes the exact request, generated record identities, timestamps, Agent values and native extension/retention effects. Later recovery can replay those captured writes without rerunning the encoder, output validation, participant commit, Provider or Tool.
+
+![Outcome preparation prefix](preparation-prefix.svg)
+
+This recovery view assumes that the original observation failed or ended before physical settlement, as represented by `clients.original = "failed"` in `Init`. Ordinary first-save success follows normal publication outside this view; the diagram does not require every successful write to enter recovery.
+
+`PreparationMode = "staged"` enables the original-worker prefix. `PrepareOriginal` either retains complete raw material or enters an opaque preparation failure. `ConstructOriginalProof` attaches evidence, or preserves complete raw material with no admitted outcome write. `OriginalWrite` follows only after evidence attachment. Its atomic result is abstracted as the complete before- or after-state; concrete per-write rollback behavior remains a Store and Ruby-test obligation. The prefix uses the same guarded transaction premise as the original native preparation; conflicting parent/child changes are modeled after that scope, not between its staging steps. This is not a new distributed fence for absent child roots.
+
+The original 99 configurations use `PreparationMode = "legacy"` and preserve their former initial scenarios, properties and expected outcomes. Added constants explicitly select the old initial boundary rather than retroactively claiming the old runs covered staging. In particular, the old uncaptured-outcome cases still mean no complete raw proposal, even when the old backend state happens to be post-state.
+
+## Materialize evidence without repeating preparation
+
+After the original physical work settles, a management attempt may construct executable evidence from the same complete retained raw values. This construction is read-only. An explicit retry may then classify current persistence and write the captured proposal in the same management attempt; those writes belong to retry, not proof construction.
+
+For example, the first `NativeOutcomeEvidence` construction can fail after complete raw capture and before any real write. A later reconciliation can construct the evidence and confirm pre-state; a later explicit retry can save it. Alternatively, the first explicit retry can materialize, classify and write. A genuine encoder or custom conversion failure before complete capture remains held and unavailable, because no replay contract permits repeating that opaque work.
+
+`Materializable` is the explicit availability premise for later proof construction. `InitialProofFails` selects an original construction failure, while `ImmediateRetry` includes a caller who starts with explicit retry rather than a read-only reconciliation. `CompletePlanBeforeWrite`, `RawPlanIdentity`, `ReadOnlyMaterialization`, `SettledMaterialization` and `NoOpaquePreparationReplay` check ordering, identity, no construction writes, physical/owner authority and the lack of generic preparation replay. `OpaquePreparationRetained` checks the intentionally blocked case. No property promises that an arbitrary incomplete encoder or conversion will eventually succeed.
 
 ## Separate the owners and their events
 
@@ -75,7 +97,7 @@ The parent's own approval decision uses read-only reconciliation. Confirmed pre-
 
 For example, the original approval write committed but its response was lost. If a required child hold has disappeared, recovery keeps confirmed post-state and custody while continuation remains blocked. The old failed observation stays closed. A successfully admitted continuation has its separate execution observation.
 
-`DeferredReadOnlyProof` also covers failure before evidence preparation. Complete decision proof is captured before its first content write. Only a positive no-write-started signal, settled physical work and a fresh exact-original-wait read permit later read-only proof preparation. Possible write admission without proof remains unresolved. Native outcome recovery has no equivalent way to invent an incomplete captured proposal; such outcome cases remain unavailable even if a no-write flag is supplied. Positively refused first submission, where the original worker never ran, remains the inherited generic submission protocol and is tested separately in Ruby; it is not a deferred outcome recapture.
+`DeferredReadOnlyProof` also covers failure before decision evidence preparation. Complete decision proof is captured before its first content write. Only a positive no-write-started signal, settled physical work and a fresh exact-original-wait read permit later read-only decision proof preparation. Possible decision-write admission without proof remains unresolved. Native outcome recovery cannot invent an incomplete raw proposal; those outcome cases remain unavailable even if a no-write flag is supplied. Its new deferred path only materializes executable evidence from an already complete retained raw proposal. Positively refused first submission, where the original worker never ran, remains the inherited generic submission protocol and is tested separately in Ruby; it is not deferred outcome recapture.
 
 `FreshDecisionAuthority` requires current proof at decision application. Cached known post-state cannot authorize it. `NoBusinessReplay` permits only the one newly admitted approved decision continuation to execute its protected effect; rejected decisions and wait publication execute none.
 
@@ -87,7 +109,7 @@ For example, a child relationship can change after a decision's guarded proof bu
 
 `StableRead` explicitly excludes conflicting parent or child authority changes between the decision proof and local decision application. Ordered existing-root guards, transaction isolation and absence of unauthorized competing writers remain Store/integration obligations. The model does not derive those obligations from a cancelled observer, a local owner or an earlier absence read.
 
-`ProgressSpec` adds weak fairness to enabled original completion, management attempts, guarded transactions, recovery completion, result delivery, application and release. Its `Readable`, `Caller`, `ExplicitRetry`, `Cleanup` and `Publication` premises are explicit. A lost outcome retry response can need the third and final modeled read. A valid recovered destination may be an active coordination wait or a suspended approval wait; no property promises eventual child completion, a future user approval, later parent resume or end-to-end business success.
+`ProgressSpec` adds weak fairness to enabled staging/proof/write steps, original completion, management attempts, guarded transactions, recovery completion, result delivery, application and release. Its `Readable`, `Caller`, `ExplicitRetry`, `Cleanup`, `Publication` and, for deferred outcome evidence, `Materializable` premises are explicit. The preparation progress cases assume complete preparation succeeds; removing that assumption intentionally demonstrates why opaque failures are not promised recovery. A lost outcome retry response can need the third and final modeled read. A valid recovered destination may be an active coordination wait or a suspended approval wait; no property promises eventual child completion, a future user approval, later parent resume or end-to-end business success.
 
 The bounds are one captured parent operation, one representative native child relationship, three management attempts, two observers and one relevant external change. `RefuseFirst` models initial local application refusal. Outcome application can later use known history; decision application must obtain fresh proof. Multi-child scheduling, arbitrary participant recovery, Handoff routing lineage, process-loss recovery and a general distributed fence remain outside this model.
 
@@ -99,16 +121,16 @@ For example, labeling every saved wait as terminal fails `SeparateSavedKind`. Fr
 
 | Case family | Count | Expected result |
 | --- | ---: | --- |
-| Safety configurations | 33 | Selected invariants hold. |
-| Conditional progress configurations | 12 | Eligible application and recovery-owner release hold. |
-| Safety mutations | 38 | The named invariant has a counterexample. |
+| Safety configurations | 46 | Selected invariants hold. |
+| Conditional progress configurations | 20 | Eligible application and recovery-owner release hold. |
+| Safety mutations | 48 | The named invariant has a counterexample. |
 | Progress mutations | 2 | Freezing legal child progress or unrelated generation blocks valid recovery. |
-| Reachability witnesses | 8 | The negated valid-state invariant has a counterexample. |
-| Missing progress premises | 5 | Temporal counterexample. |
+| Reachability witnesses | 13 | The negated valid-state invariant has a counterexample. |
+| Missing progress premises | 9 | Temporal counterexample. |
 | Missing decision read-to-admission stability | 1 | Current-authority safety counterexample. |
-| Total | 99 | Every case matches its declared expected result. |
+| Total | 139 | Every case must match its declared expected result. |
 
-The safety set includes complete historical proof, captured-only atomic retry, sticky post-state, deferred-proof limits, fresh decision authority, exact result/request identity, one publication, distinct receipt semantics, suspended cancellation ownership, no business/child replay, durable history retention, original-owner/physical custody and independent closed observations.
+The safety set includes complete historical proof, captured-only atomic retry, sticky post-state, deferred-proof limits, fresh decision authority, exact result/request identity, one publication, distinct receipt semantics, suspended cancellation ownership, no business/child replay, durable history retention, original-owner/physical custody and independent closed observations. The 40 added configurations comprise 13 safety, eight progress, ten safety mutations, five witnesses and four missing-premise cases for staging and deferred outcome proof. Counts are configurations, not independent theorems or a coverage percentage.
 
 Each configuration is stored verbatim in `cases.json`. The runner checks the named invariant or temporal-counterexample class for negative cases. Parser errors, an unrelated invariant failure, unexpected positive counterexamples and unexpectedly successful negative cases fail the run. The result verifies the stated finite abstraction; concrete implementation correctness additionally requires the Ruby acceptance suite.
 
@@ -125,6 +147,8 @@ python3 spec/models/native_parent_outcome_recovery/run_checks.py \
 
 dot -Tsvg spec/models/native_parent_outcome_recovery/parent-owner.dot \
   -o spec/models/native_parent_outcome_recovery/parent-owner.svg
+dot -Tsvg spec/models/native_parent_outcome_recovery/preparation-prefix.dot \
+  -o spec/models/native_parent_outcome_recovery/preparation-prefix.svg
 dot -Tsvg spec/models/native_parent_outcome_recovery/approval-owner.dot \
   -o spec/models/native_parent_outcome_recovery/approval-owner.svg
 dot -Tsvg spec/models/native_parent_outcome_recovery/child-owner.dot \

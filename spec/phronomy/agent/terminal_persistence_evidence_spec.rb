@@ -86,6 +86,45 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     end
   end
 
+  it "detaches a deferred proof's result once before a mutable caller value changes" do
+    evidence, result = capture
+    input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
+      evidence.content_writes, persistence: persistence, participant: nil)
+    output.fetch("answer") << "changed after capture"
+    first = input.materialize(persistence: persistence)
+    second = input.materialize(persistence: persistence)
+    expect(first.outcome).to equal(second.outcome)
+    expect(first.outcome.result.fetch(:output)).to eq("answer" => ["captured"])
+    expect(first.content_writes).to eq(evidence.content_writes)
+    expect(first.before).to eq(evidence.before)
+    expect(first.after).to eq(evidence.after)
+    expect(first.reconcile(persistence: persistence).disposition).to eq(:committed)
+  end
+
+  it "does not repeat custom diagnostic conversion when materializing a deferred proof" do
+    error = Phronomy::Error.new("retained failure")
+    evidence, result = capture(command.with(terminal_view: view.with(source_error: error)))
+    expect(Phronomy::Error).to receive(:diagnostic).with(error).once.and_call_original
+    input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
+      evidence.content_writes, persistence: persistence, participant: nil)
+    first = input.materialize(persistence: persistence)
+    second = input.materialize(persistence: persistence)
+    expect(first.outcome).to equal(second.outcome)
+    expect(first.outcome.error_diagnostic.fetch("message")).to eq("retained failure")
+  end
+
+  it "rejects another Store before reconstructing a deferred native adapter" do
+    evidence, result = capture
+    participant = Object.new
+    input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
+      evidence.content_writes, persistence: persistence, participant: participant)
+    other = Phronomy::Agent::Store.new(coordinator: persistence.coordinator,
+      records: Phronomy::Agent::Persistence::Records)
+    expect(participant).not_to receive(:respond_to?)
+    expect(other.coordinator).not_to receive(:atomic)
+    expect { input.materialize(persistence: other) }.to raise_error(Phronomy::Persistence::StateConflictError)
+  end
+
   it "binds captured proof to the Agent's writer Store rather than a different committer read Store" do
     other = Phronomy::Agent::Store.new(coordinator: persistence.coordinator,
       records: Phronomy::Agent::Persistence::Records)

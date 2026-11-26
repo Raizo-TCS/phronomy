@@ -67,65 +67,92 @@ module Phronomy
 
       # The referenced content is immutable and is part of Agent's commit proof.
       def change_evidence(change, scope)
-        persistence.agent_store.retained_references(agent_id: change.agent_id, scope: scope).map(&:to_h)
+        NativePersistencePlan.retention_facts(persistence.agent_store.retained_references(agent_id: change.agent_id, scope: scope).map(&:to_h))
       end
 
       def commit(change)
         persistence.coordinator.atomic do |scope|
           guard_change(change, scope)
           change.prepare_in(scope)
-          snapshot = state_for(change.extension)
-          children = snapshot.fetch("children").map(&:dup)
-          cancelled = snapshot["cancel_requested"] || change.cancel_requested ||
-            persistence.agent_store.cancellation_requested?(agent_id: change.agent_id, execution_id: change.execution_id, scope: scope)
-          children.each do |child|
-            observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
-            # This is import progress, not a replicated child execution state.
-            child["imported"] = true if observed.terminal? && change.kind == :dispatch && change.operations.empty?
-          end
-          change.operations.each do |operation|
-            entry = @definitions.find { |name, _| @agent_class.__subagent_tool_name(name) == operation.name }
-            next unless entry
-            next if children.any? { |child| child.fetch("slot") == operation.invocation_id }
-            name, settings = entry
-            digest = Digest::SHA256.hexdigest(Phronomy::CanonicalJSON.dump(
-              ["phronomy-subagent-v1", change.agent_id, change.execution_id, operation.invocation_id]
-            ))
-            knowledge = settings.fetch(:inherit_knowledge) ? persistence.agent_store.knowledge_snapshot(agent_id: change.agent_id, scope: scope) : []
-            children << {"slot" => operation.invocation_id, "name" => name.to_s,
-                         "definition" => settings.fetch(:agent_class).agent_definition.transform_keys(&:to_s),
-                         "agent_id" => "subagent-#{digest}", "execution_id" => "subagent-execution-#{digest}",
-                         "input" => operation.arguments.fetch("input"), "durable_context" => change.durable_context,
-                         "knowledge" => knowledge.map { |item| {"content" => item.content, "metadata" => item.metadata} },
-                         "on_error" => settings.fetch(:on_error).to_s, "imported" => false}
-          end
-          unless children.empty?
-            persistence.agent_store.retain(Phronomy::Agent::Retention.new(agent_id: change.agent_id,
-              execution_id: change.execution_id, owner_key: "subagent:#{change.execution_id}"), scope: scope)
-          end
-          unresolved = children.any? do |child|
-            observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
-            observed.active? || (observed.absent? && !cancelled)
-          end
-          pending = change.kind == :terminal && unresolved && (change.cancel_requested || change.recovery_required)
-          if change.finishing? && !pending
-            children.each do |child|
-              next if child.fetch("imported")
-
-              # A final parent can adopt an exact durable child outcome even
-              # when its Tool callback did not reach the ordinary import path.
-              # Keep that custody acknowledgement distinct from business import.
-              observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
-              receipt = terminal_acknowledgement(change.agent_id, change.execution_id, child, observed)
-              child["terminal_acknowledgement"] = receipt if receipt
-            end
+          data, pending = prepare_native_change(change, scope)
+          unless data.fetch("children").empty?
+            persistence.agent_store.retain(parent_retention(change), scope: scope)
           end
           persistence.participate(scope) do |records|
-            ref = records.contents.put_json(snapshot.merge("children" => children, "cancel_requested" => !!cancelled))
+            ref = records.contents.put_json(data)
             state = Phronomy::Agent::ExecutionExtensionState.new(binding_key: BINDING_KEY, binding_version: 1, state_ref: ref)
             change.commit_in(scope, state: state, pending: pending)
           end
         end
+      end
+
+      # Only native outcome recovery opts into this preparation protocol. The
+      # full Agent/native intended save is retained before the first write.
+      private def commit_prepared_outcome(change)
+        persistence.coordinator.atomic do |scope|
+          guard_change(change, scope)
+          change.prepare_in(scope)
+          data, pending = prepare_native_change(change, scope)
+          bytes = Phronomy::CanonicalJSON.dump(data)
+          reference = "sha256:#{Digest::SHA256.hexdigest(bytes)}"
+          state = Phronomy::Agent::ExecutionExtensionState.new(binding_key: BINDING_KEY, binding_version: 1, state_ref: reference)
+          holds = change.__send__(:prepared_participation).dup
+          holds |= [parent_retention(change).to_h] unless data.fetch("children").empty?
+          holds = NativePersistencePlan.retention_facts(holds)
+          change.__send__(:commit_prepared_outcome_in, scope, state: state, pending: pending,
+            state_data: data, participation: holds)
+        end
+      end
+
+      private def parent_retention(change)
+        Phronomy::Agent::Retention.new(agent_id: change.agent_id,
+          execution_id: change.execution_id, owner_key: "subagent:#{change.execution_id}")
+      end
+
+      private def prepare_native_change(change, scope)
+        snapshot = state_for(change.extension)
+        children = snapshot.fetch("children").map(&:dup)
+        cancelled = snapshot["cancel_requested"] || change.cancel_requested ||
+          persistence.agent_store.cancellation_requested?(agent_id: change.agent_id, execution_id: change.execution_id, scope: scope)
+        children.each do |child|
+          observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
+          # This is import progress, not a replicated child execution state.
+          child["imported"] = true if observed.terminal? && change.kind == :dispatch && change.operations.empty?
+        end
+        change.operations.each do |operation|
+          entry = @definitions.find { |name, _| @agent_class.__subagent_tool_name(name) == operation.name }
+          next unless entry
+          next if children.any? { |child| child.fetch("slot") == operation.invocation_id }
+          name, settings = entry
+          digest = Digest::SHA256.hexdigest(Phronomy::CanonicalJSON.dump(
+            ["phronomy-subagent-v1", change.agent_id, change.execution_id, operation.invocation_id]
+          ))
+          knowledge = settings.fetch(:inherit_knowledge) ? persistence.agent_store.knowledge_snapshot(agent_id: change.agent_id, scope: scope) : []
+          children << {"slot" => operation.invocation_id, "name" => name.to_s,
+                       "definition" => settings.fetch(:agent_class).agent_definition.transform_keys(&:to_s),
+                       "agent_id" => "subagent-#{digest}", "execution_id" => "subagent-execution-#{digest}",
+                       "input" => operation.arguments.fetch("input"), "durable_context" => change.durable_context,
+                       "knowledge" => knowledge.map { |item| {"content" => item.content, "metadata" => item.metadata} },
+                       "on_error" => settings.fetch(:on_error).to_s, "imported" => false}
+        end
+        unresolved = children.any? do |child|
+          observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
+          observed.active? || (observed.absent? && !cancelled)
+        end
+        pending = change.kind == :terminal && unresolved && (change.cancel_requested || change.recovery_required)
+        if change.finishing? && !pending
+          children.each do |child|
+            next if child.fetch("imported")
+
+            # A final parent can adopt an exact durable child outcome even
+            # when its Tool callback did not reach the ordinary import path.
+            # Keep that custody acknowledgement distinct from business import.
+            observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
+            receipt = terminal_acknowledgement(change.agent_id, change.execution_id, child, observed)
+            child["terminal_acknowledgement"] = receipt if receipt
+          end
+        end
+        [snapshot.merge("children" => children, "cancel_requested" => !!cancelled), pending]
       end
 
       def state_for(extension)
