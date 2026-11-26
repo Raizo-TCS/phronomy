@@ -8,6 +8,8 @@ Baseline: G3b-4 `b2f7c349215085983cfcc89097df9cdbaddef24d`. This document descri
 
 G3d extends this operation to supported correlated child and restored waits. The hosted continuation has an optional independent handle and additional parent-authority checks; see [child and restored approval recovery](agent-child-approval-recovery.md). The original G3a examples and baseline below remain historical evidence.
 
+G3h extends the same public decision operation to a supported [native parent's own Tool approval](native-parent-outcome-recovery.md#recover-the-native-parents-own-approval-decision). It retains the complete decision proof and freshly checks native child authority before restoring the wait or applying the decision. Known committed history remains confirmed when current authority blocks continuation. Saving the preceding approval wait uses the distinct `OutcomeRecovery` contract; no approval-write retry is introduced.
+
 ## Keep the decision, owner transition and caller observation separate
 
 An approval transaction and its reply are different facts. The retained operation captures immutable before/after evidence, the exact request and decision, original Store identity, and the original owner. It exposes `ApprovalRecoveryError` only while retaining the uncertain obligation. A later observation does not reopen the failed approval TaskResult.

@@ -198,7 +198,7 @@ RSpec.describe Phronomy::Agent::ApprovalPersistenceEvidence do
     expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:not_committed)
   end
 
-  it "does not invent complete evidence when decision material was not captured" do
+  it "captures the exact decision before content storage can fail" do
     allow(persistence).to receive(:transaction).and_wrap_original do |original, &write|
       original.call do |records, scope|
         allow(records.contents).to receive(:put).and_raise(IOError, "content unavailable")
@@ -206,8 +206,115 @@ RSpec.describe Phronomy::Agent::ApprovalPersistenceEvidence do
       end
     end
     expect { retain }.to raise_error(IOError, /content unavailable/)
-    expect(@evidence).to be_nil
-    expect(@outcome).to be_nil
+    expect(@evidence.decision.content_ref).to eq("sha256:#{Digest::SHA256.hexdigest(@evidence.decision_bytes)}")
+    expect(@evidence.outcome).to equal(@outcome)
+    expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:not_committed)
+  end
+
+  it "rejects a content reference that differs from the captured exact bytes" do
+    allow(persistence).to receive(:transaction).and_wrap_original do |original, &write|
+      original.call do |records, scope|
+        allow(records.contents).to receive(:put).and_return("sha256:foreign")
+        write.call(records, scope)
+      end
+    end
+    expect { retain }.to raise_error(Phronomy::ContentStore::IntegrityError)
+    expect(@evidence.reconcile(persistence: persistence).disposition).to eq(:not_committed)
+  end
+
+  it "positively signals the first write only after complete proof exists" do
+    calls = []
+    allow(described_class).to receive(:capture).and_wrap_original do |original, **options|
+      original.call(**options).tap { calls << :proof }
+    end
+    allow(persistence).to receive(:transaction).and_wrap_original do |original, &write|
+      original.call do |records, scope|
+        allow(records.contents).to receive(:put).and_wrap_original do |put, *args, **options|
+          calls << :content
+          put.call(*args, **options)
+        end
+        write.call(records, scope)
+      end
+    end
+    writer.commit_retained(command, on_write_started: -> { calls << :started })
+    expect(calls).to eq(%i[proof started content])
+  end
+
+  it "reads the same original wait without encoding or writing when no write began" do
+    operation = command
+    expect(persistence).not_to receive(:transaction)
+    allow(Phronomy::CanonicalJSON).to receive(:dump).and_call_original
+    expect(Phronomy::CanonicalJSON).not_to receive(:dump).with(
+      "approval_request_id" => "approval-proof-request", "approved" => true
+    )
+    result = writer.observe_unwritten(operation)
+    expect(result.disposition).to eq(:not_committed)
+    expect(result.evidence.before.fetch(:agent).fetch(1)).to eq(execution.to_h)
+    expect(result.continuation_error).to be_nil
+    expect(persistence.executions.load(execution.execution_id).to_h).to eq(execution.to_h)
+  end
+
+  it "does not restore a changed wait after an unwritten preparation failure" do
+    operation = command
+    changed = execution.with(metadata: execution.metadata.merge("foreign" => true))
+    persistence.transaction do |records|
+      records.executions.save(execution.execution_id, expected_revision: execution.execution_revision, execution: changed)
+    end
+    expect(persistence).not_to receive(:transaction)
+    result = writer.observe_unwritten(operation)
+    expect(result.disposition).to eq(:unknown)
+    expect(result.read_error).to be_a(Phronomy::Persistence::StateConflictError)
+  end
+
+  context "with detached native approval authority" do
+    let(:authority) { double("detached native authority", guarded_agent_ids: [], assert_current!: nil) }
+    let(:participant) { double("native participant", approval_recovery_supported?: true, capture_approval_recovery: authority) }
+
+    def retain_native
+      writer.commit_retained(command, participant: participant,
+        on_outcome: ->(value) { @outcome = value }, on_evidence: ->(value) { @evidence = value })
+    end
+
+    %i[pre post].each do |mode|
+      it "retains historical #{mode} proof when current native authority is revoked" do
+        (mode == :pre) ? rollback_write : lose_response
+        expect { retain_native }.to raise_error(IOError)
+        expect(@evidence.participation?).to be(true)
+        error = Phronomy::Persistence::StateConflictError.new("native authority changed")
+        allow(authority).to receive(:assert_current!).and_raise(error)
+        expect(participant).not_to receive(:capture_approval_recovery)
+        expect(persistence).not_to receive(:transaction)
+        result = @evidence.reconcile(persistence: persistence)
+        expect(result.disposition).to eq((mode == :pre) ? :not_committed : :committed)
+        expect(result.continuation_error).to equal(error)
+        expect(result.read_error).to be_nil
+      end
+    end
+
+    it "recovers a transient native capture failure through an explicit read-only wait observation" do
+      allow(participant).to receive(:capture_approval_recovery).and_raise(IOError, "native capture unavailable")
+      expect(persistence).not_to receive(:transaction)
+      expect { retain_native }.to raise_error(IOError, /capture unavailable/)
+      expect(@evidence).to be_nil
+      first = writer.observe_unwritten(command, participant: participant)
+      expect(first.disposition).to eq(:unknown)
+      allow(participant).to receive(:capture_approval_recovery).and_return(authority)
+      result = writer.observe_unwritten(command, participant: participant)
+      expect(result.disposition).to eq(:not_committed)
+      expect(result.continuation_error).to be_nil
+    end
+
+    it "keeps an unwritten exact wait pending while current native authority is revoked" do
+      allow(authority).to receive(:assert_current!).and_raise(Phronomy::Persistence::StateConflictError, "native authority changed")
+      result = writer.observe_unwritten(command, participant: participant)
+      expect(result.disposition).to eq(:not_committed)
+      expect(result.continuation_error).to be_a(Phronomy::Persistence::StateConflictError)
+    end
+  end
+
+  it "does not opt arbitrary participants into retained approval" do
+    expect(persistence).not_to receive(:transaction)
+    expect { writer.commit_retained(command, participant: Object.new) }.to raise_error(ArgumentError)
   end
 
   it "preserves the original write error when a collector fails" do

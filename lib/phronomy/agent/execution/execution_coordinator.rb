@@ -1237,9 +1237,15 @@ module Phronomy
       # child instead carries the exact parent's committed wait and saved proof.
       # Reservation content remains opaque to Agent and is compared in full.
       def retained_approval_eligible?(state, request)
-        return false unless state.invocation && state.fsm_session_id.nil? &&
-          !state.execution.metadata["execution_extension"] &&
-          !state.invocation.config[:phronomy_execution_participant]
+        return false unless state.invocation && state.fsm_session_id.nil?
+        participant = state.invocation.config[:phronomy_execution_participant]
+        supported = if participant
+          participant.respond_to?(:approval_recovery_supported?, true) &&
+            participant.send(:approval_recovery_supported?, execution: state.execution, persistence: @agent.persistence)
+        else
+          !state.execution.metadata["execution_extension"]
+        end
+        return false unless supported
         binding = @suspended_cancellation
         task = request.result_task
         if task.is_a?(ApprovalOperation) && task.parent_wait
@@ -1758,8 +1764,13 @@ module Phronomy
             delivery.result_task
           )
         end
-        if terminal_recovery_eligible?(operation)
-          TerminalRecoveryOperation.new(agent: @agent, coordinator: self,
+        recovery_owner = if outcome_recovery_eligible?(operation)
+          OutcomeRecoveryOperation
+        elsif terminal_recovery_eligible?(operation)
+          TerminalRecoveryOperation
+        end
+        if recovery_owner
+          recovery_owner.new(agent: @agent, coordinator: self,
             environment: environment, command: operation, delivery: delivery,
             committer: @outcome_committer).start
           return
@@ -1810,6 +1821,15 @@ module Phronomy
           !operation.wiring[:phronomy_execution_participant]
       end
 
+      # This private native opt-in is a pure binding/store check. Arbitrary
+      # participant callbacks and Handoff retain their existing protocol.
+      def outcome_recovery_eligible?(operation)
+        participant = operation.wiring[:phronomy_execution_participant]
+        operation.state_required && %i[active suspended].include?(operation.execution.status) &&
+          !operation.terminal_view.handoff && participant&.respond_to?(:outcome_recovery_supported?, true) &&
+          participant.send(:outcome_recovery_supported?, execution: operation.execution, persistence: @agent.persistence)
+      end
+
       # Observation completion is distinct from releasing the retained job.
       def terminal_recovery_failed_on_event_loop(owner, failure)
         environment = owner.environment
@@ -1817,13 +1837,17 @@ module Phronomy
         return unless environment.registry.owns_terminal_operation?(owner)
         environment.registry.mark_agent_execution_admission(@agent.agent_id,
           execution_id: owner.execution_id, state: :recovery_required)
+        if owner.recovery_kind == :outcome
+          state = environment.registry.agent_execution_state(owner.execution_id)
+          state.invocation.event_listener = nil if state&.invocation
+        end
         waiters = terminal_waiters(environment, owner.execution_id, owner.delivery.result_task, registered: true)
         owner.retain_original_waiters(waiters)
         waiters.each { |task| task.fail(failure) }
         begin
           cause = failure.cause || failure
           Phronomy::RuntimeSettings.current.logger&.warn(
-            "[Phronomy] Agent terminal durable outcome requires recovery for " \
+            "[Phronomy] Agent #{owner.recovery_kind} durable outcome requires recovery for " \
             "#{owner.execution_id}: #{cause.class}: #{cause.message}"
           )
         rescue
@@ -1838,30 +1862,13 @@ module Phronomy
       def apply_retained_terminal_on_event_loop(owner, outcome)
         environment = owner.environment
         registry = environment.registry
-        assert_event_loop!(environment)
-        unless registry.owns_terminal_operation?(owner) && registry.agent_execution_quiescent?(owner.execution_id)
-          raise Phronomy::Error, "Agent terminal recovery ownership or physical quiescence changed"
-        end
         command, delivery = owner.command, owner.delivery
-        state = registry.agent_execution_state(owner.execution_id)
-        unless state && state.agent.equal?(@agent) && state.coordinator.equal?(self) &&
-            state.fsm_session_id.to_s == owner.fsm_session_id.to_s
-          raise Phronomy::Error, "Agent terminal recovery no longer owns the original session"
-        end
         ordinary_delivery = owner.ordinary_delivery?
-        if owner.applied?
-          unless state.execution.to_h == outcome.execution.to_h &&
-              @agent.send(:__root_for_operation).to_h == outcome.root.to_h &&
-              @agent.send(:_journal_records_snapshot) == command.journal_records + outcome.appended_records
-            raise Phronomy::Persistence::StateConflictError, "Agent live post-state changed before terminal recovery release"
-          end
-        else
-          apply_retained_terminal_state(owner, outcome, state, environment)
-          owner.application_applied!
-        end
+        apply_retained_outcome_state(owner, outcome, environment)
         unless registry.release_terminal_operation(owner)
           raise Phronomy::Error, "Agent terminal recovery ownership could not be released"
         end
+        clear_suspended_cancellation if @suspended_cancellation&.first == command.execution_id
         if ordinary_delivery
           event_type = (outcome.type == :failed) ? terminal_event_type(outcome.error) : :done
           payload = (outcome.type == :failed) ? {error: outcome.error} : outcome.result
@@ -1877,9 +1884,92 @@ module Phronomy
         end
       end
 
+      def apply_retained_outcome_on_event_loop(owner, outcome)
+        return apply_retained_terminal_on_event_loop(owner, outcome) if %i[completed failed].include?(outcome.type)
+        unless %i[coordination_wait suspended].include?(outcome.type)
+          raise Phronomy::Error, "Unsupported retained Agent outcome: #{outcome.type.inspect}"
+        end
+        environment = owner.environment
+        command, delivery = owner.command, owner.delivery
+        ordinary_delivery = owner.ordinary_delivery?
+        state = apply_retained_outcome_state(owner, outcome, environment)
+        if outcome.type == :coordination_wait
+          begin
+            unless environment.registry.release_terminal_operation(owner)
+              raise Phronomy::Error, "Agent coordination wait recovery ownership could not be released"
+            end
+          rescue => error
+            # Positive atomic release still requires publication of the saved
+            # wait authority when only the local release reply was lost.
+            raise error unless owner.released?
+          end
+          if ordinary_delivery && delivery.result_task.is_a?(OperationResult)
+            delivery.result_task.coordination_wait_execution_id = command.execution_id
+          end
+          if !ordinary_delivery || delivery.result_task.is_a?(FrameworkRecoveryTask)
+            @recovered_coordination_wait = RecoveredCoordinationWait.new(self, command.execution_id, outcome.execution.execution_revision)
+          end
+          terminal_waiters(environment, command.execution_id, delivery.result_task,
+            registered: true).each { |task| fail_task(task, outcome.error) }
+        else
+          apply_retained_approval_wait(owner, outcome, state, environment, command, delivery, ordinary_delivery)
+        end
+      end
+
+      def apply_retained_approval_wait(owner, outcome, state, environment, command, delivery, ordinary_delivery)
+        cancelled = owner.captured_cancellation_requested?
+        wait_task = ordinary_delivery ? delivery.result_task : owner.suspension_task
+        environment.registry.register_agent_completion_waiter(command.execution_id, wait_task)
+        bind_suspended_cancellation(command.execution_id, state.invocation, wait_task)
+        begin
+          unless environment.registry.resolve_outcome_approval_wait(owner)
+            raise Phronomy::Error, "Agent approval wait save ownership could not be resolved"
+          end
+        rescue => error
+          # The registry may have completed its atomic save-owner resolution
+          # before a wrapper lost the reply. Still connect captured cancellation
+          # to the installed suspended execution in that case.
+          raise error unless owner.released?
+        end
+        if ordinary_delivery
+          dispatch_approval_listener(delivery.approval_listener, outcome.approval_request)
+          callback_error = deliver_terminal(delivery.application_listener, :approval_required, request: outcome.approval_request)
+          report_nonterminal_callback_error(callback_error, :approval_required, outcome.result)
+          Array(state.invocation.config[:phronomy_exact_observers]).each do |task|
+            fail_task(task, Phronomy::ExecutionRehydrationRequiredError.new("Execution #{command.execution_id} requires approval"))
+          end
+        end
+        cancel_suspended_on_event_loop(command.execution_id) if cancelled
+      end
+
+      def apply_retained_outcome_state(owner, outcome, environment)
+        registry = environment.registry
+        assert_event_loop!(environment)
+        unless registry.owns_terminal_operation?(owner) && registry.agent_execution_quiescent?(owner.execution_id)
+          raise Phronomy::Error, "Agent #{owner.recovery_kind} recovery ownership or physical quiescence changed"
+        end
+        command = owner.command
+        state = registry.agent_execution_state(owner.execution_id)
+        unless state && state.agent.equal?(@agent) && state.coordinator.equal?(self) &&
+            state.fsm_session_id.to_s == owner.fsm_session_id.to_s
+          raise Phronomy::Error, "Agent #{owner.recovery_kind} recovery no longer owns the original session"
+        end
+        if owner.applied?
+          unless state.execution.to_h == outcome.execution.to_h &&
+              @agent.send(:__root_for_operation).to_h == outcome.root.to_h &&
+              @agent.send(:_journal_records_snapshot) == command.journal_records + outcome.appended_records
+            raise Phronomy::Persistence::StateConflictError, "Agent live post-state changed before outcome recovery release"
+          end
+        else
+          apply_retained_terminal_state(owner, outcome, state, environment)
+          owner.application_applied!
+        end
+        state
+      end
+
       def apply_retained_terminal_state(owner, outcome, state, environment)
         command = owner.command
-        unless state.execution.to_h == command.execution.to_h || state.execution.to_h == outcome.execution.to_h
+        unless state.execution.to_h == owner.live_execution_before.to_h || state.execution.to_h == outcome.execution.to_h
           raise Phronomy::Persistence::StateConflictError, "Agent live execution changed before terminal recovery apply"
         end
         before_records = command.journal_records

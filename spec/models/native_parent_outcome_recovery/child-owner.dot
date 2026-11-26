@@ -1,0 +1,17 @@
+digraph NativeChildAuthority {
+  graph [rankdir=TB, bgcolor="white", label="Independent native child authority", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.35, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#f1f0fb", color="#64548b", fontname="sans-serif", fontsize=12, margin="0.16,0.11"];
+  edge [color="#64548b", fontname="sans-serif", fontsize=10];
+  absent [label="Root and execution absent\nEligible only for an unimported, unacknowledged slot"];
+  live [label="Child active or suspended\nUnimported outcome retry may preserve it\nParent approval decision remains blocked"];
+  terminal [label="Exact terminal child\nDefinition, correlation and native hold required\nCaptured acknowledgement must match when present"];
+  invalid [label="Partial, replaced or unretained relationship\nNew retry or decision authority blocked", fillcolor="#fbeeed"];
+  absent -> live [label="Separate child admission"];
+  live -> terminal [label="Separate child completion"];
+  terminal -> terminal [label="Unrelated root revision or extra hold\n/ preserve exact terminal history"];
+  absent -> invalid [label="Partial or foreign identity appears"];
+  live -> invalid [label="Definition, reservation or required hold changes"];
+  terminal -> invalid [label="Identity, required hold or captured acknowledgement changes"];
+  note [shape=note, fillcolor="#fff8df", color="#8b7846", label="Parent recovery does not run these child transitions.\nKnown outcome post-state can still be published as history.\nIt does not grant a new child or protected Tool admission."];
+  invalid -> note [style=dashed, arrowhead=none];
+}

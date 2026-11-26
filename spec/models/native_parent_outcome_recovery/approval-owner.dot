@@ -1,0 +1,21 @@
+digraph ParentApprovalOwner {
+  graph [rankdir=TB, bgcolor="white", label="Native parent's own approval decision", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.35, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#edf5fa", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.16,0.11"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=10];
+  uncertain [label="Decision save unresolved\nOriginal decision and owner retained"];
+  no_proof [label="No captured proof\nPhysical attempt settled"];
+  pre [label="Pre-state confirmed\nSame approval remains undecided"];
+  post [label="Post-state confirmed\nDecision fact retained"];
+  restored [label="Exact approval wait restored\nSuspended admission + cancellation retained", fillcolor="#fff5de"];
+  resumed [label="Original decision continuation admitted once\nNew execution observation; no decision rewrite", fillcolor="#e7f5eb"];
+  released [label="Decision recovery owner released\nRestored wait or execution continues independently", fillcolor="#e7f5eb"];
+  no_proof -> uncertain [label="Prepare read-only [positive no-write-started]\n/ validate exact original wait"];
+  no_proof -> no_proof [label="Write admission uncertain or wait changed\n/ keep custody; do not manufacture proof"];
+  uncertain -> pre [label="Reconcile [complete pre proof]"];
+  uncertain -> post [label="Reconcile [complete post proof]"];
+  pre -> restored [label="Fresh native authority + original owner\n[physical completion] / restore same wait"];
+  post -> resumed [label="Fresh complete post + native authority\n[physical completion; stable until admission]"];
+  post -> post [label="Current proof or authority unavailable\n/ keep historical post and custody"];
+  restored -> released;
+  resumed -> released;
+}

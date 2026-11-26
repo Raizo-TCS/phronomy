@@ -1,0 +1,48 @@
+module Phronomy
+  module Agent
+    class OutcomeRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+    end
+
+    class OutcomeRecoveryError < Phronomy::Error
+      attr_reader recovery: OutcomeRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader original_error: Exception?
+      def cause: () -> Exception?
+
+      private
+
+      def initialize: (recovery: OutcomeRecovery, error: Exception?, ?original_error: Exception?) -> void
+    end
+
+    class OutcomeRecoveryResult
+      attr_reader recovery: OutcomeRecovery
+      attr_reader agent_id: String
+      attr_reader execution_id: String
+      attr_reader recovery_id: String
+      attr_reader outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable
+      attr_reader saved_outcome: (:terminal | :coordination_wait | :approval_wait)?
+      attr_reader approval_request: ToolApprovalRequest?
+      attr_reader application_state: :pending | :applied
+      attr_reader ownership_state: :retained | :released
+      attr_reader revision: Integer?
+      attr_reader execution: ExecutionObservation?
+      attr_reader error: Exception?
+      attr_reader submission_state: :not_admitted | :admitted | :unknown
+
+      private
+
+      def initialize: (recovery: OutcomeRecovery,
+        outcome: :confirmed_post | :confirmed_pre | :unresolved | :unavailable,
+        application_state: :pending | :applied,
+        ownership_state: :retained | :released,
+        ?saved_outcome: (:terminal | :coordination_wait | :approval_wait)?,
+        ?revision: Integer?, ?execution: ExecutionObservation?, ?approval_request: ToolApprovalRequest?, ?error: Exception?,
+        ?submission_state: :not_admitted | :admitted | :unknown) -> void
+    end
+  end
+end

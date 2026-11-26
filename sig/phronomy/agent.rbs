@@ -127,6 +127,13 @@ module Phronomy
       def retry_terminal: (recovery: TerminalRecovery) -> TerminalRecoveryResult
       def retry_terminal_submission_async: (recovery: TerminalRecovery) -> TaskResult[TerminalRecoveryResult]
       def retry_terminal_submission: (recovery: TerminalRecovery) -> TerminalRecoveryResult
+      def pending_outcome_recovery: (execution_id: String) -> OutcomeRecovery?
+      def reconcile_outcome_async: (recovery: OutcomeRecovery) -> TaskResult[OutcomeRecoveryResult]
+      def reconcile_outcome: (recovery: OutcomeRecovery) -> OutcomeRecoveryResult
+      def retry_outcome_async: (recovery: OutcomeRecovery) -> TaskResult[OutcomeRecoveryResult]
+      def retry_outcome: (recovery: OutcomeRecovery) -> OutcomeRecoveryResult
+      def retry_outcome_submission_async: (recovery: OutcomeRecovery) -> TaskResult[OutcomeRecoveryResult]
+      def retry_outcome_submission: (recovery: OutcomeRecovery) -> OutcomeRecoveryResult
       def pending_approval_recovery: (execution_id: String) -> ApprovalRecovery?
       def reconcile_approval_async: (recovery: ApprovalRecovery) -> TaskResult[ApprovalRecoveryResult]
       def reconcile_approval: (recovery: ApprovalRecovery) -> ApprovalRecoveryResult

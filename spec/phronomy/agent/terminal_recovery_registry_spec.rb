@@ -31,6 +31,7 @@ RSpec.describe "Agent terminal recovery custody" do
       :expected_execution_revision, :recovery, :permitted, :release_count,
       :shutdown_calls, :shutdown_diagnostic, :physical) do
       def agent_id = agent.agent_id
+      def recovery_kind = :terminal
       def pending? = release_count.zero?
       def release_permitted? = permitted
       def released = self.release_count += 1
@@ -99,6 +100,36 @@ RSpec.describe "Agent terminal recovery custody" do
       expect { registry.retain_terminal_operation(candidate) }.to raise_error(Phronomy::Error, /unique matching owner/)
     end
     expect(registry.terminal_operation(operation.execution_id)).to be_nil
+  end
+
+  it "keeps actual-terminal and generalized outcome capabilities in separate public lookups" do
+    operation.define_singleton_method(:recovery_kind) { :outcome }
+    retained
+    expect(registry.pending_agent_terminal_recovery(operation.execution_id, agent: agent)).to be_nil
+    expect(registry.pending_agent_outcome_recovery(operation.execution_id, agent: agent)).to equal(operation.recovery)
+    expect(registry.pending_agent_outcome_recovery(operation.execution_id, agent: agent.dup)).to be_nil
+  end
+
+  it "resolves a captured approval wait without releasing its logical execution or admission" do
+    operation.define_singleton_method(:recovery_kind) { :outcome }
+    retained
+    operation.permitted = true
+    expect(registry.resolve_outcome_approval_wait(operation)).to be(false)
+    registry.replace_agent_execution(operation.execution_id,
+      execution: execution.dup.tap { |value| value.status = :suspended })
+    operation.permitted = false
+    expect(registry.resolve_outcome_approval_wait(operation)).to be(false)
+    expect(registry.agent_execution_state(operation.execution_id).fsm_session_id).to eq("session-1")
+    operation.permitted = true
+    expect(registry.resolve_outcome_approval_wait(operation)).to be(true)
+    expect(operation.release_count).to eq(1)
+    expect(registry.pending_agent_outcome_recovery(operation.execution_id, agent: agent)).to be_nil
+    expect(registry.terminal_operation(operation.execution_id)).to be_nil
+    expect(registry.agent_execution_state(operation.execution_id).fsm_session_id).to be_nil
+    expect(registry.agent_execution_state(operation.execution_id).execution.status).to eq(:suspended)
+    expect(registry.agent_execution_admitted?(agent.agent_id)).to be(true)
+    expect(registry.agent_execution_owner(operation.execution_id).agent).to equal(agent)
+    expect(registry).to be_idle
   end
 
   it "forbids ordinary release while terminal custody is retained" do

@@ -1,0 +1,27 @@
+digraph ParentOutcomeOwner {
+  graph [rankdir=TB, bgcolor="white", label="Native parent outcome owner", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.3, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fb", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.16,0.11"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=10];
+  start [shape=point, width=0.12, label=""];
+  unresolved [label="Outcome save unresolved\nExact captured fact retained"];
+  pre [label="Pre-state confirmed\nNo outcome published"];
+  post [label="Post-state confirmed\nHistorical fact retained"];
+  final [label="Terminal published\nExecution admission released", fillcolor="#e7f5eb"];
+  coordination [label="Coordination wait published\nDurable job remains active\nLocal admission released", fillcolor="#fff5de"];
+  approval [label="Approval wait published\nExecution remains suspended\nAdmission and cancellation retained", fillcolor="#fff5de"];
+  released [label="Recovery owner released\nDurable history preserved", fillcolor="#e7f5eb"];
+  start -> unresolved [label="Original save response lost"];
+  unresolved -> pre [label="Reconcile [complete pre proof]"];
+  unresolved -> post [label="Reconcile [complete post proof]"];
+  pre -> post [label="Explicit retry [fresh pre + native authority]\n/ atomically restore captured writes"];
+  pre -> pre [label="Unknown or conflicting authority\n/ retain custody; do not write"];
+  post -> post [label="Local publication unavailable\n/ retain known post; child may progress"];
+  post -> final [label="Apply [saved terminal]"];
+  post -> coordination [label="Apply [saved coordination wait]"];
+  post -> approval [label="Apply [saved approval wait]"];
+  final -> released;
+  coordination -> released;
+  approval -> released;
+  note [shape=note, fillcolor="#fff8df", color="#8b7846", label="Application requires the original local owner\nand physical completion. It admits no new business work.\nLater parent resume or approval is a separate operation."];
+  released -> note [style=dashed, arrowhead=none];
+}

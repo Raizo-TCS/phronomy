@@ -19,6 +19,7 @@ end
 
 require_relative "../async_event_api"
 require_relative "../terminal_recovery_api"
+require_relative "../outcome_recovery_api"
 require_relative "../approval_recovery_api"
 require_relative "../dispatch_recovery_api"
 
@@ -28,6 +29,10 @@ end
 
 unless Phronomy::Agent::Base < Phronomy::Agent::TerminalRecoveryApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::TerminalRecoveryApi)
+end
+
+unless Phronomy::Agent::Base < Phronomy::Agent::OutcomeRecoveryApi
+  Phronomy::Agent::Base.prepend(Phronomy::Agent::OutcomeRecoveryApi)
 end
 
 unless Phronomy::Agent::Base < Phronomy::Agent::ApprovalRecoveryApi

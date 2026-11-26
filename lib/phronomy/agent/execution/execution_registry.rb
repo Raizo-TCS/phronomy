@@ -69,7 +69,7 @@ module Phronomy
         case command
         when PhysicalCompletion
           complete_agent_physical_work(command)
-        when TerminalRecoveryOperation::Observe, TerminalRecoveryOperation::Ready,
+        when OutcomeRecoveryOperation::Observe, OutcomeRecoveryOperation::Ready,
             ApprovalRecoveryOperation::Observe, ApprovalRecoveryOperation::Ready,
             DispatchRecoveryOperation::Observe, DispatchRecoveryOperation::Ready
           command.operation.deliver(command)
@@ -156,7 +156,14 @@ module Phronomy
       # @api private
       def pending_agent_terminal_recovery(execution_id, agent:)
         entry = synchronize { @terminal_operations[execution_id.to_s] }
-        entry.operation.recovery if entry&.agent&.equal?(agent) && entry.operation.pending?
+        entry.operation.recovery if entry&.agent&.equal?(agent) &&
+          entry.operation.recovery_kind == :terminal && entry.operation.pending?
+      end
+
+      def pending_agent_outcome_recovery(execution_id, agent:)
+        entry = synchronize { @terminal_operations[execution_id.to_s] }
+        entry.operation.recovery if entry&.agent&.equal?(agent) &&
+          entry.operation.recovery_kind == :outcome && entry.operation.pending?
       end
 
       # One atomic custody release after live application and physical quiescence.
@@ -176,6 +183,30 @@ module Phronomy
           @agent_inflight_work.delete(key)
           @agent_executions.delete(key)
           @agent_admissions.delete(entry.agent_id)
+          true
+        end
+        operation.released if released
+        released
+      end
+
+      # A committed approval wait resolves only the save owner. The logical
+      # execution, admission and cancellation responsibility remain suspended.
+      def resolve_outcome_approval_wait(operation)
+        assert_event_loop_thread!
+        return false unless operation.release_permitted?
+
+        released = synchronize do
+          next false unless owns_terminal_operation_locked?(operation)
+          key = operation.execution_id.to_s
+          state = @agent_executions.fetch(key)
+          next false unless state.execution.status == :suspended
+          work = @agent_inflight_work.fetch(key, nil)
+          next false if work && !work.empty?
+          next false if @agent_deferred_terminals.key?(key) || @approval_operations.key?(key) || @dispatch_operations.key?(key)
+
+          entry = @terminal_operations.delete(key)
+          @agent_executions[key] = state.with(fsm_session_id: nil)
+          @agent_admissions[entry.agent_id] = @agent_admissions.fetch(entry.agent_id).with(state: :suspended)
           true
         end
         operation.released if released

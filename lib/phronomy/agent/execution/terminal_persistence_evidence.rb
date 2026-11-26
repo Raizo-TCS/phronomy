@@ -4,17 +4,17 @@ require "securerandom"
 
 module Phronomy
   module Agent
-    # Opt-in, process-local proof for one installed Agent terminal write,
-    # including an opaque correlated child without a transaction participant.
+    # Opt-in, process-local proof for captured Agent outcome writes. Standalone
+    # terminal facts and native final/wait outcomes share exact persistence replay.
     # This value owns neither the original observer nor the live execution.
     # The caller must retain it and use the original Persistence only after the
     # previous backend transaction has settled and authoritative reads apply.
-    # Saving completed facts changes neither parent state nor durable holds.
-    # A parent's later import/release does not invalidate those terminal facts.
+    # Native writes include only the captured parent extension and retention
+    # changes. Later child progress does not invalidate a committed parent fact.
     # @api private
     class TerminalPersistenceEvidence
       ContentWrite = Data.define(:reference, :bytes, :canonicalization_version)
-      Outcome = Data.define(:type, :execution, :root, :appended_records, :result, :error_diagnostic)
+      Outcome = Data.define(:type, :execution, :root, :appended_records, :result, :error_diagnostic, :approval_request)
       Result = Data.define(:disposition, :evidence, :original_error, :read_error)
 
       # Transaction-local recorder; only detached ContentWrite values escape.
@@ -46,14 +46,22 @@ module Phronomy
           agents: records.agents, executions: records.executions, journals: records.journals)
       end
 
-      def self.capture(change, writes, persistence:)
+      def self.capture(change, writes, persistence:, participant: nil)
         values = change.captured_evidence
-        return unless values && values[:result].execution.terminal?
-        new(values, writes, persistence.execution_evidence_identity)
+        return unless values
+        participation = if participant&.respond_to?(:capture_outcome_recovery, true)
+          participant.__send__(:capture_outcome_recovery, values: values, persistence: persistence)
+        end
+        intended = values.fetch(:result)
+        native_wait = participation && %i[coordination_wait suspended].include?(intended.type)
+        return unless intended.execution.terminal? || native_wait
+        participant_free = values.fetch(:before).fetch(1).nil? && values.fetch(:after).fetch(1).nil?
+        return unless participation || participant_free
+        new(values, writes, persistence.execution_evidence_identity, participation)
       end
 
-      def initialize(values, writes, persistence_identity)
-        @persistence_identity = persistence_identity
+      def initialize(values, writes, persistence_identity, participation)
+        @persistence_identity, @participation = persistence_identity, participation
         @before, @after = values.fetch(:before), values.fetch(:after)
         intended = values.fetch(:result)
         @agent_id = intended.execution.agent_id
@@ -62,7 +70,8 @@ module Phronomy
         @outcome = Outcome.new(type: intended.type, execution: intended.execution,
           root: intended.root, appended_records: intended.appended_records.dup.freeze,
           result: Phronomy::Values::Immutable.copy(intended.result),
-          error_diagnostic: intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)))
+          error_diagnostic: intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)),
+          approval_request: intended.approval_request && Phronomy::Values::Immutable.copy(intended.approval_request.to_h))
         @content_writes = writes.dup.freeze
         @attempt_id = SecureRandom.uuid.freeze
         freeze
@@ -73,7 +82,7 @@ module Phronomy
         require_persistence!(persistence)
         disposition = persistence.coordinator.atomic do |scope|
           require_outer_scope!(scope)
-          persistence.guard_agents(scope, agent_ids: [agent_id])
+          persistence.guard_agents(scope, agent_ids: guarded_agent_ids(persistence, scope))
           classify(persistence, scope)
         end
         result(disposition, original_error: original_error)
@@ -85,18 +94,26 @@ module Phronomy
       # reconstructs a terminal transition or invokes domain/provider callbacks.
       def retry(persistence:, original_error: nil)
         require_persistence!(persistence)
+        retry_error = nil
         disposition = persistence.coordinator.atomic do |scope|
           require_outer_scope!(scope)
-          persistence.guard_agents(scope, agent_ids: [agent_id])
+          persistence.guard_agents(scope, agent_ids: guarded_agent_ids(persistence, scope))
           current = classify(persistence, scope)
           next current unless current == :not_committed
+          begin
+            @participation&.assert_retryable!(persistence: persistence, scope: scope)
+          rescue => error
+            retry_error = error
+            next :not_committed
+          end
+          @participation&.replay(persistence: persistence, scope: scope)
           persistence.participate(scope) { |records| replay(records) }
           unless classify(persistence, scope) == :committed
             raise Phronomy::Persistence::StateConflictError, "Retried Agent terminal state differs from its captured proof"
           end
           :committed
         end
-        result(disposition, original_error: original_error)
+        result(disposition, original_error: original_error, read_error: retry_error)
       rescue => error
         # The retry uses the same intended bytes and record identities; another
         # lost response therefore remains classifiable against this same proof.
@@ -104,6 +121,10 @@ module Phronomy
       end
 
       private
+
+      def guarded_agent_ids(persistence, scope)
+        @participation ? @participation.guarded_agent_ids(persistence: persistence, scope: scope) : [agent_id]
+      end
 
       def require_persistence!(persistence)
         return if persistence.execution_evidence_identity.equal?(@persistence_identity)
@@ -118,11 +139,13 @@ module Phronomy
       def classify(persistence, scope)
         snapshot = [ExecutionChange.read_agent_evidence(store: persistence,
           agent_id: agent_id, execution_id: execution_id,
-          journal_position: @journal_position, scope: scope), nil]
+          journal_position: @journal_position, scope: scope),
+          @participation&.read(persistence: persistence, scope: scope)]
         head = persistence.participate(scope) { |records| records.journals.head(agent_id) }
         return :unknown unless head == snapshot.fetch(0).fetch(0).fetch("journal_position")
         disposition = Phronomy::Persistence::SaveOutcome.compare(before: before, after: after) { snapshot }.disposition
         if disposition == :committed
+          @participation&.assert_content!(persistence: persistence, scope: scope)
           persistence.participate(scope) do |records|
             content_writes.each do |write|
               unless records.contents.fetch(write.reference) == write.bytes
@@ -141,11 +164,15 @@ module Phronomy
             raise Phronomy::ContentStore::IntegrityError, "Agent terminal content reference changed during retry"
           end
         end
-        records.journals.append(agent_id, expected_position: @journal_position, records: outcome.appended_records)
+        unless outcome.appended_records.empty?
+          records.journals.append(agent_id, expected_position: @journal_position, records: outcome.appended_records)
+        end
         records.executions.save(execution_id,
           expected_revision: before.fetch(0).fetch(1).fetch("execution_revision"), execution: outcome.execution)
-        records.agents.save(agent_id,
-          expected_revision: before.fetch(0).fetch(0).fetch("agent_revision"), root: outcome.root)
+        unless outcome.root.to_h == before.fetch(0).fetch(0)
+          records.agents.save(agent_id,
+            expected_revision: before.fetch(0).fetch(0).fetch("agent_revision"), root: outcome.root)
+        end
       end
 
       def result(disposition, original_error: nil, read_error: nil)

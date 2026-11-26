@@ -6,6 +6,8 @@ For example, a report Orchestrator reserves a report child, or imports that chil
 
 Baseline: applied G3f commit `56e0e5bfedc5715749d9f10d1ddab11654d02db2`, tree `299dc7d7fe4996136eec5b77612a5413c98ef8d7`. This document describes the G3g implementation candidate, not its later application acceptance. Contract concept v55 and foundation v48 remain the architectural references. The [Agent dispatch contract](agent-dispatch-recovery.md) defines the existing public capability, receipt and observation semantics.
 
+G3g was subsequently applied as `44288e1239701bf16aa67854a48c830b7295e2d4`. G3h adds [native final/wait and own approval recovery](native-parent-outcome-recovery.md). The G3g application source, baseline findings and operation-specific exclusions below remain its historical evidence; they do not claim that the later outcome work was already covered by dispatch recovery.
+
 ## Keep native decisions with the native owner
 
 The generic Agent retains one operation and applies its eventual outcome through its original Runtime owner. The native participant supplies a detached persistence plan for its own domain. The plan contains immutable captured facts; it does not preserve a live participant callback or grant permission to run native coordination decisions again.
@@ -449,7 +451,7 @@ For example, four baseline native failed-child terminal cases already preserve a
 | Ordinary application and final lifetime | Preserve public report behavior, exact approval identity and existing pair-release/retained-history policy |
 | Model and architecture | Check the finite safety/conditional-progress model and its mutations; preserve Contract ownership and dependency directions |
 
-Native true-final and coordination-wait disposition need one coherent future design around saved facts, public observation closure/publication and owner release. Native/Handoff own approval decisions and wait establishment are reachable separate writes; Handoff transfer additionally needs historical lineage and current-routing authority. Generic custom participants require explicit supported capability and unsupported disposition. These are bounded checklist items within the existing completion groups.
+At the G3g boundary, native true-final and coordination-wait disposition required one coherent follow-up design around saved facts, public observation closure/publication and owner release. Native/Handoff own approval decisions and wait establishment were reachable separate writes. G3h addresses the supported native final/wait and own approval portion through its [outcome contract](native-parent-outcome-recovery.md). Handoff transfer still needs historical lineage and current-routing authority; generic custom participants still require explicit supported capability and unsupported disposition. These remain bounded checklist items within the existing completion groups.
 
 For example, an active Handoff Agent can use an ordinary approval-requiring Tool. Its approval-decision fallback is not automatically protected by the dispatch plan or the synchronous participant readback. Leaving that row explicit prevents a narrower successful dispatch increment from becoming an unsupported whole-system coverage claim.
 

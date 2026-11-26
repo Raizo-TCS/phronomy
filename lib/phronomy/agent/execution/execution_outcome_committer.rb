@@ -52,7 +52,8 @@ module Phronomy
             error = validation_error
           end
         end
-        capture = on_evidence && terminal_evidence_eligible?(operation, error)
+        participant = operation.wiring[:phronomy_execution_participant]
+        capture = on_evidence && outcome_evidence_eligible?(operation, error, participant)
         writes = [] if capture
         change = ExecutionChange.new(agent: @agent, current: operation.execution,
           root: operation.root, kind: :terminal, terminal: view, config: operation.wiring) do |tx, state, receipt, pending|
@@ -70,27 +71,31 @@ module Phronomy
             commit_terminal(records, operation, state, receipt, error)
           end
         end
-        capture ? perform_with_evidence(change, writes, on_evidence, on_outcome) : change.perform
+        capture ? perform_with_evidence(change, writes, on_evidence, on_outcome, participant) : change.perform
       end
 
       private
 
-      def terminal_evidence_eligible?(operation, error)
-        operation.state_required && operation.execution.status == :active && operation.terminal_view.phase != :suspended &&
-          !operation.terminal_view.handoff && !error.is_a?(Phronomy::ExecutionRehydrationRequiredError) &&
-          !operation.execution.metadata["execution_extension"] &&
-          !operation.wiring[:phronomy_execution_participant]
+      def outcome_evidence_eligible?(operation, error, participant)
+        return false unless operation.state_required && !operation.terminal_view.handoff
+        if participant
+          %i[active suspended].include?(operation.execution.status) && participant.respond_to?(:outcome_recovery_supported?, true) &&
+            participant.send(:outcome_recovery_supported?, execution: operation.execution, persistence: @persistence)
+        else
+          operation.execution.status == :active && operation.terminal_view.phase != :suspended && !error.is_a?(Phronomy::ExecutionRehydrationRequiredError) &&
+            !operation.execution.metadata["execution_extension"]
+        end
       end
 
-      def perform_with_evidence(change, writes, collector, outcome_collector)
+      def perform_with_evidence(change, writes, collector, outcome_collector, participant)
         result = change.perform
       rescue => original_error
         begin
-          publish_evidence(change, writes, collector, outcome_collector)
+          publish_evidence(change, writes, collector, outcome_collector, participant)
         rescue => capture_error
           begin
             Phronomy::RuntimeSettings.current.logger&.warn(
-              "[Phronomy] Agent terminal evidence collector failed: #{capture_error.class}: #{capture_error.message}"
+              "[Phronomy] Agent outcome evidence collector failed: #{capture_error.class}: #{capture_error.message}"
             )
           rescue
             nil
@@ -100,14 +105,14 @@ module Phronomy
       else
         # Collector failure after a successful commit propagates; the collector
         # must not interpret its own failure as proof that persistence failed.
-        publish_evidence(change, writes, collector, outcome_collector)
+        publish_evidence(change, writes, collector, outcome_collector, participant)
         result
       end
 
-      def publish_evidence(change, writes, collector, outcome_collector)
+      def publish_evidence(change, writes, collector, outcome_collector, participant)
         values = change.captured_evidence
         outcome_collector&.call(values.fetch(:result)) if values
-        evidence = TerminalPersistenceEvidence.capture(change, writes, persistence: @agent.persistence)
+        evidence = TerminalPersistenceEvidence.capture(change, writes, persistence: @agent.persistence, participant: participant)
         collector.call(evidence) if evidence
       end
 
