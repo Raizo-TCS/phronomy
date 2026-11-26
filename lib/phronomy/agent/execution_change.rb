@@ -13,10 +13,11 @@ module Phronomy
 
       # Agent execution constructs changes; applications implement participants.
       # @api private
-      def initialize(agent:, current:, root:, kind:, updated: nil, terminal: nil, config: {}, &write)
+      def initialize(agent:, current:, root:, kind:, updated: nil, terminal: nil, config: {}, prepare_outcome: nil, on_prepared: nil, &write)
         @agent, @store, @current, @root = agent, agent.persistence, current, root
         @coordinator = @store.coordinator
         @kind, @updated, @write = kind, updated, write
+        @prepare_outcome, @on_prepared = prepare_outcome, on_prepared
         @agent_id, @execution_id = current.agent_id, current.execution_id
         @extension = current.metadata["execution_extension"] && ExecutionExtensionState.from_h(current.metadata["execution_extension"])
         @correlation = Phronomy::Values::Immutable.copy(current.metadata["reservation"])
@@ -51,7 +52,9 @@ module Phronomy
 
       # @api private
       def perform_once
-        if @participant
+        if @prepare_outcome
+          @participant.__send__(:commit_prepared_outcome, self)
+        elsif @participant
           @participant.commit(self)
         else
           coordinator.atomic { |scope|
@@ -78,7 +81,7 @@ module Phronomy
       ensure
         # A completed synchronous change may remain on a worker's native stack.
         # Release live execution wiring only after commit/readback has finished.
-        @agent = @write = @participant = nil
+        @agent = @write = @participant = @prepare_outcome = @on_prepared = nil
       end
 
       private :perform_once
@@ -158,6 +161,38 @@ module Phronomy
       end
 
       private
+
+      # Internal opt-in for native outcome preparation. The participant supplies
+      # opaque planned facts; Agent owns its records and the complete save proof.
+      def commit_prepared_outcome_in(scope, state:, pending:, state_data:, participation:)
+        raise Phronomy::Persistence::TransactionError, "Execution change belongs to another thread" unless @thread.equal?(Thread.current)
+        unless @scope.equal?(scope) && !@used && @prepare_outcome && kind == :terminal
+          raise Phronomy::ConfigurationError, "Prepared outcome must use its original scope exactly once"
+        end
+        @used = true
+        if state && (!extension || state.binding_key != extension.binding_key || state.binding_version != extension.binding_version)
+          raise Phronomy::ConfigurationError, "Execution extension identity cannot change"
+        end
+        raise ArgumentError, "pending work requires cancellation or recovery" if pending && !(cancel_requested || recovery_required)
+        @store.participate(scope) do |records|
+          records.assert_agent_watermark!(agent_id: agent_id, agent_revision: @root.agent_revision, journal_position: @root.journal_position)
+          observed = records.executions.load(execution_id)
+          unless observed.agent_id == agent_id && observed.execution_revision == @current.execution_revision
+            raise Phronomy::Persistence::StateConflictError, "Execution changed before outcome preparation"
+          end
+          plan = @prepare_outcome.call(records, state, pending)
+          @result = plan.outcome
+          @after = plan.after(before: @before, state_data: state_data, participation: participation)
+          evidence = @on_prepared.call(captured_evidence, plan.writes)
+          unless evidence
+            raise Phronomy::Persistence::StateConflictError, "Prepared Agent outcome has no retained proof"
+          end
+          evidence.__send__(:apply_prepared_in, persistence: @store, scope: scope)
+        end
+        nil
+      end
+
+      def prepared_participation = @before.fetch(1)
 
       def validate_binding!
         return unless extension

@@ -31,12 +31,18 @@ module Phronomy
       end
 
       class Outcome < Data
-        attr_reader type: :completed | :failed
+        attr_reader type: :completed | :failed | :coordination_wait | :suspended
         attr_reader execution: AgentExecution
         attr_reader root: AgentRoot
         attr_reader appended_records: Array[JournalRecord]
         attr_reader result: Hash[Symbol, untyped]?
         attr_reader error_diagnostic: Hash[String, json_value]?
+        attr_reader approval_request: Hash[String, untyped]?
+      end
+
+      class CapturedInput
+        attr_reader values: Hash[Symbol, untyped]
+        def materialize: (persistence: Store) -> TerminalPersistenceEvidence?
       end
 
       class Result < Data
@@ -53,7 +59,7 @@ module Phronomy
       attr_reader attempt_id: String
       attr_reader agent_id: String
       attr_reader execution_id: String
-      def self.capture: (ExecutionChange, Array[ContentWrite], persistence: Store) -> instance?
+      def self.capture: (ExecutionChange, Array[ContentWrite], persistence: Store, ?participant: untyped) -> instance?
       def reconcile: (persistence: Store, ?original_error: Exception?) -> Result
       def retry: (persistence: Store, ?original_error: Exception?) -> Result
     end
@@ -83,7 +89,7 @@ module Phronomy
       end
 
       def initialize: (agent: Base, persistence: Store) -> void
-      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?, ?on_outcome: (^(Outcome) -> untyped)?) -> Outcome
+      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?, ?on_outcome: (^(Outcome) -> untyped)?, ?on_prepared: (^(TerminalPersistenceEvidence::CapturedInput) -> untyped)?) -> Outcome
     end
   end
 end

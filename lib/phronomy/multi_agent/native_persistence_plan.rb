@@ -10,6 +10,12 @@ module Phronomy
     class NativePersistencePlan
       attr_reader :agent_id, :execution_id, :children, :prior_children
 
+      # A retention collection is a domain fact set, independent of the
+      # repository's enumeration order and private storage keys.
+      def self.retention_facts(values)
+        Phronomy::Values::Immutable.copy(values.sort_by { |value| Phronomy::CanonicalJSON.dump(value) })
+      end
+
       def initialize(values:, execution:, persistence:, native_persistence:, binding_key:)
         @persistence_identity, @native_persistence = persistence.execution_evidence_identity, native_persistence
         validate_store!(persistence)
@@ -32,8 +38,8 @@ module Phronomy
         unless @reference == "sha256:#{Digest::SHA256.hexdigest(@bytes)}"
           raise Phronomy::Persistence::StateConflictError, "Native persistence content differs from its captured reference"
         end
-        before_holds = Phronomy::Values::Immutable.copy(before.fetch(1))
-        after_holds = Phronomy::Values::Immutable.copy(after.fetch(1))
+        before_holds = self.class.retention_facts(before.fetch(1))
+        after_holds = self.class.retention_facts(after.fetch(1))
         expected = Phronomy::Agent::Retention.new(agent_id: agent_id, execution_id: execution_id,
           owner_key: "subagent:#{execution_id}")
         additions = after_holds - before_holds
@@ -49,7 +55,7 @@ module Phronomy
 
       def read(persistence:, scope:)
         validate_store!(persistence)
-        persistence.retained_references(agent_id: agent_id, scope: scope).map(&:to_h)
+        self.class.retention_facts(persistence.retained_references(agent_id: agent_id, scope: scope).map(&:to_h))
       end
 
       def assert_content!(persistence:, scope:)

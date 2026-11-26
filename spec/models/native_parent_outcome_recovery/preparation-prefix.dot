@@ -1,0 +1,25 @@
+digraph OutcomePreparationPrefix {
+  graph [rankdir=TB, bgcolor="white", label="Outcome preparation before captured-write recovery", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.35, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fb", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.16,0.11"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=10];
+  start [shape=point, width=0.12, label=""];
+  preparing [label="Original outcome worker\nOne-pass preparation from captured intent"];
+  raw [label="Complete raw proposal retained\nNo outcome backend writes yet"];
+  evidence [label="Executable evidence attached\nSame captured values and identities"];
+  write [label="Original captured write attempted\nTransaction result may be uncertain"];
+  proof_failed [label="Evidence construction failed\nComplete raw proposal remains held", fillcolor="#fff5de"];
+  opaque [label="Incomplete opaque preparation\nOwner and diagnostic remain held", fillcolor="#fff5de"];
+  captured [label="Captured-write recovery protocol\nReconcile, explicit retry, or publish\naccording to exact saved facts", fillcolor="#e7f5eb"];
+  start -> preparing [label="Outcome work admitted"];
+  preparing -> raw [label="Complete detached plan produced\n/ retain raw proposal before real writes"];
+  preparing -> opaque [label="Read, encoding or conversion fails\n[no complete proposal]"];
+  raw -> evidence [label="Construct and attach proof"];
+  raw -> proof_failed [label="Proof construction fails\n/ do not start outcome writes"];
+  evidence -> write [label="Persist captured values\n/ no semantic preparation replay"];
+  write -> captured [label="Later recovery [original physical settlement]\n/ retain complete evidence"];
+  proof_failed -> captured [label="New reconcile or explicit retry\n[original owner + physical settlement]\n/ materialize evidence read-only"];
+  proof_failed -> proof_failed [label="Proof still unavailable\n/ retain raw proposal and custody"];
+  opaque -> opaque [label="New observation\n/ unavailable; never generic preparation replay"];
+  note [shape=note, fillcolor="#fff8df", color="#8b7846", label="Shown recovery assumes the original observation failed\nor ended before physical settlement. Ordinary first-save\nsuccess uses normal publication, outside this view.\nThis prefix joins the existing owner, child and observer views.\nClosed observations stay closed; callbacks are not repeated.\nRecovered waits do not imply eventual business success."];
+  captured -> note [style=dashed, arrowhead=none];
+}

@@ -4,9 +4,11 @@ EXTENDS Naturals, FiniteSets
 CONSTANTS Kind, Save, ChildKind, ChildState, InitialHold, Approved,
           Readable, Caller, ExplicitRetry, Cleanup, Publication, StableRead,
           RefuseFirst, RetryReplyLost, InitiallyCaptured, NoWriteStarted,
-          Drift, ObserveClients, Bug
-VARIABLES durable, child, owner, work, clients, originalPhysical
-vars == <<durable, child, owner, work, clients, originalPhysical>>
+          Drift, ObserveClients, Bug,
+          PreparationMode, PreparationSucceeds, InitialProofFails,
+          Materializable, ImmediateRetry
+VARIABLES durable, child, owner, work, clients, originalPhysical, preparation
+vars == <<durable, child, owner, work, clients, originalPhysical, preparation>>
 OutcomeKinds == {"terminal", "coordination_wait", "approval_wait"}
 Fields == {"root", "execution", "journal", "extension", "cancellation", "holds"}
 Before == [root |-> 0, execution |-> 0, journal |-> 0,
@@ -54,14 +56,15 @@ Fact == IF ~Readable THEN "unknown"
         ELSE IF Equal(durable.row, Before) THEN "pre" ELSE "unknown"
 
 Init ==
- /\ durable = [row |-> IF Save = "post" THEN After ELSE Before,
-       agentBlob |-> IF Save = "post" THEN AgentBlobAfter ELSE 0,
-       nativeBlob |-> IF Save = "post" THEN NativeBlobAfter ELSE 0,
+ /\ durable = [row |-> IF PreparationMode = "legacy" /\ Save = "post" THEN After ELSE Before,
+       agentBlob |-> IF PreparationMode = "legacy" /\ Save = "post" THEN AgentBlobAfter ELSE 0,
+       nativeBlob |-> IF PreparationMode = "legacy" /\ Save = "post" THEN NativeBlobAfter ELSE 0,
        changed |-> FALSE, writes |-> 0, validWrites |-> TRUE,
        childWrites |-> 0, historyHeld |-> TRUE]
  /\ child = InitialChild
  /\ owner = [held |-> TRUE, original |-> TRUE, known |-> "unknown",
-       everPost |-> FALSE, exactHistory |-> TRUE, evidence |-> InitiallyCaptured,
+       everPost |-> FALSE, exactHistory |-> TRUE,
+       evidence |-> PreparationMode = "legacy" /\ InitiallyCaptured,
        validDeferred |-> TRUE, ready |-> FALSE, applied |-> FALSE,
        application |-> "none", publicationCount |-> 0, identity |-> 0,
        executionAdmitted |-> TRUE, executionState |-> "uncertain",
@@ -74,32 +77,78 @@ Init ==
  /\ clients = [original |-> "failed", status |-> [i \in Observers |-> "unused"],
        cancelled |-> {}, validRelease |-> TRUE]
  /\ originalPhysical = FALSE
+ /\ preparation = [phase |-> IF PreparationMode = "legacy" THEN "legacy" ELSE "encoding",
+       raw |-> PreparationMode = "legacy" /\ InitiallyCaptured,
+       identity |-> 1, evidenceIdentity |-> IF PreparationMode = "legacy" /\ InitiallyCaptured THEN 1 ELSE 0,
+       initialWrites |-> 0, writeBasisComplete |-> TRUE,
+       materializations |-> 0, materializationWrites |-> 0,
+       validMaterialization |-> TRUE, unsafeReplays |-> 0]
+
+(* The new original-worker prefix stages complete raw values and attaches
+   executable proof before admitting any real outcome write. Opaque encoding
+   failures have no repeat action. Existing configurations start after this
+   prefix and retain their former initial conditions. *)
+PrepareOriginal ==
+ /\ PreparationMode = "staged" /\ preparation.phase = "encoding"
+ /\ preparation' = [preparation EXCEPT
+       !.phase = IF PreparationSucceeds THEN "raw" ELSE "opaque_failed",
+       !.raw = PreparationSucceeds]
+ /\ UNCHANGED <<durable, child, owner, work, clients, originalPhysical>>
+
+ConstructOriginalProof ==
+ /\ PreparationMode = "staged" /\ preparation.phase = "raw"
+ /\ preparation' = [preparation EXCEPT
+       !.phase = IF InitialProofFails THEN "proof_failed" ELSE "ready",
+       !.evidenceIdentity = IF InitialProofFails THEN 0 ELSE preparation.identity]
+ /\ owner' = [owner EXCEPT !.evidence = ~InitialProofFails]
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+
+OriginalWrite ==
+ /\ PreparationMode = "staged"
+ /\ preparation.phase = "ready" \/
+       (Bug = "write_before_raw" /\ preparation.phase = "encoding") \/
+       (Bug = "write_before_evidence" /\ preparation.phase = "raw")
+ /\ preparation' = [preparation EXCEPT !.phase = "attempted",
+       !.initialWrites = @ + 1,
+       !.writeBasisComplete = @ /\ preparation.raw /\ owner.evidence /\
+         preparation.evidenceIdentity = preparation.identity]
+ /\ durable' = [durable EXCEPT
+       !.row = IF Save = "post" THEN After ELSE Before,
+       !.agentBlob = IF Save = "post" THEN AgentBlobAfter ELSE 0,
+       !.nativeBlob = IF Save = "post" THEN NativeBlobAfter ELSE 0]
+ /\ UNCHANGED <<child, owner, work, clients, originalPhysical>>
 
 OriginalCompletes ==
  /\ Cleanup /\ ~originalPhysical
+ /\ preparation.phase \in {"legacy", "opaque_failed", "proof_failed", "attempted"}
  /\ originalPhysical' = TRUE
- /\ UNCHANGED <<durable, child, owner, work, clients>>
+ /\ UNCHANGED <<durable, child, owner, work, clients, preparation>>
 
 BeginAttempt ==
  /\ Caller /\ owner.held /\ ~owner.applied /\ ~owner.ready
  /\ owner.original \/ Bug = "stale_owner"
- /\ originalPhysical \/ Bug = "ignore_physical"
+ /\ originalPhysical \/ Bug \in {"ignore_physical", "materialize_before_settlement"}
+ /\ PreparationMode = "legacy" \/ preparation.phase \in {"opaque_failed", "proof_failed", "attempted"}
  /\ work.stage = "idle" /\ work.count < 3
  /\ work' = [work EXCEPT !.stage = "running", !.count = @ + 1,
-       !.kind = IF owner.known = "pre" /\ ExplicitRetry /\ Kind # "decision"
+       !.kind = IF (owner.known = "pre" \/
+                   (ImmediateRetry /\ preparation.raw)) /\ ExplicitRetry /\ Kind # "decision"
                  THEN "retry" ELSE "read",
        !.physical = FALSE, !.grant = FALSE, !.exactFact = FALSE]
  /\ clients' = IF ObserveClients THEN [clients EXCEPT
        !.status = [i \in Observers |-> IF clients.status[i] = "unused"
                     THEN "pending" ELSE clients.status[i]]] ELSE clients
- /\ UNCHANGED <<durable, child, owner, originalPhysical>>
+ /\ UNCHANGED <<durable, child, owner, originalPhysical, preparation>>
 
 GuardedTransaction ==
  /\ work.stage = "running"
  /\ LET deferred == ~owner.evidence /\ Kind = "decision"
+        outcomeDeferred == ~owner.evidence /\ Kind \in OutcomeKinds /\ PreparationMode = "staged"
+        outcomeCapture == outcomeDeferred /\ Materializable /\
+          (preparation.raw \/ Bug = "invent_raw_material")
         captureOK == ~deferred \/
           ((NoWriteStarted \/ Bug = "unproved_capture") /\ Readable /\ durable.row = Before)
-        fact == IF ~captureOK \/ (~owner.evidence /\ ~deferred /\ Bug # "invent_outcome_proof")
+        fact == IF ~captureOK \/ (~owner.evidence /\ ~deferred /\ ~outcomeCapture /\ Bug # "invent_outcome_proof")
                 THEN "unknown"
                 ELSE IF Bug = "cached_pre" /\ work.kind = "retry" THEN "pre" ELSE Fact
         needGrant == Kind = "decision" \/ fact = "pre"
@@ -116,7 +165,9 @@ GuardedTransaction ==
         exact == IF write THEN row = After /\ agentBlob = AgentBlobAfter /\ nativeBlob = NativeBlobAfter
                  ELSE IF fact = "post" THEN ExactPost ELSE durable.row = Before
     IN /\ durable' = [durable EXCEPT !.row = row, !.agentBlob = agentBlob,
-           !.nativeBlob = nativeBlob, !.writes = @ + IF write THEN 1 ELSE 0,
+           !.nativeBlob = nativeBlob,
+           !.writes = @ + (IF write THEN 1 ELSE 0) +
+             (IF outcomeCapture /\ Bug = "materialization_writes" THEN 1 ELSE 0),
            !.validWrites = @ /\ (~write \/ (Kind # "decision" /\ durable.row = Before /\
              Eligible /\ originalPhysical /\ owner.original /\ row = After /\
              agentBlob = AgentBlobAfter /\ nativeBlob = NativeBlobAfter)),
@@ -125,17 +176,27 @@ GuardedTransaction ==
        /\ work' = [work EXCEPT !.stage = "recorded", !.result = result,
            !.grant = grant, !.exactFact = exact,
            !.validCapture = ~deferred \/ (NoWriteStarted /\ Readable /\ durable.row = Before)]
-       /\ owner' = [owner EXCEPT !.evidence = @ \/ (deferred /\ captureOK),
+       /\ owner' = [owner EXCEPT !.evidence = @ \/ (deferred /\ captureOK) \/ outcomeCapture,
            !.validDeferred = @ /\ (~deferred \/ ~captureOK \/ NoWriteStarted),
            !.preparations = @ + IF write /\ Bug = "rebuild_preparation" THEN 1 ELSE 0,
-           !.participantRuns = @ + IF write /\ Bug = "replay_participant" THEN 1 ELSE 0,
+           !.participantRuns = @ + (IF write /\ Bug = "replay_participant" THEN 1 ELSE 0) +
+             (IF outcomeDeferred /\ ~preparation.raw /\ Bug = "replay_opaque_preparation" THEN 1 ELSE 0),
            !.effects = @ + IF write /\ Bug = "replay_effect" THEN 1 ELSE 0]
+       /\ preparation' = [preparation EXCEPT
+           !.evidenceIdentity = IF outcomeCapture THEN
+             IF Bug = "replace_raw_identity" THEN 2 ELSE preparation.identity ELSE @,
+           !.materializations = @ + IF outcomeCapture THEN 1 ELSE 0,
+           !.materializationWrites = @ + IF outcomeCapture /\ Bug = "materialization_writes" THEN 1 ELSE 0,
+           !.validMaterialization = @ /\ (~outcomeCapture \/
+             (preparation.raw /\ originalPhysical /\ owner.original)),
+           !.unsafeReplays = @ + IF outcomeDeferred /\ ~preparation.raw /\
+             Bug = "replay_opaque_preparation" THEN 1 ELSE 0]
  /\ UNCHANGED <<child, clients, originalPhysical>>
 
 WorkerCompletes ==
  /\ Cleanup /\ work.stage = "recorded" /\ ~work.physical
  /\ work' = [work EXCEPT !.physical = TRUE]
- /\ UNCHANGED <<durable, child, owner, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, child, owner, clients, originalPhysical, preparation>>
 
 ReceiveAttempt ==
  /\ work.stage = "recorded" /\ (work.physical \/ Bug = "ignore_physical")
@@ -151,7 +212,7 @@ ReceiveAttempt ==
        !.status = [i \in Observers |-> IF clients.status[i] = "pending" THEN "complete"
                                       ELSE clients.status[i]],
        !.original = IF Bug = "reopen_original" /\ work.result = "post" THEN "complete" ELSE @]
- /\ UNCHANGED <<durable, child, originalPhysical>>
+ /\ UNCHANGED <<durable, child, originalPhysical, preparation>>
 
 (* Outcome publication applies an already established fact. It grants no new
    business admission. Approval decisions instead need fresh current authority. *)
@@ -160,7 +221,7 @@ PermitCachedApplication ==
  /\ Kind # "decision" \/ Bug = "cached_decision_post"
  /\ work.stage = "idle"
  /\ owner' = [owner EXCEPT !.ready = TRUE]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
 
 ApplyPublication ==
  /\ Publication /\ owner.held /\ owner.publicationCount < 2
@@ -195,29 +256,30 @@ ApplyPublication ==
            !.validApplication = @ /\ (owner.original /\ originalPhysical /\ work.physical),
            !.effects = @ + IF (decision /\ Approved) \/
              (Bug = "run_wait_tool" /\ applied = "approval_wait") THEN 1 ELSE 0]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
 
 ReleaseRecovery ==
  /\ owner.held /\ owner.applied /\ work.stage = "idle" /\ work.physical /\ originalPhysical
  /\ owner' = [owner EXCEPT !.held = FALSE]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
 
 CancelObserver(i) ==
  /\ ObserveClients /\ i \in Observers /\ clients.status[i] = "pending"
  /\ clients' = [clients EXCEPT !.status[i] = "cancelled", !.cancelled = @ \cup {i},
        !.validRelease = @ /\ Bug # "observer_releases_owner"]
  /\ owner' = IF Bug = "observer_releases_owner" THEN [owner EXCEPT !.held = FALSE] ELSE owner
- /\ UNCHANGED <<durable, child, work, originalPhysical>>
+ /\ UNCHANGED <<durable, child, work, originalPhysical, preparation>>
 
-MayDrift == ~StableRead \/ Kind # "decision" \/
-            (work.stage # "recorded" /\ ~owner.ready)
+MayDrift ==
+  (PreparationMode = "legacy" \/ preparation.phase \in {"opaque_failed", "proof_failed", "attempted"}) /\
+  (~StableRead \/ Kind # "decision" \/ (work.stage # "recorded" /\ ~owner.ready))
 ChangeParent ==
  /\ Drift \in Fields \cup {"agent_blob", "native_blob"} /\ ~durable.changed
  /\ MayDrift /\ ~owner.applied
  /\ durable' = [durable EXCEPT !.row = IF Drift \in Fields THEN [@ EXCEPT ![Drift] = 2] ELSE @,
        !.agentBlob = IF Drift = "agent_blob" THEN 2 ELSE @,
        !.nativeBlob = IF Drift = "native_blob" THEN 2 ELSE @, !.changed = TRUE]
- /\ UNCHANGED <<child, owner, work, clients, originalPhysical>>
+ /\ UNCHANGED <<child, owner, work, clients, originalPhysical, preparation>>
 ChangeChild ==
  /\ Drift \in {"child_root", "child_reservation", "child_definition", "child_hold",
                "child_active", "child_suspended", "child_progress", "child_generation", "child_outcome"}
@@ -231,17 +293,18 @@ ChangeChild ==
                  [] Drift = "child_progress" -> "terminal" [] OTHER -> @,
        !.generation = IF Drift = "child_generation" THEN 2 ELSE @,
        !.outcome = IF Drift = "child_outcome" THEN 2 ELSE @, !.changed = TRUE]
- /\ UNCHANGED <<durable, owner, work, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, owner, work, clients, originalPhysical, preparation>>
 ReplaceOwner ==
  /\ Drift = "owner" /\ owner.original /\ ~owner.applied /\ work.stage = "idle"
  /\ owner' = [owner EXCEPT !.original = FALSE]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
 
-Next == OriginalCompletes \/ BeginAttempt \/ GuardedTransaction \/ WorkerCompletes \/
+Next == PrepareOriginal \/ ConstructOriginalProof \/ OriginalWrite \/ OriginalCompletes \/ BeginAttempt \/ GuardedTransaction \/ WorkerCompletes \/
         ReceiveAttempt \/ PermitCachedApplication \/ ApplyPublication \/ ReleaseRecovery \/
         (\E i \in Observers : CancelObserver(i)) \/ ChangeParent \/ ChangeChild \/ ReplaceOwner
 Spec == Init /\ [][Next]_vars
-ProgressSpec == Spec /\ WF_vars(OriginalCompletes) /\ WF_vars(BeginAttempt) /\
+ProgressSpec == Spec /\ WF_vars(PrepareOriginal) /\ WF_vars(ConstructOriginalProof) /\
+  WF_vars(OriginalWrite) /\ WF_vars(OriginalCompletes) /\ WF_vars(BeginAttempt) /\
   WF_vars(GuardedTransaction) /\ WF_vars(WorkerCompletes) /\ WF_vars(ReceiveAttempt) /\
   WF_vars(PermitCachedApplication) /\ WF_vars(ApplyPublication) /\ WF_vars(ReleaseRecovery)
 
@@ -259,7 +322,8 @@ SeparateSavedKind == owner.applied =>
 ExactPublicationIdentity == owner.applied => owner.identity = 1
 OnePublication == owner.publicationCount <= 1
 EvidenceBeforeApplication == owner.applied => owner.evidence /\
-  (InitiallyCaptured \/ (Kind = "decision" /\ NoWriteStarted))
+  (InitiallyCaptured \/ (Kind = "decision" /\ NoWriteStarted) \/
+    (PreparationMode = "staged" /\ preparation.raw /\ preparation.evidenceIdentity = preparation.identity))
 OutcomeReceiptMeaning == (owner.applied /\ Kind \in OutcomeKinds) =>
   owner.receiptKind = Kind /\ (owner.receiptExecution = (Kind = "terminal")) /\
   (owner.receiptApproval = (Kind = "approval_wait"))
@@ -278,9 +342,29 @@ PhysicalCustody == clients.validRelease /\ owner.validApplication /\
   (work.stage # "idle" => owner.held)
 ClosedOriginal == clients.original = "failed"
 IndependentObservers == \A i \in clients.cancelled : clients.status[i] = "cancelled"
+CompletePlanBeforeWrite == preparation.writeBasisComplete
+RawPlanIdentity == preparation.identity = 1 /\
+  (preparation.evidenceIdentity # 0 => preparation.evidenceIdentity = preparation.identity)
+ReadOnlyMaterialization == preparation.materializationWrites = 0
+SettledMaterialization == preparation.validMaterialization
+NoOpaquePreparationReplay == preparation.unsafeReplays = 0
+OpaquePreparationRetained ==
+  (PreparationMode = "staged" /\ ~PreparationSucceeds) =>
+    ~preparation.raw /\ ~owner.evidence /\ ~owner.applied /\ owner.held /\ preparation.initialWrites = 0
+PreparationTypeOK ==
+  preparation.phase \in {"legacy", "encoding", "raw", "ready", "proof_failed", "attempted", "opaque_failed"} /\
+  preparation.initialWrites \in 0..1 /\ preparation.materializations \in 0..3
 EventuallyApplied == <>owner.applied
 EventuallyReleased == <>~owner.held
 
+NoRawPlanWitness == ~(preparation.raw /\ ~owner.evidence /\
+  preparation.phase = "proof_failed" /\ preparation.initialWrites = 0 /\ owner.held)
+NoDeferredOutcomeProofWitness == ~(preparation.materializations > 0 /\
+  owner.evidence /\ originalPhysical /\ owner.applied)
+NoOpaquePreparationWitness == ~(preparation.phase = "opaque_failed" /\
+  originalPhysical /\ ~owner.evidence /\ owner.held /\ clients.status[1] = "complete")
+NoStagedLostReplyWitness == ~(PreparationMode = "staged" /\ preparation.initialWrites = 1 /\
+  originalPhysical /\ owner.known = "post" /\ owner.applied /\ clients.original = "failed")
 NoCoordinationWaitWitness == ~(owner.applied /\ owner.application = "coordination_wait" /\
   owner.executionState = "active" /\ ~owner.executionAdmitted /\ owner.coordinationHandle)
 NoApprovalWaitWitness == ~(owner.applied /\ owner.application = "approval_wait" /\

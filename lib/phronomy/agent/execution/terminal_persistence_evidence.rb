@@ -17,6 +17,31 @@ module Phronomy
       Outcome = Data.define(:type, :execution, :root, :appended_records, :result, :error_diagnostic, :approval_request)
       Result = Data.define(:disposition, :evidence, :original_error, :read_error)
 
+      # Complete intended values survive a failed proof constructor. Rebuilding
+      # this proof uses the native read-only evidence adapter and writes nothing.
+      # It does not rerun participant commit, encoding or output validation.
+      class CapturedInput
+        attr_reader :values
+
+        def initialize(values, writes, persistence:, participant:)
+          @values = {before: Phronomy::Values::Immutable.copy(values.fetch(:before)),
+                     after: Phronomy::Values::Immutable.copy(values.fetch(:after)),
+                     result: values.fetch(:result)}.freeze
+          @writes = writes.dup.freeze
+          @outcome = TerminalPersistenceEvidence.detached_outcome(values.fetch(:result))
+          @identity, @participant = persistence.execution_evidence_identity, participant
+          freeze
+        end
+
+        def materialize(persistence:)
+          unless persistence.execution_evidence_identity.equal?(@identity)
+            raise Phronomy::Persistence::StateConflictError, "Agent outcome proposal belongs to another Store"
+          end
+          TerminalPersistenceEvidence.capture_values(@values, @writes, persistence: persistence,
+            participant: @participant, outcome: @outcome)
+        end
+      end
+
       # Transaction-local recorder; only detached ContentWrite values escape.
       class RecordingContents < Phronomy::ContentStore::Base
         def initialize(contents, writes)
@@ -49,6 +74,10 @@ module Phronomy
       def self.capture(change, writes, persistence:, participant: nil)
         values = change.captured_evidence
         return unless values
+        capture_values(values, writes, persistence: persistence, participant: participant)
+      end
+
+      def self.capture_values(values, writes, persistence:, participant: nil, outcome: nil)
         participation = if participant&.respond_to?(:capture_outcome_recovery, true)
           participant.__send__(:capture_outcome_recovery, values: values, persistence: persistence)
         end
@@ -57,21 +86,25 @@ module Phronomy
         return unless intended.execution.terminal? || native_wait
         participant_free = values.fetch(:before).fetch(1).nil? && values.fetch(:after).fetch(1).nil?
         return unless participation || participant_free
-        new(values, writes, persistence.execution_evidence_identity, participation)
+        new(values, writes, persistence.execution_evidence_identity, participation, outcome: outcome)
       end
 
-      def initialize(values, writes, persistence_identity, participation)
+      def self.detached_outcome(intended)
+        Outcome.new(type: intended.type, execution: intended.execution,
+          root: intended.root, appended_records: intended.appended_records.dup.freeze,
+          result: Phronomy::Values::Immutable.copy(intended.result),
+          error_diagnostic: intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)),
+          approval_request: intended.approval_request && Phronomy::Values::Immutable.copy(intended.approval_request.to_h))
+      end
+
+      def initialize(values, writes, persistence_identity, participation, outcome: nil)
         @persistence_identity, @participation = persistence_identity, participation
         @before, @after = values.fetch(:before), values.fetch(:after)
         intended = values.fetch(:result)
         @agent_id = intended.execution.agent_id
         @execution_id = intended.execution.execution_id
         @journal_position = before.fetch(0).fetch(0).fetch("journal_position")
-        @outcome = Outcome.new(type: intended.type, execution: intended.execution,
-          root: intended.root, appended_records: intended.appended_records.dup.freeze,
-          result: Phronomy::Values::Immutable.copy(intended.result),
-          error_diagnostic: intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)),
-          approval_request: intended.approval_request && Phronomy::Values::Immutable.copy(intended.approval_request.to_h))
+        @outcome = outcome || self.class.detached_outcome(intended)
         @content_writes = writes.dup.freeze
         @attempt_id = SecureRandom.uuid.freeze
         freeze
@@ -121,6 +154,24 @@ module Phronomy
       end
 
       private
+
+      # The native caller owns the real outer transaction and ordered guards.
+      # Compare the staged pre-state before applying the exact captured writes.
+      # Initial native planning already made the domain decision under those
+      # guards; later retry separately rechecks current continuation authority.
+      def apply_prepared_in(persistence:, scope:)
+        require_persistence!(persistence)
+        require_outer_scope!(scope)
+        unless classify(persistence, scope) == :not_committed
+          raise Phronomy::Persistence::StateConflictError, "Prepared Agent outcome no longer matches its pre-state"
+        end
+        @participation&.replay(persistence: persistence, scope: scope)
+        persistence.participate(scope) { |records| replay(records) }
+        unless classify(persistence, scope) == :committed
+          raise Phronomy::Persistence::StateConflictError, "Prepared Agent outcome differs from its intended state"
+        end
+        nil
+      end
 
       def guarded_agent_ids(persistence, scope)
         @participation ? @participation.guarded_agent_ids(persistence: persistence, scope: scope) : [agent_id]
