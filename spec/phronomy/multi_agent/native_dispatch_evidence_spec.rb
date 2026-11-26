@@ -218,7 +218,7 @@ RSpec.describe Phronomy::MultiAgent::NativeDispatchEvidence do
     other = Phronomy::Agent::Store.new(coordinator: persistence.coordinator, records: Phronomy::Agent::Persistence::Records)
     expect {
       described_class.capture(values: change.captured_evidence, persistence: other,
-        native_persistence: stores.multi_agent)
+        native_persistence: stores.multi_agent, binding_key: "phronomy.subagent")
     }.to raise_error(Phronomy::Persistence::StateConflictError, /another Store/)
   end
 
@@ -229,7 +229,8 @@ RSpec.describe Phronomy::MultiAgent::NativeDispatchEvidence do
     values[:result] = change.captured_evidence.fetch(:result)
     values[:after][0][3]["cancel_requested"] = true
     expect {
-      described_class.capture(values: values, persistence: persistence, native_persistence: stores.multi_agent)
+      described_class.capture(values: values, persistence: persistence,
+        native_persistence: stores.multi_agent, binding_key: "phronomy.subagent")
     }.to raise_error(Phronomy::Persistence::StateConflictError, /captured reference/)
   end
 end

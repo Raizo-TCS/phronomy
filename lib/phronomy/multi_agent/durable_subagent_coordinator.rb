@@ -35,7 +35,8 @@ module Phronomy
         unless persistence.equal?(@persistence.agent_store)
           raise Phronomy::Persistence::TransactionError, "Native dispatch proof belongs to another Agent store"
         end
-        NativeDispatchEvidence.capture(values: values, persistence: persistence, native_persistence: @persistence)
+        NativeDispatchEvidence.capture(values: values, persistence: persistence,
+          native_persistence: @persistence, binding_key: BINDING_KEY)
       end
 
       def guard_change(change, scope)

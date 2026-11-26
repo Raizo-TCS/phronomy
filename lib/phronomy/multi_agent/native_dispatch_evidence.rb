@@ -11,15 +11,15 @@ module Phronomy
     class NativeDispatchEvidence
       attr_reader :agent_ids
 
-      def self.capture(values:, persistence:, native_persistence:)
+      def self.capture(values:, persistence:, native_persistence:, binding_key:)
         unless native_persistence.agent_store.equal?(persistence) &&
             native_persistence.coordinator.equal?(persistence.coordinator)
           raise Phronomy::Persistence::StateConflictError, "Native dispatch proof belongs to another Store"
         end
-        new(values, persistence.execution_evidence_identity, native_persistence)
+        new(values, persistence.execution_evidence_identity, native_persistence, binding_key)
       end
 
-      def initialize(values, persistence_identity, native_persistence)
+      def initialize(values, persistence_identity, native_persistence, binding_key)
         @persistence_identity, @native_persistence = persistence_identity, native_persistence
         execution = values.fetch(:result)
         @agent_id, @execution_id = execution.agent_id, execution.execution_id
@@ -27,7 +27,7 @@ module Phronomy
         before_binding = before.fetch(0).fetch(1).fetch("metadata").fetch("execution_extension")
         after_binding = after.fetch(0).fetch(1).fetch("metadata").fetch("execution_extension")
         [before_binding, after_binding].each do |binding|
-          unless binding.fetch("binding_key") == DurableSubagentCoordinator::BINDING_KEY && binding.fetch("binding_version") == 1
+          unless binding.fetch("binding_key") == binding_key && binding.fetch("binding_version") == 1
             raise Phronomy::Persistence::StateConflictError, "Unsupported native dispatch binding"
           end
         end
