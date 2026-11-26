@@ -45,11 +45,14 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
 
   it "copies mutable result values without freezing caller values or retaining a writer scope" do
     evidence, result = capture
+    stored = persistence.observe_execution(agent_id: agent.agent_id, execution_id: execution.execution_id)
     output.fetch("answer") << "later"
     expect(result.result.fetch(:output)).to equal(output)
     expect(evidence.outcome.result.fetch(:output)).to eq("answer" => ["captured"])
     expect(evidence.outcome.result.fetch(:usage)).to be_frozen
     expect(evidence.outcome.result.fetch(:messages)).to all(be_frozen)
+    expect(evidence.outcome.execution_observation).to eq(stored)
+    expect(evidence.outcome.execution_observation.result).to eq('{"answer"=>["captured"]}')
     expect { evidence.before.fetch(0).fetch(0)["changed"] = true }.to raise_error(FrozenError)
     expect { evidence.content_writes.first.bytes << "changed" }.to raise_error(FrozenError)
     expect(evidence).to be_frozen
@@ -104,13 +107,86 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
   it "does not repeat custom diagnostic conversion when materializing a deferred proof" do
     error = Phronomy::Error.new("retained failure")
     evidence, result = capture(command.with(terminal_view: view.with(source_error: error)))
-    expect(Phronomy::Error).to receive(:diagnostic).with(error).once.and_call_original
+    expect(Phronomy::Error).not_to receive(:diagnostic)
+    expect(error).not_to receive(:message)
     input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
       evidence.content_writes, persistence: persistence, participant: nil)
     first = input.materialize(persistence: persistence)
     second = input.materialize(persistence: persistence)
     expect(first.outcome).to equal(second.outcome)
     expect(first.outcome.error_diagnostic.fetch("message")).to eq("retained failure")
+  end
+
+  it "publishes the encoded text without repeating a custom result conversion" do
+    value = Object.new
+    expect(value).to receive(:to_s).once.and_return("encoded output")
+    evidence, result = capture(command.with(terminal_view: view.with(output: value)))
+    input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
+      evidence.content_writes, persistence: persistence, participant: nil)
+    observation = input.materialize(persistence: persistence).outcome.execution_observation
+    expect(result.result.fetch(:output)).to equal(value)
+    expect(observation.result).to eq("encoded output")
+    expect(observation.result).to be_frozen
+    expect(observation).to eq(persistence.observe_execution(agent_id: agent.agent_id, execution_id: execution.execution_id))
+  end
+
+  it "keeps the full stored output-contract diagnostic after the original exception becomes unavailable" do
+    error = Phronomy::Agent::OutputError.new(execution_id: execution.execution_id,
+      schema_digest: "captured-schema", reason: "schema_mismatch",
+      violations: [{"pointer" => "/answer", "message" => "expected a string"}], raw_output: '{"answer":42}')
+    evidence, result = capture(command.with(terminal_view: view.with(source_error: error)))
+    stored = persistence.contents.fetch_json(result.execution.error_ref)
+    expect(stored).to include("execution_id" => execution.execution_id, "schema_digest" => "captured-schema",
+      "reason" => "schema_mismatch", "violations" => error.violations, "raw_output" => '{"answer":42}')
+    expect(error).not_to receive(:diagnostic)
+    expect(error).not_to receive(:message)
+    input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
+      evidence.content_writes, persistence: persistence, participant: nil)
+    first = input.materialize(persistence: persistence)
+    second = input.materialize(persistence: persistence)
+    expect(result.error).to equal(error)
+    expect(first.outcome).to equal(second.outcome)
+    expect(first.outcome.execution_observation.error).to eq(stored)
+    expect(first.outcome.error_diagnostic).to equal(first.outcome.execution_observation.error)
+    expect { first.outcome.execution_observation.value! }.to raise_error(Phronomy::Agent::OutputError) { |restored|
+      expect(restored.diagnostic).to eq(stored)
+    }
+  end
+
+  it "refuses incomplete captured publication content instead of reading storage or live values" do
+    error = Phronomy::Error.new("captured failure")
+    evidence, result = capture(command.with(terminal_view: view.with(source_error: error)))
+    writes = evidence.content_writes.reject { |write| write.reference == result.execution.error_ref }
+    expect(persistence.contents).not_to receive(:fetch)
+    expect(Phronomy::Error).not_to receive(:diagnostic)
+    expect(error).not_to receive(:message)
+    expect {
+      described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
+        writes, persistence: persistence, participant: nil)
+    }.to raise_error(Phronomy::ContentStore::IntegrityError, /no captured content/)
+  end
+
+  context "with a structured output contract" do
+    let(:contract) do
+      Phronomy::Agent::OutputContract.new({"type" => "object",
+        "properties" => {"answer" => {"type" => "string"}}, "required" => ["answer"]})
+    end
+    let(:execution_metadata) { contract.metadata(persistence.contents) }
+    let(:output) { '{"answer":"captured"}' }
+
+    it "decodes the captured JSON result and keeps the separately captured raw output" do
+      response = Phronomy::LLMAdapter::Response.new(content: '{ "answer": "captured" }', finish_reason: :stop)
+      evidence, result = capture(command.with(terminal_view: view.with(response: response)))
+      observation = evidence.outcome.execution_observation
+      expect(observation.result).to eq("answer" => "captured")
+      expect(observation.raw_output).to eq('{ "answer": "captured" }')
+      expect(observation.result).to be_frozen
+      expect(observation.result.fetch("answer")).to be_frozen
+      expect(observation.raw_output).to be_frozen
+      expect(observation).to eq(persistence.observe_execution(agent_id: agent.agent_id, execution_id: execution.execution_id))
+      expect(evidence.content_writes.map(&:reference)).to include(result.execution.result_ref,
+        result.execution.metadata.fetch("raw_output_ref"))
+    end
   end
 
   it "rejects another Store before reconstructing a deferred native adapter" do
