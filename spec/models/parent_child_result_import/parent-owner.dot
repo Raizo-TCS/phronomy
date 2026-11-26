@@ -1,0 +1,14 @@
+digraph ParentOwner {
+  graph [rankdir=TB, bgcolor="transparent", label="Parent coordination owner", labelloc=t, fontname="sans-serif", fontsize=18, nodesep=0.3, ranksep=0.45];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fb", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.18,0.12"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=11];
+  start [shape=point, width=0.12, label=""];
+  active [label="Parent active\nReserved result custody retained"];
+  acknowledged [label="Parent terminal\nExact child result acknowledged\nImported flag unchanged"];
+  retained [label="Parent terminal\nUnresolved child custody retained"];
+  released [label="Local pair unloaded\nDurable histories retained", fillcolor="#e7f5eb"];
+  start -> active;
+  active -> acknowledged [label="Finalize [exact terminal child]\n/ read result; atomically save acknowledgement"];
+  active -> retained [label="Finalize [no eligible terminal child]\n/ preserve unresolved custody"];
+  acknowledged -> released [label="Unload request [current receipt matches;\none child; both owners physically free]\n/ release local objects only"];
+}

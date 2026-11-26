@@ -70,11 +70,23 @@ module Phronomy
             observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
             observed.active? || (observed.absent? && !cancelled)
           end
+          pending = change.kind == :terminal && unresolved && (change.cancel_requested || change.recovery_required)
+          if change.finishing? && !pending
+            children.each do |child|
+              next if child.fetch("imported")
+
+              # A final parent can adopt an exact durable child outcome even
+              # when its Tool callback did not reach the ordinary import path.
+              # Keep that custody acknowledgement distinct from business import.
+              observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"), execution_id: child.fetch("execution_id"), scope: scope)
+              receipt = terminal_acknowledgement(change.agent_id, change.execution_id, child, observed)
+              child["terminal_acknowledgement"] = receipt if receipt
+            end
+          end
           persistence.participate(scope) do |records|
             ref = records.contents.put_json(snapshot.merge("children" => children, "cancel_requested" => !!cancelled))
             state = Phronomy::Agent::ExecutionExtensionState.new(binding_key: BINDING_KEY, binding_version: 1, state_ref: ref)
-            change.commit_in(scope, state: state,
-              pending: change.kind == :terminal && unresolved && (change.cancel_requested || change.recovery_required))
+            change.commit_in(scope, state: state, pending: pending)
           end
         end
       end
@@ -114,16 +126,19 @@ module Phronomy
         end
       end
 
-      # A terminal record alone does not show that its result reached the
-      # parent. Check the native slot, exact reservation and holds together.
+      # Local release requires ordinary import or a separately recorded final
+      # parent acknowledgement. Neither disposition releases durable history.
       def completed_child_pair?(parent_id, parent_execution_id, child, live_child:, scope:)
         store = persistence.agent_store
         return false unless store.terminal_execution?(agent_id: parent_id, execution_id: parent_execution_id, scope: scope)
         children = stored_children(parent_id, parent_execution_id, scope)
         return false unless children&.size == 1
         slot = children.first
-        return false unless slot.fetch("imported") == true && slot.fetch("agent_id") == child.agent_id &&
+        return false unless slot.fetch("agent_id") == child.agent_id &&
           slot.fetch("execution_id") == child.execution_id && matching_child_class?(slot, live_child)
+
+        return false unless slot.fetch("imported") == true ||
+          terminal_acknowledged?(parent_id, parent_execution_id, slot, scope)
 
         owner = {"kind" => "subagent", "parent_agent_id" => parent_id, "parent_execution_id" => parent_execution_id,
                  "slot" => slot.fetch("slot")}
@@ -135,7 +150,47 @@ module Phronomy
 
         hosted_retentions?(parent_id, parent_execution_id, scope) do |prior_id|
           prior = stored_children(parent_id, prior_id, scope)
-          prior && !prior.empty? && prior.all? { |entry| entry.fetch("imported") == true }
+          prior && !prior.empty? && prior.all? do |entry|
+            entry.fetch("imported") == true || terminal_acknowledged?(parent_id, prior_id, entry, scope)
+          end
+        end
+      end
+
+      private def terminal_acknowledged?(parent_id, parent_execution_id, child, scope)
+        saved = child["terminal_acknowledgement"]
+        return false unless saved
+
+        observed = persistence.agent_store.observe_execution(agent_id: child.fetch("agent_id"),
+          execution_id: child.fetch("execution_id"), scope: scope)
+        expected = terminal_acknowledgement(parent_id, parent_execution_id, child, observed)
+        expected && saved == expected
+      end
+
+      private def terminal_acknowledgement(parent_id, parent_execution_id, child, observed)
+        owner = {"kind" => "subagent", "parent_agent_id" => parent_id,
+                 "parent_execution_id" => parent_execution_id, "slot" => child.fetch("slot")}
+        reservation = Phronomy::Agent::ReservedExecution.new(agent_id: child.fetch("agent_id"),
+          execution_id: child.fetch("execution_id"), correlation: owner)
+        return unless observed.terminal? && observed.reservation == reservation
+
+        # Cancellation intent and retention changes do not rewrite the terminal
+        # result. Its retained history remains the source; the receipt stores
+        # only the digest of the immutable content read in this guarded scope.
+        outcome = {"result" => observed.result, "raw_output" => observed.raw_output,
+                   "error" => observed.error, "transfer_receipt" => observed.transfer_receipt}
+        {"version" => 1, "agent_id" => observed.agent_id, "execution_id" => observed.execution_id,
+         "reservation" => owner, "status" => observed.status.to_s,
+         "outcome_digest" => Digest::SHA256.hexdigest(JSON.generate(ordered_outcome_value(outcome)))}
+      end
+
+      # Structured results allow the full JSON number range, including integers
+      # outside Canonical JSON's safe range. Sort object keys without narrowing
+      # that result contract or changing the types of its JSON values.
+      private def ordered_outcome_value(value)
+        case value
+        when Hash then value.keys.sort.to_h { |key| [key, ordered_outcome_value(value.fetch(key))] }
+        when Array then value.map { |item| ordered_outcome_value(item) }
+        else value
         end
       end
 

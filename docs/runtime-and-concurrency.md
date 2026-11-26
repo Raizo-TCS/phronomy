@@ -832,10 +832,12 @@ recovery and acknowledgement.
 
 ## Releasing a completed Orchestrator and child
 
-A host can release the local owners once the parent has imported its direct
-child's outcome and both executions have finished. Phronomy keeps the durable
-reservation, execution results and both Agents' transcripts. A later worker
-can load the parent by its Agent ID and use that conversation for another turn.
+A host can release the local owners once the parent has accounted for its direct
+child's outcome and both executions have finished. Ordinary result import or a
+separate acknowledgement recorded by the terminal parent establishes that
+custody disposition. Phronomy keeps the durable reservation, execution results
+and both Agents' transcripts. A later worker can load the parent by its Agent
+ID and use that conversation for another turn.
 
 For example, after answering the last approval, the worker first lets the
 parent import the child's result. It then passes both execution IDs to the
@@ -858,9 +860,21 @@ loading either Agent, use the Agent Store.
 A child may be complete while the parent is still waiting to import its result.
 In that case release is premature. Keep the host claim, finish the parent and
 then release. Active operations, a scoped owner or a conflicting retention can
-also prevent release. The method covers one imported, directly registered child
-of the specified execution. It does not sweep other child instances that the
-application previously left resident.
+also prevent release. The method covers one directly registered child with an
+imported result or a matching terminal-parent acknowledgement. It does not sweep
+other child instances that the application previously left resident.
+
+Under the existing `on_error: :raise` policy, a failed or cancelled required
+child can fail its parent before ordinary import. The final parent transaction
+can instead read and acknowledge that exact saved terminal outcome. This does
+not mark the child imported, rewrite either failure or release durable holds.
+The same unload call can then release the pair once both local owners are free;
+a pending child recovery operation still blocks release. See the
+[parent acknowledgement contract](architecture/parent-child-terminal-acknowledgement.md).
+
+This acknowledgement is created during new parent terminal commits. Historical
+terminal parents with an unimported child and no acknowledgement are not
+backfilled by `resume` or unload.
 
 Generic `unload!` and durable deletion continue to honor retention. Use
 `forget_subagents` only when the application intends to remove the stored

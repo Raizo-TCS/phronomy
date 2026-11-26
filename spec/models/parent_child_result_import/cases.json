@@ -1,0 +1,330 @@
+{
+  "cases": [
+    {
+      "id": "safety-failed",
+      "kind": "property",
+      "description": "A terminal child is acknowledged without rewriting either outcome.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-cancelled",
+      "kind": "property",
+      "description": "A terminal child is acknowledged without rewriting either outcome.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"cancelled\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-succeeded",
+      "kind": "property",
+      "description": "A terminal child is acknowledged without rewriting either outcome.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"succeeded\"\n  ParentOutcome = \"completed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-sibling-active",
+      "kind": "property",
+      "description": "Each sibling receives its own guarded terminal disposition.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"active\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-sibling-suspended",
+      "kind": "property",
+      "description": "Each sibling receives its own guarded terminal disposition.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"suspended\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-sibling-succeeded",
+      "kind": "property",
+      "description": "Each sibling receives its own guarded terminal disposition.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"succeeded\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unready-child",
+      "kind": "property",
+      "description": "A parent can finish before its child has a terminal result.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = FALSE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-wait",
+      "kind": "property",
+      "description": "A nonterminal parent wait does not acknowledge terminal children.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = FALSE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-slot-mismatch",
+      "kind": "property",
+      "description": "A foreign slot does not become an acknowledgement.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = FALSE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-reservation-mismatch",
+      "kind": "property",
+      "description": "A foreign reservation does not become an acknowledgement.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = FALSE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-rollback",
+      "kind": "property",
+      "description": "Rollback leaves both parent outcome and acknowledgement absent.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"pre\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unknown-reply",
+      "kind": "property",
+      "description": "A lost reply and unreadable proof do not authorize another write.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = FALSE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-existing-import",
+      "kind": "property",
+      "description": "An existing imported slot keeps its original meaning.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = TRUE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-drift-result",
+      "kind": "property",
+      "description": "Current relationship and result guards are separate from historical acknowledgement.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"result\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-drift-reservation",
+      "kind": "property",
+      "description": "Current relationship and result guards are separate from historical acknowledgement.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"reservation\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-drift-cancellation",
+      "kind": "property",
+      "description": "Current relationship and result guards are separate from historical acknowledgement.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"cancellation\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-drift-holds",
+      "kind": "property",
+      "description": "Current relationship and result guards are separate from historical acknowledgement.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"holds\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-failure",
+      "kind": "property",
+      "description": "A matching committed terminal pair is eventually releasable under explicit premises.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-cancellation",
+      "kind": "property",
+      "description": "A matching committed terminal pair is eventually releasable under explicit premises.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"cancelled\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-lost-reply",
+      "kind": "property",
+      "description": "A matching committed terminal pair is eventually releasable under explicit premises.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-later-unload-proof",
+      "kind": "property",
+      "description": "A matching committed terminal pair is eventually releasable under explicit premises.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = FALSE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-changed-holds",
+      "kind": "property",
+      "description": "A matching committed terminal pair is eventually releasable under explicit premises.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"holds\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-changed-cancellation",
+      "kind": "property",
+      "description": "A matching committed terminal pair is eventually releasable under explicit premises.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"cancellation\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactTerminalAcknowledgement\nINVARIANT AtomicAcknowledgement\nINVARIANT ImportMeaningPreserved\nINVARIANT HistoryHeld\nINVARIANT NoBusinessReplay\nINVARIANT PairReleaseProof\nINVARIANT ClosedObservation\nINVARIANT ChildOutcomePreserved\nINVARIANT ParentOutcomePreserved\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ignore-slot",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ExactTerminalAcknowledgement",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = FALSE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"ignore_slot\"\nINVARIANT ExactTerminalAcknowledgement\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ignore-reservation",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ExactTerminalAcknowledgement",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = FALSE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"ignore_reservation\"\nINVARIANT ExactTerminalAcknowledgement\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ack-active",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ExactTerminalAcknowledgement",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = FALSE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"ack_active\"\nINVARIANT ExactTerminalAcknowledgement\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ack-wait",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ExactTerminalAcknowledgement",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = FALSE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"ack_wait\"\nINVARIANT ExactTerminalAcknowledgement\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-non-atomic-ack",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "AtomicAcknowledgement",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"pre\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"non_atomic_ack\"\nINVARIANT AtomicAcknowledgement\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ack-is-import",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ImportMeaningPreserved",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"ack_is_import\"\nINVARIANT ImportMeaningPreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-drop-holds",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "HistoryHeld",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"drop_holds\"\nINVARIANT HistoryHeld\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-replay-business",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "NoBusinessReplay",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"replay_business\"\nINVARIANT NoBusinessReplay\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ignore-physical",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "PairReleaseProof",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"ignore_physical\"\nINVARIANT PairReleaseProof\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-ignore-digest",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "PairReleaseProof",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"result\"\n  Bug = \"ignore_digest\"\nINVARIANT PairReleaseProof\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-terminal-is-ack",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "PairReleaseProof",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = FALSE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"terminal_is_ack\"\nINVARIANT PairReleaseProof\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-reopen-observer",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ClosedObservation",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"reopen_observer\"\nINVARIANT ClosedObservation\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-change-parent-outcome",
+      "kind": "mutation",
+      "description": "The named unsafe rule must produce its intended invariant counterexample.",
+      "target": "ParentOutcomePreserved",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"change_parent_outcome\"\nINVARIANT ParentOutcomePreserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-freeze-child-holds",
+      "kind": "mutation_liveness",
+      "description": "An unchanged child hold set is not a prerequisite for proving the parent commit.",
+      "temporal_target": "EventuallyReadPost",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"holds\"\n  Bug = \"freeze_child_holds\"\nPROPERTY EventuallyReadPost\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-pending-child-owner",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoAcknowledgedPendingChildWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoAcknowledgedPendingChildWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-failed-observer-released",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoFailedObserverReleasedWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoFailedObserverReleasedWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-acknowledged-unimported",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoUnimportedAcknowledgementWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoUnimportedAcknowledgementWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-active-sibling-retained",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoActiveSiblingWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"active\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoActiveSiblingWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-terminal-sibling-adopted",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoTerminalSiblingWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"succeeded\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoTerminalSiblingWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-unknown-saved-post",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoUnknownPostWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = FALSE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoUnknownPostWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "witness-unknown-post-later-release",
+      "kind": "witness",
+      "description": "The named state must be reachable without an unsafe rule.",
+      "target": "NoUnknownPostReleasedWitness",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = FALSE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT NoUnknownPostReleasedWitness\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-caller",
+      "kind": "missing_assumption",
+      "description": "Removing this progress premise must yield a temporal counterexample.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = FALSE\n  Drift = \"none\"\n  Bug = \"none\"\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-cleanup",
+      "kind": "missing_assumption",
+      "description": "Removing this progress premise must yield a temporal counterexample.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = FALSE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-readable-parent-proof",
+      "kind": "missing_assumption",
+      "description": "Removing this progress premise must yield a temporal counterexample.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"lost\"\n  Readable = FALSE\n  UnloadReadable = FALSE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-committed-parent",
+      "kind": "missing_assumption",
+      "description": "Removing this progress premise must yield a temporal counterexample.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = TRUE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"pre\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-terminal-child-before-parent",
+      "kind": "missing_assumption",
+      "description": "Removing this progress premise must yield a temporal counterexample.",
+      "temporal_target": "EventuallyReleased",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  ParentOutcome = \"failed\"\n  Sibling = \"absent\"\n  Ready = FALSE\n  Finishing = TRUE\n  MatchSlot = TRUE\n  MatchReservation = TRUE\n  Imported = FALSE\n  Save = \"post\"\n  Reply = \"normal\"\n  Readable = TRUE\n  UnloadReadable = TRUE\n  Cleanup = TRUE\n  Caller = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    }
+  ]
+}

@@ -59,8 +59,8 @@ module Phronomy
         @participant = @coordination_store && DurableSubagentCoordinator.new(agent_class: self.class, persistence: @coordination_store)
       end
 
-      # Release the local parent and its directly dispatched child after the
-      # child's outcome has been imported. The stored history remains intact.
+      # Release the local parent and its directly dispatched child after import
+      # or terminal-parent acknowledgement. The stored history remains intact.
       # @api public
       def unload_with_completed_child!(parent_execution_id, execution_id:)
         owner = {"kind" => "subagent", "parent_agent_id" => agent_id, "parent_execution_id" => parent_execution_id}

@@ -1,0 +1,13 @@
+digraph ChildOwner {
+  graph [rankdir=TB, bgcolor="transparent", label="Child local execution owner", labelloc=t, fontname="sans-serif", fontsize=18, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fb", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.18,0.12"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=11];
+  start [shape=point, width=0.12, label=""];
+  active [label="Child active\nLocal owner held"];
+  terminal [label="Terminal result durable\nLocal owner may still be held"];
+  free [label="Child physically finished\nLocal admission released\nDurable history retained", fillcolor="#e7f5eb"];
+  start -> active;
+  active -> terminal [label="Terminal save / preserve result"];
+  terminal -> terminal [label="Parent reads result / no local release"];
+  terminal -> free [label="Existing cleanup completes\n[physical obligation resolved]"];
+}
