@@ -1,0 +1,14 @@
+digraph ClientObserver {
+  graph [rankdir=TB, bgcolor="transparent", label="Original caller observation: failure profile", labelloc=t, fontname="sans-serif", fontsize=18, ranksep=0.5];
+  node [shape=box, style="rounded,filled", fillcolor="#eef5fb", color="#2d5578", fontname="sans-serif", fontsize=12, margin="0.18,0.12"];
+  edge [color="#2d5578", fontname="sans-serif", fontsize=11];
+  start [shape=point, width=0.12, label=""];
+  pending [label="Observation pending"];
+  failed [label="Observation closed with failure\nHistorical result remains unchanged", fillcolor="#fff0e8"];
+  stop [shape=doublecircle, width=0.15, label="", fillcolor="#2d5578"];
+  note [shape=note, style=filled, fillcolor="#fff9df", label="A later unload request is independent.\nParent acknowledgement and local release\ndo not reopen this observation."];
+  start -> pending;
+  pending -> failed [label="Original operation reports failure\n/ close this observation"];
+  failed -> stop;
+  failed -> note [style=dashed, arrowhead=none];
+}

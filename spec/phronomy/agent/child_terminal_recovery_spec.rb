@@ -58,6 +58,19 @@ RSpec.describe "Correlated child terminal recovery through the original Runtime"
       start_child_recovery
       observe_child_recovery
       count = @child_recorder.calls.size
+      if mode == :post
+        expect { child_result(@parent_original) }.to raise_error(Phronomy::Error)
+        extension = stores.agent.execution_extension(agent_id: parent.agent_id, execution_id: root_id,
+          binding_key: "phronomy.subagent")
+        slot = stores.multi_agent.contents.fetch_json(extension.state_ref).fetch("children").first
+        expect(slot.fetch("imported")).to be(false)
+        expect(slot.fetch("terminal_acknowledgement")).to include("execution_id" => @child_execution_id)
+        # Durable custody is established, but the child's local recovery owner
+        # still prevents unloading either live Agent as a completed pair.
+        expect { parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id) }
+          .to raise_error(Phronomy::AgentBusyError)
+        expect_child_owner_retained
+      end
       receipt = child_reconcile
       if mode == :pre
         expect(receipt.outcome).to eq(:confirmed_pre)
@@ -89,10 +102,17 @@ RSpec.describe "Correlated child terminal recovery through the original Runtime"
       expect(stores.agent.retained_references(agent_id: @recovery_child.agent_id)).not_to be_empty
       expect(@child_registry.agent_execution_admitted?(@recovery_child.agent_id)).to be(false)
       expect(@child_registry.agent_execution_admitted?(parent.agent_id)).to be(false)
-      # Error propagation does not mark the native slot as imported. Its
-      # existing participant history policy remains separate from child recovery.
-      expect { parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id) }
-        .to raise_error(Phronomy::AgentBusyError)
+      # Terminal custody acknowledgement permits local cleanup while preserving
+      # the distinction from successful result import and durable history release.
+      extension = stores.agent.execution_extension(agent_id: parent.agent_id, execution_id: root_id,
+        binding_key: "phronomy.subagent")
+      slot = stores.multi_agent.contents.fetch_json(extension.state_ref).fetch("children").first
+      expect(slot.fetch("imported")).to be(false)
+      expect(slot.fetch("terminal_acknowledgement")).to include("execution_id" => @child_execution_id,
+        "status" => receipt.execution.status.to_s, "reservation" => receipt.execution.reservation.correlation)
+      holds = stores.agent.retained_references(agent_id: @recovery_child.agent_id)
+      expect(parent.unload_with_completed_child!(root_id, execution_id: @child_execution_id)).to be(true)
+      expect(stores.agent.retained_references(agent_id: @recovery_child.agent_id)).to eq(holds)
     end
   end
 
