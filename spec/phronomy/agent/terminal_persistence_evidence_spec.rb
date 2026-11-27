@@ -44,6 +44,7 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
   end
 
   it "copies mutable result values without freezing caller values or retaining a writer scope" do
+    captured_output = output.to_s
     evidence, result = capture
     stored = persistence.observe_execution(agent_id: agent.agent_id, execution_id: execution.execution_id)
     output.fetch("answer") << "later"
@@ -52,7 +53,7 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     expect(evidence.outcome.result.fetch(:usage)).to be_frozen
     expect(evidence.outcome.result.fetch(:messages)).to all(be_frozen)
     expect(evidence.outcome.execution_observation).to eq(stored)
-    expect(evidence.outcome.execution_observation.result).to eq('{"answer"=>["captured"]}')
+    expect(evidence.outcome.execution_observation.result).to eq(captured_output)
     expect { evidence.before.fetch(0).fetch(0)["changed"] = true }.to raise_error(FrozenError)
     expect { evidence.content_writes.first.bytes << "changed" }.to raise_error(FrozenError)
     expect(evidence).to be_frozen
