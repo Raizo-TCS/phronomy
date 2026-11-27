@@ -4,7 +4,7 @@ A native parent can save a final result, an active coordination wait or its own 
 
 For example, a report parent tries to finish while a reviewer still owns work. Its participant saves a coordination wait. Proving that save committed permits publication of the same active wait; it does not prove that the report completed. If the reviewer finishes meanwhile, a later ordinary parent resume can import that new fact.
 
-The original G3h model used applied G3g `44288e1239701bf16aa67854a48c830b7295e2d4`, tree `31193090f7305c82da780765f803b955742330c7`, as its baseline. The G3i preparation prefix extends applied G3h `cfef5fc0b961e8e29868e0fa15b03326dc1d7629`. Contract concept v55 and foundation v48 remain the architecture references. This is one bounded protocol model, not a refinement proof of Ruby. The public native `OutcomeRecovery` family distinguishes these three saved kinds; the existing `TerminalRecovery` family remains actual-final-only. The parent's own decision uses the existing `ApprovalRecovery` family.
+The original G3h model used applied G3g `44288e1239701bf16aa67854a48c830b7295e2d4`, tree `31193090f7305c82da780765f803b955742330c7`, as its baseline. The G3i preparation prefix extends applied G3h `cfef5fc0b961e8e29868e0fa15b03326dc1d7629`. The G3j publication-data extension uses applied G3i `a6c026aaa02b069a330662d67e906c9b6204f6d0`, tree `91b9e799b5a3b6c9ab67b411727f8a5fbd20c318`. Contract concept v55 and foundation v48 remain the architecture references. This is one bounded protocol model, not a refinement proof of Ruby. The public native `OutcomeRecovery` family distinguishes these three saved kinds; the existing `TerminalRecovery` family remains actual-final-only. The parent's own decision uses the existing `ApprovalRecovery` family.
 
 ## Retain complete material before real outcome writes
 
@@ -27,6 +27,28 @@ After the original physical work settles, a management attempt may construct exe
 For example, the first `NativeOutcomeEvidence` construction can fail after complete raw capture and before any real write. A later reconciliation can construct the evidence and confirm pre-state; a later explicit retry can save it. Alternatively, the first explicit retry can materialize, classify and write. A genuine encoder or custom conversion failure before complete capture remains held and unavailable, because no replay contract permits repeating that opaque work.
 
 `Materializable` is the explicit availability premise for later proof construction. `InitialProofFails` selects an original construction failure, while `ImmediateRetry` includes a caller who starts with explicit retry rather than a read-only reconciliation. `CompletePlanBeforeWrite`, `RawPlanIdentity`, `ReadOnlyMaterialization`, `SettledMaterialization` and `NoOpaquePreparationReplay` check ordering, identity, no construction writes, physical/owner authority and the lack of generic preparation replay. `OpaquePreparationRetained` checks the intentionally blocked case. No property promises that an arbitrary incomplete encoder or conversion will eventually succeed.
+
+## Publish the captured values without reading the live source again
+
+The recovery owner publishes a terminal observation from the same complete retained values used for persistence. Later changes to caller-owned output or loss of access to the original business error must not change that observation or prevent otherwise eligible publication. This adds data properties to the existing owner and publication action; the five owner/preparation diagrams and their topology remain unchanged.
+
+For example, a report application's output filter returns a mutable String. The persistence proposal captures its original text, then the first save attempt fails. If application code changes the String before recovery, the recovered execution must still expose the captured text. Similarly, once a custom error's diagnostic has been captured, a later failure of that error's `message` method must not prevent publication of the stored failure. These are separate cases: an unavailable error does not have to produce a different value before it blocks an unsafe conversion.
+
+`PublicationSource` selects a result, raw-output or diagnostic identity, or an unavailable diagnostic. The original 139 configurations use `"none"`; their scenarios and selected properties remain unchanged. Those earlier checks represented immutable content coordinates and saved kinds, but did not model mutable live publication values or repeated business-error diagnostic conversion. They did not detect or prove the absence of these G3j implementation defects.
+
+| Data element | Meaning in this finite extension |
+| --- | --- |
+| `owner.capturedPayload` | The retained exact payload identity; `1` denotes the captured content whose durable post-state is checked by the existing proof. |
+| `owner.livePayload` | The original source identity, which can change once from `1` to `2` after complete evidence capture. |
+| `owner.receiptPayload` | The terminal payload identity actually published to the new observation. |
+| `owner.diagnosticAvailable` | Whether the original business error could still be converted after capture. |
+| `owner.diagnosticConversions` | Attempts to convert that original business error again during publication; bounded at two in the deliberate mutant. |
+
+`ExactPublishedPayload` requires the published identity to equal the retained identity. `NoPublicationReconversion` excludes another conversion of the original business error after capture. The progress cases require application and owner release even when the live diagnostic becomes unavailable, under the existing readability, caller, explicit-retry, cleanup, publication and applicable materialization premises. The conversion counter excludes diagnostics for newly encountered transport/recovery errors, decoding retained JSON bytes and application listeners that choose to inspect an original exception themselves.
+
+The new safety cases cover result publication after pre- and post-state saves, and raw-output/diagnostic publication after post-state saves. Three progress cases cover an unavailable original diagnostic after pre-state, post-state and deferred-proof paths. Four safety mutants deliberately publish changed live values or reconvert the original diagnostic; one progress mutant lets an unavailable original diagnostic block publication. Two witnesses show detached result publication and publication/release despite an unavailable diagnostic. This is a selected finite matrix, not every combination of child-authority drift, saved kind and payload source.
+
+The raw-output change is an abstract overapproximation used to check source independence. Actual Provider `Response` content is copied/frozen by `Message`; the mutable raw-output scenario is not a claimed reachable Ruby defect. Actual Ruby tests must establish exact structured raw-output equality, the full stored `OutputError` diagnostic fields, JSON encoding/decoding and event/error identity compatibility. The model does not derive these details from its two abstract value identities. The demonstrated Ruby defects concern mutable output-filter results and repeated conversion of the original custom error. Incomplete preparation remains intentionally unavailable; no new action retries opaque preparation or an encoder.
 
 ## Separate the owners and their events
 
@@ -56,7 +78,7 @@ These are separate UML-style state views with events, guards and actions. The tw
 | `originalPhysical`, `work.physical` | Physical settlement of the original save and a subsequent management attempt. |
 | `clients.status` | Two independent recovery observations; the selected original invocation is already closed with failure. |
 
-The model abstracts immutable values and record revisions as matching or changed coordinates. Actual Store identity, JSON encodings, canonical references, deterministic slot hashes, approval request contents and append-only native plan validation remain Ruby test obligations.
+The model abstracts persisted values and record revisions as matching or changed coordinates. The G3j extension separately models a mutable live publication source and its retained identity. Actual Store identity, JSON encodings, canonical references, deterministic slot hashes, approval request contents and append-only native plan validation remain Ruby test obligations.
 
 ## Preserve the saved outcome and its lifetime
 
@@ -111,7 +133,7 @@ For example, a child relationship can change after a decision's guarded proof bu
 
 `ProgressSpec` adds weak fairness to enabled staging/proof/write steps, original completion, management attempts, guarded transactions, recovery completion, result delivery, application and release. Its `Readable`, `Caller`, `ExplicitRetry`, `Cleanup`, `Publication` and, for deferred outcome evidence, `Materializable` premises are explicit. The preparation progress cases assume complete preparation succeeds; removing that assumption intentionally demonstrates why opaque failures are not promised recovery. A lost outcome retry response can need the third and final modeled read. A valid recovered destination may be an active coordination wait or a suspended approval wait; no property promises eventual child completion, a future user approval, later parent resume or end-to-end business success.
 
-The bounds are one captured parent operation, one representative native child relationship, three management attempts, two observers and one relevant external change. `RefuseFirst` models initial local application refusal. Outcome application can later use known history; decision application must obtain fresh proof. Multi-child scheduling, arbitrary participant recovery, Handoff routing lineage, process-loss recovery and a general distributed fence remain outside this model.
+The bounds are one captured parent operation, one representative native child relationship, three management attempts, two observers and one relevant external authority change. The publication-data extension separately allows one live-source change and, only in its conversion mutant, at most two forbidden diagnostic conversions. Its 14 configurations select no external authority drift; the unchanged older cases cover that authority axis. `RefuseFirst` models initial local application refusal. Outcome application can later use known history; decision application must obtain fresh proof. Multi-child scheduling, arbitrary participant recovery, Handoff routing lineage, process-loss recovery and a general distributed fence remain outside this model.
 
 ## Check valid rules and deliberate counterexamples
 
@@ -121,16 +143,16 @@ For example, labeling every saved wait as terminal fails `SeparateSavedKind`. Fr
 
 | Case family | Count | Expected result |
 | --- | ---: | --- |
-| Safety configurations | 46 | Selected invariants hold. |
-| Conditional progress configurations | 20 | Eligible application and recovery-owner release hold. |
-| Safety mutations | 48 | The named invariant has a counterexample. |
-| Progress mutations | 2 | Freezing legal child progress or unrelated generation blocks valid recovery. |
-| Reachability witnesses | 13 | The negated valid-state invariant has a counterexample. |
+| Safety configurations | 50 | Selected invariants hold. |
+| Conditional progress configurations | 23 | Eligible application and recovery-owner release hold. |
+| Safety mutations | 52 | The named invariant has a counterexample. |
+| Progress mutations | 3 | Freezing legal child progress, unrelated generation or reliance on an unavailable original diagnostic blocks valid recovery. |
+| Reachability witnesses | 15 | The negated valid-state invariant has a counterexample. |
 | Missing progress premises | 9 | Temporal counterexample. |
 | Missing decision read-to-admission stability | 1 | Current-authority safety counterexample. |
-| Total | 139 | Every case must match its declared expected result. |
+| Total | 153 | Every case must match its declared expected result. |
 
-The safety set includes complete historical proof, captured-only atomic retry, sticky post-state, deferred-proof limits, fresh decision authority, exact result/request identity, one publication, distinct receipt semantics, suspended cancellation ownership, no business/child replay, durable history retention, original-owner/physical custody and independent closed observations. The 40 added configurations comprise 13 safety, eight progress, ten safety mutations, five witnesses and four missing-premise cases for staging and deferred outcome proof. Counts are configurations, not independent theorems or a coverage percentage.
+The safety set includes complete historical proof, captured-only atomic retry, sticky post-state, deferred-proof limits, fresh decision authority, exact result/request identity, one publication, distinct receipt semantics, suspended cancellation ownership, no business/child replay, durable history retention, original-owner/physical custody and independent closed observations. The G3i extension added 40 configurations to the original 99: 13 safety, eight progress, ten safety mutations, five witnesses and four missing-premise cases for staging and deferred outcome proof. The G3j extension preserves those 139 configurations and adds 14: four safety, three progress, four safety mutations, one progress mutation and two witnesses for publication data. Thus the current family contains 73 positive property configurations, 55 deliberate mutations, 15 witnesses and ten missing-premise cases. Counts are configurations, not independent theorems or a coverage percentage.
 
 Each configuration is stored verbatim in `cases.json`. The runner checks the named invariant or temporal-counterexample class for negative cases. Parser errors, an unrelated invariant failure, unexpected positive counterexamples and unexpectedly successful negative cases fail the run. The result verifies the stated finite abstraction; concrete implementation correctness additionally requires the Ruby acceptance suite.
 

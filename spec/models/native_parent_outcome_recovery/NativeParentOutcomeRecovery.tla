@@ -6,7 +6,7 @@ CONSTANTS Kind, Save, ChildKind, ChildState, InitialHold, Approved,
           RefuseFirst, RetryReplyLost, InitiallyCaptured, NoWriteStarted,
           Drift, ObserveClients, Bug,
           PreparationMode, PreparationSucceeds, InitialProofFails,
-          Materializable, ImmediateRetry
+          Materializable, ImmediateRetry, PublicationSource
 VARIABLES durable, child, owner, work, clients, originalPhysical, preparation
 vars == <<durable, child, owner, work, clients, originalPhysical, preparation>>
 OutcomeKinds == {"terminal", "coordination_wait", "approval_wait"}
@@ -71,7 +71,10 @@ Init ==
        cancellationBound |-> FALSE, coordinationHandle |-> FALSE,
        receiptKind |-> "none", receiptExecution |-> FALSE, receiptApproval |-> FALSE,
        decisionAdmissions |-> 0, validDecision |-> TRUE, validApplication |-> TRUE,
-       preparations |-> 1, participantRuns |-> 1, effects |-> 0]
+       preparations |-> 1, participantRuns |-> 1, effects |-> 0,
+       capturedPayload |-> IF PreparationMode = "legacy" /\ InitiallyCaptured THEN 1 ELSE 0,
+       livePayload |-> 1, diagnosticAvailable |-> TRUE, sourceChanged |-> FALSE,
+       receiptPayload |-> 0, diagnosticConversions |-> 0]
  /\ work = [stage |-> "idle", count |-> 0, kind |-> "read", result |-> "unknown",
        physical |-> TRUE, grant |-> FALSE, exactFact |-> FALSE, validCapture |-> TRUE]
  /\ clients = [original |-> "failed", status |-> [i \in Observers |-> "unused"],
@@ -93,7 +96,8 @@ PrepareOriginal ==
  /\ preparation' = [preparation EXCEPT
        !.phase = IF PreparationSucceeds THEN "raw" ELSE "opaque_failed",
        !.raw = PreparationSucceeds]
- /\ UNCHANGED <<durable, child, owner, work, clients, originalPhysical>>
+ /\ owner' = [owner EXCEPT !.capturedPayload = IF PreparationSucceeds THEN 1 ELSE @]
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
 
 ConstructOriginalProof ==
  /\ PreparationMode = "staged" /\ preparation.phase = "raw"
@@ -224,7 +228,7 @@ PermitCachedApplication ==
  /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
 
 ApplyPublication ==
- /\ Publication /\ owner.held /\ owner.publicationCount < 2
+ /\ Publication /\ owner.held /\ owner.publicationCount < 2 /\ owner.diagnosticConversions < 2
  /\ (~owner.applied \/ Bug = "repeat_publication")
  /\ owner.ready \/ (Bug = "repeat_publication" /\ owner.applied)
  /\ work.stage = "idle" /\ (work.physical \/ Bug = "ignore_physical")
@@ -236,9 +240,19 @@ ApplyPublication ==
         applied == IF Bug = "all_terminal" THEN "terminal" ELSE selected
         suspended == applied \in {"approval_wait", "approval_restored"}
         decision == selected = "decision_continuation"
-    IN /\ owner' = [owner EXCEPT !.applied = TRUE, !.ready = FALSE,
+        reconvert == Bug = "reconvert_publication_diagnostic" /\
+          PublicationSource \in {"diagnostic", "unavailable_diagnostic"}
+        livePayload == (Bug = "publish_live_result" /\ PublicationSource = "result") \/
+          (Bug = "publish_live_raw_output" /\ PublicationSource = "raw_output") \/
+          (Bug = "publish_live_diagnostic" /\ PublicationSource = "diagnostic")
+    IN /\ owner' = IF reconvert /\ ~owner.diagnosticAvailable
+         THEN [owner EXCEPT !.diagnosticConversions = @ + 1]
+         ELSE [owner EXCEPT !.applied = TRUE, !.ready = FALSE,
            !.application = applied, !.publicationCount = @ + 1,
            !.identity = IF Bug = "wrong_identity" THEN 2 ELSE 1,
+           !.receiptPayload = IF Kind = "terminal" THEN
+             IF livePayload THEN owner.livePayload ELSE owner.capturedPayload ELSE 0,
+           !.diagnosticConversions = @ + IF reconvert THEN 1 ELSE 0,
            !.executionAdmitted = IF Bug = "release_suspended_execution" /\ suspended THEN FALSE
                                  ELSE applied \in {"approval_wait", "approval_restored", "decision_continuation"},
            !.executionState = CASE applied = "terminal" -> "terminal"
@@ -299,9 +313,22 @@ ReplaceOwner ==
  /\ owner' = [owner EXCEPT !.original = FALSE]
  /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
 
+(* One live result/raw-output/diagnostic value may change after complete
+   evidence capture. The retained value denotes the exact durable payload.
+   Re-reading the live diagnostic is an intentional mutation, not a premise
+   of correct publication. New transport diagnostics and JSON decoding of
+   retained bytes are outside this business-error conversion counter. *)
+ChangePublicationSource ==
+ /\ PublicationSource \in {"result", "raw_output", "diagnostic", "unavailable_diagnostic"}
+ /\ Kind = "terminal" /\ owner.evidence /\ ~owner.sourceChanged /\ ~owner.applied
+ /\ owner' = [owner EXCEPT !.sourceChanged = TRUE,
+       !.livePayload = IF PublicationSource = "unavailable_diagnostic" THEN @ ELSE 2,
+       !.diagnosticAvailable = PublicationSource # "unavailable_diagnostic"]
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
+
 Next == PrepareOriginal \/ ConstructOriginalProof \/ OriginalWrite \/ OriginalCompletes \/ BeginAttempt \/ GuardedTransaction \/ WorkerCompletes \/
         ReceiveAttempt \/ PermitCachedApplication \/ ApplyPublication \/ ReleaseRecovery \/
-        (\E i \in Observers : CancelObserver(i)) \/ ChangeParent \/ ChangeChild \/ ReplaceOwner
+        (\E i \in Observers : CancelObserver(i)) \/ ChangeParent \/ ChangeChild \/ ReplaceOwner \/ ChangePublicationSource
 Spec == Init /\ [][Next]_vars
 ProgressSpec == Spec /\ WF_vars(PrepareOriginal) /\ WF_vars(ConstructOriginalProof) /\
   WF_vars(OriginalWrite) /\ WF_vars(OriginalCompletes) /\ WF_vars(BeginAttempt) /\
@@ -354,9 +381,22 @@ OpaquePreparationRetained ==
 PreparationTypeOK ==
   preparation.phase \in {"legacy", "encoding", "raw", "ready", "proof_failed", "attempted", "opaque_failed"} /\
   preparation.initialWrites \in 0..1 /\ preparation.materializations \in 0..3
+ExactPublishedPayload ==
+  (owner.applied /\ Kind = "terminal" /\ PublicationSource # "none") =>
+    owner.receiptPayload = 1 /\ owner.receiptPayload = owner.capturedPayload
+NoPublicationReconversion == owner.diagnosticConversions = 0
+PublicationValueTypeOK == owner.capturedPayload \in 0..1 /\
+  owner.livePayload \in 1..2 /\ owner.receiptPayload \in 0..2 /\
+  owner.diagnosticConversions \in 0..2
 EventuallyApplied == <>owner.applied
 EventuallyReleased == <>~owner.held
 
+NoDetachedPublicationWitness == ~(owner.sourceChanged /\ owner.applied /\
+  owner.receiptPayload = owner.capturedPayload /\ owner.receiptPayload = 1 /\
+  owner.livePayload = 2 /\ owner.diagnosticConversions = 0)
+NoUnavailableDiagnosticPublicationWitness == ~(owner.sourceChanged /\
+  ~owner.diagnosticAvailable /\ owner.applied /\ owner.receiptPayload = 1 /\
+  owner.diagnosticConversions = 0 /\ ~owner.held)
 NoRawPlanWitness == ~(preparation.raw /\ ~owner.evidence /\
   preparation.phase = "proof_failed" /\ preparation.initialWrites = 0 /\ owner.held)
 NoDeferredOutcomeProofWitness == ~(preparation.materializations > 0 /\

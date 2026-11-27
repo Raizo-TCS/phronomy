@@ -510,14 +510,10 @@ module Phronomy
         raise Phronomy::Error, "Agent #{recovery_kind} save returned no semantic outcome" unless outcome
         execution = outcome.execution
         observation = if execution.terminal?
-          ExecutionObservation.new(agent_id: agent_id, execution_id: execution_id,
-            status: execution.status, result: outcome.result&.fetch(:output, nil),
-            raw_output: outcome.result&.fetch(:raw_output, nil),
-            error: outcome.error && (outcome.error.is_a?(OutputError) ? outcome.error.diagnostic : Phronomy::Error.diagnostic(outcome.error)),
-            reservation: execution.metadata["reservation"] && ReservedExecution.new(agent_id: agent_id,
-              execution_id: execution_id, correlation: execution.metadata["reservation"]),
-            transfer_receipt: nil, cancellation_requested: execution.metadata["cancellation_requested"] == true ||
-              @mutex.synchronize { @evidence && @evidence.after.fetch(0).fetch(4) } || false)
+          # The worker already decoded this observation from the exact captured
+          # content. Publication must not revisit mutable output or exception code.
+          @mutex.synchronize { @evidence&.outcome&.execution_observation } ||
+            raise(Phronomy::Error, "Agent #{recovery_kind} save has no captured execution observation")
         end
         @mutex.synchronize do
           @confirmation = :committed

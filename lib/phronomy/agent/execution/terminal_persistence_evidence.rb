@@ -14,7 +14,7 @@ module Phronomy
     # @api private
     class TerminalPersistenceEvidence
       ContentWrite = Data.define(:reference, :bytes, :canonicalization_version)
-      Outcome = Data.define(:type, :execution, :root, :appended_records, :result, :error_diagnostic, :approval_request)
+      Outcome = Data.define(:type, :execution, :root, :appended_records, :result, :error_diagnostic, :approval_request, :execution_observation)
       Result = Data.define(:disposition, :evidence, :original_error, :read_error)
 
       # Complete intended values survive a failed proof constructor. Rebuilding
@@ -28,7 +28,7 @@ module Phronomy
                      after: Phronomy::Values::Immutable.copy(values.fetch(:after)),
                      result: values.fetch(:result)}.freeze
           @writes = writes.dup.freeze
-          @outcome = TerminalPersistenceEvidence.detached_outcome(values.fetch(:result))
+          @outcome = TerminalPersistenceEvidence.detached_outcome(@values, @writes)
           @identity, @participant = persistence.execution_evidence_identity, participant
           freeze
         end
@@ -62,7 +62,23 @@ module Phronomy
       end
 
       RecordingScope = Data.define(:contents, :agents, :executions, :journals)
-      private_constant :RecordingContents, :RecordingScope
+
+      # Decode only already captured bytes, using the ordinary content format.
+      # Missing input cannot be replaced by a new read or a live domain value.
+      class CapturedContents < Phronomy::ContentStore::Base
+        def initialize(writes)
+          @writes = writes
+        end
+
+        def fetch(reference)
+          write = @writes.find { |candidate| candidate.reference == reference }
+          unless write
+            raise Phronomy::ContentStore::IntegrityError, "Agent outcome observation has no captured content: #{reference}"
+          end
+          write.bytes.dup
+        end
+      end
+      private_constant :RecordingContents, :RecordingScope, :CapturedContents
 
       attr_reader :before, :after, :outcome, :content_writes, :attempt_id, :agent_id, :execution_id
 
@@ -89,12 +105,28 @@ module Phronomy
         new(values, writes, persistence.execution_evidence_identity, participation, outcome: outcome)
       end
 
-      def self.detached_outcome(intended)
+      def self.detached_outcome(values, writes)
+        intended = values.fetch(:result)
+        execution = intended.execution
+        observation = if execution.terminal?
+          contents = CapturedContents.new(writes)
+          result = if execution.result_ref
+            (execution.metadata["result_format"] == "json") ? contents.fetch_json(execution.result_ref) : contents.fetch_text(execution.result_ref)
+          end
+          ExecutionObservation.new(agent_id: execution.agent_id, execution_id: execution.execution_id,
+            status: execution.status, result: result,
+            raw_output: execution.metadata["raw_output_ref"] && contents.fetch_text(execution.metadata.fetch("raw_output_ref")),
+            error: execution.error_ref && contents.fetch_json(execution.error_ref),
+            reservation: execution.metadata["reservation"] && ReservedExecution.new(agent_id: execution.agent_id,
+              execution_id: execution.execution_id, correlation: execution.metadata["reservation"]),
+            transfer_receipt: nil, cancellation_requested: execution.metadata["cancellation_requested"] == true || values.fetch(:after).fetch(0).fetch(4) == true)
+        end
         Outcome.new(type: intended.type, execution: intended.execution,
           root: intended.root, appended_records: intended.appended_records.dup.freeze,
           result: Phronomy::Values::Immutable.copy(intended.result),
-          error_diagnostic: intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)),
-          approval_request: intended.approval_request && Phronomy::Values::Immutable.copy(intended.approval_request.to_h))
+          error_diagnostic: observation ? observation.error : intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)),
+          approval_request: intended.approval_request && Phronomy::Values::Immutable.copy(intended.approval_request.to_h),
+          execution_observation: observation)
       end
 
       def initialize(values, writes, persistence_identity, participation, outcome: nil)
@@ -104,7 +136,7 @@ module Phronomy
         @agent_id = intended.execution.agent_id
         @execution_id = intended.execution.execution_id
         @journal_position = before.fetch(0).fetch(0).fetch("journal_position")
-        @outcome = outcome || self.class.detached_outcome(intended)
+        @outcome = outcome || self.class.detached_outcome(values, writes)
         @content_writes = writes.dup.freeze
         @attempt_id = SecureRandom.uuid.freeze
         freeze
