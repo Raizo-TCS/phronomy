@@ -179,13 +179,32 @@ refusal evidence at exactly that boundary.
 
 | Model action or field | Implementation responsibility |
 | --- | --- |
-| `RejectWithProof` | Submission mechanism calls `on_rejected` before enqueue; the owner retains that attempt's proof. |
+| `RejectWithProof` | Submission mechanism calls `on_rejected` before enqueue; the owner records the exact attempt through `RetainedAttempts#submission_rejected_locked`. |
 | `AcceptSubmission` / `BeginWorker` | Returned handle or worker entry makes `submission_state` admitted permanently. |
 | `EnqueueThenUnknownFailure` | Submitter failure without positive receipt remains unknown when no handle/entry is observed. |
 | `StartEvidence` | Existing `reconcile_terminal` / `retry_terminal` paths use complete captured proof. |
-| `Join` / `RejectMixed` | One physical lane supports independent same-mode observers; mixed requests remain unavailable. |
+| `Join` / `RejectMixed` | The owner selects compatible modes, using `RetainedAttempts#reserve_locked` and `join_locked`; mixed requests remain unavailable. |
 | `ApplyPost` / `Release` | Existing exact-owner application and physical-quiescence checks precede release. |
 | `wire` and retained slots | A failed notification does not erase accepted work; a fresh explicit observation may inspect it. |
+
+## Current implementation mapping (2026-11-28)
+
+The Agent outcome/terminal owner uses C13 `RetainedAttempts` for the initial attempt,
+one recovery lane, admission facts and observer membership, and
+`AttemptCompletion` for worker results and logical/physical evidence. The owner
+retains first-work submission knowledge, explicit retry mode and accepted-job release. The current command, snapshot and mutex boundaries are documented in
+[shared retained-attempt management](../../../docs/architecture/retained-attempts.md).
+
+For example, an observer can finish while the save worker is still running.
+The shared manager keeps the physical lane and recorded worker facts; the owner
+later decides what those facts authorize. Registering an inline callback or
+merging a stale task snapshot is still a concrete Ruby implementation obligation.
+
+This mapping update does not change the TLA+ transitions, configuration bounds,
+expected counterexamples or progress premises. The models do not count mutex
+acquisitions or enumerate partial callback registration. Fresh protocol-model
+runs and their exact input hashes are recorded in delivery evidence; neither a
+fresh run nor this correspondence table proves refinement of the Ruby code.
 
 ## Reproduce and inspect
 

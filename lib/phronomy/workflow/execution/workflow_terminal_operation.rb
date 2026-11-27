@@ -29,9 +29,7 @@ module Phronomy
       @snapshot = command.snapshot
       @original_observer = execution.result_task
       @mutex = Mutex.new
-      @save = new_slot(nil)
-      @attempt = nil
-      @observers = []
+      @attempts = Phronomy::RetainedAttempts.new(mutex: @mutex)
       @original_error = nil
       @last_error = nil
       @uncertain = false
@@ -58,10 +56,14 @@ module Phronomy
       task = submit_worker(nil) do
         WorkflowTerminalPersistence.save(@command, on_error: method(:remember_save_error))
       end
-      watch(task, nil)
+      watch(nil)
       self
     rescue => error
-      if task || !@mutex.synchronize { @save[:rejection_confirmed] && !@save[:started] }
+      refused = @mutex.synchronize do
+        initial = @attempts.snapshot_locked(nil)
+        initial[:rejection_confirmed] && !initial[:started]
+      end
+      if task || !refused
         # An absent handle is not refusal evidence. Keep the command and original
         # owner when admission is unknown, just as for callback binding failure.
         reject_initial_delivery(error)
@@ -70,9 +72,7 @@ module Phronomy
       # Only synchronous executor refusal proves that this save cannot run.
       # Workflow preserves its ordinary known-failure release policy in that case.
       @mutex.synchronize do
-        @save[:physical] = true
-        @save[:logical] = true
-        @save[:error] = error
+        @attempts.submission_failed_locked(nil, error, refused: true)
         @session_decision = :known_failure
         @application_state = :applied
       end
@@ -115,7 +115,7 @@ module Phronomy
 
     def normal_finalization?
       @mutex.synchronize do
-        !@uncertain && @save[:physical] && %i[success known_failure].include?(@session_decision)
+        !@uncertain && @attempts.snapshot_locked(nil)[:physical] && %i[success known_failure].include?(@session_decision)
       end
     end
 
@@ -125,9 +125,7 @@ module Phronomy
 
     def release_permitted?
       @mutex.synchronize do
-        @application_state == :applied && @save[:physical] &&
-          (!@uncertain || @adopted) &&
-          (!@attempt || @attempt[:physical])
+        @application_state == :applied && (!@uncertain || @adopted) && @attempts.quiescent_locked?
       end
     end
 
@@ -136,7 +134,7 @@ module Phronomy
         @ownership_state = :released
         @original_observer = nil
         @environment = @registry = @command = @event_sink = nil
-        @save[:task] = nil
+        @attempts.release_task_locked(nil)
       end
     end
 
@@ -155,13 +153,7 @@ module Phronomy
 
     def observe
       observer = TaskResult.deferred(name: "workflow-reconcile:#{@recovery_id}")
-      @mutex.synchronize { @observers << observer }
-      observer.on_complete do |_value, _error|
-        @mutex.synchronize do
-          @observers.delete(observer)
-          @attempt&.fetch(:observers)&.delete(observer)
-        end
-      end
+      @attempts.register(observer)
       registry, released = @mutex.synchronize { [@registry, @ownership_state == :released] }
       if released
         observer.complete(build_result)
@@ -177,7 +169,7 @@ module Phronomy
 
     def shutdown(error)
       fail_original(error)
-      observers = @mutex.synchronize { @observers.dup }
+      observers = @attempts.observers
       observers.each { |observer| observer.complete(unavailable_result(error)) }
     end
 
@@ -201,114 +193,13 @@ module Phronomy
       end
     end
 
-    def new_slot(id)
-      {id: id, task: nil, started: false, physical: false, logical: false,
-       result: nil, error: nil, worker_recorded: false, observers: [],
-       rejection_confirmed: false, admission_unknown: false,
-       physical_watch: false, watch_error: nil}
+    def submit_worker(id, &work)
+      @attempts.submit(id, submitter: @environment,
+        missing_handle_message: "Workflow submission returned no task", &work)
     end
 
-    def slot_for(id)
-      id.nil? ? @save : (@attempt if @attempt && @attempt[:id].equal?(id))
-    end
-
-    # The optional callback proves refusal; errors and missing handles do not.
-    # A started worker or an actual returned handle always preserves its lane.
-    def submit_worker(id)
-      slot = @mutex.synchronize { slot_for(id) }
-      refusal = lambda do |_error|
-        @mutex.synchronize do
-          slot[:rejection_confirmed] = true if slot_for(id).equal?(slot)
-        end
-      end
-      task = Phronomy::Execution.submit_with_rejection_evidence(@environment,
-        on_full: :raise, on_rejected: refusal) do
-        @mutex.synchronize { slot[:started] = true }
-        result = yield
-        capture_worker(id, result, nil)
-        result
-      rescue Exception => error # rubocop:disable Lint/RescueException
-        capture_worker(id, nil, error)
-        raise
-      end
-      raise Phronomy::Error, "Workflow submission returned no task" unless task
-      @mutex.synchronize { slot[:task] = task }
-      task
-    rescue => error
-      @mutex.synchronize do
-        if slot && slot_for(id).equal?(slot)
-          refused = slot[:rejection_confirmed] && !slot[:started] && !slot[:task]
-          slot[:admission_unknown] = !refused
-          slot[:logical] = true
-          slot[:physical] = refused
-          slot[:error] = error
-        end
-      end
-      raise
-    end
-
-    def capture_worker(id, result, error)
-      @mutex.synchronize do
-        slot = slot_for(id)
-        return unless slot
-        slot[:result] = result
-        slot[:error] = error
-        slot[:worker_recorded] = true
-      end
-    end
-
-    def refresh_slot(id)
-      task = @mutex.synchronize { slot_for(id)&.fetch(:task) }
-      return unless task
-      status, value, error = task.__snapshot
-      physical = if task.respond_to?(:physical_complete?)
-        task.physical_complete?
-      elsif task.respond_to?(:on_physical_complete)
-        false
-      else
-        status != :pending
-      end
-      @mutex.synchronize do
-        slot = slot_for(id)
-        return unless slot
-        slot[:physical] ||= physical
-        if status != :pending
-          slot[:logical] = true
-          unless slot[:worker_recorded]
-            slot[:result] = value
-            slot[:error] = error
-          end
-        end
-      end
-    end
-
-    def watch(task, id)
-      @mutex.synchronize { slot_for(id)[:task] = task }
-      physical = task.respond_to?(:on_physical_complete)
-      if physical
-        task.on_physical_complete do
-          @mutex.synchronize { slot_for(id)&.[]=(:physical, true) }
-          signal(id)
-        end
-        @mutex.synchronize { slot_for(id)&.[]=(:physical_watch, true) }
-      end
-      task.on_complete do |result, error|
-        @mutex.synchronize do
-          slot = slot_for(id)
-          if slot
-            slot[:logical] = true
-            slot[:physical] = true unless physical
-            unless slot[:worker_recorded]
-              slot[:result] = result
-              slot[:error] = error
-            end
-          end
-        end
-        signal(id)
-      end
-    rescue => error
-      @mutex.synchronize { slot_for(id)&.[]=(:watch_error, error) }
-      raise
+    def watch(id)
+      @attempts.watch(id) { signal(id) }
     end
 
     def signal(id)
@@ -323,8 +214,7 @@ module Phronomy
     def delivery_failed(id, error)
       if id
         observers = @mutex.synchronize do
-          slot = slot_for(id)
-          slot ? slot[:observers].shift(slot[:observers].length) : []
+          @attempts.take_observers_locked(id)
         end
         result = unavailable_result(error)
         observers.each { |observer| observer.complete(result) }
@@ -358,9 +248,9 @@ module Phronomy
 
     def deliver_initial_result
       result, sink = @mutex.synchronize do
-        return unless @save[:logical]
+        return unless @attempts.snapshot_locked(nil)[:logical]
         return if @initial_delivered || @ownership_state == :released
-        result = persistence_result(@save)
+        result = persistence_result(@attempts.snapshot_locked(nil))
         if @uncertain
           result = WorkflowTerminalPersistence::Result.new(
             outcome: :outcome_unknown, revision: nil, error: @last_error || result.error
@@ -385,9 +275,9 @@ module Phronomy
     end
 
     def observe_on_owner(observer)
-      refresh_slot(nil)
+      @attempts.refresh(nil)
       released, adopted, physical, active = @mutex.synchronize do
-        [@ownership_state == :released, @adopted, @save[:physical], @attempt]
+        [@ownership_state == :released, @adopted, @attempts.snapshot_locked(nil)[:physical], @attempts.active_snapshot_locked]
       end
       return observer.complete(build_result) if released
       unless @registry.owns_terminal_operation?(self)
@@ -401,38 +291,46 @@ module Phronomy
       unless physical
         return observer.complete(unavailable_result(Phronomy::Error.new("Original Workflow save has no physical completion proof")))
       end
-      if active
-        refresh_slot(active[:id])
-        unknown, error, watch_error = @mutex.synchronize do
-          [active[:admission_unknown], active[:error],
-            (active[:watch_error] if !active[:physical_watch] && !active[:physical])]
-        end
-        if unknown
-          return observer.complete(unavailable_result(error))
-        end
-        return observer.complete(unavailable_result(watch_error)) if watch_error
-        @mutex.synchronize { @attempt[:observers] << observer }
-        finish_attempt(active[:id])
-        return
-      end
+      return observe_active_attempt(observer, active) if active
 
       # A late physical worker result remains useful even when its logical
       # TaskResult was abandoned. It is evidence, never a replayable write.
-      save_result = @mutex.synchronize { persistence_result(@save) }
+      save_result = @mutex.synchronize { persistence_result(@attempts.snapshot_locked(nil)) }
       retain_classification(save_result) unless @confirmation
       if @confirmation
         return observer.complete(apply_confirmation)
       end
 
+      begin_reconciliation(observer)
+    rescue => error
+      observer.complete(unavailable_result(error))
+    end
+
+    def observe_active_attempt(observer, active)
+      @attempts.refresh(active[:id])
+      unknown, error, watch_error = @mutex.synchronize do
+        active = @attempts.snapshot_locked(active[:id])
+        [active[:admission_unknown], active[:error],
+          (active[:watch_error] if !active[:physical_watch] && !active[:physical])]
+      end
+      if unknown
+        return observer.complete(unavailable_result(error))
+      end
+      return observer.complete(unavailable_result(watch_error)) if watch_error
+      @mutex.synchronize { @attempts.join_locked(active[:id], observer: observer) }
+      finish_attempt(active[:id])
+      nil
+    end
+
+    def begin_reconciliation(observer)
       id = Object.new.freeze
       @mutex.synchronize do
-        @attempt = new_slot(id)
-        @attempt[:observers] << observer
+        @attempts.reserve_locked(id, observer: observer)
       end
       task = submit_worker(id) do
         WorkflowTerminalPersistence.reconcile(@command, @original_error || @last_error)
       end
-      watch(task, id)
+      watch(id)
     rescue => error
       if task
         # An admitted read still owns its physical lane even when callback
@@ -441,11 +339,12 @@ module Phronomy
         return
       end
       observers = @mutex.synchronize do
-        if defined?(id) && id && @attempt && @attempt[:id].equal?(id)
-          values = @attempt[:observers].shift(@attempt[:observers].length)
+        active = @attempts.active_snapshot_locked
+        if defined?(id) && id && active && active[:id].equal?(id)
+          values = @attempts.take_observers_locked(id)
           # Unknown admission keeps the attempt even after all observers settle.
           # A late worker result alone cannot prove physical executor completion.
-          @attempt = nil unless @attempt[:admission_unknown]
+          @attempts.retire_locked(id) unless active[:admission_unknown]
           values
         else
           [observer]
@@ -456,14 +355,14 @@ module Phronomy
     end
 
     def finish_attempt(id)
-      refresh_slot(id)
+      @attempts.refresh(id)
       result, error = @mutex.synchronize do
-        slot = slot_for(id)
+        slot = @attempts.snapshot_locked(id)
         return unless slot && slot[:physical] && slot[:logical]
         [slot[:result], slot[:error]]
       end
       if error && !error.is_a?(StandardError)
-        observers = close_attempt(id)
+        observers = @attempts.retire(id)
         observers.each { |observer| observer.fail(error) }
         return
       end
@@ -476,7 +375,7 @@ module Phronomy
         build_result(outcome: result&.error.is_a?(Phronomy::Persistence::StateConflictError) ? :unresolved : :unavailable,
           error: diagnostic(result&.error))
       end
-      close_attempt(id).each_with_index do |observer, index|
+      @attempts.retire(id).each_with_index do |observer, index|
         # Sharing a physical read does not share the mutable returned context.
         value = if index.zero?
           observation
@@ -485,15 +384,6 @@ module Phronomy
             materialize: observation.application_state == :applied)
         end
         observer.complete(value)
-      end
-    end
-
-    def close_attempt(id)
-      @mutex.synchronize do
-        return [] unless @attempt && @attempt[:id].equal?(id)
-        observers = @attempt[:observers]
-        @attempt = nil
-        observers
       end
     end
 

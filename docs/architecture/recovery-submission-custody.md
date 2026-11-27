@@ -230,11 +230,11 @@ The inherited capability declaration is not a substitute for truthfulness. Custo
 
 ## Reuse the mechanism without merging domain owners
 
-Execution owns the optional rejection dispatcher and pool evidence. Agent and Workflow own their terminal commands, result interpretation, exact owner checks and release rules. The existing slot bookkeeping is reused within each owner rather than introducing another universal recovery manager.
+Execution owns the optional rejection dispatcher and pool evidence. Agent and Workflow own their terminal commands, result interpretation, exact owner checks and release rules. As of 2026-11-28, initial/recovery slots, admission facts and observation membership are managed by C13 `RetainedAttempts`; `AttemptCompletion` retains completion evidence. The domain owners use explicit commands and frozen snapshots without selecting a universal lifecycle policy.
 
 For example, Workflow confirmed pre-state can permit release after retirement and application, while an Agent with an accepted job must retain responsibility for its explicit saved-byte retry. A shared manager that chose either policy would cross the domain boundary; a manager parameterized with every policy would still require the same decisions in both domains.
 
-The common specification is the admission/observation/physical-completion protocol. Its neutral capability remains shared. Repeated slot plumbing is assessed separately from the two domain lifecycles; whole-owner extraction is not justified by similar method names or source line counts alone. Both canonical Contract SVGs and the source dependency graph are checked in the delivery evidence.
+The common specification is the admission/observation/physical-completion protocol. Its neutral capability remains shared. The four-owner implementation and its lock rationale are documented in [shared retained-attempt management](retained-attempts.md). That extraction preserves the separate domain lifecycles; similar method names alone do not justify moving their business decisions. Both canonical Contract SVGs and the source dependency graph are checked in the delivery evidence.
 
 ## Validate safety and bounded progress
 
@@ -244,4 +244,4 @@ For example, a model mutation that treats an absent handle as rejection must pro
 
 The model and reproduction instructions are under `spec/models/recovery_submission_custody/`. The delivery includes actual baseline defect probes, repaired acceptance results, ordinary application comparison, full local checks and the previous G3b-3 application/CI review. Focused counts overlap the full suites and must not be added to their totals.
 
-This unit does not implement approval-resume recovery, dispatch recovery, replacement-Runtime takeover or process-crash recovery. G3a approval recovery is the next substantive functional unit: complete pre/post decision evidence, restoration of a confirmed pre-state, and once-only application of a confirmed post-state. Worker completion still does not prove remote transaction settlement; existing authoritative persistence ordering premises apply.
+The original G3b-4 unit did not implement approval-resume or dispatch recovery. Their later contracts are documented in [approval recovery](agent-approval-recovery.md) and [dispatch recovery](agent-dispatch-recovery.md); both now use the shared attempt manager. Replacement-Runtime takeover and process-crash recovery remain outside this contract. Worker completion still does not prove remote transaction settlement; existing authoritative persistence ordering premises apply.

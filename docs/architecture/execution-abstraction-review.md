@@ -5,6 +5,11 @@ This candidate supersedes the unapplied Results split. It is based on main
 record of application to main. The historical D02 reports describe their original
 revisions; the control ownership decision below supersedes them for this candidate.
 
+> Historical review: the 2026-09-29 ownership split below was superseded by
+> [r8 unit 1](r8-unit1.md), which unified the Execution framework in C13. The
+> 2026-11-28 [retained-attempt implementation](retained-attempts.md) follows that
+> current boundary. The original candidate comparison is preserved below.
+
 ## Responsibilities
 
 | Owner | Owns | Consumers should know |

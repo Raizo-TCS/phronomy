@@ -285,9 +285,9 @@ For example, approval confirmed pre-state can restore the same approval request 
 | Release | Requires terminal and physical conditions | Approval resolution does not release the job | Dispatch resolution does not release the job |
 | Cross-process takeover | Not provided by the capability | Not provided by the capability | Not provided by the capability |
 
-A unified public Job API and further generic owner extraction are not prerequisites. Domain-specific save authority, cancellation checks, continuation admission and release remain with their current owners; neutral physical completion facts can use the existing shared component.
+As of 2026-11-28, dispatch recovery uses the same C13 `RetainedAttempts` manager and `AttemptCompletion` evidence record as Agent outcome/approval and Workflow terminal recovery. Domain-specific save authority, cancellation checks, continuation admission and release remain with their current owners. A unified public Job API is not required. See [shared retained-attempt management](retained-attempts.md).
 
-For example, using a terminal helper that releases Agent admission after successful dispatch proof would lose an executing job's responsibility. Reusing `PhysicalAttempt` to record a stopped recovery worker preserves the domain boundary without adopting that incorrect release policy.
+For example, using a terminal helper that releases Agent admission after successful dispatch proof would lose an executing job's responsibility. Reusing `AttemptCompletion` to record a stopped recovery worker preserves the domain boundary without adopting that incorrect release policy.
 
 ## Bound the supported recovery conditions
 

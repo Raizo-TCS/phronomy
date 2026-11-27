@@ -33,9 +33,8 @@ module Phronomy
         @recovery_id = SecureRandom.uuid.freeze
         @recovery = DispatchRecovery.send(:new, self)
         @mutex = Mutex.new
-        @save = new_slot(nil, :prepare)
-        @attempt = nil
-        @observers = []
+        @attempts = Phronomy::RetainedAttempts.new(mutex: @mutex,
+          on_worker_recorded: ->(id, _result, error) { @original_error ||= error if id.nil? })
         @original_waiters = original_waiters.dup
         @evidence = @intended = @confirmation = @revision = nil
         @original_error = @last_error = @preparation_error = nil
@@ -73,7 +72,7 @@ module Phronomy
       def authorize_continuation!
         @mutex.synchronize do
           return false if @continuation_authorized
-          unless %i[confirmed_post not_prepared].include?(@confirmation) && @application_state == :applied && physically_complete_locked?
+          unless %i[confirmed_post not_prepared].include?(@confirmation) && @application_state == :applied && @attempts.quiescent_locked?
             raise Phronomy::Error, "Agent dispatch continuation requires applied preparation proof and physical completion"
           end
           @continuation_authorized = true
@@ -102,7 +101,7 @@ module Phronomy
 
       def resolution_permitted?
         @mutex.synchronize do
-          @resolution_target && @application_state == :applied && physically_complete_locked?
+          @resolution_target && @application_state == :applied && @attempts.quiescent_locked?
         end
       end
 
@@ -136,7 +135,7 @@ module Phronomy
             raise Phronomy::Error, "Agent dispatch preparation has no positive pre-barrier failure proof"
           end
           @confirmation, @revision = :not_prepared, nil
-          @preparation_error ||= @save[:completion].error
+          @preparation_error ||= @attempts.snapshot_locked(nil)[:error]
         end
       end
 
@@ -150,7 +149,7 @@ module Phronomy
             on_evidence: ->(value) { @mutex.synchronize { @evidence = value } },
             on_outcome: ->(value) { @mutex.synchronize { @intended = value } })
         end
-        watch(task, nil)
+        watch(nil)
         self
       rescue => error
         raise unless retained
@@ -163,13 +162,7 @@ module Phronomy
           raise ArgumentError, "unsupported Agent dispatch recovery operation"
         end
         observer = Phronomy::TaskResult.deferred(name: "agent-dispatch-#{kind}:#{recovery_id}")
-        @mutex.synchronize { @observers << observer }
-        observer.on_complete do |_value, _error|
-          @mutex.synchronize do
-            @observers.delete(observer)
-            @attempt&.fetch(:observers)&.delete(observer)
-          end
-        end
+        @attempts.register(observer)
         registry, resolved = @mutex.synchronize { [@registry, resolved_locked?] }
         if resolved
           observer.complete(build_result)
@@ -212,24 +205,20 @@ module Phronomy
 
       def shutdown(error)
         failure = fail_original(error)
-        @mutex.synchronize { @observers.dup }.each { |observer| observer.complete(unavailable_result(error)) }
+        @attempts.observers.each { |observer| observer.complete(unavailable_result(error)) }
         failure
       end
 
       private
 
-      def physically_complete_locked?
-        @save[:completion].physical && (!@attempt || @attempt[:completion].physical)
-      end
-
       def resolved_locked?
-        @application_state == :applied && %i[resumed stopped].include?(@continuation_state) && physically_complete_locked?
+        @application_state == :applied && %i[resumed stopped].include?(@continuation_state) && @attempts.quiescent_locked?
       end
 
       def not_prepared_locked?
-        completion = @save[:completion]
-        completion.physical && completion.error && !@evidence &&
-          (!@barrier_started || (@save[:rejection_confirmed] && !@save[:started]))
+        completion = @attempts.snapshot_locked(nil)
+        completion[:physical] && completion[:error] && !@evidence &&
+          (!@barrier_started || (completion[:rejection_confirmed] && !completion[:started]))
       end
 
       def resolve_as(state)
@@ -245,72 +234,22 @@ module Phronomy
 
       def retire_resolved
         @mutex.synchronize do
-          return unless resolved_locked? && !@attempt
+          return unless resolved_locked? && !@attempts.active_snapshot_locked
           @agent = @coordinator = @environment = @registry = @persistence = @preparer = nil
           @command = @invocation = @evidence = @intended = @continuation_delivery = nil
           @original_waiters = []
-          @save[:completion].clear_locked
+          @attempts.release_references_locked(nil)
           @original_error = @last_error = @preparation_error = nil
         end
       end
 
-      def new_slot(id, kind)
-        {id: id, kind: kind, completion: PhysicalAttempt.new(mutex: @mutex),
-         started: false, observers: [], rejection_confirmed: false, admission_unknown: false}
-      end
-
-      def slot_for(id)
-        id.nil? ? @save : (@attempt if @attempt && @attempt[:id].equal?(id))
-      end
-
       def submit_worker(id, &work)
-        slot = @mutex.synchronize { slot_for(id) }
-        refusal = lambda do |_error|
-          @mutex.synchronize { slot[:rejection_confirmed] = true if slot_for(id).equal?(slot) }
-        end
-        task = Phronomy::Execution.submit_with_rejection_evidence(@environment, on_full: :raise, on_rejected: refusal) do
-          @mutex.synchronize { slot[:started] = true }
-          result = work.call
-          capture_worker(id, result, nil)
-          result
-        rescue Exception => error # rubocop:disable Lint/RescueException
-          capture_worker(id, nil, error)
-          raise
-        end
-        raise Phronomy::Error, "Agent dispatch submission returned no task handle" unless task
-        @mutex.synchronize { slot[:completion].attach_locked(task) }
-        task
-      rescue => error
-        @mutex.synchronize do
-          if slot && slot_for(id).equal?(slot)
-            refused = slot[:rejection_confirmed] && !slot[:started] && !slot[:completion].task
-            slot[:admission_unknown] = !refused
-            slot[:completion].submission_failed_locked(error, physical: refused)
-          end
-        end
-        raise
+        @attempts.submit(id, submitter: @environment,
+          missing_handle_message: "Agent dispatch submission returned no task handle", &work)
       end
 
-      def capture_worker(id, result, error)
-        @mutex.synchronize do
-          slot = slot_for(id)
-          return unless slot
-          slot[:completion].record_worker_locked(result, error)
-          @original_error ||= error if id.nil?
-        end
-      end
-
-      def watch(task, id)
-        completion = @mutex.synchronize { slot_for(id).fetch(:completion) }
-        completion.watch(task) { |_event| signal(id) }
-      end
-
-      def refresh_slot(id)
-        @mutex.synchronize { slot_for(id)&.fetch(:completion) }&.refresh
-      end
-
-      def snapshot_slot_locked(slot)
-        slot&.merge(slot.fetch(:completion).snapshot_locked)
+      def watch(id)
+        @attempts.watch(id) { |_event| signal(id) }
       end
 
       def signal(id)
@@ -325,8 +264,7 @@ module Phronomy
       def delivery_failed(id, error)
         return fail_original(error) unless id
         observers = @mutex.synchronize do
-          slot = slot_for(id)
-          slot ? slot[:observers].shift(slot[:observers].length) : []
+          @attempts.take_observers_locked(id)
         end
         observers.each { |observer| observer.complete(unavailable_result(error)) }
       end
@@ -338,9 +276,9 @@ module Phronomy
       end
 
       def deliver_initial
-        refresh_slot(nil)
+        @attempts.refresh(nil)
         slot, uncertain, not_prepared, delivered = @mutex.synchronize do
-          [snapshot_slot_locked(@save), @uncertain, not_prepared_locked?, @initial_delivered]
+          [@attempts.snapshot_locked(nil), @uncertain, not_prepared_locked?, @initial_delivered]
         end
         return if delivered || resolved? || !slot[:logical]
         if not_prepared
@@ -370,10 +308,10 @@ module Phronomy
 
       def observe_on_owner(observer, kind)
         return if observer.done?
-        refresh_slot(nil)
+        @attempts.refresh(nil)
         return observer.complete(build_result) if resolved?
         registry, physical, active = @mutex.synchronize do
-          [@registry, @save[:completion].physical, snapshot_slot_locked(@attempt)]
+          [@registry, @attempts.snapshot_locked(nil)[:physical], @attempts.active_snapshot_locked]
         end
         unless registry&.owns_dispatch_operation?(self)
           return observer.complete(unavailable_result(Phronomy::Error.new("Agent dispatch recovery owner no longer matches")))
@@ -385,23 +323,7 @@ module Phronomy
         unless physical
           return observer.complete(unavailable_result(Phronomy::Error.new("Original dispatch preparation has no physical completion proof")))
         end
-        if active
-          if active[:admission_unknown]
-            return observer.complete(unavailable_result(active[:error]))
-          end
-          if active[:watch_error]
-            refresh_slot(active[:id])
-            active = @mutex.synchronize { snapshot_slot_locked(slot_for(active[:id])) }
-            observable = active && ((active[:logical] && active[:physical]) || active[:physical_watch])
-            return observer.complete(unavailable_result(active&.fetch(:watch_error))) unless observable
-          end
-          if active[:kind] != kind
-            return observer.complete(unavailable_result(Phronomy::Error.new("A different Agent dispatch recovery operation is physically active")))
-          end
-          @mutex.synchronize { @attempt[:observers] << observer }
-          finish_attempt(active[:id])
-          return
-        end
+        return observe_active_attempt(observer, active, kind) if active
         if @mutex.synchronize { @confirmation == :not_prepared || not_prepared_locked? }
           return observer.complete(apply_preparation_failure)
         end
@@ -414,11 +336,35 @@ module Phronomy
         if !fresh_proof && @mutex.synchronize { @confirmation == :confirmed_post }
           return observer.complete(apply_confirmation)
         end
-        outcome = @mutex.synchronize { @save[:completion].result }
+        outcome = @mutex.synchronize { @attempts.snapshot_locked(nil)[:result] }
         if outcome
           remember_post(outcome)
           return observer.complete(apply_confirmation) unless fresh_proof
         end
+        begin_recovery_attempt(observer, kind)
+      rescue => error
+        observer.complete(unavailable_result(error))
+      end
+
+      def observe_active_attempt(observer, active, kind)
+        if active[:admission_unknown]
+          return observer.complete(unavailable_result(active[:error]))
+        end
+        if active[:watch_error]
+          @attempts.refresh(active[:id])
+          active = @mutex.synchronize { @attempts.snapshot_locked(active[:id]) }
+          observable = active && ((active[:logical] && active[:physical]) || active[:physical_watch])
+          return observer.complete(unavailable_result(active&.fetch(:watch_error))) unless observable
+        end
+        if active[:kind] != kind
+          return observer.complete(unavailable_result(Phronomy::Error.new("A different Agent dispatch recovery operation is physically active")))
+        end
+        @mutex.synchronize { @attempts.join_locked(active[:id], observer: observer) }
+        finish_attempt(active[:id])
+        nil
+      end
+
+      def begin_recovery_attempt(observer, kind)
         evidence, persistence, preparer = @mutex.synchronize { [@evidence, @persistence, @preparer] }
         unless evidence
           return observer.complete(unavailable_result(Phronomy::Error.new("Dispatch preparation has no complete captured proposal")))
@@ -429,8 +375,7 @@ module Phronomy
           # Keep confirmed post-state sticky, but never turn a lost retry reply
           # into a new claim that the original pre-state still holds.
           @confirmation = @revision = nil unless @confirmation == :confirmed_post
-          @attempt = new_slot(id, kind)
-          @attempt[:observers] << observer
+          @attempts.reserve_locked(id, kind: kind, observer: observer)
           (@confirmation == :confirmed_post) ? :reconcile : kind
         end
         task = submit_worker(id) do
@@ -438,22 +383,22 @@ module Phronomy
           result = preparer.recover_result(evidence) if proof.disposition == :committed
           RecoveryOutcome.new(proof: proof, result: result)
         end
-        watch(task, id)
+        watch(id)
       rescue => error
-        if task || (id && @mutex.synchronize { slot_for(id)&.fetch(:admission_unknown) })
+        if task || (id && @mutex.synchronize { @attempts.snapshot_locked(id)&.fetch(:admission_unknown) })
           delivery_failed(id, error)
         else
-          observers = close_attempt(defined?(id) && id)
+          observers = @attempts.retire(defined?(id) && id)
           (observers.empty? ? [observer] : observers).each { |item| item.complete(unavailable_result(error)) }
         end
       end
 
       def finish_attempt(id)
-        refresh_slot(id)
-        slot = @mutex.synchronize { snapshot_slot_locked(slot_for(id)) }
+        @attempts.refresh(id)
+        slot = @mutex.synchronize { @attempts.snapshot_locked(id) }
         return unless slot && slot[:logical] && slot[:physical]
         if slot[:error] && !slot[:error].is_a?(StandardError)
-          close_attempt(id).each { |observer| observer.fail(slot[:error]) }
+          @attempts.retire(id).each { |observer| observer.fail(slot[:error]) }
           return
         end
         proof, result = slot[:result]&.then { |value| [value.proof, value.result] }
@@ -474,20 +419,11 @@ module Phronomy
           end
           build_result(outcome: error ? :unavailable : :unresolved, error: error && diagnostic(error))
         end
-        close_attempt(id).each_with_index do |observer, index|
+        @attempts.retire(id).each_with_index do |observer, index|
           observer.complete(index.zero? ? observation : build_result(outcome: observation.outcome, error: observation.error))
         end
       rescue => error
-        close_attempt(id).each { |observer| observer.complete(unavailable_result(error)) }
-      end
-
-      def close_attempt(id)
-        @mutex.synchronize do
-          return [] unless id && @attempt && @attempt[:id].equal?(id)
-          observers = @attempt[:observers]
-          @attempt = nil
-          observers
-        end
+        @attempts.retire(id).each { |observer| observer.complete(unavailable_result(error)) }
       end
 
       def remember_post(outcome)
@@ -523,7 +459,7 @@ module Phronomy
 
       def build_result(outcome: nil, error: nil)
         confirmation, application, continuation, revision, physical = @mutex.synchronize do
-          [@confirmation, @application_state, @continuation_state, @revision, physically_complete_locked?]
+          [@confirmation, @application_state, @continuation_state, @revision, @attempts.quiescent_locked?]
         end
         DispatchRecoveryResult.new(recovery: recovery, outcome: confirmation || outcome || :unavailable,
           application_state: application, continuation_state: continuation, revision: revision,

@@ -244,11 +244,13 @@ The caller/backend must establish that the prior backend transaction has settled
 
 The original G3b stage covered an installed standalone Agent's completed, failed or cancelled terminal save. G3e additionally supports the correlated-child actual terminal paths described in [child execution recovery](agent-child-execution-recovery.md). Parent participant coordination, execution extensions, approval suspension, handoff, initial preparation and dispatch recovery retain separate contracts; the child eligibility extension does not include those boundaries.
 
-## Retain justified symmetry without a generic manager
+## Preserve domain differences in shared recovery
 
-Agent and Workflow share the rule that persistence evidence, observation and ownership release are different facts. Their saved representations and pre-state obligations differ, so this stage shares existing neutral facilities while keeping terminal decisions in each domain.
+Agent and Workflow share the rule that persistence evidence, observation and ownership release are different facts. Their saved representations and pre-state obligations differ, so shared attempt machinery leaves terminal decisions in each domain.
 
 For example, a Workflow segment's confirmed pre-state can release its failed terminal attempt under G2 policy. An Agent's confirmed pre-state still contains an active accepted job and needs retained custody plus a guarded save retry. Forcing both through one release callback would erase that difference.
+
+The table below retains the historical G3b-2 comparison with Workflow G2. As of 2026-11-28, the common initial/recovery attempt and observer machinery is implemented by C13 `RetainedAttempts` and `AttemptCompletion`; the domain-policy differences in the table remain. See [the current shared design](retained-attempts.md).
 
 | Dimension | Workflow G2 | Agent G3b-2 | Decision |
 | --- | --- | --- | --- |
@@ -261,7 +263,7 @@ For example, a Workflow segment's confirmed pre-state can release its failed ter
 | Error and observation | Recovery error does not prove business failure; original observation stays closed | Same rule, including failed/cancelled saved executions | Adopt symmetry. |
 | Lifetime | Physical-attempt serialization and stopped-owner unavailability | Same rule with Agent admission and original terminal ownership; G3b standalone and the later G3e supported child scope | Reuse neutral facilities; keep domain application local. |
 
-No new generic recovery manager is justified by this stage. The review must assess removed duplicate code, adapter burden, comprehension, duplicate state authority, shared defect corrections, total tests and execution/retention cost together. Similar public verbs alone do not prove that a shared implementation simplifies Agent, Team and Workflow.
+The G3b-2 stage did not adopt a generic recovery manager. The subsequent four-owner attempt-management extraction is documented separately; its assessment includes removed duplicate code, adapter burden, comprehension, duplicate state authority, shared defect corrections, total tests and execution/retention cost together. Similar public verbs alone do not prove that a shared implementation simplifies Agent, Team and Workflow.
 
 ## Verify the original-owner behavior
 

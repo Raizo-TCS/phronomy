@@ -30,13 +30,13 @@ or that an accepted envelope proves the save committed.
 | Model fact or action | Implementation correspondence |
 | --- | --- |
 | `obligationHeld` before the original write | `WorkflowTerminalOperation#start` installs the operation through `WorkflowExecutionRegistry#retain_terminal_operation` before submission. |
-| Original write, captured reply and physical return | `WorkflowTerminalPersistence::Command` captures the immutable snapshot/revision; `WorkflowTerminalPersistence.save` performs repository I/O. `WorkflowTerminalOperation#capture_worker` and `watch` retain its result and separate physical/logical task observations. |
+| Original write, captured reply and physical return | `WorkflowTerminalPersistence::Command` captures the immutable snapshot/revision; `WorkflowTerminalPersistence.save` performs repository I/O. `RetainedAttempts#record_worker_locked` and `AttemptCompletion` retain its result and separate physical/logical task observations. |
 | `FinishOriginal` before `StartRead` | The modeled boundary assumes the original backend write has settled and cannot commit later. A local worker or TaskResult completion maps to this boundary only when the backend/adapter contract supplies that guarantee. |
 | `RetireRoute`, `AcceptCustody`, `DetachWaiter` | `WorkflowExecutionRegistry#adopt_retirement`, exact `ExecutionRetirement#accepted_by?`, and Engine retirement dispatch. |
 | `custodyRefused`, retained source waiter | EventLoop retains its unaccepted retirement, receiver and completion; cleanup cannot turn refusal into successful custody transfer. |
 | `ReportDeliveryFailure` | `fail_original` can fail the public observation after evidence is retained while Engine still owns its separate source completion. It does not fail or detach that source. |
 | Cancelled original observation and `LookupRecovery` | `pending_terminal_recovery` exposes an unresolved capability belonging to the same compiled Workflow; it performs no storage read or retry. |
-| `Request`, `StartRead`, attempt identity | Owner-side `observe_on_owner`, one retained attempt slot, independent observation tasks, and correlated `Ready` messages. |
+| `Request`, `StartRead`, attempt identity | Owner-side `observe_on_owner`, `RetainedAttempts` reservation/join commands, independent observation tasks, and correlated `Ready` messages. |
 | `pre`, `post`, `other` evidence | `WorkflowTerminalPersistence.reconcile` uses `SnapshotComparison.compare_revisioned_snapshot`: exact intended revision and snapshot; expected pre-revision; or conflict, including an equal snapshot at a later revision. `WorkflowTerminalPersistence::Result` carries the classification. |
 | `proof`, `applied`, `released` | Retained confirmation, `apply_confirmation`, and owner-aware registry release after required physical boundaries. |
 | Immutable observation classification | Original TaskResult cannot reopen; later recovery calls produce new immutable results. Concrete result field fidelity is tested in Ruby. |
@@ -193,6 +193,25 @@ it model an arbitrary number of simultaneous callers.
 - `CHECK_DEADLOCK FALSE` permits intentional retained terminal states. Progress
   is checked through explicit temporal properties with stated premises, not by
   interpreting every quiescent state as a defect.
+
+## Current implementation mapping (2026-11-28)
+
+The Workflow terminal owner uses C13 `RetainedAttempts` for the initial attempt,
+one recovery lane, admission facts and observer membership, and
+`AttemptCompletion` for worker results and logical/physical evidence. The owner
+retains custody acceptance, persistence classification, context reconstruction and execution-segment release. The current command, snapshot and mutex boundaries are documented in
+[shared retained-attempt management](../../../docs/architecture/retained-attempts.md).
+
+For example, an observer can finish while the save worker is still running.
+The shared manager keeps the physical lane and recorded worker facts; the owner
+later decides what those facts authorize. Registering an inline callback or
+merging a stale task snapshot is still a concrete Ruby implementation obligation.
+
+This mapping update does not change the TLA+ transitions, configuration bounds,
+expected counterexamples or progress premises. The models do not count mutex
+acquisitions or enumerate partial callback registration. Fresh protocol-model
+runs and their exact input hashes are recorded in delivery evidence; neither a
+fresh run nor this correspondence table proves refinement of the Ruby code.
 
 ## Running and interpreting the checks
 
