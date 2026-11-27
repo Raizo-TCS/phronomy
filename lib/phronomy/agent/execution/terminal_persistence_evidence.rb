@@ -14,7 +14,9 @@ module Phronomy
     # @api private
     class TerminalPersistenceEvidence
       ContentWrite = Data.define(:reference, :bytes, :canonicalization_version)
-      Outcome = Data.define(:type, :execution, :root, :appended_records, :result, :error_diagnostic, :approval_request, :execution_observation)
+      # Replay facts and the byte-derived observation do not retain the owner's
+      # semantic result, original exception or live approval request.
+      Outcome = Data.define(:type, :execution, :root, :appended_records, :execution_observation)
       Result = Data.define(:disposition, :evidence, :original_error, :read_error)
 
       # Complete intended values survive a failed proof constructor. Rebuilding
@@ -123,9 +125,6 @@ module Phronomy
         end
         Outcome.new(type: intended.type, execution: intended.execution,
           root: intended.root, appended_records: intended.appended_records.dup.freeze,
-          result: Phronomy::Values::Immutable.copy(intended.result),
-          error_diagnostic: observation ? observation.error : intended.error && Phronomy::Values::Immutable.copy(Phronomy::Error.diagnostic(intended.error)),
-          approval_request: intended.approval_request && Phronomy::Values::Immutable.copy(intended.approval_request.to_h),
           execution_observation: observation)
       end
 

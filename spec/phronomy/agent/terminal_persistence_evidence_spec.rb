@@ -43,15 +43,14 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     [proofs.first, result]
   end
 
-  it "copies mutable result values without freezing caller values or retaining a writer scope" do
+  it "captures public result bytes without freezing caller values or retaining a writer scope" do
     captured_output = output.to_s
     evidence, result = capture
     stored = persistence.observe_execution(agent_id: agent.agent_id, execution_id: execution.execution_id)
     output.fetch("answer") << "later"
     expect(result.result.fetch(:output)).to equal(output)
-    expect(evidence.outcome.result.fetch(:output)).to eq("answer" => ["captured"])
-    expect(evidence.outcome.result.fetch(:usage)).to be_frozen
-    expect(evidence.outcome.result.fetch(:messages)).to all(be_frozen)
+    expect(result.result.fetch(:usage)).to be_frozen
+    expect(result.result.fetch(:messages)).to all(be_frozen)
     expect(evidence.outcome.execution_observation).to eq(stored)
     expect(evidence.outcome.execution_observation.result).to eq(captured_output)
     expect { evidence.before.fetch(0).fetch(0)["changed"] = true }.to raise_error(FrozenError)
@@ -74,8 +73,49 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     end.value
     3.times { GC.start }
     expect(reference.weakref_alive?).to be_falsey
-    expect(outcome.error_diagnostic.fetch("message")).to eq("custom failure")
-    expect(outcome.error_diagnostic).to be_frozen
+    expect(outcome.execution_observation.error.fetch("message")).to eq("custom failure")
+    expect(outcome.execution_observation.error).to be_frozen
+  end
+
+  it "lets a detached proof outlive an opaque application output and its live owner" do
+    output_type = Class.new do
+      def initialize(owner)
+        @owner = owner
+      end
+
+      def to_s = "encoded opaque output"
+    end
+    proof, output_reference, owner_reference = Thread.new do
+      owner = Object.new
+      value = output_type.new(owner)
+      evidence = nil
+      worker.commit_outcome(command.with(terminal_view: view.with(output: value)),
+        on_evidence: ->(captured) { evidence = captured })
+      [evidence, WeakRef.new(value), WeakRef.new(owner)]
+    end.value
+    3.times { GC.start }
+    expect(output_reference.weakref_alive?).to be_falsey
+    expect(owner_reference.weakref_alive?).to be_falsey
+    expect(proof.outcome.execution_observation.result).to eq("encoded opaque output")
+    expect(proof.reconcile(persistence: persistence).disposition).to eq(:committed)
+  end
+
+  it "does not diagnose the original coordination error while capturing a nonterminal projection" do
+    evidence, result = capture
+    error = Class.new(Phronomy::ExecutionRehydrationRequiredError) do
+      def diagnostic = raise(IOError, "original diagnostic unavailable")
+      def message = raise(IOError, "original message unavailable")
+    end.new("retained child")
+    waiting = result.with(type: :coordination_wait, execution: execution, root: agent.agent_root,
+      appended_records: [].freeze, result: nil, error: error)
+    input = described_class::CapturedInput.new({before: evidence.before, after: evidence.before, result: waiting},
+      [], persistence: persistence, participant: nil)
+    projection = described_class.detached_outcome(input.values, [])
+    expect(input.values.fetch(:result)).to equal(waiting)
+    expect(input.values.fetch(:result).error).to equal(error)
+    expect(projection.type).to eq(:coordination_wait)
+    expect(projection.execution).to equal(execution)
+    expect(projection.execution_observation).to be_nil
   end
 
   it "rejects another Store before any I/O even when it shares the coordinator" do
@@ -90,7 +130,8 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     end
   end
 
-  it "detaches a deferred proof's result once before a mutable caller value changes" do
+  it "keeps a deferred proof's captured observation separate from the original semantic result" do
+    captured_output = output.to_s
     evidence, result = capture
     input = described_class::CapturedInput.new({before: evidence.before, after: evidence.after, result: result},
       evidence.content_writes, persistence: persistence, participant: nil)
@@ -98,7 +139,9 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     first = input.materialize(persistence: persistence)
     second = input.materialize(persistence: persistence)
     expect(first.outcome).to equal(second.outcome)
-    expect(first.outcome.result.fetch(:output)).to eq("answer" => ["captured"])
+    expect(input.values.fetch(:result)).to equal(result)
+    expect(input.values.fetch(:result).result.fetch(:output)).to equal(output)
+    expect(first.outcome.execution_observation.result).to eq(captured_output)
     expect(first.content_writes).to eq(evidence.content_writes)
     expect(first.before).to eq(evidence.before)
     expect(first.after).to eq(evidence.after)
@@ -115,7 +158,8 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     first = input.materialize(persistence: persistence)
     second = input.materialize(persistence: persistence)
     expect(first.outcome).to equal(second.outcome)
-    expect(first.outcome.error_diagnostic.fetch("message")).to eq("retained failure")
+    expect(input.values.fetch(:result).error).to equal(error)
+    expect(first.outcome.execution_observation.error.fetch("message")).to eq("retained failure")
   end
 
   it "publishes the encoded text without repeating a custom result conversion" do
@@ -148,7 +192,6 @@ RSpec.describe Phronomy::Agent::TerminalPersistenceEvidence do
     expect(result.error).to equal(error)
     expect(first.outcome).to equal(second.outcome)
     expect(first.outcome.execution_observation.error).to eq(stored)
-    expect(first.outcome.error_diagnostic).to equal(first.outcome.execution_observation.error)
     expect { first.outcome.execution_observation.value! }.to raise_error(Phronomy::Agent::OutputError) { |restored|
       expect(restored.diagnostic).to eq(stored)
     }

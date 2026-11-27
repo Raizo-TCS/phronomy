@@ -4,6 +4,8 @@ Agent owns accepted execution results and the observations returned to callers. 
 
 For example, a report parent calls a Tool once, receives its final answer, and encodes its result and audit records. Reading an earlier transcript message then fails. The new private checkpoint retains those encoded facts and the fixed inputs for transcript reconstruction. A later explicit recovery can finish the read and save the same report.
 
+> Historical G3k design and validation: the complete-input String-copy failure described below was a real boundary of that candidate. G3l removes the unused semantic mirrors from the detached persistence proof; see [detached outcome proof projection](detached-outcome-proof-projection.md). The original semantic outcome remains with its owner, and captured durable observation remains separate. The examples and G3k results below are preserved as historical evidence; they do not establish that the repaired implementation must invoke that redundant copy. General complete-input failure and one-shot protection remain distinct concerns.
+
 This document compares applied G3j `9402709cd0ab4275825e550f3d6112198e5febe6` with the G3k candidate. Contract concept v55 and foundation v48 define the current ownership boundaries. [Native preparation](native-outcome-preparation.md), [native outcome recovery](native-parent-outcome-recovery.md) and [captured publication](retained-outcome-publication.md) remain the preceding contracts. The new stage adds no public API, participant SPI, automatic retry policy or general preparation-replay permission.
 
 ## Encoded intent and result presentation are different stages

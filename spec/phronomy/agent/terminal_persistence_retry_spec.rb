@@ -46,7 +46,7 @@ RSpec.describe "Standalone Agent terminal persistence evidence and explicit save
 
   # Fail only after the entire original proposal and its proof have been made.
   # The in-memory outer transaction then actually removes newly written content.
-  def rollback_complete_proposal(operation)
+  def rollback_complete_proposal(operation, on_outcome: nil)
     retained = nil
     armed = true
     allow(persistence.coordinator).to receive(:atomic).and_wrap_original do |original, &write|
@@ -60,7 +60,7 @@ RSpec.describe "Standalone Agent terminal persistence evidence and explicit save
         original.call(&write)
       end
     end
-    expect { worker.commit_outcome(operation, on_evidence: ->(evidence) { retained = evidence }) }
+    expect { worker.commit_outcome(operation, on_evidence: ->(evidence) { retained = evidence }, on_outcome: on_outcome) }
       .to raise_error(IOError, /rolled back after proposal/)
     expect(retained).not_to be_nil
     retained
@@ -99,9 +99,10 @@ RSpec.describe "Standalone Agent terminal persistence evidence and explicit save
     end
     operation = command
     before = stored_state
-    evidence = rollback_complete_proposal(operation)
+    semantic = nil
+    evidence = rollback_complete_proposal(operation, on_outcome: ->(outcome) { semantic = outcome })
     captured = evidence.outcome
-    expect(captured.type).to eq(:completed), captured.error_diagnostic.inspect
+    expect(captured.type).to eq(:completed), captured.execution_observation.error.inspect
     expect(stored_state).to eq(before)
     expect(persistence.contents.exist?(captured.execution.result_ref)).to be false
     missing = evidence.content_writes.reject { |write| persistence.contents.exist?(write.reference) }
@@ -118,8 +119,10 @@ RSpec.describe "Standalone Agent terminal persistence evidence and explicit save
     evidence.content_writes.each do |write|
       expect(persistence.contents.fetch(write.reference)).to eq(write.bytes)
     end
-    expect(captured.result.fetch(:output)).to eq("answer" => "retained answer")
-    expect(captured.result.fetch(:messages).map(&:content)).to eq(["original question"])
+    expect(captured.execution_observation.result).to eq("answer" => "retained answer")
+    expect(captured.execution_observation).to eq(persistence.observe_execution(agent_id: agent.agent_id, execution_id: execution.execution_id))
+    expect(semantic.result.fetch(:output)).to eq("answer" => "retained answer")
+    expect(semantic.result.fetch(:messages).map(&:content)).to eq(["original question"])
     expect(counts).to eq(parse: 1, encode: 1)
     expect(agent.agent_root).to equal(operation.root)
     expect(execution.execution_id).to eq(captured.execution.execution_id)
@@ -130,15 +133,20 @@ RSpec.describe "Standalone Agent terminal persistence evidence and explicit save
   [Phronomy::Error, Phronomy::CancellationError].each do |error_class|
     it "preserves the original #{error_class} diagnosis and durable error bytes on save-only retry" do
       original_error = error_class.new("original semantic terminal failure")
-      evidence = rollback_complete_proposal(command(error: original_error))
+      expected_diagnostic = {"class" => error_class.name, "message" => original_error.message}
+      semantic = nil
+      evidence = rollback_complete_proposal(command(error: original_error), on_outcome: ->(outcome) { semantic = outcome })
       captured = evidence.outcome
       expect(persistence.contents.exist?(captured.execution.error_ref)).to be false
+      expect(original_error).not_to receive(:message)
+      expect(Phronomy::Error).not_to receive(:diagnostic)
       expect(evidence.retry(persistence: persistence).disposition).to eq(:committed)
-      expect(captured.error_diagnostic).to eq("class" => error_class.name, "message" => original_error.message)
+      expect(semantic.error).to equal(original_error)
+      expect(captured.execution_observation.error).to eq(expected_diagnostic)
       expect(persistence.executions.load(execution.execution_id).status)
         .to eq((error_class == Phronomy::CancellationError) ? :cancelled : :failed)
       expect(persistence.contents.fetch_json(captured.execution.error_ref))
-        .to eq("class" => error_class.name, "message" => original_error.message)
+        .to eq(expected_diagnostic)
     end
   end
 
