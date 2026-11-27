@@ -34,7 +34,7 @@ module Phronomy
         @attempt = nil
         @observers = []
         @original_waiters = [delivery.result_task]
-        @evidence = @prepared_input = @intended = @confirmation = @execution_observation = nil
+        @evidence = @preparation = @prepared_input = @intended = @confirmation = @execution_observation = nil
         @saved_outcome = @approval_request = @suspension_task = nil
         @original_error = @last_error = nil
         @uncertain = @initial_delivered = false
@@ -96,7 +96,7 @@ module Phronomy
         @mutex.synchronize do
           @ownership_state = :released
           @agent = @coordinator = @environment = @registry = @persistence = @committer = nil
-          @command = @delivery = @intended = @evidence = @prepared_input = @suspension_task = @live_execution_before = nil
+          @command = @delivery = @intended = @evidence = @preparation = @prepared_input = @suspension_task = @live_execution_before = nil
           @save[:completion].clear_locked
           @original_waiters = []
           @original_error = @last_error = nil
@@ -215,7 +215,7 @@ module Phronomy
           end
           result = @committer.commit_outcome(@command,
             on_evidence: method(:capture_evidence), on_outcome: method(:capture_outcome),
-            on_prepared: method(:capture_prepared_input))
+            on_prepared: method(:capture_prepared_input), on_preparation: method(:capture_preparation))
           capture_worker(id, result, nil)
           result
         rescue Exception => error # rubocop:disable Lint/RescueException
@@ -251,6 +251,15 @@ module Phronomy
           end
           @prepared_input = value
           @intended = value.values.fetch(:result)
+        end
+      end
+
+      def capture_preparation(value)
+        @mutex.synchronize do
+          if @preparation && !@preparation.equal?(value)
+            raise Phronomy::Error, "Agent outcome cannot replace its staged preparation"
+          end
+          @preparation = value
         end
       end
 
@@ -410,8 +419,8 @@ module Phronomy
           end
           return begin_submission_retry(observer)
         end
-        evidence, prepared_input, persistence = @mutex.synchronize { [@evidence, @prepared_input, @persistence] }
-        unless evidence || prepared_input
+        evidence, prepared_input, preparation, persistence = @mutex.synchronize { [@evidence, @prepared_input, @preparation, @persistence] }
+        unless evidence || prepared_input || preparation
           return observer.complete(unavailable_result(Phronomy::Error.new("Agent #{recovery_kind} save has no complete captured proposal")))
         end
         id = Object.new.freeze
@@ -421,6 +430,10 @@ module Phronomy
         end
         task = submit_recovery_worker(id) do
           unless evidence
+            unless prepared_input
+              prepared_input = preparation.materialize(persistence: persistence)
+              capture_prepared_input(prepared_input)
+            end
             evidence = prepared_input.materialize(persistence: persistence)
             raise Phronomy::Error, "Complete Agent outcome proposal could not construct its persistence proof" unless evidence
             capture_evidence(evidence)

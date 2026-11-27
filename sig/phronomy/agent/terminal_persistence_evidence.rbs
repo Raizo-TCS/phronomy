@@ -65,6 +65,11 @@ module Phronomy
       def retry: (persistence: Store, ?original_error: Exception?) -> Result
     end
 
+    # Private staged values; materialization returns a complete semantic input.
+    class OutcomePreparation
+      def materialize: (persistence: Store) -> TerminalPersistenceEvidence::CapturedInput
+    end
+
     class ExecutionOutcomeCommitter
       class Command < Data
         attr_reader execution_id: String
@@ -90,7 +95,7 @@ module Phronomy
       end
 
       def initialize: (agent: Base, persistence: Store) -> void
-      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?, ?on_outcome: (^(Outcome) -> untyped)?, ?on_prepared: (^(TerminalPersistenceEvidence::CapturedInput) -> untyped)?) -> Outcome
+      def commit_outcome: (Command, ?on_evidence: (^(TerminalPersistenceEvidence) -> untyped)?, ?on_outcome: (^(Outcome) -> untyped)?, ?on_prepared: (^(TerminalPersistenceEvidence::CapturedInput) -> untyped)?, ?on_preparation: (^(OutcomePreparation) -> untyped)?) -> Outcome
     end
   end
 end

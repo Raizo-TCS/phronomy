@@ -36,7 +36,7 @@ module Phronomy
       end
 
       # @api private
-      def commit_outcome(operation, on_evidence: nil, on_outcome: nil, on_prepared: nil)
+      def commit_outcome(operation, on_evidence: nil, on_outcome: nil, on_prepared: nil, on_preparation: nil)
         view = operation.terminal_view
         error = view.callback_failure&.to_stream_callback_error || view.source_error ||
           view.block_error || view.invocation_error
@@ -60,12 +60,20 @@ module Phronomy
         prepare = if prepared
           ->(records, state, pending) { prepare_terminal_outcome(records, operation, state, pending, error, change.cancel_requested) }
         end
-        publish = if prepared
-          lambda do |values, content_writes|
-            input = TerminalPersistenceEvidence::CapturedInput.new(values, content_writes,
+        capture_preparation = if prepared
+          lambda do |values, plan|
+            preparation = OutcomePreparation.new(values, plan.writes, journal_records: plan.journal_records,
               persistence: @agent.persistence, participant: participant)
+            # Only the completed transcript suffix is safe to materialize again.
+            # Wait diagnostics and approval conversion retain their old boundary.
+            on_preparation&.call(preparation) if plan.journal_records
+            preparation
+          end
+        end
+        publish = if prepared
+          lambda do |input|
             on_prepared&.call(input)
-            on_outcome&.call(values.fetch(:result))
+            on_outcome&.call(input.values.fetch(:result))
             evidence = input.materialize(persistence: @agent.persistence)
             on_evidence.call(evidence) if evidence
             evidence
@@ -73,7 +81,7 @@ module Phronomy
         end
         change = ExecutionChange.new(agent: @agent, current: operation.execution,
           root: operation.root, kind: :terminal, terminal: view, config: operation.wiring,
-          prepare_outcome: prepare, on_prepared: publish) do |tx, state, receipt, pending|
+          prepare_outcome: prepare, on_preparation: capture_preparation, on_prepared: publish) do |tx, state, receipt, pending|
           if pending
             waiting = operation.execution.with(metadata: extension_metadata(operation.execution, state).merge(
               "cancellation_requested" => change.cancel_requested || operation.execution.metadata["cancellation_requested"] == true
@@ -147,7 +155,8 @@ module Phronomy
           raise error if error.is_a?(Phronomy::ExecutionRehydrationRequiredError)
           commit_terminal(view, operation, state, nil, error, prepare: true)
         end
-        OutcomeWritePlan.new(outcome: outcome, writes: contents.writes)
+        journal_records = operation.journal_records + outcome.appended_records if outcome.type == :completed
+        OutcomeWritePlan.new(outcome: outcome, writes: contents.writes, journal_records: journal_records)
       end
 
       def commit_terminal(tx, operation, state, receipt, error, prepare: false)
@@ -181,7 +190,7 @@ module Phronomy
           Outcome.new(type: :handed_off, execution: execution, root: root, appended_records: appended.freeze,
             result: result_base(execution, root).freeze, error: nil, approval_request: nil)
         else
-          messages = transcript_messages(root, operation.journal_records + appended, persistence: tx)
+          messages = transcript_messages(root, operation.journal_records + appended, persistence: tx) unless prepare
           completed_outcome(view, execution, root, appended, messages)
         end
       end

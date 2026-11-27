@@ -13,11 +13,11 @@ module Phronomy
 
       # Agent execution constructs changes; applications implement participants.
       # @api private
-      def initialize(agent:, current:, root:, kind:, updated: nil, terminal: nil, config: {}, prepare_outcome: nil, on_prepared: nil, &write)
+      def initialize(agent:, current:, root:, kind:, updated: nil, terminal: nil, config: {}, prepare_outcome: nil, on_preparation: nil, on_prepared: nil, &write)
         @agent, @store, @current, @root = agent, agent.persistence, current, root
         @coordinator = @store.coordinator
         @kind, @updated, @write = kind, updated, write
-        @prepare_outcome, @on_prepared = prepare_outcome, on_prepared
+        @prepare_outcome, @on_preparation, @on_prepared = prepare_outcome, on_preparation, on_prepared
         @agent_id, @execution_id = current.agent_id, current.execution_id
         @extension = current.metadata["execution_extension"] && ExecutionExtensionState.from_h(current.metadata["execution_extension"])
         @correlation = Phronomy::Values::Immutable.copy(current.metadata["reservation"])
@@ -67,7 +67,7 @@ module Phronomy
         end
         @result
       rescue => error
-        raise unless @after && @scope&.outermost?
+        raise unless @after && @result && @scope&.outermost?
         outcome = Phronomy::Persistence::SaveOutcome.compare(before: @before, after: @after, original_error: error) do
           coordinator.atomic do |scope|
             @participant&.guard_change(self, scope)
@@ -81,7 +81,7 @@ module Phronomy
       ensure
         # A completed synchronous change may remain on a worker's native stack.
         # Release live execution wiring only after commit/readback has finished.
-        @agent = @write = @participant = @prepare_outcome = @on_prepared = nil
+        @agent = @write = @participant = @prepare_outcome = @on_preparation = @on_prepared = nil
       end
 
       private :perform_once
@@ -181,9 +181,12 @@ module Phronomy
             raise Phronomy::Persistence::StateConflictError, "Execution changed before outcome preparation"
           end
           plan = @prepare_outcome.call(records, state, pending)
-          @result = plan.outcome
           @after = plan.after(before: @before, state_data: state_data, participation: participation)
-          evidence = @on_prepared.call(captured_evidence, plan.writes)
+          values = {before: @before, after: @after, result: plan.outcome}.freeze
+          preparation = @on_preparation.call(values, plan)
+          input = preparation.materialize(persistence: @store)
+          @result = input.values.fetch(:result)
+          evidence = @on_prepared.call(input)
           unless evidence
             raise Phronomy::Persistence::StateConflictError, "Prepared Agent outcome has no retained proof"
           end

@@ -28,10 +28,11 @@ module Phronomy
       end
 
       ContentView = Data.define(:contents)
-      attr_reader :outcome, :writes
+      attr_reader :outcome, :writes, :journal_records
 
-      def initialize(outcome:, writes:)
+      def initialize(outcome:, writes:, journal_records: nil)
         @outcome, @writes = outcome, writes.dup.freeze
+        @journal_records = journal_records&.dup&.freeze
         freeze
       end
 

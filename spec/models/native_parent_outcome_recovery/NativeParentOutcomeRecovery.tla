@@ -6,10 +6,14 @@ CONSTANTS Kind, Save, ChildKind, ChildState, InitialHold, Approved,
           RefuseFirst, RetryReplyLost, InitiallyCaptured, NoWriteStarted,
           Drift, ObserveClients, Bug,
           PreparationMode, PreparationSucceeds, InitialProofFails,
-          Materializable, ImmediateRetry, PublicationSource
-VARIABLES durable, child, owner, work, clients, originalPhysical, preparation
-vars == <<durable, child, owner, work, clients, originalPhysical, preparation>>
+          Materializable, ImmediateRetry, PublicationSource,
+          HydrationMode, InitialHydrationFails, HydrationReadable, InputConstructionSucceeds
+VARIABLES durable, child, owner, work, clients, originalPhysical, preparation, hydration
+vars == <<durable, child, owner, work, clients, originalPhysical, preparation, hydration>>
 OutcomeKinds == {"terminal", "coordination_wait", "approval_wait"}
+(* This selector denotes the completed transcript path, not every terminal error. *)
+HydrationEnabled == HydrationMode = "completed" /\
+  (Kind = "terminal" \/ Bug = "hydrate_wait")
 Fields == {"root", "execution", "journal", "extension", "cancellation", "holds"}
 Before == [root |-> 0, execution |-> 0, journal |-> 0,
            extension |-> 0, cancellation |-> 0, holds |-> InitialHold]
@@ -86,6 +90,10 @@ Init ==
        initialWrites |-> 0, writeBasisComplete |-> TRUE,
        materializations |-> 0, materializationWrites |-> 0,
        validMaterialization |-> TRUE, unsafeReplays |-> 0]
+ /\ hydration = [capsule |-> FALSE, ready |-> ~HydrationEnabled,
+       inputIdentity |-> 1, resultIdentity |-> 0, initialReads |-> 0, recoveryReads |-> 0,
+       successfulReads |-> 0, writes |-> 0, validRecovery |-> TRUE, validCache |-> TRUE,
+       inputAttempted |-> FALSE, inputBuilds |-> 0, inputFailure |-> FALSE]
 
 (* The new original-worker prefix stages complete raw values and attaches
    executable proof before admitting any real outcome write. Opaque encoding
@@ -94,10 +102,67 @@ Init ==
 PrepareOriginal ==
  /\ PreparationMode = "staged" /\ preparation.phase = "encoding"
  /\ preparation' = [preparation EXCEPT
-       !.phase = IF PreparationSucceeds THEN "raw" ELSE "opaque_failed",
-       !.raw = PreparationSucceeds]
+       !.phase = IF ~PreparationSucceeds THEN "opaque_failed"
+                 ELSE IF HydrationEnabled THEN "encoded" ELSE "raw",
+       !.raw = PreparationSucceeds /\ ~HydrationEnabled]
  /\ owner' = [owner EXCEPT !.capturedPayload = IF PreparationSucceeds THEN 1 ELSE @]
+ /\ hydration' = [hydration EXCEPT !.capsule = PreparationSucceeds /\ HydrationEnabled]
  /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+
+(* A captured storage capsule is not a complete semantic outcome. Only the
+   fixed framework-owned immutable transcript read may complete this suffix. *)
+HydrateOriginal ==
+ /\ HydrationEnabled /\ preparation.phase = "encoded" /\ hydration.capsule
+ /\ LET readOK == ~InitialHydrationFails
+        complete == readOK /\ InputConstructionSucceeds
+    IN /\ preparation' = [preparation EXCEPT
+             !.phase = IF ~readOK THEN "hydration_failed"
+                       ELSE IF complete THEN "raw" ELSE "input_failed",
+             !.raw = complete]
+       /\ hydration' = [hydration EXCEPT !.initialReads = @ + 1,
+             !.ready = readOK,
+             !.resultIdentity = IF readOK THEN hydration.inputIdentity ELSE 0,
+             !.successfulReads = IF readOK THEN 1 ELSE 0,
+             !.inputAttempted = readOK, !.inputBuilds = IF readOK THEN 1 ELSE 0,
+             !.inputFailure = readOK /\ ~InputConstructionSucceeds]
+ /\ UNCHANGED <<durable, child, owner, work, clients, originalPhysical>>
+
+HydrateAttempt ==
+ /\ HydrationEnabled /\ hydration.capsule /\ work.stage = "running"
+ /\ ~hydration.ready \/ Bug = "repeat_hydration"
+ /\ hydration.recoveryReads < 3
+ /\ LET success == HydrationReadable
+        build == success /\ ~hydration.inputAttempted
+        complete == success /\ (preparation.raw \/ (build /\ InputConstructionSucceeds))
+    IN /\ preparation' = [preparation EXCEPT !.raw = @ \/ complete,
+             !.phase = IF build /\ ~InputConstructionSucceeds THEN "input_failed" ELSE @]
+       /\ hydration' = [hydration EXCEPT !.recoveryReads = @ + 1,
+             !.ready = @ \/ success,
+             !.resultIdentity = IF success THEN
+                IF Bug = "omit_hydrated_messages" THEN 0
+                ELSE IF Bug = "refresh_hydration_inputs" THEN 2 ELSE hydration.inputIdentity ELSE @,
+             !.successfulReads = @ + IF success THEN 1 ELSE 0,
+             !.writes = @ + IF Bug = "hydration_writes" THEN 1 ELSE 0,
+             !.validRecovery = @ /\ originalPhysical /\ owner.original,
+             !.validCache = @ /\ ~hydration.ready,
+             !.inputAttempted = @ \/ build,
+             !.inputBuilds = @ + IF build THEN 1 ELSE 0,
+             !.inputFailure = @ \/ (build /\ ~InputConstructionSucceeds)]
+       /\ work' = IF complete THEN work ELSE [work EXCEPT !.stage = "recorded", !.result = "unknown"]
+       /\ durable' = [durable EXCEPT !.writes = @ + IF Bug = "hydration_writes" THEN 1 ELSE 0]
+       /\ owner' = [owner EXCEPT
+             !.preparations = @ + IF Bug = "replay_hydration_preparation" THEN 1 ELSE 0,
+             !.participantRuns = @ + IF Bug = "replay_hydration_preparation" THEN 1 ELSE 0]
+ /\ UNCHANGED <<child, clients, originalPhysical>>
+
+(* Immutable transcript reads may repeat. The following complete-input
+   constructor may call user copy conversion, so its failure is cached once. *)
+ReportInputFailure ==
+ /\ HydrationEnabled /\ hydration.inputFailure /\ work.stage = "running"
+ /\ work' = [work EXCEPT !.stage = "recorded", !.result = "unknown"]
+ /\ hydration' = [hydration EXCEPT
+       !.inputBuilds = @ + IF Bug = "repeat_input_construction" THEN 1 ELSE 0]
+ /\ UNCHANGED <<durable, child, owner, clients, originalPhysical, preparation>>
 
 ConstructOriginalProof ==
  /\ PreparationMode = "staged" /\ preparation.phase = "raw"
@@ -105,7 +170,7 @@ ConstructOriginalProof ==
        !.phase = IF InitialProofFails THEN "proof_failed" ELSE "ready",
        !.evidenceIdentity = IF InitialProofFails THEN 0 ELSE preparation.identity]
  /\ owner' = [owner EXCEPT !.evidence = ~InitialProofFails]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, hydration>>
 
 OriginalWrite ==
  /\ PreparationMode = "staged"
@@ -120,36 +185,38 @@ OriginalWrite ==
        !.row = IF Save = "post" THEN After ELSE Before,
        !.agentBlob = IF Save = "post" THEN AgentBlobAfter ELSE 0,
        !.nativeBlob = IF Save = "post" THEN NativeBlobAfter ELSE 0]
- /\ UNCHANGED <<child, owner, work, clients, originalPhysical>>
+ /\ UNCHANGED <<child, owner, work, clients, originalPhysical, hydration>>
 
 OriginalCompletes ==
  /\ Cleanup /\ ~originalPhysical
- /\ preparation.phase \in {"legacy", "opaque_failed", "proof_failed", "attempted"}
+ /\ preparation.phase \in {"legacy", "opaque_failed", "hydration_failed", "input_failed", "proof_failed", "attempted"}
  /\ originalPhysical' = TRUE
- /\ UNCHANGED <<durable, child, owner, work, clients, preparation>>
+ /\ UNCHANGED <<durable, child, owner, work, clients, preparation, hydration>>
 
 BeginAttempt ==
  /\ Caller /\ owner.held /\ ~owner.applied /\ ~owner.ready
- /\ owner.original \/ Bug = "stale_owner"
- /\ originalPhysical \/ Bug \in {"ignore_physical", "materialize_before_settlement"}
- /\ PreparationMode = "legacy" \/ preparation.phase \in {"opaque_failed", "proof_failed", "attempted"}
+ /\ owner.original \/ Bug \in {"stale_owner", "hydrate_stale_owner"}
+ /\ originalPhysical \/ Bug \in {"ignore_physical", "materialize_before_settlement", "hydrate_before_settlement"}
+ /\ PreparationMode = "legacy" \/ preparation.phase \in {"opaque_failed", "hydration_failed", "input_failed", "proof_failed", "attempted"}
  /\ work.stage = "idle" /\ work.count < 3
  /\ work' = [work EXCEPT !.stage = "running", !.count = @ + 1,
        !.kind = IF (owner.known = "pre" \/
-                   (ImmediateRetry /\ preparation.raw)) /\ ExplicitRetry /\ Kind # "decision"
+                   (ImmediateRetry /\ (preparation.raw \/ hydration.capsule))) /\ ExplicitRetry /\ Kind # "decision"
                  THEN "retry" ELSE "read",
        !.physical = FALSE, !.grant = FALSE, !.exactFact = FALSE]
  /\ clients' = IF ObserveClients THEN [clients EXCEPT
        !.status = [i \in Observers |-> IF clients.status[i] = "unused"
                     THEN "pending" ELSE clients.status[i]]] ELSE clients
- /\ UNCHANGED <<durable, child, owner, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, owner, originalPhysical, preparation, hydration>>
 
 GuardedTransaction ==
  /\ work.stage = "running"
+ /\ ~hydration.capsule \/ (hydration.ready /\ preparation.raw) \/ Bug = "proof_before_hydration"
  /\ LET deferred == ~owner.evidence /\ Kind = "decision"
         outcomeDeferred == ~owner.evidence /\ Kind \in OutcomeKinds /\ PreparationMode = "staged"
         outcomeCapture == outcomeDeferred /\ Materializable /\
-          (preparation.raw \/ Bug = "invent_raw_material")
+          (preparation.raw \/ Bug = "invent_raw_material" \/
+            (hydration.capsule /\ Bug = "proof_before_hydration"))
         captureOK == ~deferred \/
           ((NoWriteStarted \/ Bug = "unproved_capture") /\ Readable /\ durable.row = Before)
         fact == IF ~captureOK \/ (~owner.evidence /\ ~deferred /\ ~outcomeCapture /\ Bug # "invent_outcome_proof")
@@ -195,12 +262,12 @@ GuardedTransaction ==
              (preparation.raw /\ originalPhysical /\ owner.original)),
            !.unsafeReplays = @ + IF outcomeDeferred /\ ~preparation.raw /\
              Bug = "replay_opaque_preparation" THEN 1 ELSE 0]
- /\ UNCHANGED <<child, clients, originalPhysical>>
+ /\ UNCHANGED <<child, clients, originalPhysical, hydration>>
 
 WorkerCompletes ==
  /\ Cleanup /\ work.stage = "recorded" /\ ~work.physical
  /\ work' = [work EXCEPT !.physical = TRUE]
- /\ UNCHANGED <<durable, child, owner, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, owner, clients, originalPhysical, preparation, hydration>>
 
 ReceiveAttempt ==
  /\ work.stage = "recorded" /\ (work.physical \/ Bug = "ignore_physical")
@@ -216,7 +283,7 @@ ReceiveAttempt ==
        !.status = [i \in Observers |-> IF clients.status[i] = "pending" THEN "complete"
                                       ELSE clients.status[i]],
        !.original = IF Bug = "reopen_original" /\ work.result = "post" THEN "complete" ELSE @]
- /\ UNCHANGED <<durable, child, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, originalPhysical, preparation, hydration>>
 
 (* Outcome publication applies an already established fact. It grants no new
    business admission. Approval decisions instead need fresh current authority. *)
@@ -225,7 +292,7 @@ PermitCachedApplication ==
  /\ Kind # "decision" \/ Bug = "cached_decision_post"
  /\ work.stage = "idle"
  /\ owner' = [owner EXCEPT !.ready = TRUE]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation, hydration>>
 
 ApplyPublication ==
  /\ Publication /\ owner.held /\ owner.publicationCount < 2 /\ owner.diagnosticConversions < 2
@@ -270,22 +337,22 @@ ApplyPublication ==
            !.validApplication = @ /\ (owner.original /\ originalPhysical /\ work.physical),
            !.effects = @ + IF (decision /\ Approved) \/
              (Bug = "run_wait_tool" /\ applied = "approval_wait") THEN 1 ELSE 0]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation, hydration>>
 
 ReleaseRecovery ==
  /\ owner.held /\ owner.applied /\ work.stage = "idle" /\ work.physical /\ originalPhysical
  /\ owner' = [owner EXCEPT !.held = FALSE]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation, hydration>>
 
 CancelObserver(i) ==
  /\ ObserveClients /\ i \in Observers /\ clients.status[i] = "pending"
  /\ clients' = [clients EXCEPT !.status[i] = "cancelled", !.cancelled = @ \cup {i},
        !.validRelease = @ /\ Bug # "observer_releases_owner"]
  /\ owner' = IF Bug = "observer_releases_owner" THEN [owner EXCEPT !.held = FALSE] ELSE owner
- /\ UNCHANGED <<durable, child, work, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, work, originalPhysical, preparation, hydration>>
 
 MayDrift ==
-  (PreparationMode = "legacy" \/ preparation.phase \in {"opaque_failed", "proof_failed", "attempted"}) /\
+  (PreparationMode = "legacy" \/ preparation.phase \in {"opaque_failed", "hydration_failed", "input_failed", "proof_failed", "attempted"}) /\
   (~StableRead \/ Kind # "decision" \/ (work.stage # "recorded" /\ ~owner.ready))
 ChangeParent ==
  /\ Drift \in Fields \cup {"agent_blob", "native_blob"} /\ ~durable.changed
@@ -293,7 +360,7 @@ ChangeParent ==
  /\ durable' = [durable EXCEPT !.row = IF Drift \in Fields THEN [@ EXCEPT ![Drift] = 2] ELSE @,
        !.agentBlob = IF Drift = "agent_blob" THEN 2 ELSE @,
        !.nativeBlob = IF Drift = "native_blob" THEN 2 ELSE @, !.changed = TRUE]
- /\ UNCHANGED <<child, owner, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<child, owner, work, clients, originalPhysical, preparation, hydration>>
 ChangeChild ==
  /\ Drift \in {"child_root", "child_reservation", "child_definition", "child_hold",
                "child_active", "child_suspended", "child_progress", "child_generation", "child_outcome"}
@@ -307,11 +374,11 @@ ChangeChild ==
                  [] Drift = "child_progress" -> "terminal" [] OTHER -> @,
        !.generation = IF Drift = "child_generation" THEN 2 ELSE @,
        !.outcome = IF Drift = "child_outcome" THEN 2 ELSE @, !.changed = TRUE]
- /\ UNCHANGED <<durable, owner, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, owner, work, clients, originalPhysical, preparation, hydration>>
 ReplaceOwner ==
  /\ Drift = "owner" /\ owner.original /\ ~owner.applied /\ work.stage = "idle"
  /\ owner' = [owner EXCEPT !.original = FALSE]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation, hydration>>
 
 (* One live result/raw-output/diagnostic value may change after complete
    evidence capture. The retained value denotes the exact durable payload.
@@ -324,13 +391,14 @@ ChangePublicationSource ==
  /\ owner' = [owner EXCEPT !.sourceChanged = TRUE,
        !.livePayload = IF PublicationSource = "unavailable_diagnostic" THEN @ ELSE 2,
        !.diagnosticAvailable = PublicationSource # "unavailable_diagnostic"]
- /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation>>
+ /\ UNCHANGED <<durable, child, work, clients, originalPhysical, preparation, hydration>>
 
-Next == PrepareOriginal \/ ConstructOriginalProof \/ OriginalWrite \/ OriginalCompletes \/ BeginAttempt \/ GuardedTransaction \/ WorkerCompletes \/
+Next == PrepareOriginal \/ HydrateOriginal \/ HydrateAttempt \/ ReportInputFailure \/ ConstructOriginalProof \/ OriginalWrite \/ OriginalCompletes \/ BeginAttempt \/ GuardedTransaction \/ WorkerCompletes \/
         ReceiveAttempt \/ PermitCachedApplication \/ ApplyPublication \/ ReleaseRecovery \/
         (\E i \in Observers : CancelObserver(i)) \/ ChangeParent \/ ChangeChild \/ ReplaceOwner \/ ChangePublicationSource
 Spec == Init /\ [][Next]_vars
-ProgressSpec == Spec /\ WF_vars(PrepareOriginal) /\ WF_vars(ConstructOriginalProof) /\
+ProgressSpec == Spec /\ WF_vars(PrepareOriginal) /\ WF_vars(HydrateOriginal) /\
+  WF_vars(HydrateAttempt) /\ WF_vars(ReportInputFailure) /\ WF_vars(ConstructOriginalProof) /\
   WF_vars(OriginalWrite) /\ WF_vars(OriginalCompletes) /\ WF_vars(BeginAttempt) /\
   WF_vars(GuardedTransaction) /\ WF_vars(WorkerCompletes) /\ WF_vars(ReceiveAttempt) /\
   WF_vars(PermitCachedApplication) /\ WF_vars(ApplyPublication) /\ WF_vars(ReleaseRecovery)
@@ -379,7 +447,7 @@ OpaquePreparationRetained ==
   (PreparationMode = "staged" /\ ~PreparationSucceeds) =>
     ~preparation.raw /\ ~owner.evidence /\ ~owner.applied /\ owner.held /\ preparation.initialWrites = 0
 PreparationTypeOK ==
-  preparation.phase \in {"legacy", "encoding", "raw", "ready", "proof_failed", "attempted", "opaque_failed"} /\
+  preparation.phase \in {"legacy", "encoding", "encoded", "hydration_failed", "input_failed", "raw", "ready", "proof_failed", "attempted", "opaque_failed"} /\
   preparation.initialWrites \in 0..1 /\ preparation.materializations \in 0..3
 ExactPublishedPayload ==
   (owner.applied /\ Kind = "terminal" /\ PublicationSource # "none") =>
@@ -388,6 +456,31 @@ NoPublicationReconversion == owner.diagnosticConversions = 0
 PublicationValueTypeOK == owner.capturedPayload \in 0..1 /\
   owner.livePayload \in 1..2 /\ owner.receiptPayload \in 0..2 /\
   owner.diagnosticConversions \in 0..2
+HydrationKindBoundary == hydration.capsule => Kind = "terminal"
+HydrationTypeOK == hydration.inputIdentity = 1 /\ hydration.resultIdentity \in 0..2 /\
+  hydration.initialReads \in 0..1 /\ hydration.recoveryReads \in 0..3 /\
+  hydration.successfulReads \in 0..4 /\ hydration.inputBuilds \in 0..4
+CompleteHydratedOutcome ==
+  (HydrationEnabled /\ (owner.evidence \/ owner.applied)) =>
+    hydration.capsule /\ hydration.ready /\ hydration.resultIdentity = 1 /\
+    hydration.inputAttempted /\ ~hydration.inputFailure /\ hydration.inputBuilds = 1
+CapturedHydrationIdentity == hydration.ready /\ HydrationEnabled =>
+  hydration.resultIdentity = hydration.inputIdentity
+ReadOnlyHydration == hydration.writes = 0
+SettledHydration == hydration.validRecovery
+CachedHydration == hydration.validCache /\ hydration.successfulReads <= 1
+UnhydratedCapsuleRetained ==
+  (hydration.capsule /\ ~hydration.ready) =>
+    ~preparation.raw /\ ~owner.evidence /\ ~owner.applied /\ owner.held /\ preparation.initialWrites = 0
+NoInputConstructionReplay == hydration.inputBuilds <= 1
+InputConstructionFailureRetained == hydration.inputFailure =>
+  owner.held /\ ~preparation.raw /\ ~owner.evidence /\ ~owner.applied /\
+  preparation.initialWrites = 0 /\ durable.writes = 0
+NoEncodedCapsuleWitness == ~(hydration.capsule /\ ~preparation.raw /\
+  originalPhysical /\ owner.held /\ ~owner.evidence /\ hydration.initialReads = 1)
+NoHydratedPublicationWitness == ~(hydration.recoveryReads > 0 /\ hydration.ready /\
+  hydration.resultIdentity = 1 /\ owner.applied /\ ~owner.held /\ clients.original = "failed")
+
 EventuallyApplied == <>owner.applied
 EventuallyReleased == <>~owner.held
 
