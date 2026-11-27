@@ -4,7 +4,7 @@ module Phronomy
   module Agent
     # Exact staged records and content before fallible transcript hydration.
     # This is not a complete semantic outcome or permission to replay preparation.
-    # Only transcript hydration is repeatable; complete input conversion is single-use.
+    # Only transcript hydration is repeatable; complete input construction is single-use.
     # @api private
     class OutcomePreparation
       class ReadContents < Phronomy::ContentStore::Base
@@ -43,9 +43,9 @@ module Phronomy
           raise Phronomy::Persistence::StateConflictError, "Agent outcome preparation belongs to another Store"
         end
         @mutex.synchronize do
-          # Only transcript hydration is repeatable. Copying original result
-          # values into complete input can invoke application-defined methods.
-          # Never retain the fresh content port or its transaction-local views.
+          # Keep complete input construction single-use, including failures,
+          # after successful transcript hydration. Never retain the fresh content
+          # port or its transaction-local views.
           @materialized[:outcome] ||= materialize_outcome(persistence)
           return @materialized[:input] if @materialized[:input]
           raise @materialized[:input_error] if @materialized[:input_error]

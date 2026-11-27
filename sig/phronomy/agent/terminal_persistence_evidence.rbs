@@ -35,9 +35,6 @@ module Phronomy
         attr_reader execution: AgentExecution
         attr_reader root: AgentRoot
         attr_reader appended_records: Array[JournalRecord]
-        attr_reader result: Hash[Symbol, untyped]?
-        attr_reader error_diagnostic: Hash[String, json_value]?
-        attr_reader approval_request: Hash[String, untyped]?
         attr_reader execution_observation: ExecutionObservation?
       end
 

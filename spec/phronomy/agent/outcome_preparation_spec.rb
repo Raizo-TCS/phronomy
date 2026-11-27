@@ -95,7 +95,7 @@ RSpec.describe Phronomy::Agent::OutcomePreparation do
     expect(calls).to eq(2)
   end
 
-  it "does not repeat an application-defined String copy after complete input construction fails" do
+  it "does not copy application output when constructing the complete input or detached proof" do
     copies = 0
     original = Class.new(String) do
       define_method(:initialize_copy) do |source|
@@ -108,12 +108,24 @@ RSpec.describe Phronomy::Agent::OutcomePreparation do
     capsule = described_class.new(captured, buffer.writes, journal_records: journal_records,
       persistence: persistence, participant: nil)
     expect(persistence.contents).to receive(:fetch).with(history_ref).once.and_call_original
-    failure = nil
-    expect { capsule.materialize(persistence: persistence) }.to raise_error(IOError) { |error| failure = error }
+    input = capsule.materialize(persistence: persistence)
+    expect(input.values.fetch(:result).result.fetch(:output)).to equal(original)
+    expect(input.values.fetch(:result).result.fetch(:messages).length).to eq(2)
     2.times do
+      expect(capsule.materialize(persistence: persistence)).to equal(input)
+      expect(input.materialize(persistence: persistence).outcome.execution_observation.result).to eq("captured report")
+    end
+    expect(copies).to eq(0)
+  end
+
+  it "keeps an unrelated complete input construction failure single-use" do
+    capsule = preparation
+    failure = IOError.new("complete input unavailable")
+    expect(persistence.contents).to receive(:fetch).with(history_ref).once.and_call_original
+    expect(Phronomy::Agent::TerminalPersistenceEvidence::CapturedInput).to receive(:new).once.and_raise(failure)
+    3.times do
       expect { capsule.materialize(persistence: persistence) }.to raise_error { |error| expect(error).to equal(failure) }
     end
-    expect(copies).to eq(1)
   end
 
   it "reuses the same complete input without rereading history after proof construction fails" do
@@ -128,7 +140,8 @@ RSpec.describe Phronomy::Agent::OutcomePreparation do
     end
     expect { input.materialize(persistence: persistence) }.to raise_error(IOError)
     expect(capsule.materialize(persistence: persistence)).to equal(input)
-    expect(input.materialize(persistence: persistence).outcome.result.fetch(:messages).length).to eq(2)
+    expect(input.values.fetch(:result).result.fetch(:messages).length).to eq(2)
+    expect(input.materialize(persistence: persistence).outcome.execution_observation.result).to eq("captured report")
     expect(attempts).to eq(2)
   end
 

@@ -81,7 +81,7 @@ RSpec.describe "Captured native parent outcome persistence" do
       terminal_view: view, state_required: true, wiring: {phronomy_execution_participant: participant}.freeze)
   end
 
-  def capture(operation, rollback: false)
+  def capture(operation, rollback: false, on_prepared: nil)
     evidence = nil
     if rollback
       armed = true
@@ -96,11 +96,11 @@ RSpec.describe "Captured native parent outcome persistence" do
           original.call(&transaction)
         end
       end
-      expect { committer.commit_outcome(operation, on_evidence: ->(value) { evidence = value }) }
+      expect { committer.commit_outcome(operation, on_evidence: ->(value) { evidence = value }, on_prepared: on_prepared) }
         .to raise_error(IOError, "native outcome rolled back")
       allow(persistence.coordinator).to receive(:atomic).and_call_original
     else
-      committer.commit_outcome(operation, on_evidence: ->(value) { evidence = value })
+      committer.commit_outcome(operation, on_evidence: ->(value) { evidence = value }, on_prepared: on_prepared)
     end
     expect(evidence).not_to be_nil
     evidence
@@ -109,8 +109,13 @@ RSpec.describe "Captured native parent outcome persistence" do
   %i[completed failed suspended].each do |kind|
     it "replays the exact captured #{kind} records and native content after rollback" do
       operation = command(kind)
-      proof = capture(operation, rollback: true)
+      input = nil
+      proof = capture(operation, rollback: true, on_prepared: ->(value) { input = value })
+      semantic = input.values.fetch(:result)
       expect(proof.outcome.type).to eq(kind)
+      expect(semantic.type).to eq(kind)
+      expect(semantic.error).to equal(operation.terminal_view.source_error)
+      expect(semantic.approval_request).to equal(operation.terminal_view.approval_request)
       reference = proof.outcome.execution.metadata.dig("execution_extension", "state_ref")
       expect(stores.multi_agent.contents.exist?(reference)).to be(false)
       expect(proof.reconcile(persistence: persistence).disposition).to eq(:not_committed)
@@ -122,16 +127,26 @@ RSpec.describe "Captured native parent outcome persistence" do
       expect(persistence.agents.load(parent.agent_id).to_h).to eq(proof.outcome.root.to_h)
       expect(proof.reconcile(persistence: persistence).disposition).to eq(:committed)
       if kind == :suspended
-        expect(proof.outcome.approval_request).to eq(operation.terminal_view.approval_request.to_h)
+        restored = Phronomy::Agent::ToolApprovalRequest.from_h(proof.outcome.execution.approval_request)
+        expect(restored.to_h).to eq(operation.terminal_view.approval_request.to_h)
+        expect(semantic.result.fetch(:approval_request)).to equal(operation.terminal_view.approval_request)
+        expect(proof.outcome.execution_observation).to be_nil
         expect(proof.outcome.execution.status).to eq(:suspended)
+      elsif kind == :completed
+        expect(semantic.result.fetch(:output)).to equal(operation.terminal_view.output)
+        expect(semantic.result.fetch(:messages)).to be_an(Array)
       end
     end
   end
 
   it "retries a captured coordination wait after the child finishes without rewriting root or journal" do
     current = reserve_child
-    proof = capture(command(:coordination_wait, current: current), rollback: true)
+    operation = command(:coordination_wait, current: current)
+    input = nil
+    proof = capture(operation, rollback: true, on_prepared: ->(value) { input = value })
+    expect(input.values.fetch(:result).error).to equal(operation.terminal_view.source_error)
     expect(proof.outcome.type).to eq(:coordination_wait)
+    expect(proof.outcome.execution_observation).to be_nil
     expect(proof.outcome.execution.status).to eq(:active)
     expect(proof.outcome.root.to_h).to eq(proof.before.fetch(0).fetch(0))
     finish_child

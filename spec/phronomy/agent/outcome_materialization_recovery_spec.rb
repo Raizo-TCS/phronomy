@@ -131,6 +131,64 @@ RSpec.describe "Native outcome materialization through the original Runtime" do
     @original = @agent.invoke_async("prepare the report once", **options)
   end
 
+  # Encoding can use the String value without copying its application subclass.
+  # A persistence proof must not need another semantic representation of it.
+  def install_uncopyable_output
+    counts = @counts
+    value_class = Class.new(String) do
+      define_method(:initialize_copy) do |_source|
+        counts[:custom_copy] += 1
+        raise IOError, "The application output must not be copied"
+      end
+    end
+    value_class.new("captured report").tap do |text|
+      @agent.add_output_filter(->(_output) { text })
+    end
+  end
+
+  def setup_approval_conversion_failure(stage:)
+    worker, protected_tool = child_class, approval_tool
+    klass = Class.new(Phronomy::MultiAgent::Orchestrator) do
+      agent_definition id: "materialization-approval-scope", version: 1
+      tools protected_tool => nil
+      subagent :worker, worker
+    end
+    @agent = klass.create(**options)
+    counts = @counts
+    response = Phronomy::LLMAdapter::Response.new(finish_reason: :tool_calls, tool_calls: [
+      Phronomy::Tool::CallRequest.new(id: "approval-call", name: "approval_required_tool", arguments: {query: "check once"})
+    ])
+    adapter = Class.new(Phronomy::LLMAdapter::Base) do
+      define_method(:perform_complete) do |_request, cancellation_token:|
+        cancellation_token&.raise_if_cancelled!
+        counts[:provider] += 1
+        raise "Unexpected Provider replay" if counts[:provider] > 1
+        response
+      end
+    end.new
+    Phronomy.configure { |configuration| configuration.llm_adapter = adapter }
+    allow_any_instance_of(protected_tool).to receive(:execute) { raise "An approval was not granted" }
+    target = if stage == :proof
+      allow(Phronomy::Agent::TerminalPersistenceEvidence).to receive(:detached_outcome)
+    else
+      allow_any_instance_of(Phronomy::Agent::ExecutionOutcomeCommitter).to receive(:encode_suspension)
+    end
+    target.and_wrap_original do |original, *args|
+      Thread.current[:materialization_approval_conversion] = true
+      original.call(*args)
+    ensure
+      Thread.current[:materialization_approval_conversion] = nil
+    end
+    @approval_trace = TracePoint.new(:call) do |trace|
+      if Thread.current[:materialization_approval_conversion] &&
+          trace.defined_class == Phronomy::Agent::ToolApprovalRequest && trace.method_id == :to_h
+        counts[:approval_conversion] += 1
+        raise IOError, "Approval conversion is unavailable at the selected boundary"
+      end
+    end
+    @approval_trace.enable
+  end
+
   def await_retained_failure
     expect { result_of(@original) }.to raise_error(Phronomy::Agent::OutcomeRecoveryError) do |error|
       @failure, @recovery = error, error.recovery
@@ -260,34 +318,60 @@ RSpec.describe "Native outcome materialization through the original Runtime" do
     expect_recovered(receipt)
   end
 
-  it "does not repeat a failed custom copy while constructing complete detached input" do
+  it "preserves ordinary output identity and full messages without copying its application subclass" do
+    setup_report(fault: :none)
+    text = install_uncopyable_output
+    start_report
+    result = result_of(@original)
+    expect(result.fetch(:output)).to equal(text)
+    expect(result.fetch(:messages).map(&:to_h)).to eq(@agent.transcript_messages.map(&:to_h))
+    expect(result.fetch(:messages).map(&:role)).to include(:user, :assistant, :tool)
+    expect(@counts).to include(provider: 2, tool: 1)
+    expect(@counts[:custom_copy]).to eq(0)
+    execution = stores.agent.observe_execution(agent_id: @agent.agent_id, execution_id: result.fetch(:execution_id))
+    expect(execution.status).to eq(:completed)
+    expect(execution.result).to eq("captured report")
+    expect(@agent.unload!).to be(true)
+  end
+
+  it "recovers encoded facts without copying a changed application output or replacing its semantic result" do
     setup_report
-    counts = @counts
-    value_class = Class.new(String) do
-      define_method(:initialize_copy) do |source|
-        if Thread.current[:materialization_detached_input]
-          counts[:custom_copy] += 1
-          raise IOError, "Original output cannot be copied again"
-        end
-        super(source)
-      end
-    end
-    text = value_class.new("captured report")
-    @agent.add_output_filter(->(_output) { text })
-    allow(Phronomy::Agent::TerminalPersistenceEvidence::CapturedInput).to receive(:new).and_wrap_original do |original, *args, **options|
-      Thread.current[:materialization_detached_input] = true
-      original.call(*args, **options)
-    ensure
-      Thread.current[:materialization_detached_input] = nil
-    end
+    text = install_uncopyable_output
     start_report
     await_retained_failure
+    expect(@failure.cause).to be_a(IOError)
+    expect(@failure.cause.message).to eq("Immutable report transcript content is unavailable")
+    text.replace("changed after encoding")
+    later = @agent.resume_async(@execution_id)
+    eventually { @agent.__execution_environment.registry.agent_completion_waiters(@execution_id).any? }
+    expect_captured_pre(@agent.reconcile_outcome(recovery: @recovery))
+    expect(@counts[:custom_copy]).to eq(0)
+    receipt = @agent.retry_outcome(recovery: @recovery)
+    observation = result_of(later)
+    expect(observation).to include(status: :completed, result: "captured report", output: "captured report")
+    expect(observation).not_to have_key(:messages)
+    expect_recovered(receipt)
+    expect(text).to eq("changed after encoding")
+    expect(text).not_to be_frozen
+    expect(@counts[:custom_copy]).to eq(0)
+  end
+
+  it "does not reenter a genuinely failed complete-input constructor" do
+    setup_report
+    start_report
+    await_retained_failure
+    failure = IOError.new("Complete input could not be constructed")
+    attempts = 0
+    allow(Phronomy::Agent::TerminalPersistenceEvidence::CapturedInput).to receive(:new).and_wrap_original do |original, *args, **options|
+      attempts += 1
+      raise failure if attempts == 1
+
+      original.call(*args, **options)
+    end
     assert_no_record_writes
     first = @agent.reconcile_outcome(recovery: @recovery)
     expect(first.outcome).to eq(:unavailable)
-    expect(first.error.cause.message).to eq("Original output cannot be copied again")
-    counts_after_copy = @counts.dup
-    expect(@counts[:custom_copy]).to eq(1)
+    expect(first.error.cause).to equal(failure)
     reads = @read_count
     2.times do
       receipt = @agent.retry_outcome(recovery: @recovery)
@@ -295,7 +379,8 @@ RSpec.describe "Native outcome materialization through the original Runtime" do
       expect(receipt.ownership_state).to eq(:retained)
       expect(receipt.error.cause).to equal(first.error.cause)
     end
-    expect(@counts).to eq(counts_after_copy)
+    expect(attempts).to eq(1)
+    expect(@counts).to eq(@prepared_counts)
     expect(@read_count).to eq(reads)
     expect(saved_execution.status).to eq(:active)
   end
@@ -442,42 +527,29 @@ RSpec.describe "Native outcome materialization through the original Runtime" do
     expect(@agent.unload_with_completed_child!(@execution_id, execution_id: child.fetch("execution_id"))).to be(true)
   end
 
-  it "does not replay incomplete approval conversion through the transcript checkpoint" do
-    worker, protected_tool = child_class, approval_tool
-    klass = Class.new(Phronomy::MultiAgent::Orchestrator) do
-      agent_definition id: "materialization-approval-scope", version: 1
-      tools protected_tool => nil
-      subagent :worker, worker
-    end
-    @agent = klass.create(persistence: stores.agent, coordination_store: stores.multi_agent)
-    counts = @counts
-    response = Phronomy::LLMAdapter::Response.new(finish_reason: :tool_calls, tool_calls: [
-      Phronomy::Tool::CallRequest.new(id: "approval-call", name: "approval_required_tool", arguments: {query: "check once"})
-    ])
-    adapter = Class.new(Phronomy::LLMAdapter::Base) do
-      define_method(:perform_complete) do |_request, cancellation_token:|
-        cancellation_token&.raise_if_cancelled!
-        counts[:provider] += 1
-        raise "Unexpected Provider replay" if counts[:provider] > 1
-        response
-      end
-    end.new
-    Phronomy.configure { |configuration| configuration.llm_adapter = adapter }
-    allow_any_instance_of(protected_tool).to receive(:execute) { raise "An approval was not granted" }
-    allow(Phronomy::Agent::TerminalPersistenceEvidence).to receive(:detached_outcome).and_wrap_original do |original, *args|
-      Thread.current[:materialization_approval_conversion] = true
-      original.call(*args)
-    ensure
-      Thread.current[:materialization_approval_conversion] = nil
-    end
-    @approval_trace = TracePoint.new(:call) do |trace|
-      if Thread.current[:materialization_approval_conversion] &&
-          trace.defined_class == Phronomy::Agent::ToolApprovalRequest && trace.method_id == :to_h
-        counts[:approval_conversion] += 1
-        raise IOError, "Approval conversion failed before complete input"
-      end
-    end
-    @approval_trace.enable
+  it "keeps a valid approval wait without converting its request again for a private proof" do
+    setup_approval_conversion_failure(stage: :proof)
+    start_report
+    @original.on_complete { |_value, error| events << error if error }
+    request = take(events)
+    expect(request).to be_a(Phronomy::Agent::ToolApprovalRequest)
+    @execution_id = request.execution_id
+    expect(saved_execution.status).to eq(:suspended)
+    expect(saved_execution.approval_request).to eq(Phronomy::Agent::RuntimeRecordEncoder.json_value(request.to_h))
+    expect(@agent.pending_outcome_recovery(execution_id: @execution_id)).to be_nil
+    expect(@counts[:approval_conversion]).to eq(0)
+    expect(@counts[:provider]).to eq(1)
+    expect(@original.done?).to be(false)
+    rejected = @agent.approve_async(@execution_id, approval_request_id: request.id, approved: false)
+    expect(result_of(rejected).fetch(:rejected)).to be(true)
+    expect(result_of(@original).fetch(:rejected)).to be(true)
+    expect(@counts[:approval_conversion]).to eq(0)
+    expect(@counts[:provider]).to eq(1)
+    expect(@agent.unload!).to be(true)
+  end
+
+  it "retains custody when the original approval request cannot be encoded" do
+    setup_approval_conversion_failure(stage: :encoding)
     start_report
     await_retained_failure
     expect(@failure.cause).to be_a(IOError)
