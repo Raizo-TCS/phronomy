@@ -45,6 +45,12 @@ obligation even if every caller drops its reference. After resolution, a held
 capability preserves its resolved receipt without an indefinite global history
 map. It must not be sent as JSON or treated as a cross-process authorization token.
 
+As of 2026-11-28, Workflow uses the same C13 `RetainedAttempts` manager and
+`AttemptCompletion` evidence record as Agent outcome, approval and dispatch
+recovery. Slot/observer management and completion observations are shared;
+Workflow retains custody confirmation, persistence classification, context
+reconstruction and segment release. See [shared retained-attempt management](retained-attempts.md).
+
 ## Explicit observation and lookup
 
 Recovery reads the original repository only while the persistence fact is

@@ -310,6 +310,8 @@ Agent compares root, execution, journal, cancellation, and referenced content;
 its accepted durable execution may remain active after a rolled-back terminal
 save. A generic pre-state handler that releases both owners would be incorrect.
 
+The following tables retain the historical G3b-1 assessment before original-owner recovery was connected. As of 2026-11-28, [shared retained-attempt management](retained-attempts.md) documents the later Agent/Workflow machinery; these historical tables do not describe its current implementation status.
+
 | Comparison | Workflow G2 | Agent G3b-1 |
 | --- | --- | --- |
 | Persistence proposal | Exact revisioned snapshot | Multi-record terminal proposal plus referenced content and semantic Outcome |
@@ -319,7 +321,7 @@ save. A generic pre-state handler that releases both owners would be incorrect.
 | Lifetime | Captured running/draining Runtime retains unresolved responsibility | Private caller must retain the evidence; default coordinator does not |
 | Shared mechanisms | Existing persistence comparison, results, physical completion, neutral custody | Existing atomic coordination, guarded records, comparison, and immutable values |
 
-| Commonality criterion | Current assessment |
+| Commonality criterion | Historical G3b-1 assessment |
 | --- | --- |
 | Removed duplication | Proof comparison is reusable; complete proposal shape and terminal disposition differ. No cross-domain line reduction is established. |
 | Connection and comprehension cost | A generic manager would need adapters for Agent's multi-record/content proposal and Workflow's segment outcome. Their cost is not justified yet. |
@@ -328,28 +330,31 @@ save. A generic pre-state handler that releases both owners would be incorrect.
 | Total verification burden | Shared fault scenarios can help, but real Agent and Workflow owner tests remain necessary. Additional adapters would also need tests. |
 | Dependency and execution cost | Keep persistence interpretation and owner release in their domains. No new generic manager, Engine-to-Agent dependency, or performance benefit is claimed. |
 
-The current decision is to retain the existing neutral primitives and add only
-the Agent-specific evidence path. Reconsider smaller common components after a
-real Agent owner is connected and both domains can be compared at the same
-capability level.
+The G3b-1 decision was to retain existing neutral primitives and add only the
+Agent-specific evidence path. It deferred smaller common components until a real
+Agent owner was connected and both domains could be compared at the same
+capability level. The later four-owner extraction addresses that comparison.
 
-## Next lifecycle stage and acceptance boundary
+## Historical next-stage acceptance boundary
 
-G3b-2 must connect persistence evidence to the exact original execution owner.
-That owner must retain responsibility before uncertainty is published, serialize
-physical attempts, apply confirmed facts once, and define observation and
-shutdown behavior. Those are required future changes, not implied behavior of
-the evidence value.
+The original G3b-1 plan required G3b-2 to connect persistence evidence to the
+exact original execution owner, retain responsibility before publishing
+uncertainty, serialize attempts, apply facts once and define observation and
+shutdown behavior. Those requirements were not implied by the evidence value
+alone. The later [original-owner contract](agent-terminal-recovery.md) and
+[current shared attempt design](retained-attempts.md) describe the implemented
+boundaries as of 2026-11-28.
 
-For example, after a lost terminal-save response, a future recovery request may
+For example, after a lost terminal-save response, the planned recovery request could
 read a committed outcome and deliver it to the original owner. It must validate
 Agent, execution, session, recovery generation, and required physical completion
 before settling the original operation or releasing admission. A durable result
 visible through `resume` alone does not meet that acceptance condition.
 
-The future scope must cover cancelled or discarded observers, rejected and lost
-deliveries, concurrent recovery requests, unknown retry outcomes, changed
-cancellation evidence, stopped owners, and incomplete cleanup. Public method
-names, receipt lifetime, supported Runtime states, and post-stop transfer must be
-decided explicitly. This stage does not claim crash recovery, external database
-acceptance, or that the reproduced original-owner and shutdown gaps are fixed.
+The planned scope included cancelled or discarded observers, rejected and lost
+deliveries, concurrent requests, unknown retry outcomes, changed cancellation,
+stopped owners and incomplete cleanup. Public method names, receipt lifetime,
+supported Runtime states and post-stop transfer required explicit decisions.
+The G3b-1 evidence stage did not claim that the original-owner and shutdown gaps
+were fixed. Neither that historical stage nor the current shared component
+establishes crash recovery or arbitrary external database conformance.

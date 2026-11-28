@@ -170,8 +170,8 @@ validation of the applied local post-state before a release-only retry.
 
 | Model concept | Implementation responsibility |
 | --- | --- |
-| `server` and one recovery lane | `TerminalRecoveryOperation` retains the original physical slot and at most one explicit reconciliation/retry slot. |
-| `CaptureWorker` | The operation retains worker evidence independently of logical TaskResult completion. |
+| `server` and one recovery lane | `OutcomeRecoveryOperation` and its terminal specialization use `RetainedAttempts` for the original slot and at most one explicit reconciliation/retry slot. |
+| `CaptureWorker` | `RetainedAttempts#record_worker_locked` publishes into `AttemptCompletion` independently of logical TaskResult completion; original terminal submission preserves its owner-specific admission rules. |
 | `ApplyPost` | `ExecutionCoordinator#apply_retained_terminal_on_event_loop` checks exact live state and applies once on the captured EventLoop. |
 | `ReleasePost` | `ExecutionRegistry#release_terminal_operation` checks physical/deferred work and atomically releases custody and admission. |
 | Original closed observation | `TerminalRecoveryOperation#fail_original` settles only that observation; recovery does not reopen it or replay its callback. |
@@ -179,6 +179,25 @@ validation of the applied local post-state before a release-only retry.
 | `wire` | Ready delivery can fail while the physical slot and mailbox remain retained. |
 | Stopped retained owner | `ExecutionRegistry#shutdown` preserves retained obligations; `idle?` remains false while any is retained. |
 | `settled` and `authoritative` | Backend/environmental premises; no new Runtime capability gate is claimed. |
+
+## Current implementation mapping (2026-11-28)
+
+The Agent outcome/terminal owner uses C13 `RetainedAttempts` for the initial attempt,
+one recovery lane, admission facts and observer membership, and
+`AttemptCompletion` for worker results and logical/physical evidence. The owner
+retains exact live application, saved-outcome interpretation and accepted-job release. The current command, snapshot and mutex boundaries are documented in
+[shared retained-attempt management](../../../docs/architecture/retained-attempts.md).
+
+For example, an observer can finish while the save worker is still running.
+The shared manager keeps the physical lane and recorded worker facts; the owner
+later decides what those facts authorize. Registering an inline callback or
+merging a stale task snapshot is still a concrete Ruby implementation obligation.
+
+This mapping update does not change the TLA+ transitions, configuration bounds,
+expected counterexamples or progress premises. The models do not count mutex
+acquisitions or enumerate partial callback registration. Fresh protocol-model
+runs and their exact input hashes are recorded in delivery evidence; neither a
+fresh run nor this correspondence table proves refinement of the Ruby code.
 
 ## Reproduce the checks
 

@@ -329,12 +329,16 @@ RSpec.describe Phronomy::Agent::DispatchRecoveryOperation do
     allow(evidence).to receive(:reconcile).and_return(proof(:not_committed), proof(:committed))
     first = operation.observe
     drain
-    old_id = operation.instance_variable_get(:@attempt).fetch(:id)
+    ready_messages = []
+    allow(operation).to receive(:deliver).and_wrap_original do |deliver, message|
+      ready_messages << message if message.is_a?(described_class::Ready) && message.attempt_id
+      deliver.call(message)
+    end
     complete_worker(1)
     expect(first.wait_result.outcome).to eq(:confirmed_pre)
     current = operation.observe
     drain
-    operation.deliver(described_class::Ready.new(operation: operation, attempt_id: old_id))
+    operation.deliver(ready_messages.last)
     expect(current.status).to eq(:pending)
     expect(@applied).to be_empty
     complete_worker(2)

@@ -150,6 +150,12 @@ and Tool now own their shared operations, not merely value/error declarations.
 The former G59/M78 split is retired. See [r8 unit 1](r8-unit1.md) for the exact
 implemented scope, API removals and incomplete Persistence/domain work.
 
+As of 2026-11-28, G58/C13 also contains the private `RetainedAttempts` manager
+and `AttemptCompletion` evidence record used by four Agent/Workflow recovery
+owners. They consume an injected submitter and the existing owner mutex; domain
+proof, application and release remain outside the shared layer. See
+[shared retained-attempt management](retained-attempts.md).
+
 The full architecture still contains existing cycles outside the checked scope.
 The recorded graph is not an ideal final r8 diagram.
 

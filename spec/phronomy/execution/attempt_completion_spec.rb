@@ -3,12 +3,22 @@
 require "spec_helper"
 require "timeout"
 
-RSpec.describe Phronomy::Agent::PhysicalAttempt do
+RSpec.describe Phronomy::AttemptCompletion do
   let(:owner_mutex) { Mutex.new }
   let(:attempt) { described_class.new(mutex: owner_mutex) }
 
   def snapshot(target = attempt)
     owner_mutex.synchronize { target.snapshot_locked }
+  end
+
+  def watch_task(task, target = attempt, &block)
+    owner_mutex.synchronize { target.attach_locked(task) }
+    target.watch(task, &block)
+  end
+
+  def refresh_attempt
+    task = owner_mutex.synchronize { attempt.task }
+    attempt.refresh(task)
   end
 
   def physical_task
@@ -21,7 +31,7 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
     task.mark_physical_complete!
     notifications = []
 
-    attempt.watch(task) do |event|
+    watch_task(task) do |event|
       notifications << [event, owner_mutex.owned?, snapshot]
     end
 
@@ -35,14 +45,14 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
   it "retains late worker success after logical cancellation until physical completion" do
     task = physical_task
     notifications = []
-    attempt.watch(task) { |event| notifications << [event, snapshot] }
+    watch_task(task) { |event| notifications << [event, snapshot] }
     task.cancel!
 
     expect(snapshot).to include(logical: true, physical: false, result: nil)
     expect(snapshot.fetch(:error)).to be_a(Phronomy::CancellationError)
     owner_mutex.synchronize { attempt.record_worker_locked(:committed, nil) }
     task.mark_physical_complete!
-    expect(attempt.refresh).to be(true)
+    expect(refresh_attempt).to be(true)
 
     expect(snapshot).to include(logical: true, physical: true, result: :committed, error: nil)
     expect(notifications.map(&:first)).to eq(%i[logical physical])
@@ -52,10 +62,10 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
   it "preserves an explicitly recorded nil success instead of adopting task cancellation" do
     task = physical_task
     owner_mutex.synchronize { attempt.record_worker_locked(nil, nil) }
-    attempt.watch(task) { |_event| }
+    watch_task(task) { |_event| }
     task.cancel!
     task.mark_physical_complete!
-    attempt.refresh
+    refresh_attempt
 
     expect(snapshot).to include(logical: true, physical: true, result: nil, error: nil)
   end
@@ -64,10 +74,10 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
     task = physical_task
     fatal = Exception.new("worker terminated outside StandardError")
     owner_mutex.synchronize { attempt.record_worker_locked(nil, fatal) }
-    attempt.watch(task) { |_event| }
+    watch_task(task) { |_event| }
     task.fail(IOError.new("logical observer failed"))
     task.mark_physical_complete!
-    attempt.refresh
+    refresh_attempt
 
     expect(snapshot.fetch(:error)).to equal(fatal)
     expect(snapshot).to include(logical: true, physical: true, result: nil)
@@ -85,7 +95,7 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
       release.pop
       observed
     end
-    refreshing = Thread.new { attempt.refresh }
+    refreshing = Thread.new { refresh_attempt }
     Timeout.timeout(2) { entered.pop }
     owner_mutex.synchronize { attempt.record_worker_locked(:committed_during_poll, nil) }
     release << true
@@ -101,7 +111,7 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
   it "uses an ordinary TaskResult's logical completion as its physical boundary" do
     task = Phronomy::TaskResult.deferred
     notifications = []
-    attempt.watch(task) { |event| notifications << event }
+    watch_task(task) { |event| notifications << event }
     task.complete(:ordinary)
 
     expect(snapshot).to include(logical: true, physical: true, result: :ordinary, physical_watch: false)
@@ -112,9 +122,9 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
     task = Phronomy::TaskResult.deferred
     physical_callbacks = []
     task.define_singleton_method(:on_physical_complete) { |&callback| physical_callbacks << callback }
-    attempt.watch(task) { |_event| }
+    watch_task(task) { |_event| }
     task.complete(:logical_only)
-    attempt.refresh
+    refresh_attempt
 
     expect(snapshot).to include(logical: true, physical: false, result: :logical_only)
     physical_callbacks.fetch(0).call
@@ -127,13 +137,13 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
       failure = IOError.new("subscription unavailable")
       allow(task).to receive(registration).and_raise(failure)
 
-      expect { attempt.watch(task) { |_event| } }.to raise_error { |error| expect(error).to equal(failure) }
+      expect { watch_task(task) { |_event| } }.to raise_error { |error| expect(error).to equal(failure) }
       expect(owner_mutex.synchronize { attempt.task }).to equal(task)
       expect(snapshot).to include(logical: false, physical: false, watch_error: failure,
         physical_watch: registration == :on_complete)
       task.complete(:late_result)
       task.mark_physical_complete!
-      expect(attempt.refresh).to be(true)
+      expect(refresh_attempt).to be(true)
 
       expect(snapshot).to include(logical: true, physical: true, result: :late_result, watch_error: failure)
     end
@@ -147,11 +157,11 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
         raise failure
       end
 
-      expect { attempt.watch(task) { |event| notifications << [event, snapshot] } }
+      expect { watch_task(task) { |event| notifications << [event, snapshot] } }
         .to raise_error { |error| expect(error).to equal(failure) }
       task.complete(:late_result)
       task.mark_physical_complete!
-      attempt.refresh
+      refresh_attempt
 
       expect(snapshot).to include(logical: true, physical: true, result: :late_result, watch_error: failure,
         physical_watch: registration == :on_complete)
@@ -174,16 +184,16 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
       original.call
     end
 
-    expect(attempt.refresh).to be(true)
+    expect(refresh_attempt).to be(true)
     expect(snapshot).to include(logical: false, physical: false)
   end
 
   it "never retracts physical completion when a later poll has no completion evidence" do
     task = physical_task
-    attempt.watch(task) { |_event| }
+    watch_task(task) { |_event| }
     task.mark_physical_complete!
     allow(task).to receive(:physical_complete?).and_return(false)
-    attempt.refresh
+    refresh_attempt
 
     expect(snapshot).to include(physical: true, logical: false)
   end
@@ -193,8 +203,8 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
     replacement = described_class.new(mutex: owner_mutex)
     old_notifications = []
     replacement_notifications = []
-    attempt.watch(old_task) { |event| old_notifications << event }
-    replacement.watch(physical_task) { |event| replacement_notifications << event }
+    watch_task(old_task) { |event| old_notifications << event }
+    watch_task(physical_task, replacement) { |event| replacement_notifications << event }
 
     old_task.complete(:old_result)
     old_task.mark_physical_complete!
@@ -208,7 +218,7 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
   it "keeps recorded facts when owner notification raises" do
     task = physical_task
     attempted_notifications = []
-    attempt.watch(task) do |event|
+    watch_task(task) do |event|
       attempted_notifications << event
       raise IOError, "owner mailbox unavailable"
     end
@@ -229,9 +239,32 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
   end
 
   it "reports that refresh is unavailable until a task handle exists" do
-    expect(attempt.refresh).to be(false)
+    expect(refresh_attempt).to be(false)
     expect(owner_mutex.synchronize { attempt.task }).to be_nil
     expect(snapshot).to include(logical: false, physical: false)
+  end
+
+  it "does not restore released references when an in-flight task poll returns" do
+    entered, resume = Queue.new, Queue.new
+    task = Object.new
+    task.define_singleton_method(:__snapshot) do
+      entered << true
+      resume.pop
+      [:completed, :released_payload, nil]
+    end
+    owner_mutex.synchronize { attempt.attach_locked(task) }
+    refreshing = Thread.new { refresh_attempt }
+    Timeout.timeout(2) { entered.pop }
+    owner_mutex.synchronize { attempt.release_references_locked }
+    resume << true
+    Timeout.timeout(2) { refreshing.join }
+
+    expect(refreshing.value).to be(false)
+    expect(snapshot).to include(result: nil, error: nil, physical: false, logical: false)
+    expect(owner_mutex.synchronize { attempt.task }).to be_nil
+  ensure
+    resume << true if defined?(resume)
+    refreshing&.join(2)
   end
 
   [false, true].each do |physical|
@@ -241,20 +274,20 @@ RSpec.describe Phronomy::Agent::PhysicalAttempt do
 
       expect(owner_mutex.synchronize { attempt.task }).to be_nil
       expect(snapshot).to include(logical: true, physical: physical, error: failure)
-      expect(attempt.refresh).to be(false)
+      expect(refresh_attempt).to be(false)
     end
   end
 
   it "clears heavy payloads after completion while retaining observed completion facts" do
     task = physical_task
-    attempt.watch(task) { |_event| }
+    watch_task(task) { |_event| }
     task.complete(:original)
     task.mark_physical_complete!
-    owner_mutex.synchronize { attempt.clear_locked }
+    owner_mutex.synchronize { attempt.release_references_locked }
 
     expect(owner_mutex.synchronize { attempt.task }).to be_nil
     expect(snapshot).to include(result: nil, error: nil, watch_error: nil,
       physical: true, logical: true)
-    expect(attempt.refresh).to be(false)
+    expect(refresh_attempt).to be(false)
   end
 end

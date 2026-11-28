@@ -123,8 +123,9 @@ configurations overlap and must not be added as unique modeled states.
 
 The model constrains submission and physical custody at existing owner boundaries.
 Domain proof, exact owner identity, state application and release policy remain
-with Workflow and Agent. The shared Execution helper only forwards optional
-positive rejection evidence to compatible submitters.
+with Workflow and Agent. The shared Execution submission helper forwards optional positive rejection
+evidence to compatible submitters. `RetainedAttempts` manages the corresponding
+attempt facts and observers; `AttemptCompletion` retains completion evidence.
 
 For example, both a Workflow read and an Agent captured-write retry need the same
 physical serialization rule, but only their own persistence evidence decides
@@ -137,8 +138,8 @@ manager.
 | `Refuse` / `Throw` | `Execution.submit_with_rejection_evidence` supplies optional per-attempt refusal; the owner checks receipt, handle and worker entry. |
 | Initial slot `1` | `WorkflowTerminalOperation#start` retains an uncertain initial save instead of normal failure finalization. |
 | Attempt slots `2` and `3` | Workflow and Agent `observe_on_owner` retain or close the specific reconciliation/retry attempt. |
-| `Enter` / `Record` | Worker entry and `capture_worker` publish facts without asserting executor quiescence. |
-| `ReturnHandle` / `ObservePhysical` | `watch` and `refresh_slot` preserve the returned task and observe physical completion. |
+| `Enter` / `Record` | `RetainedAttempts#worker_started_locked` and `record_worker_locked` publish facts without asserting executor quiescence. |
+| `ReturnHandle` / `ObservePhysical` | `task_returned_locked` retains the handle once; `watch` binds notifications and `refresh` observes the captured handle through `AttemptCompletion`. |
 | `FreshObservation` / `Finish` | Explicit observation joins or inspects an existing slot; it does not forget unresolved accepted work. |
 | `Apply` / `Release` | Existing exact-owner application and release guards remain domain-owned. |
 | `CloseCaller` / `Stop` | Closing observers or stopping a Runtime does not erase the physical obligation. |
@@ -160,6 +161,25 @@ Ruby callback registration order, partial registration, or whether an observer
 can safely join a pending task after registration fails. Deterministic Runtime
 tests must verify those implementation-specific cases separately; the model's
 progress property is not a proof of callback-joining liveness.
+
+## Current implementation mapping (2026-11-28)
+
+The Agent or Workflow domain owner uses C13 `RetainedAttempts` for the initial attempt,
+one recovery lane, admission facts and observer membership, and
+`AttemptCompletion` for worker results and logical/physical evidence. The owner
+retains proof interpretation, application and domain-specific responsibility release. The current command, snapshot and mutex boundaries are documented in
+[shared retained-attempt management](../../../docs/architecture/retained-attempts.md).
+
+For example, an observer can finish while the save worker is still running.
+The shared manager keeps the physical lane and recorded worker facts; the owner
+later decides what those facts authorize. Registering an inline callback or
+merging a stale task snapshot is still a concrete Ruby implementation obligation.
+
+This mapping update does not change the TLA+ transitions, configuration bounds,
+expected counterexamples or progress premises. The models do not count mutex
+acquisitions or enumerate partial callback registration. Fresh protocol-model
+runs and their exact input hashes are recorded in delivery evidence; neither a
+fresh run nor this correspondence table proves refinement of the Ruby code.
 
 ## Reproduction
 
