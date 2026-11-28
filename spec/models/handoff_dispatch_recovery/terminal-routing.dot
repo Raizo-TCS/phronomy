@@ -1,0 +1,18 @@
+digraph TerminalRouting {
+  graph [rankdir=TB, bgcolor="white", pad="0.20", nodesep="0.4", ranksep="0.72", fontname="Arial", label="Durable Handoff routing for one Target", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#edf4fc", color="#345477", fontname="Arial", fontsize=11, margin="0.18,0.12"];
+  edge [fontname="Arial", fontsize=10, color="#345477"];
+  start [shape=point, width=0.1, label="", fillcolor="#345477"];
+  pending [label="Target pending\nSource/Target history retained"];
+  stable [label="Stable\nThis parent obligation is complete", fillcolor="#e7f3e8"];
+  later [label="Later pending Target\nDifferent chain identity", fillcolor="#f2f0f8"];
+  note [shape=note, fillcolor="#f5f5f5", color="#777777", label="A lost response changes caller knowledge.\nIt does not create an unknown durable phase.\nFinalization preserves execution results and holds."];
+  start -> pending [label="Source transfer saved"];
+  pending -> pending [label="terminal Target observed\n(failed / cancelled / blocked)\n/ routing obligation remains"];
+  pending -> stable [label="explicit progress\n[Source/Target custody released;\nexact fresh guarded evidence]\n/ one routing CAS"];
+  pending -> pending [label="save does not commit\n/ retain pending route", tailport=w, headport=nw];
+  stable -> stable [label="duplicate explicit progress\n/ no second write"];
+  stable -> later [label="another turn transfers\n/ new identity"];
+  later -> later [label="old terminal-chain observation\n/ no mutation"];
+  later -> note [style=dashed, arrowhead=none];
+}
