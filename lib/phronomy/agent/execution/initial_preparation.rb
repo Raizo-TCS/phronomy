@@ -24,9 +24,10 @@ module Phronomy
       )
 
       # @api private
-      def initialize(agent:, persistence:)
+      def initialize(agent:, persistence:, owner: nil)
         @agent = agent
         @persistence = persistence
+        @owner = owner
       end
 
       # @api private
@@ -48,8 +49,10 @@ module Phronomy
             preparation_replayable: operation.preparation_replayable
           )
         rescue ExecutionRejectedError => error
+          raise if @owner&.save_entered?
           return unadmitted_result(operation, error, :not_established)
         rescue Phronomy::AgentBusyError => error
+          raise if @owner&.save_entered?
           # A durable nonterminal execution keeps Runtime admission fail-closed
           # until recovery can establish its lineage, including after F4 loss.
           return unadmitted_result(operation, error, :recovery_required)
@@ -58,8 +61,10 @@ module Phronomy
           Phronomy::Persistence::SerializationError,
           ArgumentError,
           Phronomy::ConfigurationError => error
+          raise if @owner&.save_entered?
           return unadmitted_result(operation, error, :not_established)
         rescue => error
+          raise if @owner
           return unadmitted_result(operation, error, :outcome_unknown)
         end
 
@@ -91,6 +96,36 @@ module Phronomy
         )
       end
 
+      # Continue one captured save; completed preparation callbacks never run again.
+      def continue(checkpoint)
+        evidence = checkpoint.fetch(:evidence)
+        case evidence.stage
+        when :admission
+          prepare_admitted(input: @owner.command.input, config: @owner.command.config,
+            execution: evidence.execution, active_root: evidence.next_root,
+            journal_records: @owner.command.journal_records)
+        when :activation
+          begin
+            materialize_preparation(evidence.execution, evidence.next_root,
+              checkpoint.fetch(:manifest), checkpoint.fetch(:manifest_ref),
+              checkpoint.fetch(:filtered_input), checkpoint.fetch(:config))
+          rescue => error
+            preparation_failure_result(evidence.execution, evidence.next_root,
+              checkpoint.fetch(:config), error)
+          end
+        when :failure
+          failure_result(evidence.execution, evidence.next_root, evidence.appended_records,
+            checkpoint.fetch(:config), checkpoint.fetch(:error))
+        end
+      end
+
+      def stop(checkpoint, error, before: false)
+        evidence = checkpoint.fetch(:evidence)
+        execution = before ? AgentExecution.from_h(evidence.before.fetch(:execution)) : evidence.execution
+        root = before ? evidence.root : evidence.next_root
+        preparation_failure_result(execution, root, @owner.command.config, error)
+      end
+
       private
 
       def unadmitted_result(operation, error, outcome)
@@ -109,38 +144,38 @@ module Phronomy
       def prepare_admitted(input:, config:, execution:, active_root:, journal_records:)
         current_execution = execution
         begin
+          @owner&.preparation_started!
           # Legacy executions acquire a limit at their first resumed preparation.
-          current_execution = execution.with(
+          current_execution = @owner ? execution : execution.with(
             execution_revision: execution.execution_revision,
             metadata: execution.metadata.merge(IterationBudget::LIMIT_KEY =>
               IterationBudget.limit_for(execution, default: @agent.class.max_iterations))
           )
           IterationBudget.check!(current_execution, default: @agent.class.max_iterations)
           filtered_input = filter_input(input, config)
+          @owner.filtered_input = filtered_input if @owner
           staged = stage_filtered_input(current_execution, active_root, filtered_input)
           assembler, prepared = prepare_context(staged, active_root, filtered_input, config, journal_records)
           active_execution, manifest, manifest_ref = commit_preparation(
             staged, active_root, assembler, prepared
           )
-          # Advance the failure base only after the commit response is known.
-          # F1 response loss must not be reported as a confirmed terminal result.
           current_execution = active_execution
-          projection = RuntimeInput.new(
-            agent: @agent, persistence: @persistence
-          ).materialize(manifest: manifest, manifest_ref: manifest_ref)
-          Result.new(
-            execution: active_execution,
-            root: active_root,
-            runtime_projection: projection,
-            filtered_input: filtered_input,
-            config: config,
-            appended_records: [].freeze,
-            error: nil,
-            admission_outcome: :active
-          )
+          materialize_preparation(active_execution, active_root, manifest, manifest_ref,
+            filtered_input, config)
         rescue => error
+          raise if @owner&.save_entered?
           preparation_failure_result(current_execution, active_root, config, error)
         end
+      end
+
+      def materialize_preparation(execution, root, manifest, manifest_ref, filtered_input, config)
+        @owner&.controls&.check_start!
+        @agent.send(:check_cancellation!, config, "invocation cancelled before initial activation")
+        projection = RuntimeInput.new(agent: @agent, persistence: @persistence)
+          .materialize(manifest: manifest, manifest_ref: manifest_ref)
+        Result.new(execution: execution, root: root, runtime_projection: projection,
+          filtered_input: filtered_input, config: config, appended_records: [].freeze,
+          error: nil, admission_outcome: :active)
       end
 
       def filter_input(input, config)
@@ -192,6 +227,7 @@ module Phronomy
       end
 
       def commit_preparation(staged, root, assembler, prepared)
+        return commit_captured_preparation(staged, root, prepared) if @owner&.capture_supported?
         active = manifest = manifest_ref = nil
         @persistence.transaction do |tx|
           assert_local_durable_base!(tx, root)
@@ -204,6 +240,26 @@ module Phronomy
             execution: active
           )
         end
+        [active, manifest, manifest_ref]
+      end
+
+      def commit_captured_preparation(staged, root, prepared)
+        @owner.begin_stage(:activation)
+        contents = InitialPersistenceEvidence::Contents.new(@persistence.contents)
+        manifest, manifest_ref = Phronomy::Context::Assembly.new.store(prepared, contents: contents,
+          response_schema_ref: OutputContract.response_schema_ref(staged.metadata))
+        active = execution_with_initial_manifest(staged, manifest_ref)
+        @persistence.coordinator.atomic do |scope|
+          evidence = InitialPersistenceEvidence.capture(stage: :activation, persistence: @persistence,
+            scope: scope, root: root, current_execution: @owner.admitted_execution,
+            execution: active, next_root: root, content_writes: contents.writes,
+            authority: @owner.authority)
+          @owner.capture(evidence, manifest: manifest, manifest_ref: manifest_ref,
+            filtered_input: @owner.filtered_input, config: @owner.command.config)
+          @owner.save_entered!
+          evidence.apply_in(persistence: @persistence, scope: scope)
+        end
+        @owner.save_returned!
         [active, manifest, manifest_ref]
       end
 
@@ -228,12 +284,14 @@ module Phronomy
         end
         admission = Admission.new(persistence: @persistence, root: root,
           input: raw_message, config: config,
-          preparation_metadata: metadata)
+          preparation_metadata: metadata, recovery_owner: @owner)
         participant = config[:phronomy_admission]
         if admission.correlation && !participant
           raise Phronomy::ConfigurationError, "Coordinated admission requires its current owner"
         end
+        @owner&.admission_started!(admission, participant)
         participant ? participant.admit(admission) : admission.accept
+        @owner&.save_returned!
         admission.result
       end
 
@@ -265,19 +323,18 @@ module Phronomy
 
       def preparation_failure_result(execution, root, config, error)
         failure = commit_preparation_failure(execution, root, error)
-        Result.new(
-          execution: failure.fetch(:execution),
-          root: failure.fetch(:root),
-          runtime_projection: nil,
-          filtered_input: nil,
-          config: config,
-          appended_records: failure.fetch(:appended_records),
-          error: failure.fetch(:error),
-          admission_outcome: :terminal
-        )
+        failure_result(failure.fetch(:execution), failure.fetch(:root),
+          failure.fetch(:appended_records), config, failure.fetch(:error))
+      end
+
+      def failure_result(execution, root, records, config, error)
+        Result.new(execution: execution, root: root, runtime_projection: nil,
+          filtered_input: nil, config: config, appended_records: records,
+          error: error, admission_outcome: :terminal)
       end
 
       def commit_preparation_failure(execution, root, error)
+        return commit_captured_failure(execution, root, error) if @owner&.capture_supported?
         translated_error = error
         failed = next_root = appended = nil
         @persistence.transaction do |tx|
@@ -310,6 +367,31 @@ module Phronomy
           root: next_root,
           appended_records: Array(appended).freeze
         }.freeze
+      end
+
+      def commit_captured_failure(execution, root, error)
+        @owner.begin_stage(:failure)
+        contents = InitialPersistenceEvidence::Contents.new(@persistence.contents)
+        error_ref = contents.put_json(Phronomy::Error.diagnostic(error))
+        status = ExecutionFailure.status_for(error)
+        records = preparation_failure_records(execution, root, status, error_ref)
+        failed = execution.with(status: status, phase: status, working_records: [],
+          error_ref: error_ref, terminal_reason: error.class.name)
+        next_root = root.with(agent_revision: root.agent_revision + 1,
+          journal_position: root.journal_position + records.length, lifecycle_status: :idle)
+        @persistence.coordinator.atomic do |scope|
+          evidence = InitialPersistenceEvidence.capture(stage: :failure, persistence: @persistence,
+            scope: scope, root: root, current_execution: execution, execution: failed,
+            next_root: next_root, appended_records: records, content_writes: contents.writes,
+            authority: @owner.authority)
+          @owner.capture(evidence, config: @owner.command.config, error: error)
+          @owner.save_entered!
+          evidence.apply_in(persistence: @persistence, scope: scope)
+        end
+        @owner.save_returned!
+        {execution: failed, root: next_root,
+         appended_records: records.each_with_index.map { |record, index| record.with_sequence(root.journal_position + index + 1) }.freeze,
+         error: error}.freeze
       end
 
       def preparation_failure_records(execution, root, status, error_ref)

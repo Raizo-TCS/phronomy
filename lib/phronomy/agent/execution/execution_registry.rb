@@ -58,6 +58,7 @@ module Phronomy
         @terminal_operations = {}
         @approval_operations = {}
         @dispatch_operations = {}
+        @initial_preparations = {}
       end
 
       def post(command, admission: false, completion: nil)
@@ -71,7 +72,8 @@ module Phronomy
           complete_agent_physical_work(command)
         when OutcomeRecoveryOperation::Observe, OutcomeRecoveryOperation::Ready,
             ApprovalRecoveryOperation::Observe, ApprovalRecoveryOperation::Ready,
-            DispatchRecoveryOperation::Observe, DispatchRecoveryOperation::Ready
+            DispatchRecoveryOperation::Observe, DispatchRecoveryOperation::Ready,
+            InitialPreparationRecoveryOperation::Observe, InitialPreparationRecoveryOperation::Ready
           command.operation.deliver(command)
         else
           command.coordinator.deliver_on_event_loop(command)
@@ -83,21 +85,22 @@ module Phronomy
         @agent_inflight_work.values.all?(&:empty?) &&
           @agent_deferred_terminals.empty? &&
           @terminal_operations.empty? && @approval_operations.empty? && @dispatch_operations.empty? &&
-          !agent_admission_transition_in_progress_locked?
+          @initial_preparations.empty? && !agent_admission_transition_in_progress_locked?
       end
 
       # A dispatcher failure runs this on EventLoop; normal teardown runs it only
       # after that thread has joined. Task callbacks run outside the lifecycle lock.
       def shutdown(error:)
         pending, retained = synchronize do
-          retained_ids = @terminal_operations.keys | @approval_operations.keys | @dispatch_operations.keys
+          retained_ids = @terminal_operations.keys | @approval_operations.keys | @dispatch_operations.keys |
+            @initial_preparations.values.map(&:execution_id)
           waiters = @agent_completion_waiters.dup
           @agent_completion_waiters.clear
           @agent_inflight_work.delete_if { |id, _work| !retained_ids.include?(id) }
           @agent_deferred_terminals.delete_if { |id, _command| !retained_ids.include?(id) }
-          @agent_admissions.delete_if { |_id, admission| !retained_ids.include?(admission.execution_id) }
+          @agent_admissions.delete_if { |id, admission| !@initial_preparations.key?(id) && !retained_ids.include?(admission.execution_id) }
           @agent_executions.delete_if { |id, _state| !retained_ids.include?(id) }
-          [waiters, (@terminal_operations.values + @approval_operations.values + @dispatch_operations.values).map(&:operation)]
+          [waiters, (@terminal_operations.values + @approval_operations.values + @dispatch_operations.values).map(&:operation) + @initial_preparations.values]
         end
 
         failure = error || Phronomy::ExecutionRehydrationRequiredError.new(
@@ -304,6 +307,105 @@ module Phronomy
         end
       end
 
+      def retain_initial_preparation(operation)
+        assert_event_loop_thread!
+        synchronize do
+          admission = @agent_admissions[operation.agent_id]
+          unless admission&.owner_token&.equal?(operation.request.admission_token) &&
+              admission.execution_id.nil? && !@initial_preparations.key?(operation.agent_id)
+            raise Phronomy::Error, "Initial preparation has no unique original admission"
+          end
+          @initial_preparations[operation.agent_id] = operation
+        end
+        operation
+      end
+
+      def owns_initial_preparation?(operation)
+        synchronize { owns_initial_preparation_locked?(operation) }
+      end
+
+      def bind_initial_preparation(operation)
+        assert_event_loop_thread!
+        synchronize do
+          unless owns_initial_preparation_locked?(operation)
+            raise Phronomy::Error, "Initial preparation lost its original admission token"
+          end
+          current = @agent_admissions.fetch(operation.agent_id)
+          @agent_admissions[operation.agent_id] = current.with(execution_id: operation.execution_id, state: :executing)
+        end
+      end
+
+      # The caller has positively established that the cached session was never
+      # admitted. Remove only this owner's exact, physically quiet projection.
+      def discard_initial_projection(operation)
+        assert_event_loop_thread!
+        synchronize do
+          return false unless owns_initial_preparation_locked?(operation)
+          state = @agent_executions[operation.execution_id]
+          return true unless state
+          session = operation.initial_session
+          unless session && state.agent.equal?(operation.agent) && state.coordinator.equal?(operation.coordinator) &&
+              state.fsm_session_id == session.id && state.invocation.equal?(session.context) &&
+              @agent_inflight_work[operation.execution_id].empty? && !@agent_deferred_terminals.key?(operation.execution_id)
+            return false
+          end
+          @agent_executions.delete(operation.execution_id)
+          true
+        end
+      end
+
+      def pending_initial_preparation_recovery(agent:)
+        operation = synchronize { @initial_preparations[agent.agent_id] }
+        operation.recovery if operation&.belongs_to?(agent) && operation.pending?
+      end
+
+      # Transfer only the initial index. The exact admission token and any
+      # live state/waiters remain owned by the existing terminal protocol.
+      def transfer_initial_terminal_custody(operation, custody)
+        assert_event_loop_thread!
+        synchronize do
+          next false unless owns_initial_preparation_locked?(operation)
+          admission = @agent_admissions.fetch(operation.agent_id)
+          command = custody.operation
+          next false unless custody.coordinator.equal?(operation.coordinator) &&
+            command.execution_id == operation.execution_id && command.execution.agent_id == operation.agent_id &&
+            admission.execution_id == operation.execution_id && %i[terminalizing recovery_required].include?(admission.state)
+          accepted = if custody.retained_owner
+            @terminal_operations[operation.execution_id]&.operation.equal?(custody.retained_owner)
+          else
+            custody.task.is_a?(Phronomy::TaskResult)
+          end
+          next false unless accepted
+          @initial_preparations.delete(operation.agent_id)
+          true
+        end
+      end
+
+      def resolve_initial_preparation(operation, state:)
+        assert_event_loop_thread!
+        return false unless operation.resolution_permitted?
+        synchronize do
+          next false unless owns_initial_preparation_locked?(operation)
+          admission = @agent_admissions.fetch(operation.agent_id)
+          if state == :resumed
+            next false unless admission.execution_id == operation.execution_id && @agent_executions.key?(operation.execution_id)
+          else
+            next false if @agent_executions.key?(operation.execution_id)
+            @agent_admissions.delete(operation.agent_id)
+          end
+          @initial_preparations.delete(operation.agent_id)
+          operation.resolution_released!
+          true
+        end
+      end
+
+      private def owns_initial_preparation_locked?(operation)
+        admission = @agent_admissions[operation.agent_id]
+        @initial_preparations[operation.agent_id].equal?(operation) &&
+          admission&.owner_token&.equal?(operation.request.admission_token) &&
+          (admission.execution_id.nil? || admission.execution_id == operation.execution_id)
+      end
+
       # Process-local read-only admission check used by destructive Agent lifecycle
       # operations. The mutable admission map itself remains Agent-owned.
       def agent_execution_admitted?(agent_id)
@@ -428,6 +530,7 @@ module Phronomy
             false
           end
           next false unless authoritative
+          next false if @initial_preparations.key?(key)
           next false if @terminal_operations.key?(current.execution_id) || @approval_operations.key?(current.execution_id) ||
             @dispatch_operations.key?(current.execution_id)
 

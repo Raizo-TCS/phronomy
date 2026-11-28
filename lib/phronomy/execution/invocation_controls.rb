@@ -45,9 +45,9 @@ module Phronomy
       end
     end
 
-    def bind(result)
+    def bind(result, track_completion: true)
       result.__bind_execution(@scope)
-      track(result)
+      track(result) if track_completion
     end
 
     def track(result)

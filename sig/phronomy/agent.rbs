@@ -142,6 +142,11 @@ module Phronomy
       def reconcile_dispatch: (recovery: DispatchRecovery) -> DispatchRecoveryResult
       def retry_dispatch_async: (recovery: DispatchRecovery) -> TaskResult[DispatchRecoveryResult]
       def retry_dispatch: (recovery: DispatchRecovery) -> DispatchRecoveryResult
+      def pending_initial_preparation_recovery: () -> InitialPreparationRecovery?
+      def reconcile_initial_preparation_async: (recovery: InitialPreparationRecovery) -> TaskResult[InitialPreparationRecoveryResult]
+      def reconcile_initial_preparation: (recovery: InitialPreparationRecovery) -> InitialPreparationRecoveryResult
+      def retry_initial_preparation_async: (recovery: InitialPreparationRecovery) -> TaskResult[InitialPreparationRecoveryResult]
+      def retry_initial_preparation: (recovery: InitialPreparationRecovery) -> InitialPreparationRecoveryResult
       attr_accessor before_llm_input: _BeforeLLMInputHook?
 
       # Public operation methods no longer accept per-invocation event listeners

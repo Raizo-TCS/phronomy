@@ -94,7 +94,11 @@ RSpec.describe "Agent Runtime admission" do
 
     expect {
       agent.invoke_async("first").wait_result(timeout: 1)
-    }.to raise_error(Phronomy::AgentBusyError, /durable execution already exists/)
+    }.to raise_error(Phronomy::Agent::InitialPreparationRecoveryError) { |error|
+      expect(error.original_error).to be_a(Phronomy::AgentBusyError)
+      expect(error.original_error.message).to include("durable execution already exists")
+      expect(error.recovery).to equal(agent.pending_initial_preparation_recovery)
+    }
     expect(calls).to eq(1)
 
     # The durable busy result represents a nonterminal logical Execution that
@@ -106,22 +110,45 @@ RSpec.describe "Agent Runtime admission" do
     expect(calls).to eq(1)
   end
 
-  it "places Runtime admission before the initial Offload/Persistence operation" do
-    source = File.read(
-      File.expand_path("../../../lib/phronomy/agent/execution/execution_coordinator.rb", __dir__)
-    )
-    section = source
-      .split("def begin_start_on_event_loop", 2)
-      .fetch(1)
-      .split("def initial_preparation_replayable?", 2)
-      .first
+  it "retains Runtime custody when admission capture discovers actual prior durable work" do
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "runtime-existing-durable-admission", version: 1
+      model "local-model"
+      instructions "Test"
+    end
+    agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
+    Phronomy::Agent::Admission.new(persistence: persistence, root: agent.agent_root, input: "prior",
+      config: {phronomy_reserved_execution_id: "prior-durable-work"}, preparation_metadata: {}).accept
 
-    admission_index = section.index("admit_agent_execution")
-    post_admission_owner_check = section.index("__assert_live_agent!", admission_index)
-    submit_index = section.index("environment.submit(on_full: :raise)")
+    expect { agent.invoke_async("new request").wait_result(timeout: 1) }
+      .to raise_error(Phronomy::Agent::InitialPreparationRecoveryError) { |error|
+        expect(error.original_error).to be_a(Phronomy::AgentBusyError)
+        expect(error.recovery).to equal(agent.pending_initial_preparation_recovery)
+      }
+    expect(agent.__execution_environment.registry.agent_execution_admitted?(agent.agent_id)).to be(true)
+    expect(persistence.executions.list_active(agent.agent_id).map(&:execution_id)).to eq(["prior-durable-work"])
+    expect { agent.invoke_async("another request").wait_result(timeout: 1) }
+      .to raise_error(Phronomy::AgentBusyError)
+  end
 
-    expect(admission_index).to be < post_admission_owner_check
-    expect(post_admission_owner_check).to be < submit_index
+  it "holds Runtime admission and Agent ownership before worker-side preparation starts" do
+    observations = Queue.new
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "runtime-initial-owner-order", version: 1
+      model "local-model"
+      instructions "Test"
+      define_method(:extract_message) do |_input|
+        environment = __execution_environment
+        observations << [environment.registry.agent_execution_admitted?(agent_id),
+          environment.ownership.owned?(self), environment.executing?]
+        raise ArgumentError, "initial worker observed its owner"
+      end
+    end
+    agent = agent_class.create(agent_id: "agent-a", persistence: persistence)
+
+    expect { agent.invoke_async("input").wait_result(timeout: 1) }
+      .to raise_error(ArgumentError, "initial worker observed its owner")
+    expect(observations.pop).to eq([true, true, false])
   end
 
   it "keeps Persistence create_active as the durable second line of defense" do

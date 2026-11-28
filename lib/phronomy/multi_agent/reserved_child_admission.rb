@@ -35,6 +35,93 @@ module Phronomy
 
       private
 
+      # Private opt-in: retry repeats Agent writes under current reservation
+      # guards. It never invokes the original thread-affine admission callback.
+      def initial_recovery_authority(admission, scope:, persistence:)
+        InitialAuthority.new(self, admission, scope, persistence, store: @persistence, owner: @owner)
+      end
+
+      class InitialAuthority
+        Identity = Data.define(:agent_id, :execution_id, :correlation)
+        private_constant :Identity
+
+        def initialize(participant, admission, scope, persistence, store:, owner:)
+          @participant = participant
+          @store, @owner = store, owner
+          @identity = persistence.execution_evidence_identity
+          @admission = Identity.new(agent_id: admission.agent_id, execution_id: admission.execution_id,
+            correlation: admission.correlation)
+          guard(scope: scope, persistence: persistence)
+          @handoff_footprint = handoff_footprint(scope) if @owner.fetch("kind") == "handoff"
+          assert_current!(scope: scope, persistence: persistence)
+          freeze
+        end
+
+        def guard(scope:, persistence:)
+          assert_store!(persistence)
+          @store.participate(scope) do |records|
+            case @owner.fetch("kind")
+            when "team" then records.guard_team!(@owner.fetch("team_id"))
+            when "subagent"
+              persistence.guard_agents(scope, agent_ids: [@owner.fetch("parent_agent_id"), @admission.agent_id])
+            when "handoff"
+              routing = records.handoff_states.load_locked(@owner.fetch("main_agent_id"))
+              ids = [@owner.fetch("main_agent_id"), @admission.agent_id,
+                (routing.metadata["source_agent_id"] if routing && routing.phase != "stable")].compact
+              persistence.guard_agents(scope, agent_ids: ids)
+            end
+          end
+          nil
+        end
+
+        def assert_current!(scope:, persistence:)
+          assert_store!(persistence)
+          unless @admission.correlation == @owner
+            raise Phronomy::Persistence::StateConflictError, "Initial reservation identity changed"
+          end
+          @store.participate(scope) do |records|
+            case @owner.fetch("kind")
+            when "team" then @participant.send(:validate_team!, records, @admission)
+            when "subagent" then @participant.send(:validate_subagent!, records, @admission, scope)
+            when "handoff"
+              @participant.send(:validate_handoff!, records, @admission, scope)
+              unless handoff_footprint(scope) == @handoff_footprint
+                raise Phronomy::Persistence::StateConflictError, "Initial Handoff routing or retention changed"
+              end
+            end
+          end
+          nil
+        end
+
+        # Terminal cleanup is not a fresh dispatch grant. The Agent proof checks
+        # the exact root and execution; a cancelled parent may still finish it.
+        def assert_cleanup!(scope:, persistence:)
+          assert_store!(persistence)
+        end
+
+        private
+
+        def assert_store!(persistence)
+          unless persistence.equal?(@store.agent_store) &&
+              persistence.execution_evidence_identity.equal?(@identity)
+            raise Phronomy::Persistence::StateConflictError, "Initial reservation belongs to another Store"
+          end
+        end
+
+        def handoff_footprint(scope)
+          @store.participate(scope) do |records|
+            routing = records.handoff_states.load(@owner.fetch("main_agent_id"))
+            ids = [@owner.fetch("main_agent_id"), @admission.agent_id,
+              (routing.metadata["source_agent_id"] if routing && routing.phase != "stable")].compact.uniq.sort
+            Phronomy::Values::Immutable.copy([routing&.to_h, ids.map { |id|
+              @store.agent_store.retained_references(agent_id: id, scope: scope).map(&:to_h)
+                .sort_by { |hold| Phronomy::CanonicalJSON.dump(hold) }
+            }])
+          end
+        end
+      end
+      private_constant :InitialAuthority
+
       def validate_team!(records, admission)
         records.guard_team!(@owner.fetch("team_id"))
         team = records.team_executions.load(@owner.fetch("team_execution_id"))
@@ -78,7 +165,9 @@ module Phronomy
         if Array(routing.metadata["cancelled_execution_ids"]).include?(admission.execution_id)
           raise Phronomy::CancellationError, "Handoff reservation was cancelled"
         end
-        @persistence.agent_store.guard_agents(scope, agent_ids: [@owner.fetch("main_agent_id"), admission.agent_id])
+        ids = [@owner.fetch("main_agent_id"), admission.agent_id]
+        ids << routing.metadata["source_agent_id"] unless routing.phase == "stable"
+        @persistence.agent_store.guard_agents(scope, agent_ids: ids.compact)
         if routing.phase != "stable" && routing.pending_target_execution_id != admission.execution_id
           raise Phronomy::Persistence::StateConflictError, "Handoff reserved Target identity mismatch"
         end

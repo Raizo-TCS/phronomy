@@ -1,0 +1,25 @@
+digraph InitialOwner {
+  graph [rankdir=TB, bgcolor="white", pad="0.2", nodesep="0.35", ranksep="0.45", fontname="Arial", label="Initial request owner", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#edf4fc", color="#345477", fontname="Arial", fontsize=11, margin="0.16,0.10"];
+  edge [fontname="Arial", fontsize=10, color="#345477"];
+  start [shape=point, width=0.10, label=""];
+  retained [label="Retained\nKeep token, controls and captured stage"];
+  observing [label="Reconciling\nObserve one settled save"];
+  confirmed [label="Confirmed\nExact post-state for this stage"];
+  preparing [label="Preparing once\nFirst use of original request"];
+  installed [label="Transferred\nSame execution installed once", fillcolor="#e7f3e8"];
+  terminal [label="Stopped\nSaved failure or confirmed no admission", fillcolor="#f8eeee"];
+  released [shape=doublecircle, label="", width=0.18, height=0.18, fillcolor="#345477"];
+  start -> retained [label="initial response uncertain"];
+  retained -> observing [label="fresh caller [original worker quiet]"];
+  observing -> retained [label="unknown / retain\npre / explicit captured-write retry"];
+  observing -> terminal [label="admission pre [controls cancelled]\n/ preserve no-job result"];
+  observing -> confirmed [label="complete post proof\n[current identity]"];
+  confirmed -> preparing [label="admission [not started]\n/ preserve parent controls"];
+  preparing -> confirmed [label="activation or failure saved\n/ advance captured stage"];
+  confirmed -> installed [label="activation [same owner; workers quiet]\n/ check and transfer original controls"];
+  confirmed -> terminal [label="failure / adopt captured result"];
+  confirmed -> retained [label="late parent cancellation\n/ fresh recovery required"];
+  installed -> released [label="physical work quiet\n/ release initial custody"];
+  terminal -> released [label="physical work quiet\n/ release exact admission"];
+}

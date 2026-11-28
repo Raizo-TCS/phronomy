@@ -13,8 +13,9 @@ module Phronomy
 
       # Constructed by Agent execution, never restored from a durable record.
       # @api private
-      def initialize(persistence:, root:, input:, config:, preparation_metadata:)
+      def initialize(persistence:, root:, input:, config:, preparation_metadata:, recovery_owner: nil)
         @persistence, @root, @input, @config = persistence, root, input, config
+        @recovery_owner = recovery_owner
         @preparation_metadata = preparation_metadata
         @agent_id = root.agent_id
         @execution_id = (config[:phronomy_reserved_execution_id] || SecureRandom.uuid).to_s.freeze
@@ -37,22 +38,23 @@ module Phronomy
         @scope = scope
         @persistence.participate(scope) do |records|
           raise Phronomy::Error, "agent is closed: #{agent_id}" if @root.lifecycle_status == :closed
-          input_ref = records.contents.put_text(@input)
-          context_ref = records.contents.put_json(@config.fetch(:durable_context)) if @config.key?(:durable_context)
-          input_record = JournalRecord.new(agent_id: agent_id, kind: :input_received,
-            channel: :external, role: :user, content_ref: input_ref,
-            context_generation: @root.transcript_generation, context_candidate: false)
-          execution = AgentExecution.start(agent_root: @root, input_record: input_record,
-            execution_id: execution_id, metadata: {
-              "reservation" => correlation, "current_input_ref" => input_ref,
-              "durable_context_ref" => context_ref,
-              "execution_extension" => @config[:phronomy_execution_participant]&.binding&.to_h
-            }.merge(@preparation_metadata).merge(@config[:phronomy_output_contract]&.metadata(records.contents) || {}).compact)
-          input_record = JournalRecord.from_h(input_record.to_h.merge("execution_id" => execution_id))
-          execution = execution.with(execution_revision: 0, working_records: [input_record])
-          records.executions.create_active(execution)
-          next_root = @root.with(agent_revision: @root.agent_revision + 1, lifecycle_status: :active)
-          records.agents.save(agent_id, expected_revision: @root.agent_revision, root: next_root)
+          if @recovery_owner&.capture_supported?
+            contents = InitialPersistenceEvidence::Contents.new(records.contents)
+            execution, next_root = prepare_acceptance(contents)
+            authority = @recovery_owner.capture_authority(self, scope)
+            evidence = InitialPersistenceEvidence.capture(stage: :admission,
+              persistence: @persistence, scope: scope, root: @root,
+              current_execution: nil, execution: execution, next_root: next_root,
+              content_writes: contents.writes, authority: authority)
+            @recovery_owner.capture(evidence)
+            @recovery_owner.save_entered!
+            evidence.apply_in(persistence: @persistence, scope: scope)
+          else
+            execution, next_root = prepare_acceptance(records.contents)
+            @recovery_owner&.save_entered!
+            records.executions.create_active(execution)
+            records.agents.save(agent_id, expected_revision: @root.agent_revision, root: next_root)
+          end
           @result = [execution, next_root].freeze
         end
         nil
@@ -69,6 +71,24 @@ module Phronomy
       end
 
       private
+
+      def prepare_acceptance(contents)
+        input_ref = contents.put_text(@input)
+        context_ref = contents.put_json(@config.fetch(:durable_context)) if @config.key?(:durable_context)
+        input_record = JournalRecord.new(agent_id: agent_id, kind: :input_received,
+          channel: :external, role: :user, content_ref: input_ref,
+          context_generation: @root.transcript_generation, context_candidate: false)
+        execution = AgentExecution.start(agent_root: @root, input_record: input_record,
+          execution_id: execution_id, metadata: {
+            "reservation" => correlation, "current_input_ref" => input_ref,
+            "durable_context_ref" => context_ref,
+            "execution_extension" => @config[:phronomy_execution_participant]&.binding&.to_h
+          }.merge(@preparation_metadata).merge(@config[:phronomy_output_contract]&.metadata(contents) || {}).compact)
+        input_record = JournalRecord.from_h(input_record.to_h.merge("execution_id" => execution_id))
+        execution = execution.with(execution_revision: 0, working_records: [input_record])
+        next_root = @root.with(agent_revision: @root.agent_revision + 1, lifecycle_status: :active)
+        [execution, next_root]
+      end
 
       def check_thread!
         raise Phronomy::Persistence::TransactionError, "Agent admission belongs to another execution context" unless @thread.equal?(Thread.current)

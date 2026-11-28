@@ -279,6 +279,7 @@
       "knowledge_snapshot",
       "pending_approval_recovery",
       "pending_dispatch_recovery",
+      "pending_initial_preparation_recovery",
       "pending_outcome_recovery",
       "pending_terminal_recovery",
       "persistence",
@@ -287,6 +288,8 @@
       "reconcile_approval_async",
       "reconcile_dispatch",
       "reconcile_dispatch_async",
+      "reconcile_initial_preparation",
+      "reconcile_initial_preparation_async",
       "reconcile_outcome",
       "reconcile_outcome_async",
       "reconcile_terminal",
@@ -298,6 +301,8 @@
       "resume_async",
       "retry_dispatch",
       "retry_dispatch_async",
+      "retry_initial_preparation",
+      "retry_initial_preparation_async",
       "retry_outcome",
       "retry_outcome_async",
       "retry_outcome_submission",
@@ -648,6 +653,62 @@
       "recovery_id",
       "resolved?",
       "revision"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::InitialPreparationRecovery",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "execution_id",
+      "recovery_id"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::InitialPreparationRecoveryError",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "exception",
+      "execution_id",
+      "full_message",
+      "message",
+      "original_error",
+      "recovery",
+      "recovery_id",
+      "set_backtrace"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::InitialPreparationRecoveryResult",
+    "type": "class",
+    "public_instance_methods": [
+      "agent_id",
+      "application_state",
+      "continuation_state",
+      "error",
+      "execution_id",
+      "execution_task",
+      "outcome",
+      "physical_complete?",
+      "recovery",
+      "recovery_id",
+      "resolved?",
+      "revision",
+      "stage"
     ],
     "public_class_methods": []
   },
@@ -1354,6 +1415,7 @@
       "knowledge_snapshot",
       "pending_approval_recovery",
       "pending_dispatch_recovery",
+      "pending_initial_preparation_recovery",
       "pending_outcome_recovery",
       "pending_terminal_recovery",
       "persistence",
@@ -1362,6 +1424,8 @@
       "reconcile_approval_async",
       "reconcile_dispatch",
       "reconcile_dispatch_async",
+      "reconcile_initial_preparation",
+      "reconcile_initial_preparation_async",
       "reconcile_outcome",
       "reconcile_outcome_async",
       "reconcile_terminal",
@@ -1373,6 +1437,8 @@
       "resume_async",
       "retry_dispatch",
       "retry_dispatch_async",
+      "retry_initial_preparation",
+      "retry_initial_preparation_async",
       "retry_outcome",
       "retry_outcome_async",
       "retry_outcome_submission",
