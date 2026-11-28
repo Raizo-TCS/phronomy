@@ -89,6 +89,7 @@ PUBLIC_API_ENTRIES = [
   Phronomy::MultiAgent::Handoff,
   Phronomy::MultiAgent::HandoffPolicy,
   Phronomy::MultiAgent::HandoffRunner,
+  Phronomy::MultiAgent::HandoffFinalizationError,
   Phronomy::MultiAgent::Orchestrator,
   Phronomy::MultiAgent::Orchestrator::ChildCleanupError,
   Phronomy::MultiAgent::TeamCoordinator,

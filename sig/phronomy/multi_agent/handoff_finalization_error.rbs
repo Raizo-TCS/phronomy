@@ -1,0 +1,18 @@
+module Phronomy
+  module MultiAgent
+    class HandoffFinalizationError < Phronomy::HandoffError
+      attr_reader main_agent_id: String
+      attr_reader execution_id: String
+      attr_reader target_execution_id: String
+      attr_reader execution_result: Hash[Symbol, untyped]
+      attr_reader execution_error: Exception?
+      attr_reader finalization_error: Exception
+      attr_reader read_error: Exception?
+      attr_reader disposition: :not_attempted | :not_committed | :unknown
+
+      def initialize: (main_agent_id: String, execution_id: String,
+        execution_result: Hash[Symbol, untyped], execution_error: Exception?, finalization_error: Exception,
+        ?disposition: :not_attempted | :not_committed | :unknown, ?read_error: Exception?) -> void
+    end
+  end
+end

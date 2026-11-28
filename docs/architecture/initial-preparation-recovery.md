@@ -255,11 +255,14 @@ when policy or restored evidence permits another observation. On
 That state reports only a local wait timeout; it does not cancel the execution.
 A terminal failed/cancelled result remains terminal; it is not converted to success.
 Call `close_completed_session` only when the execution and any initial obligation
-are terminal/resolved and their Handoff history is no longer needed. A saved failed
-Handoff target can still leave its routing phase unfinished even after this initial
-obligation is released. The existing `forget_history!` then rejects cleanup with
-`AgentBusyError`; retain the returned session. This example records that separate
-Handoff routing limitation and does not claim to resolve it.
+are terminal/resolved and their Handoff history is no longer needed. The separate
+[Handoff initial terminal finalization](handoff-initial-terminal-application.md)
+now completes the exact current pending routing through `invoke`, `resume` or
+`cancel`, while preserving the saved failed/cancelled/blocked result. `result`
+alone does not finalize it. If finalization or original Agent custody remains
+unresolved, retain the session; do not infer history-release permission from a
+saved terminal Agent status alone. Cleanup is covered for the settled chain,
+not claimed as a proof of every older historical owner's local quiescence.
 
 ```ruby
 module InitialPreparationApplication

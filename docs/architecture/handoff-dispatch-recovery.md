@@ -172,7 +172,7 @@ For example, yesterday's case can be resumed to read its saved Target result aft
 | Original uncertain `invoke` | Existing typed `Agent::DispatchRecoveryError` supplies the retained capability directly |
 | Absent Target | Requires exact pending Source/Target receipt, configured edge, Target definition and context, retained ownership and cancellation authority before the existing reserved admission |
 | Active leaf | Requires its exact execution reservation and the current route; matching Agent ID alone is insufficient |
-| Historical terminal leaf | Read-only saved outcome; no new admission, Provider, Tool or route mutation |
+| Historical terminal leaf | Saved outcome without new business work. An exact current pending failed/cancelled/blocked Target now performs [separate parent finalization](handoff-initial-terminal-application.md) before delivering its failure; unrelated older terminal history remains read-only. `result` never finalizes routing. |
 | Handoff count | Existing `MAX_HANDOFFS` bounds newly driven handoffs in one continuation segment; historical chain traversal is read-only and cycle checked |
 | Runtime and live graph | Existing Runtime ownership and Agent lifetime restrictions remain; no stopped-owner takeover is supplied |
 

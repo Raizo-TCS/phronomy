@@ -1,5 +1,9 @@
 # Handoff dispatch recovery and exact-chain continuation
 
+This directory also contains the focused [initial Target terminal-finalization
+submodel](TERMINAL_FINALIZATION.md). The original module below and its 78 cases
+remain separately identifiable; the two modules are not a full product proof.
+
 This bounded model separates recovery of one Agent dispatch barrier from the
 Handoff Runner's responsibility to finish the same chain. The original Agent
 owner preserves the captured save and admits its continuation. The Runner follows
@@ -170,11 +174,12 @@ not demonstrate a protocol safety defect.
 
 ```sh
 python3 spec/models/handoff_dispatch_recovery/run_checks.py \
+  --module HandoffDispatchRecovery \
   --jar /absolute/path/to/tla2tools-1.7.4.jar \
   --output /absolute/path/outside-the-model-tree
 ```
 
-The declared suite contains 78 configurations: 31 positive properties (26 safety
+The original dispatch module contains 78 configurations: 31 positive properties (26 safety
 and five progress cases), 30 deliberate mutations, nine reachability witnesses
 and eight missing-premise checks. Consult the produced summary for actual run
 results; the case inventory alone is not evidence that TLC was executed.

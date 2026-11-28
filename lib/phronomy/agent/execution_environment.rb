@@ -23,6 +23,7 @@ module Phronomy
       def existing_registry = raise(NotImplementedError)
       def ownership = raise(NotImplementedError)
       def existing_ownership = raise(NotImplementedError)
+      def assert_custody_query_available! = raise(NotImplementedError)
       def executing? = raise(NotImplementedError)
       def session_phase(id) = raise(NotImplementedError)
       def submit(**options, &operation) = raise(NotImplementedError)

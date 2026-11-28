@@ -1380,6 +1380,35 @@
     "public_class_methods": []
   },
   {
+    "name": "Phronomy::MultiAgent::HandoffFinalizationError",
+    "type": "class",
+    "public_instance_methods": [
+      "backtrace",
+      "backtrace_locations",
+      "cause",
+      "code",
+      "detailed_message",
+      "disposition",
+      "exception",
+      "execution_error",
+      "execution_id",
+      "execution_result",
+      "finalization_error",
+      "full_message",
+      "main_agent_id",
+      "message",
+      "read_error",
+      "set_backtrace",
+      "target_execution_id"
+    ],
+    "public_class_methods": [
+      "diagnostic",
+      "exception",
+      "from_diagnostic",
+      "to_tty?"
+    ]
+  },
+  {
     "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [

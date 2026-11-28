@@ -508,6 +508,255 @@
       "description": "A Runner proof read does not fence context until the later subset admission check.",
       "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = FALSE\n  Drift = \"context\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
       "target": "ExactChainAdmission"
+    },
+    {
+      "id": "finalization-progress-failed",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "The exact saved failed Target finalizes without changing its outcome.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-progress-cancelled",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "The exact saved cancelled Target finalizes without changing its outcome.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"cancelled\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-progress-blocked",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "The exact saved blocked Target finalizes without changing its outcome.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"blocked\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-progress-prewrite-failure",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "A failed first save needs a new explicit request; no business work repeats.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-progress-postreply-loss",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "Complete post-proof confirms a committed save whose response failed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"post\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-progress-restored-read",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "Read availability returns after a committed save loses its response; a fresh request can observe stable routing.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"post\"\n  ReadMode = \"lost_after_fault\"\n  RestoreReads = TRUE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-progress-concurrent-cancel",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "A concurrent cancel finalizer and ordinary progress call preserve one effective write.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = TRUE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-safety-historical-chain",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "Old terminal history never changes a newer pending chain.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = TRUE\n  AdvanceHistory = TRUE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-safety-unknown-pre",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "Unreadable confirmation of an uncommitted save remains unresolved.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"lost_after_fault\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-safety-unknown-post",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "A committed route may remain unknown to the failed caller.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"post\"\n  ReadMode = \"lost_after_fault\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-safety-authority-mismatch",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "Each bounded identity, receipt, context, retention, active-execution and query mismatch is rejected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"any\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-safety-held-custody",
+      "module": "HandoffTerminalFinalization",
+      "kind": "property",
+      "description": "Visible terminal storage does not bypass original Source or Target custody.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = FALSE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nINVARIANT QueryBoundToIdentity\nINVARIANT CurrentChainOnly\nINVARIANT SourceTargetAuthority\nINVARIANT PreservedOutcome\nINVARIANT HistoryRetained\nINVARIANT ResultReadOnly\nINVARIANT NoBusinessReplay\nINVARIANT OneFinalizationWrite\nINVARIANT NoFalseConfirmation\nINVARIANT FreshRequestForRetry\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-mutation-ignore-source-custody",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = FALSE\n  Held = \"source\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"ignore_source_custody\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nCHECK_DEADLOCK FALSE\n",
+      "target": "CustodyBeforeFinalization"
+    },
+    {
+      "id": "finalization-mutation-ignore-target-custody",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = FALSE\n  Held = \"target\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"ignore_target_custody\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nCHECK_DEADLOCK FALSE\n",
+      "target": "CustodyBeforeFinalization"
+    },
+    {
+      "id": "finalization-mutation-foreign-query",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"query_identity\"\n  MonotonicCustody = TRUE\n  Bug = \"foreign_query\"\nINVARIANT TypeOK\nINVARIANT QueryBoundToIdentity\nCHECK_DEADLOCK FALSE\n",
+      "target": "QueryBoundToIdentity"
+    },
+    {
+      "id": "finalization-mutation-skip-chain-identity",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"pre_drift\"\n  MonotonicCustody = TRUE\n  Bug = \"skip_identity\"\nINVARIANT TypeOK\nINVARIANT CurrentChainOnly\nCHECK_DEADLOCK FALSE\n",
+      "target": "CurrentChainOnly"
+    },
+    {
+      "id": "finalization-mutation-skip-receipt",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"any\"\n  MonotonicCustody = TRUE\n  Bug = \"skip_receipt\"\nINVARIANT TypeOK\nINVARIANT SourceTargetAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "SourceTargetAuthority"
+    },
+    {
+      "id": "finalization-mutation-skip-retention",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"any\"\n  MonotonicCustody = TRUE\n  Bug = \"skip_hold\"\nINVARIANT TypeOK\nINVARIANT SourceTargetAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "SourceTargetAuthority"
+    },
+    {
+      "id": "finalization-mutation-partial-post-proof",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"post\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"post_drift\"\n  MonotonicCustody = TRUE\n  Bug = \"partial_post\"\nINVARIANT TypeOK\nINVARIANT NoFalseConfirmation\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoFalseConfirmation"
+    },
+    {
+      "id": "finalization-mutation-different-post-accepted",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = TRUE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"partial_post\"\nINVARIANT TypeOK\nINVARIANT NoFalseConfirmation\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoFalseConfirmation"
+    },
+    {
+      "id": "finalization-mutation-unknown-as-post",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"lost_after_fault\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"unknown_as_post\"\nINVARIANT TypeOK\nINVARIANT NoFalseConfirmation\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoFalseConfirmation"
+    },
+    {
+      "id": "finalization-mutation-replace-outcome",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"replace_outcome\"\nINVARIANT TypeOK\nINVARIANT PreservedOutcome\nCHECK_DEADLOCK FALSE\n",
+      "target": "PreservedOutcome"
+    },
+    {
+      "id": "finalization-mutation-replay-business",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"replay_business\"\nINVARIANT TypeOK\nINVARIANT NoBusinessReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoBusinessReplay"
+    },
+    {
+      "id": "finalization-mutation-duplicate-finalization",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = TRUE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"duplicate_write\"\nINVARIANT TypeOK\nINVARIANT OneFinalizationWrite\nCHECK_DEADLOCK FALSE\n",
+      "target": "OneFinalizationWrite"
+    },
+    {
+      "id": "finalization-mutation-historical-route-write",
+      "module": "HandoffTerminalFinalization",
+      "kind": "mutation",
+      "description": "The deliberate defect must violate its named invariant.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = TRUE\n  AdvanceHistory = TRUE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"historical_write\"\nINVARIANT TypeOK\nINVARIANT CurrentChainOnly\nCHECK_DEADLOCK FALSE\n",
+      "target": "CurrentChainOnly"
+    },
+    {
+      "id": "finalization-witness-visible-pending",
+      "module": "HandoffTerminalFinalization",
+      "kind": "witness",
+      "description": "A saved result can be visible before parent routing finalization.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverVisiblePending\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverVisiblePending"
+    },
+    {
+      "id": "finalization-witness-held-rejection",
+      "module": "HandoffTerminalFinalization",
+      "kind": "witness",
+      "description": "Original custody can reject a finalization request despite saved terminal facts.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = FALSE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverHeldRejection\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverHeldRejection"
+    },
+    {
+      "id": "finalization-witness-stable-unknown",
+      "module": "HandoffTerminalFinalization",
+      "kind": "witness",
+      "description": "A lost response and unreadable proof leave a stable route unknown to the closed caller.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"post\"\n  ReadMode = \"lost_after_fault\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverStableUnknown\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverStableUnknown"
+    },
+    {
+      "id": "finalization-witness-concurrent-one-write",
+      "module": "HandoffTerminalFinalization",
+      "kind": "witness",
+      "description": "Two concurrent finalizers can finish with one effective routing write.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = TRUE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverConcurrentCompletion\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverConcurrentCompletion"
+    },
+    {
+      "id": "finalization-missing-fresh-request",
+      "module": "HandoffTerminalFinalization",
+      "kind": "missing_assumption",
+      "description": "A first uncommitted save does not authorize implicit retry.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = FALSE\n  ReleaseCustody = TRUE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-missing-custody-release",
+      "module": "HandoffTerminalFinalization",
+      "kind": "missing_assumption",
+      "description": "Progress requires release of both original local mutation custodians.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = FALSE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-missing-readable-proof",
+      "module": "HandoffTerminalFinalization",
+      "kind": "missing_assumption",
+      "description": "Unavailable reads do not guarantee eventual routing progress.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"pre\"\n  ReadMode = \"lost_after_fault\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = TRUE\n  Held = \"both\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nPROPERTY EventuallyStable\nPROPERTY EventuallyObserved\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "finalization-missing-terminal-monotonicity",
+      "module": "HandoffTerminalFinalization",
+      "kind": "missing_assumption",
+      "description": "A terminal execution that illegally reacquires mutation custody invalidates the earlier query.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Outcome = \"failed\"\n  Fault = \"none\"\n  ReadMode = \"available\"\n  RestoreReads = FALSE\n  FreshCalls = TRUE\n  ReleaseCustody = FALSE\n  Held = \"none\"\n  Concurrent = FALSE\n  AdvanceHistory = FALSE\n  Mismatch = \"none\"\n  MonotonicCustody = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CustodyBeforeFinalization\nCHECK_DEADLOCK FALSE\n",
+      "target": "CustodyBeforeFinalization"
     }
   ]
 }

@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640pt" height="556pt" viewBox="0.00 0.00 639.80 556.00">
+<g id="htf-client-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 541.6)">
+<title>TerminalClient</title>
+<polygon fill="white" stroke="transparent" points="-14.4,14.4 -14.4,-541.6 625.4,-541.6 625.4,14.4 -14.4,14.4" />
+<text text-anchor="middle" x="305.5" y="-508.8" font-family="Arial" font-size="18.00">One Handoff caller observation</text>
+
+<g id="htf-client-node1" class="node">
+<title>start</title>
+<ellipse fill="#345477" stroke="#345477" cx="300" cy="-495.6" rx="3.6" ry="3.6" />
+</g>
+
+<g id="htf-client-node2" class="node">
+<title>observing</title>
+<path fill="#edf4fc" stroke="#345477" d="M361.5,-437C361.5,-437 238.5,-437 238.5,-437 232.5,-437 226.5,-431 226.5,-425 226.5,-425 226.5,-413 226.5,-413 226.5,-407 232.5,-401 238.5,-401 238.5,-401 361.5,-401 361.5,-401 367.5,-401 373.5,-407 373.5,-413 373.5,-413 373.5,-425 373.5,-425 373.5,-431 367.5,-437 361.5,-437" />
+<text text-anchor="middle" x="300" y="-416.2" font-family="Arial" font-size="11.00">Observing an exact chain</text>
+</g>
+
+<g id="htf-client-edge1" class="edge">
+<title>start-&gt;observing</title>
+<path fill="none" stroke="#345477" d="M300,-491.77C300,-484.45 300,-464.3 300,-447.2" />
+<polygon fill="#345477" stroke="#345477" points="303.5,-447.1 300,-437.1 296.5,-447.1 303.5,-447.1" />
+<text text-anchor="middle" x="370.5" y="-462" font-family="Arial" font-size="10.00">result / invoke / resume / cancel</text>
+</g>
+
+<g id="htf-client-node3" class="node">
+<title>known</title>
+<path fill="#fff5df" stroke="#345477" d="M144,-271C144,-271 12,-271 12,-271 6,-271 0,-265 0,-259 0,-259 0,-241 0,-241 0,-235 6,-229 12,-229 12,-229 144,-229 144,-229 150,-229 156,-235 156,-241 156,-241 156,-259 156,-259 156,-265 150,-271 144,-271" />
+<text text-anchor="middle" x="78" y="-253.2" font-family="Arial" font-size="11.00">Saved outcome known</text>
+<text text-anchor="middle" x="78" y="-241.2" font-family="Arial" font-size="11.00">Parent may still be pending</text>
+</g>
+
+<g id="htf-client-edge2" class="edge">
+<title>observing-&gt;known</title>
+<path fill="none" stroke="#345477" d="M259.31,-400.87C246.32,-394.7 232.17,-387.21 220,-379 175.74,-349.13 131.03,-306.26 103.91,-278.51" />
+<polygon fill="#345477" stroke="#345477" points="106.22,-275.86 96.75,-271.12 101.19,-280.73 106.22,-275.86" />
+<text text-anchor="middle" x="256.5" y="-371" font-family="Arial" font-size="10.00">result lookup</text>
+<text text-anchor="middle" x="256.5" y="-360" font-family="Arial" font-size="10.00">/ no routing write</text>
+</g>
+
+<g id="htf-client-node4" class="node">
+<title>progressing</title>
+<path fill="#edf4fc" stroke="#345477" d="M396,-335C396,-335 204,-335 204,-335 198,-335 192,-329 192,-323 192,-323 192,-305 192,-305 192,-299 198,-293 204,-293 204,-293 396,-293 396,-293 402,-293 408,-299 408,-305 408,-305 408,-323 408,-323 408,-329 402,-335 396,-335" />
+<text text-anchor="middle" x="300" y="-317.2" font-family="Arial" font-size="11.00">Awaiting parent finalization</text>
+<text text-anchor="middle" x="300" y="-305.2" font-family="Arial" font-size="11.00">Custody query, guarded save and proof</text>
+</g>
+
+<g id="htf-client-edge3" class="edge">
+<title>observing-&gt;progressing</title>
+<path fill="none" stroke="#345477" d="M300,-400.99C300,-385.9 300,-363.49 300,-345.33" />
+<polygon fill="#345477" stroke="#345477" points="303.5,-345.22 300,-335.22 296.5,-345.22 303.5,-345.22" />
+<text text-anchor="middle" x="381.5" y="-371" font-family="Arial" font-size="10.00">explicit progress</text>
+<text text-anchor="middle" x="381.5" y="-360" font-family="Arial" font-size="10.00">[current pending unsuccessful Target]</text>
+</g>
+
+<g id="htf-client-node5" class="node">
+<title>delivered</title>
+<path fill="#e7f3e8" stroke="#345477" d="M544,-207C544,-207 350,-207 350,-207 344,-207 338,-201 338,-195 338,-195 338,-177 338,-177 338,-171 344,-165 350,-165 350,-165 544,-165 544,-165 550,-165 556,-171 556,-177 556,-177 556,-195 556,-195 556,-201 550,-207 544,-207" />
+<text text-anchor="middle" x="447" y="-189.2" font-family="Arial" font-size="11.00">Saved outcome delivered</text>
+<text text-anchor="middle" x="447" y="-177.2" font-family="Arial" font-size="11.00">Original status and diagnostic preserved</text>
+</g>
+
+<g id="htf-client-edge4" class="edge">
+<title>observing-&gt;delivered</title>
+<path fill="none" stroke="#345477" d="M373.71,-409.34C413.28,-403.15 456.63,-393.34 470,-379 515.77,-329.94 511.92,-291.29 487,-229 485.04,-224.1 482.21,-219.45 478.94,-215.14" />
+<polygon fill="#345477" stroke="#345477" points="481.4,-212.64 472.24,-207.33 476.09,-217.2 481.4,-212.64" />
+<text text-anchor="middle" x="558" y="-317" font-family="Arial" font-size="10.00">stable or historical chain</text>
+<text text-anchor="middle" x="558" y="-306" font-family="Arial" font-size="10.00">/ no finalization write</text>
+</g>
+
+<g id="htf-client-node7" class="node">
+<title>end</title>
+<ellipse fill="#345477" stroke="#345477" cx="207" cy="-109.5" rx="6.5" ry="6.5" />
+<ellipse fill="none" stroke="#345477" cx="207" cy="-109.5" rx="10.5" ry="10.5" />
+</g>
+
+<g id="htf-client-edge7" class="edge">
+<title>known-&gt;end</title>
+<path fill="none" stroke="#345477" d="M76.09,-229C75.4,-210.59 77.2,-183.43 91,-165 114.33,-133.83 159.97,-119.81 186.52,-114.05" />
+<polygon fill="#345477" stroke="#345477" points="187.47,-117.43 196.6,-112.07 186.12,-110.57 187.47,-117.43" />
+</g>
+
+<g id="htf-client-edge5" class="edge">
+<title>progressing-&gt;delivered</title>
+<path fill="none" stroke="#345477" d="M307.14,-292.89C314.7,-274.14 328.29,-246.52 348,-229 355.54,-222.3 364.3,-216.56 373.43,-211.67" />
+<polygon fill="#345477" stroke="#345477" points="375.28,-214.66 382.66,-207.06 372.15,-208.4 375.28,-214.66" />
+<text text-anchor="middle" x="416" y="-247.5" font-family="Arial" font-size="10.00">complete stable goal confirmed</text>
+</g>
+
+<g id="htf-client-node6" class="node">
+<title>unavailable</title>
+<path fill="#f8eeee" stroke="#345477" d="M297,-207C297,-207 117,-207 117,-207 111,-207 105,-201 105,-195 105,-195 105,-177 105,-177 105,-171 111,-165 117,-165 117,-165 297,-165 297,-165 303,-165 309,-171 309,-177 309,-177 309,-195 309,-195 309,-201 303,-207 297,-207" />
+<text text-anchor="middle" x="207" y="-189.2" font-family="Arial" font-size="11.00">Finalization unresolved</text>
+<text text-anchor="middle" x="207" y="-177.2" font-family="Arial" font-size="11.00">Saved Agent result remains available</text>
+</g>
+
+<g id="htf-client-edge6" class="edge">
+<title>progressing-&gt;unavailable</title>
+<path fill="none" stroke="#345477" d="M220.42,-293C210.81,-287.39 202.21,-280.2 196,-271 185.34,-255.2 188.29,-233.88 193.8,-216.67" />
+<polygon fill="#345477" stroke="#345477" points="197.16,-217.68 197.26,-207.08 190.57,-215.3 197.16,-217.68" />
+<text text-anchor="middle" x="255" y="-253" font-family="Arial" font-size="10.00">custody held, failed save,</text>
+<text text-anchor="middle" x="255" y="-242" font-family="Arial" font-size="10.00">unknown or divergent proof</text>
+</g>
+
+<g id="htf-client-edge8" class="edge">
+<title>delivered-&gt;end</title>
+<path fill="none" stroke="#345477" d="M382.37,-164.94C330.25,-148.76 260.29,-127.04 226.66,-116.6" />
+<polygon fill="#345477" stroke="#345477" points="227.68,-113.25 217.09,-113.63 225.61,-119.94 227.68,-113.25" />
+</g>
+
+<g id="htf-client-edge9" class="edge">
+<title>unavailable-&gt;end</title>
+<path fill="none" stroke="#345477" d="M207,-164.64C207,-154.01 207,-141.05 207,-130.48" />
+<polygon fill="#345477" stroke="#345477" points="210.5,-130.16 207,-120.16 203.5,-130.16 210.5,-130.16" />
+</g>
+
+<g id="htf-client-node8" class="node">
+<title>note</title>
+<polygon fill="#f5f5f5" stroke="#777777" points="345,-54 63,-54 63,0 351,0 351,-48 345,-54" />
+<polyline fill="none" stroke="#777777" points="345,-54 345,-48 " />
+<polyline fill="none" stroke="#777777" points="351,-48 345,-48 " />
+<text text-anchor="middle" x="207" y="-36.2" font-family="Arial" font-size="11.00">A closed call stays closed. A later explicit</text>
+<text text-anchor="middle" x="207" y="-24.2" font-family="Arial" font-size="11.00">request creates a new observation. Cancel is</text>
+<text text-anchor="middle" x="207" y="-12.2" font-family="Arial" font-size="11.00">a concurrent progress caller, not observer cancellation.</text>
+</g>
+
+<g id="htf-client-edge10" class="edge">
+<title>end-&gt;note</title>
+<path fill="none" stroke="#345477" stroke-dasharray="5,2" d="M207,-98.95C207,-87.95 207,-69.43 207,-54.07" />
+</g>
+</g>
+</svg>

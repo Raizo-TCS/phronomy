@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="478pt" height="530pt" viewBox="0.00 0.00 477.80 530.00">
+<g id="htf-routing-graph0" class="graph" transform="scale(1 1) rotate(0) translate(14.4 515.6)">
+<title>TerminalRouting</title>
+<polygon fill="white" stroke="transparent" points="-14.4,14.4 -14.4,-515.6 463.4,-515.6 463.4,14.4 -14.4,14.4" />
+<text text-anchor="middle" x="224.5" y="-482.8" font-family="Arial" font-size="18.00">Durable Handoff routing for one Target</text>
+
+<g id="htf-routing-node1" class="node">
+<title>start</title>
+<ellipse fill="#345477" stroke="#345477" cx="211.5" cy="-469.6" rx="3.6" ry="3.6" />
+</g>
+
+<g id="htf-routing-node2" class="node">
+<title>pending</title>
+<path fill="#edf4fc" stroke="#345477" d="M285,-403C285,-403 138,-403 138,-403 132,-403 126,-397 126,-391 126,-391 126,-373 126,-373 126,-367 132,-361 138,-361 138,-361 285,-361 285,-361 291,-361 297,-367 297,-373 297,-373 297,-391 297,-391 297,-397 291,-403 285,-403" />
+<text text-anchor="middle" x="211.5" y="-385.2" font-family="Arial" font-size="11.00">Target pending</text>
+<text text-anchor="middle" x="211.5" y="-373.2" font-family="Arial" font-size="11.00">Source/Target history retained</text>
+</g>
+
+<g id="htf-routing-edge1" class="edge">
+<title>start-&gt;pending</title>
+<path fill="none" stroke="#345477" d="M211.5,-465.75C211.5,-457.6 211.5,-433.47 211.5,-413.35" />
+<polygon fill="#345477" stroke="#345477" points="215,-413.31 211.5,-403.31 208,-413.31 215,-413.31" />
+<text text-anchor="middle" x="260" y="-432" font-family="Arial" font-size="10.00">Source transfer saved</text>
+</g>
+
+<g id="htf-routing-edge2" class="edge">
+<title>pending-&gt;pending</title>
+<path fill="none" stroke="#345477" d="M297.39,-391.32C314.12,-390.23 326,-387.13 326,-382 326,-377.99 318.75,-375.22 307.6,-373.68" />
+<polygon fill="#345477" stroke="#345477" points="307.68,-370.18 297.39,-372.68 307,-377.14 307.68,-370.18" />
+<text text-anchor="middle" x="387.5" y="-390.5" font-family="Arial" font-size="10.00">terminal Target observed</text>
+<text text-anchor="middle" x="387.5" y="-379.5" font-family="Arial" font-size="10.00">(failed / cancelled / blocked)</text>
+<text text-anchor="middle" x="387.5" y="-368.5" font-family="Arial" font-size="10.00">/ routing obligation remains</text>
+</g>
+
+<g id="htf-routing-edge4" class="edge">
+<title>pending:w-&gt;pending:nw</title>
+<path fill="none" stroke="#345477" d="M125.5,-382C116.33,-369 97,-369 97,-392.5 97,-410.68 108.57,-414.79 118.05,-409.71" />
+<polygon fill="#345477" stroke="#345477" points="120.41,-412.29 125.5,-403 115.73,-407.09 120.41,-412.29" />
+<text text-anchor="middle" x="48.5" y="-385" font-family="Arial" font-size="10.00">save does not commit</text>
+<text text-anchor="middle" x="48.5" y="-374" font-family="Arial" font-size="10.00">/ retain pending route</text>
+</g>
+
+<g id="htf-routing-node3" class="node">
+<title>stable</title>
+<path fill="#e7f3e8" stroke="#345477" d="M292.5,-265C292.5,-265 130.5,-265 130.5,-265 124.5,-265 118.5,-259 118.5,-253 118.5,-253 118.5,-235 118.5,-235 118.5,-229 124.5,-223 130.5,-223 130.5,-223 292.5,-223 292.5,-223 298.5,-223 304.5,-229 304.5,-235 304.5,-235 304.5,-253 304.5,-253 304.5,-259 298.5,-265 292.5,-265" />
+<text text-anchor="middle" x="211.5" y="-247.2" font-family="Arial" font-size="11.00">Stable</text>
+<text text-anchor="middle" x="211.5" y="-235.2" font-family="Arial" font-size="11.00">This parent obligation is complete</text>
+</g>
+
+<g id="htf-routing-edge3" class="edge">
+<title>pending-&gt;stable</title>
+<path fill="none" stroke="#345477" d="M211.5,-360.93C211.5,-338.33 211.5,-301.36 211.5,-275.26" />
+<polygon fill="#345477" stroke="#345477" points="215,-275.15 211.5,-265.15 208,-275.15 215,-275.15" />
+<text text-anchor="middle" x="284" y="-327" font-family="Arial" font-size="10.00">explicit progress</text>
+<text text-anchor="middle" x="284" y="-316" font-family="Arial" font-size="10.00">[Source/Target custody released;</text>
+<text text-anchor="middle" x="284" y="-305" font-family="Arial" font-size="10.00">exact fresh guarded evidence]</text>
+<text text-anchor="middle" x="284" y="-294" font-family="Arial" font-size="10.00">/ one routing CAS</text>
+</g>
+
+<g id="htf-routing-edge5" class="edge">
+<title>stable-&gt;stable</title>
+<path fill="none" stroke="#345477" d="M304.59,-254.28C321.58,-252.98 333.5,-249.55 333.5,-244 333.5,-239.62 326.08,-236.56 314.6,-234.83" />
+<polygon fill="#345477" stroke="#345477" points="314.91,-231.34 304.59,-233.72 314.14,-238.3 314.91,-231.34" />
+<text text-anchor="middle" x="390.5" y="-247" font-family="Arial" font-size="10.00">duplicate explicit progress</text>
+<text text-anchor="middle" x="390.5" y="-236" font-family="Arial" font-size="10.00">/ no second write</text>
+</g>
+
+<g id="htf-routing-node4" class="node">
+<title>later</title>
+<path fill="#f2f0f8" stroke="#345477" d="M266,-149C266,-149 157,-149 157,-149 151,-149 145,-143 145,-137 145,-137 145,-119 145,-119 145,-113 151,-107 157,-107 157,-107 266,-107 266,-107 272,-107 278,-113 278,-119 278,-119 278,-137 278,-137 278,-143 272,-149 266,-149" />
+<text text-anchor="middle" x="211.5" y="-131.2" font-family="Arial" font-size="11.00">Later pending Target</text>
+<text text-anchor="middle" x="211.5" y="-119.2" font-family="Arial" font-size="11.00">Different chain identity</text>
+</g>
+
+<g id="htf-routing-edge6" class="edge">
+<title>stable-&gt;later</title>
+<path fill="none" stroke="#345477" d="M211.5,-222.88C211.5,-205.33 211.5,-179.59 211.5,-159.5" />
+<polygon fill="#345477" stroke="#345477" points="215,-159.3 211.5,-149.3 208,-159.3 215,-159.3" />
+<text text-anchor="middle" x="258.5" y="-189" font-family="Arial" font-size="10.00">another turn transfers</text>
+<text text-anchor="middle" x="258.5" y="-178" font-family="Arial" font-size="10.00">/ new identity</text>
+</g>
+
+<g id="htf-routing-edge7" class="edge">
+<title>later-&gt;later</title>
+<path fill="none" stroke="#345477" d="M278.44,-136.49C294.81,-135.86 307,-133.03 307,-128 307,-124.07 299.56,-121.48 288.5,-120.24" />
+<polygon fill="#345477" stroke="#345477" points="288.67,-116.74 278.44,-119.51 288.16,-123.72 288.67,-116.74" />
+<text text-anchor="middle" x="372" y="-131" font-family="Arial" font-size="10.00">old terminal-chain observation</text>
+<text text-anchor="middle" x="372" y="-120" font-family="Arial" font-size="10.00">/ no mutation</text>
+</g>
+
+<g id="htf-routing-node5" class="node">
+<title>note</title>
+<polygon fill="#f5f5f5" stroke="#777777" points="339,-54 78,-54 78,0 345,0 345,-48 339,-54" />
+<polyline fill="none" stroke="#777777" points="339,-54 339,-48 " />
+<polyline fill="none" stroke="#777777" points="345,-48 339,-48 " />
+<text text-anchor="middle" x="211.5" y="-36.2" font-family="Arial" font-size="11.00">A lost response changes caller knowledge.</text>
+<text text-anchor="middle" x="211.5" y="-24.2" font-family="Arial" font-size="11.00">It does not create an unknown durable phase.</text>
+<text text-anchor="middle" x="211.5" y="-12.2" font-family="Arial" font-size="11.00">Finalization preserves execution results and holds.</text>
+</g>
+
+<g id="htf-routing-edge8" class="edge">
+<title>later-&gt;note</title>
+<path fill="none" stroke="#345477" stroke-dasharray="5,2" d="M211.5,-106.97C211.5,-91.71 211.5,-70.59 211.5,-54.02" />
+</g>
+</g>
+</svg>

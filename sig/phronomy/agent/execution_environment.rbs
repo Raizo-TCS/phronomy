@@ -6,6 +6,7 @@ module Phronomy
       def self.current: () -> ExecutionEnvironment
       def registry: () -> untyped
       def existing_registry: () -> untyped
+      def assert_custody_query_available!: () -> void
       def ownership: () -> untyped
       def existing_ownership: () -> untyped
       def executing?: () -> bool

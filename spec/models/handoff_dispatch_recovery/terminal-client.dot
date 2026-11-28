@@ -1,0 +1,23 @@
+digraph TerminalClient {
+  graph [rankdir=TB, bgcolor="white", pad="0.20", nodesep="0.4", ranksep="0.6", fontname="Arial", label="One Handoff caller observation", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#edf4fc", color="#345477", fontname="Arial", fontsize=11, margin="0.18,0.12"];
+  edge [fontname="Arial", fontsize=10, color="#345477"];
+  start [shape=point, width=0.1, label="", fillcolor="#345477"];
+  observing [label="Observing an exact chain"];
+  known [label="Saved outcome known\nParent may still be pending", fillcolor="#fff5df"];
+  progressing [label="Awaiting parent finalization\nCustody query, guarded save and proof"];
+  delivered [label="Saved outcome delivered\nOriginal status and diagnostic preserved", fillcolor="#e7f3e8"];
+  unavailable [label="Finalization unresolved\nSaved Agent result remains available", fillcolor="#f8eeee"];
+  end [shape=doublecircle, label="", width=0.18, height=0.18, fillcolor="#345477"];
+  note [shape=note, fillcolor="#f5f5f5", color="#777777", label="A closed call stays closed. A later explicit\nrequest creates a new observation. Cancel is\na concurrent progress caller, not observer cancellation."];
+  start -> observing [label="result / invoke / resume / cancel"];
+  observing -> known [label="result lookup\n/ no routing write"];
+  observing -> progressing [label="explicit progress\n[current pending unsuccessful Target]"];
+  observing -> delivered [label="stable or historical chain\n/ no finalization write"];
+  progressing -> delivered [label="complete stable goal confirmed"];
+  progressing -> unavailable [label="custody held, failed save,\nunknown or divergent proof"];
+  known -> end;
+  delivered -> end;
+  unavailable -> end;
+  end -> note [style=dashed, arrowhead=none];
+}

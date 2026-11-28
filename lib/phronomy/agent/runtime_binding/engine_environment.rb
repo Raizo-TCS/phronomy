@@ -20,6 +20,16 @@ module Phronomy
       end
 
       def existing_ownership = @runtime.__shutdown_participant(key: OwnershipRegistry)
+
+      # This diagnostic must not initialize or replace the originating Runtime.
+      # @api private
+      def assert_custody_query_available!
+        unless @runtime.equal?(Phronomy::Runtime.__default_if_initialized) && @runtime.state == :running
+          raise Phronomy::RuntimeShutdownError, "Agent custody observation requires its current running Runtime"
+        end
+        true
+      end
+
       def executing? = @runtime.event_loop.current?
       def session_phase(id) = @runtime.event_loop.fsm_session_state(id)
       def session_admitted?(id) = @runtime.event_loop.admitted_fsm_session?(id)

@@ -688,9 +688,8 @@ RSpec.describe "Initial preparation recovery through the original Runtime" do
     expect(@target.__execution_environment.registry.agent_execution_admitted?(@target.agent_id)).to be(false)
     expect(@recorder.calls.size).to eq(1)
     routing = session.fetch(:stores).multi_agent.handoff_states.load(@source.agent_id)
-    expect(routing.phase).not_to eq("stable")
-    expect { InitialPreparationApplication.close_completed_session(session) }
-      .to raise_error(Phronomy::AgentBusyError, "Handoff history retains unfinished work")
+    expect(routing.phase).to eq("stable")
+    expect { InitialPreparationApplication.close_completed_session(session) }.not_to raise_error
     expect(application.fetch(:session)).to equal(session)
   end
 
