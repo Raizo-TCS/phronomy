@@ -29,6 +29,34 @@ module Phronomy
 
       private
 
+      # Observes recorded local mutation custody after earlier serial delivery.
+      # False proves neither durable completion nor global physical quiescence.
+      # Call only outside persistence transactions and domain/lifecycle locks.
+      # @api private
+      def __execution_custody_pending?(execution_id)
+        unless execution_id.is_a?(String) && !execution_id.empty?
+          raise ArgumentError, "execution_id must be a nonempty String"
+        end
+        if Phronomy::WaitPolicy.blocking_forbidden?
+          raise Phronomy::EventLoopReentrancyError, "Agent custody observation cannot block EventLoop"
+        end
+        __assert_live_agent!
+        unless @_phronomy_runtime_owner_state == :live
+          raise Phronomy::RuntimeShutdownError, "Agent custody observation requires its live incarnation"
+        end
+        environment = __execution_environment
+        environment.assert_custody_query_available!
+        __with_operation do
+          environment.assert_custody_query_available!
+          registry = environment.existing_registry
+          pending = registry ? registry.observe_execution_custody(
+            agent_id: agent_id, execution_id: execution_id, environment: environment
+          ).wait_result : false
+          environment.assert_custody_query_available!
+          pending
+        end
+      end
+
       # The participant proves which durable retentions are finished history;
       # Agent controls admission, idleness and release of the local owners.
       def __unload_with_peer_execution!(execution_id, reserved_by:)

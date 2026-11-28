@@ -33,6 +33,7 @@ module Phronomy
         @admissions.admit!(main_agent)
         admitted = true
         state = load_state
+        chain_entry = state.pending_source_execution_id unless state.phase == "stable"
         count = 0
         loop do
           active = agent_for(state.active_agent_id)
@@ -52,6 +53,7 @@ module Phronomy
           else
             start_target(active, state, wiring)
           end
+          chain_entry ||= result.fetch(:execution_id)
           observed = @persistence.agent_store.observe_execution(agent_id: active.agent_id, execution_id: result.fetch(:execution_id))
           if observed.status == :handed_off
             count += 1
@@ -60,6 +62,7 @@ module Phronomy
             next
           end
           raise Phronomy::ExecutionRehydrationRequiredError, "Handoff requires approval or recovery" if observed.active?
+          finalize_terminal(observed, chain_entry)
           observed.value!
           return result.reject { |key, _| key.to_s.start_with?("_phronomy_") || key == :handoff_request }.merge(agent: active)
         end
@@ -76,7 +79,9 @@ module Phronomy
       end
 
       # Continues only the recorded chain rooted at this execution identity.
-      # Terminal history is returned without invoking another turn. A retained
+      # Terminal history is returned without invoking another turn. An exact
+      # unsuccessful pending Target first finalizes its parent routing; a saved
+      # failure remains a failure. result is the read-only observation API. A retained
       # dispatch save must be reconciled explicitly through its original Agent
       # before this method can continue; resume never chooses a retry policy.
       # The result contains durable execution fields plus the terminal Agent,
@@ -96,14 +101,20 @@ module Phronomy
         error = result = nil
         config = config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)
         saved = @persistence.handoff_leaf(execution_id, main_agent_id: main_agent.agent_id)
-        return result = saved.value!.merge(agent: agent_for(saved.agent_id)) if saved.terminal?
+        if saved.terminal?
+          finalize_terminal(saved, execution_id)
+          return result = saved.value!.merge(agent: agent_for(saved.agent_id))
+        end
         @admissions.admit!(main_agent)
         admitted = true
         count = 0
         loop do
           state, leaf = resumable_turn(execution_id)
           active = agent_for(leaf.agent_id)
-          return result = leaf.value!.merge(agent: active) if leaf.terminal?
+          if leaf.terminal?
+            finalize_terminal(leaf, execution_id)
+            return result = leaf.value!.merge(agent: active)
+          end
           require_dispatch_recovery_resolved!(active, leaf.execution_id)
           wiring = execution_config(active, state, config)
           result = if leaf.absent?
@@ -131,7 +142,7 @@ module Phronomy
       end
 
       def cancel(execution_id)
-        raise Phronomy::EventLoopReentrancyError, "HandoffRunner#cancel cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
+        assert_execution_thread!(:cancel)
         leaf = intended = nil
         begin
           @persistence.transaction do |records, scope|
@@ -159,7 +170,10 @@ module Phronomy
           end
           raise failure unless proof.disposition == :committed
         end
-        return leaf.to_result if leaf.terminal?
+        if leaf.terminal?
+          finalize_terminal(leaf, execution_id)
+          return leaf.to_result
+        end
         @agents[leaf.agent_id]&.cancel_async(leaf.execution_id)&.wait_result if leaf.active?
         {execution_id: leaf.execution_id, cancellation_requested: true}.freeze
       end
@@ -186,6 +200,13 @@ module Phronomy
         @agents.fetch(agent_id) { raise Phronomy::ExecutionRehydrationRequiredError, "Handoff graph lacks Agent #{agent_id}" }
       end
 
+      # Cancellation and terminal-history progress may run beside an admitted
+      # invocation. The routing transaction serializes this idempotent effect.
+      def finalize_terminal(target, execution_id)
+        HandoffTerminalFinalization.new(persistence: @persistence,
+          main_agent_id: main_agent.agent_id, agents: @agents).call(execution_id: execution_id, target: target)
+      end
+
       def handoff_owner
         {"kind" => "handoff", "main_agent_id" => main_agent.agent_id}.freeze
       end
@@ -198,6 +219,11 @@ module Phronomy
       end
 
       def start_target(active, state, wiring)
+        saved = @persistence.agent_store.observe_execution(agent_id: active.agent_id,
+          execution_id: state.pending_target_execution_id)
+        # A saved failure needs parent cleanup, not current business wiring.
+        return saved.to_result if %i[failed cancelled blocked].include?(saved.status)
+
         source = @persistence.agent_store.execution_identity(state.pending_source_execution_id)
         require_target_definition!(active, source.agent_id, state)
         wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(state.pending_target_execution_id)

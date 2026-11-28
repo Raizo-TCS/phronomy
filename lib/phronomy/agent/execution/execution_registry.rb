@@ -46,7 +46,8 @@ module Phronomy
 
       UNSET = Object.new.freeze
       PhysicalCompletion = Data.define(:execution_id, :token)
-      private_constant :UNSET, :PhysicalCompletion
+      CustodyQuery = Data.define(:agent_id, :execution_id, :environment, :completion)
+      private_constant :UNSET, :PhysicalCompletion, :CustodyQuery
 
       def initialize(channel:)
         super
@@ -70,6 +71,8 @@ module Phronomy
         case command
         when PhysicalCompletion
           complete_agent_physical_work(command)
+        when CustodyQuery
+          deliver_custody_query(command)
         when OutcomeRecoveryOperation::Observe, OutcomeRecoveryOperation::Ready,
             ApprovalRecoveryOperation::Observe, ApprovalRecoveryOperation::Ready,
             DispatchRecoveryOperation::Observe, DispatchRecoveryOperation::Ready,
@@ -78,6 +81,41 @@ module Phronomy
         else
           command.coordinator.deliver_on_event_loop(command)
         end
+      end
+
+      # Queue behind ordinary delivery so settling a waiter before owner release
+      # does not expose the intermediate state to a coordinating host caller.
+      # @api private
+      def observe_execution_custody(agent_id:, execution_id:, environment:)
+        completion = Phronomy::TaskResult.deferred(name: "agent-custody:#{execution_id}")
+        query = CustodyQuery.new(agent_id: agent_id.to_s.dup.freeze,
+          execution_id: execution_id.to_s.dup.freeze, environment: environment, completion: completion)
+        unless post(query, completion: completion)
+          completion.fail(Phronomy::RuntimeShutdownError.new("Agent custody observation was rejected"))
+        end
+        completion
+      rescue => error
+        completion&.fail(error)
+        completion || raise
+      end
+
+      private def deliver_custody_query(query)
+        query.environment.assert_custody_query_available!
+        pending = synchronize do
+          key = query.execution_id
+          admission = @agent_admissions[query.agent_id]
+          # Nil admission identity is conservative. Same-ID foreign entries are
+          # also ambiguous custody, never proof that this Agent owns their work.
+          !!((admission && (admission.execution_id.nil? || admission.execution_id == key)) ||
+            @initial_preparations.values.any? { |operation| operation.execution_id == key } ||
+            @agent_executions.key?(key) || @terminal_operations.key?(key) ||
+            @approval_operations.key?(key) || @dispatch_operations.key?(key) ||
+            @agent_inflight_work.fetch(key, nil)&.any? || @agent_deferred_terminals.key?(key) ||
+            @agent_completion_waiters.fetch(key, nil)&.any?)
+        end
+        query.completion.complete(pending)
+      rescue => error
+        query.completion.fail(error)
       end
 
       # Called under the EventLoop lifecycle lock, including during shutdown.
