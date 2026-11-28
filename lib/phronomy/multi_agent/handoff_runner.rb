@@ -26,8 +26,7 @@ module Phronomy
       end
 
       def invoke(input, config: {})
-        raise Phronomy::EventLoopReentrancyError, "HandoffRunner#invoke cannot block EventLoop" if Phronomy::WaitPolicy.blocking_forbidden?
-        raise Phronomy::RuntimeShutdownError, "HandoffRunner belongs to a previous Runtime" unless @environment.current?
+        assert_execution_thread!(:invoke)
         trace = Phronomy::Tracing::Automatic.start("multi_agent.turn", input: input, main_agent_id: main_agent.agent_id)
         error = result = nil
         config = config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)
@@ -36,35 +35,22 @@ module Phronomy
         state = load_state
         count = 0
         loop do
-          active = @agents.fetch(state.active_agent_id) { raise Phronomy::ExecutionRehydrationRequiredError, "Handoff graph lacks active Agent #{state.active_agent_id}" }
-          context = state.active_handoff_context_ref && Phronomy::Agent::TransferContext.from_h(@persistence.contents.fetch_json(state.active_handoff_context_ref))
-          owner = {"kind" => "handoff", "main_agent_id" => main_agent.agent_id}.freeze
-          wiring = config.merge(phronomy_control_bindings: @bindings.fetch(active.agent_id, []), phronomy_transfer_context: context,
-            phronomy_execution_participant: HandoffParticipant.new(persistence: @persistence, main_agent_id: main_agent.agent_id, expected_revision: state.handoff_revision),
-            phronomy_reservation: owner, phronomy_admission: ReservedChildAdmission.new(persistence: @persistence, owner: owner))
+          active = agent_for(state.active_agent_id)
+          wiring = execution_config(active, state, config)
           result = if state.phase == "stable"
             unfinished = @persistence.agent_store.active_executions(agent_id: active.agent_id)
             if unfinished.empty?
               active.invoke(input, config: wiring)
             else
               exact = unfinished.fetch(0)
-              unless unfinished.size == 1 && exact.reservation&.correlation == owner
+              unless unfinished.size == 1 && exact.reservation&.correlation == handoff_owner
                 raise Phronomy::Persistence::StateConflictError, "Active execution belongs to another turn"
               end
               wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(exact.execution_id)
               active.resume_async(exact.execution_id, config: wiring).wait_result
             end
           else
-            source = @persistence.agent_store.execution_identity(state.pending_source_execution_id)
-            unless @handoffs.any? { |edge| edge.source_agent.agent_id == source.agent_id && edge.target_agent.agent_id == state.active_agent_id }
-              raise Phronomy::ExecutionRehydrationRequiredError, "Handoff graph lacks committed Source/Target edge"
-            end
-            unless active.class.agent_definition == state.metadata.fetch("target_definition").transform_keys(&:to_sym)
-              raise Phronomy::ConfigurationError, "Handoff Target definition mismatch"
-            end
-            wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(state.pending_target_execution_id)
-            reservation = Phronomy::Agent::ReservedExecution.new(agent_id: active.agent_id, execution_id: state.pending_target_execution_id, correlation: owner)
-            active.start_reserved_async(reservation: reservation, input: context.responsibility, config: wiring).wait_result
+            start_target(active, state, wiring)
           end
           observed = @persistence.agent_store.observe_execution(agent_id: active.agent_id, execution_id: result.fetch(:execution_id))
           if observed.status == :handed_off
@@ -80,6 +66,61 @@ module Phronomy
       rescue Phronomy::CancellationError => caught
         error = caught
         cancel(state.pending_source_execution_id) if state && state.phase != "stable"
+        raise
+      rescue => caught
+        error = caught
+        raise
+      ensure
+        @admissions.release!(main_agent) if admitted
+        Phronomy::Tracing::Automatic.finish(trace, output: result && result[:output], error: error) if trace
+      end
+
+      # Continues only the recorded chain rooted at this execution identity.
+      # Terminal history is returned without invoking another turn. A retained
+      # dispatch save must be reconciled explicitly through its original Agent
+      # before this method can continue; resume never chooses a retry policy.
+      # The result contains durable execution fields plus the terminal Agent,
+      # not transient fields from the original live invocation. Saved failures
+      # keep the Runner's existing exception semantics. MAX_HANDOFFS limits the
+      # newly driven segment; already recorded links are only read and checked.
+      # @param execution_id [String] an execution belonging to this Handoff anchor
+      # @return [Hash] the saved leaf result and its Agent
+      # @raise [ExecutionRehydrationRequiredError] when explicit recovery is needed
+      # @api public
+      def resume(execution_id, config: {})
+        assert_execution_thread!(:resume)
+        unless execution_id.is_a?(String) && !execution_id.empty?
+          raise ArgumentError, "execution_id must be a nonempty String"
+        end
+        trace = Phronomy::Tracing::Automatic.start("multi_agent.resume", execution_id: execution_id, main_agent_id: main_agent.agent_id)
+        error = result = nil
+        config = config.merge(cancellation_token: config[:cancellation_token] || Phronomy::Concurrency::CancellationToken.new)
+        saved = @persistence.handoff_leaf(execution_id, main_agent_id: main_agent.agent_id)
+        return result = saved.value!.merge(agent: agent_for(saved.agent_id)) if saved.terminal?
+        @admissions.admit!(main_agent)
+        admitted = true
+        count = 0
+        loop do
+          state, leaf = resumable_turn(execution_id)
+          active = agent_for(leaf.agent_id)
+          return result = leaf.value!.merge(agent: active) if leaf.terminal?
+          require_dispatch_recovery_resolved!(active, leaf.execution_id)
+          wiring = execution_config(active, state, config)
+          result = if leaf.absent?
+            start_target(active, state, wiring)
+          else
+            active.resume_async(leaf.execution_id, config: wiring).wait_result
+          end
+          observed = @persistence.agent_store.observe_execution(agent_id: active.agent_id, execution_id: result.fetch(:execution_id))
+          raise Phronomy::ExecutionRehydrationRequiredError, "Handoff requires approval or recovery" if observed.active?
+          if observed.status == :handed_off
+            count += 1
+            raise Phronomy::HandoffError, "Exceeded maximum Handoffs in one continuation segment" if count > MAX_HANDOFFS
+          end
+        end
+      rescue Phronomy::CancellationError => caught
+        error = caught
+        cancel(execution_id) if admitted && config[:cancellation_token].cancelled?
         raise
       rescue => caught
         error = caught
@@ -133,6 +174,111 @@ module Phronomy
       end
 
       private
+
+      def assert_execution_thread!(operation)
+        if Phronomy::WaitPolicy.blocking_forbidden?
+          raise Phronomy::EventLoopReentrancyError, "HandoffRunner##{operation} cannot block EventLoop"
+        end
+        raise Phronomy::RuntimeShutdownError, "HandoffRunner belongs to a previous Runtime" unless @environment.current?
+      end
+
+      def agent_for(agent_id)
+        @agents.fetch(agent_id) { raise Phronomy::ExecutionRehydrationRequiredError, "Handoff graph lacks Agent #{agent_id}" }
+      end
+
+      def handoff_owner
+        {"kind" => "handoff", "main_agent_id" => main_agent.agent_id}.freeze
+      end
+
+      def execution_config(active, state, config)
+        context = state.active_handoff_context_ref && Phronomy::Agent::TransferContext.from_h(@persistence.contents.fetch_json(state.active_handoff_context_ref))
+        config.merge(phronomy_control_bindings: @bindings.fetch(active.agent_id, []), phronomy_transfer_context: context,
+          phronomy_execution_participant: HandoffParticipant.new(persistence: @persistence, main_agent_id: main_agent.agent_id, expected_revision: state.handoff_revision),
+          phronomy_reservation: handoff_owner, phronomy_admission: ReservedChildAdmission.new(persistence: @persistence, owner: handoff_owner))
+      end
+
+      def start_target(active, state, wiring)
+        source = @persistence.agent_store.execution_identity(state.pending_source_execution_id)
+        require_target_definition!(active, source.agent_id, state)
+        wiring[:cancellation_token].cancel! if Array(state.metadata["cancelled_execution_ids"]).include?(state.pending_target_execution_id)
+        reservation = Phronomy::Agent::ReservedExecution.new(agent_id: active.agent_id, execution_id: state.pending_target_execution_id, correlation: handoff_owner)
+        active.start_reserved_async(reservation: reservation,
+          input: wiring.fetch(:phronomy_transfer_context).responsibility, config: wiring).wait_result
+      end
+
+      def require_target_definition!(active, source_agent_id, state)
+        unless @handoffs.any? { |edge| edge.source_agent.agent_id == source_agent_id && edge.target_agent.agent_id == active.agent_id }
+          raise Phronomy::ExecutionRehydrationRequiredError, "Handoff graph lacks committed Source/Target edge"
+        end
+        unless active.class.agent_definition == state.metadata.fetch("target_definition").transform_keys(&:to_sym)
+          raise Phronomy::ConfigurationError, "Handoff Target definition mismatch"
+        end
+      end
+
+      # Routing is locked before Agent guards, as in cancellation and admission.
+      # These reads classify an exact chain; dispatch still requires the existing
+      # authority stability premise until the Agent accepts its continuation.
+      def resumable_turn(execution_id)
+        @persistence.transaction do |records, scope|
+          state = records.handoff_states.load_locked(main_agent.agent_id)
+          leaf = @persistence.handoff_leaf(execution_id, main_agent_id: main_agent.agent_id, scope: scope)
+          next [state, leaf] if leaf.terminal?
+          source = @persistence.agent_store.execution_identity(state.pending_source_execution_id, scope: scope) unless state.phase == "stable"
+          @persistence.agent_store.guard_agents(scope, agent_ids: [main_agent.agent_id, leaf.agent_id, source&.agent_id].compact)
+          require_current_turn!(state, leaf, scope)
+          require_pending_target!(state, leaf, source, scope) unless state.phase == "stable"
+          [state, leaf]
+        end
+      end
+
+      def require_current_turn!(state, leaf, scope)
+        if leaf.cancellation_requested || Array(state.metadata["cancelled_execution_ids"]).include?(leaf.execution_id)
+          raise Phronomy::CancellationError, "Handoff turn was cancelled"
+        end
+        if state.active_agent_id != leaf.agent_id || (leaf.absent? && state.phase == "stable")
+          raise Phronomy::Persistence::StateConflictError, "Handoff routing no longer owns this exact turn"
+        end
+        require_retention!(main_agent.agent_id, scope)
+        require_retention!(leaf.agent_id, scope)
+        return if leaf.absent?
+        unless leaf.reservation&.correlation == handoff_owner
+          raise Phronomy::Persistence::StateConflictError, "Handoff execution reservation does not match"
+        end
+        active = @persistence.agent_store.active_executions(agent_id: leaf.agent_id, scope: scope)
+        unless active.one? && active.first.execution_id == leaf.execution_id
+          raise Phronomy::Persistence::StateConflictError, "Handoff active execution does not match the requested turn"
+        end
+      end
+
+      def require_pending_target!(state, leaf, source, scope)
+        unless source && state.pending_target_execution_id == leaf.execution_id && source.correlation == handoff_owner
+          raise Phronomy::Persistence::StateConflictError, "Handoff pending Source/Target identity mismatch"
+        end
+        observed = @persistence.agent_store.observe_execution(agent_id: source.agent_id, execution_id: source.execution_id, scope: scope)
+        expected = {"target_agent_id" => leaf.agent_id, "target_execution_id" => leaf.execution_id,
+                    "context_ref" => state.active_handoff_context_ref, "owner_key" => "handoff:#{main_agent.agent_id}"}
+        unless observed.status == :handed_off && observed.transfer_receipt == expected && state.metadata["source_agent_id"] == source.agent_id
+          raise Phronomy::Persistence::StateConflictError, "Handoff transfer receipt no longer matches pending routing"
+        end
+        require_target_definition!(agent_for(leaf.agent_id), source.agent_id, state)
+        require_retention!(source.agent_id, scope, execution_id: source.execution_id)
+        require_retention!(leaf.agent_id, scope, execution_id: leaf.execution_id)
+      end
+
+      def require_retention!(agent_id, scope, execution_id: nil)
+        references = @persistence.agent_store.retained_references(agent_id: agent_id, scope: scope)
+        unless references.any? { |reference| reference.owner_key == "handoff:#{main_agent.agent_id}" && (!execution_id || reference.execution_id == execution_id) }
+          raise Phronomy::Persistence::StateConflictError, "Handoff no longer retains this execution"
+        end
+      end
+
+      def require_dispatch_recovery_resolved!(active, execution_id)
+        recovery = active.pending_dispatch_recovery(execution_id: execution_id)
+        return unless recovery
+        raise Phronomy::ExecutionRehydrationRequiredError,
+          "Agent #{active.agent_id.inspect} execution #{execution_id.inspect} retains dispatch recovery #{recovery.recovery_id.inspect}; " \
+          "use pending_dispatch_recovery and explicit Agent reconciliation before Handoff resume"
+      end
 
       def load_state
         state = @persistence.handoff_states.load(main_agent.agent_id)

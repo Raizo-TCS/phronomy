@@ -8,24 +8,43 @@ module Phronomy
     # participant sees public semantic values only, never Agent records.
     # @api private
     class HandoffParticipant
+      BINDING_KEY = "phronomy.handoff"
+
       def initialize(persistence:, main_agent_id:, expected_revision:)
         @persistence, @main_agent_id, @expected_revision = persistence, main_agent_id, expected_revision
       end
 
       def binding
-        Phronomy::Agent::ExecutionExtensionState.new(binding_key: "phronomy.handoff", binding_version: 1)
+        Phronomy::Agent::ExecutionExtensionState.new(binding_key: BINDING_KEY, binding_version: 1)
+      end
+
+      # Eligibility uses captured identity only; the owner performs no Store I/O.
+      private def dispatch_recovery_supported?(execution:, persistence:)
+        extension = execution.metadata["execution_extension"]
+        persistence.equal?(@persistence.agent_store) &&
+          extension&.fetch("binding_key") == BINDING_KEY &&
+          extension.fetch("binding_version") == 1 &&
+          execution.metadata["reservation"] == {"kind" => "handoff", "main_agent_id" => @main_agent_id}
+      end
+
+      private def capture_dispatch_recovery(values:, persistence:)
+        HandoffDispatchEvidence.capture(values: values, persistence: persistence,
+          handoff_persistence: @persistence, main_agent_id: @main_agent_id,
+          expected_revision: @expected_revision, binding_key: BINDING_KEY)
       end
 
       def guard_change(change, scope)
-        @persistence.participate(scope) { |records| records.handoff_states.load_locked(@main_agent_id) }
-        ids = [@main_agent_id, change.agent_id, change.control_request&.target_agent_id].compact
-        @persistence.agent_store.guard_agents(scope, agent_ids: ids)
+        state = @persistence.participate(scope) { |records| records.handoff_states.load_locked(@main_agent_id) }
+        @persistence.agent_store.guard_agents(scope, agent_ids: change_agent_ids(change, state))
       end
 
       def change_evidence(change, scope)
         state = @persistence.participate(scope) { |records| records.handoff_states.load(@main_agent_id) }
-        ids = [@main_agent_id, change.agent_id, change.control_request&.target_agent_id].compact.uniq.sort
-        [state&.to_h, ids.map { |id| @persistence.agent_store.retained_references(agent_id: id, scope: scope).map(&:to_h) }]
+        ids = change_agent_ids(change, state)
+        [state&.to_h, ids.map { |id|
+          @persistence.agent_store.retained_references(agent_id: id, scope: scope).map(&:to_h)
+            .sort_by { |hold| Phronomy::CanonicalJSON.dump(hold) }
+        }]
       end
 
       def commit(change)
@@ -69,6 +88,12 @@ module Phronomy
       end
 
       private
+
+      def change_agent_ids(change, state)
+        ids = [@main_agent_id, change.agent_id, change.control_request&.target_agent_id]
+        ids << state.metadata["source_agent_id"] if state && state.phase != "stable"
+        ids.compact.uniq.sort
+      end
 
       def retain(scope, id, execution_id)
         @persistence.agent_store.retain(Phronomy::Agent::Retention.new(agent_id: id, execution_id: execution_id,

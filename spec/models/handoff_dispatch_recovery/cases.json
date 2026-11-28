@@ -1,0 +1,513 @@
+{
+  "cases": [
+    {
+      "id": "safety-pre",
+      "kind": "property",
+      "description": "A complete pre save classification preserves exact Handoff custody.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-post",
+      "kind": "property",
+      "description": "A complete post save classification preserves exact Handoff custody.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-other",
+      "kind": "property",
+      "description": "A complete other save classification preserves exact Handoff custody.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"other\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-read-only-pre",
+      "kind": "property",
+      "description": "Read-only reconciliation does not write a proven pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = FALSE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unreadable",
+      "kind": "property",
+      "description": "Unavailable reads preserve the retained owner and perform no work.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = FALSE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-no-worker-settlement",
+      "kind": "property",
+      "description": "No continuation is authorized without physical completion.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = FALSE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-two-links",
+      "kind": "property",
+      "description": "Two committed transfer links retain exact target identities.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 2\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-historical-terminal",
+      "kind": "property",
+      "description": "A completed original turn can be observed after unrelated routing progress.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 0\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = TRUE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-dispatch-revision",
+      "kind": "property",
+      "description": "Changing revision blocks stale dispatch proof or continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"revision\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-dispatch-revision",
+      "kind": "mutation",
+      "description": "Ignoring revision must not authorize dispatch.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"revision\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"revision\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "safety-dispatch-agent",
+      "kind": "property",
+      "description": "Changing agent blocks stale dispatch proof or continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"agent\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-dispatch-agent",
+      "kind": "mutation",
+      "description": "Ignoring agent must not authorize dispatch.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"agent\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"agent\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "safety-dispatch-reservation",
+      "kind": "property",
+      "description": "Changing reservation blocks stale dispatch proof or continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"reservation\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-dispatch-reservation",
+      "kind": "mutation",
+      "description": "Ignoring reservation must not authorize dispatch.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"reservation\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"reservation\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "safety-dispatch-held",
+      "kind": "property",
+      "description": "Changing held blocks stale dispatch proof or continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"held\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-dispatch-held",
+      "kind": "mutation",
+      "description": "Ignoring held must not authorize dispatch.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"held\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"held\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "safety-dispatch-cancelled",
+      "kind": "property",
+      "description": "Changing cancelled blocks stale dispatch proof or continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"cancelled\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-dispatch-cancelled",
+      "kind": "mutation",
+      "description": "Ignoring cancelled must not authorize dispatch.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"cancelled\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"cancelled\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "safety-dispatch-generation",
+      "kind": "property",
+      "description": "Changing generation blocks stale dispatch proof or continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"generation\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-dispatch-generation",
+      "kind": "mutation",
+      "description": "Ignoring generation must not authorize dispatch.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"generation\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"generation\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "safety-target-turn",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed turn.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"turn\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-turn",
+      "kind": "mutation",
+      "description": "Ignoring Target turn must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"turn\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"turn\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-revision",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed revision.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"revision\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-revision",
+      "kind": "mutation",
+      "description": "Ignoring Target revision must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"revision\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"revision\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-agent",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed agent.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"agent\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-agent",
+      "kind": "mutation",
+      "description": "Ignoring Target agent must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"agent\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"agent\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-pending",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed pending.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"pending\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-pending",
+      "kind": "mutation",
+      "description": "Ignoring Target pending must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"pending\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"pending\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-source",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed source.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"source\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-source",
+      "kind": "mutation",
+      "description": "Ignoring Target source must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"source\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"source\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-definition",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed definition.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"definition\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-definition",
+      "kind": "mutation",
+      "description": "Ignoring Target definition must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"definition\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"definition\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-context",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed context.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"context\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-context",
+      "kind": "mutation",
+      "description": "Ignoring Target context must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"context\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"context\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-graph",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed graph.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"graph\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-graph",
+      "kind": "mutation",
+      "description": "Ignoring Target graph must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"graph\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"graph\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-held",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed held.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"held\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-held",
+      "kind": "mutation",
+      "description": "Ignoring Target held must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"held\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"held\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-cancelled",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed cancelled.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"cancelled\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-cancelled",
+      "kind": "mutation",
+      "description": "Ignoring Target cancelled must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"cancelled\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"cancelled\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-reservation",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed reservation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"reservation\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-reservation",
+      "kind": "mutation",
+      "description": "Ignoring Target reservation must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"reservation\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"reservation\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "safety-target-generation",
+      "kind": "property",
+      "description": "Fresh Target admission rejects changed generation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"generation\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-target-generation",
+      "kind": "mutation",
+      "description": "Ignoring Target generation must be detected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"generation\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"generation\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "mutation-replay-participant",
+      "kind": "mutation",
+      "description": "Reject the replay participant protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"replay_participant\"\nINVARIANT NoDomainReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoDomainReplay"
+    },
+    {
+      "id": "mutation-rebuild-proposal",
+      "kind": "mutation",
+      "description": "Reject the rebuild proposal protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"rebuild_proposal\"\nINVARIANT NoDomainReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoDomainReplay"
+    },
+    {
+      "id": "mutation-replay-business",
+      "kind": "mutation",
+      "description": "Reject the replay business protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"replay_business\"\nINVARIANT NoBusinessReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoBusinessReplay"
+    },
+    {
+      "id": "mutation-reopen-original",
+      "kind": "mutation",
+      "description": "Reject the reopen original protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"reopen_original\"\nINVARIANT ClosedOriginal\nCHECK_DEADLOCK FALSE\n",
+      "target": "ClosedOriginal"
+    },
+    {
+      "id": "mutation-observer-releases-owner",
+      "kind": "mutation",
+      "description": "Reject the observer releases owner protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"observer_releases_owner\"\nINVARIANT PhysicalCustody\nCHECK_DEADLOCK FALSE\n",
+      "target": "PhysicalCustody"
+    },
+    {
+      "id": "mutation-observer-drops-history",
+      "kind": "mutation",
+      "description": "Reject the observer drops history protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"observer_drops_history\"\nINVARIANT HistoryRetained\nCHECK_DEADLOCK FALSE\n",
+      "target": "HistoryRetained"
+    },
+    {
+      "id": "mutation-invoke-terminal",
+      "kind": "mutation",
+      "description": "Reject the invoke terminal protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 0\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = TRUE\n  RefuseFirst = FALSE\n  Bug = \"invoke_terminal\"\nINVARIANT NoNewTurnOnResume\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoNewTurnOnResume"
+    },
+    {
+      "id": "mutation-duplicate-target",
+      "kind": "mutation",
+      "description": "Reject the duplicate target protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"duplicate_target\"\nINVARIANT NoDuplicateTarget\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoDuplicateTarget"
+    },
+    {
+      "id": "mutation-use-current-target",
+      "kind": "mutation",
+      "description": "Reject the use current target protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"pending\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"use_current_target\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "mutation-cached-target-authority",
+      "kind": "mutation",
+      "description": "Replacing the actual admission cancellation check with a cached Runner grant must be rejected.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = FALSE\n  Drift = \"cancelled\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"cached_target_authority\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    },
+    {
+      "id": "mutation-cached-post",
+      "kind": "mutation",
+      "description": "Reject the cached post protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"revision\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = TRUE\n  Bug = \"cached_post\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "mutation-ignore-physical",
+      "kind": "mutation",
+      "description": "Reject the ignore physical protocol mutation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = FALSE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"ignore_physical\"\nINVARIANT PhysicalCustody\nCHECK_DEADLOCK FALSE\n",
+      "target": "PhysicalCustody"
+    },
+    {
+      "id": "progress-post",
+      "kind": "property",
+      "description": "Stable authority and fair required actors eventually return the exact chain result.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nPROPERTY EventuallyReturned\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-pre",
+      "kind": "property",
+      "description": "Stable authority and fair required actors eventually return the exact chain result.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nPROPERTY EventuallyReturned\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-two-links",
+      "kind": "property",
+      "description": "Stable authority and fair required actors eventually return the exact chain result.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 2\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nPROPERTY EventuallyReturned\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-restored-reads",
+      "kind": "property",
+      "description": "Stable authority and fair required actors eventually return the exact chain result.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = FALSE\n  RestoreReads = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nPROPERTY EventuallyReturned\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-refused-continuation",
+      "kind": "property",
+      "description": "Stable authority and fair required actors eventually return the exact chain result.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = TRUE\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nINVARIANT NoDomainReplay\nINVARIANT NoBusinessReplay\nINVARIANT FreshDispatchAuthority\nINVARIANT PhysicalCustody\nINVARIANT HistoricalPostSticky\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT HistoryRetained\nINVARIANT ExactChainAdmission\nINVARIANT NoDuplicateTarget\nINVARIANT NoPendingWork\nINVARIANT NoNewTurnOnResume\nINVARIANT ExactHistoricalResult\nPROPERTY EventuallyReturned\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-fresh-caller",
+      "kind": "missing_assumption",
+      "description": "Without fresh caller completion is not guaranteed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = FALSE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nPROPERTY EventuallyReturned\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-worker-settlement",
+      "kind": "missing_assumption",
+      "description": "Without worker settlement completion is not guaranteed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = FALSE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nPROPERTY EventuallyReturned\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-readable-proof",
+      "kind": "missing_assumption",
+      "description": "Without readable proof completion is not guaranteed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = FALSE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nPROPERTY EventuallyReturned\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-explicit-pre-retry",
+      "kind": "missing_assumption",
+      "description": "Without explicit pre retry completion is not guaranteed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = FALSE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nPROPERTY EventuallyReturned\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-runner-caller",
+      "kind": "missing_assumption",
+      "description": "Without runner caller completion is not guaranteed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = FALSE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nPROPERTY EventuallyReturned\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-target-progress",
+      "kind": "missing_assumption",
+      "description": "Without target progress completion is not guaranteed.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = FALSE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nPROPERTY EventuallyReturned\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-authority-stability",
+      "kind": "missing_assumption",
+      "description": "A transaction read does not fence authority through EventLoop admission.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = FALSE\n  Drift = \"held\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT FreshDispatchAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "FreshDispatchAuthority"
+    },
+    {
+      "id": "witness-read-only-post",
+      "kind": "witness",
+      "description": "Reach the read only post state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoReadOnlyPostWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoReadOnlyPostWitness"
+    },
+    {
+      "id": "witness-explicit-pre-retry",
+      "kind": "witness",
+      "description": "Reach the explicit pre retry state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoExplicitRetryWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoExplicitRetryWitness"
+    },
+    {
+      "id": "witness-historical-result",
+      "kind": "witness",
+      "description": "Reach the historical result state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 0\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = TRUE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoHistoricalReadWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoHistoricalReadWitness"
+    },
+    {
+      "id": "witness-two-links",
+      "kind": "witness",
+      "description": "Reach the two links state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 2\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoTwoLinkWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoTwoLinkWitness"
+    },
+    {
+      "id": "witness-independent-observers",
+      "kind": "witness",
+      "description": "Reach the independent observers state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoIndependentObserverWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoIndependentObserverWitness"
+    },
+    {
+      "id": "witness-retained-unknown",
+      "kind": "witness",
+      "description": "Reach the retained unknown state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = FALSE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoRetainedUnknownWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoRetainedUnknownWitness"
+    },
+    {
+      "id": "witness-blocked-authority",
+      "kind": "witness",
+      "description": "Reach the blocked authority state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"held\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoBlockedAuthorityWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoBlockedAuthorityWitness"
+    },
+    {
+      "id": "witness-blocked-target",
+      "kind": "witness",
+      "description": "Reach the blocked target state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"pending\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoBlockedTargetWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoBlockedTargetWitness"
+    },
+    {
+      "id": "witness-pending-recovery",
+      "kind": "witness",
+      "description": "Reach the pending recovery state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  DriftPhase = \"dispatch\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT NoPendingRecoveryWitness\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoPendingRecoveryWitness"
+    },
+    {
+      "id": "missing-runner-authority-stability",
+      "kind": "missing_assumption",
+      "description": "A Runner proof read does not fence context until the later subset admission check.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  StableAuthority = FALSE\n  Drift = \"context\"\n  DriftPhase = \"runner\"\n  Links = 1\n  RunnerCaller = TRUE\n  TargetProgress = TRUE\n  HistoryAdvanced = FALSE\n  RefuseFirst = FALSE\n  Bug = \"none\"\nINVARIANT ExactChainAdmission\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactChainAdmission"
+    }
+  ]
+}

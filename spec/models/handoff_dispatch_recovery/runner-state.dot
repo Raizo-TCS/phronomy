@@ -1,0 +1,23 @@
+digraph HandoffRunnerExactChain {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.35", ranksep="0.55", fontname="DejaVu Sans", label="Handoff Runner: one exact-chain continuation", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3f8", color="#50687c", fontname="DejaVu Sans", fontsize=12, margin="0.18,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#42596d", arrowsize=0.8];
+  start [shape=point, width=0.12, label=""];
+  locate [label="Locate original chain\nRead exact execution and transfer links"];
+  pending [label="Recovery required\nReport the retained Agent obligation", fillcolor="#fff3d4"];
+  reserved [label="Reserved Target\nCheck routing, edge, definition and context"];
+  observing [label="Observe exact Target\nStart once or join existing execution"];
+  blocked [label="Continuation unavailable\nPreserve identity and retained history", fillcolor="#ffe8e4"];
+  result [label="Return saved chain result\nNo new turn is started", fillcolor="#e6f4e9"];
+  end [shape=doublecircle, width=0.16, height=0.16, label="", fillcolor="#334f45"];
+  start -> locate [label="resume(original execution ID)"];
+  locate -> pending [label="[retained dispatch is unresolved]"];
+  locate -> result [label="[exact leaf is terminal]"];
+  locate -> reserved [label="[committed transfer reserves this leaf]"];
+  reserved -> observing [label="[stable full proof and current admission guards]\n/ start or observe exact Target"];
+  reserved -> blocked [label="[identity, authority or evidence unavailable]"];
+  observing -> locate [label="Target result received\n/ follow only its committed receipt"];
+  pending -> end [label="error ends this Runner call"];
+  blocked -> end [label="error ends this Runner call"];
+  result -> end [label="result ends this Runner call"];
+}
