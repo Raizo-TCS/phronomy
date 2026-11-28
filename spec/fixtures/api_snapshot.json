@@ -1313,7 +1313,8 @@
       "handoffs",
       "invoke",
       "main_agent",
-      "result"
+      "result",
+      "resume"
     ],
     "public_class_methods": []
   },

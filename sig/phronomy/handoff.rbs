@@ -42,6 +42,7 @@ module Phronomy
 
       def initialize: (main_agent: ::Phronomy::Agent::Base, ?handoffs: Array[::Phronomy::MultiAgent::Handoff], persistence: Store) -> void
       def invoke: (untyped input, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
+      def resume: (String execution_id, ?config: Hash[Symbol, untyped]) -> Hash[Symbol, untyped]
       def result: (String execution_id) -> Hash[Symbol, untyped]
       def cancel: (String execution_id) -> Hash[Symbol, untyped]
     end
