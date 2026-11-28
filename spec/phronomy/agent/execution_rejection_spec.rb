@@ -95,7 +95,11 @@ RSpec.describe "Reserved Agent start rejection" do
       end
 
       expect { agent.start_reserved_async(reservation: reservation, input: "question").wait_result(timeout: 5) }
-        .to raise_error(error_class, /admission response lost/)
+        .to raise_error(Phronomy::Agent::InitialPreparationRecoveryError) { |error|
+          expect(error.original_error).to be_a(error_class)
+          expect(error.original_error.message).to include("admission response lost")
+          expect(error.recovery).to equal(agent.pending_initial_preparation_recovery)
+        }
       expect(store.executions.load(id).status).to eq(:preparing)
       expect(requests).to be_empty
     end

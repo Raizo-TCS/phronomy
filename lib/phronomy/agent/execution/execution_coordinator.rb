@@ -56,6 +56,12 @@ module Phronomy
       RecoveredCoordinationWait = Data.define(:coordinator, :execution_id, :revision) do
         def current? = coordinator.current_coordination_wait?(self)
       end
+      # A local setup failure may transfer to the existing terminal protocol only
+      # after it retained an operation or returned an accepted worker handle.
+      TerminalCustody = Data.define(:coordinator, :operation, :task, :retained_owner, :error) do
+        def accepted? = !retained_owner.nil? || task.is_a?(Phronomy::TaskResult)
+      end
+      private_constant :TerminalCustody
       private_constant :ApprovalOperation, :RecoveredCoordinationWait
       attr_reader :recovered_coordination_wait
 
@@ -534,13 +540,15 @@ module Phronomy
 
       def register_initial_session_on_event_loop(request, prepared, owner: nil)
         environment = @agent.__execution_environment
+        setup_step = :build
         session = owner&.initial_session || build_initial_session(request, prepared, environment)
         owner.initial_session = session if owner
+        setup_step = :install
         state = environment.registry.agent_execution_state(prepared.execution.execution_id)
         if state
           unless owner && state.agent.equal?(@agent) && state.coordinator.equal?(self) &&
               state.fsm_session_id == session.id && state.invocation.equal?(session.context)
-            raise Phronomy::Error, "Initial execution has another installed session"
+            raise Phronomy::Error, "Agent execution #{prepared.execution.execution_id.inspect} is already live"
           end
         else
           environment.registry.install_agent_execution(
@@ -554,6 +562,7 @@ module Phronomy
             fsm_session_id: session.id
           )
         end
+        setup_step = :waiter
         environment.registry.register_agent_completion_waiter(
           prepared.execution.execution_id,
           request.result_task
@@ -563,12 +572,30 @@ module Phronomy
           raise Phronomy::Error, "Initial session registration has no authoritative admission observation"
         end
         owner.session_registration_attempted = true if owner
+        setup_step = :register
         begin
           execution_session_runner(environment).register(session, request.result_task)
         rescue
           # A lost registration response cannot authorize another session.
           # The same EventLoop can positively confirm this exact admission.
           raise unless owner && environment.respond_to?(:session_admitted?) && environment.session_admitted?(session.id)
+        end
+      rescue => error
+        raise unless owner&.original_delivery? && initial_setup_rejected?(owner, environment, setup_step)
+        owner.handover_setup_failure(prepared, error)
+      end
+
+      def initial_setup_rejected?(owner, environment, step)
+        case step
+        when :build
+          !owner.initial_session && !owner.session_registration_attempted
+        when :install
+          state = environment.registry.agent_execution_state(owner.execution_id)
+          !state || !state.agent.equal?(@agent) || !state.coordinator.equal?(self)
+        when :register
+          environment.respond_to?(:session_admitted?) && !environment.session_admitted?(owner.initial_session.id)
+        else
+          false
         end
       end
 
@@ -1761,10 +1788,11 @@ module Phronomy
           TerminalRecoveryOperation
         end
         if recovery_owner
-          recovery_owner.new(agent: @agent, coordinator: self,
+          retained = recovery_owner.new(agent: @agent, coordinator: self,
             environment: environment, command: operation, delivery: delivery,
             committer: @outcome_committer).start
-          return
+          return TerminalCustody.new(coordinator: self, operation: operation,
+            task: nil, retained_owner: retained, error: nil)
         end
         task = environment.submit(on_full: :raise) do
           # Only the operation-specific immutable durable snapshot crosses the
@@ -1783,6 +1811,8 @@ module Phronomy
           fail_task(delivery.result_task, runtime_rejected_error(:terminal_apply)) unless
             post_control(environment, ready)
         end
+        TerminalCustody.new(coordinator: self, operation: operation,
+          task: task, retained_owner: nil, error: nil)
       rescue => error
         if terminal_transition_started
           environment.registry.mark_agent_execution_admission(
@@ -1795,7 +1825,8 @@ module Phronomy
             "[Phronomy] Agent terminal transition requires recovery for " \
             "#{operation.execution_id}: #{error.class}: #{error.message}"
           )
-          return
+          return TerminalCustody.new(coordinator: self, operation: operation,
+            task: nil, retained_owner: nil, error: error)
         end
 
         fail_task(delivery.result_task, error)

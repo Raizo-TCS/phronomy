@@ -359,6 +359,28 @@ module Phronomy
         operation.recovery if operation&.belongs_to?(agent) && operation.pending?
       end
 
+      # Transfer only the initial index. The exact admission token and any
+      # live state/waiters remain owned by the existing terminal protocol.
+      def transfer_initial_terminal_custody(operation, custody)
+        assert_event_loop_thread!
+        synchronize do
+          next false unless owns_initial_preparation_locked?(operation)
+          admission = @agent_admissions.fetch(operation.agent_id)
+          command = custody.operation
+          next false unless custody.coordinator.equal?(operation.coordinator) &&
+            command.execution_id == operation.execution_id && command.execution.agent_id == operation.agent_id &&
+            admission.execution_id == operation.execution_id && %i[terminalizing recovery_required].include?(admission.state)
+          accepted = if custody.retained_owner
+            @terminal_operations[operation.execution_id]&.operation.equal?(custody.retained_owner)
+          else
+            custody.task.is_a?(Phronomy::TaskResult)
+          end
+          next false unless accepted
+          @initial_preparations.delete(operation.agent_id)
+          true
+        end
+      end
+
       def resolve_initial_preparation(operation, state:)
         assert_event_loop_thread!
         return false unless operation.resolution_permitted?

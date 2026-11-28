@@ -136,12 +136,38 @@ module Phronomy
       end
 
       def application_request
-        return request unless request.result_task.done?
+        return request unless @mutex.synchronize { @uncertain } && request.result_task.done?
         @continuation_request ||= begin
           result_task = OperationResult.new(agent: @agent, name: "initial-preparation-continuation:#{execution_id}")
           controls.bind(result_task, track_completion: false)
           request.with(result_task: result_task, on_event: nil, approval_listener: nil)
         end
+      end
+
+      def original_delivery?
+        @mutex.synchronize { !@uncertain && @attempts.quiescent_locked? }
+      end
+
+      # This ordinary-delivery path has positive local non-admission evidence.
+      # Preserve the existing terminal protocol, including participant behavior.
+      def handover_setup_failure(prepared, error)
+        @terminal_handover_pending = true
+        custody = @coordinator.send(:begin_terminal_after_start_failure_on_event_loop,
+          request: request, prepared: prepared, error: error)
+        if custody&.accepted? && @registry.transfer_initial_terminal_custody(self, custody)
+          controls = @controls
+          request.result_task.on_physical_complete { controls.close }
+          @mutex.synchronize { @terminal_transferred = true }
+        else
+          @mutex.synchronize do
+            @uncertain = true
+            @original_error ||= custody&.error || error
+            @last_error = custody&.error || error
+          end
+          # The legacy terminal path may already have reported its own error.
+          fail_original(@last_error) unless request.result_task.done?
+        end
+        nil
       end
 
       def resolution_permitted?
@@ -262,6 +288,9 @@ module Phronomy
             (!environment.respond_to?(:session_admitted?) || environment.session_admitted?(initial_session.id))
           return observer.complete(unavailable(Phronomy::Error.new("Initial session has no positive non-admission proof for recovery")))
         end
+        if @terminal_handover_pending
+          return observer.complete(unavailable(Phronomy::Error.new("Initial setup is awaiting terminal ownership; activation cannot be repeated")))
+        end
         begin_attempt(observer, kind)
       rescue => error
         observer.complete(unavailable(error))
@@ -364,6 +393,7 @@ module Phronomy
             capture_terminal_observation(result)
           end
           @coordinator.send(:apply_retained_initial_preparation_on_event_loop, self, result)
+          return if @terminal_handover_pending
           state = (result.admission_outcome == :active) ? :resumed : :stopped
           resolve(state)
           (state == :resumed) ? controls.track(application_request.result_task) : controls.close
@@ -433,13 +463,13 @@ module Phronomy
 
       def retire_resolved
         ready, needs_observation = @mutex.synchronize do
-          [resolved_locked? && !@attempts.active_snapshot_locked,
+          [(resolved_locked? || @terminal_transferred) && !@attempts.active_snapshot_locked,
             @uncertain && @continuation_state == :resumed && !@execution_observation]
         end
         return unless ready
         execution_observer if needs_observation
         @mutex.synchronize do
-          return unless resolved_locked? && !@attempts.active_snapshot_locked
+          return if @attempts.active_snapshot_locked || (!resolved_locked? && !@terminal_transferred)
           @final_revision ||= @checkpoint&.fetch(:evidence)&.execution&.execution_revision
           @agent = @coordinator = @environment = @registry = @persistence = @preparer = nil
           @command = @request = @continuation_request = @checkpoint = @controls = @authority = @admission_participant = nil

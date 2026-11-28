@@ -542,6 +542,7 @@ RSpec.describe "Initial preparation recovery through the original Runtime" do
 
   it "removes only the positively unadmitted initial projection when late cancellation saves its terminal result" do
     open_case
+    configure_fault(stage: :activation, mode: :post)
     environment = @source.__execution_environment
     refused_sessions = []
     allow(environment).to receive(:register_session) do |session, **_options|
@@ -549,6 +550,11 @@ RSpec.describe "Initial preparation recovery through the original Runtime" do
       raise Phronomy::RuntimeShutdownError, "initial session registration positively refused"
     end
     start_uncertain
+    expect(refused_sessions).to be_empty
+    first_recovery = recover
+    expect(first_recovery).not_to be_resolved
+    expect(first_recovery.outcome).to eq(:confirmed_post)
+    expect(@source.pending_initial_preparation_recovery).to equal(@recovery)
     expect(refused_sessions.size).to eq(1)
     expect(environment.session_admitted?(refused_sessions.first)).to be(false)
     expect(environment.registry.agent_execution_owner(@recovery.execution_id)).not_to be_nil

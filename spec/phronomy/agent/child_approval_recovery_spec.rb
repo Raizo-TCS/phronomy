@@ -417,7 +417,10 @@ RSpec.describe "Correlated child approval recovery through the original Runtime"
     expect_held(reconcile)
     expect(@decision_writes).to eq(1)
     waiting.fetch(:release) << true
-    expect { result_of(later) }.to raise_error(Phronomy::AgentBusyError)
+    expect { result_of(later) }.to raise_error(Phronomy::Agent::InitialPreparationRecoveryError) { |error|
+      expect(error.original_error).to be_a(Phronomy::AgentBusyError)
+      expect(error.recovery).to equal(@decision_parent.pending_initial_preparation_recovery)
+    }
     expect(stores.agent.executions.load(root_id).to_h).to eq(before)
     expect_held(reconcile)
   end
