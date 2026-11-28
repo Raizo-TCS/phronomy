@@ -99,9 +99,6 @@ module Phronomy
       ResumeCommitResult = ApprovalResumeCommit::Result
       TerminalOutcome = ExecutionOutcomeCommitter::Outcome
 
-      InitialPreparationReady = Data.define(
-        :coordinator, :request, :result, :error
-      )
       InitialPreparationRecoveryReady = Data.define(
         :coordinator, :execution_id, :expected_execution_revision,
         :result_task, :load_completion, :result, :error
@@ -142,10 +139,13 @@ module Phronomy
         @agent.send(:__assert_live_agent!)
         @agent.send(:_reject_removed_generic_identity_keys!, config)
         result_task = OperationResult.new(agent: @agent, name: "agent-#{@agent.agent_id}-#{mode}")
-        controls = Phronomy::InvocationControls.attach(result_task,
+        controls = Phronomy::InvocationControls.new(
           invocation_context: config[:invocation_context],
-          cancellation_token: config[:cancellation_token])
-        config = config.merge(cancellation_token: controls.token)
+          cancellation_token: config[:cancellation_token]
+        )
+        controls.bind(result_task, track_completion: false)
+        config = config.merge(cancellation_token: controls.token,
+          phronomy_reserved_execution_id: config[:phronomy_reserved_execution_id] || SecureRandom.uuid.freeze)
         command = StartCommand.new(
           coordinator: self,
           input: input,
@@ -159,10 +159,12 @@ module Phronomy
           controls: controls
         )
         unless post_control(@agent.__execution_environment, command)
+          controls.close
           fail_task(result_task, runtime_rejected_error(:start))
         end
         result_task
       rescue => error
+        controls&.close
         fail_task(result_task, error) if defined?(result_task) && result_task
         result_task
       end
@@ -302,8 +304,6 @@ module Phronomy
         when SessionFinishedCommand
           finish_on_event_loop(command.execution_id, command.result_task,
             command.invocation, command.error, fsm_session_id: command.fsm_session_id)
-        when InitialPreparationReady
-          apply_initial_preparation_on_event_loop(command)
         when InitialPreparationRecoveryReady
           apply_initial_preparation_recovery_on_event_loop(command)
         when ProviderDispatchPreparationReady
@@ -380,6 +380,7 @@ module Phronomy
         request.controls.check_start!
         root = @agent.send(:__root_for_operation)
         if root.lifecycle_status == :closed
+          request.controls.close
           deliver_start_failure_on_event_loop(
             request,
             Phronomy::Error.new("agent is closed: #{@agent.agent_id}")
@@ -389,7 +390,6 @@ module Phronomy
 
         @agent.send(:__assert_live_agent!)
         admitted = false
-        submitted = false
         environment.registry.admit_agent_execution(
           @agent.agent_id,
           owner_token: request.admission_token
@@ -404,36 +404,72 @@ module Phronomy
 
         @recovered_coordination_wait = nil
         operation = capture_initial_preparation(request, root)
-        task = environment.submit(on_full: :raise) do
-          @initial_preparation.prepare(operation)
-        end
-        submitted = true
-        request.result_task.track(task) if request.result_task.respond_to?(:track)
-        task.on_complete do |result, error|
-          ready = InitialPreparationReady.new(
-            coordinator: self,
-            request: request,
-            result: result,
-            error: error
-          )
-          fail_task(request.result_task, runtime_rejected_error(:initial_preparation)) unless
-            post_control(environment, ready)
-        end
+        owner = InitialPreparationRecoveryOperation.new(agent: @agent, coordinator: self,
+          environment: environment, command: operation, request: request)
+        owner.start
       rescue => error
-        if admitted
-          if submitted
-            environment.registry.mark_agent_admission_recovery_required(
-              @agent.agent_id,
-              owner_token: request.admission_token
-            )
-          else
-            environment.registry.release_agent_execution_admission(
-              @agent.agent_id,
-              owner_token: request.admission_token
-            )
+        if owner && environment.registry.owns_initial_preparation?(owner)
+          owner.shutdown(error)
+        else
+          if admitted
+            environment.registry.release_agent_execution_admission(@agent.agent_id,
+              owner_token: request.admission_token)
           end
+          request.controls.close
+          deliver_start_failure_on_event_loop(request, error)
         end
-        deliver_start_failure_on_event_loop(request, error)
+      end
+
+      def apply_retained_initial_preparation_on_event_loop(owner, result)
+        environment = @agent.__execution_environment
+        assert_event_loop!(environment)
+        unless environment.registry.owns_initial_preparation?(owner)
+          raise Phronomy::Error, "Initial preparation no longer owns its admission"
+        end
+        @agent.send(:__assert_live_agent!)
+        request = (result.admission_outcome == :active) ? owner.application_request : owner.request
+        if result.admission_outcome == :active
+          owner.controls.check_start!
+          owner.controls.token&.raise_if_cancelled!
+        end
+        environment.registry.bind_initial_preparation(owner)
+        apply_initial_live_state(result)
+        if result.admission_outcome == :terminal
+          discard_unadmitted_initial_projection(owner, environment)
+          callback_error = unless request.result_task.done?
+            @agent.send(:_deliver_stream_event, request.on_event,
+              StreamEvent.new(type: terminal_event_type(result.error), payload: {error: result.error}))
+          end
+          settle_execution_waiters(environment, result.execution.execution_id,
+            request.result_task, callback_error, terminal_event_type(result.error), nil, result.error)
+        else
+          register_initial_session_on_event_loop(request, result, owner: owner)
+        end
+      end
+
+      def discard_unadmitted_initial_projection(owner, environment)
+        state = environment.registry.agent_execution_state(owner.execution_id)
+        return unless state
+        session = owner.initial_session
+        known_unadmitted = session && (!owner.session_registration_attempted ||
+          (environment.respond_to?(:session_admitted?) && !environment.session_admitted?(session.id)))
+        unless known_unadmitted && environment.registry.discard_initial_projection(owner)
+          raise Phronomy::Error, "Initial terminal cleanup cannot discard an admitted or unknown session"
+        end
+      end
+
+      # Local application can lose its response too. Reuse the same saved
+      # journal identities instead of appending a terminal audit twice.
+      def apply_initial_live_state(result)
+        existing = @agent.send(:_journal_records_snapshot).to_h { |record| [record.record_id, record] }
+        missing = result.appended_records.reject do |record|
+          prior = existing[record.record_id]
+          if prior && prior.to_h != record.to_h
+            raise Phronomy::Error, "Initial journal application conflicts with its captured record"
+          end
+          prior
+        end
+        apply_agent_live_state(root: result.root, appended_records: missing)
       end
 
       def capture_initial_preparation(request, root)
@@ -467,75 +503,7 @@ module Phronomy
         end
       end
 
-      def apply_initial_preparation_on_event_loop(ready)
-        request = ready.request
-        environment = @agent.__execution_environment
-        if ready.error
-          environment.registry.mark_agent_admission_recovery_required(
-            @agent.agent_id,
-            owner_token: request.admission_token
-          )
-          deliver_start_failure_on_event_loop(request, ready.error)
-          return
-        end
-
-        result = ready.result
-        case result.admission_outcome
-        when :not_established
-          environment.registry.release_agent_execution_admission(
-            @agent.agent_id,
-            owner_token: request.admission_token
-          )
-          deliver_start_failure_on_event_loop(request, result.error)
-          return
-        when :outcome_unknown, :recovery_required
-          environment.registry.mark_agent_admission_recovery_required(
-            @agent.agent_id,
-            owner_token: request.admission_token
-          )
-          deliver_start_failure_on_event_loop(request, result.error)
-          return
-        when :active, :terminal
-          environment.registry.bind_agent_execution_admission(
-            @agent.agent_id,
-            owner_token: request.admission_token,
-            execution_id: result.execution.execution_id
-          )
-        else
-          environment.registry.mark_agent_admission_recovery_required(
-            @agent.agent_id,
-            owner_token: request.admission_token
-          )
-          raise Phronomy::Error,
-            "unknown initial admission outcome: #{result.admission_outcome.inspect}"
-        end
-
-        apply_agent_live_state(
-          root: result.root,
-          appended_records: result.appended_records
-        )
-        if result.admission_outcome == :terminal
-          environment.registry.release_agent_execution_admission(
-            @agent.agent_id,
-            execution_id: result.execution.execution_id
-          )
-          deliver_start_failure_on_event_loop(request, result.error)
-          return
-        end
-
-        register_initial_session_on_event_loop(request, result)
-      rescue => error
-        # Preparation may already be durably active. Terminalize through another
-        # offloaded durable operation rather than releasing the admission blindly.
-        begin_terminal_after_start_failure_on_event_loop(
-          request: request,
-          prepared: ready.result,
-          error: error
-        )
-      end
-
-      def register_initial_session_on_event_loop(request, prepared)
-        environment = @agent.__execution_environment
+      def build_initial_session(request, prepared, environment)
         Phronomy::Tracing::Automatic.observe_task(
           request.result_task,
           "agent.execution",
@@ -561,24 +529,47 @@ module Phronomy
           mode: request.mode,
           event_listener: request.on_event
         )
-        session = environment.build_agent_session(invocation: invocation)
-        environment.registry.install_agent_execution(
-          execution_id: prepared.execution.execution_id,
-          agent: @agent,
-          coordinator: self,
-          execution: prepared.execution,
-          runtime_projection: prepared.runtime_projection,
-          base_manifest: prepared.runtime_projection.manifest,
-          invocation: session.context,
-          fsm_session_id: session.id
-        )
+        environment.build_agent_session(invocation: invocation)
+      end
+
+      def register_initial_session_on_event_loop(request, prepared, owner: nil)
+        environment = @agent.__execution_environment
+        session = owner&.initial_session || build_initial_session(request, prepared, environment)
+        owner.initial_session = session if owner
+        state = environment.registry.agent_execution_state(prepared.execution.execution_id)
+        if state
+          unless owner && state.agent.equal?(@agent) && state.coordinator.equal?(self) &&
+              state.fsm_session_id == session.id && state.invocation.equal?(session.context)
+            raise Phronomy::Error, "Initial execution has another installed session"
+          end
+        else
+          environment.registry.install_agent_execution(
+            execution_id: prepared.execution.execution_id,
+            agent: @agent,
+            coordinator: self,
+            execution: prepared.execution,
+            runtime_projection: prepared.runtime_projection,
+            base_manifest: prepared.runtime_projection.manifest,
+            invocation: session.context,
+            fsm_session_id: session.id
+          )
+        end
         environment.registry.register_agent_completion_waiter(
           prepared.execution.execution_id,
           request.result_task
         )
-        execution_session_runner(environment).register(
-          session, request.result_task
-        )
+        return if owner && environment.respond_to?(:session_admitted?) && environment.session_admitted?(session.id)
+        if owner&.session_registration_attempted && !environment.respond_to?(:session_admitted?)
+          raise Phronomy::Error, "Initial session registration has no authoritative admission observation"
+        end
+        owner.session_registration_attempted = true if owner
+        begin
+          execution_session_runner(environment).register(session, request.result_task)
+        rescue
+          # A lost registration response cannot authorize another session.
+          # The same EventLoop can positively confirm this exact admission.
+          raise unless owner && environment.respond_to?(:session_admitted?) && environment.session_admitted?(session.id)
+        end
       end
 
       def deliver_start_failure_on_event_loop(request, error)
@@ -2396,7 +2387,7 @@ module Phronomy
         admission = command.is_a?(StartCommand) || command.is_a?(ResumeCommand)
         completion = case command
         when StartCommand, ResumeCommand then command.result_task
-        when InitialPreparationReady, ResumeCommitReady then command.request.result_task
+        when ResumeCommitReady then command.request.result_task
         when InitialPreparationRecoveryReady then command.load_completion
         when TerminalCommitReady then command.delivery.result_task
         when DeferredTerminalCommand then command.result_task

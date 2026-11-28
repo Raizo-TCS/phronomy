@@ -155,8 +155,13 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     faults.arm(1)
     expect(agent).not_to receive(:run_input_filters!)
 
-    expect { agent.invoke_async("hello").wait_result(timeout: 2) }
-      .to raise_error(IOError, /response lost/)
+    token = Phronomy::Concurrency::CancellationToken.new
+    expect { agent.invoke_async("hello", config: {cancellation_token: token}).wait_result(timeout: 2) }
+      .to raise_error(Phronomy::Agent::InitialPreparationRecoveryError) { |error|
+        expect(error.original_error).to be_a(IOError)
+        expect(error.original_error.message).to include("response lost")
+        expect(error.recovery).to equal(agent.pending_initial_preparation_recovery)
+      }
     expect { agent.invoke_async("again").wait_result(timeout: 2) }
       .to raise_error(Phronomy::AgentBusyError)
 
@@ -164,6 +169,11 @@ RSpec.describe Phronomy::Agent::InitialPreparation do
     stored = persistence.executions.list_active(agent.agent_id)
     expect(stored.length).to eq(1)
     expect(stored.first.status).to eq(:preparing)
+    token.cancel!
+    receipt = agent.reconcile_initial_preparation(recovery: agent.pending_initial_preparation_recovery)
+    expect(receipt).to be_resolved
+    expect(receipt.execution_task.wait_result(timeout: 2)).to include(status: :cancelled)
+    expect(agent.pending_initial_preparation_recovery).to be_nil
   end
 
   it "does not advance its failure base after a lost active-commit response" do

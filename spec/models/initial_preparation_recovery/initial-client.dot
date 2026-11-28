@@ -1,0 +1,20 @@
+digraph InitialClient {
+  graph [rankdir=TB, bgcolor="white", pad="0.2", nodesep="0.35", ranksep="0.5", fontname="Arial", label="One caller observation", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#edf4fc", color="#345477", fontname="Arial", fontsize=11, margin="0.16,0.10"];
+  edge [fontname="Arial", fontsize=10, color="#345477"];
+  start [shape=point, width=0.10, label=""];
+  pending [label="Observing\nAwait this call's result"];
+  complete [label="Completed\nRecovery receipt or execution result", fillcolor="#e7f3e8"];
+  failed [label="Failed\nOriginal result stays closed", fillcolor="#f8eeee"];
+  cancelled [label="Cancelled\nThis observation ends", fillcolor="#fff5df"];
+  end [shape=doublecircle, label="", width=0.18, height=0.18, fillcolor="#345477"];
+  start -> pending [label="original call or fresh recovery call"];
+  pending -> complete [label="result delivered"];
+  pending -> failed [label="observation failure"];
+  pending -> cancelled [label="caller stops observing"];
+  complete -> end;
+  failed -> end;
+  cancelled -> end;
+  note [shape=note, fillcolor="#f5f5f5", color="#777777", label="Closing this observation does not release\nthe initial owner or cancel its parent scope.\nA later recovery creates a new observation."];
+  end -> note [style=dashed, arrowhead=none];
+}

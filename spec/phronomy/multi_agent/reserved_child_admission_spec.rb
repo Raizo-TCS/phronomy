@@ -101,4 +101,34 @@ RSpec.describe Phronomy::MultiAgent::ReservedChildAdmission do
     end.to raise_error(Phronomy::ConfigurationError, /current owner/)
     expect(store.executions.list("child")).to be_empty
   end
+  %w[stable target_pending].each do |phase|
+    it "acquires the complete ordered Handoff Agent guard set before #{phase} admission" do
+      handoff_owner = {"kind" => "handoff", "main_agent_id" => "zzz-main"}
+      %w[aaa-source zzz-main].each do |id|
+        store.agents.create(Phronomy::Agent::AgentRoot.create(agent_id: id,
+          agent_definition_id: id, agent_definition_version: 1))
+      end
+      now = Time.now.utc.iso8601(6)
+      routing = Phronomy::MultiAgent::HandoffState.new(main_agent_id: "zzz-main",
+        handoff_revision: 1, active_agent_id: root.agent_id, active_handoff_context_ref: nil,
+        phase: phase, pending_source_execution_id: "source-run",
+        pending_target_execution_id: (phase == "stable") ? nil : "child-run",
+        created_at: now, updated_at: now, metadata: {"source_agent_id" => "aaa-source"})
+      multi_agent_store.handoff_states.save("zzz-main", expected_revision: nil, state: routing)
+      request = Phronomy::Agent::Admission.new(persistence: store, root: root, input: "input",
+        config: {phronomy_reserved_execution_id: "child-run", phronomy_reservation: handoff_owner},
+        preparation_metadata: {})
+      calls = []
+      allow(store.coordinator.backend).to receive(:lock_guard).and_wrap_original do |method, context, resource, **args|
+        calls << [resource.id, args.fetch(:key)]
+        method.call(context, resource, **args)
+      end
+
+      described_class.new(persistence: multi_agent_store, owner: handoff_owner).admit(request)
+
+      expected = (phase == "stable") ? ["child", "zzz-main"] : ["aaa-source", "child", "zzz-main"]
+      expect(calls.first).to eq([Phronomy::MultiAgent::Persistence::StorageSchema::HANDOFF_STATES.id, "zzz-main"])
+      expect(calls.filter_map { |resource, key| key if resource == "agent.roots" }.first(expected.length)).to eq(expected)
+    end
+  end
 end

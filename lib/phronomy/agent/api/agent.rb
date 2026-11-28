@@ -22,6 +22,7 @@ require_relative "../terminal_recovery_api"
 require_relative "../outcome_recovery_api"
 require_relative "../approval_recovery_api"
 require_relative "../dispatch_recovery_api"
+require_relative "../initial_preparation_recovery_api"
 
 unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)
@@ -48,3 +49,7 @@ require_relative "../recovery/recovery_support"
 require_relative "../recovery/recovery_coordinator"
 
 Phronomy::Agent::Base.prepend(Phronomy::Agent::LifetimeApi)
+
+unless Phronomy::Agent::Base < Phronomy::Agent::InitialPreparationRecoveryApi
+  Phronomy::Agent::Base.prepend(Phronomy::Agent::InitialPreparationRecoveryApi)
+end

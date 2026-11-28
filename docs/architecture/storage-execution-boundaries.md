@@ -18,7 +18,7 @@ reconciliation belongs to `ExecutionChange#perform_once`.
 |---|---|---|
 | `agent/execution/execution_coordinator.rb` | Provider dispatch preparation | Agent environment; ProviderDispatchPreparationReady |
 | same | Tool dispatch preparation | Agent environment; ToolDispatchPreparationReady |
-| same | Initial invocation preparation | Agent environment; InitialPreparationReady |
+| same | Initial invocation preparation | Agent environment; InitialPreparationRecoveryOperation::Ready |
 | same | Recovery of initial preparation | Agent environment; InitialPreparationRecoveryReady |
 | same | Approval resume commit | Agent environment; ResumeCommitReady and admission handling |
 | same | Terminal outcome commit | Agent environment; TerminalCommitReady and commit/readback policy |

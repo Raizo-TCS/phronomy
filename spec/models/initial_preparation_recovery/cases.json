@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "id": "progress-admission-pre",
+      "kind": "property",
+      "description": "Exact admission pre-state resolves under explicit progress premises.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-admission-post",
+      "kind": "property",
+      "description": "Exact admission post-state resolves under explicit progress premises.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-activation-pre",
+      "kind": "property",
+      "description": "Exact activation pre-state resolves under explicit progress premises.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-activation-post",
+      "kind": "property",
+      "description": "Exact activation post-state resolves under explicit progress premises.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-failure-pre",
+      "kind": "property",
+      "description": "Exact failure pre-state resolves under explicit progress premises.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"failure\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-failure-post",
+      "kind": "property",
+      "description": "Exact failure post-state resolves under explicit progress premises.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"failure\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-restored-read",
+      "kind": "property",
+      "description": "Read failure is restored without repeating preparation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = FALSE\n  RestoreReads = TRUE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-positive-refusal",
+      "kind": "property",
+      "description": "Positive non-admission allows a fresh submission.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"refused\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-unknown-submission",
+      "kind": "property",
+      "description": "Unknown submission is retained until its physical work settles.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"unknown\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-parent-cancellation",
+      "kind": "property",
+      "description": "Late parent cancellation remains attached across the closed original observation.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-unadmitted-cancellation",
+      "kind": "property",
+      "description": "Captured cancellation plus complete admission pre-proof releases without creating a job.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-preactivation-cancellation",
+      "kind": "property",
+      "description": "Cancellation before activation writes failure from the preparing pre-state.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-preparation-failure",
+      "kind": "property",
+      "description": "First-time preparation failure becomes a confirmed terminal outcome.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = FALSE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "progress-terminal-authority-change",
+      "kind": "property",
+      "description": "Confirmed terminal adoption releases original custody despite loss of permission to dispatch.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"failure\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"guard\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-divergent-footprint",
+      "kind": "property",
+      "description": "Partial or divergent saved footprint remains unresolved.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"divergent\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-unavailable-proof",
+      "kind": "property",
+      "description": "Unreadable evidence cannot install or release the original owner.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = FALSE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-cancellation-and-domain-conflict",
+      "kind": "property",
+      "description": "A late control event does not erase an already observed non-cancellation domain rejection.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"domain\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "safety-stale-authority",
+      "kind": "property",
+      "description": "Changed retained domain facts cannot authorize a new continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"domain\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nINVARIANT OneInstallation\nINVARIANT ExactStageProof\nINVARIANT ExactRetry\nINVARIANT NoProposalReplay\nINVARIANT CurrentAuthority\nINVARIANT OriginalControls\nINVARIANT PhysicalCustody\nINVARIANT RetainedCustody\nINVARIANT SubmissionKnowledge\nINVARIANT OriginalFailure\nINVARIANT ClosedOriginal\nINVARIANT IndependentObservers\nINVARIANT NoEarlyRelease\nINVARIANT UnadmittedHasNoJob\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "mutation-replay-preparation",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"replay_preparation\"\nINVARIANT TypeOK\nINVARIANT NoPreparationReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoPreparationReplay"
+    },
+    {
+      "id": "mutation-duplicate-install",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"duplicate_install\"\nINVARIANT TypeOK\nINVARIANT OneInstallation\nCHECK_DEADLOCK FALSE\n",
+      "target": "OneInstallation"
+    },
+    {
+      "id": "mutation-wrong-stage",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"wrong_stage\"\nINVARIANT TypeOK\nINVARIANT ExactStageProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactStageProof"
+    },
+    {
+      "id": "mutation-partial-footprint",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"divergent\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"partial_footprint\"\nINVARIANT TypeOK\nINVARIANT ExactStageProof\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactStageProof"
+    },
+    {
+      "id": "mutation-cached-pre",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"domain\"\n  Bug = \"cached_pre\"\nINVARIANT TypeOK\nINVARIANT ExactRetry\nCHECK_DEADLOCK FALSE\n",
+      "target": "ExactRetry"
+    },
+    {
+      "id": "mutation-rebuild-proposal",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"rebuild_proposal\"\nINVARIANT TypeOK\nINVARIANT NoProposalReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoProposalReplay"
+    },
+    {
+      "id": "mutation-replay-participant",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"replay_participant\"\nINVARIANT TypeOK\nINVARIANT NoProposalReplay\nCHECK_DEADLOCK FALSE\n",
+      "target": "NoProposalReplay"
+    },
+    {
+      "id": "mutation-wrong-identity",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"identity\"\n  Bug = \"wrong_identity\"\nINVARIANT TypeOK\nINVARIANT CurrentAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "CurrentAuthority"
+    },
+    {
+      "id": "mutation-partial-authority",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"domain\"\n  Bug = \"partial_authority\"\nINVARIANT TypeOK\nINVARIANT CurrentAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "CurrentAuthority"
+    },
+    {
+      "id": "mutation-close-controls",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"close_controls\"\nINVARIANT TypeOK\nINVARIANT OriginalControls\nCHECK_DEADLOCK FALSE\n",
+      "target": "OriginalControls"
+    },
+    {
+      "id": "mutation-ignore-physical",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"ignore_physical\"\nINVARIANT TypeOK\nINVARIANT PhysicalCustody\nCHECK_DEADLOCK FALSE\n",
+      "target": "PhysicalCustody"
+    },
+    {
+      "id": "mutation-observer-release",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"observer_releases_owner\"\nINVARIANT TypeOK\nINVARIANT RetainedCustody\nCHECK_DEADLOCK FALSE\n",
+      "target": "RetainedCustody"
+    },
+    {
+      "id": "mutation-unknown-as-refusal",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"unknown\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"unknown_as_refusal\"\nINVARIANT TypeOK\nINVARIANT SubmissionKnowledge\nCHECK_DEADLOCK FALSE\n",
+      "target": "SubmissionKnowledge"
+    },
+    {
+      "id": "mutation-replace-failure",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"failure\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"replace_failure\"\nINVARIANT TypeOK\nINVARIANT OriginalFailure\nCHECK_DEADLOCK FALSE\n",
+      "target": "OriginalFailure"
+    },
+    {
+      "id": "mutation-reopen-original",
+      "kind": "mutation",
+      "description": "This deliberate defect must produce the named invariant counterexample.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"reopen_original\"\nINVARIANT TypeOK\nINVARIANT ClosedOriginal\nCHECK_DEADLOCK FALSE\n",
+      "target": "ClosedOriginal"
+    },
+    {
+      "id": "witness-installation",
+      "kind": "witness",
+      "description": "The model reaches a live installation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverInstalled\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverInstalled"
+    },
+    {
+      "id": "witness-terminal-release",
+      "kind": "witness",
+      "description": "The model reaches terminal adoption; positive cases additionally require custody release.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"failure\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverTerminal\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverTerminal"
+    },
+    {
+      "id": "witness-explicit-retry",
+      "kind": "witness",
+      "description": "The captured write can be retried from complete pre-state.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverRetried\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverRetried"
+    },
+    {
+      "id": "witness-unadmitted-stop",
+      "kind": "witness",
+      "description": "A cancelled confirmed-pre admission can stop without creating a durable job.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"admission\"\n  Save = \"pre\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverUnadmittedStop\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverUnadmittedStop"
+    },
+    {
+      "id": "witness-late-parent-cancel",
+      "kind": "witness",
+      "description": "Parent cancellation can occur after the original observer closes and reach terminal adoption.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = TRUE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT NeverCancelledAfterClose\nCHECK_DEADLOCK FALSE\n",
+      "target": "NeverCancelledAfterClose"
+    },
+    {
+      "id": "missing-caller",
+      "kind": "missing_assumption",
+      "description": "Progress cannot be claimed without a fresh recovery caller.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = FALSE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-physical-completion",
+      "kind": "missing_assumption",
+      "description": "Observation close cannot replace original physical settlement.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = FALSE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-delivery",
+      "kind": "missing_assumption",
+      "description": "An accepted worker needs eventual result delivery to its owner.",
+      "configuration": "SPECIFICATION ProgressSpec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = FALSE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = TRUE\n  Drift = \"none\"\n  Bug = \"none\"\nINVARIANT TypeOK\nPROPERTY EventuallyReleased\nCHECK_DEADLOCK FALSE\n"
+    },
+    {
+      "id": "missing-authority-stability",
+      "kind": "missing_assumption",
+      "description": "A full proof alone does not fence un-rechecked domain facts before continuation.",
+      "configuration": "SPECIFICATION Spec\nCONSTANTS\n  Boundary = \"activation\"\n  Save = \"post\"\n  Readable = TRUE\n  RestoreReads = FALSE\n  Caller = TRUE\n  ExplicitRetry = TRUE\n  SettleWorkers = TRUE\n  Delivery = TRUE\n  Submission = \"accepted\"\n  ParentCancellation = FALSE\n  PreparationSucceeds = TRUE\n  StableAuthority = FALSE\n  Drift = \"domain\"\n  Bug = \"none\"\nINVARIANT TypeOK\nINVARIANT CurrentAuthority\nCHECK_DEADLOCK FALSE\n",
+      "target": "CurrentAuthority"
+    }
+  ]
+}
